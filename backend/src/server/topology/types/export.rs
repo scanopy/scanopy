@@ -33,6 +33,7 @@ fn edge_type_name(edge_type: &EdgeType) -> &'static str {
     match edge_type {
         EdgeType::SameHost { .. } => "Same Host",
         EdgeType::Hypervisor { .. } => "Hypervisor",
+        EdgeType::NetworkIdentity { .. } => "Network Identity",
         EdgeType::ContainerRuntime { .. } => "Container Runtime",
         EdgeType::SameContainer { .. } => "Same Container",
         EdgeType::RequestPath { .. } => "Request Path",
@@ -126,7 +127,9 @@ pub fn topology_to_mermaid(nodes: &[Node], edges: &[Edge], data: &TopologyData) 
             | EdgeType::SameContainer { .. } => "---",
             // Dotted: adjacent devices, exact ports unknown.
             EdgeType::NeighborLink { .. } => "-.-",
-            EdgeType::Hypervisor { .. } | EdgeType::ContainerRuntime { .. } => "-.->",
+            EdgeType::Hypervisor { .. }
+            | EdgeType::NetworkIdentity { .. }
+            | EdgeType::ContainerRuntime { .. } => "-.->",
         };
 
         let label_str = edge

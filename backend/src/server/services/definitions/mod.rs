@@ -419,6 +419,7 @@ pub mod wizarr;
 // ============= SPECIAL =============
 
 // Scanopy
+pub mod network_identities;
 pub mod open_ports;
 pub mod scanopy_daemon;
 pub mod scanopy_server;

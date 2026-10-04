@@ -23,6 +23,7 @@
 //! [`mapping`] the wire → entity translation.
 
 pub mod client;
+pub mod identities;
 pub mod mapping;
 pub mod types;
 
@@ -57,7 +58,8 @@ use super::{
 use crate::daemon::discovery::service::ops::HostData;
 use crate::daemon::discovery::service::warnings::AttemptOutcome;
 use client::ProxmoxClient;
-use mapping::{GuestReading, GuestSummary, NodeReading, NodeSpec, REPORTED};
+use identities::NetworkIdentity;
+use mapping::{GuestReading, GuestRecord, GuestSummary, NodeReading, NodeSpec, REPORTED};
 use types::{
     AgentHostName, AgentInterfaces, AgentOsInfo, ClusterResource, ClusterStatusEntry, GuestConfig,
     LxcInterface, NodeNetworkEntry, NodeStatus,
@@ -217,22 +219,9 @@ impl DiscoveryIntegration for ProxmoxIntegration {
                 unidentifiable.push(guest_label(guest));
                 continue;
             };
-            match ctx
-                .ops
-                .create_host(
-                    record.host,
-                    record.ip_addresses,
-                    vec![],
-                    vec![],
-                    record.interfaces,
-                    vec![],
-                    // The API reports addresses and NIC MACs, never the guest's interface table.
-                    false,
-                    InterfaceDataComplete::none(),
-                    ctx.cancel,
-                )
-                .await
-            {
+            let identities =
+                identities::network_identities(&reading.nics, &reading.reported, &subnets);
+            match create_guest_host(ctx, &subnets, guest, record, &identities, network_id).await {
                 Ok(_) => created += 1,
                 Err(e) => {
                     tracing::warn!(guest = %guest_label(guest), error = %e, "Failed to record Proxmox VE guest")
@@ -272,6 +261,87 @@ impl DiscoveryIntegration for ProxmoxIntegration {
         }
         Ok(Completeness::Complete)
     }
+}
+
+/// Record a guest's host, then each of its network identities as a host of its own.
+///
+/// A guest with identities carries the Network Identities service, and each identity links to
+/// that service's stored id, read back from the guest's response the way a node's Proxmox VE
+/// service id is. So the guest goes first. An identity that fails to record is logged and the
+/// rest go on: the guest itself is recorded.
+async fn create_guest_host(
+    ctx: &IntegrationContext<'_>,
+    subnets: &[Subnet],
+    guest: &GuestSummary,
+    record: GuestRecord,
+    identities: &[NetworkIdentity],
+    network_id: Uuid,
+) -> Result<(), Error> {
+    let services = identities::guest_services(&record.host, identities);
+    let response = ctx
+        .ops
+        .create_host(
+            record.host,
+            record.ip_addresses,
+            vec![],
+            services,
+            record.interfaces,
+            vec![],
+            // The API reports addresses and NIC MACs, never the guest's interface table.
+            false,
+            InterfaceDataComplete::none(),
+            ctx.cancel,
+        )
+        .await?;
+    if identities.is_empty() {
+        return Ok(());
+    }
+
+    let Some(owner) = response
+        .services
+        .iter()
+        .find(|s| {
+            matches!(
+                s.base.service_definition.virtualization_role(),
+                Some(VirtualizationRole::IdentityHost { .. })
+            )
+        })
+        .map(|s| s.id)
+    else {
+        tracing::warn!(
+            guest = %guest_label(guest),
+            "Proxmox VE guest was recorded without its Network Identities service; its network \
+             identities were not recorded"
+        );
+        return Ok(());
+    };
+    for identity in identities {
+        let (host, ip_addresses) = identities::identity_host(identity, owner, subnets, network_id);
+        if let Err(e) = ctx
+            .ops
+            .create_host(
+                host,
+                ip_addresses,
+                vec![],
+                vec![],
+                vec![],
+                vec![],
+                // One interface of the guest's, seen from the guest; never an interface table.
+                false,
+                InterfaceDataComplete::none(),
+                ctx.cancel,
+            )
+            .await
+        {
+            tracing::warn!(
+                guest = %guest_label(guest),
+                interface = identity.interface.as_deref().unwrap_or("-"),
+                error = %e,
+                "Failed to record a Proxmox VE guest's network identity"
+            );
+        }
+    }
+    Ok(())
 }
 
 /// `pve/110 (gitlab)`, for log lines.
@@ -342,7 +412,8 @@ async fn read_guest(client: &ProxmoxClient, guest: &GuestSummary) -> GuestReadin
         vec![]
     };
 
-    reading.addresses = mapping::select_addresses(&nics, runtime);
+    reading.addresses = mapping::select_addresses(&nics, runtime.clone());
+    reading.reported = runtime;
     reading.nics = nics;
     reading
 }
@@ -439,9 +510,9 @@ async fn create_node_host(
 }
 
 fn is_proxmox_ve(role: Option<VirtualizationRole>) -> bool {
-    role == Some(VirtualizationRole::Vms(
-        HostVirtualizationDiscriminants::Proxmox,
-    ))
+    role == Some(VirtualizationRole::Hypervisor {
+        hosts: HostVirtualizationDiscriminants::Proxmox,
+    })
 }
 
 #[cfg(test)]
@@ -570,6 +641,11 @@ mod lab_tests {
                         .collect::<Vec<_>>()
                 })
             );
+            let identities =
+                identities::network_identities(&reading.nics, &reading.reported, &subnets);
+            if !identities.is_empty() {
+                println!("  network identities {identities:?}");
+            }
         }
         assert!(!nodes.is_empty(), "the lab has a node");
         assert!(!guests.is_empty(), "the lab has a guest");

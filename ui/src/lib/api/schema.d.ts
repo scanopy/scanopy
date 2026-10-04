@@ -3528,19 +3528,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-03T16:32:30.278264Z",
+             *       "created_at": "2026-10-04T14:41:52.966753Z",
              *       "first_discovery_id": null,
-             *       "id": "1e599424-43cf-42c6-80b8-1aa8e1ac3710",
+             *       "id": "06758139-6945-4368-a498-f348e3de17fa",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-03T16:32:30.278264Z",
+             *       "last_seen_at": "2026-10-04T14:41:52.966753Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-03T16:32:30.278264Z",
-             *       "valid_from": "2026-10-03T16:32:30.278264Z",
+             *       "updated_at": "2026-10-04T14:41:52.966753Z",
+             *       "valid_from": "2026-10-04T14:41:52.966753Z",
              *       "valid_to": null
              *     }
              */
@@ -4368,19 +4368,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-03T16:32:30.253844Z",
+             *               "created_at": "2026-10-04T14:41:52.945982Z",
              *               "first_discovery_id": null,
-             *               "id": "f95c08dd-74ef-454b-8c8a-7cdb94858bae",
+             *               "id": "4fc08d21-8cc9-4e72-91a3-76bf2af8d243",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-03T16:32:30.253844Z",
+             *               "last_seen_at": "2026-10-04T14:41:52.945982Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-03T16:32:30.253844Z",
-             *               "valid_from": "2026-10-03T16:32:30.253844Z",
+             *               "updated_at": "2026-10-04T14:41:52.945982Z",
+             *               "valid_from": "2026-10-04T14:41:52.945982Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4394,7 +4394,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Philips Hue Bridge",
+             *           "service_definition": "Lubelogger",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5313,19 +5313,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-03T16:32:30.273200Z",
+             *           "created_at": "2026-10-04T14:41:52.962127Z",
              *           "first_discovery_id": null,
-             *           "id": "aa8d57c4-dfd3-4996-b4a0-2295bc532a8a",
+             *           "id": "be710087-6958-4adb-b2b0-f9600512a3b5",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-03T16:32:30.273200Z",
+             *           "last_seen_at": "2026-10-04T14:41:52.962127Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-03T16:32:30.273200Z",
-             *           "valid_from": "2026-10-03T16:32:30.273200Z",
+             *           "updated_at": "2026-10-04T14:41:52.962127Z",
+             *           "valid_from": "2026-10-04T14:41:52.962127Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5339,7 +5339,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Philips Hue Bridge",
+             *       "service_definition": "Lubelogger",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6441,19 +6441,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-03T16:32:30.254556Z",
+         *       "created_at": "2026-10-04T14:41:52.946547Z",
          *       "first_discovery_id": null,
-         *       "id": "d775b89b-3950-43bf-bd1e-e15c913073f6",
+         *       "id": "43f45b81-d528-4d54-95a1-53f06ed1d736",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-03T16:32:30.254556Z",
+         *       "last_seen_at": "2026-10-04T14:41:52.946547Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-03T16:32:30.254556Z",
-         *       "valid_from": "2026-10-03T16:32:30.254556Z",
+         *       "updated_at": "2026-10-04T14:41:52.946547Z",
+         *       "valid_from": "2026-10-04T14:41:52.946547Z",
          *       "valid_to": null
          *     }
          */
@@ -6704,6 +6704,26 @@ export interface components {
         ClockFormat: "browser_default" | "twelve_hour" | "twenty_four_hour";
         /** @enum {string} */
         Color: "Pink" | "Rose" | "Red" | "Amber" | "Orange" | "Green" | "Emerald" | "Teal" | "Cyan" | "Blue" | "Indigo" | "Purple" | "Fuchsia" | "Violet" | "Sky" | "Gray" | "Lime" | "Yellow";
+        /**
+         * @description A container with its own identity on the LAN: a macvlan or ipvlan endpoint gives it a MAC and
+         *     an IP of its own, so it is a host under its runtime rather than a service on the runtime's
+         *     host. Containers on bridge networks stay services (`ServiceVirtualization`).
+         */
+        ContainerHostVirtualization: {
+            /** @description Compose project the container belongs to, when it was started by Compose. */
+            compose_project?: string | null;
+            /** @description Container ID as reported by the runtime. */
+            container_id?: string | null;
+            /** @description Container name as reported by the runtime. */
+            container_name?: string | null;
+            /** @description The network driver that gives the container its own LAN address. */
+            network_type: components["schemas"]["ContainerNetworkType"];
+        };
+        /**
+         * @description The container network drivers that put a container directly on the LAN.
+         * @enum {string}
+         */
+        ContainerNetworkType: "MacVlan" | "IpVlan";
         /** @enum {string} */
         ContainerType: "Subnet" | "ServiceCategory" | "Application" | "ApplicationUngrouped" | "Root" | "Host" | "NestedTag" | "NestedServiceCategory" | "Hypervisor" | "ContainerRuntime" | "Stack" | "TrunkPort" | "VLAN" | "PortOpStatus";
         /**
@@ -6781,7 +6801,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Philips Hue Bridge",
+         *           "service_definition": "Lubelogger",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8581,7 +8601,18 @@ export interface components {
              */
             hypervisor_service_id: string;
         } | {
-            /** @description The containerized services this edge stands for — the ones on those subnets. */
+            /** @enum {string} */
+            edge_type: "NetworkIdentity";
+            /**
+             * Format: uuid
+             * @description The guest's Network Identities service, which owns the identity host.
+             */
+            identities_service_id: string;
+        } | {
+            /**
+             * @description The containerized services this edge stands for — the ones on those subnets. Empty on
+             *     an edge to a container host.
+             */
             containerized_service_ids: string[];
             /** @enum {string} */
             edge_type: "ContainerRuntime";
@@ -8598,7 +8629,8 @@ export interface components {
             /**
              * @description The bridge subnet(s) this edge reaches: one when they render as their own boxes,
              *     all of them when merged into a single box. Resolved here rather than in the
-             *     inspector, which cannot tell which subnet an elevated edge landed on.
+             *     inspector, which cannot tell which subnet an elevated edge landed on. For an edge to a
+             *     container host (macvlan, ipvlan), the subnet holding the address it ends on.
              */
             subnet_ids: string[];
         } | {
@@ -8677,7 +8709,7 @@ export interface components {
             target_host_id: string;
         };
         /** @enum {string} */
-        EdgeTypeDiscriminants: "SameHost" | "Hypervisor" | "ContainerRuntime" | "SameContainer" | "RequestPath" | "HubAndSpoke" | "PhysicalLink" | "NeighborLink";
+        EdgeTypeDiscriminants: "SameHost" | "Hypervisor" | "NetworkIdentity" | "ContainerRuntime" | "SameContainer" | "RequestPath" | "HubAndSpoke" | "PhysicalLink" | "NeighborLink";
         /** @description Per-view configuration for an edge: disabled (not in this view) or active with properties */
         EdgeViewConfig: {
             /** @enum {string} */
@@ -9304,19 +9336,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-03T16:32:30.253065Z",
+         *               "created_at": "2026-10-04T14:41:52.945362Z",
          *               "first_discovery_id": null,
-         *               "id": "bb9fe49f-8734-4d2e-b96b-f0892e7e2dae",
+         *               "id": "e23ae49d-c5c4-4619-897c-13dc66c0ad06",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-03T16:32:30.253065Z",
+         *               "last_seen_at": "2026-10-04T14:41:52.945362Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-03T16:32:30.253065Z",
-         *               "valid_from": "2026-10-03T16:32:30.253065Z",
+         *               "updated_at": "2026-10-04T14:41:52.945362Z",
+         *               "valid_from": "2026-10-04T14:41:52.945362Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9330,7 +9362,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Philips Hue Bridge",
+         *           "service_definition": "Lubelogger",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9544,6 +9576,18 @@ export interface components {
             details: components["schemas"]["EsxiVirtualization"];
             /** @enum {string} */
             type: "ESXi";
+        } | {
+            details: components["schemas"]["ContainerHostVirtualization"];
+            /** @enum {string} */
+            type: "Docker";
+        } | {
+            details: components["schemas"]["ContainerHostVirtualization"];
+            /** @enum {string} */
+            type: "Podman";
+        } | {
+            details: components["schemas"]["NetworkIdentityVirtualization"];
+            /** @enum {string} */
+            type: "NetworkIdentity";
         };
         /**
          * @example {
@@ -10600,6 +10644,17 @@ export interface components {
             stale_after_hours: number | null;
             /** @description Tags assigned to this entity. */
             tags: string[];
+        };
+        /**
+         * @description An address and MAC that a host presents from an interface of its own beyond its configured
+         *     NICs: a macvlan shim, a virtual IP, a service given its own LAN address, an emulated device.
+         *     The reporting source proves only that the interface lives inside that host, not what it is,
+         *     so nothing here classifies it. The owner is the host's Network Identities service
+         *     (`Host::virtualization_service_id`).
+         */
+        NetworkIdentityVirtualization: {
+            /** @description The owning host's interface the identity sits on (`mv-snmp4`). */
+            interface?: string | null;
         };
         /** @description Network configuration for setup */
         NetworkSetup: {
@@ -12374,19 +12429,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-03T16:32:30.254347Z",
+         *           "created_at": "2026-10-04T14:41:52.946376Z",
          *           "first_discovery_id": null,
-         *           "id": "de74a308-63d3-4e23-9994-e333aca4a5ed",
+         *           "id": "e28f2c58-e574-4e4d-9cbb-2e07dc6dc93c",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-03T16:32:30.254347Z",
+         *           "last_seen_at": "2026-10-04T14:41:52.946376Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-03T16:32:30.254347Z",
-         *           "valid_from": "2026-10-03T16:32:30.254347Z",
+         *           "updated_at": "2026-10-04T14:41:52.946376Z",
+         *           "valid_from": "2026-10-04T14:41:52.946376Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12400,7 +12455,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Philips Hue Bridge",
+         *       "service_definition": "Lubelogger",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12494,7 +12549,7 @@ export interface components {
             virtualization_service_id: string | null;
         };
         /** @enum {string} */
-        ServiceCategory: "NetworkCore" | "NetworkAccess" | "NetworkAppliance" | "RemoteAccess" | "Storage" | "Backup" | "Media" | "HomeAutomation" | "Hypervisor" | "ContainerRuntime" | "Container" | "Orchestrator" | "DNS" | "VPN" | "Monitoring" | "AdBlock" | "ReverseProxy" | "Workstation" | "Mobile" | "IoT" | "Industrial" | "Printer" | "Database" | "Development" | "Dashboard" | "MessageQueue" | "IdentityAndAccess" | "Integration" | "Office" | "ProjectManagement" | "Messaging" | "Conferencing" | "Telephony" | "Email" | "Publishing" | "Unknown" | "Custom" | "Scanopy" | "OpenPorts";
+        ServiceCategory: "NetworkCore" | "NetworkAccess" | "NetworkAppliance" | "RemoteAccess" | "Storage" | "Backup" | "Media" | "HomeAutomation" | "Hypervisor" | "ContainerRuntime" | "Container" | "Orchestrator" | "DNS" | "VPN" | "Monitoring" | "AdBlock" | "ReverseProxy" | "Workstation" | "Mobile" | "IoT" | "Industrial" | "Printer" | "Database" | "Development" | "Dashboard" | "MessageQueue" | "IdentityAndAccess" | "Integration" | "Office" | "ProjectManagement" | "Messaging" | "Conferencing" | "Telephony" | "Email" | "Publishing" | "Unknown" | "Custom" | "Scanopy" | "OpenPorts" | "NetworkIdentities";
         /**
          * @description Input for creating or updating a service.
          *     Used in both CreateHostRequest and UpdateHostRequest.
@@ -13121,7 +13176,8 @@ export interface components {
              */
             bundle_edges: boolean;
             /**
-             * @description Edge types to leave out of the drawing.
+             * @description Edge types to leave out of the drawing. Unknown values are dropped on read rather than
+             *     failing the topology — see [`deserialize_known_edge_types`](crate::server::topology::types::edges::deserialize_known_edge_types).
              * @default [
              *       "Hypervisor"
              *     ]
@@ -13158,7 +13214,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "7694e962-aa99-4ac0-9f44-d10ef1963443",
+             *           "id": "1cccc59b-8e63-488c-8697-1f68fc64099a",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13168,23 +13224,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "7e2ceef7-577d-49e4-a400-a051aba105f1",
+             *           "id": "7d34184f-15db-4953-a18b-0e27f1d8b6cb",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "ee67030b-b334-40b7-a2a1-79dc9c503f5e",
+             *           "id": "c487f778-16ea-441d-8c92-1f698ec4e242",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "41c4ad81-698d-45e3-bb7c-d98875ac5b7c",
+             *           "id": "dac30faf-b2eb-4cf0-9008-de11d52e5228",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "7e2ceef7-577d-49e4-a400-a051aba105f1",
+             *           "id": "7d34184f-15db-4953-a18b-0e27f1d8b6cb",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13197,19 +13253,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "02e25a5e-780c-4b83-b939-a7c161392622",
+             *         "id": "53ce1a54-567f-4b13-b909-6d58a7919e5f",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "74edbcf8-01a8-46a9-b527-06b53887ce5e",
+             *         "id": "6b6fa47e-0301-4c7c-90c4-8adb1c79059d",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "3615a447-bd78-4c44-ac4f-1942cae97cbb",
+             *         "id": "057d62cc-67a5-4a27-83df-362771fb9dcc",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "aa1d2d76-2cea-418c-891c-94a1899df234",
+             *         "id": "ba0b9c7e-6414-4111-a1f1-7b071e193e5b",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13219,7 +13275,8 @@ export interface components {
              *               "Workstation",
              *               "Mobile",
              *               "Printer",
-             *               "OpenPorts"
+             *               "OpenPorts",
+             *               "NetworkIdentities"
              *             ],
              *             "is_infra_rule": true,
              *             "title": "Infrastructure"
@@ -13227,7 +13284,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "1116fecb-739c-44bc-b597-8343107bae65",
+             *         "id": "ed81f90f-c51b-4b9c-90a5-4e0081e79e45",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13236,15 +13293,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "fa0c11d0-ae22-44e7-9e1d-4e82fcbd2ba8",
+             *         "id": "c3e8977d-e74e-4666-af98-2460fde856ce",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "985fbfd3-830d-4c0a-a433-0374b852b330",
+             *         "id": "b45d09a7-a08c-4342-8bd2-c956cd2341f5",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "c679f9ac-c23a-449a-9219-b5422b80353c",
+             *         "id": "9fbe2469-3361-43fe-8a77-ce465d06b6dc",
              *         "rule": "ByStack"
              *       }
              *     ]

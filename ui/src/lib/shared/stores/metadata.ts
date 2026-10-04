@@ -25,6 +25,7 @@ import clientProbesJson from '$lib/data/client-probes.json';
 import matchConfidencesJson from '$lib/data/match-confidences.json';
 import hostVirtualizationsJson from '$lib/data/host-virtualizations.json';
 import proxmoxGuestTypesJson from '$lib/data/proxmox-guest-types.json';
+import containerNetworkTypesJson from '$lib/data/container-network-types.json';
 import {
 	createColorHelper,
 	createIconComponent,
@@ -123,6 +124,7 @@ export interface MetadataRegistry {
 	match_confidences: TypeMetadata[];
 	host_virtualizations: TypeMetadata[];
 	proxmox_guest_types: TypeMetadata[];
+	container_network_types: TypeMetadata[];
 }
 
 // Utility type to add proper typing to the metadata field
@@ -158,7 +160,13 @@ export interface BillingPlanMetadata {
 
 export interface ServicedDefinitionMetadata {
 	can_be_added: boolean;
-	manages_virtualization: 'vms' | 'containers';
+	/**
+	 * The manager's `VirtualizationRole`, as its strum serialization. The backend sends it as a
+	 * plain string in fixture metadata (the role is not an OpenAPI schema type), so these are the
+	 * backend's strings verbatim: Hypervisor is 'vms', ContainerRuntime 'containers' and
+	 * IdentityHost 'identities'.
+	 */
+	manages_virtualization: 'vms' | 'containers' | 'identities';
 	/**
 	 * Serde discriminant the manual-assignment UI must use when associating
 	 * VMs/containers with this manager (e.g. 'Proxmox', 'VCenter', 'Podman').
@@ -288,7 +296,8 @@ export const metadata = writable<MetadataRegistry>({
 	client_probes: clientProbesJson,
 	match_confidences: matchConfidencesJson,
 	host_virtualizations: hostVirtualizationsJson,
-	proxmox_guest_types: proxmoxGuestTypesJson
+	proxmox_guest_types: proxmoxGuestTypesJson,
+	container_network_types: containerNetworkTypesJson
 } as unknown as MetadataRegistry);
 
 // Shared color helper functions that work for both TypeMetadata and EntityMetadata
@@ -485,6 +494,10 @@ export const hostVirtualizations = createTypeMetadataHelpers<'host_virtualizatio
 /** A Proxmox guest's type (VM or LXC container), keyed by `ProxmoxGuestType`. */
 export const proxmoxGuestTypes = createTypeMetadataHelpers<'proxmox_guest_types', object>(
 	'proxmox_guest_types'
+);
+/** A container host's LAN network driver (macvlan or ipvlan), keyed by `ContainerNetworkType`. */
+export const containerNetworkTypes = createTypeMetadataHelpers<'container_network_types', object>(
+	'container_network_types'
 );
 export const discoveryTypes = createTypeMetadataHelpers<'discovery_types', DiscoveryTypeMetadata>(
 	'discovery_types'

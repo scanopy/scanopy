@@ -7,7 +7,12 @@
 	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
 	import { entityRef, type EntityRef } from '$lib/shared/components/data/types';
 	import type { Color } from '$lib/shared/utils/styling';
-	import { entities, hostVirtualizations, proxmoxGuestTypes } from '$lib/shared/stores/metadata';
+	import {
+		containerNetworkTypes,
+		entities,
+		hostVirtualizations,
+		proxmoxGuestTypes
+	} from '$lib/shared/stores/metadata';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 	import { useServicesByIds } from '$lib/features/services/queries';
 	import { useHostSummariesQuery } from '$lib/features/hosts/queries';
@@ -17,19 +22,26 @@
 		common_hardware,
 		common_hostname,
 		common_hypervisor,
+		common_interface,
 		common_location,
 		common_manager,
 		common_manufacturer,
 		common_model,
 		common_operatingSystem,
+		common_presentedBy,
+		common_runtime,
 		common_serialNumber,
 		common_softwareRevision,
 		common_virtualization,
+		hosts_deviceFacts_composeProject,
+		hosts_deviceFacts_containerId,
+		hosts_deviceFacts_containerName,
 		hosts_deviceFacts_firmwareGroup,
 		hosts_deviceFacts_guestName,
 		hosts_deviceFacts_guestType,
 		hosts_deviceFacts_identityGroup,
 		hosts_deviceFacts_locationGroup,
+		hosts_deviceFacts_networkType,
 		hosts_deviceFacts_vmId,
 		hosts_snmp_chassisId,
 		hosts_snmp_managementUrl,
@@ -58,61 +70,72 @@
 		entity?: { ref: EntityRef; color: Color };
 	}
 
-	// The hypervisor is the host that runs the service virtualizing this one.
-	const hypervisorServiceQuery = useServicesByIds(() =>
+	// The owner is the host that runs the service virtualizing this one: the hypervisor of a VM,
+	// the runtime host of a container, the host presenting a network identity.
+	const ownerServiceQuery = useServicesByIds(() =>
 		host.virtualization_service_id ? [host.virtualization_service_id] : []
 	);
-	let hypervisorHostId = $derived(hypervisorServiceQuery.data?.[0]?.host_id ?? null);
-	const hypervisorHostQuery = useHostSummariesQuery(() => ({
-		ids: hypervisorHostId ? [hypervisorHostId] : []
+	let ownerHostId = $derived(ownerServiceQuery.data?.[0]?.host_id ?? null);
+	const ownerHostQuery = useHostSummariesQuery(() => ({
+		ids: ownerHostId ? [ownerHostId] : []
 	}));
-	let hypervisorHost = $derived(
-		hypervisorHostQuery.data?.items.find((h) => h.id === hypervisorHostId) ?? null
-	);
+	let ownerHost = $derived(ownerHostQuery.data?.items.find((h) => h.id === ownerHostId) ?? null);
+
+	function sourceless(label: string, value: string | null | undefined, mono = false): Fact {
+		return { label, value, source: null, sourceless: true, mono };
+	}
 
 	let virtualizationFacts = $derived.by((): Fact[] => {
 		const virtualization = host.virtualization_metadata;
 		if (!virtualization) return [];
-		const guestType = virtualization.type === 'Proxmox' ? virtualization.details.guest_type : null;
-		return [
-			{
-				label: common_hypervisor(),
-				value: hypervisorHost ? hostDisplayName(hypervisorHost) : null,
-				source: null,
-				sourceless: true,
-				entity: hypervisorHost
-					? {
-							ref: entityRef('Host', hypervisorHost.id, hypervisorHost),
-							color: entities.getColorHelper('Host').color
-						}
-					: undefined
-			},
-			{
-				label: common_manager(),
-				value: hostVirtualizations.getName(virtualization.type),
-				source: null,
-				sourceless: true
-			},
-			{
-				label: hosts_deviceFacts_guestName(),
-				value: virtualization.details.vm_name,
-				source: null,
-				sourceless: true
-			},
-			{
-				label: hosts_deviceFacts_vmId(),
-				value: virtualization.details.vm_id,
-				source: null,
-				sourceless: true,
-				mono: true
-			},
-			{
-				label: hosts_deviceFacts_guestType(),
-				value: guestType ? proxmoxGuestTypes.getName(guestType) : null,
-				source: null,
-				sourceless: true
+		const owner = (label: string): Fact => ({
+			...sourceless(label, ownerHost ? hostDisplayName(ownerHost) : null),
+			entity: ownerHost
+				? {
+						ref: entityRef('Host', ownerHost.id, ownerHost),
+						color: entities.getColorHelper('Host').color
+					}
+				: undefined
+		});
+		const manager = sourceless(common_manager(), hostVirtualizations.getName(virtualization.type));
+		switch (virtualization.type) {
+			case 'Proxmox':
+			case 'VCenter':
+			case 'ESXi': {
+				const guestType =
+					virtualization.type === 'Proxmox' ? virtualization.details.guest_type : null;
+				return [
+					owner(common_hypervisor()),
+					manager,
+					sourceless(hosts_deviceFacts_guestName(), virtualization.details.vm_name),
+					sourceless(hosts_deviceFacts_vmId(), virtualization.details.vm_id, true),
+					sourceless(
+						hosts_deviceFacts_guestType(),
+						guestType ? proxmoxGuestTypes.getName(guestType) : null
+					)
+				];
 			}
-		];
+			case 'Docker':
+			case 'Podman': {
+				const details = virtualization.details;
+				return [
+					owner(common_runtime()),
+					manager,
+					sourceless(hosts_deviceFacts_containerName(), details.container_name),
+					sourceless(hosts_deviceFacts_containerId(), details.container_id, true),
+					sourceless(hosts_deviceFacts_composeProject(), details.compose_project),
+					sourceless(
+						hosts_deviceFacts_networkType(),
+						containerNetworkTypes.getName(details.network_type)
+					)
+				];
+			}
+			case 'NetworkIdentity':
+				return [
+					owner(common_presentedBy()),
+					sourceless(common_interface(), virtualization.details.interface, true)
+				];
+		}
 	});
 
 	// Grouped by what each value describes, not by the protocol that carried it. A model arrives

@@ -5,6 +5,7 @@
 	import { serviceDefinitions } from '$lib/shared/stores/metadata';
 	import VmManagerConfigPanel from './VmManagerConfigPanel.svelte';
 	import ContainerManagerConfigPanel from './ContainerManagerConfigPanel.svelte';
+	import NetworkIdentitiesConfigPanel from './NetworkIdentitiesConfigPanel.svelte';
 	import EntityConfigEmpty from '$lib/shared/components/forms/EntityConfigEmpty.svelte';
 	import {
 		VirtualizationManagerServiceDisplay,
@@ -125,8 +126,15 @@
 					{:else if virtualizationType === 'containers'}
 						<ContainerManagerConfigPanel
 							service={selectedItem}
+							hosts={effectiveHosts}
 							services={effectiveServices}
 							onChange={(updatedService) => onServiceChange(updatedService)}
+						/>
+					{:else if virtualizationType === 'identities'}
+						<NetworkIdentitiesConfigPanel
+							service={selectedItem}
+							hosts={effectiveHosts}
+							services={effectiveServices}
 						/>
 					{:else}
 						<EntityConfigEmpty

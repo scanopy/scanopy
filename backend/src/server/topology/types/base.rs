@@ -140,7 +140,11 @@ pub struct TopologyTagFilter {
 pub struct TopologyLocalOptions {
     /// Keep unrelated edges at full opacity when something is selected.
     pub no_fade_edges: bool,
-    /// Edge types to leave out of the drawing.
+    /// Edge types to leave out of the drawing. Unknown values are dropped on read rather than
+    /// failing the topology — see [`deserialize_known_edge_types`](crate::server::topology::types::edges::deserialize_known_edge_types).
+    #[serde(
+        deserialize_with = "crate::server::topology::types::edges::deserialize_known_edge_types"
+    )]
     pub hide_edge_types: Vec<EdgeTypeDiscriminants>,
     /// Restrict the view to entities carrying these tags.
     #[serde(default)]
@@ -353,6 +357,20 @@ pub struct TopologyNodeResizeUpdate {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A saved view that hides an edge type this binary doesn't know still loads, keeping the
+    /// edge types it does know.
+    #[test]
+    fn an_unknown_hidden_edge_type_is_dropped_not_fatal() {
+        let options: TopologyLocalOptions = serde_json::from_value(serde_json::json!({
+            "hide_edge_types": ["Hypervisor", "SomeFutureEdgeType"]
+        }))
+        .expect("an unknown edge type must not fail the options");
+        assert_eq!(
+            options.hide_edge_types,
+            vec![EdgeTypeDiscriminants::Hypervisor]
+        );
+    }
 
     /// A stored map that predates a filter must adopt its default, or every existing topology
     /// keeps rendering as though the filter were switched off. This is the whole reason the merge

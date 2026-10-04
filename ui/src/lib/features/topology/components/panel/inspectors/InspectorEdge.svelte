@@ -5,6 +5,7 @@
 	import InspectorEdgeDependency from './edges/InspectorEdgeDependency.svelte';
 	import InspectorEdgeIPAddress from './edges/InspectorEdgeIPAddress.svelte';
 	import InspectorEdgeHypervisor from './edges/InspectorEdgeHypervisor.svelte';
+	import InspectorEdgeNetworkIdentity from './edges/InspectorEdgeNetworkIdentity.svelte';
 	import InspectorEdgeContainerRuntime from './edges/InspectorEdgeContainerRuntime.svelte';
 	import InspectorEdgePhysicalLink from './edges/InspectorEdgePhysicalLink.svelte';
 	import InspectorEdgeNeighborLink from './edges/InspectorEdgeNeighborLink.svelte';
@@ -42,6 +43,8 @@
 		<InspectorEdgeIPAddress {edge} hostId={edgeData?.host_id} {view} />
 	{:else if edgeData.edge_type === 'Hypervisor'}
 		<InspectorEdgeHypervisor {edge} hypervisorServiceId={edgeData?.hypervisor_service_id} />
+	{:else if edgeData.edge_type === 'NetworkIdentity'}
+		<InspectorEdgeNetworkIdentity {edge} identitiesServiceId={edgeData?.identities_service_id} />
 	{:else if edgeData.edge_type === 'ContainerRuntime'}
 		<InspectorEdgeContainerRuntime {edge} serviceId={edgeData?.service_id} />
 	{:else if edgeData.edge_type === 'SameContainer'}

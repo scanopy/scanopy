@@ -556,7 +556,7 @@ impl SubnetService {
     ///
     /// Deliberately not the placement rule for a *container* endpoint: the runtime API already says
     /// which network the endpoint is on, and re-deriving that by address would throw away an
-    /// identity for a guess — see `get_container_interfaces`.
+    /// identity for a guess. See `container_interfaces` in the daemon's `container/interfaces.rs`.
     pub async fn place_address(&self, network_id: Uuid, ip: IpAddr) -> Result<Placement, Error> {
         let live = self
             .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())

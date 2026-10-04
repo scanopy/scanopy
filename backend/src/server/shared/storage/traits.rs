@@ -30,7 +30,7 @@ use crate::server::{
     hosts::r#impl::{
         base::Host,
         os::{HostOs, HostOsFamily},
-        virtualization::{HostVirtualization, ProxmoxGuestType},
+        virtualization::{ContainerNetworkType, HostVirtualization, ProxmoxGuestType},
     },
     interfaces::r#impl::base::Interface,
     ip_addresses::r#impl::base::IPAddress,
@@ -554,8 +554,9 @@ impl DbEnumContributor for AttributeSource {
     }
 }
 
-/// `HostVirtualization` is a third: a Proxmox guest's `guest_type` is a [`ProxmoxGuestType`]
-/// written into `hosts.virtualization_metadata`, which `VariantNames` on the outer enum cannot see.
+/// `HostVirtualization` is a third: a Proxmox guest's `guest_type` is a [`ProxmoxGuestType`] and a
+/// container host's `network_type` a [`ContainerNetworkType`], both written into
+/// `hosts.virtualization_metadata`, which `VariantNames` on the outer enum cannot see.
 impl DbEnumContributor for HostVirtualization {
     fn contribute(out: &mut std::collections::BTreeMap<&'static str, Vec<String>>) {
         let variants: Vec<String> = <HostVirtualization as ::strum::VariantNames>::VARIANTS
@@ -565,10 +566,12 @@ impl DbEnumContributor for HostVirtualization {
         out.insert(db_enum_key_for::<HostVirtualization>(), variants);
 
         ProxmoxGuestType::contribute(out);
+        ContainerNetworkType::contribute(out);
     }
 }
 
 impl_db_enum_contributor_via_variant_names!(ProxmoxGuestType);
+impl_db_enum_contributor_via_variant_names!(ContainerNetworkType);
 
 /// `DisplaySettings` holds nested enums that nothing else reaches, but they stay out of the
 /// coexistence catalog on purpose. `User::from_row` falls back to `DisplaySettings::default()`

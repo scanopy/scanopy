@@ -6,7 +6,7 @@
 > the data files and agent configs from those definitions and ships what it generated, so there is
 > no committed artifact that can drift. To add or change a device, see **Adding a device** below.
 
-31 simulated network devices running on a Proxmox VM, each on port 161, addressed out of a
+34 simulated network devices running on a Proxmox VM (VM 107, `snmp-test`), each on port 161, addressed out of a
 reserved `192.168.7.192`–`.254` block (63 addresses — see **Addressing** below for why that range
 is the lab's to take). Most speak SNMPv2c; `legacy-switch-01`/`secure-switch-01` are version-locked
 to exercise the SNMPv1 and SNMPv3 paths (#557); `switch-exos-01`/`switch-voss-01` are Extreme
@@ -339,7 +339,7 @@ from the tables a device holds, so there is nothing left to disagree; the unit t
 *Adding a device* hold the line.
 
 `ifNumber` is registered with `pass -p 1` because `mibII/interfaces` owns the scalar and would
-otherwise answer it from the VM's own kernel state — the container's interface count, against a
+otherwise answer it from the VM's kernel state: the VM's interface count, against a
 fixture's 24 rows, on every device. The generator derives that priority from the subtree
 (`needs_priority`), as it does for `ipAddrTable` and `ipNetToMediaTable`, which the IP module owns
 for the same reason. Confirm what owns a subtree with `snmpd -Dregister_mib -C -c <conf>`.
@@ -413,7 +413,7 @@ whether the server *resolves* one into a link at all when LLDP/CDP has nothing t
 The lab reserves `192.168.7.192`–`192.168.7.254` (63 addresses) on the `/22` the daemon already
 scans — the top block of `192.168.7.0/24`, clear of every real host on that network (checked
 against the live database, not just memory) and of `.255`, which is the `/22`'s own broadcast
-address. 63 is roughly double the lab's current 31 devices, so it can keep growing for a while
+address. 63 is nearly double the lab's current 34 devices, so it can keep growing for a while
 without asking Maya for more space or shrinking a floor by hand again.
 
 No device chooses its own address. `assign_addresses`
@@ -453,12 +453,27 @@ segment's router advertisements, and deleting one just invites it back on the ne
 
 **ARP is scoped to the interface that owns the address**, via `arp_ignore=1` and `arp_announce=2`.
 At the kernel default the VM answers an ARP request for any local address from any interface, so
-`eth0` replies for all 31 lab addresses with its own MAC, every device shares one MAC on the wire,
+`eth0` replies for all 34 lab addresses with its own MAC, every device shares one MAC on the wire,
 and the lab collapses onto a single host record however carefully the macvlans are built. `setup.sh`
 writes the `conf/all` knobs to `/etc/sysctl.d/60-snmp-lab-arp.conf`; the kernel takes the max of
 `conf/all` and `conf/<interface>`, so that covers links created later, and there is nothing to
 update when the device count changes. `lab-network-up.sh` sets each link's own knobs as well, so the
 unit is still correct on a box where that file was never applied.
+
+### The devices appear in Scanopy as network identities of VM 107
+
+The Proxmox VE integration reads each device's macvlan link through the QEMU guest agent. VM 107's
+Proxmox config already has `agent: 1`. Install and start the agent inside the VM:
+
+```bash
+apt-get install -y qemu-guest-agent && systemctl start qemu-guest-agent
+```
+
+With the Proxmox VE credential assigned to node `pve`, each `mv-snmp<i>` link becomes a host linked
+to VM 107's **Network Identities** service and tagged **Network identity**. In the Workloads view
+the devices sit under `pve` → VM 107 → Network Identities. Each host keeps its own SNMP data
+(sysName, interfaces, neighbours). Without the
+agent, the devices appear as unrelated hosts found by the network scan.
 
 ## Adding a device
 

@@ -7,10 +7,12 @@
 	import { useTopology, selectedTopologyId } from '$lib/features/topology/context';
 	import { getTopologyEditState } from '$lib/features/topology/state';
 	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
+	import type { RenderableTopology, TopologyEdge } from '$lib/features/topology/types/base';
+	import { containerHostsOfEdge } from '$lib/features/topology/resolvers';
 	import {
 		common_containerizedService,
 		common_containerizedServices,
+		hosts_virtualization_containerHosts,
 		topology_containerBridgeSubnet,
 		topology_containerBridgeSubnets,
 		topology_containerHost,
@@ -53,6 +55,11 @@
 		topology
 			? containerizedServiceIds.flatMap((id) => topology.services.find((s) => s.id === id) ?? [])
 			: []
+	);
+
+	// An edge to a container host (macvlan, ipvlan) names no containerized services.
+	let containerHosts = $derived(
+		topology && edge.data ? containerHostsOfEdge(topology, edge.data as TopologyEdge) : []
 	);
 
 	// The bridges this edge reaches — one when they render as separate boxes, all of them when
@@ -106,11 +113,33 @@
 		</div>
 	{/if}
 
-	<span class="text-secondary mb-2 block text-sm font-medium">
-		{containerizedServices.length === 1
-			? common_containerizedService()
-			: common_containerizedServices()}
-	</span>
+	{#if containerHosts.length > 0}
+		<!-- An edge to a container host: the subnet it reaches is the LAN, not a bridge. -->
+		<span class="text-secondary mb-2 block text-sm font-medium"
+			>{hosts_virtualization_containerHosts()}</span
+		>
+		{#each containerHosts as host (host.id)}
+			<div class="card card-static">
+				<EntityDisplayWrapper
+					context={{
+						services: topology?.services.filter((s) => s.host_id == host.id) ?? [],
+						showEntityTagPicker: true,
+						tagPickerDisabled: !editState.isEditable,
+						entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
+						compact: true
+					}}
+					item={host}
+					displayComponent={HostDisplay}
+				/>
+			</div>
+		{/each}
+	{:else}
+		<span class="text-secondary mb-2 block text-sm font-medium">
+			{containerizedServices.length === 1
+				? common_containerizedService()
+				: common_containerizedServices()}
+		</span>
+	{/if}
 	{#each containerizedServices as service (service.id)}
 		<div class="card card-static">
 			<EntityDisplayWrapper
@@ -128,7 +157,7 @@
 		</div>
 	{/each}
 
-	{#if allBridgeSubnets.length > 0}
+	{#if allBridgeSubnets.length > 0 && containerHosts.length === 0}
 		<span class="text-secondary mb-2 block text-sm font-medium"
 			>{allBridgeSubnets.length > 1
 				? topology_containerBridgeSubnets()

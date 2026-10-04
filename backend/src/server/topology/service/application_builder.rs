@@ -204,6 +204,7 @@ impl ViewBuilder for ApplicationBuilder {
                     tag_ids,
                     element_entity: EntityDiscriminants::Service,
                     virtualizer_service_id: None,
+                    virtualizer_role: None,
                     deployment_group,
                     native_vlan_id: None,
                     vlan_number: None,

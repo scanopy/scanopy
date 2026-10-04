@@ -2,13 +2,16 @@
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import type { TopologyEdge, RenderableTopology } from '$lib/features/topology/types/base';
 	import { useTopology, selectedTopologyId } from '$lib/features/topology/context';
-	import { edgeTypes } from '$lib/shared/stores/metadata';
+	import { edgeTypes, hostVirtualizations } from '$lib/shared/stores/metadata';
+	import { containerHostsOfEdge, identityHostsOfEdge } from '$lib/features/topology/resolvers';
 	import {
 		topology_connectionsCount,
 		topology_containerCount,
 		common_containerizedServices,
 		common_dependenciesLabel,
 		common_docker,
+		common_presentedBy,
+		hosts_virtualization_containerHosts,
 		inspector_dockerService
 	} from '$lib/paraglide/messages';
 	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
@@ -82,8 +85,18 @@
 		return [...ids];
 	}
 
-	// Reactive ContainerRuntime resolution. Each edge names the containers it reaches, so the
-	// aggregate is their union — not every container the runtime happens to host.
+	/** The container hosts (macvlan, ipvlan) the given runtime edges reach, each once. */
+	function containerHostsOf(topology: RenderableTopology, edges: TopologyEdge[]) {
+		const hosts = new SvelteMap<string, RenderableTopology['hosts'][number]>();
+		for (const edge of edges) {
+			for (const host of containerHostsOfEdge(topology, edge)) hosts.set(host.id, host);
+		}
+		return [...hosts.values()];
+	}
+
+	// Reactive ContainerRuntime resolution. Each edge names the containers it reaches (services on
+	// bridge networks, or one container host on a macvlan/ipvlan network), so the aggregate is
+	// their union — not every container the runtime happens to host.
 	let svcVirtData = $derived.by(() => {
 		const typeEdges = edgesByType.get('ContainerRuntime');
 		if (!typeEdges || !topology) return null;
@@ -102,10 +115,12 @@
 			// Single Docker service — show detailed view
 			const [containerizingId] = [...byContainerizer.keys()];
 			const containerizer = topology.services.find((s) => s.id === containerizingId);
-			const containerized = containersOf(byContainerizer.get(containerizingId) ?? []).flatMap(
+			const containerizerEdges = byContainerizer.get(containerizingId) ?? [];
+			const containerized = containersOf(containerizerEdges).flatMap(
 				(id) => topology.services.find((s) => s.id === id) ?? []
 			);
-			return { mode: 'single' as const, containerizer, containerized };
+			const containerHosts = containerHostsOf(topology, containerizerEdges);
+			return { mode: 'single' as const, containerizer, containerized, containerHosts };
 		} else {
 			// Multiple Docker services — show summary per host
 			const hosts = new SvelteMap<
@@ -117,7 +132,9 @@
 				if (!service) continue;
 				const host = topology.hosts.find((h) => h.id === service.host_id);
 				if (!host) continue;
-				const containerCount = containersOf(containerizerEdges).length;
+				const containerCount =
+					containersOf(containerizerEdges).length +
+					containerHostsOf(topology, containerizerEdges).length;
 				const existing = hosts.get(host.id);
 				if (existing) {
 					existing.containerCount += containerCount;
@@ -127,6 +144,39 @@
 			}
 			return { mode: 'multi' as const, hosts: [...hosts.values()] };
 		}
+	});
+
+	// Reactive NetworkIdentity resolution: per guest (its Network Identities service), the guest
+	// host and the union of the identity hosts its edges reach.
+	let identityGroups = $derived.by(() => {
+		const typeEdges = edgesByType.get('NetworkIdentity');
+		if (!typeEdges || !topology) return [];
+		const groups = new SvelteMap<
+			string,
+			{
+				guest: RenderableTopology['hosts'][number] | undefined;
+				identities: SvelteMap<string, RenderableTopology['hosts'][number]>;
+			}
+		>();
+		for (const edge of typeEdges) {
+			if (edge.edge_type !== 'NetworkIdentity') continue;
+			const serviceId = edge.identities_service_id;
+			let group = groups.get(serviceId);
+			if (!group) {
+				const service = topology.services.find((s) => s.id === serviceId);
+				group = {
+					guest: service ? topology.hosts.find((h) => h.id === service.host_id) : undefined,
+					identities: new SvelteMap()
+				};
+				groups.set(serviceId, group);
+			}
+			for (const host of identityHostsOfEdge(topology, edge)) group.identities.set(host.id, host);
+		}
+		return [...groups.entries()].map(([serviceId, { guest, identities }]) => ({
+			serviceId,
+			guest,
+			identities: [...identities.values()]
+		}));
 	});
 
 	function getDisplayComponent(edgeType: string) {
@@ -149,6 +199,13 @@
 
 	function isContainerRuntime(edgeType: string) {
 		return edgeType === 'ContainerRuntime';
+	}
+
+	function hostContext(hostId: string) {
+		return {
+			services: topology?.services.filter((s) => s.host_id === hostId) ?? [],
+			compact: true
+		};
 	}
 </script>
 
@@ -248,6 +305,20 @@
 							</div>
 						{/each}
 					{/if}
+					{#if svcVirtData.containerHosts.length > 0}
+						<span class="text-secondary mb-1 block text-sm font-medium">
+							{hosts_virtualization_containerHosts()} ({svcVirtData.containerHosts.length})
+						</span>
+						{#each svcVirtData.containerHosts as host (host.id)}
+							<div class="card card-static">
+								<EntityDisplayWrapper
+									item={host}
+									context={hostContext(host.id)}
+									displayComponent={HostDisplay}
+								/>
+							</div>
+						{/each}
+					{/if}
 				{:else}
 					{#each svcVirtData.hosts as { host, containerCount } (host.id)}
 						<div class="card card-static">
@@ -268,6 +339,32 @@
 						</div>
 					{/each}
 				{/if}
+			{:else if edgeType === 'NetworkIdentity' && identityGroups.length > 0}
+				{#each identityGroups as group (group.serviceId)}
+					{#if group.guest}
+						<span class="text-secondary mb-1 block text-sm font-medium">{common_presentedBy()}</span
+						>
+						<div class="card card-static">
+							<EntityDisplayWrapper
+								item={group.guest}
+								context={hostContext(group.guest.id)}
+								displayComponent={HostDisplay}
+							/>
+						</div>
+					{/if}
+					<span class="text-secondary mb-1 block text-sm font-medium">
+						{hostVirtualizations.getName('NetworkIdentity')} ({group.identities.length})
+					</span>
+					{#each group.identities as host (host.id)}
+						<div class="card card-static">
+							<EntityDisplayWrapper
+								item={host}
+								context={hostContext(host.id)}
+								displayComponent={HostDisplay}
+							/>
+						</div>
+					{/each}
+				{/each}
 			{:else}
 				{#each typeEdges as edge (edge.id)}
 					<div class="card card-static">

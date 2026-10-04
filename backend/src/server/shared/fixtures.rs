@@ -176,6 +176,17 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
             .collect();
     write_fixture(&proxmox_guest_types, output_dir, "proxmox-guest-types.json");
 
+    // A container host's LAN network driver (macvlan or ipvlan), keyed by `ContainerNetworkType`.
+    let container_network_types: Vec<TypeMetadata> =
+        crate::server::hosts::r#impl::virtualization::ContainerNetworkType::iter()
+            .map(|t| t.to_metadata())
+            .collect();
+    write_fixture(
+        &container_network_types,
+        output_dir,
+        "container-network-types.json",
+    );
+
     // Keyed by `CredentialQueryPayloadDiscriminants`, which is what a coded warning carries.
     // Neither `integrations.json` (keyed by display name) nor `credential-types.json` (keyed by
     // `CredentialType`) can resolve those eight values.

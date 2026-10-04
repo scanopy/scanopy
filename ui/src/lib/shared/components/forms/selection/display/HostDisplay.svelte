@@ -1,8 +1,95 @@
 <script lang="ts" context="module">
 	import type { Host, Interface, IPAddress, Port, Service } from '$lib/features/hosts/types/base';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import { entities, proxmoxGuestTypes, serviceDefinitions } from '$lib/shared/stores/metadata';
+	import {
+		containerNetworkTypes,
+		entities,
+		hostVirtualizations,
+		proxmoxGuestTypes,
+		serviceDefinitions
+	} from '$lib/shared/stores/metadata';
 	import { entityRef, type TagProps } from '$lib/shared/components/data/types';
+	import { queryClient, queryKeys } from '$lib/api/query-client';
+	import {
+		hosts_networkIdentity_tagTitle,
+		hosts_networkIdentity_tagTitleUnresolved
+	} from '$lib/paraglide/messages';
+
+	/**
+	 * An entity with this id from any cached query under `rootKey`: plain arrays (the services
+	 * cache, by-id lookups) and paginated results (host lists, summaries). Display components are
+	 * plain objects outside any component, so they read the cache rather than subscribe to a query.
+	 */
+	function findCached<T extends { id: string }>(rootKey: readonly unknown[], id: string): T | null {
+		for (const [, data] of queryClient.getQueriesData<unknown>({ queryKey: rootKey })) {
+			const items = Array.isArray(data) ? data : (data as { items?: unknown } | undefined)?.items;
+			if (!Array.isArray(items)) continue;
+			const found = (items as T[]).find((item) => item?.id === id);
+			if (found) return found;
+		}
+		return null;
+	}
+
+	/**
+	 * The name of the host that presents a network identity: the host of the Network Identities
+	 * service the identity hangs off. Null when either is not loaded.
+	 */
+	function identityPresenterName(host: Host, context?: HostDisplayContext): string | null {
+		const serviceId = host.virtualization_service_id;
+		if (!serviceId) return null;
+		const service =
+			context?.services?.find((s) => s.id === serviceId) ??
+			findCached<Service>(queryKeys.services.all, serviceId);
+		if (!service) return null;
+		const presenter = findCached<Host>(queryKeys.hosts.all, service.host_id);
+		return presenter ? hostDisplayName(presenter) : null;
+	}
+
+	/**
+	 * What kind of guest the host is, from its virtualization record: a Proxmox guest's type (VM or
+	 * LXC), a container host's LAN network driver (macvlan or ipvlan), or a network identity.
+	 */
+	function virtualizationTags(host: Host, context?: HostDisplayContext): TagProps[] {
+		const virtualization = host.virtualization_metadata;
+		switch (virtualization?.type) {
+			case 'Proxmox': {
+				const guestType = virtualization.details.guest_type;
+				return guestType
+					? [
+							{
+								label: proxmoxGuestTypes.getName(guestType),
+								color: proxmoxGuestTypes.getColorHelper(guestType).color
+							}
+						]
+					: [];
+			}
+			case 'Docker':
+			case 'Podman': {
+				const networkType = virtualization.details.network_type;
+				return [
+					{
+						label: containerNetworkTypes.getName(networkType),
+						color: containerNetworkTypes.getColorHelper(networkType).color,
+						title: containerNetworkTypes.getDescription(networkType)
+					}
+				];
+			}
+			case 'NetworkIdentity': {
+				const guestName = identityPresenterName(host, context);
+				return [
+					{
+						label: hostVirtualizations.getName(virtualization.type),
+						color: hostVirtualizations.getColorHelper(virtualization.type).color,
+						title: guestName
+							? hosts_networkIdentity_tagTitle({ guestName })
+							: hosts_networkIdentity_tagTitleUnresolved()
+					}
+				];
+			}
+			default:
+				return [];
+		}
+	}
 
 	// Context provides the host's children (interfaces, ports, services)
 	export interface HostDisplayContext {
@@ -53,19 +140,9 @@
 		},
 		getIconColor: () => entities.getColorHelper('Host').icon,
 		getTags: (host, context) => {
-			// A Proxmox guest's type (VM or LXC) is part of what the host is, so it shows even in
-			// compact rows; its services only in full ones.
-			const virtualization = host.virtualization_metadata;
-			const guestType =
-				virtualization?.type === 'Proxmox' ? virtualization.details.guest_type : null;
-			const guestTags: TagProps[] = guestType
-				? [
-						{
-							label: proxmoxGuestTypes.getName(guestType),
-							color: proxmoxGuestTypes.getColorHelper(guestType).color
-						}
-					]
-				: [];
+			// What kind of guest the host is (VM, LXC, macvlan container, network identity) is part
+			// of what the host is, so it shows even in compact rows; its services only in full ones.
+			const guestTags = virtualizationTags(host, context);
 			if (context?.compact) return guestTags;
 			const services = context?.services?.filter((s) => s.host_id == host.id) ?? [];
 			return [

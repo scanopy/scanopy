@@ -13,6 +13,7 @@ use crate::server::shared::attribution::{self, AttributeSource, Attributed};
 use crate::server::shared::entities::ChangeTriggersTopologyStaleness;
 use crate::server::shared::types::api::deserialize_empty_string_as_none;
 use crate::server::shared::types::entities::EntitySource;
+use crate::server::shared::types::metadata::HasId;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -358,8 +359,9 @@ impl HostBase {
     ///
     /// A different owner moves the link only for the same guest moving: the stored metadata and
     /// the report name the same manager's guest id, which survives a live migration (a Proxmox
-    /// VMID is cluster-wide and follows the guest from node to node). A hand assignment never
-    /// carries a guest id — the UI writes `vm_id: null` — so it is never moved.
+    /// VMID is cluster-wide and follows the guest from node to node; a container ID is the same
+    /// container whichever runtime service reports it). A hand assignment never carries a guest
+    /// id (the UI writes `vm_id: null`), so it is never moved.
     pub fn fill_virtualization_from(&mut self, incoming: &HostBase) -> bool {
         let Some(incoming_owner) = incoming.virtualization_service_id else {
             return false;
@@ -371,9 +373,21 @@ impl HostBase {
                     && self.virtualization_metadata != incoming.virtualization_metadata
             }
             Some(_) => {
-                let guest_id = |v: &Option<HostVirtualization>| match v {
-                    Some(HostVirtualization::Proxmox(p)) => p.vm_id.clone(),
-                    _ => None,
+                // Keyed by variant too, so a VMID never matches a container ID.
+                let guest_id = |v: &Option<HostVirtualization>| {
+                    let v = v.as_ref()?;
+                    let id = match v {
+                        HostVirtualization::Proxmox(p) => p.vm_id.as_ref(),
+                        HostVirtualization::Docker(c) | HostVirtualization::Podman(c) => {
+                            c.container_id.as_ref()
+                        }
+                        // A network identity names no guest id: the interface name is the
+                        // owner's to reuse, so an owned identity never moves.
+                        HostVirtualization::VCenter(_)
+                        | HostVirtualization::ESXi(_)
+                        | HostVirtualization::NetworkIdentity(_) => None,
+                    }?;
+                    Some((v.id(), id.clone()))
                 };
                 guest_id(&self.virtualization_metadata)
                     .is_some_and(|id| Some(id) == guest_id(&incoming.virtualization_metadata))
@@ -868,6 +882,62 @@ mod tests {
         assert_eq!(
             by_hand.virtualization_metadata,
             before.virtualization_metadata
+        );
+    }
+
+    fn docker_container_host(owner: Uuid, container_id: Option<&str>) -> HostBase {
+        use crate::server::hosts::r#impl::virtualization::{
+            ContainerHostVirtualization, ContainerNetworkType,
+        };
+        HostBase {
+            virtualization_service_id: Some(owner),
+            virtualization_metadata: Some(HostVirtualization::Docker(
+                ContainerHostVirtualization {
+                    container_name: Some("pihole".to_string()),
+                    container_id: container_id.map(str::to_string),
+                    compose_project: None,
+                    network_type: ContainerNetworkType::MacVlan,
+                },
+            )),
+            ..Default::default()
+        }
+    }
+
+    /// A container host follows its container ID to another runtime service, and a container ID
+    /// that happens to equal a Proxmox VMID is a different guest.
+    #[test]
+    fn container_host_follows_its_container_id() {
+        let runtime_a = Uuid::new_v4();
+        let runtime_b = Uuid::new_v4();
+
+        let mut existing = docker_container_host(runtime_a, Some("100"));
+        assert!(existing.fill_virtualization_from(&docker_container_host(runtime_b, Some("100"))));
+        assert_eq!(existing.virtualization_service_id, Some(runtime_b));
+
+        assert!(!existing.fill_virtualization_from(&docker_container_host(runtime_a, Some("200"))));
+        assert!(!existing.fill_virtualization_from(&proxmox_guest(runtime_a, Some("100"), "x")));
+        assert_eq!(existing.virtualization_service_id, Some(runtime_b));
+    }
+
+    /// The stored JSON of a container host reads back as the same host, and a reader that meets a
+    /// runtime it does not know reads the host as not virtualized instead of rejecting the row.
+    #[test]
+    fn virtualization_metadata_round_trips_and_reads_unknown_variants_as_absent() {
+        let host = docker_container_host(Uuid::new_v4(), Some("4f1c2a"));
+        let json = serde_json::to_value(&host).unwrap();
+        let read: HostBase = serde_json::from_value(json.clone()).unwrap();
+        assert_eq!(read.virtualization_metadata, host.virtualization_metadata);
+
+        let mut future = json;
+        future["virtualization_metadata"] = serde_json::json!({
+            "type": "SomeFutureRuntime",
+            "details": { "container_id": "4f1c2a" }
+        });
+        let read: HostBase = serde_json::from_value(future).unwrap();
+        assert_eq!(read.virtualization_metadata, None);
+        assert_eq!(
+            read.virtualization_service_id,
+            host.virtualization_service_id
         );
     }
 }

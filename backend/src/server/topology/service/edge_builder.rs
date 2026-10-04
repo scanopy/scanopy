@@ -7,6 +7,10 @@ use uuid::Uuid;
 use crate::server::{
     dependencies::r#impl::{base::Dependency, types::DependencyType},
     interfaces::r#impl::base::Neighbor,
+    services::r#impl::{
+        base::Service,
+        definitions::{ServiceDefinitionExt, VirtualizationRole},
+    },
     topology::{
         service::context::TopologyContext,
         types::{
@@ -305,7 +309,50 @@ impl EdgeBuilder {
             .collect()
     }
 
-    // Create edges to connect a host that virtualizes other hosts as VMs
+    /// The edge type joining a guest host to the service that virtualizes it, by that service's
+    /// role: a hypervisor's VM or LXC guest gets a Hypervisor edge, a container runtime's
+    /// container host a ContainerRuntime edge, a guest's network identity a NetworkIdentity edge.
+    /// A container host is not a containerized service, so the runtime edge to one names no
+    /// `containerized_service_ids`.
+    fn guest_edge_type(manager: &Service, subnet_ids: Vec<Uuid>) -> EdgeType {
+        match manager.base.service_definition.virtualization_role() {
+            Some(VirtualizationRole::ContainerRuntime { .. }) => EdgeType::ContainerRuntime {
+                host_id: manager.base.host_id,
+                service_id: manager.id,
+                subnet_ids,
+                containerized_service_ids: Vec::new(),
+            },
+            Some(VirtualizationRole::IdentityHost { .. }) => EdgeType::NetworkIdentity {
+                identities_service_id: manager.id,
+            },
+            Some(VirtualizationRole::Hypervisor { .. }) | None => EdgeType::Hypervisor {
+                hypervisor_service_id: manager.id,
+            },
+        }
+    }
+
+    /// The addresses a manager's guest edges start from: those its service binds, or for a
+    /// Network Identities service, which binds nothing and stands for its whole host, the host's
+    /// own addresses. An identity's edge then runs from the guest's address on each subnet the
+    /// two share.
+    fn guest_edge_hub_addresses(ctx: &TopologyContext, manager: &Service) -> Vec<Uuid> {
+        match manager.base.service_definition.virtualization_role() {
+            Some(VirtualizationRole::IdentityHost { .. }) => ctx
+                .get_ip_addresses_for_host(manager.base.host_id)
+                .into_iter()
+                .map(|i| i.id)
+                .collect(),
+            _ => manager
+                .base
+                .bindings
+                .iter()
+                .filter_map(|b| b.ip_address_id())
+                .collect(),
+        }
+    }
+
+    // Create edges to connect a host that virtualizes other hosts as guests (VMs, LXC
+    // containers, container hosts, network identities)
     pub fn create_vm_host_edges(ctx: &TopologyContext) -> Vec<Edge> {
         // Proxmox service interface binding that is present for a given subnet.
         // There could be multiple host ip_addresses with a given subnet, we arbitrarily choose the first one so there's
@@ -322,11 +369,8 @@ impl EdgeBuilder {
             if let Some(vm_manager_service_id) = h.base.virtualization_service_id {
                 // Create mapping between subnet and hypervisor interface(s) on that subnet
                 if let Some(promxox_service) = ctx.get_service_by_id(vm_manager_service_id) {
-                    promxox_service
-                        .base
-                        .bindings
-                        .iter()
-                        .filter_map(|b| b.ip_address_id())
+                    Self::guest_edge_hub_addresses(ctx, promxox_service)
+                        .into_iter()
                         .for_each(|i| {
                             if let Some(subnet) = ctx.get_subnet_from_ip_address_id(i)
                                 && !subnet_to_promxox_host_ip_address_id
@@ -363,9 +407,10 @@ impl EdgeBuilder {
                                     id: Uuid::new_v4(),
                                     source: *proxmox_service_ip_address_id,
                                     target: i.id,
-                                    edge_type: EdgeType::Hypervisor {
-                                        hypervisor_service_id: *proxmox_service_id,
-                                    },
+                                    edge_type: Self::guest_edge_type(
+                                        ctx.get_service_by_id(*proxmox_service_id)?,
+                                        vec![i.base.subnet_id],
+                                    ),
                                     label: None,
                                     source_handle: EdgeHandle::Bottom,
                                     target_handle: EdgeHandle::Top,
@@ -383,7 +428,7 @@ impl EdgeBuilder {
             .collect()
     }
 
-    /// Create host-level Hypervisor edges (hypervisor host → VM host).
+    /// Create host-level guest edges (hypervisor host → VM host, runtime host → container host).
     /// Unlike `create_vm_host_edges` which uses interface IDs, this uses host IDs
     /// as source/target for views where elements are hosts (e.g. Infrastructure).
     pub fn create_vm_host_edges_by_host(ctx: &TopologyContext) -> Vec<Edge> {
@@ -396,9 +441,7 @@ impl EdgeBuilder {
                     id: Uuid::new_v4(),
                     source: proxmox_service.base.host_id,
                     target: h.id,
-                    edge_type: EdgeType::Hypervisor {
-                        hypervisor_service_id: vm_manager_service_id,
-                    },
+                    edge_type: Self::guest_edge_type(proxmox_service, Vec::new()),
                     label: None,
                     source_handle: EdgeHandle::Bottom,
                     target_handle: EdgeHandle::Top,
@@ -1460,6 +1503,212 @@ mod tests {
             sorted(subnet_ids(&merged_edges[0])),
             sorted(vec![db_net_id, web_net_id]),
             "the merged edge reaches every bridge in the box"
+        );
+    }
+
+    /// A guest's edge to the service that virtualizes it takes its type from that service's role:
+    /// a Proxmox VM gets a Hypervisor edge, a macvlan container host a ContainerRuntime edge
+    /// naming the runtime and its host. Both the address-level and the host-level edges.
+    #[test]
+    fn guest_edges_take_their_type_from_the_virtualizer_role() {
+        use crate::server::hosts::r#impl::virtualization::{
+            ContainerHostVirtualization, ContainerNetworkType, HostVirtualization,
+            ProxmoxGuestType, ProxmoxVirtualization,
+        };
+        use crate::server::services::definitions::ServiceDefinitionRegistry;
+
+        let network_id = Uuid::new_v4();
+        let lan = subnet(network_id, "lan", 30, SubnetType::Lan);
+        let host = |name: &str| Host {
+            id: Uuid::new_v4(),
+            base: HostBase {
+                name: HostName::manual(name.to_string()),
+                network_id,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let manager = |host_id: Uuid, definition: &str, ip_id: Uuid| Service {
+            id: Uuid::new_v4(),
+            base: ServiceBase {
+                host_id,
+                network_id,
+                name: definition.to_string(),
+                service_definition: ServiceDefinitionRegistry::find_by_id(definition)
+                    .expect("registered"),
+                bindings: vec![Binding::new_ip_address_serviceless(ip_id)],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let node = host("pve");
+        let node_ip = ip(network_id, node.id, lan.id, Ipv4Addr::new(172, 30, 0, 2));
+        let proxmox = manager(node.id, "Proxmox VE", node_ip.id);
+        let docker_host = host("docker-prod01");
+        let docker_host_ip = ip(
+            network_id,
+            docker_host.id,
+            lan.id,
+            Ipv4Addr::new(172, 30, 0, 3),
+        );
+        let docker = manager(docker_host.id, "Docker", docker_host_ip.id);
+
+        let mut vm = host("gitlab");
+        vm.base.virtualization_service_id = Some(proxmox.id);
+        vm.base.virtualization_metadata =
+            Some(HostVirtualization::Proxmox(ProxmoxVirtualization {
+                vm_name: Some("gitlab".to_string()),
+                vm_id: Some("100".to_string()),
+                guest_type: Some(ProxmoxGuestType::Qemu),
+            }));
+        let vm_ip = ip(network_id, vm.id, lan.id, Ipv4Addr::new(172, 30, 0, 10));
+
+        let mut pihole = host("pihole");
+        pihole.base.virtualization_service_id = Some(docker.id);
+        pihole.base.virtualization_metadata =
+            Some(HostVirtualization::Docker(ContainerHostVirtualization {
+                container_name: Some("pihole".to_string()),
+                container_id: Some("4f1c2a".to_string()),
+                compose_project: None,
+                network_type: ContainerNetworkType::MacVlan,
+            }));
+        let pihole_ip = ip(network_id, pihole.id, lan.id, Ipv4Addr::new(172, 30, 0, 11));
+
+        let (vm_id, pihole_id) = (vm.id, pihole.id);
+        let (proxmox_id, docker_id, docker_host_id) = (proxmox.id, docker.id, docker_host.id);
+        let hosts = vec![node, docker_host, vm, pihole];
+        let ip_addresses = vec![node_ip, docker_host_ip, vm_ip.clone(), pihole_ip.clone()];
+        let subnets = vec![lan.clone()];
+        let services = vec![proxmox, docker];
+        let options = TopologyOptions::default();
+        let ctx = TopologyContext::new(
+            &hosts,
+            &ip_addresses,
+            &subnets,
+            &services,
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+            &options,
+            TopologyView::L3Logical,
+        );
+
+        let is_hypervisor_edge = |edge: &Edge| {
+            matches!(edge.edge_type, EdgeType::Hypervisor { hypervisor_service_id }
+                if hypervisor_service_id == proxmox_id)
+        };
+        let is_runtime_edge = |edge: &Edge, expected_subnets: &[Uuid]| {
+            matches!(&edge.edge_type, EdgeType::ContainerRuntime {
+                    host_id, service_id, subnet_ids, containerized_service_ids,
+                } if *host_id == docker_host_id
+                    && *service_id == docker_id
+                    && subnet_ids == expected_subnets
+                    && containerized_service_ids.is_empty())
+        };
+
+        let by_address = EdgeBuilder::create_vm_host_edges(&ctx);
+        assert_eq!(by_address.len(), 2);
+        let to = |target: Uuid| by_address.iter().find(|e| e.target == target).unwrap();
+        assert!(is_hypervisor_edge(to(vm_ip.id)));
+        assert!(is_runtime_edge(to(pihole_ip.id), &[lan.id]));
+
+        let by_host = EdgeBuilder::create_vm_host_edges_by_host(&ctx);
+        assert_eq!(by_host.len(), 2);
+        let to = |target: Uuid| by_host.iter().find(|e| e.target == target).unwrap();
+        assert!(is_hypervisor_edge(to(vm_id)));
+        assert!(is_runtime_edge(to(pihole_id), &[]));
+    }
+
+    /// A guest's network identity is drawn from the guest's own address to each identity address
+    /// on a subnet the two share, and not at all on a subnet the guest has no address in. The
+    /// Network Identities service binds nothing, so the guest's addresses are the hub.
+    #[test]
+    fn identity_edges_join_the_guest_to_its_identities_on_shared_subnets() {
+        use crate::server::hosts::r#impl::virtualization::{
+            HostVirtualization, NetworkIdentityVirtualization,
+        };
+        use crate::server::services::definitions::network_identities::NetworkIdentities;
+
+        let network_id = Uuid::new_v4();
+        let lan = subnet(network_id, "lan", 30, SubnetType::Lan);
+        let other = subnet(network_id, "other", 40, SubnetType::Lan);
+        let host = |name: &str| Host {
+            id: Uuid::new_v4(),
+            base: HostBase {
+                name: HostName::manual(name.to_string()),
+                network_id,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let guest = host("snmp-lab");
+        let guest_ip = ip(network_id, guest.id, lan.id, Ipv4Addr::new(172, 30, 0, 10));
+        let identities = Service {
+            id: Uuid::new_v4(),
+            base: ServiceBase {
+                host_id: guest.id,
+                network_id,
+                name: "Network Identities".to_string(),
+                service_definition: Box::new(NetworkIdentities),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let identity = |interface: &str| {
+            let mut h = host(interface);
+            h.base.virtualization_service_id = Some(identities.id);
+            h.base.virtualization_metadata = Some(HostVirtualization::NetworkIdentity(
+                NetworkIdentityVirtualization {
+                    interface: Some(interface.to_string()),
+                },
+            ));
+            h
+        };
+        let on_lan = identity("mv-snmp1");
+        let on_lan_ip = ip(network_id, on_lan.id, lan.id, Ipv4Addr::new(172, 30, 0, 21));
+        let elsewhere = identity("mv-snmp2");
+        let elsewhere_ip = ip(
+            network_id,
+            elsewhere.id,
+            other.id,
+            Ipv4Addr::new(172, 40, 0, 22),
+        );
+
+        let identities_id = identities.id;
+        let hosts = vec![guest, on_lan, elsewhere];
+        let ip_addresses = vec![guest_ip.clone(), on_lan_ip.clone(), elsewhere_ip];
+        let subnets = vec![lan, other];
+        let services = vec![identities];
+        let options = TopologyOptions::default();
+        let ctx = TopologyContext::new(
+            &hosts,
+            &ip_addresses,
+            &subnets,
+            &services,
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+            &options,
+            TopologyView::L3Logical,
+        );
+
+        let edges = EdgeBuilder::create_vm_host_edges(&ctx);
+        assert_eq!(edges.len(), 1);
+        assert_eq!(edges[0].source, guest_ip.id);
+        assert_eq!(edges[0].target, on_lan_ip.id);
+        assert_eq!(
+            edges[0].edge_type,
+            EdgeType::NetworkIdentity {
+                identities_service_id: identities_id,
+            }
         );
     }
 }

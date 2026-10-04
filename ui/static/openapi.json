@@ -16919,19 +16919,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-03T16:32:30.278264Z",
+              "created_at": "2026-10-04T14:41:52.966753Z",
               "first_discovery_id": null,
-              "id": "1e599424-43cf-42c6-80b8-1aa8e1ac3710",
+              "id": "06758139-6945-4368-a498-f348e3de17fa",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-03T16:32:30.278264Z",
+              "last_seen_at": "2026-10-04T14:41:52.966753Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-03T16:32:30.278264Z",
-              "valid_from": "2026-10-03T16:32:30.278264Z",
+              "updated_at": "2026-10-04T14:41:52.966753Z",
+              "valid_from": "2026-10-04T14:41:52.966753Z",
               "valid_to": null
             }
           },
@@ -18528,19 +18528,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-03T16:32:30.253844Z",
+                      "created_at": "2026-10-04T14:41:52.945982Z",
                       "first_discovery_id": null,
-                      "id": "f95c08dd-74ef-454b-8c8a-7cdb94858bae",
+                      "id": "4fc08d21-8cc9-4e72-91a3-76bf2af8d243",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-03T16:32:30.253844Z",
+                      "last_seen_at": "2026-10-04T14:41:52.945982Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-03T16:32:30.253844Z",
-                      "valid_from": "2026-10-03T16:32:30.253844Z",
+                      "updated_at": "2026-10-04T14:41:52.945982Z",
+                      "valid_from": "2026-10-04T14:41:52.945982Z",
                       "valid_to": null
                     }
                   ],
@@ -18554,7 +18554,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Philips Hue Bridge",
+                  "service_definition": "Lubelogger",
                   "source": {
                     "type": "Manual"
                   },
@@ -19952,19 +19952,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-03T16:32:30.273200Z",
+                  "created_at": "2026-10-04T14:41:52.962127Z",
                   "first_discovery_id": null,
-                  "id": "aa8d57c4-dfd3-4996-b4a0-2295bc532a8a",
+                  "id": "be710087-6958-4adb-b2b0-f9600512a3b5",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-03T16:32:30.273200Z",
+                  "last_seen_at": "2026-10-04T14:41:52.962127Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-03T16:32:30.273200Z",
-                  "valid_from": "2026-10-03T16:32:30.273200Z",
+                  "updated_at": "2026-10-04T14:41:52.962127Z",
+                  "valid_from": "2026-10-04T14:41:52.962127Z",
                   "valid_to": null
                 }
               ],
@@ -19978,7 +19978,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Philips Hue Bridge",
+              "service_definition": "Lubelogger",
               "source": {
                 "type": "Manual"
               },
@@ -22075,7 +22075,7 @@
           },
           {
             "type": "string",
-            "description": "A hypervisor's own configuration for a guest it runs, read through its API: the MAC of a\nvirtual NIC it emulates. `Native` for the reason [`Self::ContainerRuntimeInfo`] is: the\nhypervisor assigned that MAC and puts it on the wire for the guest, so its record is the\nNIC's own identity, not a third party's report of it. That is what lets a guest with no\naddress still be identified by its NIC. A bare variant rather than `Probe(Proxmox)`, which\ncovers everything else the API reports and stays `Reported`.",
+            "description": "The configuration of the hypervisor or container runtime that emulates the NIC, read\nthrough its API: the MAC of a Proxmox guest's virtual NIC, or of a container's macvlan\nendpoint. `Native` for the reason [`Self::ContainerRuntimeInfo`] is: the hypervisor or\nruntime assigned that MAC, keeps it for the guest's or container's life and puts it on the\nwire for it, so its record is the NIC's own identity, not a third party's report of it.\nThat is what lets a guest with no address still be identified by its NIC. A bare variant\nrather than `Probe(Proxmox)` or `Probe(Docker)`, which cover everything else those APIs\nreport and stay `Reported`.",
             "enum": [
               "HypervisorConfig"
             ]
@@ -22462,19 +22462,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-03T16:32:30.254556Z",
+          "created_at": "2026-10-04T14:41:52.946547Z",
           "first_discovery_id": null,
-          "id": "d775b89b-3950-43bf-bd1e-e15c913073f6",
+          "id": "43f45b81-d528-4d54-95a1-53f06ed1d736",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-03T16:32:30.254556Z",
+          "last_seen_at": "2026-10-04T14:41:52.946547Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-03T16:32:30.254556Z",
-          "valid_from": "2026-10-03T16:32:30.254556Z",
+          "updated_at": "2026-10-04T14:41:52.946547Z",
+          "valid_from": "2026-10-04T14:41:52.946547Z",
           "valid_to": null
         }
       },
@@ -22919,6 +22919,48 @@
           "Yellow"
         ]
       },
+      "ContainerHostVirtualization": {
+        "type": "object",
+        "description": "A container with its own identity on the LAN: a macvlan or ipvlan endpoint gives it a MAC and\nan IP of its own, so it is a host under its runtime rather than a service on the runtime's\nhost. Containers on bridge networks stay services (`ServiceVirtualization`).",
+        "required": [
+          "network_type"
+        ],
+        "properties": {
+          "compose_project": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Compose project the container belongs to, when it was started by Compose."
+          },
+          "container_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Container ID as reported by the runtime."
+          },
+          "container_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Container name as reported by the runtime."
+          },
+          "network_type": {
+            "$ref": "#/components/schemas/ContainerNetworkType",
+            "description": "The network driver that gives the container its own LAN address."
+          }
+        }
+      },
+      "ContainerNetworkType": {
+        "type": "string",
+        "description": "The container network drivers that put a container directly on the LAN.",
+        "enum": [
+          "MacVlan",
+          "IpVlan"
+        ]
+      },
       "ContainerType": {
         "type": "string",
         "enum": [
@@ -23191,7 +23233,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Philips Hue Bridge",
+              "service_definition": "Lubelogger",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -27589,6 +27631,28 @@
           },
           {
             "type": "object",
+            "title": "NetworkIdentity",
+            "description": "A guest's own address to one of its network identities on the same subnet: an address\nand MAC the guest presents from an interface of its own beyond its configured NICs.",
+            "required": [
+              "identities_service_id",
+              "edge_type"
+            ],
+            "properties": {
+              "edge_type": {
+                "type": "string",
+                "enum": [
+                  "NetworkIdentity"
+                ]
+              },
+              "identities_service_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The guest's Network Identities service, which owns the identity host."
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "ContainerRuntime",
             "required": [
               "host_id",
@@ -27604,7 +27668,7 @@
                   "type": "string",
                   "format": "uuid"
                 },
-                "description": "The containerized services this edge stands for — the ones on those subnets."
+                "description": "The containerized services this edge stands for — the ones on those subnets. Empty on\nan edge to a container host."
               },
               "edge_type": {
                 "type": "string",
@@ -27628,7 +27692,7 @@
                   "type": "string",
                   "format": "uuid"
                 },
-                "description": "The bridge subnet(s) this edge reaches: one when they render as their own boxes,\nall of them when merged into a single box. Resolved here rather than in the\ninspector, which cannot tell which subnet an elevated edge landed on."
+                "description": "The bridge subnet(s) this edge reaches: one when they render as their own boxes,\nall of them when merged into a single box. Resolved here rather than in the\ninspector, which cannot tell which subnet an elevated edge landed on. For an edge to a\ncontainer host (macvlan, ipvlan), the subnet holding the address it ends on."
               }
             }
           },
@@ -27793,6 +27857,7 @@
         "enum": [
           "SameHost",
           "Hypervisor",
+          "NetworkIdentity",
           "ContainerRuntime",
           "SameContainer",
           "RequestPath",
@@ -29515,19 +29580,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-03T16:32:30.253065Z",
+                  "created_at": "2026-10-04T14:41:52.945362Z",
                   "first_discovery_id": null,
-                  "id": "bb9fe49f-8734-4d2e-b96b-f0892e7e2dae",
+                  "id": "e23ae49d-c5c4-4619-897c-13dc66c0ad06",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-03T16:32:30.253065Z",
+                  "last_seen_at": "2026-10-04T14:41:52.945362Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-03T16:32:30.253065Z",
-                  "valid_from": "2026-10-03T16:32:30.253065Z",
+                  "updated_at": "2026-10-04T14:41:52.945362Z",
+                  "valid_from": "2026-10-04T14:41:52.945362Z",
                   "valid_to": null
                 }
               ],
@@ -29541,7 +29606,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Philips Hue Bridge",
+              "service_definition": "Lubelogger",
               "source": {
                 "type": "Manual"
               },
@@ -29708,6 +29773,63 @@
                 "type": "string",
                 "enum": [
                   "ESXi"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Docker",
+            "required": [
+              "details",
+              "type"
+            ],
+            "properties": {
+              "details": {
+                "$ref": "#/components/schemas/ContainerHostVirtualization"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Docker"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Podman",
+            "required": [
+              "details",
+              "type"
+            ],
+            "properties": {
+              "details": {
+                "$ref": "#/components/schemas/ContainerHostVirtualization"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Podman"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "NetworkIdentity",
+            "required": [
+              "details",
+              "type"
+            ],
+            "properties": {
+              "details": {
+                "$ref": "#/components/schemas/NetworkIdentityVirtualization"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "NetworkIdentity"
                 ]
               }
             }
@@ -31848,6 +31970,19 @@
           }
         }
       },
+      "NetworkIdentityVirtualization": {
+        "type": "object",
+        "description": "An address and MAC that a host presents from an interface of its own beyond its configured\nNICs: a macvlan shim, a virtual IP, a service given its own LAN address, an emulated device.\nThe reporting source proves only that the interface lives inside that host, not what it is,\nso nothing here classifies it. The owner is the host's Network Identities service\n(`Host::virtualization_service_id`).",
+        "properties": {
+          "interface": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The owning host's interface the identity sits on (`mv-snmp4`)."
+          }
+        }
+      },
       "NetworkSetup": {
         "type": "object",
         "description": "Network configuration for setup",
@@ -33258,19 +33393,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-03T16:32:30.237373Z",
+                        "created_at": "2026-10-04T14:41:52.933041Z",
                         "first_discovery_id": null,
-                        "id": "881d6d92-69bf-4618-a895-78ded3d2c99c",
+                        "id": "9dee693d-74b9-4882-8ac6-2324935262e9",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-03T16:32:30.237373Z",
+                        "last_seen_at": "2026-10-04T14:41:52.933041Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-03T16:32:30.237373Z",
-                        "valid_from": "2026-10-03T16:32:30.237373Z",
+                        "updated_at": "2026-10-04T14:41:52.933041Z",
+                        "valid_from": "2026-10-04T14:41:52.933041Z",
                         "valid_to": null
                       }
                     ],
@@ -33284,7 +33419,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Philips Hue Bridge",
+                    "service_definition": "Lubelogger",
                     "source": {
                       "type": "Manual"
                     },
@@ -33427,19 +33562,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-03T16:32:30.272318Z",
+                    "created_at": "2026-10-04T14:41:52.961296Z",
                     "first_discovery_id": null,
-                    "id": "8cbe62b4-9afa-4b2d-b6c5-b8dcefff9ba4",
+                    "id": "bbfaf60b-1cf4-4332-a776-ebc454fa1bc5",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-03T16:32:30.272318Z",
+                    "last_seen_at": "2026-10-04T14:41:52.961296Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-03T16:32:30.272318Z",
-                    "valid_from": "2026-10-03T16:32:30.272318Z",
+                    "updated_at": "2026-10-04T14:41:52.961296Z",
+                    "valid_from": "2026-10-04T14:41:52.961296Z",
                     "valid_to": null
                   }
                 ],
@@ -33453,7 +33588,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Philips Hue Bridge",
+                "service_definition": "Lubelogger",
                 "source": {
                   "type": "Manual"
                 },
@@ -35684,19 +35819,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-03T16:32:30.254347Z",
+              "created_at": "2026-10-04T14:41:52.946376Z",
               "first_discovery_id": null,
-              "id": "de74a308-63d3-4e23-9994-e333aca4a5ed",
+              "id": "e28f2c58-e574-4e4d-9cbb-2e07dc6dc93c",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-03T16:32:30.254347Z",
+              "last_seen_at": "2026-10-04T14:41:52.946376Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-03T16:32:30.254347Z",
-              "valid_from": "2026-10-03T16:32:30.254347Z",
+              "updated_at": "2026-10-04T14:41:52.946376Z",
+              "valid_from": "2026-10-04T14:41:52.946376Z",
               "valid_to": null
             }
           ],
@@ -35710,7 +35845,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Philips Hue Bridge",
+          "service_definition": "Lubelogger",
           "source": {
             "type": "Manual"
           },
@@ -35840,7 +35975,8 @@
           "Unknown",
           "Custom",
           "Scanopy",
-          "OpenPorts"
+          "OpenPorts",
+          "NetworkIdentities"
         ]
       },
       "ServiceInput": {
@@ -37101,7 +37237,7 @@
             "items": {
               "$ref": "#/components/schemas/EdgeTypeDiscriminants"
             },
-            "description": "Edge types to leave out of the drawing.",
+            "description": "Edge types to leave out of the drawing. Unknown values are dropped on read rather than\nfailing the topology — see [`deserialize_known_edge_types`](crate::server::topology::types::edges::deserialize_known_edge_types).",
             "default": [
               "Hypervisor"
             ]
@@ -37157,7 +37293,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "7694e962-aa99-4ac0-9f44-d10ef1963443",
+                  "id": "1cccc59b-8e63-488c-8697-1f68fc64099a",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -37167,23 +37303,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "7e2ceef7-577d-49e4-a400-a051aba105f1",
+                  "id": "7d34184f-15db-4953-a18b-0e27f1d8b6cb",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "ee67030b-b334-40b7-a2a1-79dc9c503f5e",
+                  "id": "c487f778-16ea-441d-8c92-1f698ec4e242",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "41c4ad81-698d-45e3-bb7c-d98875ac5b7c",
+                  "id": "dac30faf-b2eb-4cf0-9008-de11d52e5228",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "7e2ceef7-577d-49e4-a400-a051aba105f1",
+                  "id": "7d34184f-15db-4953-a18b-0e27f1d8b6cb",
                   "rule": "ByHost"
                 }
               ]
@@ -37213,19 +37349,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "02e25a5e-780c-4b83-b939-a7c161392622",
+                "id": "53ce1a54-567f-4b13-b909-6d58a7919e5f",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "74edbcf8-01a8-46a9-b527-06b53887ce5e",
+                "id": "6b6fa47e-0301-4c7c-90c4-8adb1c79059d",
                 "rule": "ByVLAN"
               },
               {
-                "id": "3615a447-bd78-4c44-ac4f-1942cae97cbb",
+                "id": "057d62cc-67a5-4a27-83df-362771fb9dcc",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "aa1d2d76-2cea-418c-891c-94a1899df234",
+                "id": "ba0b9c7e-6414-4111-a1f1-7b071e193e5b",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -37235,7 +37371,8 @@
                       "Workstation",
                       "Mobile",
                       "Printer",
-                      "OpenPorts"
+                      "OpenPorts",
+                      "NetworkIdentities"
                     ],
                     "is_infra_rule": true,
                     "title": "Infrastructure"
@@ -37243,7 +37380,7 @@
                 }
               },
               {
-                "id": "1116fecb-739c-44bc-b597-8343107bae65",
+                "id": "ed81f90f-c51b-4b9c-90a5-4e0081e79e45",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -37252,15 +37389,15 @@
                 }
               },
               {
-                "id": "fa0c11d0-ae22-44e7-9e1d-4e82fcbd2ba8",
+                "id": "c3e8977d-e74e-4666-af98-2460fde856ce",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "985fbfd3-830d-4c0a-a433-0374b852b330",
+                "id": "b45d09a7-a08c-4342-8bd2-c956cd2341f5",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "c679f9ac-c23a-449a-9219-b5422b80353c",
+                "id": "9fbe2469-3361-43fe-8a77-ce465d06b6dc",
                 "rule": "ByStack"
               }
             ]

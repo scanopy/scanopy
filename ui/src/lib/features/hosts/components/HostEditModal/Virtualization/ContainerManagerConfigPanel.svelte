@@ -2,22 +2,35 @@
 	import type { Service, ServiceVirtualization } from '$lib/features/services/types/base';
 	import { ServiceDisplay } from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
 	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
+	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import { hostDisplayContext } from '$lib/features/hosts/host-picker.svelte';
+	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
+	import type { Host } from '$lib/features/hosts/types/base';
 	import { serviceDefinitions } from '$lib/shared/stores/metadata';
 	import {
 		common_containers,
 		hosts_virtualization_addContainer,
 		hosts_virtualization_containerHelp,
+		hosts_virtualization_containerHosts,
+		hosts_virtualization_containerHostsHelp,
 		hosts_virtualization_noContainersYet
 	} from '$lib/paraglide/messages';
 
 	interface Props {
 		service: Service;
+		/** Effective host list (saved + staged edits) from VirtualizationForm. */
+		hosts: Host[];
 		/** Effective service list (saved + staged edits) from VirtualizationForm. */
 		services: Service[];
 		onChange: (updatedService: Service) => void;
 	}
 
-	let { service, services, onChange }: Props = $props();
+	let { service, hosts, services, onChange }: Props = $props();
+
+	// Containers on a macvlan or ipvlan network are hosts of their own under this runtime. Only
+	// discovery links them, so they are listed read-only.
+	let containerHosts = $derived(hosts.filter((h) => h.virtualization_service_id === service.id));
+	const ipAddressesQuery = useIPAddressesQuery();
 
 	let serviceMetadata = $derived(serviceDefinitions.getItem(service.service_definition));
 
@@ -93,4 +106,22 @@
 		onAdd={handleAddContainer}
 		onRemove={handleRemoveContainer}
 	/>
+
+	{#if containerHosts.length > 0}
+		<ListManager
+			label={hosts_virtualization_containerHosts()}
+			helpText={hosts_virtualization_containerHostsHelp({
+				serviceName: serviceMetadata?.name ?? ''
+			})}
+			allowReorder={false}
+			allowAddFromOptions={false}
+			allowItemEdit={() => false}
+			allowItemRemove={() => false}
+			options={[] as Host[]}
+			items={containerHosts}
+			getItemContext={() => hostDisplayContext(ipAddressesQuery.data ?? [], services)}
+			optionDisplayComponent={HostDisplay}
+			itemDisplayComponent={HostDisplay}
+		/>
+	{/if}
 </div>

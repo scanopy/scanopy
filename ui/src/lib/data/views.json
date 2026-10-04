@@ -26,6 +26,9 @@
           "type": "active",
           "will_target_container": false
         },
+        "NetworkIdentity": {
+          "type": "disabled"
+        },
         "PhysicalLink": {
           "affects_layout": true,
           "default_visibility": "visible",
@@ -187,6 +190,15 @@
         },
         "NeighborLink": {
           "type": "disabled"
+        },
+        "NetworkIdentity": {
+          "affects_layout": false,
+          "default_visibility": "visible",
+          "highlight_behavior": "when_visible",
+          "show_directionality": false,
+          "stroke": "dashed",
+          "type": "active",
+          "will_target_container": true
         },
         "PhysicalLink": {
           "type": "disabled"
@@ -498,6 +510,12 @@
                   "icon": "binary",
                   "id": "OpenPorts",
                   "label": "Open Ports"
+                },
+                {
+                  "color": "Amber",
+                  "icon": "fingerprint-pattern",
+                  "id": "NetworkIdentities",
+                  "label": "Network Identities"
                 }
               ]
             },
@@ -593,6 +611,9 @@
           "stroke": "dashed",
           "type": "active",
           "will_target_container": false
+        },
+        "NetworkIdentity": {
+          "type": "disabled"
         },
         "PhysicalLink": {
           "affects_layout": false,
@@ -921,6 +942,12 @@
                   "icon": "binary",
                   "id": "OpenPorts",
                   "label": "Open Ports"
+                },
+                {
+                  "color": "Amber",
+                  "icon": "fingerprint-pattern",
+                  "id": "NetworkIdentities",
+                  "label": "Network Identities"
                 }
               ]
             },
@@ -994,6 +1021,9 @@
           "type": "disabled"
         },
         "NeighborLink": {
+          "type": "disabled"
+        },
+        "NetworkIdentity": {
           "type": "disabled"
         },
         "PhysicalLink": {
@@ -1270,6 +1300,12 @@
                   "icon": "binary",
                   "id": "OpenPorts",
                   "label": "Open Ports"
+                },
+                {
+                  "color": "Amber",
+                  "icon": "fingerprint-pattern",
+                  "id": "NetworkIdentities",
+                  "label": "Network Identities"
                 }
               ]
             },
