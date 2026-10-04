@@ -1,7 +1,11 @@
 <script lang="ts">
 	import type { Edge } from '@xyflow/svelte';
 	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
-	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import {
+		HostDisplay,
+		type HostDisplayContext,
+		type HostTagRole
+	} from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
 	import { InterfaceDisplay } from '$lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
 	import { useTopology, selectedTopologyId } from '$lib/features/topology/context';
 	import { getTopologyEditState } from '$lib/features/topology/state';
@@ -48,13 +52,14 @@
 		return topology?.interfaces.find((i) => i.id === interfaceId) ?? null;
 	});
 
-	function hostContext(host: Host) {
+	function hostContext(host: Host, hideTags: HostTagRole[] = []): HostDisplayContext {
 		return {
 			services: topology?.services.filter((s) => s.host_id === host.id) ?? [],
 			showEntityTagPicker: true,
 			tagPickerDisabled: !editState.isEditable,
 			entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
-			compact: true
+			compact: true,
+			hideTags
 		};
 	}
 </script>
@@ -91,7 +96,7 @@
 				{#each identityHosts as identityHost (identityHost.id)}
 					<div class="card card-static">
 						<EntityDisplayWrapper
-							context={hostContext(identityHost)}
+							context={hostContext(identityHost, ['guest'])}
 							item={identityHost}
 							displayComponent={HostDisplay}
 						/>
@@ -111,7 +116,7 @@
 		>
 			<div class="card card-static">
 				<EntityDisplayWrapper
-					context={undefined}
+					context={{ compact: true }}
 					item={identityInterface}
 					displayComponent={InterfaceDisplay}
 				/>

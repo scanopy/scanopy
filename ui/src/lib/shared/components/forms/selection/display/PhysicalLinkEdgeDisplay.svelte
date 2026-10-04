@@ -2,41 +2,57 @@
 	import { edgeTypes } from '$lib/shared/stores/metadata';
 	import type { RenderableTopology, TopologyEdge } from '$lib/features/topology/types/base';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import { common_host, common_unknownEntity } from '$lib/paraglide/messages';
+	import { interfaceDisplayName } from '$lib/features/hosts/interface-display-name';
+	import { common_host, common_interface, common_unknownEntity } from '$lib/paraglide/messages';
 
-	// Serves both LLDP/CDP link types: `PhysicalLink` names the two ports and reaches their
-	// hosts through them, `NeighborLink` carries the host ids directly because the ports are
-	// exactly what could not be resolved. Both read as "host ↔ host".
-	function hostNamesFor(edge: TopologyEdge, topology: RenderableTopology) {
-		const titleOf = (hostId: string | undefined) => {
+	// Serves both LLDP/CDP link types. `PhysicalLink` names the two ports, and the ports are what
+	// tell apart several links between the same two switches, so they're the label and the hosts
+	// (reached through the ports) the description. `NeighborLink` carries the host ids directly
+	// because the ports are exactly what could not be resolved, so it reads as "host ↔ host".
+	function endpointsFor(edge: TopologyEdge, topology: RenderableTopology) {
+		// The fallbacks are an entity the topology bundle didn't carry, not one without a name —
+		// `hostDisplayName` and `interfaceDisplayName` have already handled that.
+		const unknownHost = common_unknownEntity({ entity: common_host() });
+		const hostName = (hostId: string | undefined) => {
 			const host = topology.hosts.find((h) => h.id === hostId);
-			return host ? hostDisplayName(host) : undefined;
+			return host ? hostDisplayName(host) : unknownHost;
 		};
 		if ('source_host_id' in edge && 'target_host_id' in edge) {
-			return [titleOf(edge.source_host_id), titleOf(edge.target_host_id)];
+			return {
+				hosts: [hostName(edge.source_host_id), hostName(edge.target_host_id)],
+				ports: null
+			};
 		}
 		if ('source_entity_id' in edge && 'target_entity_id' in edge) {
-			const hostOfInterface = (interfaceId: string) => {
-				const iface = topology.interfaces.find((e) => e.id === interfaceId);
-				return iface ? titleOf(iface.host_id) : undefined;
+			const source = topology.interfaces.find((i) => i.id === edge.source_entity_id);
+			const target = topology.interfaces.find((i) => i.id === edge.target_entity_id);
+			const unknownPort = common_unknownEntity({ entity: common_interface() });
+			return {
+				hosts: [hostName(source?.host_id), hostName(target?.host_id)],
+				ports: [
+					source ? interfaceDisplayName(source) : unknownPort,
+					target ? interfaceDisplayName(target) : unknownPort
+				]
 			};
-			return [hostOfInterface(edge.source_entity_id), hostOfInterface(edge.target_entity_id)];
 		}
-		return [undefined, undefined];
+		return { hosts: [unknownHost, unknownHost], ports: null };
 	}
+
+	const protocolOf = (edge: TopologyEdge) =>
+		'protocol' in edge ? ((edge.protocol as string | null) ?? '') : '';
 
 	export const PhysicalLinkEdgeDisplay: EntityDisplayComponent<TopologyEdge, EdgeDisplayContext> = {
 		getId: (edge) => edge.id,
 		getLabel: (edge, context) => {
 			if (!context?.topology) return edgeTypes.getName(edge.edge_type);
-			const [sourceName, targetName] = hostNamesFor(edge, context.topology);
-			// The fallback here is a host the topology bundle didn't carry, not a host without a
-			// name — `hostDisplayName` has already handled that one.
-			const unknown = common_unknownEntity({ entity: common_host() });
-			return `${sourceName ?? unknown} ↔ ${targetName ?? unknown}`;
+			const { hosts, ports } = endpointsFor(edge, context.topology);
+			return (ports ?? hosts).join(' ↔ ');
 		},
-		getDescription: (edge) => {
-			return 'protocol' in edge ? ((edge.protocol as string) ?? '') : '';
+		getDescription: (edge, context) => {
+			const protocol = protocolOf(edge);
+			if (!context?.topology) return protocol;
+			const { hosts, ports } = endpointsFor(edge, context.topology);
+			return [ports ? hosts.join(' ↔ ') : '', protocol].filter(Boolean).join(' · ');
 		},
 		getIcon: (edge) => edgeTypes.getIconComponent(edge.edge_type),
 		getIconColor: (edge) => edgeTypes.getColorHelper(edge.edge_type).icon

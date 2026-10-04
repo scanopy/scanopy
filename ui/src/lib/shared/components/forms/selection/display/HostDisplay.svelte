@@ -58,7 +58,8 @@
 					? [
 							{
 								label: proxmoxGuestTypes.getName(guestType),
-								color: proxmoxGuestTypes.getColorHelper(guestType).color
+								color: proxmoxGuestTypes.getColorHelper(guestType).color,
+								role: 'guest' satisfies HostTagRole
 							}
 						]
 					: [];
@@ -70,7 +71,8 @@
 					{
 						label: containerNetworkTypes.getName(networkType),
 						color: containerNetworkTypes.getColorHelper(networkType).color,
-						title: containerNetworkTypes.getDescription(networkType)
+						title: containerNetworkTypes.getDescription(networkType),
+						role: 'guest' satisfies HostTagRole
 					}
 				];
 			}
@@ -82,7 +84,8 @@
 						color: hostVirtualizations.getColorHelper(virtualization.type).color,
 						title: guestName
 							? hosts_networkIdentity_tagTitle({ guestName })
-							: hosts_networkIdentity_tagTitleUnresolved()
+							: hosts_networkIdentity_tagTitleUnresolved(),
+						role: 'guest' satisfies HostTagRole
 					}
 				];
 			}
@@ -91,8 +94,10 @@
 		}
 	}
 
+	export type HostTagRole = 'guest' | 'service';
+
 	// Context provides the host's children (interfaces, ports, services)
-	export interface HostDisplayContext {
+	export interface HostDisplayContext extends DisplayTagContext<HostTagRole> {
 		/** The host's addresses, shown under its name. Filtered by `host_id` like `services`. */
 		ipAddresses?: IPAddress[];
 		interfaces?: Interface[];
@@ -106,7 +111,6 @@
 		entityDescription?: string | null;
 		entityDescriptionDisabled?: boolean;
 		onEntityDescriptionSave?: (value: string | null) => void;
-		compact?: boolean;
 		/** A non-null `disabledReason` renders the option disabled with that tooltip. */
 		disabledReason?: string | null;
 	}
@@ -139,18 +143,19 @@
 			}
 		},
 		getIconColor: () => entities.getColorHelper('Host').icon,
+		// What kind of guest the host is (VM, LXC, macvlan container, network identity) is part of
+		// what the host is, so it shows even in compact rows; its services only in full ones. A view
+		// whose own heading already names the guest type hides `guest` too.
+		compactHides: ['service'] satisfies HostTagRole[],
 		getTags: (host, context) => {
-			// What kind of guest the host is (VM, LXC, macvlan container, network identity) is part
-			// of what the host is, so it shows even in compact rows; its services only in full ones.
-			const guestTags = virtualizationTags(host, context);
-			if (context?.compact) return guestTags;
 			const services = context?.services?.filter((s) => s.host_id == host.id) ?? [];
 			return [
-				...guestTags,
+				...virtualizationTags(host, context),
 				...services.map((service) => ({
 					label: serviceDefinitions.getName(service.service_definition),
 					color: entities.getColorHelper('Service').color,
-					entityRef: entityRef('Service', service.id, service)
+					entityRef: entityRef('Service', service.id, service),
+					role: 'service' satisfies HostTagRole
 				}))
 			];
 		},
@@ -168,7 +173,7 @@
 </script>
 
 <script lang="ts">
-	import type { EntityDisplayComponent } from '../types';
+	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
 	import ListSelectItem from '../ListSelectItem.svelte';
 
 	export let item: Host;

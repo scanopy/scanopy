@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { IPAddressDisplay } from '$lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
+import { displayTags } from '$lib/shared/components/forms/selection/display-tags';
 import type { IPAddress } from '$lib/features/hosts/types/base';
 import type { Network } from '$lib/features/networks/types';
 import { common_stale } from '$lib/paraglide/messages';
@@ -21,7 +22,7 @@ function address(hoursAgo: number): IPAddress {
 }
 
 function staleTags(iface: IPAddress, compact = false) {
-	return IPAddressDisplay.getTags!(iface, { subnets: [], networks: [network], compact }).filter(
+	return displayTags(IPAddressDisplay, iface, { subnets: [], networks: [network], compact }).filter(
 		(t) => t.label === common_stale()
 	);
 }

@@ -1,9 +1,10 @@
 <script lang="ts" context="module">
 	import { entities, dependencyTypes } from '$lib/shared/stores/metadata';
+	import { dependencies_memberCount } from '$lib/paraglide/messages';
 
-	export interface DependencyDisplayContext {
-		compact?: boolean;
-	}
+	export type DependencyTagRole = 'dependencyType';
+
+	export type DependencyDisplayContext = DisplayTagContext<DependencyTagRole>;
 
 	export const DependencyDisplay: EntityDisplayComponent<Dependency, DependencyDisplayContext> = {
 		getId: (dependency: Dependency) => dependency.id,
@@ -16,25 +17,24 @@
 					: members?.type === 'Bindings'
 						? members.binding_ids.length
 						: 0;
-			return `${count} member${count !== 1 ? 's' : ''} in dependency`;
+			return dependencies_memberCount({ count });
 		},
 		getIcon: (dependency: Dependency) =>
 			dependencyTypes.getIconComponent(dependency.dependency_type),
 		getIconColor: () => entities.getColorHelper('Dependency').icon,
-		getTags: (dependency: Dependency, context: DependencyDisplayContext) => {
-			if (context?.compact) return [];
-			return [
-				{
-					label: dependencyTypes.getName(dependency.dependency_type),
-					color: dependencyTypes.getColorHelper(dependency.dependency_type).color
-				}
-			];
-		}
+		compactHides: ['dependencyType'] satisfies DependencyTagRole[],
+		getTags: (dependency: Dependency) => [
+			{
+				label: dependencyTypes.getName(dependency.dependency_type),
+				color: dependencyTypes.getColorHelper(dependency.dependency_type).color,
+				role: 'dependencyType' satisfies DependencyTagRole
+			}
+		]
 	};
 </script>
 
 <script lang="ts">
-	import type { EntityDisplayComponent } from '../types';
+	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
 	import ListSelectItem from '../ListSelectItem.svelte';
 	import type { Dependency } from '$lib/features/dependencies/types/base';
 

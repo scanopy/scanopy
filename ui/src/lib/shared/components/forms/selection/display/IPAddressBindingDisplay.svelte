@@ -3,6 +3,8 @@
 	import type { IPAddressBinding, Service } from '$lib/features/services/types/base';
 	import type { HostFormData, IPAddress } from '$lib/features/hosts/types/base';
 	import type { EntityDisplayComponent } from '../types';
+	import { formatIPAddress } from '$lib/features/hosts/address-labels';
+	import { hosts_bindings_unknownIPAddress } from '$lib/paraglide/messages';
 	import IPAddressBindingInlineEditor from './IPAddressBindingInlineEditor.svelte';
 
 	// Context for binding display within form editing
@@ -14,16 +16,6 @@
 		isContainerSubnet: (subnetId: string) => boolean;
 	}
 
-	// Helper to format interface for display
-	function formatIPAddressForBinding(
-		ipAddr: IPAddress,
-		isContainerSubnet: (subnetId: string) => boolean
-	): string {
-		return isContainerSubnet(ipAddr.subnet_id)
-			? (ipAddr.name ?? ipAddr.ip_address)
-			: (ipAddr.name ? ipAddr.name + ': ' : '') + ipAddr.ip_address;
-	}
-
 	export const IPAddressBindingDisplay: EntityDisplayComponent<
 		IPAddressBinding,
 		IPAddressBindingDisplayContext
@@ -33,10 +25,9 @@
 			const interfacesData = context?.ip_addresses ?? [];
 			const isContainerSubnetFn = context?.isContainerSubnet ?? (() => false);
 			const ipAddr = interfacesData.find((i) => i.id === binding.ip_address_id);
-			const interfaceFormatted = ipAddr
-				? formatIPAddressForBinding(ipAddr, isContainerSubnetFn)
-				: 'Unknown IP Address';
-			return interfaceFormatted;
+			return ipAddr
+				? formatIPAddress(ipAddr, isContainerSubnetFn)
+				: hosts_bindings_unknownIPAddress();
 		},
 		getDescription: () => '',
 		getIcon: () => entities.getIconComponent('IPAddress'),

@@ -3,7 +3,7 @@
 	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
 	import { IPAddressDisplay } from './IPAddressDisplay.svelte';
 	import { ipAddressBindingOptions } from './bindingOptions';
-	import { formatIPAddress } from '$lib/features/hosts/queries';
+	import { formatIPAddress } from '$lib/features/hosts/address-labels';
 	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
 	import { useSubnetsQuery, isContainerSubnet } from '$lib/features/subnets/queries';
 	import type { HostFormData } from '$lib/features/hosts/types/base';

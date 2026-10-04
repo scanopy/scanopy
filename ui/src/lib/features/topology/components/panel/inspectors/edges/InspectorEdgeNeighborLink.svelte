@@ -56,7 +56,8 @@
 				<EntityDisplayWrapper
 					context={{
 						services: topology?.services.filter((s) => s.host_id === sourceHost.id) ?? [],
-						compact: true
+						compact: true,
+						hideTags: ['guest']
 					}}
 					item={sourceHost}
 					displayComponent={HostDisplay}
@@ -77,7 +78,8 @@
 				<EntityDisplayWrapper
 					context={{
 						services: topology?.services.filter((s) => s.host_id === targetHost.id) ?? [],
-						compact: true
+						compact: true,
+						hideTags: ['guest']
 					}}
 					item={targetHost}
 					displayComponent={HostDisplay}

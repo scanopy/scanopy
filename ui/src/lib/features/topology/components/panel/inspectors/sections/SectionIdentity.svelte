@@ -122,7 +122,7 @@
 		{#if thisInterface}
 			<div class="card card-static">
 				<EntityDisplayWrapper
-					context={undefined}
+					context={{ compact: true }}
 					item={thisInterface}
 					displayComponent={InterfaceDisplay}
 				/>

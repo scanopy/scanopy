@@ -83,7 +83,9 @@
 		return hostDisplayContext(allIpAddresses, allServices, {
 			showEntityTagPicker: true,
 			entityTags: getEntityTags(host),
-			allowTagCreate: false
+			allowTagCreate: false,
+			// Each host row expands into its services, so service tags would list them twice.
+			hideTags: ['service']
 		});
 	}
 

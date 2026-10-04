@@ -321,6 +321,7 @@
 								options={usersData}
 								onSelect={(value) => field.handleChange(value)}
 								displayComponent={UserDisplay}
+								getOptionContext={() => ({ hideTags: ['permission' as const] })}
 								showSearch={true}
 								helpText={common_maintainerHelp()}
 							/>
