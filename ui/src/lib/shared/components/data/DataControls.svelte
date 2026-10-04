@@ -378,10 +378,6 @@
 	// ---- Table columns -------------------------------------------------------
 
 	let allColumns = $derived(fieldsToColumns(fields, useServerPagination));
-	let columnState = $derived(
-		reconcileColumnState(allColumns, { visibility: columnVisibility, order: columnOrder })
-	);
-
 	/**
 	 * Tags are appended by the list itself rather than declared per tab.
 	 *
@@ -392,6 +388,14 @@
 	 */
 	let tagColumn = $derived(
 		getItemTags ? buildTagColumn<T>(common_tags(), getItemTags, tagsCell) : null
+	);
+
+	let columnState = $derived(
+		reconcileColumnState(
+			allColumns,
+			{ visibility: columnVisibility, order: columnOrder, sizing: columnSizing },
+			tagColumn ? [tagColumn] : []
+		)
 	);
 
 	let renderedColumns = $derived(withTagColumn(visibleColumns(allColumns, columnState), tagColumn));
@@ -697,9 +701,14 @@
 		columnOrder = order;
 	}
 
+	function resizeColumns(sizing: Record<string, number>) {
+		columnSizing = sizing;
+	}
+
 	function resetColumns() {
 		columnVisibility = {};
 		columnOrder = [];
+		columnSizing = {};
 		dropHiddenColumns(true);
 	}
 
@@ -961,6 +970,8 @@
 		items={rows}
 		groups={rows ? null : groupList}
 		columns={renderedColumns}
+		columnSizing={columnState.sizing}
+		onColumnSizingChange={resizeColumns}
 		sortState={activeSort}
 		selectable={showSelection}
 		{selectedIds}

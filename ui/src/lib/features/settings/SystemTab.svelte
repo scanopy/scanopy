@@ -30,6 +30,10 @@
 		common_clock,
 		common_12Hour,
 		common_24Hour,
+		common_comfortable,
+		common_compact,
+		common_density,
+		common_tables,
 		settings_system_copyright,
 		settings_system_dashboardIconsAttribution,
 		settings_system_dateAndTime,
@@ -44,6 +48,8 @@
 		settings_system_preview,
 		settings_system_recogAttribution,
 		settings_system_simpleIconsAttribution,
+		settings_system_tablesDesc,
+		settings_system_tablesUpdated,
 		settings_system_themeDesc,
 		settings_system_timeZoneBrowser,
 		settings_system_timestamps,
@@ -58,6 +64,7 @@
 	type ClockFormat = components['schemas']['ClockFormat'];
 	type WeekStart = components['schemas']['WeekStart'];
 	type TimestampStyle = components['schemas']['TimestampStyle'];
+	type TableDensity = components['schemas']['TableDensity'];
 
 	const options = [
 		{ id: 'system' as const, label: common_system(), icon: Monitor },
@@ -87,6 +94,10 @@
 		{ value: 'relative', label: settings_system_timestampsRelative() },
 		{ value: 'absolute', label: settings_system_timestampsAbsolute() }
 	];
+	const tableDensityOptions: { value: TableDensity; label: string }[] = [
+		{ value: 'comfortable', label: common_comfortable() },
+		{ value: 'compact', label: common_compact() }
+	];
 	// '' stands for "no zone chosen" (null on the server), since a <select> value is a string.
 	const timeZoneSelectOptions = [
 		{ value: '', label: settings_system_timeZoneBrowser({ zone: browserTimeZone() }) },
@@ -115,7 +126,11 @@
 			if (!user) return;
 			try {
 				await updateSelfMutation.mutateAsync({ ...user, display_settings: fromFormValues(value) });
-				pushSuccess(settings_system_displayUpdated());
+				pushSuccess(
+					lastChanged === 'tables'
+						? settings_system_tablesUpdated()
+						: settings_system_displayUpdated()
+				);
 			} catch {
 				// The API client reports the error. Put the form and every displayed date back on
 				// the last value the server accepted.
@@ -141,9 +156,21 @@
 		}
 	});
 
-	// Apply the change to every date on screen at once, then persist it.
+	// Which card the last saved change came from, so the toast names it.
+	let lastChanged: 'dateAndTime' | 'tables' = 'dateAndTime';
+
+	// Apply the change to every date and table on screen at once, then persist it.
 	function onSettingChange() {
+		saveSetting('dateAndTime');
+	}
+
+	function onTableSettingChange() {
+		saveSetting('tables');
+	}
+
+	function saveSetting(card: typeof lastChanged) {
 		if (suppressSave || !hydrated) return;
+		lastChanged = card;
 		displaySettings.set(fromFormValues(form.state.values));
 		void form.handleSubmit();
 	}
@@ -225,6 +252,22 @@
 						id="display-timestamps"
 						label={settings_system_timestamps()}
 						options={timestampOptions}
+						{field}
+					/>
+				{/snippet}
+			</form.Field>
+		</div>
+	</InfoCard>
+
+	<InfoCard title={common_tables()}>
+		<p class="text-tertiary text-sm">{settings_system_tablesDesc()}</p>
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+			<form.Field name="table_density" listeners={{ onChange: onTableSettingChange }}>
+				{#snippet children(field)}
+					<SelectInput
+						id="display-table-density"
+						label={common_density()}
+						options={tableDensityOptions}
 						{field}
 					/>
 				{/snippet}

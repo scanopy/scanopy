@@ -40,6 +40,38 @@ export const TAG_COLUMN_ID = 'tags';
 export interface ColumnState {
 	visibility: Record<string, boolean>;
 	order: string[];
+	/** Widths the user resized to, in px. A column without an entry uses its default. */
+	sizing: Record<string, number>;
+}
+
+/** Bounds on a resized column, so a stored width can neither hide a column nor swallow the table. */
+export const MIN_COLUMN_WIDTH = 64;
+export const MAX_COLUMN_WIDTH = 800;
+
+/**
+ * Widest a column without a width grows to, in px.
+ *
+ * Without it one long chip (an IPv6 address, a long host name) sets the width
+ * of its whole column, because chips and plain text never wrap.
+ */
+export const UNSIZED_COLUMN_MAX = 216;
+
+/**
+ * Width a column renders at: the user's resize, else the field's declared starting width.
+ *
+ * Undefined means content-sized, capped by `UNSIZED_COLUMN_MAX` in the table.
+ */
+export function columnWidth<T>(
+	column: EntityColumn<T>,
+	sizing: Record<string, number>
+): number | undefined {
+	return sizing[column.id] ?? column.width;
+}
+
+/** Clamp a width to the resize bounds, or null for a value that is not a width at all. */
+export function clampColumnWidth(width: unknown): number | null {
+	if (typeof width !== 'number' || !Number.isFinite(width)) return null;
+	return Math.round(Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, width)));
 }
 
 /**
@@ -136,11 +168,21 @@ function pinColumns<T>(order: string[], columns: EntityColumn<T>[]): string[] {
  * Renaming or removing a field must not leave a stale entry deciding anything,
  * a stored order cannot unpin a pinned column, and a newly added field lands
  * beside the column it is declared after rather than at the end.
+ *
+ * `appended` are columns the list renders outside the order (the tags column):
+ * they take no part in order or visibility, but their widths are kept too.
  */
 export function reconcileColumnState<T>(
 	columns: EntityColumn<T>[],
-	stored: Partial<ColumnState> | undefined
+	stored: Partial<ColumnState> | undefined,
+	appended: EntityColumn<T>[] = []
 ): ColumnState {
+	const sizing: Record<string, number> = {};
+	for (const column of [...columns, ...appended]) {
+		const width = clampColumnWidth(stored?.sizing?.[column.id]);
+		if (width !== null) sizing[column.id] = width;
+	}
+
 	const defaults = defaultColumnVisibility(columns);
 	const visibility: Record<string, boolean> = {};
 
@@ -167,7 +209,7 @@ export function reconcileColumnState<T>(
 		placed.add(id);
 	});
 
-	return { visibility, order: pinColumns(order, columns) };
+	return { visibility, order: pinColumns(order, columns), sizing };
 }
 
 /**
@@ -223,7 +265,7 @@ export function movableIds<T>(order: string[], columns: EntityColumn<T>[]): stri
 /** Columns to render, in persisted order, minus the hidden ones. */
 export function visibleColumns<T>(
 	columns: EntityColumn<T>[],
-	state: ColumnState
+	state: Pick<ColumnState, 'visibility' | 'order'>
 ): EntityColumn<T>[] {
 	const byId = new Map(columns.map((c) => [c.id, c]));
 

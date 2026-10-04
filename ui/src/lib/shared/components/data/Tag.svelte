@@ -55,14 +55,34 @@
 	let bgColor = $derived(colorHelper?.bg ?? '');
 	let textColor = $derived(colorHelper?.text ?? '');
 
+	/**
+	 * Names the full label on hover, but only while the chip is too narrow to
+	 * show it. A table column narrower than the label truncates it.
+	 */
+	function titleWhenTruncated(node: HTMLElement, label: string) {
+		let current = label;
+		const onEnter = () => {
+			node.title = node.scrollWidth > node.clientWidth ? current : '';
+		};
+		node.addEventListener('mouseenter', onEnter);
+		return {
+			update(next: string) {
+				current = next;
+			},
+			destroy() {
+				node.removeEventListener('mouseenter', onEnter);
+			}
+		};
+	}
+
 	let unknownClasses = 'bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-300';
 </script>
 
 {#snippet content()}
 	<span
-		class="inline-flex items-center gap-1 {pill ? 'rounded-full' : 'rounded'} {displayLabel
-			? 'px-2'
-			: 'px-1.5'} py-0.5 text-xs font-medium
+		class="inline-flex min-w-0 max-w-full items-center gap-1 {pill
+			? 'rounded-full'
+			: 'rounded'} {displayLabel ? 'px-2' : 'px-1.5'} py-0.5 text-xs font-medium
 		{isUnknown ? unknownClasses : disabled ? 'text-tertiary bg-gray-700/30' : `${bgColor} ${textColor}`}
 		{isShiny ? 'tag-shiny' : ''}"
 	>
@@ -72,7 +92,7 @@
 		{/if}
 
 		{#if displayLabel}
-			<span class="truncate">{displayLabel}</span>
+			<span class="truncate" use:titleWhenTruncated={displayLabel}>{displayLabel}</span>
 		{/if}
 		{#if badge.length > 0}
 			<span class="flex-shrink-0 {textColor}">{badge}</span>
@@ -98,7 +118,7 @@
 		use:tooltip
 		data-tooltip={nativeTooltip ? null : title || null}
 		title={nativeTooltip ? title || undefined : undefined}
-		class="inline-flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded brightness-100 transition-all hover:brightness-90 dark:hover:brightness-125 {fadedClasses}"
+		class="inline-flex max-w-full flex-shrink-0 items-center gap-1 whitespace-nowrap rounded brightness-100 transition-all hover:brightness-90 dark:hover:brightness-125 {fadedClasses}"
 		onclick={(e) => e.stopPropagation()}
 	>
 		{@render content()}
@@ -109,7 +129,7 @@
 		use:tooltip
 		data-tooltip={nativeTooltip ? null : title || null}
 		title={nativeTooltip ? title || undefined : undefined}
-		class="inline-flex flex-shrink-0 cursor-pointer appearance-none items-center gap-1 whitespace-nowrap rounded brightness-100 transition-all hover:brightness-90 dark:hover:brightness-125 {fadedClasses}"
+		class="inline-flex max-w-full flex-shrink-0 cursor-pointer appearance-none items-center gap-1 whitespace-nowrap rounded brightness-100 transition-all hover:brightness-90 dark:hover:brightness-125 {fadedClasses}"
 		{onclick}
 		{onmouseenter}
 		{onmouseleave}
@@ -122,7 +142,7 @@
 		use:tooltip
 		data-tooltip={nativeTooltip ? null : title || null}
 		title={nativeTooltip ? title || undefined : undefined}
-		class="inline-flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded {fadedClasses}"
+		class="inline-flex max-w-full flex-shrink-0 items-center gap-1 whitespace-nowrap rounded {fadedClasses}"
 	>
 		{@render content()}
 	</div>
