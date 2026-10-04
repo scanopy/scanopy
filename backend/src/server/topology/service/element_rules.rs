@@ -10,7 +10,7 @@ use crate::server::{
         definitions::{ServiceDefinitionExt, VirtualizationRole},
     },
     shared::entities::EntityDiscriminants,
-    shared::types::Color,
+    shared::types::{Color, metadata::EntityMetadataProvider},
     subnets::r#impl::base::Subnet,
     topology::types::{
         grouping::{
@@ -795,13 +795,8 @@ fn compute_port_op_status_placements(ctx: &PlacementContext) -> RulePlacement {
             );
             let group_id = Uuid::new_v5(&Uuid::NAMESPACE_OID, group_key.as_bytes());
 
-            let color = match status {
-                Some(IfOperStatus::Up) => Color::Green,
-                Some(IfOperStatus::Down | IfOperStatus::LowerLayerDown) => Color::Red,
-                Some(IfOperStatus::Testing) => Color::Amber,
-                Some(IfOperStatus::Dormant) => Color::Blue,
-                Some(IfOperStatus::Unknown | IfOperStatus::NotPresent) | None => Color::Gray,
-            };
+            // The status's own colour, the one its "By status" chip and the port dots use.
+            let color = status.map_or(Color::Gray, |s| s.color());
 
             result.containers.push(Node {
                 id: group_id,

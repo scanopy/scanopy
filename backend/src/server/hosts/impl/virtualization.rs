@@ -10,6 +10,7 @@ use crate::server::{
     hosts::r#impl::base::Host,
     shared::{
         concepts::Concept,
+        entities::EntityDiscriminants,
         types::{
             Color, Icon,
             metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider},
@@ -255,6 +256,12 @@ impl TypeMetadataProvider for HostVirtualizationDiscriminants {
             }
         }
     }
+
+    /// The `HostVirtualizationState` id this type files under, so the frontend's filter extractor
+    /// reads the mapping instead of keeping a copy of it.
+    fn metadata(&self) -> serde_json::Value {
+        serde_json::json!({ "virtualization_state": self.state().id() })
+    }
 }
 
 impl HasId for ContainerNetworkType {
@@ -319,11 +326,13 @@ impl TypeMetadataProvider for ProxmoxGuestType {
     }
 }
 
-/// Coarse virtualization state used by the `Virtualization` metadata filter
-/// on Host. Each host resolves to exactly one variant via `HasFilterValues`.
-/// Today derived from `host.virtualization.is_some()`; future finer states
-/// (e.g. per-hypervisor) can add variants here without breaking persistence
-/// of the existing ids.
+/// Coarse virtualization state used by the `Virtualization` metadata filter on Host. Each host
+/// resolves to exactly one variant via `HasFilterValues`, from the type of its
+/// `virtualization_metadata` ([`HostVirtualizationDiscriminants::state`]).
+///
+/// A container host and a network identity get states of their own rather than `Virtualized`:
+/// the filter's colour marks Workloads cards, and an identity is an interface its owner presents,
+/// not a guest it runs. The ids are persisted in hide-sets, so existing ones keep their spelling.
 #[derive(
     Debug,
     Clone,
@@ -339,14 +348,26 @@ impl TypeMetadataProvider for ProxmoxGuestType {
 )]
 pub enum HostVirtualizationState {
     Virtualized,
+    Containerized,
+    NetworkIdentity,
     BareMetal,
 }
 
 impl HostVirtualizationState {
     pub fn from_host_virtualization(v: Option<&HostVirtualization>) -> Self {
-        match v {
-            Some(_) => Self::Virtualized,
-            None => Self::BareMetal,
+        v.map_or(Self::BareMetal, |v| {
+            HostVirtualizationDiscriminants::from(v).state()
+        })
+    }
+}
+
+impl HostVirtualizationDiscriminants {
+    /// The filter state a host of this type falls under.
+    pub fn state(&self) -> HostVirtualizationState {
+        match self {
+            Self::Proxmox | Self::VCenter | Self::ESXi => HostVirtualizationState::Virtualized,
+            Self::Docker | Self::Podman => HostVirtualizationState::Containerized,
+            Self::NetworkIdentity => HostVirtualizationState::NetworkIdentity,
         }
     }
 }
@@ -361,12 +382,17 @@ impl EntityMetadataProvider for HostVirtualizationState {
     fn color(&self) -> Color {
         match self {
             Self::Virtualized => Concept::Virtualization.color(),
+            Self::Containerized => Concept::Containerization.color(),
+            // The NetworkIdentity edge's colour, for the same reason: an identity is an interface.
+            Self::NetworkIdentity => EntityDiscriminants::Interface.color(),
             Self::BareMetal => Color::Gray,
         }
     }
     fn icon(&self) -> Icon {
         match self {
             Self::Virtualized => Concept::Virtualization.icon(),
+            Self::Containerized => Concept::Containerization.icon(),
+            Self::NetworkIdentity => Icon::FingerprintPattern,
             Self::BareMetal => Icon::Server,
         }
     }
@@ -376,13 +402,19 @@ impl TypeMetadataProvider for HostVirtualizationState {
     fn name(&self) -> &'static str {
         match self {
             Self::Virtualized => "Virtualized",
+            Self::Containerized => "Containerized",
+            Self::NetworkIdentity => "Network identity",
             Self::BareMetal => "Bare metal",
         }
     }
 
     fn description(&self) -> &'static str {
         match self {
-            Self::Virtualized => "Hosts running as virtual machines or containers",
+            Self::Virtualized => "Hosts running as virtual machines",
+            Self::Containerized => "Containers with their own address on the LAN",
+            Self::NetworkIdentity => {
+                "Addresses another host presents on the network from one of its own interfaces"
+            }
             Self::BareMetal => "Hosts running on physical hardware",
         }
     }
@@ -403,6 +435,7 @@ impl HasFilterValues for Host {
 mod tests {
     use super::*;
     use crate::server::hosts::r#impl::base::HostBase;
+    use std::collections::HashSet;
     use strum::IntoEnumIterator;
 
     fn identity_host() -> Host {
@@ -436,6 +469,31 @@ mod tests {
         assert_eq!(
             undeclared_virtualization(silent, &Host::new(HostBase::default())),
             None
+        );
+    }
+
+    /// Every filter chip except Bare metal names hosts some virtualization type produces, and no
+    /// virtualized host files under Bare metal.
+    #[test]
+    fn every_virtualization_state_is_reachable_and_bare_metal_means_none() {
+        let reached: HashSet<HostVirtualizationState> = HostVirtualizationDiscriminants::iter()
+            .map(|d| d.state())
+            .collect();
+        assert!(!reached.contains(&HostVirtualizationState::BareMetal));
+        for state in HostVirtualizationState::iter() {
+            if state != HostVirtualizationState::BareMetal {
+                assert!(reached.contains(&state), "{state:?} has no virtualization type");
+            }
+        }
+        assert_eq!(
+            Host::new(HostBase::default()).filter_values(&FilterValueContext::default())
+                [&MetadataFilterType::Virtualization],
+            HostVirtualizationState::BareMetal.id()
+        );
+        assert_eq!(
+            identity_host().filter_values(&FilterValueContext::default())
+                [&MetadataFilterType::Virtualization],
+            HostVirtualizationState::NetworkIdentity.id()
         );
     }
 

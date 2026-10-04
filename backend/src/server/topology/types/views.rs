@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::server::{
     hosts::r#impl::virtualization::HostVirtualizationState,
-    interfaces::r#impl::base::InterfaceLinkState,
+    interfaces::r#impl::base::{IfOperStatus, InterfaceLinkState},
     services::r#impl::categories::ServiceCategory,
     shared::{
         concepts::Concept,
@@ -137,6 +137,54 @@ pub struct ViewElementConfig {
     /// the UI pluralizes as needed.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub collective_noun: Option<String>,
+    /// The colours this view paints on its element cards, each tied to the filter value that
+    /// explains it. A card shows a classification colour only through one of these, so every
+    /// colour has a chip in the filter panel whose hover rings the same cards. Per channel, earlier
+    /// marks win.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub element_marks: Vec<ElementMark>,
+}
+
+/// Where on an element card a mark paints.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, ToSchema, EnumIter)]
+pub enum MarkChannel {
+    /// The card's header text.
+    Title,
+    /// The dot beside a port's speed.
+    StatusDot,
+    /// The whole card, when it draws as a bare box below the detail threshold.
+    StateFill,
+}
+
+/// A colour a view paints on its element cards, named by the filter value that decodes it.
+///
+/// The colour is that value's `FilterValue::color`; the mark carries none of its own, so the card
+/// and the chip cannot disagree. A card is marked when its own entity, or its host, carries
+/// `value` under `filter_type`, judged by the extractor the filter's hover uses.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
+pub struct ElementMark {
+    pub channel: MarkChannel,
+    /// The entity whose filter value is read: the card's own, or `Host` for the card's host.
+    pub entity: EntityDiscriminants,
+    pub filter_type: MetadataFilterType,
+    /// The `FilterValue::id` that paints.
+    pub value: String,
+}
+
+impl ElementMark {
+    fn new(
+        channel: MarkChannel,
+        entity: EntityDiscriminants,
+        filter_type: MetadataFilterType,
+        value: &impl HasId,
+    ) -> Self {
+        Self {
+            channel,
+            entity,
+            filter_type,
+            value: value.id().to_string(),
+        }
+    }
 }
 
 /// Entities the topology can filter by staleness: those with a stale badge in the inventory or
@@ -250,6 +298,9 @@ pub enum MetadataFilterType {
     /// network staleness window and the current time — so the frontend
     /// extractor for it takes the network as context.
     Staleness,
+    /// A port's ifOperStatus. Declared on Interface in L2, where it is what the card's status dot
+    /// and zoomed-out fill show.
+    OperStatus,
 }
 
 impl HasId for MetadataFilterType {
@@ -609,7 +660,52 @@ impl TopologyView {
         let mut config = self.base_element_config();
         config.add_staleness_filters();
         config.default_hidden_values = self.default_hidden_values();
+        config.element_marks = self.element_marks(&config);
         config
+    }
+
+    /// The colours this view paints on element cards, in priority order per channel.
+    ///
+    /// Every view fills a zoomed-out card amber when its element is stale. L2 adds port status
+    /// (down above stale, up below it, so a dead link is never hidden behind a quiet one) and
+    /// colours each port's dot. Workloads colours a guest card's title by what kind of guest it
+    /// is. L3 and Application colour no titles: neither declares a Host filter to explain one.
+    fn element_marks(&self, config: &ViewElementConfig) -> Vec<ElementMark> {
+        use EntityDiscriminants::{Host, Interface};
+        use MarkChannel::*;
+        use MetadataFilterType::{OperStatus, Staleness, Virtualization};
+
+        let stale_fill: Vec<ElementMark> = config
+            .element_entities
+            .iter()
+            .filter(|e| STALENESS_FILTERED_ENTITIES.contains(&e.entity_type))
+            .map(|e| ElementMark::new(StateFill, e.entity_type, Staleness, &EntityFreshness::Stale))
+            .collect();
+        let status = |channel, status: IfOperStatus| {
+            ElementMark::new(channel, Interface, OperStatus, &status)
+        };
+
+        match self {
+            Self::L2Physical => [
+                status(StateFill, IfOperStatus::Down),
+                status(StateFill, IfOperStatus::LowerLayerDown),
+            ]
+            .into_iter()
+            .chain(stale_fill)
+            .chain([
+                status(StateFill, IfOperStatus::Up),
+                status(StatusDot, IfOperStatus::Up),
+                status(StatusDot, IfOperStatus::Down),
+                status(StatusDot, IfOperStatus::LowerLayerDown),
+            ])
+            .collect(),
+            Self::Workloads => HostVirtualizationState::iter()
+                .filter(|s| *s != HostVirtualizationState::BareMetal)
+                .map(|s| ElementMark::new(Title, Host, Virtualization, &s))
+                .chain(stale_fill)
+                .collect(),
+            Self::L3Logical | Self::Application => stale_fill,
+        }
     }
 
     /// Filter values hidden out of the box in this view.
@@ -676,6 +772,7 @@ impl TopologyView {
                 // Populated by `element_config`, which is the only public constructor.
                 default_hidden_values: HashMap::new(),
                 collective_noun: None,
+                element_marks: Vec::new(),
             },
             Self::L2Physical => ViewElementConfig {
                 container_entity: Some(EntityDiscriminants::Host),
@@ -685,22 +782,32 @@ impl TopologyView {
                 }],
                 metadata_filters: [(
                     EntityDiscriminants::Interface,
-                    vec![MetadataFilter {
-                        filter_type: MetadataFilterType::LinkState,
-                        label: "By link".to_string(),
-                        values: filter_values_from_enum::<InterfaceLinkState>(),
-                        // The only server-side filter. It hides ~16,000 of L2's 19,095 interfaces —
-                        // ifTable rows with no neighbour — which is the difference between a view that
-                        // loads and one that exhausts browser memory. Link state is derivable from the
-                        // topology being built, so it qualifies.
-                        applies: FilterApplication::Server,
-                    }],
+                    vec![
+                        MetadataFilter {
+                            filter_type: MetadataFilterType::LinkState,
+                            label: "By link".to_string(),
+                            values: filter_values_from_enum::<InterfaceLinkState>(),
+                            // The only server-side filter. It hides ~16,000 of L2's 19,095 interfaces —
+                            // ifTable rows with no neighbour — which is the difference between a view that
+                            // loads and one that exhausts browser memory. Link state is derivable from the
+                            // topology being built, so it qualifies.
+                            applies: FilterApplication::Server,
+                        },
+                        // Decodes the port status dot and zoomed-out fill (see `element_marks`).
+                        MetadataFilter {
+                            filter_type: MetadataFilterType::OperStatus,
+                            label: "By status".to_string(),
+                            values: filter_values_from_enum::<IfOperStatus>(),
+                            applies: FilterApplication::Client,
+                        },
+                    ],
                 )]
                 .into_iter()
                 .collect(),
                 // Populated by `element_config`, which is the only public constructor.
                 default_hidden_values: HashMap::new(),
                 collective_noun: None,
+                element_marks: Vec::new(),
             },
             Self::Workloads => ViewElementConfig {
                 container_entity: Some(EntityDiscriminants::Host),
@@ -739,6 +846,7 @@ impl TopologyView {
                 // Populated by `element_config`, which is the only public constructor.
                 default_hidden_values: HashMap::new(),
                 collective_noun: Some("workload".to_string()),
+                element_marks: Vec::new(),
             },
             Self::Application => ViewElementConfig {
                 container_entity: None,
@@ -760,6 +868,7 @@ impl TopologyView {
                 // Populated by `element_config`, which is the only public constructor.
                 default_hidden_values: HashMap::new(),
                 collective_noun: None,
+                element_marks: Vec::new(),
             },
         }
     }
@@ -927,6 +1036,26 @@ mod tests {
         }
     }
     use strum::IntoEnumIterator;
+
+    /// A view can only paint a colour its filter panel explains: every element mark names a value
+    /// of a filter the view declares for that entity.
+    #[test]
+    fn every_element_mark_names_a_declared_filter_value() {
+        for view in TopologyView::iter() {
+            let config = view.element_config();
+            for mark in &config.element_marks {
+                let declared = config
+                    .metadata_filters
+                    .get(&mark.entity)
+                    .into_iter()
+                    .flatten()
+                    .filter(|f| f.filter_type == mark.filter_type)
+                    .flat_map(|f| &f.values)
+                    .any(|v| v.id == mark.value);
+                assert!(declared, "{view:?} paints {mark:?} with no filter value to decode it");
+            }
+        }
+    }
 
     #[test]
     fn topology_view_serde_round_trip() {
