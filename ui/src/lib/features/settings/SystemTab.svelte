@@ -14,7 +14,8 @@
 	import { pushSuccess } from '$lib/shared/stores/feedback';
 	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
 	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
+	import CollapsibleCard from '$lib/shared/components/data/CollapsibleCard.svelte';
+	import type { Snippet } from 'svelte';
 	import type { components } from '$lib/api/schema';
 	import {
 		common_browserDefault,
@@ -32,7 +33,6 @@
 		common_24Hour,
 		common_comfortable,
 		common_compact,
-		common_density,
 		common_tables,
 		settings_system_copyright,
 		settings_system_dashboardIconsAttribution,
@@ -181,28 +181,73 @@
 	const previewRecent = new Date(previewNow.getTime() - 3 * 60 * 60 * 1000);
 </script>
 
-<div class="flex h-full flex-col gap-6 overflow-y-auto p-6">
-	<InfoCard title={common_theme()}>
-		<p class="text-tertiary text-sm">{settings_system_themeDesc()}</p>
-		<div class="flex gap-2">
-			{#each options as option (option.id)}
-				<button
-					type="button"
-					class="btn-secondary flex flex-1 items-center justify-center gap-1.5 {themeStore.themeMode ===
-					option.id
-						? 'ring-primary ring-2'
-						: ''}"
-					onclick={() => themeStore.setTheme(option.id)}
-				>
-					<option.icon size={16} />
-					{option.label}
-				</button>
-			{/each}
+<!--
+	A setting whose control fits beside its description sits on one row, so the
+	whole tab fits above the fold. `labelFor` makes the title the control's label.
+-->
+{#snippet inlineSetting(
+	title: string,
+	description: string,
+	labelFor: string | null,
+	control: Snippet
+)}
+	<div class="card card-static flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+		<div class="min-w-0">
+			{#if labelFor}
+				<label for={labelFor} class="text-primary text-sm font-semibold">{title}</label>
+			{:else}
+				<h3 class="text-primary text-sm font-semibold">{title}</h3>
+			{/if}
+			<p class="text-tertiary mt-0.5 text-xs">{description}</p>
 		</div>
-	</InfoCard>
+		<div class="shrink-0 sm:w-80">
+			{@render control()}
+		</div>
+	</div>
+{/snippet}
 
-	<InfoCard title={settings_system_dateAndTime()}>
-		<p class="text-tertiary text-sm">{settings_system_dateAndTimeDesc()}</p>
+{#snippet themeControl()}
+	<div class="flex gap-2" role="group" aria-label={common_theme()}>
+		{#each options as option (option.id)}
+			<button
+				type="button"
+				class="btn-secondary flex flex-1 items-center justify-center gap-1.5 {themeStore.themeMode ===
+				option.id
+					? 'ring-primary ring-2'
+					: ''}"
+				onclick={() => themeStore.setTheme(option.id)}
+			>
+				<option.icon size={16} />
+				{option.label}
+			</button>
+		{/each}
+	</div>
+{/snippet}
+
+{#snippet densityControl()}
+	<form.Field name="table_density" listeners={{ onChange: onTableSettingChange }}>
+		{#snippet children(field)}
+			<!-- Labelled by the card title, so no second label above the select. -->
+			<SelectInput id="display-table-density" label="" options={tableDensityOptions} {field} />
+		{/snippet}
+	</form.Field>
+{/snippet}
+
+<div class="flex h-full flex-col gap-4 overflow-y-auto p-6">
+	{@render inlineSetting(common_theme(), settings_system_themeDesc(), null, themeControl)}
+
+	{@render inlineSetting(
+		common_tables(),
+		settings_system_tablesDesc(),
+		'display-table-density',
+		densityControl
+	)}
+
+	<CollapsibleCard
+		title={settings_system_dateAndTime()}
+		description={settings_system_dateAndTimeDesc()}
+		expanded={false}
+	>
 		<p class="text-secondary text-sm">
 			{settings_system_preview({
 				date: formatDate(previewNow),
@@ -257,23 +302,7 @@
 				{/snippet}
 			</form.Field>
 		</div>
-	</InfoCard>
-
-	<InfoCard title={common_tables()}>
-		<p class="text-tertiary text-sm">{settings_system_tablesDesc()}</p>
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-			<form.Field name="table_density" listeners={{ onChange: onTableSettingChange }}>
-				{#snippet children(field)}
-					<SelectInput
-						id="display-table-density"
-						label={common_density()}
-						options={tableDensityOptions}
-						{field}
-					/>
-				{/snippet}
-			</form.Field>
-		</div>
-	</InfoCard>
+	</CollapsibleCard>
 
 	<div class="mt-auto flex flex-col gap-1">
 		<p class="text-tertiary text-xs">{settings_system_copyright({ year: copyrightYear })}</p>
