@@ -1052,7 +1052,10 @@ mod tests {
                     .filter(|f| f.filter_type == mark.filter_type)
                     .flat_map(|f| &f.values)
                     .any(|v| v.id == mark.value);
-                assert!(declared, "{view:?} paints {mark:?} with no filter value to decode it");
+                assert!(
+                    declared,
+                    "{view:?} paints {mark:?} with no filter value to decode it"
+                );
             }
         }
     }

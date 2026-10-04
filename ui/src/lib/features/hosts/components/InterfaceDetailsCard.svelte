@@ -10,7 +10,7 @@
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
 	import { entityRef } from '$lib/shared/components/data/types';
-	import { entities } from '$lib/shared/stores/metadata';
+	import { entities, ifOperStatuses } from '$lib/shared/stores/metadata';
 	import type { Color } from '$lib/shared/utils/styling';
 	import {
 		common_details,
@@ -81,18 +81,8 @@
 		(iface.oper_status && getOperStatusLabels()[iface.oper_status]) || common_unknown()
 	);
 
-	let operStatusColor: Color = $derived.by(() => {
-		switch (iface.oper_status) {
-			case 'Up':
-				return 'Green';
-			case 'Down':
-				return 'Red';
-			case 'Dormant':
-				return 'Yellow';
-			default:
-				return 'Gray';
-		}
-	});
+	// The status's own colour, the one the L2 "By status" chip and the port's dot use.
+	let operStatusColor: Color = $derived(ifOperStatuses.getColorString(iface.oper_status ?? null));
 
 	let statusExpanded = $state(true);
 	let detailsExpanded = $state(true);

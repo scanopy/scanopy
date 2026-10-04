@@ -117,7 +117,7 @@ describe('clearing a view’s filters', () => {
 	it('empties a product default rather than restoring it', () => {
 		const cleared = clearedHideSetFor('L2Physical', 'Interface', { LinkState: ['Unlinked'] });
 
-		expect(cleared).toEqual({ LinkState: [], Staleness: [] });
+		expect(cleared).toEqual({ LinkState: [], OperStatus: [], Staleness: [] });
 	});
 
 	/**
@@ -129,6 +129,7 @@ describe('clearing a view’s filters', () => {
 	it('writes an empty list for a declared filter that had no stored entry', () => {
 		expect(clearedHideSetFor('L2Physical', 'Interface', undefined)).toEqual({
 			LinkState: [],
+			OperStatus: [],
 			Staleness: []
 		});
 	});
@@ -137,6 +138,6 @@ describe('clearing a view’s filters', () => {
 	it('empties a stored filter the view no longer declares', () => {
 		const cleared = clearedHideSetFor('L2Physical', 'Interface', { Category: ['Web'] });
 
-		expect(cleared).toEqual({ LinkState: [], Staleness: [], Category: [] });
+		expect(cleared).toEqual({ LinkState: [], OperStatus: [], Staleness: [], Category: [] });
 	});
 });

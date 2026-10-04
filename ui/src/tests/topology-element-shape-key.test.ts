@@ -41,8 +41,6 @@ function result(overrides: Record<string, unknown> = {}, extra: Partial<ElementR
 			bodyText: null,
 			footerText: null,
 			showServices: true,
-			isVirtualized: false,
-			isContainerized: false,
 			services: [],
 			hiddenOpenPorts: [],
 			ip_address_id: '',

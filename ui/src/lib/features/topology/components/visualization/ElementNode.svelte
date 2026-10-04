@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { type NodeProps, useInternalNode } from '@xyflow/svelte';
 	import NodeHandles from './NodeHandles.svelte';
-	import { concepts, entities, serviceDefinitions } from '$lib/shared/stores/metadata';
+	import { entities, serviceDefinitions } from '$lib/shared/stores/metadata';
 	import {
 		selectedEdge as globalSelectedEdge,
 		selectedNode as globalSelectedNode,
@@ -14,7 +14,7 @@
 
 	const networksQuery = useNetworksQuery();
 	import type { TopologyNode, ElementRenderData, RenderableTopology } from '../../types/base';
-	import { elementEntity, resolveElementNode } from '../../resolvers';
+	import { cardEntityForFilter, resolveElementNode } from '../../resolvers';
 	import { buildElementRender } from '../../element-render-data';
 	import { getTopologyIndex } from '../../entity-index';
 	import type { Writable } from 'svelte/store';
@@ -42,7 +42,7 @@
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 	import { ChevronDown, ChevronRight } from 'lucide-svelte';
 	import { ELEMENT_HANDLE_SIZE_PX } from '../../pipeline/build-flow-nodes';
-	import { ELEMENT_STATE_FILL, elementState, portStatusDotColor } from '../../element-state-color';
+	import { stateFill as markedStateFill, statusDot } from '../../element-marks';
 
 	let { id, data, width }: NodeProps = $props();
 
@@ -150,13 +150,10 @@
 	 * An element is never `hidden` or `labelled` — it has no name worth showing at this size and it
 	 * is the graph's texture, so it always keeps its box. What varies is the colour.
 	 */
-	let stateFill = $derived(
-		ELEMENT_STATE_FILL[
-			elementState({
-				operStatus: nodeRenderData?.portStatus?.operStatus,
-				isStale: staleTag !== null
-			})
-		]
+	let marks = $derived(elementRender?.marks ?? {});
+	let stateFill = $derived(markedStateFill(marks));
+	let titleColorClass = $derived(
+		marks.Title ? createColorHelper(marks.Title).text : 'text-tertiary'
 	);
 
 	// Called once per service binding while rendering, so this must not scan
@@ -195,8 +192,6 @@
 	// Marks a host inlined in a manager's box (a network identity, a macvlan container).
 	const hostColorHelper = entities.getColorHelper('Host');
 	const HostIcon = entities.getIconComponent('Host');
-	const virtualizationColorHelper = concepts.getColorHelper('Virtualization');
-	const containerizationColorHelper = concepts.getColorHelper('Containerization');
 	const discoveryColorHelper = entities.getColorHelper('Discovery');
 
 	// How does the hovered entity type relate to this card?
@@ -269,14 +264,8 @@
 			const { entityType, color } = hovered;
 
 			// The card's own entity when the hovered filter is on its type — any element type,
-			// through the same `elementEntity` its stale pill reads.
-			const elType = nodeRenderData?.elementType;
-			let cardEntity: { network_id?: string } | undefined;
-			if (elType === entityType) {
-				cardEntity = elementEntity(resolved);
-			} else if (entityType === 'Host' && (elType === 'IPAddress' || elType === 'Interface')) {
-				cardEntity = resolved.host;
-			}
+			// through the same `elementEntity` its stale pill reads, and the view's element marks.
+			const cardEntity = cardEntityForFilter(resolved, entityType);
 			if (
 				cardEntity &&
 				matchesHoveredMetadata(cardEntity, hovered, networkFor(cardEntity), topology)
@@ -437,7 +426,7 @@
 			     them contributed one element per card and nothing else. -->
 				<div
 					data-entity-header
-					class={`relative flex-shrink-0 truncate px-2 pt-2 text-center text-xs font-medium leading-none ${nodeRenderData.isVirtualized ? virtualizationColorHelper.text : nodeRenderData.isContainerized ? containerizationColorHelper.text : 'text-tertiary'}`}
+					class={`relative flex-shrink-0 truncate px-2 pt-2 text-center text-xs font-medium leading-none ${titleColorClass}`}
 				>
 					{nodeRenderData.headerText}
 				</div>
@@ -732,9 +721,8 @@
 					     `::before` on the speed text. Three elements per port card became one. -->
 						<span
 							class="status-line text-tertiary text-xs"
-							style="--status-dot-color: {portStatusDotColor(
-								nodeRenderData.portStatus?.operStatus
-							)}">{nodeRenderData.portStatus?.speed ?? ''}</span
+							style="--status-dot-color: {statusDot(marks)}"
+							>{nodeRenderData.portStatus?.speed ?? ''}</span
 						>
 					{/snippet}
 

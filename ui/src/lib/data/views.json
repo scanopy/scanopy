@@ -74,6 +74,50 @@
             "inline_entities": []
           }
         ],
+        "element_marks": [
+          {
+            "channel": "StateFill",
+            "entity": "Interface",
+            "filter_type": "OperStatus",
+            "value": "Down"
+          },
+          {
+            "channel": "StateFill",
+            "entity": "Interface",
+            "filter_type": "OperStatus",
+            "value": "LowerLayerDown"
+          },
+          {
+            "channel": "StateFill",
+            "entity": "Interface",
+            "filter_type": "Staleness",
+            "value": "stale"
+          },
+          {
+            "channel": "StateFill",
+            "entity": "Interface",
+            "filter_type": "OperStatus",
+            "value": "Up"
+          },
+          {
+            "channel": "StatusDot",
+            "entity": "Interface",
+            "filter_type": "OperStatus",
+            "value": "Up"
+          },
+          {
+            "channel": "StatusDot",
+            "entity": "Interface",
+            "filter_type": "OperStatus",
+            "value": "Down"
+          },
+          {
+            "channel": "StatusDot",
+            "entity": "Interface",
+            "filter_type": "OperStatus",
+            "value": "LowerLayerDown"
+          }
+        ],
         "metadata_filters": {
           "Host": [
             {
@@ -113,6 +157,55 @@
                   "icon": "circle",
                   "id": "Unlinked",
                   "label": "Unlinked"
+                }
+              ]
+            },
+            {
+              "applies": "Client",
+              "filter_type": "OperStatus",
+              "label": "By status",
+              "values": [
+                {
+                  "color": "Green",
+                  "icon": "circle-check",
+                  "id": "Up",
+                  "label": "Up"
+                },
+                {
+                  "color": "Red",
+                  "icon": "circle-x",
+                  "id": "Down",
+                  "label": "Down"
+                },
+                {
+                  "color": "Yellow",
+                  "icon": "flask-conical",
+                  "id": "Testing",
+                  "label": "Testing"
+                },
+                {
+                  "color": "Gray",
+                  "icon": "circle-question-mark",
+                  "id": "Unknown",
+                  "label": "Unknown"
+                },
+                {
+                  "color": "Blue",
+                  "icon": "moon",
+                  "id": "Dormant",
+                  "label": "Dormant"
+                },
+                {
+                  "color": "Gray",
+                  "icon": "circle-question-mark",
+                  "id": "NotPresent",
+                  "label": "Not present"
+                },
+                {
+                  "color": "Red",
+                  "icon": "circle-x",
+                  "id": "LowerLayerDown",
+                  "label": "Lower layer down"
                 }
               ]
             },
@@ -247,6 +340,14 @@
               "Port",
               "Service"
             ]
+          }
+        ],
+        "element_marks": [
+          {
+            "channel": "StateFill",
+            "entity": "IPAddress",
+            "filter_type": "Staleness",
+            "value": "stale"
           }
         ],
         "metadata_filters": {
@@ -662,6 +763,38 @@
             ]
           }
         ],
+        "element_marks": [
+          {
+            "channel": "Title",
+            "entity": "Host",
+            "filter_type": "Virtualization",
+            "value": "Virtualized"
+          },
+          {
+            "channel": "Title",
+            "entity": "Host",
+            "filter_type": "Virtualization",
+            "value": "Containerized"
+          },
+          {
+            "channel": "Title",
+            "entity": "Host",
+            "filter_type": "Virtualization",
+            "value": "NetworkIdentity"
+          },
+          {
+            "channel": "StateFill",
+            "entity": "Service",
+            "filter_type": "Staleness",
+            "value": "stale"
+          },
+          {
+            "channel": "StateFill",
+            "entity": "Host",
+            "filter_type": "Staleness",
+            "value": "stale"
+          }
+        ],
         "metadata_filters": {
           "Host": [
             {
@@ -674,6 +807,18 @@
                   "icon": "monitor-cog",
                   "id": "Virtualized",
                   "label": "Virtualized"
+                },
+                {
+                  "color": "Blue",
+                  "icon": "box",
+                  "id": "Containerized",
+                  "label": "Containerized"
+                },
+                {
+                  "color": "Teal",
+                  "icon": "fingerprint-pattern",
+                  "id": "NetworkIdentity",
+                  "label": "Network identity"
                 },
                 {
                   "color": "Gray",
@@ -1058,6 +1203,14 @@
           {
             "entity_type": "Service",
             "inline_entities": []
+          }
+        ],
+        "element_marks": [
+          {
+            "channel": "StateFill",
+            "entity": "Service",
+            "filter_type": "Staleness",
+            "value": "stale"
           }
         ],
         "metadata_filters": {

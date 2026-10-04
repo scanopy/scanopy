@@ -1,7 +1,13 @@
 import { writable, get } from 'svelte/store';
 import type { Edge } from '@xyflow/svelte';
 import type { Node } from '@xyflow/svelte';
-import { edgeTypes, entities, views, serviceDefinitions } from '$lib/shared/stores/metadata';
+import {
+	edgeTypes,
+	entities,
+	hostVirtualizations,
+	views,
+	serviceDefinitions
+} from '$lib/shared/stores/metadata';
 import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 import type {
 	ElementInlineGroup,
@@ -385,10 +391,14 @@ export const FILTER_VALUE_EXTRACTORS: Record<string, Record<string, FilterValueE
 		Staleness: (s, ctx) => entityFreshness(s as FreshnessSubject, ctx.network)
 	},
 	Host: {
-		Virtualization: (h) =>
-			(h as { virtualization_metadata?: unknown | null }).virtualization_metadata != null
-				? 'Virtualized'
-				: 'BareMetal',
+		// The type-to-state mapping is the backend's, read from the host-virtualizations fixture.
+		Virtualization: (h) => {
+			const type = (h as { virtualization_metadata?: { type: string } | null })
+				.virtualization_metadata?.type;
+			return type
+				? (hostVirtualizations.getMetadata(type).virtualization_state ?? null)
+				: 'BareMetal';
+		},
 		Staleness: (h, ctx) => entityFreshness(h as FreshnessSubject, ctx.network)
 	},
 	IPAddress: {
@@ -399,6 +409,8 @@ export const FILTER_VALUE_EXTRACTORS: Record<string, Record<string, FilterValueE
 	},
 	Interface: {
 		Staleness: (i, ctx) => entityFreshness(i as FreshnessSubject, ctx.network),
+		// A status never read has no value; the MIB's own `Unknown` is a reading.
+		OperStatus: (i) => (i as { oper_status?: string | null }).oper_status ?? null,
 		// Ids match `InterfaceLinkState` on the backend, which is what supplies the filter's
 		// values. A partial resolution (`Neighbor::Host` — the remote device known but not the
 		// port) counts as linked: it still draws an edge, so hiding it would break the diagram.

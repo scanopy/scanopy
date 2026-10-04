@@ -27,6 +27,7 @@ import matchConfidencesJson from '$lib/data/match-confidences.json';
 import hostVirtualizationsJson from '$lib/data/host-virtualizations.json';
 import proxmoxGuestTypesJson from '$lib/data/proxmox-guest-types.json';
 import containerNetworkTypesJson from '$lib/data/container-network-types.json';
+import ifOperStatusesJson from '$lib/data/if-oper-statuses.json';
 import {
 	createColorHelper,
 	createIconComponent,
@@ -127,6 +128,7 @@ export interface MetadataRegistry {
 	host_virtualizations: TypeMetadata[];
 	proxmox_guest_types: TypeMetadata[];
 	container_network_types: TypeMetadata[];
+	if_oper_statuses: TypeMetadata[];
 }
 
 // Utility type to add proper typing to the metadata field
@@ -158,6 +160,11 @@ export interface BillingPlanMetadata {
 	purchase_flow: string;
 	/** License tier minted for this plan; non-null only for licensed self-hosted plans. */
 	license_plan: string | null;
+}
+
+export interface HostVirtualizationMetadata {
+	/** The Host `Virtualization` filter value a host of this type carries. */
+	virtualization_state: components['schemas']['HostVirtualizationState'];
 }
 
 export interface ServicedDefinitionMetadata {
@@ -300,7 +307,8 @@ export const metadata = writable<MetadataRegistry>({
 	match_confidences: matchConfidencesJson,
 	host_virtualizations: hostVirtualizationsJson,
 	proxmox_guest_types: proxmoxGuestTypesJson,
-	container_network_types: containerNetworkTypesJson
+	container_network_types: containerNetworkTypesJson,
+	if_oper_statuses: ifOperStatusesJson
 } as unknown as MetadataRegistry);
 
 // Shared color helper functions that work for both TypeMetadata and EntityMetadata
@@ -495,9 +503,10 @@ export const inspectorSections = createTypeMetadataHelpers<'inspector_sections',
 	'inspector_sections'
 );
 /** The hypervisor platform a guest runs on, keyed by `virtualization_metadata.type`. */
-export const hostVirtualizations = createTypeMetadataHelpers<'host_virtualizations', object>(
-	'host_virtualizations'
-);
+export const hostVirtualizations = createTypeMetadataHelpers<
+	'host_virtualizations',
+	HostVirtualizationMetadata
+>('host_virtualizations');
 /** A Proxmox guest's type (VM or LXC container), keyed by `ProxmoxGuestType`. */
 export const proxmoxGuestTypes = createTypeMetadataHelpers<'proxmox_guest_types', object>(
 	'proxmox_guest_types'
@@ -505,6 +514,10 @@ export const proxmoxGuestTypes = createTypeMetadataHelpers<'proxmox_guest_types'
 /** A container host's LAN network driver (macvlan or ipvlan), keyed by `ContainerNetworkType`. */
 export const containerNetworkTypes = createTypeMetadataHelpers<'container_network_types', object>(
 	'container_network_types'
+);
+/** A port's ifOperStatus (label, colour, icon), keyed by `IfOperStatus`. */
+export const ifOperStatuses = createTypeMetadataHelpers<'if_oper_statuses', object>(
+	'if_oper_statuses'
 );
 export const discoveryTypes = createTypeMetadataHelpers<'discovery_types', DiscoveryTypeMetadata>(
 	'discovery_types'

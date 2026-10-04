@@ -29,6 +29,7 @@ import type {
 	TopologyOptions
 } from './types/base';
 import { elementEntity, resolveElementNode } from './resolvers';
+import { elementMarks, type ElementMarks } from './element-marks';
 import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 import { getTopologyIndex } from './entity-index';
 import { entities, serviceDefinitions, views } from '$lib/shared/stores/metadata';
@@ -65,6 +66,8 @@ export interface ElementRenderResult {
 	 * in the component.
 	 */
 	staleTag: ReturnType<typeof getFreshnessTag>;
+	/** The colours the view paints on this card, each decoded by one of its filter values. */
+	marks: ElementMarks;
 }
 
 export interface ElementRenderInputs {
@@ -148,9 +151,19 @@ function resolveStaleTag(
 }
 
 export function buildElementRender(inputs: ElementRenderInputs): ElementRenderResult {
+	const resolved = resolveElementNode(inputs.nodeId, inputs.node, inputs.topology);
+	return {
+		...buildElementContent(inputs, resolved),
+		marks: elementMarks(inputs.activeView, resolved, inputs.networks, inputs.topology)
+	};
+}
+
+function buildElementContent(
+	inputs: ElementRenderInputs,
+	resolved: ReturnType<typeof resolveElementNode>
+): Omit<ElementRenderResult, 'marks'> {
 	const { nodeId, node, topology, activeView, options, hiddenEntityIds } = inputs;
 
-	const resolved = resolveElementNode(nodeId, node, topology);
 	const flags = elementInlineFlags(inputs, resolved.elementType);
 
 	const elementType = resolved.elementType ?? 'Interface';
@@ -178,8 +191,6 @@ export function buildElementRender(inputs: ElementRenderInputs): ElementRenderRe
 				headerText: showHostname && host ? hostDisplayName(host) : null,
 				bodyText: service ? null : 'Unknown Service',
 				showServices: !!service,
-				isVirtualized: false,
-				isContainerized: service?.virtualization_service_id != null,
 				isCategoryHidden: false,
 				ip_address_id: nodeId,
 				inlineGroups: []
@@ -246,8 +257,6 @@ export function buildElementRender(inputs: ElementRenderInputs): ElementRenderRe
 				headerText: hostLabel,
 				bodyText: showServices ? null : hostLabel,
 				showServices,
-				isVirtualized: host.virtualization_service_id != null,
-				isContainerized: false,
 				ip_address_id: nodeId,
 				inlineGroups
 			} as ElementRenderData
@@ -279,11 +288,10 @@ export function buildElementRender(inputs: ElementRenderInputs): ElementRenderRe
 				footerText: null,
 				bodyText: null,
 				showServices: false,
-				isVirtualized: false,
-				isContainerized: false,
 				services: [],
 				hiddenOpenPorts: [],
-				ip_address_id: '',
+				// The card's selection key, as on Host and Service cards; '' left L2 ports unringable.
+				ip_address_id: nodeId,
 				inlineGroups: [],
 				portStatus: iface
 					? {
@@ -350,11 +358,6 @@ export function buildElementRender(inputs: ElementRenderInputs): ElementRenderRe
 			headerText,
 			bodyText: showServices ? null : hostDisplayName(host),
 			showServices,
-			isVirtualized:
-				headerText?.startsWith('Docker @') || isContainerSubnet
-					? false
-					: host.virtualization_service_id != null,
-			isContainerized: false,
 			ip_address_id: resolved.ipAddressId ?? '',
 			inlineGroups: []
 		} as ElementRenderData
@@ -483,8 +486,6 @@ export function elementShapeKey(result: ElementRenderResult): string {
 		lines(d.bodyText),
 		lines(d.footerText),
 		d.showServices ? 1 : 0,
-		d.isVirtualized ? 1 : 0,
-		d.isContainerized ? 1 : 0,
 		d.hiddenOpenPorts.length,
 		result.staleTag ? 1 : 0,
 		// Not just presence: the block renders status, speed and MAC on separate

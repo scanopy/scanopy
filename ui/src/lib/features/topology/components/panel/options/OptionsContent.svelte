@@ -559,7 +559,11 @@
 					}
 				} else {
 					const colorHelper = edgeTypes.getColorHelper(edgeType);
-					result.push({ value: edgeType, label: edgeType, color: colorHelper.color });
+					result.push({
+						value: edgeType,
+						label: edgeTypes.getName(edgeType) || edgeType,
+						color: colorHelper.color
+					});
 				}
 			}
 		}
