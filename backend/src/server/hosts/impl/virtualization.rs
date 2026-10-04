@@ -392,7 +392,6 @@ impl HasFilterValues for Host {
 mod tests {
     use super::*;
     use crate::server::hosts::r#impl::base::HostBase;
-    use crate::server::shared::storage::traits::Storable;
     use strum::IntoEnumIterator;
 
     fn identity_host() -> Host {
