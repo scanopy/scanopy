@@ -6,6 +6,7 @@ use utoipa::ToSchema;
 use validator::Validate;
 
 use crate::server::{
+    credentials::r#impl::types::CredentialIntegration,
     hosts::r#impl::base::Host,
     shared::{
         concepts::Concept,
@@ -112,6 +113,21 @@ impl HostVirtualization {
             | HostVirtualization::NetworkIdentity(_) => true,
         }
     }
+}
+
+/// The kind of virtualization `host` carries that `integration` does not declare reporting
+/// ([`CredentialIntegration::host_virtualizations`]), or `None` when it declares it or the host
+/// carries none.
+///
+/// The declaration is what the docs list from, so a host an integration builds outside it means
+/// the docs are wrong. Checked on every host an integration submits and in each integration's
+/// mapping tests.
+pub fn undeclared_virtualization(
+    integration: CredentialIntegration,
+    host: &Host,
+) -> Option<HostVirtualizationDiscriminants> {
+    let kind = HostVirtualizationDiscriminants::from(host.base.virtualization_metadata.as_ref()?);
+    (!integration.host_virtualizations().contains(&kind)).then_some(kind)
 }
 
 /// An address and MAC that a host presents from an interface of its own beyond its configured
@@ -375,6 +391,43 @@ impl HasFilterValues for Host {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::server::hosts::r#impl::base::HostBase;
+    use crate::server::shared::storage::traits::Storable;
+    use strum::IntoEnumIterator;
+
+    fn identity_host() -> Host {
+        Host::new(HostBase {
+            virtualization_metadata: Some(HostVirtualization::NetworkIdentity(
+                NetworkIdentityVirtualization {},
+            )),
+            ..Default::default()
+        })
+    }
+
+    /// A host carrying a kind its integration declares passes; one it does not declare is named;
+    /// a host with no virtualization is never a mismatch.
+    #[test]
+    fn a_host_outside_its_integrations_declaration_is_named() {
+        let declaring = CredentialIntegration::iter()
+            .find(|i| {
+                i.host_virtualizations()
+                    .contains(&HostVirtualizationDiscriminants::NetworkIdentity)
+            })
+            .expect("an integration reports network identities");
+        let silent = CredentialIntegration::iter()
+            .find(|i| i.host_virtualizations().is_empty())
+            .expect("an integration reports no virtualization");
+
+        assert_eq!(undeclared_virtualization(declaring, &identity_host()), None);
+        assert_eq!(
+            undeclared_virtualization(silent, &identity_host()),
+            Some(HostVirtualizationDiscriminants::NetworkIdentity)
+        );
+        assert_eq!(
+            undeclared_virtualization(silent, &Host::new(HostBase::default())),
+            None
+        );
+    }
 
     #[test]
     fn host_virtualization_variants_round_trip_by_tag() {

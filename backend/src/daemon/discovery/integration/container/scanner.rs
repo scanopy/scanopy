@@ -20,6 +20,7 @@ use crate::daemon::discovery::service::ops::DiscoveryOps;
 use crate::daemon::utils::base::{DaemonUtils, PlatformDaemonUtils};
 use crate::daemon::utils::scanner::scan_endpoints;
 use crate::server::bindings::r#impl::base::{Binding, BindingDiscriminants};
+use crate::server::credentials::r#impl::types::CredentialIntegration;
 use crate::server::discovery::r#impl::types::HostNamingFallback;
 use crate::server::ip_addresses::r#impl::base::{ALL_IP_ADDRESSES_IP, IPAddress};
 use crate::server::ports::r#impl::base::{Port, PortType};
@@ -97,6 +98,9 @@ pub struct ContainerScanner<'a> {
     pub host_ip: IpAddr,
     pub host_naming_fallback: HostNamingFallback,
     pub ops: &'a DiscoveryOps,
+    /// The integration running the scan (Docker or Podman), whose declaration the hosts it
+    /// submits are checked against.
+    pub integration: CredentialIntegration,
     pub cancel: &'a CancellationToken,
     pub accept_invalid_certs: bool,
     pub utils: &'a PlatformDaemonUtils,

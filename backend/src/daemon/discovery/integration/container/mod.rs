@@ -434,6 +434,7 @@ pub async fn execute(
         host_ip: ctx.ip,
         host_naming_fallback: ctx.host_naming_fallback,
         ops: ctx.ops,
+        integration: ctx.integration,
         cancel: ctx.cancel,
         accept_invalid_certs: ctx.accept_invalid_certs,
         utils: ctx.utils,

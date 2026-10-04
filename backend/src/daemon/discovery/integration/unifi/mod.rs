@@ -330,7 +330,8 @@ async fn create_device_host(
     )?;
 
     ctx.ops
-        .create_host(
+        .create_integration_host(
+            ctx.integration,
             host,
             vec![ip_address],
             ports,

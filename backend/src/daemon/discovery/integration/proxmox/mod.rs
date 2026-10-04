@@ -287,7 +287,8 @@ async fn create_guest_host(
     );
     let response = ctx
         .ops
-        .create_host(
+        .create_integration_host(
+            ctx.integration,
             record.host,
             record.ip_addresses,
             vec![],
@@ -336,7 +337,8 @@ async fn create_guest_host(
             identities::identity_host(identity, owner, presenting, subnets, network_id);
         if let Err(e) = ctx
             .ops
-            .create_host(
+            .create_integration_host(
+                ctx.integration,
                 host,
                 ip_addresses,
                 vec![],
@@ -506,7 +508,8 @@ async fn create_node_host(
 
     let response = ctx
         .ops
-        .create_host(
+        .create_integration_host(
+            ctx.integration,
             host,
             ip_addresses,
             ports,

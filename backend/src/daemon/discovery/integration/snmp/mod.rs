@@ -1187,7 +1187,8 @@ impl DiscoveryIntegration for SnmpIntegration {
 
                 if let Err(e) = ctx
                     .ops
-                    .create_host(
+                    .create_integration_host(
+                        ctx.integration,
                         arp_host,
                         vec![arp_interface],
                         vec![],
