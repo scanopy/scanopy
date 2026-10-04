@@ -3528,19 +3528,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-04T22:23:09.319466Z",
+             *       "created_at": "2026-10-04T23:10:41.936207Z",
              *       "first_discovery_id": null,
-             *       "id": "a58f9879-0c29-4f4f-a585-9d4c5cc44278",
+             *       "id": "1d188cd0-c394-475b-83cb-606e44d18b79",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-04T22:23:09.319466Z",
+             *       "last_seen_at": "2026-10-04T23:10:41.936207Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-04T22:23:09.319466Z",
-             *       "valid_from": "2026-10-04T22:23:09.319466Z",
+             *       "updated_at": "2026-10-04T23:10:41.936207Z",
+             *       "valid_from": "2026-10-04T23:10:41.936207Z",
              *       "valid_to": null
              *     }
              */
@@ -4368,19 +4368,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-04T22:23:09.294149Z",
+             *               "created_at": "2026-10-04T23:10:41.917490Z",
              *               "first_discovery_id": null,
-             *               "id": "df8c7f51-b1cc-47ad-873f-1dc783583468",
+             *               "id": "eaeadf04-cc35-4e65-8cfc-abf64df0d1f6",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-04T22:23:09.294149Z",
+             *               "last_seen_at": "2026-10-04T23:10:41.917490Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-04T22:23:09.294149Z",
-             *               "valid_from": "2026-10-04T22:23:09.294149Z",
+             *               "updated_at": "2026-10-04T23:10:41.917490Z",
+             *               "valid_from": "2026-10-04T23:10:41.917490Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4394,7 +4394,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Karakeep",
+             *           "service_definition": "GitHub",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5319,19 +5319,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-04T22:23:09.314264Z",
+             *           "created_at": "2026-10-04T23:10:41.931740Z",
              *           "first_discovery_id": null,
-             *           "id": "7583d23e-1b42-47c1-aa4b-c8248b2f36e3",
+             *           "id": "84e50ff4-a087-4ebd-b35f-58d4bf65071e",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-04T22:23:09.314264Z",
+             *           "last_seen_at": "2026-10-04T23:10:41.931740Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-04T22:23:09.314264Z",
-             *           "valid_from": "2026-10-04T22:23:09.314264Z",
+             *           "updated_at": "2026-10-04T23:10:41.931740Z",
+             *           "valid_from": "2026-10-04T23:10:41.931740Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5345,7 +5345,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Karakeep",
+             *       "service_definition": "GitHub",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6447,19 +6447,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-04T22:23:09.294876Z",
+         *       "created_at": "2026-10-04T23:10:41.917937Z",
          *       "first_discovery_id": null,
-         *       "id": "52f1a9e2-b158-4d00-8f7f-1c1d29c8c586",
+         *       "id": "da9271e0-365d-4da4-9ce9-d0d6157afd26",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-04T22:23:09.294876Z",
+         *       "last_seen_at": "2026-10-04T23:10:41.917937Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-04T22:23:09.294876Z",
-         *       "valid_from": "2026-10-04T22:23:09.294876Z",
+         *       "updated_at": "2026-10-04T23:10:41.917937Z",
+         *       "valid_from": "2026-10-04T23:10:41.917937Z",
          *       "valid_to": null
          *     }
          */
@@ -6807,7 +6807,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Karakeep",
+         *           "service_definition": "GitHub",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9400,19 +9400,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-04T22:23:09.293336Z",
+         *               "created_at": "2026-10-04T23:10:41.917004Z",
          *               "first_discovery_id": null,
-         *               "id": "45156159-4f93-48f0-b33b-f14e531c4dce",
+         *               "id": "df2b4fcf-525c-415a-af1a-065631716b37",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-04T22:23:09.293336Z",
+         *               "last_seen_at": "2026-10-04T23:10:41.917004Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-04T22:23:09.293336Z",
-         *               "valid_from": "2026-10-04T22:23:09.293336Z",
+         *               "updated_at": "2026-10-04T23:10:41.917004Z",
+         *               "valid_from": "2026-10-04T23:10:41.917004Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9426,7 +9426,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Karakeep",
+         *           "service_definition": "GitHub",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -10646,6 +10646,11 @@ export interface components {
              *     See `FilterApplication` for when `Server` is permissible.
              */
             applies: components["schemas"]["FilterApplication"];
+            /**
+             * @description The entities this filter reads and hides. Hovering a value rings every listed entity
+             *     carrying it; hiding one writes it into the hide-set under each listed entity.
+             */
+            entities: components["schemas"]["EntityDiscriminants"][];
             /** @description What the filter narrows by. */
             filter_type: components["schemas"]["MetadataFilterType"];
             /** @description User-facing sub-section label (e.g. "By Category", "By Virtualization"). */
@@ -12552,19 +12557,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-04T22:23:09.294656Z",
+         *           "created_at": "2026-10-04T23:10:41.917804Z",
          *           "first_discovery_id": null,
-         *           "id": "e1a0aa13-e047-4573-8b80-4937f3fd0a25",
+         *           "id": "2ea28693-586c-4896-8f38-be399a2cb094",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-04T22:23:09.294656Z",
+         *           "last_seen_at": "2026-10-04T23:10:41.917804Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-04T22:23:09.294656Z",
-         *           "valid_from": "2026-10-04T22:23:09.294656Z",
+         *           "updated_at": "2026-10-04T23:10:41.917804Z",
+         *           "valid_from": "2026-10-04T23:10:41.917804Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12578,7 +12583,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Karakeep",
+         *       "service_definition": "GitHub",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -13338,7 +13343,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "aa7f8b20-e486-43bb-bfab-67033fbe82c2",
+             *           "id": "8409435a-667e-4e0e-b537-4e39a9deec24",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13348,23 +13353,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "ac3fac67-4e73-4c7a-b489-ac82f5aca1b3",
+             *           "id": "b74a7994-7235-4ef7-9a09-3a3a28cd1cc5",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "b7bdad0e-b1b7-44af-859d-621a0ecbd709",
+             *           "id": "599fc162-58bb-414d-8380-6fa3f1d6fb16",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "b79c8d5b-4a9b-414b-b5a7-0657c8d9b3b7",
+             *           "id": "06236872-96bd-46e6-88a8-0fdc83b2a94c",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "ac3fac67-4e73-4c7a-b489-ac82f5aca1b3",
+             *           "id": "b74a7994-7235-4ef7-9a09-3a3a28cd1cc5",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13377,19 +13382,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "2cc7a6f3-18c6-48a0-accd-b4ec4ad0b40d",
+             *         "id": "f54c7cf4-3042-4506-a75e-c9d094df423c",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "aeaca58f-2b4b-4ca5-9fad-4ca6f3ee867e",
+             *         "id": "c575e8d2-2542-44ec-b147-2e0c99aa2f78",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "811c8dbd-37ec-4448-b43a-435490b72949",
+             *         "id": "ada07209-211b-4c15-84e9-528ebf680d89",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "5c913401-769e-4fef-91f0-b582e1a7de09",
+             *         "id": "0551a58b-5076-4255-bf10-dddf5c742863",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13408,7 +13413,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "747f06ad-61e4-4633-8b90-83ce0a179b25",
+             *         "id": "dda8cfd6-dc17-4bd7-ab17-f059d7f17b92",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13417,15 +13422,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "5b3ed454-f599-4b55-9831-6da94442d403",
+             *         "id": "d7c54616-a245-4786-a144-c3fd976ef68c",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "1bfaef3b-a8ce-4210-9c17-7024513fa0c4",
+             *         "id": "f4dbf6ed-07f9-42f8-b483-ef20d5756572",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "9f842de5-e795-4038-825d-6321ff31480e",
+             *         "id": "a22e059f-3e1f-4728-b8e9-87841cd9a02e",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -13879,15 +13884,13 @@ export interface components {
              */
             element_marks?: components["schemas"]["ElementMark"][];
             /**
-             * @description Generic metadata filters keyed by the entity they apply to in this
-             *     view. Applied regardless of the entity's role (container/element/
-             *     inline) — a Service metadata filter renders under the Services
-             *     section whether Service is an element entity (Workloads/Application)
-             *     or an inline entity (L3).
+             * @description The metadata filters this view offers, each naming the entities it reads and hides.
+             *     Applied regardless of an entity's role (container/element/inline): a Service filter
+             *     renders under the Services section whether Service is an element entity
+             *     (Workloads/Application) or an inline entity (L3). A filter naming several entities renders
+             *     in a section of its own.
              */
-            metadata_filters?: {
-                [key: string]: components["schemas"]["MetadataFilter"][];
-            };
+            metadata_filters?: components["schemas"]["MetadataFilter"][];
         };
         /**
          * @description An element-entity slot inside a view, plus the set of entity types that
