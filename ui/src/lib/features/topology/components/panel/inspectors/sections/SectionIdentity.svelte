@@ -17,6 +17,7 @@
 	import { containerTypes, entities } from '$lib/shared/stores/metadata';
 	import { activeView } from '$lib/features/topology/queries';
 	import InspectorSection from '../shared/InspectorSection.svelte';
+	import { useNetworksQuery } from '$lib/features/networks/queries';
 
 	let {
 		node,
@@ -53,7 +54,12 @@
 
 	// For Interface elements: show the interface
 	let thisIPAddress = $derived(elementContext?.ipAddress ?? null);
-	let interfaceDisplayContext = $derived({ subnets: topology.subnets, compact: true });
+	const networksQuery = useNetworksQuery();
+	let interfaceDisplayContext = $derived({
+		subnets: topology.subnets,
+		networks: networksQuery.data ?? [],
+		compact: true
+	});
 
 	// For Service elements: show the service
 	let thisService = $derived(
