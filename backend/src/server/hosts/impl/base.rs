@@ -86,6 +86,7 @@ pub struct HostBase {
     /// with a foreign key for the same reason as `virtualization_service_id`; `ON DELETE SET NULL`
     /// clears it when the interface goes away.
     #[serde(default)]
+    #[schema(required)]
     pub virtualization_interface_id: Option<Uuid>,
     /// Whether the host is hidden from topology views.
     pub hidden: bool,

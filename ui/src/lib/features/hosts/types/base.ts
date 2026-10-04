@@ -88,6 +88,7 @@ export interface HostFormData extends Partial<
 	source: components['schemas']['EntitySource'];
 	virtualization_metadata: HostVirtualization | null;
 	virtualization_service_id: string | null;
+	virtualization_interface_id: string | null;
 	hidden: boolean;
 	tags: string[];
 

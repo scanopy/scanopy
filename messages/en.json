@@ -1298,7 +1298,7 @@
 	"hosts_virtualization_hypervisorService": "Hypervisor Service",
 	"hosts_virtualization_identityCount": "{count} network identities",
 	"hosts_virtualization_networkIdentities": "Network Identities",
-	"hosts_virtualization_networkIdentitiesHelp": "Addresses and MACs this host presents from its own interfaces beyond its configured NICs. The Proxmox integration records each one as its own host.",
+	"hosts_virtualization_networkIdentitiesHelp": "Addresses and MACs this host presents from its own interfaces beyond its configured NICs. Each one is recorded as its own host.",
 	"hosts_virtualization_noContainersYet": "No containers managed by this service yet. Add services that run in containers on this host.",
 	"hosts_virtualization_noNetworkIdentities": "No network identities recorded for this host.",
 	"hosts_virtualization_noVmsYet": "No VMs managed by this service yet. Add hosts that are VMs running on this hypervisor.",
