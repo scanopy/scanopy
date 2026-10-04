@@ -58,6 +58,7 @@ impl HostService {
                 id: h.id,
                 chassis_id: crate::server::shared::attribution::text_of(&h.base.chassis_id),
                 ip_addresses: ip_addresses_by_host.remove(&h.id).unwrap_or_default(),
+                virtualization: h.base.virtualization_metadata.clone(),
             })
             .collect();
 
@@ -146,21 +147,9 @@ impl HostService {
             )
             .await?;
 
-        let live_host_ids: HashSet<Uuid> = candidates.iter().map(|c| c.id).collect();
-        let carriers: Vec<(Uuid, MacEvidence)> = ip_rows
-            .iter()
-            .filter_map(|r| r.base.mac_address.clone().map(|m| (r.base.host_id, m)))
-            .chain(
-                interface_rows
-                    .iter()
-                    .filter_map(|r| r.base.mac_address.clone().map(|m| (r.base.host_id, m))),
-            )
-            .filter(|(host_id, _)| live_host_ids.contains(host_id))
-            .collect();
-
         Ok(mac_identity::select_matching_host_by_mac(
             incoming_macs,
-            &carriers,
+            &mac_carriers(&ip_rows, &interface_rows, candidates),
         ))
     }
 
@@ -629,6 +618,31 @@ impl HostService {
             interfaces,
         ))
     }
+}
+
+/// The `(host, stored MAC)` pairs the MAC tier may match against: rows from either table that
+/// belong to a live candidate whose MACs identify it. An ipvlan container host's rows carry its
+/// runtime's MAC and are left out, so that MAC resolves to the runtime alone.
+pub(crate) fn mac_carriers(
+    ip_rows: &[IPAddress],
+    interface_rows: &[Interface],
+    candidates: &[HostCandidate],
+) -> Vec<(Uuid, MacEvidence)> {
+    let identifying_host_ids: HashSet<Uuid> = candidates
+        .iter()
+        .filter(|c| c.macs_identify_host())
+        .map(|c| c.id)
+        .collect();
+    ip_rows
+        .iter()
+        .filter_map(|r| r.base.mac_address.clone().map(|m| (r.base.host_id, m)))
+        .chain(
+            interface_rows
+                .iter()
+                .filter_map(|r| r.base.mac_address.clone().map(|m| (r.base.host_id, m))),
+        )
+        .filter(|(host_id, _)| identifying_host_ids.contains(host_id))
+        .collect()
 }
 
 /// Whether `other_iface`, on the host being merged away, is already represented by `dest_iface` on

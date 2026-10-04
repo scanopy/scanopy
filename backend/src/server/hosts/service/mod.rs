@@ -16,6 +16,7 @@ use crate::server::{
         },
         base::{Host, HostBase},
         name::{HostName, HostNameSources},
+        virtualization::HostVirtualization,
     },
     interface_neighbors::{r#impl::base::Neighbor, service::InterfaceNeighborService},
     interfaces::{
@@ -427,18 +428,24 @@ fn select_matching_host(
     if !physical_incoming.is_empty() {
         let incoming_mac_counts = mac_counts_for_payload(physical_incoming.iter().copied());
 
-        for HostCandidate {
-            id: host_id,
-            ip_addresses: host_ip_addresses,
-            ..
-        } in candidates
-        {
+        for candidate in candidates {
+            let HostCandidate {
+                id: host_id,
+                ip_addresses: host_ip_addresses,
+                ..
+            } = candidate;
+            let macs_identify_host = candidate.macs_identify_host();
             for incoming_ip in &physical_incoming {
                 for existing_ip in host_ip_addresses {
                     if should_skip_for_matching(existing_ip) {
                         continue;
                     }
-                    if ip_addresses_match(incoming_ip, existing_ip, &incoming_mac_counts) {
+                    if ip_addresses_match(
+                        incoming_ip,
+                        existing_ip,
+                        &incoming_mac_counts,
+                        macs_identify_host,
+                    ) {
                         tracing::debug!(
                             incoming_ip = %incoming_ip.base.ip_address,
                             existing_ip = %existing_ip.base.ip_address,
@@ -531,6 +538,18 @@ pub(crate) struct HostCandidate {
     /// Its **full, unfiltered** live IP rows — loopback and virtual-router rows included, because
     /// the passes above decide for themselves which to skip.
     pub ip_addresses: Vec<IPAddress>,
+    /// How it is virtualized, which says whether the MACs on its rows are its own.
+    pub virtualization: Option<HostVirtualization>,
+}
+
+impl HostCandidate {
+    /// Whether a MAC on one of its rows may identify it. An ipvlan container host answers with its
+    /// runtime's MAC, so a MAC match there would merge the runtime into the container.
+    pub(crate) fn macs_identify_host(&self) -> bool {
+        self.virtualization
+            .as_ref()
+            .is_none_or(HostVirtualization::macs_identify_host)
+    }
 }
 
 /// Same IP on the same subnet — the same logical interface.
@@ -547,11 +566,15 @@ fn ip_addresses_share_address(a: &IPAddress, b: &IPAddress) -> bool {
 ///    among incoming ip_addresses (count == 1). Shared MACs (count > 1) indicate VLAN
 ///    sub-interfaces, bridge members, or bond members — distinct ip_addresses that must
 ///    not be collapsed. Unique MACs indicate a standalone interface (e.g., a Docker
-///    container whose IP changed via DHCP) where MAC is a valid identity anchor.
+///    container whose IP changed via DHCP) where MAC is a valid identity anchor. Never when
+///    `existing` belongs to a host whose MACs do not identify it
+///    ([`HostCandidate::macs_identify_host`]), such as an ipvlan container answering with its
+///    runtime's MAC.
 fn ip_addresses_match(
     incoming: &IPAddress,
     existing: &IPAddress,
     incoming_mac_counts: &HashMap<MacAddress, usize>,
+    macs_identify_host: bool,
 ) -> bool {
     // Primary: same IP on same subnet
     ip_addresses_share_address(incoming, existing)
@@ -566,7 +589,7 @@ fn ip_addresses_match(
     // two scans have learned the address the same way before it would call them the same NIC. A
     // MAC first read from a router's forwarding table and later confirmed by our own ARP reply is
     // one NIC, and the branch is asking whether it is the same hardware, not the same paperwork.
-    || (match (
+    || (macs_identify_host && match (
         mac_of(&incoming.base.mac_address),
         mac_of(&existing.base.mac_address),
     ) {
@@ -581,6 +604,9 @@ fn ip_addresses_match(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::server::hosts::r#impl::virtualization::{
+        ContainerHostVirtualization, ContainerNetworkType,
+    };
     use crate::server::ip_addresses::r#impl::base::IPAddressBase;
     use crate::server::ip_addresses::r#impl::base::{MacEvidence, MacEvidenceValue};
 
@@ -645,7 +671,7 @@ mod tests {
         let a = make_interface(ip, subnet, None);
         let b = make_interface(ip, subnet, None);
         let counts = HashMap::new();
-        assert!(ip_addresses_match(&a, &b, &counts));
+        assert!(ip_addresses_match(&a, &b, &counts, true));
     }
 
     #[test]
@@ -653,7 +679,7 @@ mod tests {
         let a = make_interface("10.0.0.1".parse().unwrap(), Uuid::new_v4(), None);
         let b = make_interface("20.0.0.1".parse().unwrap(), Uuid::new_v4(), None);
         let counts = HashMap::new();
-        assert!(!ip_addresses_match(&a, &b, &counts));
+        assert!(!ip_addresses_match(&a, &b, &counts, true));
     }
 
     #[test]
@@ -664,7 +690,7 @@ mod tests {
         // MAC appears only once in the incoming batch — standalone ip_address, safe to match
         let counts = HashMap::from([(mac, 1)]);
         assert!(
-            ip_addresses_match(&a, &b, &counts),
+            ip_addresses_match(&a, &b, &counts, true),
             "Unique MAC in batch should allow MAC matching (Docker/DHCP case)"
         );
     }
@@ -677,7 +703,7 @@ mod tests {
         // MAC appears 3 times in the incoming batch — VLAN sub-interfaces, must not match
         let counts = HashMap::from([(mac, 3)]);
         assert!(
-            !ip_addresses_match(&a, &b, &counts),
+            !ip_addresses_match(&a, &b, &counts, true),
             "Shared MAC in batch (VLANs) must not match"
         );
     }
@@ -700,7 +726,7 @@ mod tests {
         let b = make_interface("192.168.1.11".parse().unwrap(), subnet, Some(mac));
         let counts = HashMap::from([(mac, 1)]);
         assert!(
-            ip_addresses_match(&a, &b, &counts),
+            ip_addresses_match(&a, &b, &counts, true),
             "Same MAC + same subnet, unique in batch, should match (IP-alias multi-homing)"
         );
     }
@@ -724,7 +750,7 @@ mod tests {
         assert_eq!(counts_for_second.get(&mac), Some(&1));
 
         assert!(
-            ip_addresses_match(&second, &first, &counts_for_second),
+            ip_addresses_match(&second, &first, &counts_for_second, true),
             "Independently scanned same-MAC IPs must merge into one host (model a)"
         );
     }
@@ -741,7 +767,7 @@ mod tests {
         let counts = mac_counts_for_payload(&[a.clone(), b.clone()]);
         assert_eq!(counts.get(&mac), Some(&2));
         assert!(
-            !ip_addresses_match(&a, &b, &counts),
+            !ip_addresses_match(&a, &b, &counts, true),
             "Two same-MAC IPs in one payload must not MAC-merge (VLAN sub-interface guard)"
         );
     }
@@ -764,6 +790,7 @@ mod tests {
             id: host_id,
             chassis_id: None,
             ip_addresses,
+            virtualization: None,
         }
     }
 
@@ -777,6 +804,7 @@ mod tests {
             id: host_id,
             chassis_id: Some(chassis_id.to_string()),
             ip_addresses,
+            virtualization: None,
         }
     }
 
@@ -1142,6 +1170,118 @@ mod tests {
             select_matching_host(&incoming, None, &[candidate(host, vec![existing])]),
             Some(host),
             "a NIC is the same NIC however each scan came to hear about it"
+        );
+    }
+
+    /// The lab's case: VM 103's ens19 MAC, which the ipvlan container also answers ARP with.
+    fn parent_mac() -> MacAddress {
+        MacAddress::new([0xbc, 0x24, 0x11, 0x9b, 0x24, 0x86])
+    }
+
+    fn row(ip: &str, subnet_id: Uuid, mac: MacAddress) -> IPAddress {
+        IPAddress::new(IPAddressBase {
+            ip_address: ip.parse().unwrap(),
+            subnet_id,
+            mac_address: Some(MacEvidence::new(
+                MacEvidenceValue(mac),
+                AttributeSource::ArpReply,
+            )),
+            ..Default::default()
+        })
+    }
+
+    fn container_host(
+        id: Uuid,
+        row: IPAddress,
+        network_type: ContainerNetworkType,
+    ) -> HostCandidate {
+        HostCandidate {
+            id,
+            chassis_id: None,
+            ip_addresses: vec![row],
+            virtualization: Some(HostVirtualization::Docker(ContainerHostVirtualization {
+                container_name: Some("test".to_string()),
+                container_id: Some("aec2a3e9".to_string()),
+                compose_project: None,
+                network_type,
+            })),
+        }
+    }
+
+    /// Another address answering with the parent's MAC is the runtime's, not the container's: an
+    /// ipvlan host never takes it by MAC. Its own address still finds it.
+    #[test]
+    fn an_ipvlan_host_is_matched_by_its_address_never_by_its_parents_mac() {
+        let lan = Uuid::new_v4();
+        let ipvlan = Uuid::new_v4();
+        let candidates = vec![container_host(
+            ipvlan,
+            row("192.168.7.231", lan, parent_mac()),
+            ContainerNetworkType::IpVlan,
+        )];
+
+        let runtime_address = vec![row("192.168.4.63", lan, parent_mac())];
+        assert_eq!(
+            select_matching_host(&runtime_address, None, &candidates),
+            None
+        );
+
+        let own_address = vec![row("192.168.7.231", lan, parent_mac())];
+        assert_eq!(
+            select_matching_host(&own_address, None, &candidates),
+            Some(ipvlan)
+        );
+    }
+
+    /// A macvlan endpoint's MAC is its own, so it keeps re-matching by MAC after an address change.
+    #[test]
+    fn a_macvlan_host_still_rematches_by_its_own_mac() {
+        let lan = Uuid::new_v4();
+        let macvlan = Uuid::new_v4();
+        let own_mac = MacAddress::new([0x26, 0xb6, 0xd3, 0xde, 0x10, 0xb5]);
+        let candidates = vec![container_host(
+            macvlan,
+            row("192.168.7.230", lan, own_mac),
+            ContainerNetworkType::MacVlan,
+        )];
+
+        let moved = vec![row("192.168.7.240", lan, own_mac)];
+        assert_eq!(
+            select_matching_host(&moved, None, &candidates),
+            Some(macvlan)
+        );
+    }
+
+    /// The MAC tier sees the same thing: a MAC carried by an ipvlan host and by its runtime
+    /// resolves to the runtime alone, where without the guard two carriers would resolve to
+    /// neither.
+    #[test]
+    fn the_mac_tier_never_resolves_to_an_ipvlan_host() {
+        let lan = Uuid::new_v4();
+        let ipvlan = Uuid::new_v4();
+        let runtime = Uuid::new_v4();
+        let mut ipvlan_row = row("192.168.7.231", lan, parent_mac());
+        ipvlan_row.base.host_id = ipvlan;
+        let mut runtime_row = row("192.168.4.126", lan, parent_mac());
+        runtime_row.base.host_id = runtime;
+        let candidates = vec![
+            container_host(ipvlan, ipvlan_row.clone(), ContainerNetworkType::IpVlan),
+            HostCandidate {
+                id: runtime,
+                chassis_id: None,
+                ip_addresses: vec![runtime_row.clone()],
+                virtualization: None,
+            },
+        ];
+
+        let carriers = consolidate::mac_carriers(&[ipvlan_row, runtime_row], &[], &candidates);
+        let incoming = [MacEvidence::new(
+            MacEvidenceValue(parent_mac()),
+            AttributeSource::ArpReply,
+        )];
+        assert_eq!(
+            mac_identity::select_matching_host_by_mac(&incoming, &carriers),
+            Some(runtime)
         );
     }
 }
