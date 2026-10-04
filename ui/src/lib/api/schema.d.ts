@@ -8506,14 +8506,15 @@ export interface components {
          *     Stored as a JSONB blob with `#[serde(default)]` on the struct, so a stored
          *     object missing a key (including the `{}` every existing row starts with)
          *     reads as that field's default. Every default reproduces the UI's
-         *     behaviour from before the setting existed.
+         *     behaviour from before the setting existed, except `table_density`, which
+         *     defaults to the tighter of its two layouts.
          */
         DisplaySettings: {
             /** @default browser_default */
             clock: components["schemas"]["ClockFormat"];
             /** @default browser_default */
             date_order: components["schemas"]["DateOrder"];
-            /** @default comfortable */
+            /** @default compact */
             table_density: components["schemas"]["TableDensity"];
             /**
              * @description IANA time zone dates are shown in. `None` uses the browser's zone.

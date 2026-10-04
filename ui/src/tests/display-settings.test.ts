@@ -5,7 +5,7 @@ import { displaySettings } from '$lib/shared/stores/display-settings.svelte';
 type DisplaySettings = components['schemas']['DisplaySettings'];
 
 describe('displaySettings.set', () => {
-	it('reads a user saved before table density existed as comfortable', () => {
+	it('reads a user saved before table density existed as compact', () => {
 		// An older server writes the JSONB back from its own struct and drops the key.
 		const stored = {
 			date_order: 'iso',
@@ -17,7 +17,7 @@ describe('displaySettings.set', () => {
 
 		displaySettings.set(stored);
 
-		expect(displaySettings.current.table_density).toBe('comfortable');
+		expect(displaySettings.current.table_density).toBe('compact');
 		expect(displaySettings.current.date_order).toBe('iso');
 	});
 });

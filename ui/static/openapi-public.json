@@ -24496,7 +24496,7 @@
       },
       "DisplaySettings": {
         "type": "object",
-        "description": "Per-user display preferences for dates and times in the UI.\n\nStored as a JSONB blob with `#[serde(default)]` on the struct, so a stored\nobject missing a key (including the `{}` every existing row starts with)\nreads as that field's default. Every default reproduces the UI's\nbehaviour from before the setting existed.",
+        "description": "Per-user display preferences for dates and times in the UI.\n\nStored as a JSONB blob with `#[serde(default)]` on the struct, so a stored\nobject missing a key (including the `{}` every existing row starts with)\nreads as that field's default. Every default reproduces the UI's\nbehaviour from before the setting existed, except `table_density`, which\ndefaults to the tighter of its two layouts.",
         "properties": {
           "clock": {
             "oneOf": [
@@ -24523,7 +24523,7 @@
                 "description": "Cell padding and row height in entity tables."
               }
             ],
-            "default": "comfortable"
+            "default": "compact"
           },
           "time_zone": {
             "type": [
