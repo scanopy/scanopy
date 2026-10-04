@@ -63,8 +63,9 @@
 		moreWidth: 50 // approximate width for "+X more"
 	};
 
-	// The label keeps its full width and tags take what's left (see `fitTags`). The label only
-	// truncates when it alone is wider than the row, and then carries its full text as a tooltip.
+	// The label keeps its full width and tags take what's left (see `fitTags`). The tag group never
+	// shrinks, so when the label alone is wider than the row, it is the label that gives way to the
+	// "+N more" chip, truncating and carrying its full text as a tooltip.
 	function calculateVisibleTags() {
 		if (!containerEl || !labelEl) return;
 		labelTruncated = labelEl.scrollWidth > labelEl.clientWidth;
@@ -118,10 +119,10 @@
 				bind:this={labelEl}
 				use:tooltip
 				data-tooltip={labelTruncated ? label : null}
-				class="text-secondary max-w-full flex-shrink-0 truncate">{label}</span
+				class="text-secondary min-w-0 truncate">{label}</span
 			>
 			{#if tags.length > 0}
-				<div class="flex min-w-0 items-center gap-1 overflow-hidden">
+				<div class="flex flex-shrink-0 items-center gap-1">
 					{#each visibleTags as tag, i (`${tag.label}-${i}`)}
 						{#if !staticTags && !staticTagsContext && tag.entityRef}
 							<EntityTag
