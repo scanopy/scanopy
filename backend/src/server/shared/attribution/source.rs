@@ -204,12 +204,14 @@ pub enum AttributeSource {
     /// is: the engine reads its own host, and that is what the answer means. A bare variant rather
     /// than `Probe(Docker)`, which is the container listing; this is a different exchange.
     ContainerRuntimeInfo,
-    /// A hypervisor's own configuration for a guest it runs, read through its API: the MAC of a
-    /// virtual NIC it emulates. `Native` for the reason [`Self::ContainerRuntimeInfo`] is: the
-    /// hypervisor assigned that MAC and puts it on the wire for the guest, so its record is the
-    /// NIC's own identity, not a third party's report of it. That is what lets a guest with no
-    /// address still be identified by its NIC. A bare variant rather than `Probe(Proxmox)`, which
-    /// covers everything else the API reports and stays `Reported`.
+    /// The configuration of the hypervisor or container runtime that emulates the NIC, read
+    /// through its API: the MAC of a Proxmox guest's virtual NIC, or of a container's macvlan
+    /// endpoint. `Native` for the reason [`Self::ContainerRuntimeInfo`] is: the hypervisor or
+    /// runtime assigned that MAC, keeps it for the guest's or container's life and puts it on the
+    /// wire for it, so its record is the NIC's own identity, not a third party's report of it.
+    /// That is what lets a guest with no address still be identified by its NIC. A bare variant
+    /// rather than `Probe(Proxmox)` or `Probe(Docker)`, which cover everything else those APIs
+    /// report and stay `Reported`.
     HypervisorConfig,
     /// A script the operator wrote, run on the host over SSH, printed it. Queried: we chose the
     /// host, authenticated to it and read the answer from its own shell. Human-authored, because
@@ -554,7 +556,7 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             Self::DaemonSelfReport => "The daemon on this host",
             Self::ProfinetDcp => "PROFINET DCP",
             Self::ContainerRuntimeInfo => "Container engine",
-            Self::HypervisorConfig => "Hypervisor configuration",
+            Self::HypervisorConfig => "Hypervisor or runtime configuration",
             Self::SshScript => "SSH script",
             Self::Probe => "{probe}",
             Self::Authored => "{probe}, set by a person",
@@ -610,7 +612,7 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
                 "The Docker or Podman engine on this host reported the machine it runs on."
             }
             Self::HypervisorConfig => {
-                "The hypervisor running this guest assigned it, in the guest's configuration."
+                "The hypervisor or container runtime running this guest assigned it, in the guest's configuration."
             }
             Self::SshScript => {
                 "A script you configured on an SSH credential ran on the host and printed this."

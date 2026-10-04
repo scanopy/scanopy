@@ -1,5 +1,5 @@
 import type { components } from '$lib/api/schema';
-import type { RenderableTopology, TopologyNode } from './types/base';
+import type { RenderableTopology, TopologyEdge, TopologyNode } from './types/base';
 import { entities } from '$lib/shared/stores/metadata';
 import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 import { getTopologyIndex, type ContainerContents } from './entity-index';
@@ -494,6 +494,43 @@ export function resolveInlineServiceIds(
 	}
 
 	return out;
+}
+
+/**
+ * The container hosts (macvlan, ipvlan) a ContainerRuntime edge stands for. An edge to a
+ * container host names no containerized services; its containers are the runtime's hosts with an
+ * address on the subnet the edge reaches. Empty for an edge to bridge-network containers.
+ */
+export function containerHostsOfEdge(
+	topology: RenderableTopology,
+	edge: TopologyEdge
+): RenderableTopology['hosts'] {
+	if (edge.edge_type !== 'ContainerRuntime' || edge.containerized_service_ids.length > 0) {
+		return [];
+	}
+	return topology.hosts.filter(
+		(h) =>
+			h.virtualization_service_id === edge.service_id &&
+			topology.ip_addresses.some(
+				(ip) => ip.host_id === h.id && edge.subnet_ids.includes(ip.subnet_id)
+			)
+	);
+}
+
+/**
+ * The identity hosts a NetworkIdentity edge reaches: the host of the address the backend drew it
+ * to. Edge elevation can replace that endpoint with the id of a box that accepts edges, and then
+ * every identity of the edge's Network Identities service is returned.
+ */
+export function identityHostsOfEdge(
+	topology: RenderableTopology,
+	edge: TopologyEdge
+): RenderableTopology['hosts'] {
+	if (edge.edge_type !== 'NetworkIdentity') return [];
+	const address = topology.ip_addresses.find((ip) => ip.id === edge.target);
+	const addressHost = address ? topology.hosts.find((h) => h.id === address.host_id) : undefined;
+	if (addressHost) return [addressHost];
+	return topology.hosts.filter((h) => h.virtualization_service_id === edge.identities_service_id);
 }
 
 // Entity→Node index — canonical resolver for mapping entity IDs to topology node IDs

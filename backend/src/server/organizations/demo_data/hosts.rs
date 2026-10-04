@@ -374,26 +374,7 @@ pub(super) fn generate_hosts_and_services(
     ));
     result.push(unifi_switch);
 
-    // 4. Pi-hole DNS
-    result.push(host_with_services!(
-        with_mac(
-            create_host(
-                "pihole-dns01",
-                Some("pihole.acme.local"),
-                Some("Pi-hole DNS ad blocker"),
-                hq,
-                hq_mgmt,
-                Ipv4Addr::new(10, 0, 1, 5),
-                vec![],
-                None,
-                None,
-                now
-            ),
-            [0xdc, 0xa6, 0x32, 0x10, 0x04, 0x01],
-        ),
-        now,
-        ("Pi-Hole", "Pi-hole", Some(PortType::Http), vec![]),
-    ));
+    // 4. Pi-hole DNS: a macvlan container on docker-prod01, listed after it (13b).
 
     // 5. Grafana (pre-generated ID for dependency wiring)
     {
@@ -994,6 +975,45 @@ pub(super) fn generate_hosts_and_services(
             ports,
             services,
         });
+    }
+
+    // 13b. Pi-hole DNS: a Compose-managed container on docker-prod01's macvlan network, so it
+    // answers DNS from its own address on the Servers LAN rather than through a published port.
+    // Docker assigns the endpoint's MAC (02:42 + the IP) and keeps it for the container's life.
+    {
+        let (mut host, mut ip_address) = create_host(
+            "pihole",
+            Some("pihole.acme.local"),
+            Some("Pi-hole DNS ad blocker (macvlan container on docker-prod01)"),
+            hq,
+            hq_servers,
+            Ipv4Addr::new(10, 0, 20, 21),
+            vec![],
+            None,
+            Some((
+                HostVirtualization::Docker(ContainerHostVirtualization {
+                    container_name: Some("pihole".to_string()),
+                    container_id: Some("e3f4a5b6c7d8".to_string()),
+                    compose_project: Some("dns".to_string()),
+                    network_type: ContainerNetworkType::MacVlan,
+                }),
+                docker_hq_svc_id,
+            )),
+            now,
+        );
+        // Discovered and titled by the Docker integration, as the daemon records a container host.
+        host.base.source = EntitySource::Discovery;
+        host.base.name = HostName::from_controller("pihole".to_string(), ClientProbe::Docker);
+        ip_address.base.mac_address = Some(MacEvidence::new(
+            MacEvidenceValue(MacAddress::new([0x02, 0x42, 0x0a, 0x00, 0x14, 0x15])),
+            AttributeSource::HypervisorConfig,
+        ));
+        ip_address.base.name = Some("lan".to_string());
+        result.push(host_with_services!(
+            (host, ip_address),
+            now,
+            ("Pi-Hole", "Pi-hole", Some(PortType::Http), vec![]),
+        ));
     }
 
     // 14. Jenkins CI — inventoried by the "Linux Inventory" SSH credential's script

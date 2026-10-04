@@ -4,7 +4,11 @@ use uuid::Uuid;
 use crate::server::{
     hosts::r#impl::base::Host,
     interfaces::r#impl::base::IfOperStatus,
-    services::r#impl::{base::Service, categories::ServiceCategory},
+    services::r#impl::{
+        base::Service,
+        categories::ServiceCategory,
+        definitions::{ServiceDefinitionExt, VirtualizationRole},
+    },
     shared::entities::EntityDiscriminants,
     shared::types::Color,
     subnets::r#impl::base::Subnet,
@@ -84,6 +88,8 @@ pub struct ElementMatchData {
     pub element_entity: EntityDiscriminants,
     /// The service ID of the virtualizer managing this element (for ByHypervisor/ByContainerRuntime grouping).
     pub virtualizer_service_id: Option<Uuid>,
+    /// The role of that virtualizer: which of ByHypervisor and ByContainerRuntime takes the element.
+    pub virtualizer_role: Option<VirtualizationRole>,
     /// The deployment-unit identity this element belongs to (for ByStack grouping) —
     /// e.g. a Docker/Podman compose project. Runtime-agnostic: any orchestrator's
     /// deployment-group key feeds this field, so the rule stays vendor-neutral.
@@ -107,6 +113,8 @@ pub struct InlineContext<'a> {
     pub service_lookup: &'a HashMap<Uuid, &'a Service>,
     /// virtualizer_service_id → managed container service IDs
     pub virt_to_container_svcs: &'a HashMap<Uuid, Vec<Uuid>>,
+    /// virtualizer_service_id → managed guest host IDs (VMs, LXC containers, container hosts)
+    pub virt_to_guest_hosts: &'a HashMap<Uuid, Vec<Uuid>>,
 }
 
 /// Context passed to `compute_placements` for each rule invocation.
@@ -142,7 +150,11 @@ fn compute_placements(rule: &ElementRule, ctx: &PlacementContext) -> RulePlaceme
 }
 
 /// ByHypervisor / ByContainerRuntime: group elements by virtualizer service,
-/// plus InlineOn decisions for services on VMs and BecomeSubcontainer for virtualizer services.
+/// plus InlineOn decisions for services on guests and BecomeSubcontainer for virtualizer services.
+///
+/// Elements are taken by their virtualizer's role, not by entity: a container runtime manages
+/// both container services (bridge networking) and container hosts (macvlan/ipvlan), and both
+/// belong in the runtime's group.
 fn compute_virtualizer_placements(rule: &ElementRule, ctx: &PlacementContext) -> RulePlacement {
     let mut result = RulePlacement {
         containers: Vec::new(),
@@ -150,13 +162,20 @@ fn compute_virtualizer_placements(rule: &ElementRule, ctx: &PlacementContext) ->
         claimed: HashSet::new(),
     };
 
-    let (container_type, target_entity) = if matches!(rule, ElementRule::ByHypervisor) {
-        (ContainerType::Hypervisor, EntityDiscriminants::Host)
+    let is_hypervisor_rule = matches!(rule, ElementRule::ByHypervisor);
+    let container_type = if is_hypervisor_rule {
+        ContainerType::Hypervisor
     } else {
-        (
-            ContainerType::ContainerRuntime,
-            EntityDiscriminants::Service,
-        )
+        ContainerType::ContainerRuntime
+    };
+    // ByHypervisor takes every manager whose children are hosts and that is not a runtime: a
+    // hypervisor's guests, and a host's network identities.
+    let takes_role = |role: Option<VirtualizationRole>| match role {
+        Some(VirtualizationRole::Hypervisor { .. } | VirtualizationRole::IdentityHost { .. }) => {
+            is_hypervisor_rule
+        }
+        Some(VirtualizationRole::ContainerRuntime { .. }) => !is_hypervisor_rule,
+        None => false,
     };
 
     // Phase 1: Group existing elements into subcontainers (PlaceInContainer)
@@ -167,7 +186,7 @@ fn compute_virtualizer_placements(rule: &ElementRule, ctx: &PlacementContext) ->
             .filter(|id| {
                 ctx.match_data
                     .get(id)
-                    .is_some_and(|d| d.element_entity == target_entity)
+                    .is_some_and(|d| takes_role(d.virtualizer_role))
             })
             .copied()
             .collect();
@@ -246,10 +265,11 @@ fn compute_virtualizer_placements(rule: &ElementRule, ctx: &PlacementContext) ->
         }
     }
 
-    // Phase 2: InlineOn decisions for services on VM hosts (only if inline context provided)
+    // Phase 2: InlineOn decisions for elements of guest hosts (only if inline context provided)
     if let Some(inline_ctx) = ctx.inline_ctx {
-        if matches!(rule, ElementRule::ByHypervisor) {
-            // Services on VM hosts → InlineOn (no visual group)
+        if is_hypervisor_rule {
+            // Services on guest hosts (VMs, LXC containers, container hosts) → InlineOn
+            // (no visual group)
             for (host_id, host) in inline_ctx.hosts.iter() {
                 if host.base.virtualization_service_id.is_none() {
                     continue;
@@ -269,44 +289,80 @@ fn compute_virtualizer_placements(rule: &ElementRule, ctx: &PlacementContext) ->
                     }
                 }
             }
-        } else {
-            // ByContainerRuntime: Docker services on VMs → InlineOn with visual group
-            for (&virt_svc_id, container_svc_ids) in inline_ctx.virt_to_container_svcs {
-                let Some(virt_svc) = inline_ctx.service_lookup.get(&virt_svc_id) else {
-                    continue;
-                };
-                let Some(host) = inline_ctx.hosts.get(&virt_svc.base.host_id) else {
-                    continue;
-                };
-                if host.base.virtualization_service_id.is_none() {
-                    continue;
-                }
-                let vm_host_id = virt_svc.base.host_id;
+        }
 
-                // Docker runtime → Header
+        // A manager this rule takes that runs on a guest → its children, services and hosts
+        // alike, InlineOn that guest with a visual group: a runtime on a VM with its containers,
+        // a guest with its network identities. Phase 1 skipped these managers.
+        let manager_ids: HashSet<Uuid> = inline_ctx
+            .virt_to_container_svcs
+            .keys()
+            .chain(inline_ctx.virt_to_guest_hosts.keys())
+            .copied()
+            .collect();
+        let no_ids = Vec::new();
+        for virt_svc_id in manager_ids {
+            let Some(virt_svc) = inline_ctx.service_lookup.get(&virt_svc_id) else {
+                continue;
+            };
+            if !takes_role(virt_svc.base.service_definition.virtualization_role()) {
+                continue;
+            }
+            let member_svc_ids = inline_ctx
+                .virt_to_container_svcs
+                .get(&virt_svc_id)
+                .unwrap_or(&no_ids);
+            let member_host_ids = inline_ctx
+                .virt_to_guest_hosts
+                .get(&virt_svc_id)
+                .unwrap_or(&no_ids);
+            let Some(host) = inline_ctx.hosts.get(&virt_svc.base.host_id) else {
+                continue;
+            };
+            if host.base.virtualization_service_id.is_none() {
+                continue;
+            }
+            let guest_host_id = virt_svc.base.host_id;
+
+            // Manager → Header
+            result.placements.insert(
+                virt_svc_id,
+                PlacementDecision::InlineOn {
+                    node_id: guest_host_id,
+                    inline_group: Some(InlineGroup {
+                        entity_id: virt_svc_id,
+                        group_id: virt_svc_id,
+                        role: InlineGroupRole::Header,
+                    }),
+                },
+            );
+
+            // Managed services and hosts → Member
+            for &entity_id in member_svc_ids.iter().chain(member_host_ids) {
                 result.placements.insert(
-                    virt_svc_id,
+                    entity_id,
                     PlacementDecision::InlineOn {
-                        node_id: vm_host_id,
+                        node_id: guest_host_id,
                         inline_group: Some(InlineGroup {
-                            entity_id: virt_svc_id,
+                            entity_id,
                             group_id: virt_svc_id,
-                            role: InlineGroupRole::Header,
+                            role: InlineGroupRole::Member,
                         }),
                     },
                 );
+            }
 
-                // Container services → Member
-                for &svc_id in container_svc_ids {
+            // A managed host's own services follow it onto the guest, so they keep a node
+            // (dependency edges attach to it) instead of pointing at the removed element.
+            for svc in inline_ctx.service_lookup.values() {
+                if member_host_ids.contains(&svc.base.host_id)
+                    && svc.base.virtualization_service_id.is_none()
+                {
                     result.placements.insert(
-                        svc_id,
+                        svc.id,
                         PlacementDecision::InlineOn {
-                            node_id: vm_host_id,
-                            inline_group: Some(InlineGroup {
-                                entity_id: svc_id,
-                                group_id: virt_svc_id,
-                                role: InlineGroupRole::Member,
-                            }),
+                            node_id: guest_host_id,
+                            inline_group: None,
                         },
                     );
                 }
@@ -880,6 +936,7 @@ mod tests {
             tag_ids: HashSet::new(),
             element_entity: EntityDiscriminants::Service,
             virtualizer_service_id: None,
+            virtualizer_role: None,
             deployment_group: deployment_group.map(String::from),
             native_vlan_id: None,
             vlan_number: None,

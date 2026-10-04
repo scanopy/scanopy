@@ -31,6 +31,8 @@
 		hosts_services_newBinding,
 		hosts_services_noAvailableInterfaces,
 		hosts_services_noAvailablePortCombos,
+		hosts_services_networkIdentitiesHint,
+		hosts_services_networkIdentitiesLearnMore,
 		hosts_services_noInterfaces,
 		hosts_services_noPorts,
 		hosts_services_portBindingsHelp,
@@ -362,6 +364,12 @@
 				text={hosts_services_unclaimedPortsHint()}
 				href="https://scanopy.net/docs/using-scanopy/network-data/#unclaimed-open-ports"
 				linkText={hosts_services_unclaimedPortsLearnMore()}
+			/>
+		{:else if serviceMetadata.category === 'NetworkIdentities'}
+			<DocsHint
+				text={hosts_services_networkIdentitiesHint()}
+				href="https://scanopy.net/docs/using-scanopy/network-data/#network-identities"
+				linkText={hosts_services_networkIdentitiesLearnMore()}
 			/>
 		{/if}
 

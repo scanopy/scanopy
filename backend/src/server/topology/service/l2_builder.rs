@@ -260,6 +260,7 @@ impl ViewBuilder for L2Builder {
                         tag_ids,
                         element_entity: EntityDiscriminants::Interface,
                         virtualizer_service_id: None,
+                        virtualizer_role: None,
                         deployment_group: None,
                         native_vlan_id,
                         vlan_number: resolved_vlan.map(|v| v.base.vlan_number),

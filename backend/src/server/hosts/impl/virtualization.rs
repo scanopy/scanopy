@@ -40,6 +40,62 @@ pub enum HostVirtualization {
     VCenter(VCenterVirtualization),
     #[schema(title = "ESXi")]
     ESXi(EsxiVirtualization),
+    #[schema(title = "Docker")]
+    Docker(ContainerHostVirtualization),
+    #[schema(title = "Podman")]
+    Podman(ContainerHostVirtualization),
+    #[schema(title = "NetworkIdentity")]
+    NetworkIdentity(NetworkIdentityVirtualization),
+}
+
+/// A container with its own identity on the LAN: a macvlan or ipvlan endpoint gives it a MAC and
+/// an IP of its own, so it is a host under its runtime rather than a service on the runtime's
+/// host. Containers on bridge networks stay services (`ServiceVirtualization`).
+#[derive(Debug, Clone, Serialize, Validate, Deserialize, PartialEq, Eq, Hash, ToSchema)]
+pub struct ContainerHostVirtualization {
+    /// Container name as reported by the runtime.
+    pub container_name: Option<String>,
+    /// Container ID as reported by the runtime.
+    pub container_id: Option<String>,
+    /// Compose project the container belongs to, when it was started by Compose.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compose_project: Option<String>,
+    /// The network driver that gives the container its own LAN address.
+    pub network_type: ContainerNetworkType,
+}
+
+/// The container network drivers that put a container directly on the LAN.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize,
+    IntoStaticStr,
+    EnumIter,
+    VariantNames,
+    ToSchema,
+)]
+pub enum ContainerNetworkType {
+    /// A macvlan endpoint: its own MAC on the parent interface.
+    MacVlan,
+    /// An ipvlan endpoint: its own IP, sharing the parent interface's MAC.
+    IpVlan,
+}
+
+/// An address and MAC that a host presents from an interface of its own beyond its configured
+/// NICs: a macvlan shim, a virtual IP, a service given its own LAN address, an emulated device.
+/// The reporting source proves only that the interface lives inside that host, not what it is,
+/// so nothing here classifies it. The owner is the host's Network Identities service
+/// (`Host::virtualization_service_id`).
+#[derive(Debug, Clone, Serialize, Validate, Deserialize, PartialEq, Eq, Hash, ToSchema)]
+pub struct NetworkIdentityVirtualization {
+    /// The owning host's interface the identity sits on (`mv-snmp4`).
+    #[serde(default)]
+    pub interface: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Validate, Deserialize, PartialEq, Eq, Hash, ToSchema)]
@@ -128,6 +184,9 @@ impl TypeMetadataProvider for HostVirtualizationDiscriminants {
             Self::Proxmox => "Proxmox",
             Self::VCenter => "vCenter",
             Self::ESXi => "ESXi",
+            Self::Docker => "Docker",
+            Self::Podman => "Podman",
+            Self::NetworkIdentity => "Network identity",
         }
     }
 
@@ -136,6 +195,42 @@ impl TypeMetadataProvider for HostVirtualizationDiscriminants {
             Self::Proxmox => "A host running as a Proxmox VM or LXC container",
             Self::VCenter => "A host running as a vCenter-managed VM",
             Self::ESXi => "A host running as an ESXi VM",
+            Self::Docker => "A host running as a Docker container with its own LAN address",
+            Self::Podman => "A host running as a Podman container with its own LAN address",
+            Self::NetworkIdentity => {
+                "An address and MAC that another host presents on the network from one of its own interfaces"
+            }
+        }
+    }
+}
+
+impl HasId for ContainerNetworkType {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for ContainerNetworkType {
+    fn color(&self) -> Color {
+        Concept::Containerization.color()
+    }
+    fn icon(&self) -> Icon {
+        Concept::Containerization.icon()
+    }
+}
+
+impl TypeMetadataProvider for ContainerNetworkType {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::MacVlan => "macvlan",
+            Self::IpVlan => "ipvlan",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        match self {
+            Self::MacVlan => "Container on a macvlan network, with its own MAC and IP on the LAN",
+            Self::IpVlan => "Container on an ipvlan network, with its own IP on the LAN",
         }
     }
 }
@@ -234,7 +329,7 @@ impl TypeMetadataProvider for HostVirtualizationState {
 
     fn description(&self) -> &'static str {
         match self {
-            Self::Virtualized => "Hosts running as virtual machines",
+            Self::Virtualized => "Hosts running as virtual machines or containers",
             Self::BareMetal => "Hosts running on physical hardware",
         }
     }

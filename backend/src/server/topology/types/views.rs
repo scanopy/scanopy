@@ -708,6 +708,9 @@ impl TopologyView {
                 RequestPath => active(false, Visible, Dashed, WhenVisible, false, true),
                 HubAndSpoke => active(false, Visible, Dashed, WhenVisible, false, true),
                 Hypervisor => active(false, Hidden, Dashed, WhenVisible, true, false),
+                // Hypervisor's stroke and highlight, shown by default: without it an identity
+                // host has no visible tie to the guest that presents it.
+                NetworkIdentity => active(false, Visible, Dashed, WhenVisible, true, false),
                 PhysicalLink => EdgeViewConfig::Disabled,
                 // Connects two hosts, and this view has no host node to land on — its
                 // elements are IP addresses.
@@ -724,9 +727,8 @@ impl TopologyView {
                 // drawn beside the device it neighbours.
                 NeighborLink => active(true, Visible, Dashed, WhenVisible, false, false),
                 SameHost => active(false, Hidden, Dashed, WhenVisible, false, false),
-                Hypervisor | ContainerRuntime | RequestPath | HubAndSpoke | SameContainer => {
-                    EdgeViewConfig::Disabled
-                }
+                Hypervisor | NetworkIdentity | ContainerRuntime | RequestPath | HubAndSpoke
+                | SameContainer => EdgeViewConfig::Disabled,
             },
             Self::Workloads => match edge_type {
                 PhysicalLink => active(false, Hidden, Dashed, WhenVisible, false, false),
@@ -734,7 +736,8 @@ impl TopologyView {
                 RequestPath | HubAndSpoke => {
                     active(false, Hidden, Dashed, WhenVisible, false, true)
                 }
-                Hypervisor | ContainerRuntime | SameHost | SameContainer => {
+                // Identities nest inside their guest's stack here; the nesting is the relationship.
+                Hypervisor | NetworkIdentity | ContainerRuntime | SameHost | SameContainer => {
                     EdgeViewConfig::Disabled
                 }
             },
@@ -742,9 +745,8 @@ impl TopologyView {
                 RequestPath => active(true, Visible, Solid, WhenVisible, false, true),
                 HubAndSpoke => active(true, Visible, Solid, WhenVisible, false, true),
                 ContainerRuntime => active(true, Hidden, Dashed, Always, true, false),
-                SameHost | Hypervisor | PhysicalLink | SameContainer | NeighborLink => {
-                    EdgeViewConfig::Disabled
-                }
+                SameHost | Hypervisor | NetworkIdentity | PhysicalLink | SameContainer
+                | NeighborLink => EdgeViewConfig::Disabled,
             },
         }
     }

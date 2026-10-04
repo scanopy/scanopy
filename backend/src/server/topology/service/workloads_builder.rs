@@ -49,11 +49,11 @@ impl ViewBuilder for WorkloadsBuilder {
 
         // --- Phase 1: Build lookup maps (provider-agnostic) ---
 
-        // virtualizer_service_id → managed VM host_ids
-        let mut virt_to_vm_hosts: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
+        // virtualizer_service_id → managed guest host_ids (VMs, LXC containers, container hosts)
+        let mut virt_to_guest_hosts: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
         for host in ctx.hosts {
             if let Some(svc_id) = host.base.virtualization_service_id {
-                virt_to_vm_hosts.entry(svc_id).or_default().push(host.id);
+                virt_to_guest_hosts.entry(svc_id).or_default().push(host.id);
             }
         }
 
@@ -97,12 +97,13 @@ impl ViewBuilder for WorkloadsBuilder {
             hosts: &host_lookup,
             service_lookup: &service_lookup,
             virt_to_container_svcs: &virt_to_container_svcs,
+            virt_to_guest_hosts: &virt_to_guest_hosts,
         };
 
-        // --- Phase 3: Create Host containers for non-VM hosts ---
+        // --- Phase 3: Create Host containers for hosts that are not guests ---
 
         for host in ctx.hosts {
-            // VMs are elements only, never containers
+            // Guests (VMs, LXC containers, container hosts) are elements only, never containers
             if host.base.virtualization_service_id.is_some() {
                 continue;
             }
@@ -128,25 +129,43 @@ impl ViewBuilder for WorkloadsBuilder {
 
         // --- Phase 4: Create workload elements ---
 
-        // 4a: VM elements — placed in the virtualizer service's host container
-        for (virt_svc_id, vm_host_ids) in &virt_to_vm_hosts {
+        // The host container an element on `host_id` starts in: the host's own, or for a guest
+        // the container of the first host up its virtualization chain that is not a guest. A
+        // container on a Docker that runs in a VM starts in the VM's hypervisor's container;
+        // apply_element_rules then inlines it on the VM. `None` when the chain leaves the graph.
+        let start_container = |host_id: Uuid| -> Option<Uuid> {
+            let mut current = host_id;
+            // Bounded by the host count, so a virtualization cycle cannot loop forever.
+            for _ in 0..=host_lookup.len() {
+                match host_lookup.get(&current)?.base.virtualization_service_id {
+                    None => return Some(Self::container_id_for_host(current)),
+                    Some(virt_svc_id) => current = service_lookup.get(&virt_svc_id)?.base.host_id,
+                }
+            }
+            None
+        };
+
+        // 4a: Guest host elements (VMs, LXC containers, container hosts) — placed in their
+        // virtualizer's host container
+        for (virt_svc_id, guest_host_ids) in &virt_to_guest_hosts {
             let Some(virt_svc) = service_lookup.get(virt_svc_id) else {
                 continue;
             };
-            let hypervisor_host_id = virt_svc.base.host_id;
-            let container_id = Self::container_id_for_host(hypervisor_host_id);
+            let Some(container_id) = start_container(virt_svc.base.host_id) else {
+                continue;
+            };
 
-            for &vm_host_id in vm_host_ids {
-                let Some(vm_host) = host_lookup.get(&vm_host_id) else {
+            for &guest_host_id in guest_host_ids {
+                let Some(guest_host) = host_lookup.get(&guest_host_id) else {
                     continue;
                 };
                 let mut node = Node::element(
-                    vm_host_id,
+                    guest_host_id,
                     container_id,
-                    vm_host_id,
+                    guest_host_id,
                     ElementEntityType::Host {},
                 );
-                node.header = ctx.host_container_header(vm_host);
+                node.header = ctx.host_container_header(guest_host);
                 nodes.push(node);
             }
         }
@@ -158,24 +177,8 @@ impl ViewBuilder for WorkloadsBuilder {
             let Some(virt_svc) = service_lookup.get(virt_svc_id) else {
                 continue;
             };
-            let host_id = virt_svc.base.host_id;
-            let is_on_vm = host_lookup
-                .get(&host_id)
-                .is_some_and(|h| h.base.virtualization_service_id.is_some());
-
-            let container_id = if is_on_vm {
-                // VM host → find hypervisor host container
-                let hypervisor_host_id = virt_to_vm_hosts
-                    .iter()
-                    .find(|(_, vm_ids)| vm_ids.contains(&host_id))
-                    .and_then(|(vid, _)| service_lookup.get(vid))
-                    .map(|vs| vs.base.host_id);
-                match hypervisor_host_id {
-                    Some(hid) => Self::container_id_for_host(hid),
-                    None => continue,
-                }
-            } else {
-                Self::container_id_for_host(host_id)
+            let Some(container_id) = start_container(virt_svc.base.host_id) else {
+                continue;
             };
 
             for &svc_id in container_svc_ids {
@@ -209,29 +212,11 @@ impl ViewBuilder for WorkloadsBuilder {
                 continue;
             }
 
-            // Skip services on hosts not in the graph
-            if !host_lookup.contains_key(&service.base.host_id) {
+            // Guest hosts have no container of their own, so their services start in the
+            // hypervisor's host container; apply_element_rules will InlineOn these. Services on
+            // hosts not in the graph are skipped.
+            let Some(container_id) = start_container(service.base.host_id) else {
                 continue;
-            }
-
-            // For VM hosts, place in the hypervisor's host container (VM hosts don't
-            // have their own containers). apply_element_rules will InlineOn these.
-            let container_id = if host_lookup
-                .get(&service.base.host_id)
-                .is_some_and(|h| h.base.virtualization_service_id.is_some())
-            {
-                // Find the hypervisor host container via virt_to_vm_hosts reverse lookup
-                let hypervisor_host_id = virt_to_vm_hosts
-                    .iter()
-                    .find(|(_, vm_ids)| vm_ids.contains(&service.base.host_id))
-                    .and_then(|(virt_svc_id, _)| service_lookup.get(virt_svc_id))
-                    .map(|virt_svc| virt_svc.base.host_id);
-                match hypervisor_host_id {
-                    Some(hid) => Self::container_id_for_host(hid),
-                    None => continue, // No hypervisor found — can't place
-                }
-            } else {
-                Self::container_id_for_host(service.base.host_id)
             };
 
             let mut node = Node::element(
@@ -255,6 +240,15 @@ impl ViewBuilder for WorkloadsBuilder {
             subnets: None,
         };
 
+        // The role of the service virtualizing an element decides which virtualizer rule takes it.
+        let virtualizer_role = |virt_svc_id: Option<Uuid>| {
+            service_lookup
+                .get(&virt_svc_id?)?
+                .base
+                .service_definition
+                .virtualization_role()
+        };
+
         let placements = apply_element_rules(
             &mut nodes,
             &grouping.element_rules,
@@ -272,6 +266,7 @@ impl ViewBuilder for WorkloadsBuilder {
                         tag_ids,
                         element_entity: EntityDiscriminants::Host,
                         virtualizer_service_id,
+                        virtualizer_role: virtualizer_role(virtualizer_service_id),
                         deployment_group: None,
                         native_vlan_id: None,
                         vlan_number: None,
@@ -299,6 +294,7 @@ impl ViewBuilder for WorkloadsBuilder {
                         tag_ids,
                         element_entity: EntityDiscriminants::Service,
                         virtualizer_service_id,
+                        virtualizer_role: virtualizer_role(virtualizer_service_id),
                         deployment_group: None,
                         native_vlan_id: None,
                         vlan_number: None,
@@ -634,7 +630,10 @@ mod tests {
         hosts::r#impl::{
             base::{Host, HostBase},
             name::{HostName, HostNameSources},
-            virtualization::{HostVirtualization, ProxmoxVirtualization},
+            virtualization::{
+                ContainerHostVirtualization, ContainerNetworkType, HostVirtualization,
+                ProxmoxGuestType, ProxmoxVirtualization,
+            },
         },
         services::r#impl::{
             base::{Service, ServiceBase},
@@ -647,7 +646,7 @@ mod tests {
             service::context::TopologyContext,
             types::{
                 base::TopologyOptions,
-                grouping::{ElementRule, GroupingConfig, IdentifiedRule},
+                grouping::{ElementRule, GroupingConfig, IdentifiedRule, InlineGroupRole},
                 nodes::ContainerType,
             },
         },
@@ -1293,5 +1292,226 @@ mod tests {
             .filter(|n| matches!(n.node_type, NodeType::Element { .. }))
             .collect();
         assert_eq!(elements.len(), 1);
+    }
+
+    fn make_container_host(name: &str, docker_service_id: Uuid) -> Host {
+        let mut host = make_host(name);
+        host.base.virtualization_metadata =
+            Some(HostVirtualization::Docker(ContainerHostVirtualization {
+                container_name: Some(name.to_string()),
+                container_id: None,
+                compose_project: None,
+                network_type: ContainerNetworkType::MacVlan,
+            }));
+        host.base.virtualization_service_id = Some(docker_service_id);
+        host
+    }
+
+    fn containers_of_type(nodes: &[Node], wanted: ContainerType) -> Vec<&Node> {
+        nodes
+            .iter()
+            .filter(|n| {
+                matches!(n.node_type, NodeType::Container { container_type, .. }
+                    if container_type == wanted)
+            })
+            .collect()
+    }
+
+    fn container_of(nodes: &[Node], id: Uuid) -> Option<Uuid> {
+        nodes
+            .iter()
+            .find(|n| n.id == id)
+            .and_then(|n| match n.node_type {
+                NodeType::Element { container_id, .. } => Some(container_id),
+                _ => None,
+            })
+    }
+
+    /// One Docker box holds both kinds of container: a bridge container (a service) and a
+    /// macvlan container (a host of its own), whose service shows on that host rather than as
+    /// a separate element.
+    #[test]
+    fn docker_box_holds_container_services_and_container_hosts() {
+        let host = make_host("docker-prod01");
+        let docker_svc = make_docker_service(host.id);
+        let nginx = make_docker_container("nginx", host.id, docker_svc.id);
+        let pihole = make_container_host("pihole", docker_svc.id);
+        let dns = make_regular_service("pihole-dns", pihole.id);
+        let (nginx_id, pihole_id, dns_id) = (nginx.id, pihole.id, dns.id);
+
+        let (nodes, _edges) = build(&[host, pihole], &[docker_svc, nginx, dns]);
+
+        assert_eq!(containers_of_type(&nodes, ContainerType::Host).len(), 1);
+        assert!(containers_of_type(&nodes, ContainerType::Hypervisor).is_empty());
+        let runtime_boxes = containers_of_type(&nodes, ContainerType::ContainerRuntime);
+        assert_eq!(runtime_boxes.len(), 1);
+        let runtime_box = runtime_boxes[0].id;
+
+        assert_eq!(container_of(&nodes, nginx_id), Some(runtime_box));
+        assert_eq!(container_of(&nodes, pihole_id), Some(runtime_box));
+        assert!(
+            nodes.iter().all(|n| n.id != dns_id),
+            "a container host's service is inlined on the host, not its own element"
+        );
+    }
+
+    /// A Docker running in a VM shows all its containers, bridge services and macvlan hosts
+    /// alike, inlined on the VM as one group headed by the runtime.
+    #[test]
+    fn docker_in_vm_inlines_container_services_and_container_hosts() {
+        let node = make_host("pve-01");
+        let proxmox_svc = make_proxmox_service(node.id);
+        let vm = make_proxmox_vm("docker-vm", proxmox_svc.id);
+        let docker_svc = make_docker_service(vm.id);
+        let nginx = make_docker_container("nginx", vm.id, docker_svc.id);
+        let pihole = make_container_host("pihole", docker_svc.id);
+        let dns = make_regular_service("pihole-dns", pihole.id);
+        let (vm_id, docker_id, nginx_id, pihole_id) = (vm.id, docker_svc.id, nginx.id, pihole.id);
+
+        let (nodes, _edges) = build(&[node, vm, pihole], &[proxmox_svc, docker_svc, nginx, dns]);
+
+        assert!(containers_of_type(&nodes, ContainerType::ContainerRuntime).is_empty());
+        let elements: Vec<&Node> = nodes
+            .iter()
+            .filter(|n| matches!(n.node_type, NodeType::Element { .. }))
+            .collect();
+        assert_eq!(elements.len(), 1, "only the VM remains an element");
+        assert_eq!(elements[0].id, vm_id);
+
+        let NodeType::Element { inline_groups, .. } = &elements[0].node_type else {
+            unreachable!()
+        };
+        assert!(inline_groups.iter().all(|g| g.group_id == docker_id));
+        let members: HashSet<Uuid> = inline_groups
+            .iter()
+            .filter(|g| g.role == InlineGroupRole::Member)
+            .map(|g| g.entity_id)
+            .collect();
+        assert_eq!(members, HashSet::from([nginx_id, pihole_id]));
+        assert!(
+            inline_groups
+                .iter()
+                .any(|g| g.role == InlineGroupRole::Header && g.entity_id == docker_id)
+        );
+    }
+
+    /// Proxmox VMs and LXC containers group under their hypervisor as before; container hosts
+    /// take nothing from the hypervisor rule.
+    #[test]
+    fn proxmox_vms_and_lxc_containers_group_under_the_hypervisor() {
+        let node = make_host("pve-01");
+        let proxmox_svc = make_proxmox_service(node.id);
+        let guest = |name: &str, guest_type: ProxmoxGuestType| {
+            let mut host = make_proxmox_vm(name, proxmox_svc.id);
+            if let Some(HostVirtualization::Proxmox(p)) = &mut host.base.virtualization_metadata {
+                p.guest_type = Some(guest_type);
+            }
+            host
+        };
+        let vm = guest("vm-web", ProxmoxGuestType::Qemu);
+        let lxc = guest("ct-dns", ProxmoxGuestType::Lxc);
+        let (vm_id, lxc_id) = (vm.id, lxc.id);
+
+        let (nodes, _edges) = build(&[node, vm, lxc], &[proxmox_svc]);
+
+        assert!(containers_of_type(&nodes, ContainerType::ContainerRuntime).is_empty());
+        let hypervisor_boxes = containers_of_type(&nodes, ContainerType::Hypervisor);
+        assert_eq!(hypervisor_boxes.len(), 1);
+        assert_eq!(container_of(&nodes, vm_id), Some(hypervisor_boxes[0].id));
+        assert_eq!(container_of(&nodes, lxc_id), Some(hypervisor_boxes[0].id));
+    }
+
+    fn make_identities_service(host_id: Uuid) -> Service {
+        use crate::server::services::definitions::network_identities::NetworkIdentities;
+        Service {
+            id: Uuid::new_v4(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            base: ServiceBase {
+                host_id,
+                service_definition: Box::new(NetworkIdentities),
+                name: "Network Identities".to_string(),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+
+    fn make_identity_host(interface: &str, identities_service_id: Uuid) -> Host {
+        use crate::server::hosts::r#impl::virtualization::NetworkIdentityVirtualization;
+        let mut host = make_host(interface);
+        host.base.virtualization_metadata = Some(HostVirtualization::NetworkIdentity(
+            NetworkIdentityVirtualization {
+                interface: Some(interface.to_string()),
+            },
+        ));
+        host.base.virtualization_service_id = Some(identities_service_id);
+        host
+    }
+
+    /// A VM's network identities show inside the VM, in the hypervisor's box: inlined on the VM
+    /// as one group headed by its Network Identities service, the way a Docker in a VM shows its
+    /// containers. An identity's own service follows it onto the VM.
+    #[test]
+    fn a_vms_network_identities_inline_on_the_vm() {
+        let node = make_host("pve");
+        let proxmox_svc = make_proxmox_service(node.id);
+        let vm = make_proxmox_vm("snmp-lab", proxmox_svc.id);
+        let identities_svc = make_identities_service(vm.id);
+        let first = make_identity_host("mv-snmp1", identities_svc.id);
+        let second = make_identity_host("mv-snmp2", identities_svc.id);
+        let snmpd = make_regular_service("snmpd", first.id);
+        let (vm_id, identities_id, first_id, second_id, snmpd_id) =
+            (vm.id, identities_svc.id, first.id, second.id, snmpd.id);
+
+        let (nodes, _edges) = build(
+            &[node, vm, first, second],
+            &[proxmox_svc, identities_svc, snmpd],
+        );
+
+        let hypervisor_boxes = containers_of_type(&nodes, ContainerType::Hypervisor);
+        assert_eq!(
+            hypervisor_boxes.len(),
+            1,
+            "no box of its own for the identities"
+        );
+        assert_eq!(container_of(&nodes, vm_id), Some(hypervisor_boxes[0].id));
+        for id in [first_id, second_id, snmpd_id] {
+            assert!(nodes.iter().all(|n| n.id != id), "inlined on the VM");
+        }
+
+        let vm_node = nodes.iter().find(|n| n.id == vm_id).unwrap();
+        let NodeType::Element { inline_groups, .. } = &vm_node.node_type else {
+            unreachable!()
+        };
+        assert!(inline_groups.iter().all(|g| g.group_id == identities_id));
+        let members: HashSet<Uuid> = inline_groups
+            .iter()
+            .filter(|g| g.role == InlineGroupRole::Member)
+            .map(|g| g.entity_id)
+            .collect();
+        assert_eq!(members, HashSet::from([first_id, second_id]));
+        assert!(
+            inline_groups
+                .iter()
+                .any(|g| g.role == InlineGroupRole::Header && g.entity_id == identities_id)
+        );
+    }
+
+    /// On a host that is not a guest, the identities get a box of their own in the host's box,
+    /// titled with the service's name.
+    #[test]
+    fn a_hosts_network_identities_get_a_box_titled_by_the_service() {
+        let host = make_host("router");
+        let identities_svc = make_identities_service(host.id);
+        let identity = make_identity_host("vip0", identities_svc.id);
+        let identity_id = identity.id;
+
+        let (nodes, _edges) = build(&[host, identity], &[identities_svc]);
+
+        let boxes = containers_of_type(&nodes, ContainerType::Hypervisor);
+        assert_eq!(boxes.len(), 1);
+        assert_eq!(boxes[0].header.as_deref(), Some("Network Identities"));
+        assert_eq!(container_of(&nodes, identity_id), Some(boxes[0].id));
     }
 }

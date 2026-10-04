@@ -38,6 +38,25 @@
     }
   },
   {
+    "id": "NetworkIdentity",
+    "name": "Network Identity",
+    "description": null,
+    "category": null,
+    "icon": "fingerprint-pattern",
+    "color": "Amber",
+    "metadata": {
+      "edge_style": "Bezier",
+      "has_end_marker": false,
+      "has_start_marker": false,
+      "is_dependency_edge": false,
+      "is_host_edge": false,
+      "is_physical_edge": false,
+      "selection_scope": {
+        "type": "segment"
+      }
+    }
+  },
+  {
     "id": "ContainerRuntime",
     "name": "Container Runtime",
     "description": null,

@@ -514,11 +514,15 @@ pub fn node_host(
 }
 
 /// What a guest's node reports about it: the NICs its config declares, the addresses it holds,
-/// and, where the guest agent or the container config says, its OS and hostname.
+/// what its runtime reported on every interface, and, where the guest agent or the container
+/// config says, its OS and hostname.
 #[derive(Debug, Clone, Default)]
 pub struct GuestReading {
     pub nics: Vec<ConfigNic>,
     pub addresses: Vec<GuestAddress>,
+    /// Every reachable address the running guest reported, on any interface. The source of its
+    /// network identities ([`super::identities::network_identities`]); never its own addresses.
+    pub reported: Vec<GuestAddress>,
     pub os: Option<HostOs>,
     pub hostname: Option<String>,
 }
@@ -551,6 +555,7 @@ pub fn guest_host(
         addresses,
         os,
         hostname,
+        ..
     } = reading;
     let nic_macs: Vec<&ConfigNic> = nics.iter().filter(|n| n.mac.is_some()).collect();
     if addresses.is_empty() && nic_macs.is_empty() {
@@ -1102,6 +1107,7 @@ mod tests {
             nics,
             os: guest_os(&data(QEMU_103_OSINFO)),
             hostname: Some("docker".to_string()),
+            ..Default::default()
         };
         let record = guest_host(&guest(&resources, 103), &reading, None, &[], Uuid::new_v4())
             .expect("recorded");

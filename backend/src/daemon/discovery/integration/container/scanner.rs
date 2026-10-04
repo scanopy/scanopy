@@ -1,5 +1,3 @@
-use crate::server::ip_addresses::r#impl::base::{MacEvidence, MacEvidenceValue};
-use crate::server::shared::attribution::AttributeSource;
 use anyhow::{Error, Result, anyhow};
 use bollard::{
     Docker,
@@ -7,7 +5,6 @@ use bollard::{
     query_parameters::{InspectContainerOptions, ListContainersOptions},
 };
 use futures::stream::{self, StreamExt};
-use mac_address::MacAddress;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU8, Ordering};
@@ -24,7 +21,7 @@ use crate::daemon::utils::base::{DaemonUtils, PlatformDaemonUtils};
 use crate::daemon::utils::scanner::scan_endpoints;
 use crate::server::bindings::r#impl::base::{Binding, BindingDiscriminants};
 use crate::server::discovery::r#impl::types::HostNamingFallback;
-use crate::server::ip_addresses::r#impl::base::{ALL_IP_ADDRESSES_IP, IPAddress, IPAddressBase};
+use crate::server::ip_addresses::r#impl::base::{ALL_IP_ADDRESSES_IP, IPAddress};
 use crate::server::ports::r#impl::base::{Port, PortType};
 use crate::server::services::r#impl::base::{Service, ServiceMatchBaselineParams};
 use crate::server::services::r#impl::endpoints::{ApplicationProtocol, Endpoint, EndpointResponse};
@@ -106,9 +103,10 @@ pub struct ContainerScanner<'a> {
 }
 
 impl<'a> ContainerScanner<'a> {
-    /// Create bridge subnets from the runtime's networks.
-    /// Returns the bridge subnets locally for use in container interface resolution.
-    pub async fn create_bridge_subnets(&self) -> Result<Vec<Subnet>, Error> {
+    /// Build subnets from the runtime's networks: its bridges, and the macvlan/ipvlan networks
+    /// that put a container on the LAN. Returned locally for use in container interface
+    /// resolution; the caller decides which reach the server.
+    pub async fn create_network_subnets(&self) -> Result<Vec<Subnet>, Error> {
         let network_id = self.ops.network_id().await?;
 
         let subnets = self
@@ -131,12 +129,10 @@ impl<'a> ContainerScanner<'a> {
                 Vec::new()
             });
 
-        // Return bridge subnets locally — they'll be created on the server
-        // during create_host after service dedup (so service_id can be patched)
-        Ok(subnets
-            .into_iter()
-            .filter(|s| s.is_container_bridge_subnet())
-            .collect())
+        // Bridge subnets are created on the server during create_host after service dedup (so
+        // service_id can be patched). The macvlan/ipvlan ones only say which endpoints put a
+        // container on the LAN; the caller never submits them.
+        Ok(subnets)
     }
 
     pub async fn scan_and_process_containers(
@@ -730,7 +726,7 @@ impl<'a> ContainerScanner<'a> {
     /// - A pod member (`NetworkMode "container:<id>"`) is scoped to its OWN image-declared exposed
     ///   ports.
     /// - Any other bridge container: `None` (use the ports it reports).
-    fn exposed_port_scope(container: &ContainerInspectResponse) -> Option<HashSet<u16>> {
+    pub(super) fn exposed_port_scope(container: &ContainerInspectResponse) -> Option<HashSet<u16>> {
         let is_infra = container
             .name
             .as_deref()
@@ -758,7 +754,7 @@ impl<'a> ContainerScanner<'a> {
     ///
     /// Two execs total, against the ~150 (endpoint × 2 round-trips × networks) this replaces:
     /// one to find out what is actually listening, one to ask all of it at once.
-    async fn scan_container_endpoints(
+    pub(super) async fn scan_container_endpoints(
         &self,
         container_name: &str,
         cancel: CancellationToken,
@@ -1078,7 +1074,7 @@ exec(\\\"try:\\\\n p=urllib.request.urlopen(r,context=c,timeout=1)\\\\nexcept Ex
     /// Each answer becomes the container-internal endpoint on `container_ip`, plus one per host
     /// port published to it, which is what the pattern matcher and the binding logic downstream
     /// each expect to find.
-    fn attribute_to_address(
+    pub(super) fn attribute_to_address(
         probed: &[ProbedEndpoint],
         container_ip: IpAddr,
         host_to_container_port_map: &HashMap<(IpAddr, u16), u16>,
@@ -1277,7 +1273,7 @@ exec(\\\"try:\\\\n p=urllib.request.urlopen(r,context=c,timeout=1)\\\\nexcept Ex
         Ok(endpoint_responses)
     }
 
-    fn extract_compose_project(container: &ContainerInspectResponse) -> Option<String> {
+    pub(super) fn extract_compose_project(container: &ContainerInspectResponse) -> Option<String> {
         container
             .config
             .as_ref()
@@ -1327,7 +1323,7 @@ exec(\\\"try:\\\\n p=urllib.request.urlopen(r,context=c,timeout=1)\\\\nexcept Ex
         }
     }
 
-    fn get_ports_from_container(
+    pub(super) fn get_ports_from_container(
         &self,
         container_summary: &ContainerSummary,
         container_interfaces_and_subnets: &[(IPAddress, Subnet)],
@@ -1398,206 +1394,6 @@ exec(\\\"try:\\\\n p=urllib.request.urlopen(r,context=c,timeout=1)\\\\nexcept Ex
         )
     }
 
-    /// The subnet a container endpoint on `network_name` belongs to.
-    ///
-    /// Bound by the runtime's own network **identity**, not by which CIDR happens to contain the
-    /// address. The API already told us which network the endpoint is on and
-    /// `create_bridge_subnets` names each subnet after it, so re-deriving that by address would
-    /// trade a fact for a guess — and a guess that goes wrong in two ways: the network-wide list
-    /// carries `0.0.0.0/0` catch-alls that contain every IPv4 address, and a bridge is host-scoped,
-    /// so two daemons legitimately hold the same `172.17.0.0/16` and containment cannot tell them
-    /// apart.
-    ///
-    /// A network with several IPAM pools yields several subnets sharing a name, so containment
-    /// chooses among *that network's* subnets — never outside them.
-    fn subnet_for_container_network<'s>(
-        bridge_subnets: &'s [Subnet],
-        network_name: &str,
-        ip_address: IpAddr,
-    ) -> Option<&'s Subnet> {
-        let mut named = bridge_subnets
-            .iter()
-            .filter(|s| s.base.name == network_name)
-            .peekable();
-        named.peek()?;
-        let candidates: Vec<&Subnet> = named.collect();
-        candidates
-            .iter()
-            .find(|s| s.base.cidr.contains(&ip_address))
-            .or_else(|| candidates.first())
-            .copied()
-    }
-
-    pub fn get_container_interfaces(
-        &self,
-        containers: &[(ContainerInspectResponse, ContainerSummary)],
-        bridge_subnets: &'a [Subnet],
-        known_subnets: &[Subnet],
-        host_interfaces: &mut [IPAddress],
-    ) -> HashMap<String, Vec<(IPAddress, Subnet)>> {
-        // The host's own addresses are a genuine address lookup — nothing names a network for them
-        // — so they are placed by the shared rule: longest prefix, never a `0.0.0.0/0` catch-all.
-        let host_interfaces_and_subnets = host_interfaces
-            .iter_mut()
-            .filter_map(|i| {
-                let placed = crate::server::subnets::r#impl::inference::placeable_subnet(
-                    known_subnets,
-                    i.base.ip_address,
-                )
-                .or_else(|| {
-                    crate::server::subnets::r#impl::inference::placeable_subnet(
-                        bridge_subnets,
-                        i.base.ip_address,
-                    )
-                });
-
-                match placed {
-                    Some(subnet) => {
-                        i.base.subnet_id = subnet.id;
-                        Some((i.clone(), subnet.clone()))
-                    }
-                    None => {
-                        tracing::warn!(
-                            ip = %i.base.ip_address,
-                            "No subnet holds this host address; it is left unplaced"
-                        );
-                        None
-                    }
-                }
-            })
-            .collect::<Vec<(IPAddress, Subnet)>>();
-
-        // Collect ip_addresses from containers
-        let mut interfaces_by_id: HashMap<String, Vec<(IPAddress, Subnet)>> = containers
-            .iter()
-            .filter_map(|(container, _)| {
-                let host_networking_mode = container
-                    .host_config
-                    .as_ref()
-                    .and_then(|c| c.network_mode.clone())
-                    .unwrap_or_default()
-                    == "host";
-
-                let mut ip_addresses_and_subnets: Vec<(IPAddress, Subnet)> = if host_networking_mode
-                {
-                    host_interfaces_and_subnets.clone()
-                }
-                // Containers not in host networking mode
-                else if let Some(network_settings) = &container.network_settings {
-                    if let Some(networks) = &network_settings.networks {
-                        networks
-                            .iter()
-                            .filter_map(|(network_name, endpoint)| {
-                                // Parse interface if IP
-                                if let Some(ip_string) = &endpoint.ip_address {
-                                    let ip_address = ip_string.parse::<IpAddr>().ok();
-
-                                    if let Some(ip_address) = ip_address
-                                        && let Some(subnet) = Self::subnet_for_container_network(
-                                            bridge_subnets,
-                                            network_name,
-                                            ip_address,
-                                        )
-                                    {
-                                        // Parse MAC address from Docker network endpoint
-                                        // The runtime's own record of the endpoint it created.
-                                        let mac_address = endpoint
-                                            .mac_address
-                                            .as_ref()
-                                            .and_then(|mac_str| mac_str.parse::<MacAddress>().ok())
-                                            .map(|m| {
-                                                MacEvidence::new(
-                                                    MacEvidenceValue(m),
-                                                    AttributeSource::Probe(
-                                                        self.runtime.client_probe(),
-                                                    ),
-                                                )
-                                            });
-
-                                        return Some((
-                                            IPAddress::new(IPAddressBase {
-                                                network_id: subnet.base.network_id,
-                                                host_id: Uuid::nil(), // Placeholder - server will set correct host_id
-                                                subnet_id: subnet.id,
-                                                ip_address,
-                                                mac_address,
-                                                name: Some(network_name.to_owned()),
-                                                position: 0,
-                                            }),
-                                            subnet.clone(),
-                                        ));
-                                    }
-                                }
-                                tracing::warn!(
-                                    "No matching subnet found for container {:?} on network '{}'",
-                                    container.name,
-                                    network_name
-                                );
-
-                                None
-                            })
-                            .collect::<Vec<(IPAddress, Subnet)>>()
-                    } else {
-                        Vec::new()
-                    }
-                } else {
-                    Vec::new()
-                };
-
-                // The runtime reports attachments in a HashMap, so iteration order varies run
-                // to run. Downstream the first entry becomes the container's primary endpoint
-                // (the one service matching is anchored to, and the one the container-runtime
-                // edge targets), so sort by network name to keep both stable across scans.
-                ip_addresses_and_subnets.sort_by(|(a, _), (b, _)| {
-                    a.base
-                        .name
-                        .cmp(&b.base.name)
-                        .then_with(|| a.base.ip_address.cmp(&b.base.ip_address))
-                });
-
-                // Merge in host ip_addresses
-                ip_addresses_and_subnets.extend(host_interfaces_and_subnets.clone());
-
-                container
-                    .id
-                    .as_ref()
-                    .map(|id| (id.clone(), ip_addresses_and_subnets))
-            })
-            .collect();
-
-        // Pod / shared-netns members run with NetworkMode "container:<id>" — they share the
-        // referenced container's network namespace and report no networks of their own (so the
-        // pass above leaves them with empty interfaces and they'd be dropped). Inherit the
-        // referenced container's interfaces so the member is still discovered (e.g. a pod's
-        // nginx member sharing the infra container's IP). The reference may be a short or full id.
-        let shared_netns_members: Vec<(String, String)> = containers
-            .iter()
-            .filter_map(|(container, _)| {
-                let mode = container
-                    .host_config
-                    .as_ref()
-                    .and_then(|c| c.network_mode.clone())
-                    .unwrap_or_default();
-                let reference = mode.strip_prefix("container:")?.to_string();
-                Some((container.id.clone()?, reference))
-            })
-            .collect();
-
-        for (member_id, reference) in shared_netns_members {
-            if let Some(parent_id) = interfaces_by_id
-                .keys()
-                .find(|k| k.starts_with(&reference))
-                .cloned()
-                && let Some(parent_ifaces) = interfaces_by_id.get(&parent_id).cloned()
-                && !parent_ifaces.is_empty()
-            {
-                interfaces_by_id.insert(member_id, parent_ifaces);
-            }
-        }
-
-        interfaces_by_id
-    }
-
     /// List every container and inspect each one, pairing each inspection with the summary it
     /// came from.
     ///
@@ -1659,7 +1455,7 @@ exec(\\\"try:\\\\n p=urllib.request.urlopen(r,context=c,timeout=1)\\\\nexcept Ex
 /// the container only ever surfaces in one of the subnets it belongs to.
 ///
 /// Idempotent: bindings compare by type, so re-running adds nothing.
-fn spread_bindings_across_endpoints(
+pub(super) fn spread_bindings_across_endpoints(
     services: &mut [Service],
     endpoint_ids: &[Uuid],
     primary_endpoint_id: Uuid,
@@ -1801,8 +1597,6 @@ mod tests {
     use crate::server::services::r#impl::categories::ServiceCategory;
     use crate::server::services::r#impl::definitions::ServiceDefinition;
     use crate::server::services::r#impl::patterns::Pattern;
-    use crate::server::shared::attribution::AttributeSource;
-    use crate::server::subnets::r#impl::base::{SubnetCidr, SubnetCidrValue};
 
     #[derive(PartialEq, Eq, Hash, Clone)]
     struct TestServiceDef;
@@ -1939,74 +1733,5 @@ mod tests {
         spread_bindings_across_endpoints(&mut services, &[primary, second], primary);
 
         assert_eq!(port_bindings(&services[0]), after_first);
-    }
-
-    /// The hazard binding-by-identity removes. A container bridge is host-scoped, so two daemons
-    /// legitimately hold the same `172.17.0.0/16` — containment cannot tell them apart, and the
-    /// address is identical on both. Only the network the runtime named can.
-    #[test]
-    fn an_endpoint_binds_to_its_own_daemons_bridge_when_two_share_a_cidr() {
-        let ours = bridge_subnet("scanopy_default", "172.17.0.0/16");
-        let theirs = bridge_subnet("other_default", "172.17.0.0/16");
-        let subnets = vec![theirs.clone(), ours.clone()];
-
-        let bound = ContainerScanner::subnet_for_container_network(
-            &subnets,
-            "scanopy_default",
-            "172.17.0.2".parse().unwrap(),
-        )
-        .expect("the named network");
-
-        assert_eq!(bound.id, ours.id);
-    }
-
-    /// A Docker network with several IPAM pools yields several subnets sharing a name, so
-    /// containment chooses among *that network's* subnets — never outside them.
-    #[test]
-    fn containment_only_chooses_among_the_named_networks_own_pools() {
-        let v4 = bridge_subnet("dual", "172.20.0.0/16");
-        let v6 = bridge_subnet("dual", "fd00:dead:beef::/64");
-        let unrelated = bridge_subnet("other", "10.0.0.0/8");
-        let subnets = vec![unrelated, v4.clone(), v6.clone()];
-
-        let bound = ContainerScanner::subnet_for_container_network(
-            &subnets,
-            "dual",
-            "fd00:dead:beef::2".parse().unwrap(),
-        )
-        .expect("the named network");
-
-        assert_eq!(bound.id, v6.id);
-    }
-
-    /// An endpoint on a network no bridge subnet was created for has nowhere to go, and saying so
-    /// is better than filing it under whichever range happens to contain the address.
-    #[test]
-    fn an_endpoint_on_an_unknown_network_binds_to_nothing() {
-        let subnets = vec![bridge_subnet("scanopy_default", "172.17.0.0/16")];
-
-        assert!(
-            ContainerScanner::subnet_for_container_network(
-                &subnets,
-                "a_network_we_never_listed",
-                "172.17.0.2".parse().unwrap(),
-            )
-            .is_none()
-        );
-    }
-
-    fn bridge_subnet(name: &str, cidr: &str) -> Subnet {
-        Subnet {
-            id: Uuid::new_v4(),
-            base: crate::server::subnets::r#impl::base::SubnetBase {
-                name: name.to_string(),
-                cidr: SubnetCidr::new(
-                    SubnetCidrValue(cidr.parse().expect("valid test CIDR")),
-                    AttributeSource::DaemonSelfReport,
-                ),
-                ..Default::default()
-            },
-            ..Default::default()
-        }
     }
 }
