@@ -89,7 +89,7 @@
 		common_upgrade,
 		daemons_installPromptTopology,
 		topology_asOf,
-		topology_liveView,
+		topology_currentView,
 		topology_noTopologySelected,
 		topology_snapshotDeleteConfirm,
 		topology_takeSnapshot,
@@ -191,9 +191,9 @@
 		isActive && currentInspectorConfig.show_application_picker && wizardOpen
 	);
 
-	// Sentinel constant for the live-view option in the snapshot dropdown.
+	// Sentinel constant for the "Current" (live) option in the snapshot dropdown.
 	// Snapshot ids are UUIDv4, never match this string.
-	const LIVE_VIEW_SENTINEL = '__live__';
+	const CURRENT_VIEW_SENTINEL = '__live__';
 
 	// Mutations
 	const takeSnapshotMutation = useTakeSnapshotMutation();
@@ -493,11 +493,11 @@
 		clearSelection();
 	}
 
-	// Build snapshot dropdown options. Includes a synthetic "Live view" entry
-	// at the top with id LIVE_VIEW_SENTINEL.
+	// Build snapshot dropdown options. Includes a synthetic "Current" entry
+	// at the top with id CURRENT_VIEW_SENTINEL.
 	let snapshotOptions = $derived<Snapshot[]>([
 		{
-			id: LIVE_VIEW_SENTINEL,
+			id: CURRENT_VIEW_SENTINEL,
 			network_id: $selectedNetworkId ?? '',
 			taken_at: new Date(0).toISOString(),
 			created_by_user_id: null,
@@ -507,7 +507,7 @@
 		...snapshotsData
 	]);
 
-	// Live view subtitle: "As of" the most recent `last_seen_at` across the live
+	// "Current" subtitle: "As of" the most recent `last_seen_at` across the live
 	// host set (discovery refreshes it on every observation). Empty when nothing
 	// has been scanned yet.
 	let asOfDescription = $derived.by(() => {
@@ -525,7 +525,7 @@
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const LiveDotIcon: IconComponent = ($$payload: any, $$props: any) => LiveDot($$payload, $$props);
 
-	// Override the SnapshotDisplay to render the live-view sentinel with a
+	// Override the SnapshotDisplay to render the "Current" sentinel with a
 	// localized label, a green dot and an "As of" subtitle rather than a date
 	// string. The subtitle is read here, not inside `getDescription`, so the
 	// derived rebuilds when it changes: the trigger's ListSelectItem recomputes
@@ -536,20 +536,22 @@
 		return {
 			...SnapshotDisplay,
 			getLabel: (s: Snapshot, ctx: object) =>
-				s.id === LIVE_VIEW_SENTINEL ? topology_liveView() : SnapshotDisplay.getLabel(s, ctx),
+				s.id === CURRENT_VIEW_SENTINEL ? topology_currentView() : SnapshotDisplay.getLabel(s, ctx),
 			getDescription: (s: Snapshot, ctx: object) =>
-				s.id === LIVE_VIEW_SENTINEL
+				s.id === CURRENT_VIEW_SENTINEL
 					? liveDescription
 					: (SnapshotDisplay.getDescription?.(s, ctx) ?? ''),
 			getIcon: (s: Snapshot, ctx: object) =>
-				s.id === LIVE_VIEW_SENTINEL ? LiveDotIcon : (SnapshotDisplay.getIcon?.(s, ctx) ?? null),
+				s.id === CURRENT_VIEW_SENTINEL ? LiveDotIcon : (SnapshotDisplay.getIcon?.(s, ctx) ?? null),
 			getIconColor: (s: Snapshot, ctx: object) =>
-				s.id === LIVE_VIEW_SENTINEL ? liveDotColor : (SnapshotDisplay.getIconColor?.(s, ctx) ?? '')
+				s.id === CURRENT_VIEW_SENTINEL
+					? liveDotColor
+					: (SnapshotDisplay.getIconColor?.(s, ctx) ?? '')
 		};
 	});
 
 	function handleSnapshotChange(value: string) {
-		const next = value === LIVE_VIEW_SENTINEL ? null : value;
+		const next = value === CURRENT_VIEW_SENTINEL ? null : value;
 		selectedSnapshotId.set(next);
 		clearSelection();
 	}
@@ -745,7 +747,7 @@
 
 					<RichSelect
 						label=""
-						selectedValue={$selectedSnapshotId ?? LIVE_VIEW_SENTINEL}
+						selectedValue={$selectedSnapshotId ?? CURRENT_VIEW_SENTINEL}
 						displayComponent={snapshotDisplayWithLive}
 						onSelect={handleSnapshotChange}
 						options={snapshotOptions}
