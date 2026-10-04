@@ -231,8 +231,8 @@
 			{@render columnMenu()}
 		{/if}
 
-		<!-- Select All/None -->
-		{#if showSelectAll}
+		<!-- Select All/None. Card view only: the table's header checkbox does this. -->
+		{#if showSelectAll && viewMode === 'card'}
 			<button
 				onclick={allSelected ? onSelectNone : onSelectAll}
 				class="btn-secondary h-[42px]"
