@@ -21,8 +21,10 @@
 	import { formatPort } from '$lib/shared/utils/formatting';
 	import {
 		matchesHoveredMetadata,
+		inlineHostsMatching,
 		expandedPortNodeIds,
 		toggleExpandedPorts,
+		toggleInlineGroup,
 		UNTAGGED_SENTINEL
 	} from '../../interactions';
 	import * as sharedStores from '../../reactive-stores.svelte';
@@ -31,11 +33,14 @@
 	import type { Port } from '$lib/features/hosts/types/base';
 	import type { Node, Edge } from '@xyflow/svelte';
 	import {
+		common_collapse,
 		common_containers,
+		common_expand,
 		topology_hideOpenPorts,
 		topology_openPortsSummary
 	} from '$lib/paraglide/messages';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import { ChevronDown, ChevronRight } from 'lucide-svelte';
 	import { ELEMENT_HANDLE_SIZE_PX } from '../../pipeline/build-flow-nodes';
 	import { ELEMENT_STATE_FILL, elementState, portStatusDotColor } from '../../element-state-color';
 
@@ -72,6 +77,7 @@
 	 */
 	let pinnedHeight = $derived(useInternalNode(id).current?.measured?.height);
 	let hiddenEntities = $derived(sharedStores.hiddenEntities.current);
+	let collapsedInlineGroupKeys = $derived(sharedStores.collapsedInlineGroupKeys.current);
 	let searchHiddenNodes = $derived(sharedStores.searchHiddenNodes.current);
 	let connectedNodes = $derived(sharedStores.connectedNodes.current);
 	let edgeHandles = $derived(sharedStores.edgeHandles.current);
@@ -124,6 +130,7 @@
 					activeView: $activeView,
 					options: $topologyOptions,
 					hiddenEntityIds: hiddenEntities,
+					collapsedInlineGroups: collapsedInlineGroupKeys,
 					networks: networksData
 				})
 			: null
@@ -229,6 +236,24 @@
 		return [];
 	}
 
+	// Member hosts in this card's manager boxes that carry the hovered Host filter value.
+	let matchingInlineHosts = $derived(
+		inlineHostsMatching(
+			nodeRenderData?.inlineGroups ?? [],
+			currentHoveredMetadata,
+			networkFor,
+			topology
+		)
+	);
+	// Pulse colour for a matching member host row.
+	let inlineHostPulseStyle = $derived.by(() => {
+		if (!currentHoveredMetadata) return '';
+		const ch = createColorHelper(
+			currentHoveredMetadata.color as Parameters<typeof createColorHelper>[0]
+		);
+		return `color: ${ch.rgb}; --text-pulse-color: ${ch.rgb};`;
+	});
+
 	// Metadata hover context — mirrors `hoveredRelationship` + tag ring/pulse
 	// but driven by `hoveredMetadata`. Element-mode when this card's own
 	// entity matches the extractor, inline-mode when an inline row matches.
@@ -258,6 +283,8 @@
 			) {
 				return { mode: 'element', color };
 			}
+
+			if (matchingInlineHosts.size > 0) return { mode: 'inline', color };
 
 			if (entityType === 'Service' && nodeRenderData?.services?.length) {
 				for (const service of nodeRenderData.services) {
@@ -532,43 +559,72 @@
 							<div
 								class="mb-1 mt-1 w-full rounded-md border border-dashed border-gray-300 px-1 py-0.5 dark:border-gray-600"
 							>
-								<div class="flex items-center gap-1 px-1 pb-2 pt-1">
+								<button
+									type="button"
+									class="nopan flex w-full cursor-pointer items-center gap-1 px-1 pt-1 {group.collapsed
+										? 'pb-1'
+										: 'pb-2'}"
+									aria-expanded={!group.collapsed}
+									aria-label={group.collapsed ? common_expand() : common_collapse()}
+									onclick={(e) => {
+										e.stopPropagation();
+										toggleInlineGroup(id, group.groupId);
+									}}
+								>
+									{#if group.collapsed}
+										<ChevronRight class="text-tertiary h-3.5 w-3.5 flex-shrink-0" />
+									{:else}
+										<ChevronDown class="text-tertiary h-3.5 w-3.5 flex-shrink-0" />
+									{/if}
 									{#if HeaderIcon}
 										<HeaderIcon class="h-5 w-5 flex-shrink-0" />
 									{/if}
 									<span class="text-secondary truncate text-xs font-medium">
 										{group.header?.name ?? common_containers()}
 									</span>
-								</div>
-								<!-- One rule between children, so each container or identity reads as its
+									<span class="text-tertiary ml-auto flex-shrink-0 text-xs tabular-nums">
+										{group.services.length + group.hosts.length}
+									</span>
+								</button>
+								{#if !group.collapsed}
+									<!-- One rule between children, so each container or identity reads as its
 								  own entry even when it carries no services. -->
-								<div class="w-full divide-y divide-gray-200 dark:divide-gray-700">
-									{#each group.services as service (service.id)}
-										<div class="w-full">
-											{@render serviceCard(service)}
-										</div>
-									{/each}
-									{#each group.hosts as member (member.host.id)}
-										<div
-											class="flex w-full flex-col items-center py-1"
-											style="min-width: 0; max-width: 100%;"
-										>
-											<div
-												class="flex w-full items-center justify-center gap-1 pt-1"
-												style="min-width: 0;"
-												title={hostDisplayName(member.host)}
-											>
-												<HostIcon class="h-4 w-4 flex-shrink-0 {hostColorHelper.icon}" />
-												<span class="text-secondary truncate text-xs font-medium">
-													{hostDisplayName(member.host)}
-												</span>
-											</div>
-											{#each member.services as service (service.id)}
+									<div class="w-full divide-y divide-dashed divide-gray-200 dark:divide-gray-700">
+										{#each group.services as service (service.id)}
+											<div class="w-full">
 												{@render serviceCard(service)}
-											{/each}
-										</div>
-									{/each}
-								</div>
+											</div>
+										{/each}
+										{#each group.hosts as member (member.host.id)}
+											{@const hostPulse = matchingInlineHosts.has(member.host.id)
+												? inlineHostPulseStyle
+												: ''}
+											<div
+												class="flex w-full flex-col items-center py-1"
+												style="min-width: 0; max-width: 100%;"
+											>
+												<div
+													class="flex w-full items-center justify-center gap-1 pt-1"
+													style="min-width: 0;"
+													title={hostDisplayName(member.host)}
+												>
+													<HostIcon class="h-4 w-4 flex-shrink-0 {hostColorHelper.icon}" />
+													<span
+														class="text-secondary truncate text-xs font-medium {hostPulse
+															? 'animate-text-pulse-highlight'
+															: ''}"
+														style="transition: color 0.15s; {hostPulse}"
+													>
+														{hostDisplayName(member.host)}
+													</span>
+												</div>
+												{#each member.services as service (service.id)}
+													{@render serviceCard(service)}
+												{/each}
+											</div>
+										{/each}
+									</div>
+								{/if}
 							</div>
 						{/each}
 						{#if nodeRenderData.hiddenOpenPorts.length > 0 && nodeRenderData.elementType !== 'Host'}

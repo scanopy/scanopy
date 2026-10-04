@@ -37,7 +37,7 @@ export interface LayoutState {
 	collapseLevelReconciled: boolean;
 	lastSeenTopologyId: string;
 	fitViewPending: boolean;
-	prevExpandedPortIds: Set<string>;
+	prevCardContentKeys: Set<string>;
 	lastRenderedTopoKey: string;
 	lastRenderedView: string;
 	layoutGeneration: number;
@@ -86,7 +86,7 @@ export function createInitialState(): LayoutState {
 		collapseLevelReconciled: false,
 		lastSeenTopologyId: '',
 		fitViewPending: false,
-		prevExpandedPortIds: new Set(),
+		prevCardContentKeys: new Set(),
 		lastRenderedTopoKey: '',
 		lastRenderedView: '',
 		layoutGeneration: 0

@@ -3,7 +3,12 @@ import type { Edge } from '@xyflow/svelte';
 import type { Node } from '@xyflow/svelte';
 import { edgeTypes, entities, views, serviceDefinitions } from '$lib/shared/stores/metadata';
 import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-import type { TopologyEdge, TopologyNode, RenderableTopology } from './types/base';
+import type {
+	ElementInlineGroup,
+	TopologyEdge,
+	TopologyNode,
+	RenderableTopology
+} from './types/base';
 import {
 	isDisabledEdge,
 	getHighlightBehavior,
@@ -18,6 +23,7 @@ import {
 	type EntityNodeIndex
 } from './resolvers';
 import type { Network } from '$lib/features/networks/types';
+import { persistedSet, toggleInSet } from '$lib/shared/stores/persisted-set';
 import { entityFreshness, type FreshnessSubject } from '$lib/shared/utils/freshness';
 import { buildFullParentMap, resolveCollapsedAncestor } from './collapse';
 import { formatEntityLabelTitle } from './labels';
@@ -215,6 +221,24 @@ export const expandedBundles = writable<Set<string>>(new Set());
 
 // Open ports expand/collapse state per leaf node (transient, not persisted)
 export const expandedPortNodeIds = writable<Set<string>>(new Set());
+
+/**
+ * Manager boxes on host cards the viewer collapsed, keyed by `inlineGroupKey`. Persisted, so a
+ * box of 45 network identities stays collapsed across reloads. Boxes start expanded.
+ */
+export const collapsedInlineGroups = persistedSet('scanopy_topology_collapsed_inline_groups');
+
+/**
+ * Key for one manager box on one card. Starts with the card's node id followed by `|`, which is
+ * how the re-measure step finds the card whose height a toggle changed.
+ */
+export function inlineGroupKey(nodeId: string, groupId: string): string {
+	return `${nodeId}|${groupId}`;
+}
+
+export function toggleInlineGroup(nodeId: string, groupId: string): void {
+	toggleInSet(collapsedInlineGroups, inlineGroupKey(nodeId, groupId));
+}
 
 export function toggleBundleExpanded(bundleId: string): void {
 	expandedBundles.update((set) => {
@@ -1500,4 +1524,22 @@ export function clearSearch() {
 	searchOpen.set(false);
 	searchMatchContainerMap.set(new Map());
 	searchNavigableNodeIds.set([]);
+}
+
+/**
+ * Hosts inlined in a card's manager boxes (a guest's network identities, a runtime's macvlan
+ * containers) that carry the hovered Host filter value. Their rows pulse like inline service rows.
+ */
+export function inlineHostsMatching(
+	groups: ElementInlineGroup[],
+	hovered: HoveredMetadata | null,
+	networkFor: (entity: { network_id?: string }) => Network | undefined,
+	topology: RenderableTopology | null | undefined
+): Set<string> {
+	const out = new Set<string>();
+	if (!hovered || hovered.entityType !== 'Host') return out;
+	for (const { host } of groups.flatMap((g) => g.hosts)) {
+		if (matchesHoveredMetadata(host, hovered, networkFor(host), topology)) out.add(host.id);
+	}
+	return out;
 }
