@@ -16,6 +16,7 @@
 	} from '$lib/shared/stores/metadata';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 	import { interfaceDisplayName } from '$lib/features/hosts/interface-display-name';
+	import { virtualizationSummary } from '$lib/features/hosts/host-virtualization';
 	import { useServicesByIds } from '$lib/features/services/queries';
 	import { useHostSummariesQuery } from '$lib/features/hosts/queries';
 	import { useInterfacesQuery } from '$lib/features/interfaces/queries';
@@ -76,6 +77,13 @@
 		os?: HostOs;
 		/** Drawn as a clickable entity tag labelled with `value`. */
 		entity?: { ref: EntityRef; color: Color };
+	}
+
+	interface Section {
+		title: string;
+		/** One line under the title saying what the section's values add up to. */
+		summary?: string;
+		facts: Fact[];
 	}
 
 	// The owner is the host that runs the service virtualizing this one: the hypervisor of a VM,
@@ -180,92 +188,105 @@
 	// Grouped by what each value describes, not by the protocol that carried it. A model arrives
 	// from ENTITY-MIB, a controller or an industrial probe, and each value's own tag says which.
 	let sections = $derived(
-		[
-			{
-				title: hosts_deviceFacts_identityGroup(),
-				facts: [
-					{
-						label: common_hostname(),
-						value: host.hostname,
-						source: host.hostname_source
-					},
-					{ label: hosts_snmp_sysName(), value: host.sys_name, source: host.sys_name_source },
-					{
-						label: hosts_snmp_chassisId(),
-						value: host.chassis_id,
-						source: host.chassis_id_source,
-						identifier: true
-					}
-				] satisfies Fact[]
-			},
-			{
-				title: common_hardware(),
-				facts: [
-					{
-						label: common_manufacturer(),
-						value: host.manufacturer,
-						source: host.manufacturer_source
-					},
-					{ label: common_model(), value: host.model, source: host.model_source },
-					{
-						label: common_serialNumber(),
-						value: host.serial_number,
-						source: host.serial_number_source,
-						identifier: true
-					},
-					{
-						label: hosts_snmp_sysObjectId(),
-						value: host.sys_object_id,
-						source: host.sys_object_id_source,
-						identifier: true
-					}
-				] satisfies Fact[]
-			},
-			{
-				title: hosts_deviceFacts_firmwareGroup(),
-				facts: [
-					{
-						label: common_operatingSystem(),
-						value: host.os ? hostOsLabel(host.os) : undefined,
-						source: host.os_source,
-						os: host.os
-					},
-					{
-						label: common_firmwareRevision(),
-						value: host.firmware_revision,
-						source: host.firmware_revision_source,
-						identifier: true
-					},
-					{
-						label: common_softwareRevision(),
-						value: host.software_revision,
-						source: host.software_revision_source,
-						identifier: true
-					},
-					{ label: hosts_snmp_sysDescr(), value: host.sys_descr, source: host.sys_descr_source }
-				] satisfies Fact[]
-			},
-			{
-				title: hosts_deviceFacts_locationGroup(),
-				facts: [
-					{ label: common_location(), value: host.sys_location, source: host.sys_location_source },
-					{ label: common_contact(), value: host.sys_contact, source: host.sys_contact_source },
-					{
-						label: hosts_snmp_managementUrl(),
-						value: host.management_url,
-						source: host.management_url_source,
-						link: true
-					}
-				] satisfies Fact[]
-			},
-			{
-				title: common_virtualization(),
-				facts: virtualizationFacts
-			}
-		]
-			.map((section) => ({
+		(
+			[
+				{
+					title: hosts_deviceFacts_identityGroup(),
+					facts: [
+						{
+							label: common_hostname(),
+							value: host.hostname,
+							source: host.hostname_source
+						},
+						{ label: hosts_snmp_sysName(), value: host.sys_name, source: host.sys_name_source },
+						{
+							label: hosts_snmp_chassisId(),
+							value: host.chassis_id,
+							source: host.chassis_id_source,
+							identifier: true
+						}
+					] satisfies Fact[]
+				},
+				{
+					title: common_hardware(),
+					facts: [
+						{
+							label: common_manufacturer(),
+							value: host.manufacturer,
+							source: host.manufacturer_source
+						},
+						{ label: common_model(), value: host.model, source: host.model_source },
+						{
+							label: common_serialNumber(),
+							value: host.serial_number,
+							source: host.serial_number_source,
+							identifier: true
+						},
+						{
+							label: hosts_snmp_sysObjectId(),
+							value: host.sys_object_id,
+							source: host.sys_object_id_source,
+							identifier: true
+						}
+					] satisfies Fact[]
+				},
+				{
+					title: hosts_deviceFacts_firmwareGroup(),
+					facts: [
+						{
+							label: common_operatingSystem(),
+							value: host.os ? hostOsLabel(host.os) : undefined,
+							source: host.os_source,
+							os: host.os
+						},
+						{
+							label: common_firmwareRevision(),
+							value: host.firmware_revision,
+							source: host.firmware_revision_source,
+							identifier: true
+						},
+						{
+							label: common_softwareRevision(),
+							value: host.software_revision,
+							source: host.software_revision_source,
+							identifier: true
+						},
+						{ label: hosts_snmp_sysDescr(), value: host.sys_descr, source: host.sys_descr_source }
+					] satisfies Fact[]
+				},
+				{
+					title: hosts_deviceFacts_locationGroup(),
+					facts: [
+						{
+							label: common_location(),
+							value: host.sys_location,
+							source: host.sys_location_source
+						},
+						{ label: common_contact(), value: host.sys_contact, source: host.sys_contact_source },
+						{
+							label: hosts_snmp_managementUrl(),
+							value: host.management_url,
+							source: host.management_url_source,
+							link: true
+						}
+					] satisfies Fact[]
+				},
+				{
+					title: common_virtualization(),
+					summary: host.virtualization_metadata
+						? virtualizationSummary(
+								host.virtualization_metadata,
+								ownerHost ? hostDisplayName(ownerHost) : null,
+								presentingInterface ? interfaceDisplayName(presentingInterface) : null
+							)
+						: undefined,
+					facts: virtualizationFacts
+				}
+			] satisfies Section[]
+		)
+			.map((section): Section => ({
 				...section,
-				facts: (section.facts as Fact[]).filter((fact) => fact.value?.trim())
+				facts: section.facts.filter((fact) => fact.value?.trim())
 			}))
 			.filter((section) => section.facts.length > 0)
 	);
@@ -279,6 +300,9 @@
 					<h4 class="text-secondary text-xs font-semibold uppercase tracking-wide">
 						{section.title}
 					</h4>
+					{#if section.summary}
+						<p class="text-secondary text-sm">{section.summary}</p>
+					{/if}
 					{#each section.facts as fact (fact.label)}
 						<div class="flex flex-wrap items-center gap-x-4 gap-y-1">
 							<span class="text-secondary w-40 shrink-0 text-sm">{fact.label}</span>
