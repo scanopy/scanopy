@@ -328,9 +328,10 @@ impl BillingPlan {
     }
 
     /// The plan's own price is zero, before any discount. A paid plan on a
-    /// 100%-off coupon is not this.
+    /// 100%-off coupon is not this. Enterprise carries no list price because
+    /// each deal is priced by hand, so it is not this either.
     pub fn is_priced_at_zero(&self) -> bool {
-        self.config().base_cents == 0
+        !self.is_enterprise() && self.config().base_cents == 0
     }
 
     /// Plans where the customer hosts Scanopy themselves and Stripe is not in
