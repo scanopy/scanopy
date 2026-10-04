@@ -1126,3 +1126,195 @@ async fn a_nic_that_moved_to_another_range_is_rehomed() {
         vec!["10.20.0.5".parse::<IpAddr>().unwrap()]
     );
 }
+
+/// The runtime host as its scan submits it: its LAN address, the API port, the runtime service
+/// bound to that port, and any `extra` services (already bound by the caller).
+fn runtime_payload(
+    lab: &Lab,
+    extra: impl FnOnce(&IPAddress, &crate::server::ports::r#impl::base::Port) -> Vec<Service>,
+) -> (
+    Vec<IPAddress>,
+    Vec<crate::server::ports::r#impl::base::Port>,
+    Vec<Service>,
+) {
+    use crate::server::bindings::r#impl::base::Binding;
+    use crate::server::ports::r#impl::base::{Port, PortBase, PortType};
+
+    let ip = arp(lab, "192.168.4.126", ens18());
+    let port = Port::new(PortBase {
+        port_type: PortType::new_tcp(2375),
+        host_id: Uuid::nil(),
+        network_id: lab.network_id,
+    });
+    let mut runtime = service(lab, "Docker");
+    runtime.base.bindings = vec![Binding::new_port_serviceless(port.id, Some(ip.id))];
+    let mut services = vec![runtime];
+    services.extend(extra(&ip, &port));
+    (vec![ip], vec![port], services)
+}
+
+async fn discover_with_ports(
+    services: &ServiceFactory,
+    lab: &Lab,
+    (ip_addresses, ports, host_services): (
+        Vec<IPAddress>,
+        Vec<crate::server::ports::r#impl::base::Port>,
+        Vec<Service>,
+    ),
+) -> HostResponse {
+    services
+        .host_service
+        .discover_host(
+            Host::new(HostBase {
+                network_id: lab.network_id,
+                source: EntitySource::Discovery,
+                ..Default::default()
+            }),
+            ip_addresses,
+            ports,
+            host_services,
+            vec![],
+            vec![],
+            false,
+            InterfaceDataComplete::none(),
+            None,
+            AuthenticatedEntity::System,
+            None,
+        )
+        .await
+        .expect("the submission persists")
+}
+
+/// A container service owned by the runtime, bound to the runtime's API port.
+fn container_on_api_port(
+    lab: &Lab,
+    definition: &str,
+    runtime_id: Uuid,
+    ip: &IPAddress,
+    port: &crate::server::ports::r#impl::base::Port,
+) -> Service {
+    use crate::server::bindings::r#impl::base::Binding;
+    use crate::server::services::r#impl::virtualization::{
+        DockerVirtualization, ServiceVirtualization,
+    };
+    let mut proxy = service(lab, definition);
+    proxy.base.name = "docker-api-proxy".to_string();
+    proxy.base.virtualization_service_id = Some(runtime_id);
+    proxy.base.virtualization_metadata =
+        Some(ServiceVirtualization::Docker(DockerVirtualization {
+            container_name: Some("docker-api-proxy".to_string()),
+            container_id: Some("a27773f8c424".to_string()),
+            compose_project: Some("proxy".to_string()),
+        }));
+    proxy.base.bindings = vec![Binding::new_port_serviceless(port.id, Some(ip.id))];
+    proxy
+}
+
+async fn docker_services(services: &ServiceFactory, lab: &Lab) -> Vec<Service> {
+    services
+        .service_service
+        .get_all(StorableFilter::<Service>::new_from_network_ids(&[lab.network_id]).live())
+        .await
+        .unwrap()
+}
+
+/// The lab's path: the runtime holds its API port from the host scan, and a daemon that cannot
+/// identify the proxy sends it as a generic container on the same port. The container safety net
+/// must not copy the proxy's identity onto the runtime.
+#[tokio::test]
+async fn an_unidentified_api_proxy_never_becomes_the_runtimes_identity() {
+    harness!(_storage, services, lab, _container);
+    discover_with_ports(&services, &lab, runtime_payload(&lab, |_, _| vec![])).await;
+
+    let payload = runtime_payload(&lab, |_, _| vec![]);
+    let runtime_id = payload.2[0].id;
+    let (ips, ports, mut svcs) = payload;
+    svcs.push(container_on_api_port(
+        &lab,
+        "Docker Container",
+        runtime_id,
+        &ips[0],
+        &ports[0],
+    ));
+    discover_with_ports(&services, &lab, (ips, ports, svcs)).await;
+
+    let all = docker_services(&services, &lab).await;
+    let runtime = all
+        .iter()
+        .find(|s| s.base.service_definition.name() == "Docker")
+        .expect("runtime stored");
+    assert_eq!(runtime.base.virtualization_service_id, None);
+    assert_eq!(runtime.base.virtualization_metadata, None);
+}
+
+/// The new daemon's path: the proxy arrives as the runtime's API proxy, owned by the runtime and
+/// bound to the port. It takes the port from the runtime, which keeps it from earlier scans.
+#[tokio::test]
+async fn an_api_proxy_takes_the_port_its_runtime_is_reached_through() {
+    harness!(_storage, services, lab, _container);
+    discover_with_ports(&services, &lab, runtime_payload(&lab, |_, _| vec![])).await;
+
+    let payload = runtime_payload(&lab, |_, _| vec![]);
+    let runtime_id = payload.2[0].id;
+    let (ips, ports, mut svcs) = payload;
+    svcs.push(container_on_api_port(
+        &lab,
+        "Docker API Proxy",
+        runtime_id,
+        &ips[0],
+        &ports[0],
+    ));
+    discover_with_ports(&services, &lab, (ips, ports, svcs)).await;
+
+    let all = docker_services(&services, &lab).await;
+    let runtime = all
+        .iter()
+        .find(|s| s.base.service_definition.name() == "Docker")
+        .expect("runtime stored");
+    let proxy = all
+        .iter()
+        .find(|s| s.base.service_definition.name() == "Docker API Proxy")
+        .expect("proxy stored");
+    assert_eq!(runtime.base.virtualization_service_id, None);
+    assert_eq!(proxy.base.virtualization_service_id, Some(runtime.id));
+    assert_eq!(proxy.base.name, "docker-api-proxy");
+    assert!(proxy.base.bindings.iter().any(|b| b.port_id().is_some()));
+    assert!(
+        runtime.base.bindings.iter().all(|b| b.port_id().is_none()),
+        "the runtime no longer binds the port it is reached through"
+    );
+}
+
+/// A runtime already stored as its own container (the lab's state) is cleared by its next scan.
+#[tokio::test]
+async fn a_stored_self_owned_runtime_is_cleared_on_rescan() {
+    use crate::server::services::r#impl::virtualization::{
+        DockerVirtualization, ServiceVirtualization,
+    };
+    harness!(storage, services, lab, _container);
+    discover_with_ports(&services, &lab, runtime_payload(&lab, |_, _| vec![])).await;
+    let mut runtime = docker_services(&services, &lab)
+        .await
+        .into_iter()
+        .find(|s| s.base.service_definition.name() == "Docker")
+        .expect("runtime stored");
+    runtime.base.virtualization_service_id = Some(runtime.id);
+    runtime.base.virtualization_metadata =
+        Some(ServiceVirtualization::Docker(DockerVirtualization {
+            container_name: Some("docker-api-proxy".to_string()),
+            container_id: Some("a27773f8c424".to_string()),
+            compose_project: None,
+        }));
+    storage.services.update(&mut runtime).await.unwrap();
+
+    discover_with_ports(&services, &lab, runtime_payload(&lab, |_, _| vec![])).await;
+
+    let runtime = services
+        .service_service
+        .get_by_id(&runtime.id)
+        .await
+        .unwrap()
+        .expect("runtime still stored");
+    assert_eq!(runtime.base.virtualization_service_id, None);
+    assert_eq!(runtime.base.virtualization_metadata, None);
+}

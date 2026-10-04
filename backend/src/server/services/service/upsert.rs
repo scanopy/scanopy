@@ -84,10 +84,19 @@ impl ServiceService {
             }
         }
 
-        // A service never runs inside itself. A container that answers as its own runtime (a proxy
-        // in front of the Docker API) once arrived owned by the runtime, matched the runtime by
-        // definition, and left the runtime recorded as its own container. Its container identity
-        // is the proxy's, not the runtime's, so neither half is taken.
+        // A service never runs inside itself. The server's container safety net once copied an API
+        // proxy's container identity onto the runtime the proxy fronts, leaving the runtime owned
+        // by itself. Such a stored row is cleared here, and incoming container details naming the
+        // service as its own owner are not taken, since that identity is another container's.
+        if existing_service.base.virtualization_service_id == Some(existing_service.id) {
+            tracing::warn!(
+                service_id = %existing_service.id,
+                service_name = %existing_service.base.name,
+                "Clearing container details that name the service as its own owner"
+            );
+            existing_service.base.virtualization_service_id = None;
+            existing_service.base.virtualization_metadata = None;
+        }
         if new_service_data.base.virtualization_service_id == Some(existing_service.id) {
             tracing::warn!(
                 service_id = %existing_service.id,
