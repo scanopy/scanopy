@@ -3,11 +3,11 @@
 	import { Search } from 'lucide-svelte';
 	// ChevronDown / ChevronRight replaced by the CSS `.caret` below — see the note on that rule.
 	import Tag from '$lib/shared/components/data/Tag.svelte';
+	import HiddenTagsChip from '$lib/shared/components/forms/selection/HiddenTagsChip.svelte';
 	import type { ColorStyle, Color } from '$lib/shared/utils/styling';
 	import type { IconComponent } from '$lib/shared/utils/types';
 	import type { TagProps } from '$lib/shared/components/data/types';
 	import {
-		common_moreItems,
 		topology_elementCount,
 		topology_ungroupedCount,
 		topology_searchContainerMatches
@@ -155,11 +155,6 @@
 
 	let visibleLabels = $derived(groupLabels.slice(0, visibleLabelCount));
 	let hiddenLabelCount = $derived(groupLabels.length - visibleLabelCount);
-
-	/** The tooltip on a "+N more" pill: the names it stands for, one per line. */
-	function pillList(pills: GroupPill[]): string {
-		return pills.map((pill) => pill.label).join('\n');
-	}
 </script>
 
 <!-- Hidden measurement container for tag widths (shared by inline + collapsed-sub) -->
@@ -236,11 +231,7 @@
 			<Tag label={pill.label} color={pill.color} title={pill.title ?? ''} />
 		{/each}
 		{#if hiddenLabelCount > 0}
-			<Tag
-				label={common_moreItems({ count: hiddenLabelCount })}
-				color="Gray"
-				title={pillList(groupLabels.slice(visibleLabelCount))}
-			/>
+			<HiddenTagsChip tags={groupLabels.slice(visibleLabelCount)} interactive />
 		{/if}
 	</div>
 {:else if variant === 'collapsed-sub'}
@@ -287,17 +278,9 @@
 			<Tag label={pill.label} color={pill.color} title={pill.title ?? ''} />
 		{/each}
 		{#if visibleLabels.length > 2}
-			<Tag
-				label={common_moreItems({ count: groupLabels.length - 2 })}
-				color="Gray"
-				title={pillList(groupLabels.slice(2))}
-			/>
+			<HiddenTagsChip tags={groupLabels.slice(2)} interactive />
 		{:else if hiddenLabelCount > 0}
-			<Tag
-				label={common_moreItems({ count: hiddenLabelCount })}
-				color="Gray"
-				title={pillList(groupLabels.slice(visibleLabelCount))}
-			/>
+			<HiddenTagsChip tags={groupLabels.slice(visibleLabelCount)} interactive />
 		{/if}
 		{#if searchMatchCount > 0}
 			<span
@@ -365,11 +348,7 @@
 						<Tag label={pill.label} color={pill.color} title={pill.title ?? ''} />
 					{/each}
 					{#if summary.labels.length > 2}
-						<Tag
-							label={common_moreItems({ count: summary.labels.length - 2 })}
-							color="Gray"
-							title={pillList(summary.labels.slice(2))}
-						/>
+						<HiddenTagsChip tags={summary.labels.slice(2)} interactive />
 					{/if}
 					{#if !summary.hideCount}
 						<span class="text-tertiary text-xs">

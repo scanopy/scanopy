@@ -23,16 +23,16 @@ export function displayTags<T, C>(
 export interface TagFitSpacing {
 	/** Between the label and the tag group. */
 	gap: number;
-	/** Between two tags, and before the "+N more" chip. */
+	/** Between two tags, and before the "+N tags" chip. */
 	tagGap: number;
-	/** Width of the "+N more" chip. */
+	/** Width of the "+N tags" chip. */
 	moreWidth: number;
 }
 
 /**
  * How many tags fit beside a label at its full width. The label is the row's key value, so tags
  * take only the space it leaves, and the count can be 0. When some tags don't fit, room is kept
- * for the "+N more" chip that stands in for them.
+ * for the "+N tags" chip that stands in for them.
  */
 export function fitTags(
 	containerWidth: number,
