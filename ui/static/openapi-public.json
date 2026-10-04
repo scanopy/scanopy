@@ -14020,19 +14020,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-04T17:29:02.491230Z",
+              "created_at": "2026-10-04T22:23:09.377003Z",
               "first_discovery_id": null,
-              "id": "251a5f0c-5173-483a-84d3-43c17ac5b214",
+              "id": "1f0e2743-6283-445b-b793-42e699121bbd",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-04T17:29:02.491230Z",
+              "last_seen_at": "2026-10-04T22:23:09.377003Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-04T17:29:02.491230Z",
-              "valid_from": "2026-10-04T17:29:02.491230Z",
+              "updated_at": "2026-10-04T22:23:09.377003Z",
+              "valid_from": "2026-10-04T22:23:09.377003Z",
               "valid_to": null
             }
           },
@@ -15637,19 +15637,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-04T17:29:02.476166Z",
+                      "created_at": "2026-10-04T22:23:09.361924Z",
                       "first_discovery_id": null,
-                      "id": "28d3dae4-226d-48dd-bed4-4c8c3dfd6dda",
+                      "id": "941d5ebd-474f-4e02-89f4-77f2a962215c",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-04T17:29:02.476166Z",
+                      "last_seen_at": "2026-10-04T22:23:09.361924Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-04T17:29:02.476166Z",
-                      "valid_from": "2026-10-04T17:29:02.476166Z",
+                      "updated_at": "2026-10-04T22:23:09.361924Z",
+                      "valid_from": "2026-10-04T22:23:09.361924Z",
                       "valid_to": null
                     }
                   ],
@@ -15663,7 +15663,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "CoolerControl",
+                  "service_definition": "Karakeep",
                   "source": {
                     "type": "Manual"
                   },
@@ -17062,19 +17062,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-04T17:29:02.487648Z",
+                  "created_at": "2026-10-04T22:23:09.373431Z",
                   "first_discovery_id": null,
-                  "id": "17d2f8ac-17a4-498a-9d43-19394194e43a",
+                  "id": "5d44e964-afe2-4c41-ac7a-4b6cacc92fc6",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-04T17:29:02.487648Z",
+                  "last_seen_at": "2026-10-04T22:23:09.373431Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-04T17:29:02.487648Z",
-                  "valid_from": "2026-10-04T17:29:02.487648Z",
+                  "updated_at": "2026-10-04T22:23:09.373431Z",
+                  "valid_from": "2026-10-04T22:23:09.373431Z",
                   "valid_to": null
                 }
               ],
@@ -17088,7 +17088,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "CoolerControl",
+              "service_definition": "Karakeep",
               "source": {
                 "type": "Manual"
               },
@@ -17872,7 +17872,8 @@
                       "Category",
                       "Virtualization",
                       "LinkState",
-                      "Staleness"
+                      "Staleness",
+                      "OperStatus"
                     ]
                   }
                 },
@@ -19185,9 +19186,16 @@
           },
           {
             "type": "string",
-            "description": "The configuration of the hypervisor or container runtime that emulates the NIC, read\nthrough its API: the MAC of a Proxmox guest's virtual NIC, or of a container's macvlan\nendpoint. `Native` for the reason [`Self::ContainerRuntimeInfo`] is: the hypervisor or\nruntime assigned that MAC, keeps it for the guest's or container's life and puts it on the\nwire for it, so its record is the NIC's own identity, not a third party's report of it.\nThat is what lets a guest with no address still be identified by its NIC. A bare variant\nrather than `Probe(Proxmox)` or `Probe(Docker)`, which cover everything else those APIs\nreport and stay `Reported`.",
+            "description": "The configuration of the hypervisor or container runtime that runs the guest, read\nthrough its API: the MAC of a Proxmox guest's virtual NIC or of a container's macvlan\nendpoint, and the hostname and distribution a Proxmox LXC container's config sets. `Native` for the reason [`Self::ContainerRuntimeInfo`] is: the hypervisor or\nruntime assigned that MAC, keeps it for the guest's or container's life and puts it on the\nwire for it, so its record is the NIC's own identity, not a third party's report of it.\nThat is what lets a guest with no address still be identified by its NIC. A bare variant\nrather than `Probe(Proxmox)` or `Probe(Docker)`, which cover everything else those APIs\nreport and stay `Reported`.",
             "enum": [
               "HypervisorConfig"
+            ]
+          },
+          {
+            "type": "string",
+            "description": "Software inside a guest read this from the guest's own operating system and answered the\nhypervisor's API: the QEMU guest agent behind Proxmox, and the same role VMware Tools and\nHyper-V integration services fill. `Native` for the reason [`Self::ContainerRuntimeInfo`]\nis: the guest describes itself, over a channel the hypervisor binds to that one guest, so\nit is first-hand, not the hypervisor's report of the guest (`Probe(Proxmox)`).",
+            "enum": [
+              "GuestAgent"
             ]
           },
           {
@@ -19572,19 +19580,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-04T17:29:02.476575Z",
+          "created_at": "2026-10-04T22:23:09.362335Z",
           "first_discovery_id": null,
-          "id": "919ce0b8-4578-4b0f-b1b7-bb49afd40edc",
+          "id": "79488783-cc01-4f8e-a8f1-052a92886a49",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-04T17:29:02.476575Z",
+          "last_seen_at": "2026-10-04T22:23:09.362335Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-04T17:29:02.476575Z",
-          "valid_from": "2026-10-04T17:29:02.476575Z",
+          "updated_at": "2026-10-04T22:23:09.362335Z",
+          "valid_from": "2026-10-04T22:23:09.362335Z",
           "valid_to": null
         }
       },
@@ -20351,7 +20359,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "CoolerControl",
+              "service_definition": "Karakeep",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -25145,6 +25153,32 @@
           }
         ]
       },
+      "ElementMark": {
+        "type": "object",
+        "description": "A colour a view paints on its element cards, named by the filter value that decodes it.\n\nThe colour is that value's `FilterValue::color`; the mark carries none of its own, so the card\nand the chip cannot disagree. A card is marked when its own entity, or its host, carries\n`value` under `filter_type`, judged by the extractor the filter's hover uses.",
+        "required": [
+          "channel",
+          "entity",
+          "filter_type",
+          "value"
+        ],
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/MarkChannel"
+          },
+          "entity": {
+            "$ref": "#/components/schemas/EntityDiscriminants",
+            "description": "The entity whose filter value is read: the card's own, or `Host` for the card's host."
+          },
+          "filter_type": {
+            "$ref": "#/components/schemas/MetadataFilterType"
+          },
+          "value": {
+            "type": "string",
+            "description": "The `FilterValue::id` that paints."
+          }
+        }
+      },
       "ElementSort": {
         "type": "string",
         "description": "The order of the nodes inside each top-level container, groups within it included.\n\nTop-level containers keep their own placement whatever the sort. Anything other than\n`Automatic` is applied by the server when it builds the graph, and the layout keeps that order\non screen, reading left to right, top to bottom.",
@@ -25653,6 +25687,44 @@
           }
         ],
         "description": "Non-secret value that can be inline content or a file path on daemon host."
+      },
+      "FilterApplication": {
+        "type": "string",
+        "description": "Where a filter is applied — and therefore what toggling it costs.\n\nFiltering on the client makes a toggle instant, because the entities are already there. Filtering\non the server makes it a round trip, but keeps the hidden entities out of the response entirely.\nThat is a good trade only when the hidden set is large: L2 ships 19,095 interfaces to render\n2,872, and a customer's browser runs out of memory holding the difference.\n\n**A filter may only be `Server` if its value is computable from the topology the backend is\nalready building.** `Staleness` fails that test — it depends on the current time, so an identical\nrequest would return different results as time passes, and a cached response would be wrong. It\nstays `Client` permanently; this is a property of the filter, not a migration left half-done.",
+        "enum": [
+          "Client",
+          "Server"
+        ]
+      },
+      "FilterValue": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "color",
+          "icon"
+        ],
+        "properties": {
+          "color": {
+            "$ref": "#/components/schemas/Color",
+            "description": "Colour shown on the filter chip."
+          },
+          "icon": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Icon shown on the filter chip."
+          },
+          "id": {
+            "type": "string",
+            "description": "Server-assigned unique identifier."
+          },
+          "label": {
+            "type": "string",
+            "description": "Human-facing label for this choice."
+          }
+        }
       },
       "FinalizePaymentMethodRequest": {
         "type": "object",
@@ -26726,19 +26798,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-04T17:29:02.475708Z",
+                  "created_at": "2026-10-04T22:23:09.361454Z",
                   "first_discovery_id": null,
-                  "id": "3788c8df-3f20-48af-bdb4-71c7a4ee4164",
+                  "id": "eee439d1-9ce3-4e81-93b6-8f1c65d1efab",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-04T17:29:02.475708Z",
+                  "last_seen_at": "2026-10-04T22:23:09.361454Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-04T17:29:02.475708Z",
-                  "valid_from": "2026-10-04T17:29:02.475708Z",
+                  "updated_at": "2026-10-04T22:23:09.361454Z",
+                  "valid_from": "2026-10-04T22:23:09.361454Z",
                   "valid_to": null
                 }
               ],
@@ -26752,7 +26824,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "CoolerControl",
+              "service_definition": "Karakeep",
               "source": {
                 "type": "Manual"
               },
@@ -26983,6 +27055,16 @@
           }
         ],
         "title": "HostVirtualization"
+      },
+      "HostVirtualizationState": {
+        "type": "string",
+        "description": "Coarse virtualization state used by the `Virtualization` metadata filter on Host. Each host\nresolves to exactly one variant via `HasFilterValues`, from the type of its\n`virtualization_metadata` ([`HostVirtualizationDiscriminants::state`]).\n\nA container host and a network identity get states of their own rather than `Virtualized`:\nthe filter's colour marks Workloads cards, and an identity is an interface its owner presents,\nnot a guest it runs. The ids are persisted in hide-sets, so existing ones keep their spelling.",
+        "enum": [
+          "Virtualized",
+          "Containerized",
+          "NetworkIdentity",
+          "BareMetal"
+        ]
       },
       "IPAddress": {
         "allOf": [
@@ -28868,6 +28950,15 @@
           }
         }
       },
+      "MarkChannel": {
+        "type": "string",
+        "description": "Where on an element card a mark paints.",
+        "enum": [
+          "Title",
+          "StatusDot",
+          "StateFill"
+        ]
+      },
       "MatchConfidence": {
         "type": "string",
         "enum": [
@@ -28954,6 +29045,48 @@
             "description": "The subnet to merge into. Must contain the range being merged."
           }
         }
+      },
+      "MetadataFilter": {
+        "type": "object",
+        "description": "A declared metadata filter on an element entity inside a view.\n\n`FilterValue::id` is the **stable identifier** — it's what each entity\nemits via `HasFilterValues`, what the hide-set in request options stores,\nand what matches entities on toggle. Changing an `id` silently clears\nusers' persisted hide entries for that value; `label` is display-only\nand can change freely.",
+        "required": [
+          "filter_type",
+          "label",
+          "values",
+          "applies"
+        ],
+        "properties": {
+          "applies": {
+            "$ref": "#/components/schemas/FilterApplication",
+            "description": "Where this filter runs. Deliberately not defaulted: a new filter has to state which side it\nbelongs on, and the compiler is a better place to force that decision than a review comment.\nSee `FilterApplication` for when `Server` is permissible."
+          },
+          "filter_type": {
+            "$ref": "#/components/schemas/MetadataFilterType",
+            "description": "What the filter narrows by."
+          },
+          "label": {
+            "type": "string",
+            "description": "User-facing sub-section label (e.g. \"By Category\", \"By Virtualization\")."
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterValue"
+            },
+            "description": "The choices offered for this filter."
+          }
+        }
+      },
+      "MetadataFilterType": {
+        "type": "string",
+        "description": "The type of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
+        "enum": [
+          "Category",
+          "Virtualization",
+          "LinkState",
+          "Staleness",
+          "OperStatus"
+        ]
       },
       "MsiInstall": {
         "type": "object",
@@ -30544,19 +30677,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-04T17:29:02.469048Z",
+                        "created_at": "2026-10-04T22:23:09.354703Z",
                         "first_discovery_id": null,
-                        "id": "fe00d0a7-6ce8-43a2-b733-ec73e3a65dd7",
+                        "id": "3fd7ddfa-482b-44e9-812e-b30eca5f7de1",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-04T17:29:02.469048Z",
+                        "last_seen_at": "2026-10-04T22:23:09.354703Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-04T17:29:02.469048Z",
-                        "valid_from": "2026-10-04T17:29:02.469048Z",
+                        "updated_at": "2026-10-04T22:23:09.354703Z",
+                        "valid_from": "2026-10-04T22:23:09.354703Z",
                         "valid_to": null
                       }
                     ],
@@ -30570,7 +30703,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "CoolerControl",
+                    "service_definition": "Karakeep",
                     "source": {
                       "type": "Manual"
                     },
@@ -30714,19 +30847,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-04T17:29:02.486987Z",
+                    "created_at": "2026-10-04T22:23:09.372781Z",
                     "first_discovery_id": null,
-                    "id": "53280c83-1e9f-4530-b1bd-bd02519fb679",
+                    "id": "2dd8b805-fe4b-4582-81fe-acd218d17027",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-04T17:29:02.486987Z",
+                    "last_seen_at": "2026-10-04T22:23:09.372781Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-04T17:29:02.486987Z",
-                    "valid_from": "2026-10-04T17:29:02.486987Z",
+                    "updated_at": "2026-10-04T22:23:09.372781Z",
+                    "valid_from": "2026-10-04T22:23:09.372781Z",
                     "valid_to": null
                   }
                 ],
@@ -30740,7 +30873,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "CoolerControl",
+                "service_definition": "Karakeep",
                 "source": {
                   "type": "Manual"
                 },
@@ -32971,19 +33104,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-04T17:29:02.476450Z",
+              "created_at": "2026-10-04T22:23:09.362212Z",
               "first_discovery_id": null,
-              "id": "05361ad1-3849-444d-9c33-3136b90cd559",
+              "id": "500199be-892c-417e-9333-ba9a86aa9635",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-04T17:29:02.476450Z",
+              "last_seen_at": "2026-10-04T22:23:09.362212Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-04T17:29:02.476450Z",
-              "valid_from": "2026-10-04T17:29:02.476450Z",
+              "updated_at": "2026-10-04T22:23:09.362212Z",
+              "valid_from": "2026-10-04T22:23:09.362212Z",
               "valid_to": null
             }
           ],
@@ -32997,7 +33130,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "CoolerControl",
+          "service_definition": "Karakeep",
           "source": {
             "type": "Manual"
           },
@@ -34250,7 +34383,8 @@
                   "Category",
                   "Virtualization",
                   "LinkState",
-                  "Staleness"
+                  "Staleness",
+                  "OperStatus"
                 ]
               }
             },
@@ -34458,7 +34592,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "c35418ef-e7d7-46fa-b1b5-19c6c8c086fc",
+                  "id": "e083e601-8692-4930-aaf3-02d887325c41",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34468,23 +34602,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "f19ce2dc-15c4-48d6-95b8-f050045c7d90",
+                  "id": "d480f81d-479b-4452-834a-e757ef629ef7",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "2e4bdb69-a68d-45bd-82c2-aeea6808eeb1",
+                  "id": "3e279c7f-f460-46d1-837b-fa54973cf116",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "9196ff95-3279-4326-8451-e9497542a83d",
+                  "id": "d774d8dc-0a67-4ffb-81c9-db4d9cab1875",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "f19ce2dc-15c4-48d6-95b8-f050045c7d90",
+                  "id": "d480f81d-479b-4452-834a-e757ef629ef7",
                   "rule": "ByHost"
                 }
               ]
@@ -34514,19 +34648,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "d87275b3-a5ca-47d4-9971-202c034abea7",
+                "id": "89f0e129-4a7b-4afc-ab59-7036733c777d",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "6fd4ad26-d808-46da-8a1c-cbd5164796df",
+                "id": "0450b9cd-2f8a-4e24-aeaf-d628e3af6f31",
                 "rule": "ByVLAN"
               },
               {
-                "id": "2d8d01bd-bcf8-4a42-ac71-ebfe748dd11a",
+                "id": "5db9a955-075e-49ae-81e7-9ae5c58a17b3",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "540abe02-c3dc-4d4b-9aa1-5a6dbbe8e94d",
+                "id": "8f34dc98-85ca-4212-9235-573c958be3dc",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34545,7 +34679,7 @@
                 }
               },
               {
-                "id": "8bbdaee5-7305-4b06-9037-6601a07b87dc",
+                "id": "0e6d4ac7-9a57-4bda-8f34-4db1901bec7e",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34554,15 +34688,15 @@
                 }
               },
               {
-                "id": "b8d60d7c-b975-435c-a873-2cb90fa20610",
+                "id": "4156eebf-edea-4a95-8e5d-0e03ce06e9d0",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "d9c6d9d6-fb0a-41f8-83b7-3f46b4d8860e",
+                "id": "34d26006-1153-4810-bba0-73dbcb179bbc",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "592d9b24-c009-4ebd-a33e-b418ec999780",
+                "id": "91f55d4e-c326-40ba-acef-4d3a52efd27b",
                 "rule": "ByStack"
               }
             ]
@@ -34661,7 +34795,8 @@
                     "Category",
                     "Virtualization",
                     "LinkState",
-                    "Staleness"
+                    "Staleness",
+                    "OperStatus"
                   ]
                 }
               },
@@ -35358,6 +35493,158 @@
             "type": "string",
             "description": "Server version (semver)",
             "example": "0.12.10"
+          }
+        }
+      },
+      "ViewElementConfig": {
+        "type": "object",
+        "description": "Defines the entity hierarchy for a topology view:\ncontainer (grouping box) → element (rendered as nodes) → inline (shown inside nodes)",
+        "required": [
+          "element_entities"
+        ],
+        "properties": {
+          "collective_noun": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Single noun spanning all element entities. Used in summaries when the\nper-entity breakdown would be confusing (e.g. mixed Host+Service in\nWorkloads, where everything is conceptually a \"workload\"). Singular;\nthe UI pluralizes as needed."
+          },
+          "container_entity": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EntityDiscriminants",
+                "description": "Entity rendered as the container/grouping box (e.g. Subnet in L3, Host in L2/Workloads)"
+              }
+            ]
+          },
+          "default_hidden_values": {
+            "type": "object",
+            "description": "Filter values this view hides out of the box, keyed the same way as the\nhide-set in request options.\n\nThese are product defaults rather than user filters: they keep a view\nlegible before anyone has touched it, so \"clear all filters\" preserves\nthem and the \"filters applied\" count ignores them. Declared here so the\nbackend's initial hide-set and the frontend's notion of what counts as a\ndefault are the same list — they were separately hardcoded before, in\n`default_hide_metadata_values` and again in the options panel.",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "propertyNames": {
+                "type": "string",
+                "description": "The type of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
+                "enum": [
+                  "Category",
+                  "Virtualization",
+                  "LinkState",
+                  "Staleness",
+                  "OperStatus"
+                ]
+              }
+            },
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "Organization",
+                "Invite",
+                "Share",
+                "Network",
+                "DaemonApiKey",
+                "UserApiKey",
+                "User",
+                "Tag",
+                "Discovery",
+                "Daemon",
+                "Host",
+                "Service",
+                "Port",
+                "Binding",
+                "IPAddress",
+                "Interface",
+                "Credential",
+                "Subnet",
+                "Vlan",
+                "Dependency",
+                "Topology",
+                "Snapshot",
+                "Unknown"
+              ]
+            }
+          },
+          "element_entities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ViewElementEntityConfig"
+            },
+            "description": "Per-element-entity config: the entity types rendered as element nodes and\n(for each) which other entity types are shown *inside* those cards.\nReplaces the old flat `inline_entities` so views like Workloads — where\nHost elements inline services but Service elements inline nothing — can\nbe expressed correctly."
+          },
+          "element_marks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ElementMark"
+            },
+            "description": "The colours this view paints on its element cards, each tied to the filter value that\nexplains it. A card shows a classification colour only through one of these, so every\ncolour has a chip in the filter panel whose hover rings the same cards. Per channel, earlier\nmarks win."
+          },
+          "metadata_filters": {
+            "type": "object",
+            "description": "Generic metadata filters keyed by the entity they apply to in this\nview. Applied regardless of the entity's role (container/element/\ninline) — a Service metadata filter renders under the Services\nsection whether Service is an element entity (Workloads/Application)\nor an inline entity (L3).",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/MetadataFilter"
+              }
+            },
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "Organization",
+                "Invite",
+                "Share",
+                "Network",
+                "DaemonApiKey",
+                "UserApiKey",
+                "User",
+                "Tag",
+                "Discovery",
+                "Daemon",
+                "Host",
+                "Service",
+                "Port",
+                "Binding",
+                "IPAddress",
+                "Interface",
+                "Credential",
+                "Subnet",
+                "Vlan",
+                "Dependency",
+                "Topology",
+                "Snapshot",
+                "Unknown"
+              ]
+            }
+          }
+        }
+      },
+      "ViewElementEntityConfig": {
+        "type": "object",
+        "description": "An element-entity slot inside a view, plus the set of entity types that\nrender inline on that element's card. Card rendering (what services/ports\nshow up inside an element) and layout re-trigger fingerprinting both read\nfrom this list.",
+        "required": [
+          "entity_type",
+          "inline_entities"
+        ],
+        "properties": {
+          "entity_type": {
+            "$ref": "#/components/schemas/EntityDiscriminants",
+            "description": "Entity type drawn as an element in this view."
+          },
+          "inline_entities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityDiscriminants"
+            },
+            "description": "Entity types folded into that element rather than drawn separately."
           }
         }
       },
