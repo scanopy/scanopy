@@ -437,6 +437,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-stripe-payment"
+version = "1.0.0-rc.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25da12dc6a80a34b3f21cda33e27bf6702afdfb14a2b464decf3c601af702531"
+dependencies = [
+ "async-stripe-client-core",
+ "async-stripe-shared",
+ "async-stripe-types",
+ "miniserde",
+ "serde",
+ "serde_json",
+ "smol_str",
+ "tracing",
+]
+
+[[package]]
 name = "async-stripe-product"
 version = "1.0.0-rc.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7152,6 +7168,7 @@ dependencies = [
  "async-stripe-checkout",
  "async-stripe-client-core",
  "async-stripe-core",
+ "async-stripe-payment",
  "async-stripe-product",
  "async-stripe-shared",
  "async-stripe-types",

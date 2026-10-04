@@ -57,7 +57,7 @@ impl BillingService {
             CreateCheckoutSessionPaymentMethodCollection::Always
         };
 
-        let create_checkout_session = CreateCheckoutSession::new()
+        let mut create_checkout_session = CreateCheckoutSession::new()
             .customer(customer_id)
             .success_url(success_url)
             .cancel_url(cancel_url)
@@ -92,6 +92,9 @@ impl BillingService {
                 ),
                 ..Default::default()
             });
+        if let Some(id) = self.payment_method_configuration_id() {
+            create_checkout_session = create_checkout_session.payment_method_configuration(id);
+        }
 
         let session = create_checkout_session
             .send(&self.stripe)
