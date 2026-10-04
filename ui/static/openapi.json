@@ -16919,19 +16919,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-04T17:29:02.433095Z",
+              "created_at": "2026-10-04T22:10:47.883407Z",
               "first_discovery_id": null,
-              "id": "4387d284-1d59-43e5-adeb-58631350e834",
+              "id": "88f8477f-07d9-4011-8d6b-b9040c64c348",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-04T17:29:02.433095Z",
+              "last_seen_at": "2026-10-04T22:10:47.883407Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-04T17:29:02.433095Z",
-              "valid_from": "2026-10-04T17:29:02.433095Z",
+              "updated_at": "2026-10-04T22:10:47.883407Z",
+              "valid_from": "2026-10-04T22:10:47.883407Z",
               "valid_to": null
             }
           },
@@ -18536,19 +18536,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-04T17:29:02.409292Z",
+                      "created_at": "2026-10-04T22:10:47.856246Z",
                       "first_discovery_id": null,
-                      "id": "60d934f9-53b1-4f10-bcb0-3722ec4447d7",
+                      "id": "ac1e5d34-7b65-4a2d-9593-f21b71560aa8",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-04T17:29:02.409292Z",
+                      "last_seen_at": "2026-10-04T22:10:47.856246Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-04T17:29:02.409292Z",
-                      "valid_from": "2026-10-04T17:29:02.409292Z",
+                      "updated_at": "2026-10-04T22:10:47.856246Z",
+                      "valid_from": "2026-10-04T22:10:47.856246Z",
                       "valid_to": null
                     }
                   ],
@@ -18562,7 +18562,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "CoolerControl",
+                  "service_definition": "Nest Protect",
                   "source": {
                     "type": "Manual"
                   },
@@ -19961,19 +19961,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-04T17:29:02.428075Z",
+                  "created_at": "2026-10-04T22:10:47.877307Z",
                   "first_discovery_id": null,
-                  "id": "6290e665-de4b-4f11-a02c-7c2cf6c2961c",
+                  "id": "6eba39d3-6b2e-458e-8e69-59c7071c6b92",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-04T17:29:02.428075Z",
+                  "last_seen_at": "2026-10-04T22:10:47.877307Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-04T17:29:02.428075Z",
-                  "valid_from": "2026-10-04T17:29:02.428075Z",
+                  "updated_at": "2026-10-04T22:10:47.877307Z",
+                  "valid_from": "2026-10-04T22:10:47.877307Z",
                   "valid_to": null
                 }
               ],
@@ -19987,7 +19987,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "CoolerControl",
+              "service_definition": "Nest Protect",
               "source": {
                 "type": "Manual"
               },
@@ -20771,7 +20771,8 @@
                       "Category",
                       "Virtualization",
                       "LinkState",
-                      "Staleness"
+                      "Staleness",
+                      "OperStatus"
                     ]
                   }
                 },
@@ -22471,19 +22472,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-04T17:29:02.410022Z",
+          "created_at": "2026-10-04T22:10:47.856963Z",
           "first_discovery_id": null,
-          "id": "cef82253-eba2-46ec-86af-f443ec3a8ffa",
+          "id": "5b72a9f8-2104-4911-b559-c26cfe7b5347",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-04T17:29:02.410022Z",
+          "last_seen_at": "2026-10-04T22:10:47.856963Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-04T17:29:02.410022Z",
-          "valid_from": "2026-10-04T17:29:02.410022Z",
+          "updated_at": "2026-10-04T22:10:47.856963Z",
+          "valid_from": "2026-10-04T22:10:47.856963Z",
           "valid_to": null
         }
       },
@@ -23250,7 +23251,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "CoolerControl",
+              "service_definition": "Nest Protect",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -28044,6 +28045,32 @@
           }
         ]
       },
+      "ElementMark": {
+        "type": "object",
+        "description": "A colour a view paints on its element cards, named by the filter value that decodes it.\n\nThe colour is that value's `FilterValue::color`; the mark carries none of its own, so the card\nand the chip cannot disagree. A card is marked when its own entity, or its host, carries\n`value` under `filter_type`, judged by the extractor the filter's hover uses.",
+        "required": [
+          "channel",
+          "entity",
+          "filter_type",
+          "value"
+        ],
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/MarkChannel"
+          },
+          "entity": {
+            "$ref": "#/components/schemas/EntityDiscriminants",
+            "description": "The entity whose filter value is read: the card's own, or `Host` for the card's host."
+          },
+          "filter_type": {
+            "$ref": "#/components/schemas/MetadataFilterType"
+          },
+          "value": {
+            "type": "string",
+            "description": "The `FilterValue::id` that paints."
+          }
+        }
+      },
       "ElementSort": {
         "type": "string",
         "description": "The order of the nodes inside each top-level container, groups within it included.\n\nTop-level containers keep their own placement whatever the sort. Anything other than\n`Automatic` is applied by the server when it builds the graph, and the layout keeps that order\non screen, reading left to right, top to bottom.",
@@ -28552,6 +28579,44 @@
           }
         ],
         "description": "Non-secret value that can be inline content or a file path on daemon host."
+      },
+      "FilterApplication": {
+        "type": "string",
+        "description": "Where a filter is applied — and therefore what toggling it costs.\n\nFiltering on the client makes a toggle instant, because the entities are already there. Filtering\non the server makes it a round trip, but keeps the hidden entities out of the response entirely.\nThat is a good trade only when the hidden set is large: L2 ships 19,095 interfaces to render\n2,872, and a customer's browser runs out of memory holding the difference.\n\n**A filter may only be `Server` if its value is computable from the topology the backend is\nalready building.** `Staleness` fails that test — it depends on the current time, so an identical\nrequest would return different results as time passes, and a cached response would be wrong. It\nstays `Client` permanently; this is a property of the filter, not a migration left half-done.",
+        "enum": [
+          "Client",
+          "Server"
+        ]
+      },
+      "FilterValue": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "color",
+          "icon"
+        ],
+        "properties": {
+          "color": {
+            "$ref": "#/components/schemas/Color",
+            "description": "Colour shown on the filter chip."
+          },
+          "icon": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Icon shown on the filter chip."
+          },
+          "id": {
+            "type": "string",
+            "description": "Server-assigned unique identifier."
+          },
+          "label": {
+            "type": "string",
+            "description": "Human-facing label for this choice."
+          }
+        }
       },
       "FinalizePaymentMethodRequest": {
         "type": "object",
@@ -29625,19 +29690,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-04T17:29:02.408482Z",
+                  "created_at": "2026-10-04T22:10:47.855098Z",
                   "first_discovery_id": null,
-                  "id": "504655c7-ab7e-499b-9c11-69894a9e111b",
+                  "id": "2b38007c-8e30-4fad-9e74-ada1df524c73",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-04T17:29:02.408482Z",
+                  "last_seen_at": "2026-10-04T22:10:47.855098Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-04T17:29:02.408482Z",
-                  "valid_from": "2026-10-04T17:29:02.408482Z",
+                  "updated_at": "2026-10-04T22:10:47.855098Z",
+                  "valid_from": "2026-10-04T22:10:47.855098Z",
                   "valid_to": null
                 }
               ],
@@ -29651,7 +29716,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "CoolerControl",
+              "service_definition": "Nest Protect",
               "source": {
                 "type": "Manual"
               },
@@ -29882,6 +29947,16 @@
           }
         ],
         "title": "HostVirtualization"
+      },
+      "HostVirtualizationState": {
+        "type": "string",
+        "description": "Coarse virtualization state used by the `Virtualization` metadata filter on Host. Each host\nresolves to exactly one variant via `HasFilterValues`, from the type of its\n`virtualization_metadata` ([`HostVirtualizationDiscriminants::state`]).\n\nA container host and a network identity get states of their own rather than `Virtualized`:\nthe filter's colour marks Workloads cards, and an identity is an interface its owner presents,\nnot a guest it runs. The ids are persisted in hide-sets, so existing ones keep their spelling.",
+        "enum": [
+          "Virtualized",
+          "Containerized",
+          "NetworkIdentity",
+          "BareMetal"
+        ]
       },
       "IPAddress": {
         "allOf": [
@@ -31767,6 +31842,15 @@
           }
         }
       },
+      "MarkChannel": {
+        "type": "string",
+        "description": "Where on an element card a mark paints.",
+        "enum": [
+          "Title",
+          "StatusDot",
+          "StateFill"
+        ]
+      },
       "MatchConfidence": {
         "type": "string",
         "enum": [
@@ -31853,6 +31937,48 @@
             "description": "The subnet to merge into. Must contain the range being merged."
           }
         }
+      },
+      "MetadataFilter": {
+        "type": "object",
+        "description": "A declared metadata filter on an element entity inside a view.\n\n`FilterValue::id` is the **stable identifier** — it's what each entity\nemits via `HasFilterValues`, what the hide-set in request options stores,\nand what matches entities on toggle. Changing an `id` silently clears\nusers' persisted hide entries for that value; `label` is display-only\nand can change freely.",
+        "required": [
+          "filter_type",
+          "label",
+          "values",
+          "applies"
+        ],
+        "properties": {
+          "applies": {
+            "$ref": "#/components/schemas/FilterApplication",
+            "description": "Where this filter runs. Deliberately not defaulted: a new filter has to state which side it\nbelongs on, and the compiler is a better place to force that decision than a review comment.\nSee `FilterApplication` for when `Server` is permissible."
+          },
+          "filter_type": {
+            "$ref": "#/components/schemas/MetadataFilterType",
+            "description": "What the filter narrows by."
+          },
+          "label": {
+            "type": "string",
+            "description": "User-facing sub-section label (e.g. \"By Category\", \"By Virtualization\")."
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterValue"
+            },
+            "description": "The choices offered for this filter."
+          }
+        }
+      },
+      "MetadataFilterType": {
+        "type": "string",
+        "description": "The type of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
+        "enum": [
+          "Category",
+          "Virtualization",
+          "LinkState",
+          "Staleness",
+          "OperStatus"
+        ]
       },
       "MsiInstall": {
         "type": "object",
@@ -33443,19 +33569,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-04T17:29:02.392549Z",
+                        "created_at": "2026-10-04T22:10:47.841218Z",
                         "first_discovery_id": null,
-                        "id": "8568e51d-39b8-4e20-974e-812c0523d6b2",
+                        "id": "2464b87b-329f-4303-8885-069b3c98fcd0",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-04T17:29:02.392549Z",
+                        "last_seen_at": "2026-10-04T22:10:47.841218Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-04T17:29:02.392549Z",
-                        "valid_from": "2026-10-04T17:29:02.392549Z",
+                        "updated_at": "2026-10-04T22:10:47.841218Z",
+                        "valid_from": "2026-10-04T22:10:47.841218Z",
                         "valid_to": null
                       }
                     ],
@@ -33469,7 +33595,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "CoolerControl",
+                    "service_definition": "Nest Protect",
                     "source": {
                       "type": "Manual"
                     },
@@ -33613,19 +33739,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-04T17:29:02.427247Z",
+                    "created_at": "2026-10-04T22:10:47.876326Z",
                     "first_discovery_id": null,
-                    "id": "ea606fe4-a1a1-48bd-91ca-42f645a25e17",
+                    "id": "e0e6f1b7-72ed-4c0e-a983-7030e617a231",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-04T17:29:02.427247Z",
+                    "last_seen_at": "2026-10-04T22:10:47.876326Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-04T17:29:02.427247Z",
-                    "valid_from": "2026-10-04T17:29:02.427247Z",
+                    "updated_at": "2026-10-04T22:10:47.876326Z",
+                    "valid_from": "2026-10-04T22:10:47.876326Z",
                     "valid_to": null
                   }
                 ],
@@ -33639,7 +33765,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "CoolerControl",
+                "service_definition": "Nest Protect",
                 "source": {
                   "type": "Manual"
                 },
@@ -35870,19 +35996,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-04T17:29:02.409806Z",
+              "created_at": "2026-10-04T22:10:47.856797Z",
               "first_discovery_id": null,
-              "id": "2165dc38-2c88-4178-84f5-bf9c7b78d13b",
+              "id": "e60a9cd0-93ca-44d0-972f-556c185da372",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-04T17:29:02.409806Z",
+              "last_seen_at": "2026-10-04T22:10:47.856797Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-04T17:29:02.409806Z",
-              "valid_from": "2026-10-04T17:29:02.409806Z",
+              "updated_at": "2026-10-04T22:10:47.856797Z",
+              "valid_from": "2026-10-04T22:10:47.856797Z",
               "valid_to": null
             }
           ],
@@ -35896,7 +36022,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "CoolerControl",
+          "service_definition": "Nest Protect",
           "source": {
             "type": "Manual"
           },
@@ -37149,7 +37275,8 @@
                   "Category",
                   "Virtualization",
                   "LinkState",
-                  "Staleness"
+                  "Staleness",
+                  "OperStatus"
                 ]
               }
             },
@@ -37357,7 +37484,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "a91842b8-fa6d-4d6b-a4bc-3fe27ada66d9",
+                  "id": "d0be4847-23ad-4afd-85a4-dc43056792bb",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -37367,23 +37494,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "1b485398-819b-4b87-873e-6ac2d0ecd22c",
+                  "id": "031b70c7-3bf4-448a-b353-701ba6e4f05c",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "c4764a23-2bf9-4162-8e02-23b7f5fd2d9b",
+                  "id": "e7a0dba2-b513-4dfe-9ca9-5b868a1b3a43",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "7604dfcc-6458-4f33-b72c-41a372a26698",
+                  "id": "ebd149c0-8150-434f-89bf-3cda277ec775",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "1b485398-819b-4b87-873e-6ac2d0ecd22c",
+                  "id": "031b70c7-3bf4-448a-b353-701ba6e4f05c",
                   "rule": "ByHost"
                 }
               ]
@@ -37413,19 +37540,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "64a2c775-3f69-4efa-a632-dd9d8ac9c192",
+                "id": "40bfdf79-aaed-4b70-8f1a-81672d8dc657",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "fbd319e9-cbd9-4054-8a58-798a8185be90",
+                "id": "186e86a3-828e-4698-a284-420905b2bfe0",
                 "rule": "ByVLAN"
               },
               {
-                "id": "11834f35-1a96-46b8-bca2-72177d197191",
+                "id": "8484c5d0-a3fb-4e6a-86e5-e9ae17a307a4",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "a844edea-94f7-4915-81f5-3ba3fe219550",
+                "id": "5bf82065-421a-4d3f-87fd-bba121066ba6",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -37444,7 +37571,7 @@
                 }
               },
               {
-                "id": "725d0520-cc6b-40f4-9939-aac075ddcbe5",
+                "id": "1a926e73-12c2-4842-8a42-45f590a5cbd1",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -37453,15 +37580,15 @@
                 }
               },
               {
-                "id": "45a5b622-6a3d-45b9-b9c4-41ad81ab3ad4",
+                "id": "cd63c80b-e8cd-40cb-9014-a06531860997",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "c5458c1b-e2bf-4d18-8d56-8a059530ff04",
+                "id": "d7a792b8-dc73-4aef-a48c-6d2f6f88896c",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "8c267ef6-0de8-4f6d-aca1-fcee50a4ddf5",
+                "id": "1a2e3467-080d-48f7-aee9-e4f6cfb61b52",
                 "rule": "ByStack"
               }
             ]
@@ -37560,7 +37687,8 @@
                     "Category",
                     "Virtualization",
                     "LinkState",
-                    "Staleness"
+                    "Staleness",
+                    "OperStatus"
                   ]
                 }
               },
@@ -38257,6 +38385,158 @@
             "type": "string",
             "description": "Server version (semver)",
             "example": "0.12.10"
+          }
+        }
+      },
+      "ViewElementConfig": {
+        "type": "object",
+        "description": "Defines the entity hierarchy for a topology view:\ncontainer (grouping box) → element (rendered as nodes) → inline (shown inside nodes)",
+        "required": [
+          "element_entities"
+        ],
+        "properties": {
+          "collective_noun": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Single noun spanning all element entities. Used in summaries when the\nper-entity breakdown would be confusing (e.g. mixed Host+Service in\nWorkloads, where everything is conceptually a \"workload\"). Singular;\nthe UI pluralizes as needed."
+          },
+          "container_entity": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EntityDiscriminants",
+                "description": "Entity rendered as the container/grouping box (e.g. Subnet in L3, Host in L2/Workloads)"
+              }
+            ]
+          },
+          "default_hidden_values": {
+            "type": "object",
+            "description": "Filter values this view hides out of the box, keyed the same way as the\nhide-set in request options.\n\nThese are product defaults rather than user filters: they keep a view\nlegible before anyone has touched it, so \"clear all filters\" preserves\nthem and the \"filters applied\" count ignores them. Declared here so the\nbackend's initial hide-set and the frontend's notion of what counts as a\ndefault are the same list — they were separately hardcoded before, in\n`default_hide_metadata_values` and again in the options panel.",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "propertyNames": {
+                "type": "string",
+                "description": "The type of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
+                "enum": [
+                  "Category",
+                  "Virtualization",
+                  "LinkState",
+                  "Staleness",
+                  "OperStatus"
+                ]
+              }
+            },
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "Organization",
+                "Invite",
+                "Share",
+                "Network",
+                "DaemonApiKey",
+                "UserApiKey",
+                "User",
+                "Tag",
+                "Discovery",
+                "Daemon",
+                "Host",
+                "Service",
+                "Port",
+                "Binding",
+                "IPAddress",
+                "Interface",
+                "Credential",
+                "Subnet",
+                "Vlan",
+                "Dependency",
+                "Topology",
+                "Snapshot",
+                "Unknown"
+              ]
+            }
+          },
+          "element_entities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ViewElementEntityConfig"
+            },
+            "description": "Per-element-entity config: the entity types rendered as element nodes and\n(for each) which other entity types are shown *inside* those cards.\nReplaces the old flat `inline_entities` so views like Workloads — where\nHost elements inline services but Service elements inline nothing — can\nbe expressed correctly."
+          },
+          "element_marks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ElementMark"
+            },
+            "description": "The colours this view paints on its element cards, each tied to the filter value that\nexplains it. A card shows a classification colour only through one of these, so every\ncolour has a chip in the filter panel whose hover rings the same cards. Per channel, earlier\nmarks win."
+          },
+          "metadata_filters": {
+            "type": "object",
+            "description": "Generic metadata filters keyed by the entity they apply to in this\nview. Applied regardless of the entity's role (container/element/\ninline) — a Service metadata filter renders under the Services\nsection whether Service is an element entity (Workloads/Application)\nor an inline entity (L3).",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/MetadataFilter"
+              }
+            },
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "Organization",
+                "Invite",
+                "Share",
+                "Network",
+                "DaemonApiKey",
+                "UserApiKey",
+                "User",
+                "Tag",
+                "Discovery",
+                "Daemon",
+                "Host",
+                "Service",
+                "Port",
+                "Binding",
+                "IPAddress",
+                "Interface",
+                "Credential",
+                "Subnet",
+                "Vlan",
+                "Dependency",
+                "Topology",
+                "Snapshot",
+                "Unknown"
+              ]
+            }
+          }
+        }
+      },
+      "ViewElementEntityConfig": {
+        "type": "object",
+        "description": "An element-entity slot inside a view, plus the set of entity types that\nrender inline on that element's card. Card rendering (what services/ports\nshow up inside an element) and layout re-trigger fingerprinting both read\nfrom this list.",
+        "required": [
+          "entity_type",
+          "inline_entities"
+        ],
+        "properties": {
+          "entity_type": {
+            "$ref": "#/components/schemas/EntityDiscriminants",
+            "description": "Entity type drawn as an element in this view."
+          },
+          "inline_entities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityDiscriminants"
+            },
+            "description": "Entity types folded into that element rather than drawn separately."
           }
         }
       },

@@ -30,6 +30,7 @@ use crate::server::discovery::handlers::DiscoveryOrderField;
 use crate::server::discovery::r#impl::base::Discovery;
 use crate::server::hosts::handlers::HostOrderField;
 use crate::server::hosts::r#impl::base::Host;
+use crate::server::hosts::r#impl::virtualization::HostVirtualizationState;
 use crate::server::interfaces::r#impl::base::Interface;
 use crate::server::invites::r#impl::base::Invite;
 use crate::server::ip_addresses::r#impl::base::IPAddress;
@@ -51,6 +52,7 @@ use crate::server::subnets::r#impl::base::Subnet;
 use crate::server::tags::handlers::TagOrderField;
 use crate::server::tags::r#impl::base::Tag;
 use crate::server::topology::types::base::Topology;
+use crate::server::topology::types::views::ViewElementConfig;
 use crate::server::user_api_keys::r#impl::base::UserApiKey;
 use crate::server::users::r#impl::base::User;
 use crate::server::vlans::handlers::VlanOrderField;
@@ -111,6 +113,13 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
         // into the schema — but the frontend must derive its union from here
         // rather than hand-maintaining one.
         EntityFreshness,
+        // A view's element hierarchy, filters and element marks. Travels inside the views fixture's
+        // untyped `TypeMetadata.metadata`, so nothing else pulls it into the schema; the topology
+        // types its colour marks and filters from here.
+        ViewElementConfig,
+        // The filter state a host virtualization type files under. Travels inside
+        // `host-virtualizations.json`'s untyped `TypeMetadata.metadata`.
+        HostVirtualizationState,
         // Credential-type release maturity. Travels to the frontend inside the untyped
         // `TypeMetadata.metadata` blob, so nothing else pulls it into the schema — but the
         // frontend must derive its union from here rather than hand-maintaining one.

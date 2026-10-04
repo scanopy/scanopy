@@ -38,9 +38,6 @@
 		 * than for looking right beside text, and they are tokens rather than literals so the dark
 		 * theme gets its own — the first cut hard-coded light values and inverted itself at night.
 		 */
-		--color-topology-lod-nominal: #4ade80;
-		--color-topology-lod-down: #f87171;
-		--color-topology-lod-stale: #fbbf24;
 		--color-topology-lod-unknown: #cbd5e1;
 		--color-topology-lod-stroke: #94a3b8;
 		--color-topology-lod-container: rgba(148, 163, 184, 0.14);
@@ -72,9 +69,6 @@
 
 		/* Reduced-detail palette, against the #15131e canvas. Deeper, so a field of these does not
 		 * glare the way the light values would on a dark ground. */
-		--color-topology-lod-nominal: #22c55e;
-		--color-topology-lod-down: #ef4444;
-		--color-topology-lod-stale: #d97706;
 		--color-topology-lod-unknown: #475569;
 		--color-topology-lod-stroke: #64748b;
 		--color-topology-lod-container: rgba(148, 163, 184, 0.16);

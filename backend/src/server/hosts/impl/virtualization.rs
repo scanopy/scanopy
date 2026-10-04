@@ -482,7 +482,10 @@ mod tests {
         assert!(!reached.contains(&HostVirtualizationState::BareMetal));
         for state in HostVirtualizationState::iter() {
             if state != HostVirtualizationState::BareMetal {
-                assert!(reached.contains(&state), "{state:?} has no virtualization type");
+                assert!(
+                    reached.contains(&state),
+                    "{state:?} has no virtualization type"
+                );
             }
         }
         assert_eq!(

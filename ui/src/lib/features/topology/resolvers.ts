@@ -726,6 +726,26 @@ export function elementEntity(resolved: ElementRenderContext): NodeEntity | unde
 }
 
 /**
+ * The entity a card is judged by for a filter on `entityType`: its own when the filter is on its
+ * type, its host when a Host filter meets an IPAddress or Interface card. The filter-value hover
+ * ring and the view's element marks both read it, so a coloured card is always one the matching
+ * chip rings.
+ */
+export function cardEntityForFilter(
+	resolved: ElementRenderContext,
+	entityType: string
+): NodeEntity | undefined {
+	if (resolved.elementType === entityType) return elementEntity(resolved);
+	if (
+		entityType === 'Host' &&
+		(resolved.elementType === 'IPAddress' || resolved.elementType === 'Interface')
+	) {
+		return resolved.host;
+	}
+	return undefined;
+}
+
+/**
  * The entity a container stands for (a host box, a subnet box), found by its `container_type`
  * and `entity_id`. Grouping containers (categories, tags, stacks) have no entity collection and
  * resolve to `undefined`.

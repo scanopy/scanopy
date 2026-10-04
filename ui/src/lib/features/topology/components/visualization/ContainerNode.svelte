@@ -282,6 +282,21 @@
 			return `box-shadow: 0 0 0 3px ${ch.rgb};`;
 		}
 		if (!currentHoveredTag) return '';
+		// An Application box stands for the app tag it is named after, so hovering that tag's chip
+		// rings the box as well as the services it rings inside it.
+		if (
+			containerType === 'Application' &&
+			currentHoveredTag.tagId !== null &&
+			(data as TopologyNode).node_type === 'Container' &&
+			currentHoveredTag.tagId ===
+				(data as Extract<TopologyNode, { node_type: 'Container' }>).entity_id &&
+			currentHoveredTag.color
+		) {
+			const ch = createColorHelper(
+				currentHoveredTag.color as Parameters<typeof createColorHelper>[0]
+			);
+			return `box-shadow: 0 0 0 3px ${ch.rgb};`;
+		}
 		// Only highlight when the hovered entity type matches this container's
 		// entity type. containerType here is the container_type discriminant
 		// (e.g. 'Subnet', 'Host'), which matches EntityDiscriminants casing.

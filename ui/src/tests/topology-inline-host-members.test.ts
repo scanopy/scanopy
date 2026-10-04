@@ -139,10 +139,13 @@ describe('host metadata hover on inline members', () => {
 		color: 'Amber'
 	});
 
-	it('marks a network identity as virtualized, not bare metal', () => {
+	it('marks a network identity as a network identity, not virtualized or bare metal', () => {
 		const topology = buildTopology();
+		expect(
+			inlineHostsMatching(groups(), hover('NetworkIdentity'), () => undefined, topology)
+		).toEqual(new Set(['mv-1']));
 		expect(inlineHostsMatching(groups(), hover('Virtualized'), () => undefined, topology)).toEqual(
-			new Set(['mv-1'])
+			new Set()
 		);
 		expect(inlineHostsMatching(groups(), hover('BareMetal'), () => undefined, topology)).toEqual(
 			new Set(['mv-2'])
