@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { changedCardIds } from '$lib/features/topology/pipeline/execute-layout';
-import { inlineGroupKey } from '$lib/features/topology/interactions';
+import { inlineGroupKey } from '$lib/features/topology/collapse';
 
 /**
- * Expanding a card's open ports and collapsing one of its manager boxes both change that card's
- * height in place. The re-measure step finds the cards to measure from the keys that changed.
+ * Opening or closing a manager box changes its card's height. The layout finds the cards whose
+ * cached size to drop, before ELK re-runs, from the keys that changed.
  */
 describe('changedCardIds', () => {
 	it('maps a toggled manager box back to its card', () => {

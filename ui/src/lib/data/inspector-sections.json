@@ -85,7 +85,7 @@
     "name": "Contents",
     "description": "What this box holds, counted by type",
     "category": null,
-    "icon": "layers",
+    "icon": "package-open",
     "color": "Gray",
     "metadata": null
   },

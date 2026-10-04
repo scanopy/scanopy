@@ -36,7 +36,8 @@ import { getFreshnessTag } from '$lib/shared/utils/freshness';
 import type { Network } from '$lib/features/networks/types';
 import { get } from 'svelte/store';
 import { activeView, topologyOptions } from './queries';
-import { collapsedInlineGroups, hiddenEntityIds, inlineGroupKey } from './interactions';
+import { hiddenEntityIds } from './interactions';
+import { expandedInlineGroups, inlineGroupKey } from './collapse';
 import { queryClient, queryKeys } from '$lib/api/query-client';
 
 type InlineGroup = components['schemas']['InlineGroup'];
@@ -74,8 +75,8 @@ export interface ElementRenderInputs {
 	options: TopologyOptions;
 	/** Ids of entities hidden by any filter, of any type (`hiddenEntityIds`). */
 	hiddenEntityIds: Set<string>;
-	/** Manager boxes the viewer collapsed, keyed by `inlineGroupKey`. */
-	collapsedInlineGroups: Set<string>;
+	/** Manager boxes that are open, keyed by `inlineGroupKey`; every other box is collapsed. */
+	expandedInlineGroups: Set<string>;
 	/** Networks, for resolving each entity's staleness window. */
 	networks: Network[];
 }
@@ -207,7 +208,7 @@ export function buildElementRender(inputs: ElementRenderInputs): ElementRenderRe
 			topology,
 			hiddenEntityIds,
 			isShown,
-			(groupId) => inputs.collapsedInlineGroups.has(inlineGroupKey(nodeId, groupId))
+			(groupId) => !inputs.expandedInlineGroups.has(inlineGroupKey(nodeId, groupId))
 		);
 		const groupedServiceIds = new Set(
 			inlineGroups.flatMap((g) => [...(g.header ? [g.header] : []), ...g.services]).map((s) => s.id)
@@ -536,7 +537,7 @@ export function currentElementRenderContext(): Omit<
 		activeView: get(activeView),
 		options: get(topologyOptions),
 		hiddenEntityIds: get(hiddenEntityIds),
-		collapsedInlineGroups: get(collapsedInlineGroups),
+		expandedInlineGroups: get(expandedInlineGroups),
 		networks: queryClient.getQueryData<Network[]>(queryKeys.networks.all) ?? []
 	};
 }

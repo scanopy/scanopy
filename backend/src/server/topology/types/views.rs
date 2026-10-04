@@ -464,7 +464,7 @@ impl EntityMetadataProvider for InspectorSection {
     fn icon(&self) -> Icon {
         match self {
             InspectorSection::Identity => Icon::Crosshair,
-            InspectorSection::ElementSummary => Icon::Layers,
+            InspectorSection::ElementSummary => Icon::PackageOpen,
             InspectorSection::IfEntryData => EntityDiscriminants::Interface.icon(),
             InspectorSection::Services => EntityDiscriminants::Service.icon(),
             InspectorSection::Dependencies | InspectorSection::DependencySummary => {
