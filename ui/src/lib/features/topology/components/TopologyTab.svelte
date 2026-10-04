@@ -5,6 +5,9 @@
 	import TopologyViewer from './visualization/TopologyViewer.svelte';
 	import TopologyOptionsPanel from './panel/TopologyOptionsPanel.svelte';
 	import { Camera, Radar, Share2, Trash2 } from 'lucide-svelte';
+	import LiveDot from './LiveDot.svelte';
+	import type { IconComponent } from '$lib/shared/utils/types';
+	import { createColorHelper } from '$lib/shared/utils/styling';
 	import ExportButton from './ExportButton.svelte';
 	import ExportModal from './ExportModal.svelte';
 	import SharesModal from '$lib/features/shares/components/SharesModal.svelte';
@@ -65,7 +68,7 @@
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
 	import { entityBundleFrom, toRenderableTopology } from '$lib/features/topology/enriched';
 	import type { RenderableTopology } from '$lib/features/topology/types/base';
-	import { formatTimestamp, formatDate } from '$lib/shared/utils/formatting';
+	import { formatTimestamp } from '$lib/shared/utils/formatting';
 	import ApplicationSetupWizard from './application-wizard/ApplicationSetupWizard.svelte';
 	import L2EmptyStateOverlay from './L2EmptyStateOverlay.svelte';
 	import ViewFiltersEmptyState from './ViewFiltersEmptyState.svelte';
@@ -85,7 +88,7 @@
 		common_share,
 		common_upgrade,
 		daemons_installPromptTopology,
-		topology_lastScanned,
+		topology_asOf,
 		topology_liveView,
 		topology_noTopologySelected,
 		topology_snapshotDeleteConfirm,
@@ -504,28 +507,45 @@
 		...snapshotsData
 	]);
 
-	// Live view subtitle: when the network was last scanned, derived from the
-	// most recent `last_seen_at` across the live host set (discovery refreshes
-	// it on every observation). Empty when nothing has been scanned yet.
-	let lastScannedDescription = $derived.by(() => {
+	// Live view subtitle: "As of" the most recent `last_seen_at` across the live
+	// host set (discovery refreshes it on every observation). Empty when nothing
+	// has been scanned yet.
+	let asOfDescription = $derived.by(() => {
 		const times = (topologyDataQuery.data?.hosts ?? [])
 			.map((h) => h.last_seen_at)
 			.filter((t): t is string => !!t);
 		if (times.length === 0) return '';
 		const latest = times.reduce((a, b) => (a > b ? a : b));
-		return topology_lastScanned({ date: formatDate(latest) });
+		return topology_asOf({ date: formatTimestamp(latest) });
 	});
 
+	const liveDotColor = createColorHelper('Green').icon;
+	// Wrapped the way `createLogoIconComponent` wraps LogoIcon: icon slots are typed
+	// for Lucide components, which a Svelte 5 component doesn't satisfy directly.
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const LiveDotIcon: IconComponent = ($$payload: any, $$props: any) => LiveDot($$payload, $$props);
+
 	// Override the SnapshotDisplay to render the live-view sentinel with a
-	// localized label and a "last scanned" subtitle rather than a date string.
-	let snapshotDisplayWithLive = $derived({
-		...SnapshotDisplay,
-		getLabel: (s: Snapshot, ctx: object) =>
-			s.id === LIVE_VIEW_SENTINEL ? topology_liveView() : SnapshotDisplay.getLabel(s, ctx),
-		getDescription: (s: Snapshot, ctx: object) =>
-			s.id === LIVE_VIEW_SENTINEL
-				? lastScannedDescription
-				: (SnapshotDisplay.getDescription?.(s, ctx) ?? '')
+	// localized label, a green dot and an "As of" subtitle rather than a date
+	// string. The subtitle is read here, not inside `getDescription`, so the
+	// derived rebuilds when it changes: the trigger's ListSelectItem recomputes
+	// only when its displayComponent changes, and otherwise kept the empty
+	// subtitle from before the hosts loaded while the open list showed it.
+	let snapshotDisplayWithLive = $derived.by(() => {
+		const liveDescription = asOfDescription;
+		return {
+			...SnapshotDisplay,
+			getLabel: (s: Snapshot, ctx: object) =>
+				s.id === LIVE_VIEW_SENTINEL ? topology_liveView() : SnapshotDisplay.getLabel(s, ctx),
+			getDescription: (s: Snapshot, ctx: object) =>
+				s.id === LIVE_VIEW_SENTINEL
+					? liveDescription
+					: (SnapshotDisplay.getDescription?.(s, ctx) ?? ''),
+			getIcon: (s: Snapshot, ctx: object) =>
+				s.id === LIVE_VIEW_SENTINEL ? LiveDotIcon : (SnapshotDisplay.getIcon?.(s, ctx) ?? null),
+			getIconColor: (s: Snapshot, ctx: object) =>
+				s.id === LIVE_VIEW_SENTINEL ? liveDotColor : (SnapshotDisplay.getIconColor?.(s, ctx) ?? '')
+		};
 	});
 
 	function handleSnapshotChange(value: string) {
