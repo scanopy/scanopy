@@ -7,6 +7,7 @@
 import type { components } from '$lib/api/schema';
 import hostOsFamilies from '$lib/data/host-os-families.json';
 import type { DaemonOS } from '$lib/features/daemons/utils';
+import OsIcon from '$lib/features/daemons/components/OsIcon.svelte';
 import {
 	attributeSourceExplanation,
 	type AttributeSource
@@ -29,28 +30,29 @@ export function hostOsLabel(os: HostOs): string {
 	return os.version ? `${name} ${os.version}` : name;
 }
 
-/** How a family's tag draws its icon: the daemon OS icon, a downloaded vendor logo, or a glyph. */
-export type HostOsIcon =
-	{ type: 'daemonOs'; os: DaemonOS } | { type: 'component'; component: IconComponent };
-
-/** The icon for a family, from `host-os-families.json`; nothing here names a family. */
-export function hostOsIcon(family: HostOsFamily): HostOsIcon {
+/**
+ * The icon for a family, from `host-os-families.json`; nothing here names a family. A family the
+ * daemon also runs on draws the daemon OS icon, else the vendor's downloaded logo, else a glyph.
+ */
+export function hostOsIcon(family: HostOsFamily): IconComponent {
 	const entry = hostOsFamilies.find((item) => item.id === family);
 	const meta = entry?.metadata as
 		| { daemon_os?: DaemonOS | null; logo_ext?: string; logo_needs_white_background?: boolean }
 		| undefined;
-	if (meta?.daemon_os) return { type: 'daemonOs', os: meta.daemon_os };
-	if (meta?.logo_ext) {
-		return {
-			type: 'component',
-			component: createLogoIconComponent(
-				entry?.icon ?? null,
-				`/logos/os-families/${family}.${meta.logo_ext}`,
-				!!meta.logo_needs_white_background
-			)
-		};
+	if (meta?.daemon_os) {
+		const os = meta.daemon_os;
+		// Pre-binds the OS, as `createLogoIconComponent` pre-binds the logo.
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		return ($$payload: any, $$props: any) => OsIcon($$payload, { os, ...$$props });
 	}
-	return { type: 'component', component: createIconComponent(entry?.icon ?? null) };
+	if (meta?.logo_ext) {
+		return createLogoIconComponent(
+			entry?.icon ?? null,
+			`/logos/os-families/${family}.${meta.logo_ext}`,
+			!!meta.logo_needs_white_background
+		);
+	}
+	return createIconComponent(entry?.icon ?? null);
 }
 
 /**
