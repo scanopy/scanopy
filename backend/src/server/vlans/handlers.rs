@@ -71,6 +71,9 @@ pub struct VlanFilterQuery {
     /// As-of timestamp (ISO 8601). When set, returns SCD2 state as of this
     /// instant (snapshot view) instead of live state.
     pub at: Option<chrono::DateTime<chrono::Utc>>,
+    /// Free-text search. Case-insensitive substring match against the VLAN ID,
+    /// name and description.
+    pub search: Option<String>,
 }
 
 impl VlanFilterQuery {
@@ -101,7 +104,12 @@ impl FilterQueryExtractor for VlanFilterQuery {
                 filter = filter.uuid_column("site_id", &Uuid::nil());
             }
         }
-        filter
+        // Here rather than in the list handler so the CSV export, which shares
+        // this extractor, exports exactly the rows the search found.
+        match self.search.as_deref() {
+            Some(search) if !search.trim().is_empty() => filter.text_search(search),
+            _ => filter,
+        }
     }
 
     fn pagination(&self) -> PaginationParams {

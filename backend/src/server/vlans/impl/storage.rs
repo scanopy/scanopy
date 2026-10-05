@@ -37,6 +37,15 @@ impl Storable for Vlan {
         "vlans"
     }
 
+    /// The VLAN ID as text, so typing `20` finds VLAN 20 (and 120, 200, ...), plus its name and notes.
+    fn search_predicates() -> &'static [&'static str] {
+        &[
+            "vlans.vlan_number::text ILIKE {}",
+            "vlans.name ILIKE {}",
+            "vlans.description ILIKE {}",
+        ]
+    }
+
     const HAS_SCD2: bool = true;
 
     fn is_live_row(&self) -> bool {

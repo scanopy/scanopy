@@ -1126,6 +1126,10 @@
 	"gettingStarted_stepTopologyLabel": "View your topology",
 	"gettingStarted_title": "Getting Started",
 	"gettingStarted_whileYouWait": "While you wait:",
+	"globalSearch_navigateHint": "↑↓ to move, Enter to open",
+	"globalSearch_noResults": "Nothing matches \"{query}\"",
+	"globalSearch_openWithShortcut": "Search ({shortcut})",
+	"globalSearch_placeholder": "Search hosts, services, subnets, VLANs",
 	"home_demoEmbedSubtitle": "This is a live demo of Scanopy's interactive topology view — you'll have a visual map of your network like this once your first scan completes.",
 	"home_demoEmbedTitle": "Preview: Shareable Network Map",
 	"home_demoNetworkTopology": "Demo network topology",
@@ -2798,5 +2802,6 @@
 	"verifyEmail_verifying": "Verifying your email...",
 	"verifyEmail_verifyingBody": "Please wait while we verify your email address.",
 	"vlans_emptySubtitle": "VLANs are discovered automatically from your network devices.",
+	"vlans_vlanLabel": "VLAN {number}",
 	"vlans_vlanNumber": "VLAN Number"
 }

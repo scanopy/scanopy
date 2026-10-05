@@ -24,18 +24,25 @@
 		LifeBuoy,
 		ArrowUpCircle,
 		Clock,
-		Home
+		Home,
+		Search
 	} from 'lucide-svelte';
+	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
+	import { browser } from '$app/environment';
+	import { globalSearchOpen, shortcutLabel } from '$lib/features/search/results';
 	import { onMount } from 'svelte';
 	import type { Component } from 'svelte';
 	import type { UserOrgPermissions } from '$lib/features/users/types';
 	import type { SubTab } from '$lib/shared/components/layout/ContentSubTabs.svelte';
 	import {
 		common_demo,
+		common_searchPlaceholder,
 		common_upgrade,
 		billing_trialPill,
 		billing_trialPillOneDay,
-		billing_trialPillToday
+		billing_trialPillToday,
+		globalSearch_openWithShortcut,
+		globalSearch_placeholder
 	} from '$lib/paraglide/messages';
 	import {
 		getTrialDaysLeft,
@@ -705,6 +712,9 @@
 		'text-secondary hover:text-primary flex w-full items-center rounded-lg text-xs font-semibold uppercase tracking-wide transition-colors hover:bg-gray-100/50 dark:hover:bg-gray-800/50';
 
 	const baseClasses = 'flex w-full items-center rounded-lg font-medium transition-colors';
+
+	/** The palette's shortcut as this platform spells it. */
+	const searchShortcut = shortcutLabel(browser ? navigator.platform : '');
 </script>
 
 <div
@@ -731,6 +741,24 @@
 				<div class="mt-2 flex justify-center">
 					<Tag label={common_demo()} color="Yellow" />
 				</div>
+			{/if}
+			<!-- Global search. Collapsed, the bar shrinks to its icon and the shortcut moves to the
+			     tooltip, the way every other collapsed sidebar item keeps its label. -->
+			{#if mainAppAvailable && !mainAppLocked}
+				<button
+					type="button"
+					onclick={() => globalSearchOpen.set(true)}
+					class="{inactiveButtonClass} mt-2 flex w-full items-center gap-2 rounded-lg text-sm"
+					style="height: 2rem; padding: 0.375rem 0.75rem;"
+					title={collapsed ? globalSearch_openWithShortcut({ shortcut: searchShortcut }) : ''}
+					aria-label={globalSearch_placeholder()}
+				>
+					<Search class="h-4 w-4 flex-shrink-0" />
+					{#if !collapsed}
+						<span class="flex-1 truncate text-left">{common_searchPlaceholder()}</span>
+						<KbdKey key={searchShortcut} size="sm" />
+					{/if}
+				</button>
 			{/if}
 		</div>
 

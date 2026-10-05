@@ -45,6 +45,16 @@ impl Storable for Subnet {
         "subnets"
     }
 
+    /// The columns the subnet list shows: a range is found by its name, its CIDR as typed, or the
+    /// notes on it.
+    fn search_predicates() -> &'static [&'static str] {
+        &[
+            "subnets.name ILIKE {}",
+            "subnets.cidr ILIKE {}",
+            "subnets.description ILIKE {}",
+        ]
+    }
+
     const HAS_SCD2: bool = true;
 
     fn is_live_row(&self) -> bool {

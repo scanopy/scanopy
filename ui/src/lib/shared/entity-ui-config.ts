@@ -20,6 +20,7 @@ import { BindingDisplay } from '$lib/shared/components/forms/selection/display/B
 import { UserDisplay } from '$lib/shared/components/forms/selection/display/UserDisplay.svelte';
 import { DiscoveryDisplay } from '$lib/shared/components/forms/selection/display/DiscoveryDisplay.svelte';
 import { PortDisplay } from '$lib/shared/components/forms/selection/display/PortDisplay.svelte';
+import { VlanDisplay } from '$lib/shared/components/forms/selection/display/VlanDisplay.svelte';
 
 export interface EntityUIConfig {
 	tabId: string;
@@ -77,8 +78,8 @@ export const entityUIConfig: Record<EntityDiscriminants, EntityUIConfig | null> 
 		parentIdField: 'host_id',
 		modalTab: 'interfaces'
 	},
-	// View-only tab: no edit modal, so no `modalName` / `displayComponent`.
-	Vlan: { tabId: 'vlans' },
+	// View-only tab: no edit modal, so no `modalName`. Navigating to a VLAN opens its tab.
+	Vlan: { tabId: 'vlans', displayComponent: VlanDisplay },
 	Port: {
 		tabId: 'hosts',
 		displayComponent: PortDisplay,

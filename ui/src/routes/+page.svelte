@@ -5,6 +5,7 @@
 	import AppBanners from '$lib/shared/components/feedback/AppBanners.svelte';
 	import TrialExpiryModal from '$lib/shared/components/feedback/TrialExpiryModal.svelte';
 	import Sidebar from '$lib/shared/components/layout/Sidebar.svelte';
+	import GlobalSearch from '$lib/shared/components/layout/GlobalSearch.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import { discoverySSEManager } from '$lib/features/discovery/queries';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
@@ -397,6 +398,11 @@
 	</div>
 
 	<TrialExpiryModal />
+
+	<!-- Searches routes a locked org is rejected from, so only with the main app. -->
+	{#if mainAppAvailable}
+		<GlobalSearch />
+	{/if}
 
 	<!-- Billing modal rendered last so it stacks on top of other modals -->
 	<BillingPlanModal

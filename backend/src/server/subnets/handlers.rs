@@ -91,6 +91,9 @@ pub struct SubnetFilterQuery {
     /// site's staleness window; `false` returns only those it has. Omit for
     /// both. Evaluated per row against the subnet's own site's window.
     pub stale: Option<bool>,
+    /// Free-text search. Case-insensitive substring match against the subnet's
+    /// name, CIDR and description.
+    pub search: Option<String>,
 }
 
 impl SubnetFilterQuery {
@@ -116,10 +119,16 @@ impl FilterQueryExtractor for SubnetFilterQuery {
         user_site_ids: &[Uuid],
         _user_organization_id: Uuid,
     ) -> StorableFilter<T> {
-        match self.site_id {
+        let filter = match self.site_id {
             Some(id) if user_site_ids.contains(&id) => filter.site_ids(&[id]),
             Some(_) => filter.site_ids(&[]), // User doesn't have access - return empty
             None => filter.site_ids(user_site_ids),
+        };
+        // Here rather than in the list handler so the CSV export, which shares
+        // this extractor, exports exactly the rows the search found.
+        match self.search.as_deref() {
+            Some(search) if !search.trim().is_empty() => filter.text_search(search),
+            _ => filter,
         }
     }
 
