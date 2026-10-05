@@ -30,6 +30,7 @@
 	import { createChangeTracker, sameOrder } from './controls/changeTracker';
 	import {
 		groupItems as groupItemsBy,
+		arrangeTree,
 		computeGroupOffsets,
 		serverGroupKey as serverGroupKeyOf
 	} from './controls/grouping';
@@ -455,13 +456,50 @@
 		// A server-paginated page arrives in the server's group order, which the
 		// cumulative offsets from `serverGroupCounts` are indexed by, so its
 		// buckets keep that order.
-		return groupItemsBy(
+		const groups = groupItemsBy(
 			processedItems,
 			fields,
 			activeGroupField,
 			{ ungrouped: common_ungrouped(), yes: common_yes(), no: common_no() },
 			serverGroupCounts !== null || useServerPagination
 		);
+
+		// A tree field's groups render parent-first, so arrange each one here, where the order is
+		// decided, rather than in the renderers.
+		if (!activeTree) return groups;
+		const { tree, compare } = activeTree;
+		const arranged = new SvelteMap<string, T[]>();
+		for (const [name, rows] of groups) {
+			arranged.set(name, arrangeTree(rows, tree, useServerPagination, compare).items);
+		}
+		return arranged;
+	});
+
+	/** The active group field, when its groups are trees. */
+	let activeTree = $derived.by(() => {
+		const field = fields.find((f) => getFieldKey(f) === activeGroupField);
+		return field?.tree ? { tree: field.tree, compare: field.compare } : null;
+	});
+
+	/** Every grouped row's depth under the active tree grouping, keyed by `tree.key`. */
+	let treeDepths = $derived.by(() => {
+		const depths = new Map<string, number>();
+		if (!activeTree) return depths;
+		const { tree, compare } = activeTree;
+		for (const rows of groupedItems.values()) {
+			for (const [key, depth] of arrangeTree(rows, tree, useServerPagination, compare).depths) {
+				depths.set(key, depth);
+			}
+		}
+		return depths;
+	});
+
+	/** A row's indent under the active tree grouping, or `null` when the grouping isn't a tree. */
+	let depthOf = $derived.by(() => {
+		if (!activeTree) return null;
+		const { tree } = activeTree;
+		const depths = treeDepths;
+		return (item: T) => depths.get(tree.key(item)) ?? 0;
 	});
 
 	let groupOffsets = $derived(computeGroupOffsets(serverGroupCounts));
@@ -933,6 +971,7 @@
 		<CardGrid
 			items={hasActiveGrouping ? null : paginatedItems}
 			groups={hasActiveGrouping ? groupList : null}
+			{depthOf}
 			{getItemId}
 			card={cardFor}
 		/>
@@ -969,6 +1008,7 @@
 	<EntityTable
 		items={rows}
 		groups={rows ? null : groupList}
+		depthOf={rows ? null : depthOf}
 		columns={renderedColumns}
 		columnSizing={columnState.sizing}
 		onColumnSizingChange={resizeColumns}

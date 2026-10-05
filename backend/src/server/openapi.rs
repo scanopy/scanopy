@@ -49,6 +49,7 @@ use crate::server::sites::r#impl::Site;
 use crate::server::snapshots::types::base::Snapshot;
 use crate::server::subnets::handlers::SubnetOrderField;
 use crate::server::subnets::r#impl::base::Subnet;
+use crate::server::subnets::r#impl::nesting::SubnetResponse;
 use crate::server::tags::handlers::TagOrderField;
 use crate::server::tags::r#impl::base::Tag;
 use crate::server::topology::types::base::Topology;
@@ -137,6 +138,9 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
         CredentialOsFields,
         // Referenced by the install-command query parameter, so it needs a registered schema.
         InstallCommandType,
+        // The subnet list and get-by-id body. Inlined into the generic envelopes, so registered by
+        // name for the frontend to type its rows from.
+        SubnetResponse,
         // Referenced by the credential-list `?type` filter, which utoipa collects from
         // `IntoParams` without registering the schema it points at.
         CredentialTypeDiscriminants,

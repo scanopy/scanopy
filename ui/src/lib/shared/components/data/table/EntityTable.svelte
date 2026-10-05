@@ -26,6 +26,7 @@
 	} from './columns';
 	import { displaySettings } from '$lib/shared/stores/display-settings.svelte';
 	import FieldValue from '../FieldValue.svelte';
+	import TreeIndent from '../TreeIndent.svelte';
 	import { tooltip } from '$lib/shared/actions/tooltip';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { getFieldValue } from '../controls/fieldValues';
@@ -44,6 +45,7 @@
 	let {
 		items,
 		groups = null,
+		depthOf = null,
 		columns,
 		columnSizing,
 		onColumnSizingChange,
@@ -68,6 +70,11 @@
 		 * column widths, which is what makes groups comparable.
 		 */
 		groups: { name: string; items: T[]; range: GroupSlice | null }[] | null;
+		/**
+		 * Each row's depth when the groups are trees, which indents its primary cell. Null
+		 * otherwise. The groups' rows already arrive parent-first.
+		 */
+		depthOf?: ((item: T) => number) | null;
 		columns: EntityColumn<T>[];
 		/** Widths the user resized columns to, in px. Owned and persisted by the caller. */
 		columnSizing: Record<string, number>;
@@ -464,9 +471,18 @@
 						scope="row"
 						class="text-primary px-[var(--cell-px)] py-[var(--cell-py)] text-left align-middle font-medium"
 					>
-						<div style={contentMaxWidth(column)}>
-							<FieldValue {item} {column} />
-						</div>
+						{#if depthOf}
+							<div class="flex items-center gap-1.5" style={contentMaxWidth(column)}>
+								<TreeIndent depth={depthOf(item)} />
+								<div class="min-w-0">
+									<FieldValue {item} {column} />
+								</div>
+							</div>
+						{:else}
+							<div style={contentMaxWidth(column)}>
+								<FieldValue {item} {column} />
+							</div>
+						{/if}
 					</th>
 				{:else}
 					<td

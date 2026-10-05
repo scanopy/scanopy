@@ -189,6 +189,28 @@ export interface DisplayConfig<T> {
 }
 
 /**
+ * How the rows of a group nest, for a groupable field whose groups are trees: subnets inside the
+ * range that contains them, guests under the host that runs them.
+ *
+ * When the list is grouped by that field, each group renders parent before children, with every
+ * row's primary cell indented by its depth.
+ *
+ * - On a list holding every row, the table derives both: it orders each group parent-first from
+ *   `parentKey` (siblings by the field's `compare`, else in the current sort) and counts depth
+ *   from the group's own roots. A row whose parent is filtered out becomes a root.
+ * - On a server-paginated list a parent can sit on another page, so neither can be derived here.
+ *   The server must return each group's rows parent-first, and `depth` is required.
+ */
+export interface TreeConfig<T> {
+	/** The row's identity, as `parentKey` refers to it. */
+	key: (item: T) => string;
+	/** The identity of the row this one nests under, or `null` for a top-level row. */
+	parentKey: (item: T) => string | null;
+	/** The row's depth as the server computed it. Required on a server-paginated list. */
+	depth?: (item: T) => number;
+}
+
+/**
  * Base configuration shared by all field types.
  */
 interface BaseFieldConfig<T> {
@@ -228,6 +250,16 @@ interface BaseFieldConfig<T> {
 	getGroupValue?: (item: T) => string | null;
 	/** Default checked values for the filter (applied on first load if no localStorage state). */
 	filterDefaults?: string[];
+	/**
+	 * Orders two items for a client-side sort on this field, ascending, in place of comparing
+	 * `getValue` as text. For values whose text order is wrong, like a CIDR, where "10.0.16.0/20"
+	 * would otherwise land before "10.0.2.0/24".
+	 */
+	compare?: (a: T, b: T) => number;
+	/**
+	 * Grouping by this field draws each group as an indented tree. See {@link TreeConfig}.
+	 */
+	tree?: TreeConfig<T>;
 	/**
 	 * This column carries the list's "Stale only" toggle. Staleness is a
 	 * server-side constraint rather than a value filter, so it has no field of

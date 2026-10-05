@@ -1,14 +1,16 @@
 <script lang="ts">
 	import { lastSeenItems } from '$lib/shared/utils/freshness';
 	import { cidrSourceItems, isProvisionalCidr } from '$lib/shared/utils/cidr-source';
-	import { cidrContains } from '$lib/shared/utils/cidr';
+	import { cidrContains, compareCidr } from '$lib/shared/utils/cidr';
+	import SubnetUtilization from './SubnetUtilization.svelte';
+	import { nestingItems, subnetNesting, utilizationRatio } from '../nesting';
 	import SubnetEditModal from './SubnetEditModal/SubnetEditModal.svelte';
 	import ProvisionalRangeModal from './ProvisionalRangeModal.svelte';
 	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import type { Subnet } from '../types/base';
+	import type { Subnet, SubnetResponse } from '../types/base';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
 	import { defineFields, entityRef, type CardAction } from '$lib/shared/components/data/types';
 	import { tagNames } from '$lib/features/tags/columns';
@@ -56,8 +58,10 @@
 		common_updated,
 		daemons_installPromptSubnets,
 		subnets_managedBy,
+		common_range,
 		subnets_resolveRange,
-		subnets_subnetType
+		subnets_subnetType,
+		common_utilization
 	} from '$lib/paraglide/messages';
 	import { hasDaemon } from '$lib/shared/onboarding/checklist';
 	import { concepts, entitySources, subnetTypes } from '$lib/shared/stores/metadata';
@@ -106,6 +110,8 @@
 	let sitesData = $derived(sitesQuery.data ?? []);
 	let runtimesData = $derived(runtimesQuery.data ?? []);
 	let discoveryRunsData = $derived(discoveryRunsQuery.data ?? []);
+
+	let nesting = $derived(subnetNesting(subnetsData));
 
 	function runtimeOf(subnet: Subnet): Service | undefined {
 		return runtimesData.find((s) => s.id === subnet.virtualization_service_id);
@@ -314,7 +320,7 @@
 	// Define field configuration for the DataTableControls
 	// Uses defineFields to ensure all SubnetOrderField values are covered
 	let subnetFields = $derived(
-		defineFields<Subnet, SubnetOrderField>(
+		defineFields<SubnetResponse, SubnetOrderField>(
 			{
 				// Identity fields: grouping by one would render a header per subnet.
 				name: {
@@ -329,6 +335,9 @@
 					type: 'string',
 					searchable: true,
 					groupable: false,
+					// Address order, not text order, which is also the tree order: each range sorts
+					// directly before the ranges inside it.
+					compare: (a, b) => compareCidr(a.cidr, b.cidr),
 					display: { order: 3, getItems: cidrSourceItems() }
 				},
 				subnet_type: {
@@ -374,6 +383,35 @@
 				}
 			},
 			[
+				{
+					key: 'utilization',
+					label: common_utilization(),
+					type: 'string',
+					sortable: true,
+					getValue: (subnet) => `${Math.round(utilizationRatio(subnet) * 100)}%`,
+					compare: (a, b) => utilizationRatio(a) - utilizationRatio(b),
+					display: { order: 5, cell: utilizationCell }
+				},
+				{
+					// Groups each range with every range nested inside it, drawn as a tree. A subnet
+					// that nests with nothing has no value, so it falls in the ungrouped bucket.
+					key: 'range',
+					label: common_range(),
+					type: 'string',
+					groupable: true,
+					getValue: (subnet) => {
+						const root = nesting.rootOf(subnet);
+						return root.id !== subnet.id || nesting.childrenOf(subnet.id).length > 0
+							? root.cidr
+							: null;
+					},
+					compare: (a, b) => compareCidr(a.cidr, b.cidr),
+					tree: {
+						key: (subnet) => subnet.id,
+						parentKey: (subnet) => subnet.parent_subnet_id ?? null
+					},
+					display: { order: 6, getItems: (subnet) => nestingItems(subnet, nesting) }
+				},
 				{
 					key: 'description',
 					label: common_description(),
@@ -452,6 +490,10 @@
 		)
 	);
 </script>
+
+{#snippet utilizationCell(subnet: SubnetResponse)}
+	<SubnetUtilization {subnet} />
+{/snippet}
 
 <div class="space-y-6">
 	<!-- Header -->

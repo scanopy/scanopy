@@ -290,7 +290,7 @@
 	function interfacedSubnets(daemon: Daemon): Subnet[] {
 		return daemon.interfaced_subnet_ids
 			.map((id) => subnetsData.find((subnet) => subnet.id === id))
-			.filter((subnet): subnet is Subnet => subnet !== undefined);
+			.filter((subnet) => subnet !== undefined);
 	}
 
 	// CSV export handler

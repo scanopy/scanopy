@@ -225,6 +225,22 @@ where
             .collect())
     }
 
+    /// [`Self::count_by_group`], counting distinct values of `distinct_sql` per group.
+    async fn count_distinct_by_group(
+        &self,
+        filter: StorableFilter<T>,
+        group_sql: &str,
+        distinct_sql: &str,
+    ) -> Result<Vec<GroupCount>, anyhow::Error> {
+        Ok(self
+            .storage()
+            .count_distinct_by_group(filter, group_sql, distinct_sql)
+            .await?
+            .into_iter()
+            .map(GroupCount::from)
+            .collect())
+    }
+
     /// Count rows for an organization. Same SCD2-aware live narrowing as
     /// [`count_for_sites`].
     async fn count_for_org(&self, organization_id: &Uuid) -> Result<u64, anyhow::Error> {

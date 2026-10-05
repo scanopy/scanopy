@@ -322,7 +322,17 @@ const DECISIONS: Record<string, TabDecisions> = {
 			managed_by: YES,
 			first_found_by: FOUND_BY,
 			last_found_by: FOUND_BY,
-			tags: SHARED_ARRAY
+			tags: SHARED_ARRAY,
+			utilization: {
+				sort: true,
+				group: 'A percentage; every value would be its own group',
+				filter: 'A percentage; sort finds the fullest'
+			},
+			range: {
+				sort: 'Sort by CIDR orders ranges the same way',
+				group: true,
+				filter: 'Group by range shows each one'
+			}
 		}
 	},
 	'credentials/components/CredentialsTab.svelte': {

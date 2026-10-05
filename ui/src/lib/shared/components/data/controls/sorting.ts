@@ -23,6 +23,11 @@ export function compareByField<T>(
 	field: FieldConfig<T>,
 	direction: SortDirection
 ): number {
+	if (field.compare) {
+		const comparison = field.compare(a, b);
+		return direction === 'asc' ? comparison : -comparison;
+	}
+
 	const aVal = getFieldValue(a, field);
 	const bVal = getFieldValue(b, field);
 
