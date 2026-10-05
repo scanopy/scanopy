@@ -17,7 +17,7 @@
 	import { containerTypes, entities } from '$lib/shared/stores/metadata';
 	import { activeView } from '$lib/features/topology/queries';
 	import InspectorSection from '../shared/InspectorSection.svelte';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 
 	let {
 		node,
@@ -54,10 +54,10 @@
 
 	// For Interface elements: show the interface
 	let thisIPAddress = $derived(elementContext?.ipAddress ?? null);
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	let interfaceDisplayContext = $derived({
 		subnets: topology.subnets,
-		networks: networksQuery.data ?? [],
+		sites: sitesQuery.data ?? [],
 		compact: true
 	});
 
@@ -81,8 +81,8 @@
 	let thisInterface = $derived.by(() => {
 		if (elementContext?.elementType !== 'Interface') return null;
 		const nodeData = node.data as TopologyNode;
-		const ifEntryId = 'interface_id' in nodeData ? (nodeData.interface_id as string) : undefined;
-		return ifEntryId ? (topology.interfaces.find((e) => e.id === ifEntryId) ?? null) : null;
+		const interfaceId = 'interface_id' in nodeData ? (nodeData.interface_id as string) : undefined;
+		return interfaceId ? (topology.interfaces.find((e) => e.id === interfaceId) ?? null) : null;
 	});
 
 	// For Host containers: resolve via entity_id on the container node

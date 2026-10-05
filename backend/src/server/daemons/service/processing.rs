@@ -8,7 +8,7 @@ use crate::server::daemons::r#impl::api::ScannedEntityIds;
 ///
 /// Well inside the daemon's own 30s request timeout (`daemon/shared/api_client.rs`), leaving room
 /// for the rest of `update_session`. Insurance whose value is that it never fires: resolution reads
-/// the network once rather than querying per neighbour, so the pass is far from this on any network
+/// the site once rather than querying per neighbour, so the pass is far from this on any network
 /// measured -- but a pathological one must degrade to a reported gap, not to a lost scan record.
 const RESOLUTION_BUDGET: std::time::Duration = std::time::Duration::from_secs(10);
 use crate::server::interfaces::r#impl::base::InterfaceDataComplete;
@@ -121,21 +121,21 @@ impl DaemonService {
         }
     }
 
-    /// The network's live subnets, sent with a dispatch so the daemon can resolve a scan that
+    /// The site's live subnets, sent with a dispatch so the daemon can resolve a scan that
     /// names subnets by id. A ServerPoll daemon has no way to ask for them itself.
     ///
     /// A failure here is not worth refusing the dispatch over: the scan either names no subnets,
     /// in which case the daemon reads its own interfaces, or it names some and fails with a
     /// message about them.
-    pub(crate) async fn network_subnets(&self, network_id: Uuid) -> Vec<Subnet> {
-        let filter = StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live();
+    pub(crate) async fn site_subnets(&self, site_id: Uuid) -> Vec<Subnet> {
+        let filter = StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live();
         match self.subnet_service.get_all(filter).await {
             Ok(subnets) => subnets,
             Err(e) => {
                 tracing::warn!(
-                    network_id = %network_id,
+                    site_id = %site_id,
                     error = %e,
-                    "Could not read the network's subnets for a discovery dispatch"
+                    "Could not read the site's subnets for a discovery dispatch"
                 );
                 Vec::new()
             }
@@ -218,11 +218,7 @@ impl DaemonService {
         if was_pre_unified
             && supports_unified_discovery(Some(&version))
             && let Err(e) = self
-                .migrate_discoveries_to_unified(
-                    daemon_id,
-                    daemon.base.host_id,
-                    daemon.base.network_id,
-                )
+                .migrate_discoveries_to_unified(daemon_id, daemon.base.host_id, daemon.base.site_id)
                 .await
         {
             tracing::warn!(
@@ -237,19 +233,19 @@ impl DaemonService {
         let filter = StorableFilter::new_from_uuid_column("daemon_id", &daemon_id).live_configs();
         let existing_discoveries = self.discovery_service.get_all(filter).await?;
         if existing_discoveries.is_empty() {
-            let network = self
-                .network_service
-                .get_by_id(&daemon.base.network_id)
+            let site = self
+                .site_service
+                .get_by_id(&daemon.base.site_id)
                 .await?
-                .ok_or_else(|| ApiError::entity_not_found::<Network>(daemon.base.network_id))?;
+                .ok_or_else(|| ApiError::entity_not_found::<Site>(daemon.base.site_id))?;
             let organization = self
                 .organization_service
-                .get_by_id(&network.base.organization_id)
+                .get_by_id(&site.base.organization_id)
                 .await?
                 .ok_or_else(|| {
                     ApiError::entity_not_found::<
                         crate::server::organizations::r#impl::base::Organization,
-                    >(network.base.organization_id)
+                    >(site.base.organization_id)
                 })?;
             let is_free_plan = organization.base.plan.map(|p| p.is_free()).unwrap_or(true);
             // Reconnect safety-net (discoveries were deleted): no registration request is in
@@ -257,7 +253,7 @@ impl DaemonService {
             // with empty targeting; the daemon re-registering restores its integration_targets.
             self.create_default_discovery_jobs(
                 daemon_id,
-                daemon.base.network_id,
+                daemon.base.site_id,
                 daemon.base.host_id,
                 is_free_plan,
                 &[],
@@ -285,25 +281,21 @@ impl DaemonService {
             .get()
             .ok_or_else(|| ApiError::internal_error("HostService not initialized"))?;
 
-        // Resolve the network from the authenticated key rather than trusting the
-        // request body. A provisioned DaemonPoll daemon starts without a network_id
+        // Resolve the site from the authenticated key rather than trusting the
+        // request body. A provisioned DaemonPoll daemon starts without a site_id
         // and sends nil; the server derives it from the 1:1 key. For a legacy
-        // shared-key daemon the key's network equals request.network_id, so this is
-        // a no-op there (and it stops a daemon claiming a network its key can't reach).
-        let effective_network_id = auth
-            .network_ids()
-            .first()
-            .copied()
-            .unwrap_or(request.network_id);
+        // shared-key daemon the key's site equals request.site_id, so this is
+        // a no-op there (and it stops a daemon claiming a site its key can't reach).
+        let effective_site_id = auth.site_ids().first().copied().unwrap_or(request.site_id);
 
         // Check if this is a demo organization - block daemon registration
-        let network = self
-            .network_service
-            .get_by_id(&effective_network_id)
+        let site = self
+            .site_service
+            .get_by_id(&effective_site_id)
             .await?
-            .ok_or_else(|| ApiError::entity_not_found::<Network>(effective_network_id))?;
+            .ok_or_else(|| ApiError::entity_not_found::<Site>(effective_site_id))?;
 
-        let org_id = network.base.organization_id;
+        let org_id = site.base.organization_id;
         let organization =
             self.organization_service
                 .get_by_id(&org_id)
@@ -398,7 +390,7 @@ impl DaemonService {
             // milestone here too, or the org never records FirstDaemonRegistered and the UI
             // keeps showing "install a daemon" while discovery actually runs. Idempotent: the
             // emit is guarded by org.not_onboarded, so restarts don't re-fire it.
-            self.emit_first_daemon_telemetry(updated_daemon.id, updated_daemon.base.network_id)
+            self.emit_first_daemon_telemetry(updated_daemon.id, updated_daemon.base.site_id)
                 .await?;
 
             // Migrate legacy discoveries if daemon just upgraded to unified-capable version
@@ -408,7 +400,7 @@ impl DaemonService {
                     .migrate_discoveries_to_unified(
                         existing_daemon.id,
                         existing_daemon.base.host_id,
-                        existing_daemon.base.network_id,
+                        existing_daemon.base.site_id,
                     )
                     .await
             {
@@ -432,7 +424,7 @@ impl DaemonService {
         // an existing record, something is wrong (unprovisioned, or a key that doesn't
         // match the daemon) — creating a second record here is the bug testers hit on
         // re-install. Reject instead. Self-registration below is a back-compat path for
-        // legacy (< 0.17.5) daemons that join with a shared network key.
+        // legacy (< 0.17.5) daemons that join with a shared site key.
         if supports_server_provisioned_identity(daemon_version.as_ref()) {
             // Coded (not bad_request) so the daemon can recognize this as a terminal
             // registration rejection and stop retrying it as if the server were unreachable.
@@ -444,7 +436,7 @@ impl DaemonService {
 
         // New registration - create host and daemon
         let mut dummy_host = Host::new(HostBase {
-            network_id: effective_network_id,
+            site_id: effective_site_id,
             // Placeholder identity: the daemon's own reported name, applied below as an
             // unattributed name. That ranks as a guess, so the hostname the daemon later reports
             // for itself titles the host instead.
@@ -498,7 +490,7 @@ impl DaemonService {
         // Seed the daemon host's loopback so a daemon-host socket/proxy credential is probed on the
         // very first scan (the credential mapping is snapshotted before the daemon self-reports).
         if let Err(e) = host_service
-            .seed_loopback(host_response.id, effective_network_id, auth.clone())
+            .seed_loopback(host_response.id, effective_site_id, auth.clone())
             .await
         {
             tracing::warn!(host_id = %host_response.id, error = %e, "Failed to seed daemon host loopback");
@@ -546,7 +538,7 @@ impl DaemonService {
 
         let mut daemon = Daemon::new(DaemonBase {
             host_id: host_response.id,
-            network_id: effective_network_id,
+            site_id: effective_site_id,
             // DaemonPoll mode: URL not needed (server never connects to daemon)
             // ServerPoll mode: URL is set during provisioning, not during registration
             url: String::new(),
@@ -568,14 +560,14 @@ impl DaemonService {
         let registered_daemon = self.create(daemon, auth.clone()).await?;
 
         // Send telemetry event if this is the organization's first daemon
-        self.emit_first_daemon_telemetry(registered_daemon.id, registered_daemon.base.network_id)
+        self.emit_first_daemon_telemetry(registered_daemon.id, registered_daemon.base.site_id)
             .await?;
 
         // Create default discovery jobs
         let is_free_plan = plan.is_free();
         self.create_default_discovery_jobs(
             effective_daemon_id,
-            effective_network_id,
+            effective_site_id,
             host_response.id,
             is_free_plan,
             &request.integration_targets,
@@ -606,7 +598,7 @@ impl DaemonService {
             "Updating daemon interfaced subnets (legacy capabilities channel)",
         );
 
-        // Confirm the daemon exists (auth already scoped it to the caller's network).
+        // Confirm the daemon exists (auth already scoped it to the caller's site).
         if self.get_by_id(&daemon_id).await?.is_none() {
             return Err(ApiError::entity_not_found::<Daemon>(daemon_id));
         }
@@ -629,7 +621,7 @@ impl DaemonService {
     /// attributed or reported it had already run. It got no discovery FKs and never appeared in the
     /// digest, despite being a device that scan found.
     ///
-    /// The cost is that this request now waits for a network-wide resolution pass. That is the
+    /// The cost is that this request now waits for a site-wide resolution pass. That is the
     /// deliberate trade: the scan record is written before the daemon is acknowledged, so a failure
     /// here is one the daemon sees and can retry, rather than a session silently lost after a
     /// successful ack.
@@ -730,7 +722,7 @@ impl DaemonService {
             .push(DiscoveryWarning::OutdatedDaemonFormat { daemon_version });
     }
 
-    /// Resolve this network's neighbours and fold what that produced into the terminal payload.
+    /// Resolve this site's neighbours and fold what that produced into the terminal payload.
     ///
     /// Never fails the caller. Link resolution is post-scan enrichment; losing some links is a bad
     /// outcome, and losing the scan record itself because enrichment failed is a far worse one — so
@@ -756,11 +748,11 @@ impl DaemonService {
         let started = std::time::Instant::now();
         let outcome = tokio::time::timeout(
             RESOLUTION_BUDGET,
-            host_service.resolve_lldp_links(update.network_id, scan_time, &run),
+            host_service.resolve_lldp_links(update.site_id, scan_time, &run),
         )
         .await;
 
-        // Labelled by protocol only: this is one pass per completed session, and a network or
+        // Labelled by protocol only: this is one pass per completed session, and a site or
         // session label would make the series unbounded for a number whose whole use is the
         // distribution.
         metrics::histogram!("scanopy_link_resolution_duration_seconds", "protocol" => "lldp")
@@ -779,7 +771,7 @@ impl DaemonService {
             }
             Ok(Err(e)) => tracing::warn!(
                 session_id = %update.session_id,
-                network_id = %update.network_id,
+                site_id = %update.site_id,
                 error = %e,
                 "Neighbour resolution failed; finalizing the session without its findings"
             ),
@@ -792,11 +784,11 @@ impl DaemonService {
             // indistinguishable from a network that has none.
             Err(_) => {
                 let neighbours = host_service
-                    .neighbour_bearing_interface_count(update.network_id)
+                    .neighbour_bearing_interface_count(update.site_id)
                     .await;
                 tracing::warn!(
                     session_id = %update.session_id,
-                    network_id = %update.network_id,
+                    site_id = %update.site_id,
                     budget_seconds = RESOLUTION_BUDGET.as_secs(),
                     neighbours,
                     "Neighbour resolution exceeded its budget; finalizing the session without it"
@@ -820,7 +812,7 @@ impl DaemonService {
         let fdb_started = std::time::Instant::now();
         let fdb_outcome = tokio::time::timeout(
             RESOLUTION_BUDGET,
-            host_service.resolve_fdb_links(update.network_id, scan_time),
+            host_service.resolve_fdb_links(update.site_id, scan_time),
         )
         .await;
 
@@ -833,17 +825,17 @@ impl DaemonService {
             Ok(Ok(_)) => {}
             Ok(Err(e)) => tracing::warn!(
                 session_id = %update.session_id,
-                network_id = %update.network_id,
+                site_id = %update.site_id,
                 error = %e,
                 "FDB link resolution failed; finalizing the session without its findings"
             ),
             Err(_) => {
                 let interfaces = host_service
-                    .unresolved_fdb_interface_count(update.network_id)
+                    .unresolved_fdb_interface_count(update.site_id)
                     .await;
                 tracing::warn!(
                     session_id = %update.session_id,
-                    network_id = %update.network_id,
+                    site_id = %update.site_id,
                     budget_seconds = RESOLUTION_BUDGET.as_secs(),
                     interfaces,
                     "FDB link resolution exceeded its budget; finalizing the session without it"
@@ -886,11 +878,11 @@ impl DaemonService {
                 .await;
         }
 
-        // Compute host limit context from the first host's network → org → plan
+        // Compute host limit context from the first host's site → org → plan
         let limit_ctx = if let Some(first_host) = entities.hosts.first() {
-            let network_id = first_host.host.base.network_id;
-            if let Ok(Some(network)) = self.network_service.get_by_id(&network_id).await {
-                let org_id = network.base.organization_id;
+            let site_id = first_host.host.base.site_id;
+            if let Ok(Some(site)) = self.site_service.get_by_id(&site_id).await {
+                let org_id = site.base.organization_id;
                 let plan = self
                     .organization_service
                     .get_by_id(&org_id)
@@ -898,16 +890,16 @@ impl DaemonService {
                     .and_then(|o| o.base.plan)
                     .unwrap_or_else(crate::server::billing::plans::get_free_plan);
                 if let Some(limit) = plan.host_limit() {
-                    let org_networks = self
-                        .network_service
-                        .get_all(StorableFilter::<Network>::new_from_org_id(&org_id))
+                    let org_sites = self
+                        .site_service
+                        .get_all(StorableFilter::<Site>::new_from_org_id(&org_id))
                         .await
                         .unwrap_or_default();
-                    let org_network_ids: Vec<Uuid> = org_networks.iter().map(|n| n.id).collect();
+                    let org_site_ids: Vec<Uuid> = org_sites.iter().map(|n| n.id).collect();
                     Some(HostLimitContext {
                         limit,
                         org_id,
-                        org_network_ids,
+                        org_site_ids,
                         plan,
                     })
                 } else {
@@ -1019,10 +1011,10 @@ impl DaemonService {
         // Emit FirstHostDiscovered telemetry if this is the org's first discovered host
         if !created_hosts.is_empty()
             && let Some((_, first_host)) = created_hosts.first()
-            && let Ok(Some(network)) = self.network_service.get_by_id(&first_host.network_id).await
+            && let Ok(Some(site)) = self.site_service.get_by_id(&first_host.site_id).await
             && let Ok(Some(org)) = self
                 .organization_service
-                .get_by_id(&network.base.organization_id)
+                .get_by_id(&site.base.organization_id)
                 .await
             && org.not_onboarded(&OnboardingOperationDiscriminants::FirstHostDiscovered)
         {
@@ -1088,10 +1080,7 @@ impl DaemonService {
         // show as connected the moment it chooses a plan again. Both
         // DaemonPoll and ServerPoll funnel through here, so this is the one
         // place that decision lives.
-        if self
-            .network_organization_is_lapsed(daemon.base.network_id)
-            .await
-        {
+        if self.site_organization_is_lapsed(daemon.base.site_id).await {
             return None;
         }
         let daemon_id = daemon.id;
@@ -1131,16 +1120,16 @@ impl DaemonService {
         }
     }
 
-    /// Whether the org owning `network_id` is lapsed. A lookup failure reads as
+    /// Whether the org owning `site_id` is lapsed. A lookup failure reads as
     /// not lapsed: the daemon then gets the work it would have got before this
     /// check existed, and the billed result routes still refuse a lapsed org.
-    async fn network_organization_is_lapsed(&self, network_id: Uuid) -> bool {
-        let Ok(Some(network)) = self.network_service.get_by_id(&network_id).await else {
+    async fn site_organization_is_lapsed(&self, site_id: Uuid) -> bool {
+        let Ok(Some(site)) = self.site_service.get_by_id(&site_id).await else {
             return false;
         };
         matches!(
             self.organization_service
-                .get_by_id(&network.base.organization_id)
+                .get_by_id(&site.base.organization_id)
                 .await,
             Ok(Some(org)) if org.is_lapsed()
         )
@@ -1194,7 +1183,7 @@ impl DaemonService {
     pub async fn create_default_discovery_jobs(
         &self,
         daemon_id: Uuid,
-        network_id: Uuid,
+        site_id: Uuid,
         host_id: Uuid,
         is_free_plan: bool,
         integration_targets: &[IntegrationTarget],
@@ -1218,7 +1207,7 @@ impl DaemonService {
 
         tracing::info!(
             daemon_id = %daemon_id,
-            network_id = %network_id,
+            site_id = %site_id,
             host_id = %host_id,
             is_free_plan,
             "Creating default discovery jobs for daemon"
@@ -1249,7 +1238,7 @@ impl DaemonService {
             discovery_type: unified_discovery_type.clone(),
             name: "Discovery".to_string(),
             daemon_id,
-            network_id,
+            site_id,
             tags: Vec::new(),
         });
         // Persist the init-command targeting on the daemon's own Discovery so it's present
@@ -1275,7 +1264,7 @@ impl DaemonService {
         &self,
         daemon_id: Uuid,
         host_id: Uuid,
-        network_id: Uuid,
+        site_id: Uuid,
     ) -> Result<(), ApiError> {
         let filter = StorableFilter::new_from_uuid_column("daemon_id", &daemon_id).live_configs();
         let discoveries = self.discovery_service.get_all(filter).await?;
@@ -1333,7 +1322,7 @@ impl DaemonService {
                     discovery_type: unified_type.clone(),
                     name: "Discovery".to_string(),
                     daemon_id,
-                    network_id,
+                    site_id,
                     tags: primary.base.tags.clone(),
                 }),
                 AuthenticatedEntity::System,
@@ -1371,17 +1360,17 @@ impl DaemonService {
     pub async fn emit_first_daemon_telemetry(
         &self,
         daemon_id: Uuid,
-        network_id: Uuid,
+        site_id: Uuid,
     ) -> Result<(), ApiError> {
-        let network = self
-            .network_service
-            .get_by_id(&network_id)
+        let site = self
+            .site_service
+            .get_by_id(&site_id)
             .await?
-            .ok_or_else(|| ApiError::entity_not_found::<Network>(network_id))?;
+            .ok_or_else(|| ApiError::entity_not_found::<Site>(site_id))?;
 
         let org = self
             .organization_service
-            .get_by_id(&network.base.organization_id)
+            .get_by_id(&site.base.organization_id)
             .await?
             .ok_or_else(|| ApiError::not_found("Organization not found".to_string()))?;
 
@@ -1405,7 +1394,7 @@ impl DaemonService {
                     },
                     OnboardingOperation::FirstDaemonRegistered {
                         daemon_name: daemon_name.to_string(),
-                        network_name: network.base.name.clone(),
+                        site_name: site.base.name.clone(),
                     },
                     AuthenticatedEntity::System,
                 ))

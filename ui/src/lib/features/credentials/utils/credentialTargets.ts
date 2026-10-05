@@ -39,8 +39,8 @@ function isLoopback(ip: string): boolean {
  *
  * Needed because the assignment surfaces are chosen by `targets`, so switching the type
  * on a half-filled form hides a surface without clearing what was entered into it — and
- * the hidden value is still submitted. A `Network` assignment on a type that excludes
- * `Network` (e.g. a UniFi controller) is dispatched to the daemon as the default
+ * the hidden value is still submitted. A `Site` assignment on a type that excludes
+ * `Site` (e.g. a UniFi controller) is dispatched to the daemon as the default
  * credential for every IP on the subnet, so it must never survive the switch.
  *
  * A type that targets `DaemonHost` but not `Hosts` (the local socket) is reachable only on
@@ -53,12 +53,10 @@ function isLoopback(ip: string): boolean {
  */
 export function pruneAssignmentsForTargets(
 	targets: CredentialTarget[] | undefined,
-	assignments: { assignedNetworkIds: string[]; hostAssignments: HostAssignment[] },
+	assignments: { assignedSiteIds: string[]; hostAssignments: HostAssignment[] },
 	daemonHostIds?: string[]
-): { assignedNetworkIds: string[]; hostAssignments: HostAssignment[]; changed: boolean } {
-	const assignedNetworkIds = supportsTarget(targets, 'Network')
-		? assignments.assignedNetworkIds
-		: [];
+): { assignedSiteIds: string[]; hostAssignments: HostAssignment[]; changed: boolean } {
+	const assignedSiteIds = supportsTarget(targets, 'Site') ? assignments.assignedSiteIds : [];
 
 	let hostAssignments: HostAssignment[];
 	if (supportsTarget(targets, 'Hosts')) {
@@ -72,10 +70,10 @@ export function pruneAssignmentsForTargets(
 	}
 
 	return {
-		assignedNetworkIds,
+		assignedSiteIds,
 		hostAssignments,
 		changed:
-			assignedNetworkIds.length !== assignments.assignedNetworkIds.length ||
+			assignedSiteIds.length !== assignments.assignedSiteIds.length ||
 			hostAssignments.length !== assignments.hostAssignments.length
 	};
 }
@@ -83,10 +81,10 @@ export function pruneAssignmentsForTargets(
 /**
  * Whether the user has actually pointed this credential at something on this discovery.
  *
- * "No IPs" is ambiguous on its own: for a broadcast-capable type it could mean network-wide,
+ * "No IPs" is ambiguous on its own: for a broadcast-capable type it could mean site-wide,
  * or it could mean nothing was chosen. Only an explicit broadcast selection or a non-blank IP
  * counts — otherwise a credential merely *listed* because it is assigned elsewhere would be
- * written out as a network-wide target nobody asked for.
+ * written out as a site-wide target nobody asked for.
  */
 export function hasExplicitTarget(
 	scope: 'broadcast' | 'per_host' | undefined,
@@ -99,9 +97,9 @@ export function hasExplicitTarget(
  * Build the per-daemon `IntegrationTarget` for a credential with the given target IPs,
  * or `null` when its type permits no scope for that selection.
  *
- * The wire scope cannot be derived from the IP list alone: "no IPs" means network-wide
+ * The wire scope cannot be derived from the IP list alone: "no IPs" means site-wide
  * for a broadcast-capable type (SNMP) but means "nothing chosen yet" for one that
- * excludes `Network` (UniFi, a Docker proxy). Emitting `Network` there produces a target
+ * excludes `Site` (UniFi, a Docker proxy). Emitting `Site` there produces a target
  * the server drops at dispatch, so the credential silently never runs. Returning `null`
  * keeps it off the wire; callers validate the selection up front so a real user choice
  * doesn't reach this branch.
@@ -129,7 +127,5 @@ export function integrationTargetFor(
 			: null;
 	}
 
-	return supportsTarget(targets, 'Network')
-		? { credential_id: credentialId, scope: 'Network' }
-		: null;
+	return supportsTarget(targets, 'Site') ? { credential_id: credentialId, scope: 'Site' } : null;
 }

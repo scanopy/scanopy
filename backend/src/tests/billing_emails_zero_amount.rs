@@ -70,7 +70,7 @@ fn paid(invoice: BillingInvoice) -> BillingOperation {
 fn checkout(plan: BillingPlan) -> BillingOperation {
     BillingOperation::CheckoutCompleted {
         plan,
-        included_networks: plan.config().included_networks,
+        included_sites: plan.config().included_sites,
         included_seats: plan.config().included_seats,
         mrr_amount_cents: plan.config().base_cents,
         is_trialing: false,

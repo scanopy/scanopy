@@ -31,12 +31,12 @@ fn controller_name(name: String) -> HostName {
 }
 use crate::server::interfaces::r#impl::base::InterfaceDataComplete;
 use crate::server::ip_addresses::r#impl::base::{IPAddress, IPAddressBase};
-use crate::server::networks::r#impl::{Network, NetworkBase};
 use crate::server::shared::services::factory::ServiceFactory;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Storable, Storage};
 use crate::server::shared::types::entities::EntitySource;
+use crate::server::sites::r#impl::{Site, SiteBase};
 use crate::server::subnets::r#impl::base::{Subnet, SubnetBase};
 use crate::server::subnets::r#impl::types::SubnetType;
 
@@ -50,39 +50,39 @@ const DEVICE_IP: IpAddr = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 20));
 const DEVICE_MAC: &str = "aa:bb:cc:00:00:20";
 
 macro_rules! harness {
-    ($services:ident, $network_id:ident, $container:ident) => {
+    ($services:ident, $site_id:ident, $container:ident) => {
         let (storage, $services, $container) = test_services().await;
 
         let org = organization();
         storage.organizations.create(&org).await.unwrap();
 
-        let network = $services
-            .network_service
+        let site = $services
+            .site_service
             .create(
-                Network::new(NetworkBase::new(org.id)),
+                Site::new(SiteBase::new(org.id)),
                 AuthenticatedEntity::System,
             )
             .await
             .unwrap();
-        let $network_id = network.id;
+        let $site_id = site.id;
     };
 }
 
 /// One controller-reported device, as the daemon submits it: an address on a known subnet and a
 /// name carrying the rung it came from.
-fn submission(network_id: Uuid, name: HostName, hostname: Option<&str>) -> Submission {
-    submission_at(network_id, DEVICE_IP, name, hostname)
+fn submission(site_id: Uuid, name: HostName, hostname: Option<&str>) -> Submission {
+    submission_at(site_id, DEVICE_IP, name, hostname)
 }
 
 /// The same, at an explicit address — for the case where a host's DHCP lease moves.
 fn submission_at(
-    network_id: Uuid,
+    site_id: Uuid,
     device_ip: IpAddr,
     name: HostName,
     hostname: Option<&str>,
 ) -> Submission {
     let mut host = Host::new(HostBase {
-        network_id,
+        site_id,
         source: EntitySource::Discovery,
         hostname: hostname.and_then(reverse_dns),
         ..Default::default()
@@ -91,7 +91,7 @@ fn submission_at(
 
     let subnet = Subnet::new(SubnetBase {
         name: "lan".to_string(),
-        network_id,
+        site_id,
         cidr: SubnetCidr::new(
             SubnetCidrValue(LAN_CIDR.parse().unwrap()),
             AttributeSource::DaemonSelfReport,
@@ -102,7 +102,7 @@ fn submission_at(
     });
 
     let ip = IPAddress::new(IPAddressBase {
-        network_id,
+        site_id,
         host_id: host.id,
         subnet_id: subnet.id,
         ip_address: device_ip,
@@ -196,9 +196,9 @@ async fn save_from_ui(
 /// The reported bug: the controller holds the name, the host displays its DHCP address.
 #[tokio::test]
 async fn a_controller_name_replaces_an_address_title() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
-    let scanned = submit(&services, submission(network_id, HostName::unnamed(), None)).await;
+    let scanned = submit(&services, submission(site_id, HostName::unnamed(), None)).await;
     assert_eq!(
         scanned.display_name.as_deref(),
         Some(DEVICE_IP.to_string().as_str())
@@ -207,7 +207,7 @@ async fn a_controller_name_replaces_an_address_title() {
 
     let synced = submit(
         &services,
-        submission(network_id, controller_name("Core Switch".to_string()), None),
+        submission(site_id, controller_name("Core Switch".to_string()), None),
     )
     .await;
 
@@ -220,25 +220,17 @@ async fn a_controller_name_replaces_an_address_title() {
 /// Equal rank has to win for this, which is the one direction a first-write-wins merge cannot go.
 #[tokio::test]
 async fn a_controller_rename_propagates_on_the_next_sync() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
     submit(
         &services,
-        submission(
-            network_id,
-            controller_name("Floor 1 Switch".to_string()),
-            None,
-        ),
+        submission(site_id, controller_name("Floor 1 Switch".to_string()), None),
     )
     .await;
 
     let renamed = submit(
         &services,
-        submission(
-            network_id,
-            controller_name("Floor 2 Switch".to_string()),
-            None,
-        ),
+        submission(site_id, controller_name("Floor 2 Switch".to_string()), None),
     )
     .await;
 
@@ -248,11 +240,11 @@ async fn a_controller_rename_propagates_on_the_next_sync() {
 /// "A host whose name was set by hand in Scanopy keeps that name across repeated discoveries."
 #[tokio::test]
 async fn a_hand_typed_name_survives_repeated_discovery() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
     let discovered = submit(
         &services,
-        submission(network_id, controller_name("Core Switch".to_string()), None),
+        submission(site_id, controller_name("Core Switch".to_string()), None),
     )
     .await;
 
@@ -262,7 +254,7 @@ async fn a_hand_typed_name_survives_repeated_discovery() {
     let resynced = submit(
         &services,
         submission(
-            network_id,
+            site_id,
             controller_name("Core Switch Renamed Upstream".to_string()),
             Some("switch.lan"),
         ),
@@ -280,11 +272,11 @@ async fn a_hand_typed_name_survives_repeated_discovery() {
 /// named the host" — otherwise toggling `hidden` once would freeze the name for good.
 #[tokio::test]
 async fn saving_an_unrelated_field_does_not_freeze_a_derived_name() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
     let discovered = submit(
         &services,
-        submission(network_id, HostName::from_service("SSH".to_string()), None),
+        submission(site_id, HostName::from_service("SSH".to_string()), None),
     )
     .await;
 
@@ -299,7 +291,7 @@ async fn saving_an_unrelated_field_does_not_freeze_a_derived_name() {
     let synced = submit(
         &services,
         submission(
-            network_id,
+            site_id,
             controller_name("Meeting Room AP".to_string()),
             None,
         ),
@@ -319,9 +311,9 @@ async fn saving_an_unrelated_field_does_not_freeze_a_derived_name() {
 /// behaviour the guard exists for.
 #[tokio::test]
 async fn a_daemon_cannot_claim_a_name_was_typed_by_a_person() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
-    let mut forged = submission(network_id, controller_name("Impostor".to_string()), None);
+    let mut forged = submission(site_id, controller_name("Impostor".to_string()), None);
     forged.host.base.name = HostName::manual("Impostor".to_string());
 
     let created = submit(&services, forged).await;
@@ -330,7 +322,7 @@ async fn a_daemon_cannot_claim_a_name_was_typed_by_a_person() {
 
     let resynced = submit(
         &services,
-        submission(network_id, controller_name("Real Name".to_string()), None),
+        submission(site_id, controller_name("Real Name".to_string()), None),
     )
     .await;
     assert_eq!(
@@ -343,12 +335,12 @@ async fn a_daemon_cannot_claim_a_name_was_typed_by_a_person() {
 /// above every identifier. The hostname is kept in its own column, with its own source.
 #[tokio::test]
 async fn a_hostname_does_not_displace_a_controller_name() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
     submit(
         &services,
         submission(
-            network_id,
+            site_id,
             controller_name("Meeting Room AP".to_string()),
             None,
         ),
@@ -357,7 +349,7 @@ async fn a_hostname_does_not_displace_a_controller_name() {
 
     let rescanned = submit(
         &services,
-        submission(network_id, HostName::unnamed(), Some("unifi-a1b2c3.lan")),
+        submission(site_id, HostName::unnamed(), Some("unifi-a1b2c3.lan")),
     )
     .await;
 
@@ -372,12 +364,12 @@ async fn a_hostname_does_not_displace_a_controller_name() {
 /// the display ladder titles the host by it.
 #[tokio::test]
 async fn an_old_daemons_identifier_copies_are_not_stored_as_names() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
     let by_address = submit(
         &services,
         submission(
-            network_id,
+            site_id,
             host_name_from_parts(DEVICE_IP.to_string(), AttributeSource::OwnAddress),
             None,
         ),
@@ -389,7 +381,7 @@ async fn an_old_daemons_identifier_copies_are_not_stored_as_names() {
     let by_hostname = submit(
         &services,
         submission(
-            network_id,
+            site_id,
             host_name_from_parts("nas.lan".to_string(), AttributeSource::ReverseDns),
             Some("nas.lan"),
         ),
@@ -405,15 +397,15 @@ async fn an_old_daemons_identifier_copies_are_not_stored_as_names() {
 /// its address, and a later PTR reading never takes the column back.
 #[tokio::test]
 async fn the_daemons_own_hostname_outranks_reverse_dns() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
     submit(
         &services,
-        submission(network_id, HostName::unnamed(), Some("nas.lan")),
+        submission(site_id, HostName::unnamed(), Some("nas.lan")),
     )
     .await;
 
-    let mut self_report = submission(network_id, HostName::unnamed(), None);
+    let mut self_report = submission(site_id, HostName::unnamed(), None);
     self_report.host.base.hostname = hostname_from("nas", AttributeSource::DaemonSelfReport);
     let reported = submit(&services, self_report).await;
     assert_eq!(reported.hostname.as_deref(), Some("nas"));
@@ -421,7 +413,7 @@ async fn the_daemons_own_hostname_outranks_reverse_dns() {
 
     let rescanned = submit(
         &services,
-        submission(network_id, HostName::unnamed(), Some("nas.lan")),
+        submission(site_id, HostName::unnamed(), Some("nas.lan")),
     )
     .await;
     assert_eq!(rescanned.hostname.as_deref(), Some("nas"));
@@ -432,12 +424,12 @@ async fn the_daemons_own_hostname_outranks_reverse_dns() {
 /// own hostname, which then titles the host instead.
 #[tokio::test]
 async fn a_provisioning_placeholder_yields_to_the_self_reported_hostname() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
     let provisioned = submit(
         &services,
         submission(
-            network_id,
+            site_id,
             HostName::unattributed("office-daemon".to_string()),
             None,
         ),
@@ -445,7 +437,7 @@ async fn a_provisioning_placeholder_yields_to_the_self_reported_hostname() {
     .await;
     assert_eq!(provisioned.display_name.as_deref(), Some("office-daemon"));
 
-    let mut self_report = submission(network_id, HostName::unnamed(), None);
+    let mut self_report = submission(site_id, HostName::unnamed(), None);
     self_report.host.base.hostname = hostname_from("nas", AttributeSource::DaemonSelfReport);
     let reported = submit(&services, self_report).await;
     assert_eq!(reported.display_name.as_deref(), Some("nas"));
@@ -461,17 +453,17 @@ async fn a_provisioning_placeholder_yields_to_the_self_reported_hostname() {
 /// a host keeps its stored address and is titled by it.
 #[tokio::test]
 async fn a_host_that_moves_subnet_is_titled_by_its_new_address() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
     let first = submit(
         &services,
-        submission_at(network_id, DEVICE_IP, HostName::unnamed(), None),
+        submission_at(site_id, DEVICE_IP, HostName::unnamed(), None),
     )
     .await;
     assert_eq!(first.display_name.as_deref(), Some("192.168.1.20"));
 
     let moved_ip = IpAddr::V4(Ipv4Addr::new(192, 168, 2, 21));
-    let mut relocated = submission_at(network_id, moved_ip, HostName::unnamed(), None);
+    let mut relocated = submission_at(site_id, moved_ip, HostName::unnamed(), None);
     relocated.subnet.base.cidr = SubnetCidr::new(
         SubnetCidrValue("192.168.2.0/24".parse().unwrap()),
         AttributeSource::DaemonSelfReport,
@@ -496,11 +488,11 @@ async fn a_host_that_moves_subnet_is_titled_by_its_new_address() {
 /// name to offer", so without an explicit clear the typed name used to survive the save.
 #[tokio::test]
 async fn clearing_a_typed_name_hands_naming_back_to_discovery() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
     let discovered = submit(
         &services,
-        submission(network_id, HostName::unnamed(), Some("switch.lan")),
+        submission(site_id, HostName::unnamed(), Some("switch.lan")),
     )
     .await;
     let typed = save_from_ui(&services, &discovered, "Rack 3 Top Switch", false).await;
@@ -516,7 +508,7 @@ async fn clearing_a_typed_name_hands_naming_back_to_discovery() {
     let resynced = submit(
         &services,
         submission(
-            network_id,
+            site_id,
             controller_name("Core Switch".to_string()),
             Some("switch.lan"),
         ),
@@ -533,15 +525,15 @@ async fn clearing_a_typed_name_hands_naming_back_to_discovery() {
 /// read and every host titled by its IP reached the picker with no title at all.
 #[tokio::test]
 async fn an_address_title_survives_the_children_free_list() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
-    let scanned = submit(&services, submission(network_id, HostName::unnamed(), None)).await;
+    let scanned = submit(&services, submission(site_id, HostName::unnamed(), None)).await;
     assert_eq!(scanned.display_name_rung, Some(HostNameRung::Address));
 
     let listed = services
         .host_service
         .get_all_host_responses_paginated(
-            StorableFilter::<Host>::new_from_network_ids(&[network_id]).live(),
+            StorableFilter::<Host>::new_from_site_ids(&[site_id]).live(),
             "hosts.created_at ASC",
             None,
             false,

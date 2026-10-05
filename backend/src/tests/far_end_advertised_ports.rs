@@ -36,7 +36,7 @@ use crate::server::{
     },
 };
 
-use super::{host, network, organization, subnet, test_services};
+use super::{host, organization, site, subnet, test_services};
 
 /// The chassis id of the device every test is about: a management switch that answers only its
 /// system MIB.
@@ -46,7 +46,7 @@ struct Lab {
     host_service: std::sync::Arc<HostService>,
     neighbours: std::sync::Arc<InterfaceNeighborService>,
     storage: StorageFactory,
-    network_id: Uuid,
+    site_id: Uuid,
     _container: testcontainers::ContainerAsync<testcontainers::GenericImage>,
 }
 
@@ -56,14 +56,14 @@ impl Lab {
 
         let org = organization();
         storage.organizations.create(&org).await.unwrap();
-        let network = network(&org.id);
-        storage.networks.create(&network).await.unwrap();
-        storage.subnets.create(&subnet(&network.id)).await.unwrap();
+        let site = site(&org.id);
+        storage.sites.create(&site).await.unwrap();
+        storage.subnets.create(&subnet(&site.id)).await.unwrap();
 
         Self {
             host_service: services.host_service.clone(),
             neighbours: services.interface_neighbor_service.clone(),
-            network_id: network.id,
+            site_id: site.id,
             storage,
             _container,
         }
@@ -71,7 +71,7 @@ impl Lab {
 
     /// A host carrying `chassis_id` and nothing else: no interfaces, no addresses.
     async fn far_end(&self, chassis_id: &str) -> Host {
-        let mut h = host(&self.network_id);
+        let mut h = host(&self.site_id);
         h.base.name = HostName::manual(chassis_id.to_string());
         h.base.chassis_id = Some(Attributed::new(
             HostChassisIdValue(chassis_id.to_string()),
@@ -83,7 +83,7 @@ impl Lab {
 
     /// A walked port: the shape an ifTable row has, `if_index` included.
     async fn walked_port(&self, host_id: Uuid, if_index: i32, name: &str) -> Interface {
-        let entry = walked(self.network_id, host_id, if_index, name);
+        let entry = walked(self.site_id, host_id, if_index, name);
         self.storage.interfaces.create(&entry).await.unwrap();
         entry
     }
@@ -91,13 +91,13 @@ impl Lab {
     /// A scanned neighbour with one walked port whose LLDP entry carries `evidence`. Returns that
     /// port, the interface the resulting adjacency hangs off.
     async fn neighbour_with(&self, name: &str, evidence: InterfaceNeighborEvidence) -> Interface {
-        let mut h = host(&self.network_id);
+        let mut h = host(&self.site_id);
         h.base.name = HostName::manual(name.to_string());
         self.storage.hosts.create(&h).await.unwrap();
         let port = self.walked_port(h.id, 1, &format!("{name}:ma1")).await;
         self.neighbours
             .replace_candidates_from_discovery(
-                self.network_id,
+                self.site_id,
                 port.id,
                 vec![evidence],
                 InterfaceDataComplete::default(),
@@ -122,7 +122,7 @@ impl Lab {
 
     async fn resolve(&self) {
         self.host_service
-            .resolve_lldp_links(self.network_id, Utc::now(), &Default::default())
+            .resolve_lldp_links(self.site_id, Utc::now(), &Default::default())
             .await
             .unwrap();
     }
@@ -146,7 +146,7 @@ impl Lab {
     async fn host_by_chassis_id(&self, chassis_id: &str) -> Host {
         self.storage
             .hosts
-            .get_all(StorableFilter::<Host>::new_from_network_ids(&[self.network_id]).live())
+            .get_all(StorableFilter::<Host>::new_from_site_ids(&[self.site_id]).live())
             .await
             .unwrap()
             .into_iter()
@@ -174,7 +174,7 @@ impl Lab {
     async fn walk(&self, far_end: &Host, ports: &[(i32, &str)], complete: bool) {
         let interfaces = ports
             .iter()
-            .map(|(if_index, name)| walked(self.network_id, far_end.id, *if_index, name))
+            .map(|(if_index, name)| walked(self.site_id, far_end.id, *if_index, name))
             .collect();
         self.host_service
             .discover_host(
@@ -195,9 +195,9 @@ impl Lab {
     }
 }
 
-fn walked(network_id: Uuid, host_id: Uuid, if_index: i32, name: &str) -> Interface {
+fn walked(site_id: Uuid, host_id: Uuid, if_index: i32, name: &str) -> Interface {
     Interface::new(InterfaceBase {
-        network_id,
+        site_id,
         host_id,
         if_index: Some(if_index),
         if_descr: Some(name.to_string()),
@@ -253,7 +253,7 @@ async fn a_far_end_a_scan_re_reads_is_seen_by_that_scan() {
 
     let outcome = lab
         .host_service
-        .resolve_lldp_links(lab.network_id, scan_time, &run)
+        .resolve_lldp_links(lab.site_id, scan_time, &run)
         .await
         .unwrap();
 
@@ -274,7 +274,7 @@ async fn a_neighbour_this_scan_did_not_walk_is_no_evidence() {
 
     let outcome = lab
         .host_service
-        .resolve_lldp_links(lab.network_id, Utc::now(), &ScannedEntityIds::default())
+        .resolve_lldp_links(lab.site_id, Utc::now(), &ScannedEntityIds::default())
         .await
         .unwrap();
 
@@ -614,7 +614,7 @@ async fn a_mac_bound_link_keeps_its_port_when_a_sibling_shares_the_mac() {
     );
 }
 
-/// A chassis id of subtype `InterfaceName` finds its host by `if_descr` across the whole network.
+/// A chassis id of subtype `InterfaceName` finds its host by `if_descr` across the whole site.
 /// A port recorded from someone else's advertisement is no evidence of which host owns a name, so
 /// a generic one (`Ethernet2`) must not make another device's link unresolvable.
 ///
@@ -625,7 +625,7 @@ async fn an_advertised_port_name_does_not_contest_another_hosts_identity() {
     let lab = Lab::new().await;
     let switch = lab.far_end(MUTE_SWITCH).await;
 
-    let mut other = host(&lab.network_id);
+    let mut other = host(&lab.site_id);
     other.base.name = HostName::manual("access-sw".to_string());
     lab.storage.hosts.create(&other).await.unwrap();
     lab.walked_port(other.id, 2, "Ethernet2").await;

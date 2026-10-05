@@ -1,5 +1,6 @@
 use crate::daemon::shared::config::ConfigStore;
 use crate::daemon::shared::forward_compat::DaemonResponse;
+use crate::server::shared::legacy::rewrite_from_network_wire;
 use crate::server::shared::trusted_ca::{TrustedCaBundle, is_untrusted_certificate};
 use crate::server::shared::types::api::{ApiErrorResponse, ApiResponse};
 use anyhow::{Error, bail};
@@ -342,9 +343,12 @@ impl DaemonApiClient {
         })?;
         let api_response = self.check_response(response, context).await?;
 
-        let data = api_response
+        let mut data = api_response
             .into_data()
             .ok_or_else(|| anyhow::anyhow!("{}: No data in response", context))?;
+        // A server that predates the site rename, or sends this daemon's version the old names,
+        // says `network_id`.
+        rewrite_from_network_wire(&mut data);
 
         serde_json::from_value(data)
             .map_err(|e| anyhow::anyhow!("{}: Failed to parse response data: {}", context, e))
@@ -450,7 +454,7 @@ mod tests {
         use crate::server::shared::types::api::ApiError;
         use axum::response::IntoResponse;
 
-        let response = ApiError::bad_request("network is not on this daemon").into_response();
+        let response = ApiError::bad_request("site is not on this daemon").into_response();
         assert!(response.status().is_client_error());
 
         let body = axum::body::to_bytes(response.into_body(), usize::MAX)
@@ -459,7 +463,7 @@ mod tests {
         let envelope: ApiResponse<serde_json::Value> = serde_json::from_slice(&body).unwrap();
 
         assert!(!envelope.is_success());
-        assert_eq!(envelope.error(), Some("network is not on this daemon"));
+        assert_eq!(envelope.error(), Some("site is not on this daemon"));
         assert!(envelope.into_data().is_none());
     }
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { useNetworksQuery } from '$lib/features/networks/queries';
-	import { networkItems } from '$lib/features/networks/columns';
+	import { useSitesQuery } from '$lib/features/sites/queries';
+	import { siteItems } from '$lib/features/sites/columns';
 	import type { LabelledCardFieldItem } from '$lib/shared/components/data/types';
 	import { Edit, UserX, Trash2 } from 'lucide-svelte';
 	import type { CardAction } from '$lib/shared/components/data/types';
@@ -30,7 +30,7 @@
 	import { tooltip } from '$lib/shared/actions/tooltip';
 	import {
 		common_all,
-		common_networks,
+		common_sites,
 		common_edit,
 		common_confirmBulkDelete,
 		common_delete,
@@ -164,25 +164,25 @@
 	}
 
 	// Only define fields for users (invites won't be filtered/sorted)
-	const networksQuery = useNetworksQuery();
-	let networksData = $derived(networksQuery.data ?? []);
+	const sitesQuery = useSitesQuery();
+	let sitesData = $derived(sitesQuery.data ?? []);
 
 	/**
-	 * The networks a user can reach.
+	 * The sites a user can reach.
 	 *
-	 * Admins and owners reach every network, which is a different statement from
+	 * Admins and owners reach every site, which is a different statement from
 	 * being assigned all of them — so it reads as one "All" chip rather than a
-	 * list that would go stale the moment a network is added.
+	 * list that would go stale the moment a site is added.
 	 */
-	function userNetworkItems(item: UserOrInvite): LabelledCardFieldItem[] {
+	function userSiteItems(item: UserOrInvite): LabelledCardFieldItem[] {
 		if (!isUser(item)) return [];
 		const user = item.data;
 
 		if (user.permissions === 'Admin' || user.permissions === 'Owner') {
-			return [{ id: 'all', label: common_all(), color: entities.getColorHelper('Network').color }];
+			return [{ id: 'all', label: common_all(), color: entities.getColorHelper('Site').color }];
 		}
 
-		return networkItems(user.network_ids ?? [], networksData);
+		return siteItems(user.site_ids ?? [], sitesData);
 	}
 
 	const revokeInviteMutation = useRevokeInviteMutation();
@@ -317,14 +317,14 @@
 			}
 		},
 		{
-			key: 'network_ids',
-			label: common_networks(),
+			key: 'site_ids',
+			label: common_sites(),
 			type: 'array',
 			searchable: true,
-			// Users share networks, so this filters; as an array it neither sorts nor groups.
+			// Users share sites, so this filters; as an array it neither sorts nor groups.
 			filterable: true,
-			getValue: (item) => userNetworkItems(item).map((n) => n.label),
-			display: { getItems: userNetworkItems }
+			getValue: (item) => userSiteItems(item).map((n) => n.label),
+			display: { getItems: userSiteItems }
 		},
 		{
 			key: 'oidc_provider',

@@ -95,7 +95,7 @@ mod tests {
     fn pre_701_interface() -> serde_json::Value {
         serde_json::json!({
             "host_id": "3fd2970b-7217-4821-8bd7-6985174b6a22",
-            "network_id": "d558305a-dc8b-423b-88d6-3cb138d8c51d",
+            "site_id": "d558305a-dc8b-423b-88d6-3cb138d8c51d",
             "if_index": 3,
             "if_name": "GigabitEthernet0/3",
             "if_descr": "GigabitEthernet0/3",
@@ -183,7 +183,7 @@ mod tests {
     fn a_current_daemons_candidates_pass_through_untouched() {
         let submitted = serde_json::json!({
             "host_id": "3fd2970b-7217-4821-8bd7-6985174b6a22",
-            "network_id": "d558305a-dc8b-423b-88d6-3cb138d8c51d",
+            "site_id": "d558305a-dc8b-423b-88d6-3cb138d8c51d",
             "if_index": 3,
             "if_name": "GigabitEthernet0/3",
             "neighbor_candidates": [

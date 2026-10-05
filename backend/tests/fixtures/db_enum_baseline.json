@@ -217,7 +217,7 @@
     "Organization",
     "Invite",
     "Share",
-    "Network",
+    "Site",
     "DaemonApiKey",
     "UserApiKey",
     "User",
@@ -253,7 +253,7 @@
   ],
   "IntegrationTarget": [
     "DaemonHost",
-    "Network",
+    "Site",
     "Hosts"
   ],
   "LldpChassisId": [
@@ -286,7 +286,7 @@
     "FirstTopologyRebuild",
     "FirstDiscoveryCompleted",
     "FirstHostDiscovered",
-    "SecondNetworkCreated",
+    "SecondSiteCreated",
     "FirstTagCreated",
     "FirstDependencyCreated",
     "FirstUserApiKeyCreated",

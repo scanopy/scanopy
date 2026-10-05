@@ -63,7 +63,7 @@
 		renderableTopology
 	}: {
 		activeTab: 'filter' | 'layout' | 'visual';
-		/** Enriched bundle for the active view — network- and snapshot-scoped. */
+		/** Enriched bundle for the active view — site- and snapshot-scoped. */
 		renderableTopology: RenderableTopology | undefined;
 	} = $props();
 
@@ -95,10 +95,10 @@
 	// parsed on the critical path to interactive, to produce a set of tag ids and
 	// one boolean.
 	//
-	// It also disagreed with the graph. That query passed neither `network_id`
-	// nor `at`, so the filter offered tags from hosts on networks you were not
+	// It also disagreed with the graph. That query passed neither `site_id`
+	// nor `at`, so the filter offered tags from hosts on sites you were not
 	// viewing, and in snapshot mode offered *live* host tags while the graph
-	// showed the snapshot. The bundle is already scoped to the selected network
+	// showed the snapshot. The bundle is already scoped to the selected site
 	// and snapshot, so reading from it makes the filter match what is on screen.
 	const servicesCacheQuery = useServicesCacheQuery();
 	const subnetsQuery = useSubnetsQuery();

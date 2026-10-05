@@ -14,7 +14,6 @@ use crate::server::{
     },
     daemons::{r#impl::base::Daemon, service::DaemonService},
     hosts::service::HostService,
-    networks::{r#impl::Network, service::NetworkService},
     organizations::{r#impl::base::Organization, service::OrganizationService},
     shared::{
         events::{
@@ -25,6 +24,7 @@ use crate::server::{
         storage::filter::StorableFilter,
         types::metadata::TypeMetadataProvider,
     },
+    sites::{r#impl::Site, service::SiteService},
     tags::{r#impl::base::Tag, service::TagService},
     user_api_keys::{r#impl::base::UserApiKey, service::UserApiKeyService},
     users::{r#impl::base::User, r#impl::permissions::UserOrgPermissions, service::UserService},
@@ -48,7 +48,7 @@ const BREVO_DOI_REDIRECTION_URL: &str = "https://scanopy.net/newsletter-confirme
 /// Service for syncing data to Brevo CRM
 pub struct BrevoService {
     pub client: Arc<BrevoClient>,
-    network_service: Arc<NetworkService>,
+    site_service: Arc<SiteService>,
     host_service: Arc<HostService>,
     user_service: Arc<UserService>,
     organization_service: Arc<OrganizationService>,
@@ -62,7 +62,7 @@ impl BrevoService {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         api_key: String,
-        network_service: Arc<NetworkService>,
+        site_service: Arc<SiteService>,
         host_service: Arc<HostService>,
         user_service: Arc<UserService>,
         organization_service: Arc<OrganizationService>,
@@ -73,7 +73,7 @@ impl BrevoService {
     ) -> Self {
         Self {
             client: Arc::new(BrevoClient::new(api_key)),
-            network_service,
+            site_service,
             host_service,
             user_service,
             organization_service,
@@ -172,7 +172,7 @@ impl BrevoService {
             OnboardingOperation::ProfileCompleted { .. } => {
                 self.handle_profile_completed(event).await?;
             }
-            OnboardingOperation::SecondNetworkCreated { .. }
+            OnboardingOperation::SecondSiteCreated { .. }
             | OnboardingOperation::FirstHostDiscovered
             | OnboardingOperation::FirstTagCreated
             | OnboardingOperation::FirstDependencyCreated
@@ -195,8 +195,8 @@ impl BrevoService {
         let mut company_attrs = CompanyAttributes::new();
 
         match &event.operation {
-            OnboardingOperation::SecondNetworkCreated { .. } => {
-                company_attrs = company_attrs.with_second_network_date(event.timestamp);
+            OnboardingOperation::SecondSiteCreated { .. } => {
+                company_attrs = company_attrs.with_second_site_date(event.timestamp);
             }
             OnboardingOperation::FirstTagCreated => {
                 company_attrs = company_attrs.with_first_tag_date(event.timestamp);
@@ -455,14 +455,14 @@ impl BrevoService {
 
         let owner_email = self.get_owner_email(event.scope.organization_id).await;
 
-        let org_filter = StorableFilter::<Network>::new_from_org_id(&event.scope.organization_id);
-        let network_count = self.network_service.get_all(org_filter).await?.len();
+        let org_filter = StorableFilter::<Site>::new_from_org_id(&event.scope.organization_id);
+        let site_count = self.site_service.get_all(org_filter).await?.len();
 
         let company_attrs = CompanyAttributes::new()
             .with_name(&org_name)
             .with_org_id(event.scope.organization_id)
             .with_created_date(event.timestamp)
-            .with_network_count(network_count as i64)
+            .with_site_count(site_count as i64)
             .with_host_count(0)
             .with_user_count(1)
             .with_org_type(use_case.to_string());
@@ -621,7 +621,7 @@ impl BrevoService {
     async fn handle_checkout_completed(&self, event: &Event<BillingOperation>) -> Result<()> {
         let BillingOperation::CheckoutCompleted {
             plan,
-            included_networks,
+            included_sites,
             included_seats,
             mrr_amount_cents: _,
             is_trialing: _,
@@ -648,11 +648,11 @@ impl BrevoService {
         )
         .await?;
 
-        let network_limit = included_networks.map(|n| n as i64);
+        let site_limit = included_sites.map(|n| n as i64);
         let seat_limit = included_seats.map(|n| n as i64);
 
-        if network_limit.is_some() || seat_limit.is_some() {
-            self.sync_plan_limits(event.scope.organization_id, network_limit, seat_limit)
+        if site_limit.is_some() || seat_limit.is_some() {
+            self.sync_plan_limits(event.scope.organization_id, site_limit, seat_limit)
                 .await?;
         }
 
@@ -931,12 +931,12 @@ impl BrevoService {
     pub async fn sync_organization_metrics(
         &self,
         org_id: Uuid,
-        network_count: i64,
+        site_count: i64,
         host_count: i64,
         user_count: i64,
     ) -> Result<()> {
         let company_attrs = CompanyAttributes::new()
-            .with_network_count(network_count)
+            .with_site_count(site_count)
             .with_host_count(host_count)
             .with_user_count(user_count);
 
@@ -944,7 +944,7 @@ impl BrevoService {
 
         tracing::debug!(
             organization_id = %org_id,
-            networks = %network_count,
+            sites = %site_count,
             hosts = %host_count,
             users = %user_count,
             "Synced organization metrics to Brevo"
@@ -955,13 +955,13 @@ impl BrevoService {
     pub async fn sync_plan_limits(
         &self,
         org_id: Uuid,
-        network_limit: Option<i64>,
+        site_limit: Option<i64>,
         seat_limit: Option<i64>,
     ) -> Result<()> {
         let mut company_attrs = CompanyAttributes::new();
 
-        if let Some(limit) = network_limit {
-            company_attrs = company_attrs.with_network_limit(limit);
+        if let Some(limit) = site_limit {
+            company_attrs = company_attrs.with_site_limit(limit);
         }
         if let Some(limit) = seat_limit {
             company_attrs = company_attrs.with_seat_limit(limit);
@@ -971,7 +971,7 @@ impl BrevoService {
 
         tracing::debug!(
             organization_id = %org_id,
-            network_limit = ?network_limit,
+            site_limit = ?site_limit,
             seat_limit = ?seat_limit,
             "Synced plan limits to Brevo"
         );
@@ -987,24 +987,24 @@ impl BrevoService {
             return Ok(());
         }
 
-        let network_filter = StorableFilter::<Network>::new_from_org_id(&org_id);
-        let networks = self.network_service.get_all(network_filter).await?;
-        let network_ids: Vec<Uuid> = networks.iter().map(|n| n.id).collect();
-        let network_count = networks.len() as i64;
+        let site_filter = StorableFilter::<Site>::new_from_org_id(&org_id);
+        let sites = self.site_service.get_all(site_filter).await?;
+        let site_ids: Vec<Uuid> = sites.iter().map(|n| n.id).collect();
+        let site_count = sites.len() as i64;
 
-        // count_for_networks/count_for_org narrow SCD2 entities to live rows so
+        // count_for_sites/count_for_org narrow SCD2 entities to live rows so
         // snapshot closed-copies don't inflate the synced counts.
-        let host_count = self.host_service.count_for_networks(&network_ids).await? as i64;
+        let host_count = self.host_service.count_for_sites(&site_ids).await? as i64;
         let user_count = self.user_service.count_for_org(&org_id).await? as i64;
 
-        self.sync_organization_metrics(org_id, network_count, host_count, user_count)
+        self.sync_organization_metrics(org_id, site_count, host_count, user_count)
             .await?;
         Ok(())
     }
 
-    pub async fn get_org_id_from_network(&self, network_id: &Uuid) -> Option<Uuid> {
-        if let Ok(Some(network)) = self.network_service.get_by_id(network_id).await {
-            Some(network.base.organization_id)
+    pub async fn get_org_id_from_site(&self, site_id: &Uuid) -> Option<Uuid> {
+        if let Ok(Some(site)) = self.site_service.get_by_id(site_id).await {
+            Some(site.base.organization_id)
         } else {
             None
         }
@@ -1174,29 +1174,29 @@ impl BrevoService {
         org_id: Uuid,
         mut attrs: CompanyAttributes,
     ) -> Result<CompanyAttributes> {
-        let network_filter = StorableFilter::<Network>::new_from_org_id(&org_id);
-        let networks = self.network_service.get_all(network_filter).await?;
-        let network_ids: Vec<Uuid> = networks.iter().map(|n| n.id).collect();
-        let network_count = networks.len() as i64;
+        let site_filter = StorableFilter::<Site>::new_from_org_id(&org_id);
+        let sites = self.site_service.get_all(site_filter).await?;
+        let site_ids: Vec<Uuid> = sites.iter().map(|n| n.id).collect();
+        let site_count = sites.len() as i64;
 
-        // Track second network date (first is created during onboarding, so not meaningful)
-        let mut sorted_networks: Vec<_> = networks.iter().collect();
-        sorted_networks.sort_by_key(|n| n.created_at);
-        if let Some(second_network) = sorted_networks.get(1) {
-            attrs = attrs.with_second_network_date(second_network.created_at);
+        // Track second site date (first is created during onboarding, so not meaningful)
+        let mut sorted_sites: Vec<_> = sites.iter().collect();
+        sorted_sites.sort_by_key(|n| n.created_at);
+        if let Some(second_site) = sorted_sites.get(1) {
+            attrs = attrs.with_second_site_date(second_site.created_at);
         }
 
-        // count_for_networks/count_for_org narrow SCD2 entities to live rows so
+        // count_for_sites/count_for_org narrow SCD2 entities to live rows so
         // snapshot closed-copies don't inflate the synced counts.
-        let host_count = self.host_service.count_for_networks(&network_ids).await? as i64;
+        let host_count = self.host_service.count_for_sites(&site_ids).await? as i64;
         let user_count = self.user_service.count_for_org(&org_id).await? as i64;
 
         attrs = attrs
-            .with_network_count(network_count)
+            .with_site_count(site_count)
             .with_host_count(host_count)
             .with_user_count(user_count);
 
-        let daemon_filter = StorableFilter::<Daemon>::new_from_network_ids(&network_ids);
+        let daemon_filter = StorableFilter::<Daemon>::new_from_site_ids(&site_ids);
         let daemons = self.daemon_service.get_all(daemon_filter).await?;
         if let Some(first_daemon) = daemons.iter().min_by_key(|d| d.created_at) {
             attrs = attrs.with_first_daemon_date(first_daemon.created_at);

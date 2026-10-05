@@ -414,7 +414,7 @@ mod tests {
                 name: HostName::manual("test-host".to_string()),
                 hostname: None,
                 tags: vec![],
-                network_id: Uuid::new_v4(),
+                site_id: Uuid::new_v4(),
                 description: None,
                 source: EntitySource::Manual,
                 virtualization_metadata: None,
@@ -474,7 +474,7 @@ mod tests {
                             name: HostName::manual(format!("host-{}", i)),
                             hostname: None,
                             tags: vec![],
-                            network_id: Uuid::new_v4(),
+                            site_id: Uuid::new_v4(),
                             description: None,
                             source: EntitySource::Manual,
                             virtualization_metadata: None,
@@ -526,7 +526,7 @@ mod tests {
         use std::net::Ipv4Addr;
 
         let buffer = EntityBuffer::new();
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let now = Utc::now();
 
         // Push a subnet
@@ -548,7 +548,7 @@ mod tests {
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id,
+                site_id,
                 description: None,
                 subnet_type: SubnetType::Unknown,
                 virtualization_service_id: None,
@@ -583,7 +583,7 @@ mod tests {
         use std::net::Ipv4Addr;
 
         let buffer = EntityBuffer::new();
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let now = Utc::now();
 
         // Push two subnets
@@ -605,7 +605,7 @@ mod tests {
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id,
+                site_id,
                 description: None,
                 subnet_type: SubnetType::Unknown,
                 virtualization_service_id: None,
@@ -631,7 +631,7 @@ mod tests {
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id,
+                site_id,
                 description: None,
                 subnet_type: SubnetType::Unknown,
                 virtualization_service_id: None,
@@ -666,7 +666,7 @@ mod tests {
         use std::net::Ipv4Addr;
 
         let buffer = EntityBuffer::new();
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let now = Utc::now();
 
         // Push two subnets
@@ -688,7 +688,7 @@ mod tests {
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id,
+                site_id,
                 description: None,
                 subnet_type: SubnetType::Unknown,
                 virtualization_service_id: None,
@@ -714,7 +714,7 @@ mod tests {
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id,
+                site_id,
                 description: None,
                 subnet_type: SubnetType::Unknown,
                 virtualization_service_id: None,
@@ -761,7 +761,7 @@ mod tests {
         use std::time::Duration;
 
         let buffer = EntityBuffer::new();
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let now = Utc::now();
 
         // Step 1: Discovery pushes subnet
@@ -784,7 +784,7 @@ mod tests {
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id,
+                site_id,
                 description: None,
                 subnet_type: SubnetType::Unknown,
                 virtualization_service_id: None,
@@ -852,7 +852,7 @@ mod tests {
         use std::net::{IpAddr, Ipv4Addr};
 
         let buffer = EntityBuffer::new();
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let host_id = Uuid::new_v4(); // Same host_id for all pushes
         let subnet_id = Uuid::new_v4();
         let now = Utc::now();
@@ -863,7 +863,7 @@ mod tests {
                 name: HostName::manual("daemon-host".to_string()),
                 hostname: None,
                 tags: vec![],
-                network_id,
+                site_id,
                 description: None,
                 source: EntitySource::Manual,
                 virtualization_metadata: None,
@@ -897,7 +897,7 @@ mod tests {
                     last_discovery_id: None,
                     first_discovery_id: None,
                     base: IPAddressBase {
-                        network_id,
+                        site_id,
                         host_id,
                         subnet_id,
                         ip_address: IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)),
@@ -917,7 +917,7 @@ mod tests {
                     last_discovery_id: None,
                     first_discovery_id: None,
                     base: IPAddressBase {
-                        network_id,
+                        site_id,
                         host_id,
                         subnet_id,
                         ip_address: IpAddr::V4(Ipv4Addr::new(192, 168, 1, 11)),
@@ -939,7 +939,7 @@ mod tests {
                 last_discovery_id: None,
                 first_discovery_id: None,
                 base: ServiceBase {
-                    network_id,
+                    site_id,
                     host_id,
                     name: "container-1".to_string(),
                     ..Default::default()
@@ -962,7 +962,7 @@ mod tests {
                 name: HostName::manual("daemon-host".to_string()),
                 hostname: None,
                 tags: vec![],
-                network_id,
+                site_id,
                 description: None,
                 source: EntitySource::Manual,
                 virtualization_metadata: None,
@@ -995,7 +995,7 @@ mod tests {
                 last_discovery_id: None,
                 first_discovery_id: None,
                 base: IPAddressBase {
-                    network_id,
+                    site_id,
                     host_id,
                     subnet_id,
                     ip_address: IpAddr::V4(Ipv4Addr::new(192, 168, 1, 12)),
@@ -1016,7 +1016,7 @@ mod tests {
                 last_discovery_id: None,
                 first_discovery_id: None,
                 base: ServiceBase {
-                    network_id,
+                    site_id,
                     host_id,
                     name: "container-2".to_string(),
                     ..Default::default()
@@ -1084,7 +1084,7 @@ mod tests {
 
         let buffer = EntityBuffer::new();
         let now = Utc::now();
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
 
         // One Pending subnet, one Created subnet — only Created should be reported.
         let pending_subnet = Subnet {
@@ -1105,7 +1105,7 @@ mod tests {
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id,
+                site_id,
                 description: None,
                 subnet_type: SubnetType::Unknown,
                 virtualization_service_id: None,
@@ -1133,7 +1133,7 @@ mod tests {
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id,
+                site_id,
                 description: None,
                 subnet_type: SubnetType::Unknown,
                 virtualization_service_id: None,
@@ -1164,7 +1164,7 @@ mod tests {
 
         let buffer = EntityBuffer::new();
         let now = Utc::now();
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let host_id = Uuid::new_v4();
         let subnet_id = Uuid::new_v4();
 
@@ -1176,7 +1176,7 @@ mod tests {
                 name: HostName::manual("test-host".to_string()),
                 hostname: None,
                 tags: vec![],
-                network_id,
+                site_id,
                 description: None,
                 source: EntitySource::Manual,
                 virtualization_metadata: None,
@@ -1209,7 +1209,7 @@ mod tests {
                 last_discovery_id: None,
                 first_discovery_id: None,
                 base: IPAddressBase {
-                    network_id,
+                    site_id,
                     host_id,
                     subnet_id,
                     ip_address: IpAddr::V4(Ipv4Addr::new(10, 0, 1, 5)),
@@ -1230,7 +1230,7 @@ mod tests {
                 last_discovery_id: None,
                 first_discovery_id: None,
                 base: ServiceBase {
-                    network_id,
+                    site_id,
                     host_id,
                     name: "svc".to_string(),
                     ..Default::default()
@@ -1274,12 +1274,12 @@ mod tests {
         use std::time::Duration;
 
         let buffer = EntityBuffer::new();
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let mut host = Host::new(HostBase {
             name: HostName::manual("pve".to_string()),
             hostname: None,
             tags: vec![],
-            network_id,
+            site_id,
             description: None,
             source: EntitySource::Manual,
             virtualization_metadata: None,
@@ -1304,7 +1304,7 @@ mod tests {
         let pending_id = host.id;
         let service = |host_id| {
             Service::new(ServiceBase {
-                network_id,
+                site_id,
                 host_id,
                 name: "Proxmox VE".to_string(),
                 ..Default::default()

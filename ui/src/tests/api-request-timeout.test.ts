@@ -49,7 +49,7 @@ describe('API request timeout', () => {
 		// Six requests fill every slot; the seventh waits in the queue.
 		const holders = Array.from({ length: 6 }, () => apiClient.GET('/api/v1/subnets'));
 		const holderOutcomes = holders.map((r) => r.catch((e: unknown) => e));
-		const queued = apiClient.GET('/api/v1/networks');
+		const queued = apiClient.GET('/api/v1/sites');
 		let queuedSettled = false;
 		const queuedOutcome = queued.then(
 			() => (queuedSettled = true),

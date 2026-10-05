@@ -52,7 +52,7 @@
 	import TopologyTab from '$lib/features/topology/components/TopologyTab.svelte';
 	import DiscoveryScheduledTab from '$lib/features/discovery/components/tabs/DiscoveryScheduledTab.svelte';
 	import DiscoveryHistoryTab from '$lib/features/discovery/components/tabs/DiscoveryHistoryTab.svelte';
-	import NetworksTab from '$lib/features/networks/components/NetworksTab.svelte';
+	import SitesTab from '$lib/features/sites/components/SitesTab.svelte';
 	import SubnetTab from '$lib/features/subnets/components/SubnetTab.svelte';
 	import VlanTab from '$lib/features/vlans/components/VlanTab.svelte';
 	import HostTab from '$lib/features/hosts/components/HostTab.svelte';
@@ -328,11 +328,11 @@
 			label: 'Assets',
 			items: [
 				{
-					id: entityUIConfig.Network!.tabId,
-					label: TAB_LABELS[entityUIConfig.Network!.tabId],
-					icon: entities.getIconComponent('Network'),
-					entityType: 'Network',
-					component: NetworksTab
+					id: entityUIConfig.Site!.tabId,
+					label: TAB_LABELS[entityUIConfig.Site!.tabId],
+					icon: entities.getIconComponent('Site'),
+					entityType: 'Site',
+					component: SitesTab
 				},
 				{
 					id: entityUIConfig.Vlan!.tabId,

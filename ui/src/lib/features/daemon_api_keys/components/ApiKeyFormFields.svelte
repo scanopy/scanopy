@@ -10,7 +10,7 @@
 	import { required, max } from '$lib/shared/components/forms/validators';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
 	import DateInput from '$lib/shared/components/forms/input/DateInput.svelte';
-	import SelectNetwork from '$lib/features/networks/components/SelectNetwork.svelte';
+	import SelectSite from '$lib/features/sites/components/SelectSite.svelte';
 	import Checkbox from '$lib/shared/components/forms/input/Checkbox.svelte';
 	import TagPicker from '$lib/features/tags/components/TagPicker.svelte';
 	import ApiKeyGenerator from '$lib/shared/components/api-keys/ApiKeyGenerator.svelte';
@@ -32,8 +32,8 @@
 		loading: boolean;
 		onGenerate: () => void;
 		onRotate: () => void;
-		/** Hide the network selector where the network is fixed by the owning entity. */
-		showNetwork?: boolean;
+		/** Hide the site selector where the site is fixed by the owning entity. */
+		showSite?: boolean;
 		/** Hide the name field where it is owned by another entity (e.g. a daemon's key). */
 		showName?: boolean;
 		/** Hide the tag picker where tags aren't meaningful for the key. */
@@ -49,7 +49,7 @@
 		loading,
 		onGenerate,
 		onRotate,
-		showNetwork = true,
+		showSite = true,
 		showName = true,
 		showTags = true,
 		showHeading = true
@@ -90,12 +90,12 @@
 			</form.Field>
 		{/if}
 
-		{#if showNetwork}
-			<form.Field name="network_id">
+		{#if showSite}
+			<form.Field name="site_id">
 				{#snippet children(field)}
-					<SelectNetwork
-						selectedNetworkId={field.state.value}
-						onNetworkChange={(id) => field.handleChange(id)}
+					<SelectSite
+						selectedSiteId={field.state.value}
+						onSiteChange={(id) => field.handleChange(id)}
 						disabled={isEditing}
 					/>
 				{/snippet}

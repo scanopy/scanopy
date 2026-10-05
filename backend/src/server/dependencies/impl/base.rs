@@ -65,8 +65,8 @@ pub struct DependencyBase {
     /// Human-facing name for this dependency.
     #[validate(length(min = 0, max = 100))]
     pub name: String,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// Free-text notes about the dependency.
     #[serde(deserialize_with = "deserialize_empty_string_as_none")]
     #[validate(length(min = 0, max = 500))]

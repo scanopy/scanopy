@@ -6,8 +6,8 @@
 	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
 	import { billingPlans, entities } from '$lib/shared/stores/metadata';
 	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
-	import type { Network } from '../types';
-	import { createEmptyNetworkFormData } from '../queries';
+	import type { Site } from '../types';
+	import { createEmptySiteFormData } from '../queries';
 	import { pushError } from '$lib/shared/stores/feedback';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
@@ -35,17 +35,17 @@
 		common_credentialDemoReadOnly,
 		common_credentials,
 		credentials_selectToAddPlaceholder,
-		networks_createNetwork,
-		networks_credentialHelp,
-		networks_credentialHelpLinkText,
-		networks_networkNamePlaceholder,
-		networks_staleAfterHours,
-		networks_staleAfterHoursHelp,
-		networks_noCredentialsAssigned
+		sites_createSite,
+		sites_credentialHelp,
+		sites_credentialHelpLinkText,
+		sites_siteNamePlaceholder,
+		sites_staleAfterHours,
+		sites_staleAfterHoursHelp,
+		sites_noCredentialsAssigned
 	} from '$lib/paraglide/messages';
 
 	let {
-		network = null,
+		site = null,
 		isOpen = false,
 		onCreate,
 		onUpdate,
@@ -53,10 +53,10 @@
 		onDelete = null,
 		name = undefined
 	}: {
-		network?: Network | null;
+		site?: Site | null;
 		isOpen?: boolean;
-		onCreate: (data: Network) => Promise<void> | void;
-		onUpdate: (id: string, data: Network) => Promise<void> | void;
+		onCreate: (data: Site) => Promise<void> | void;
+		onUpdate: (id: string, data: Site) => Promise<void> | void;
 		onClose: () => void;
 		onDelete?: ((id: string) => Promise<void> | void) | null;
 		name?: string;
@@ -75,26 +75,26 @@
 	);
 	let isNonOwnerInDemo = $derived(isDemoOrg && currentUser?.permissions !== 'Owner');
 
-	// TanStack Query for credentials. Only Network-targetable types are offered for
+	// TanStack Query for credentials. Only Site-targetable types are offered for
 	// assignment, but the *selected* list resolves against every credential (as the host
 	// modal does): a credential whose type can't broadcast must still be visible here so it
 	// can be removed. Resolving against the filtered list instead would render it as nothing
-	// while still re-submitting its id on every unrelated network edit.
+	// while still re-submitting its id on every unrelated site edit.
 	const credentialsQuery = useCredentialsQuery();
 	let allCredentials = $derived(credentialsQuery.data ?? []);
 	let assignableCredentials = $derived(
 		allCredentials.filter((c) => {
 			const meta = credentialTypes.getMetadata(getCredentialTypeId(c));
-			return (meta?.targets ?? []).includes('Network');
+			return (meta?.targets ?? []).includes('Site');
 		})
 	);
 
 	let loading = $state(false);
 	let deleting = $state(false);
 
-	let isEditing = $derived(network !== null);
+	let isEditing = $derived(site !== null);
 	let title = $derived(
-		isEditing ? common_editName({ name: network?.name ?? '' }) : networks_createNetwork()
+		isEditing ? common_editName({ name: site?.name ?? '' }) : sites_createSite()
 	);
 	let saveLabel = $derived(isEditing ? common_update() : common_create());
 
@@ -109,15 +109,13 @@
 	);
 
 	function getDefaultValues() {
-		return network
-			? { ...network, seedData: false }
-			: { ...createEmptyNetworkFormData(), seedData: true };
+		return site ? { ...site, seedData: false } : { ...createEmptySiteFormData(), seedData: true };
 	}
 
 	// Create form
 	const form = createForm(() => ({
 		defaultValues: {
-			...createEmptyNetworkFormData(),
+			...createEmptySiteFormData(),
 			seedData: true
 		},
 		onSubmit: async ({ value }) => {
@@ -127,8 +125,8 @@
 				return;
 			}
 
-			const networkData: Network = {
-				...(value as Network),
+			const siteData: Site = {
+				...(value as Site),
 				name: value.name.trim(),
 				organization_id: organization.id,
 				credential_ids: selectedCredentialIds
@@ -136,10 +134,10 @@
 
 			loading = true;
 			try {
-				if (isEditing && network) {
-					await onUpdate(network.id, networkData);
+				if (isEditing && site) {
+					await onUpdate(site.id, siteData);
 				} else {
-					await onCreate(networkData);
+					await onCreate(siteData);
 				}
 			} finally {
 				loading = false;
@@ -166,24 +164,24 @@
 	}
 
 	async function handleDelete() {
-		if (onDelete && network) {
+		if (onDelete && site) {
 			deleting = true;
 			try {
-				await onDelete(network.id);
+				await onDelete(site.id);
 			} finally {
 				deleting = false;
 			}
 		}
 	}
 
-	let colorHelper = entities.getColorHelper('Network');
+	let colorHelper = entities.getColorHelper('Site');
 </script>
 
-{#snippet networkCredentialHelpSnippet()}
+{#snippet siteCredentialHelpSnippet()}
 	<DocsHint
-		text={networks_credentialHelp()}
+		text={sites_credentialHelp()}
 		href="https://scanopy.net/docs/using-scanopy/credentials/#where-a-credential-applies"
-		linkText={networks_credentialHelpLinkText()}
+		linkText={sites_credentialHelpLinkText()}
 	/>
 {/snippet}
 
@@ -191,14 +189,14 @@
 	{isOpen}
 	{title}
 	{name}
-	entityId={network?.id}
+	entityId={site?.id}
 	size="xl"
 	onClose={handleClose}
 	onOpen={handleOpen}
 	showCloseButton={true}
 >
 	{#snippet headerIcon()}
-		<ModalHeaderIcon Icon={entities.getIconComponent('Network')} color={colorHelper.color} />
+		<ModalHeaderIcon Icon={entities.getIconComponent('Site')} color={colorHelper.color} />
 	{/snippet}
 
 	<form
@@ -211,7 +209,7 @@
 	>
 		<div class="min-h-0 flex-1 overflow-auto p-6">
 			<div class="space-y-8">
-				<!-- Network Details Section -->
+				<!-- Site Details Section -->
 				<div class="space-y-4">
 					<h3 class="text-primary text-lg font-medium">{common_details()}</h3>
 
@@ -226,7 +224,7 @@
 								label={common_name()}
 								id="name"
 								{field}
-								placeholder={networks_networkNamePlaceholder()}
+								placeholder={sites_siteNamePlaceholder()}
 								required
 							/>
 						{/snippet}
@@ -235,12 +233,12 @@
 					<form.Field name="stale_after_hours">
 						{#snippet children(field)}
 							<DurationInput
-								label={networks_staleAfterHours()}
+								label={sites_staleAfterHours()}
 								id="stale_after_hours"
 								{field}
-								initialHours={network?.stale_after_hours ?? null}
-								placeholderHours={network?.effective_stale_after_hours ?? null}
-								helpText={networks_staleAfterHoursHelp()}
+								initialHours={site?.stale_after_hours ?? null}
+								placeholderHours={site?.effective_stale_after_hours ?? null}
+								helpText={sites_staleAfterHoursHelp()}
 							/>
 						{/snippet}
 					</form.Field>
@@ -257,10 +255,10 @@
 					<!-- Credentials Selection -->
 					<ListManager
 						label={common_credentials()}
-						helpSnippet={isNonOwnerInDemo ? undefined : networkCredentialHelpSnippet}
+						helpSnippet={isNonOwnerInDemo ? undefined : siteCredentialHelpSnippet}
 						helpText={isNonOwnerInDemo ? common_credentialDemoReadOnly() : undefined}
 						placeholder={credentials_selectToAddPlaceholder()}
-						emptyMessage={networks_noCredentialsAssigned()}
+						emptyMessage={sites_noCredentialsAssigned()}
 						allowReorder={false}
 						options={assignableCredentials}
 						items={selectedCredentials}
@@ -279,8 +277,8 @@
 			</div>
 		</div>
 
-		{#if isEditing && network}
-			<EntityMetadataSection entities={[network]} />
+		{#if isEditing && site}
+			<EntityMetadataSection entities={[site]} />
 		{/if}
 
 		<!-- Footer -->

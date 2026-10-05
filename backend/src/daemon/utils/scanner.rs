@@ -489,7 +489,7 @@ pub async fn probe_snmp_ports(
 
             let mut port_detected = false;
 
-            // Try each credential in specificity order (IP override → network default → public)
+            // Try each credential in specificity order (IP override → site default → public)
             for cred in snmp_credentials {
                 if let SnmpProbeOutcome::Answered(p) =
                     try_snmp_with_credential_on_port(ip, cred, port).await

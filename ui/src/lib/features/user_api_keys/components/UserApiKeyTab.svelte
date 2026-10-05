@@ -5,14 +5,14 @@
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import { networkItems } from '$lib/features/networks/columns';
+	import { siteItems } from '$lib/features/sites/columns';
 	import { permissions, entities } from '$lib/shared/stores/metadata';
 	import type { FieldConfig } from '$lib/shared/components/data/types';
 	import { Plus } from 'lucide-svelte';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { tooltip } from '$lib/shared/actions/tooltip';
 	import { useTagsQuery } from '$lib/features/tags/queries';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import UserApiKeyModal from './UserApiKeyModal.svelte';
 	import {
 		useUserApiKeysQuery,
@@ -38,7 +38,7 @@
 		common_create,
 		common_created,
 		common_name,
-		common_networks,
+		common_sites,
 		common_permissions,
 		common_tags,
 		common_updated,
@@ -71,7 +71,7 @@
 	// Queries
 	const tagsQuery = useTagsQuery();
 	const userApiKeysQuery = useUserApiKeysQuery({ enabled: () => hasApiAccess });
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 
 	// Mutations
 	const updateMutation = useUpdateUserApiKeyMutation();
@@ -81,7 +81,7 @@
 	// Derived data
 	let tagsData = $derived(tagsQuery.data ?? []);
 	let userApiKeysData = $derived(userApiKeysQuery.data ?? []);
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
 	let isLoading = $derived(userApiKeysQuery.isPending);
 
 	let showModal = $state(false);
@@ -193,19 +193,19 @@
 			}
 		},
 		{
-			key: 'network_ids',
+			key: 'site_ids',
 			type: 'array',
-			label: common_networks(),
+			label: common_sites(),
 			searchable: true,
-			// Keys share networks, so this filters; as an array it neither sorts nor groups.
+			// Keys share sites, so this filters; as an array it neither sorts nor groups.
 			filterable: true,
 			getValue(item) {
-				const ids = item.network_ids ?? [];
+				const ids = item.site_ids ?? [];
 				return ids
-					.map((id) => networksData.find((n) => n.id === id)?.name)
+					.map((id) => sitesData.find((n) => n.id === id)?.name)
 					.filter((name): name is string => !!name);
 			},
-			display: { getItems: (item) => networkItems(item.network_ids, networksData) }
+			display: { getItems: (item) => siteItems(item.site_ids, sitesData) }
 		},
 		{
 			key: 'is_enabled',

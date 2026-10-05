@@ -115,7 +115,7 @@ const SERVER_POLL_CONFIRMATION_TIMEOUT: Duration = Duration::from_secs(120);
 /// Minimum spacing between the *start* of consecutive DaemonPoll host-create
 /// requests. Deep scans complete in near-simultaneous bursts; without this the
 /// daemon fires many host-creates at once and they pile up on the server's
-/// per-network `HostDedup` advisory lock, spiking the endpoint. ~40 req/s steady
+/// per-site `HostDedup` advisory lock, spiking the endpoint. ~40 req/s steady
 /// ceiling — matched to the server's serialized create throughput, so this
 /// flattens the arrival burst without costing real throughput.
 const MIN_HOST_SUBMIT_INTERVAL: Duration = Duration::from_millis(25);
@@ -435,7 +435,7 @@ impl HostData {
     ///
     /// **Nothing offered here is ever discarded.** Picking a winner is not safe even between two
     /// `FullIfTable` collectors: a device can answer SNMP with a thin or empty ifTable while
-    /// answering gNMI with the real one, and with network-wide credentials which of them is asked
+    /// answering gNMI with the real one, and with site-wide credentials which of them is asked
     /// first is arbitrary. So sets are unioned, and scope only decides which row wins where two
     /// contributors describe the *same* interface.
     ///
@@ -630,7 +630,7 @@ impl HostData {
 
     /// Offer a subnet, ignoring one already present.
     ///
-    /// Keyed on `Subnet`'s own equality (CIDR + network), which is the same natural key the
+    /// Keyed on `Subnet`'s own equality (CIDR + site), which is the same natural key the
     /// server deduplicates on, so the two cannot drift apart. This was a bare push, and
     /// `container::execute` runs several times against one host — once per Docker/Podman
     /// socket/proxy credential type, and again for the sweep phase after the daemon-host phase —
@@ -709,11 +709,11 @@ impl DiscoveryOps {
         self.config_store.get_id().await
     }
 
-    pub async fn network_id(&self) -> Result<Uuid, Error> {
+    pub async fn site_id(&self) -> Result<Uuid, Error> {
         self.config_store
-            .get_network_id()
+            .get_site_id()
             .await?
-            .ok_or_else(|| anyhow!("Network ID not set"))
+            .ok_or_else(|| anyhow!("Site ID not set"))
     }
 
     pub async fn get_session(&self) -> Result<super::base::DiscoverySession, Error> {
@@ -740,15 +740,15 @@ impl DiscoveryOps {
             request.discovery_type,
             request.session_id
         );
-        let network_id = self
+        let site_id = self
             .config_store
-            .get_network_id()
+            .get_site_id()
             .await?
-            .ok_or_else(|| anyhow!("Network ID not set, aborting discovery session"))?;
+            .ok_or_else(|| anyhow!("Site ID not set, aborting discovery session"))?;
 
         let session_info = DiscoverySessionInfo {
             session_id: request.session_id,
-            network_id,
+            site_id,
             daemon_id,
             started_at: Some(Utc::now()),
             discovery_type: request.discovery_type.clone(),
@@ -1023,7 +1023,7 @@ impl DiscoveryOps {
     ///
     /// The one route an integration has to the operator, and the reason the session's buffers are
     /// not `pub`. Whether an attempt is a *finding* is not an integration's call to make — it
-    /// turns on whether the user pinned this credential to this host or it is a network default
+    /// turns on whether the user pinned this credential to this host or it is a site default
     /// tried at every address in the subnet, which the integration cannot see. The judgement
     /// lives in [`warnings::issue_for_attempt`] so both callers share it.
     pub async fn record_attempt_failure(
@@ -1442,7 +1442,7 @@ impl DiscoveryOps {
             DaemonMode::DaemonPoll => {
                 // Stagger request starts so a burst of near-simultaneous deep-scan
                 // completions doesn't hammer the host-create endpoint (where they
-                // serialize on the server's per-network `HostDedup` lock).
+                // serialize on the server's per-site `HostDedup` lock).
                 let scheduled =
                     reserve_submit_slot(&self.host_submit_gate, MIN_HOST_SUBMIT_INTERVAL).await;
                 tokio::time::sleep_until(scheduled).await;
@@ -1552,14 +1552,14 @@ impl DiscoveryOps {
     pub async fn upsert_vlans(
         &self,
         vlans: &[crate::daemon::discovery::integration::snmp::types::VlanInfo],
-        network_id: Uuid,
+        site_id: Uuid,
     ) -> Result<std::collections::HashMap<u16, Uuid>, Error> {
         use crate::server::vlans::handlers::{
             VlanDiscoveryItem, VlanDiscoveryRequest, VlanDiscoveryResponse,
         };
 
         let request = VlanDiscoveryRequest {
-            network_id,
+            site_id,
             vlans: vlans
                 .iter()
                 .map(|v| VlanDiscoveryItem {
@@ -1614,7 +1614,7 @@ impl DiscoveryOps {
         baseline_params: &ServiceMatchBaselineParams,
         gateway_ips: &[IpAddr],
         daemon_id: &Uuid,
-        network_id: &Uuid,
+        site_id: &Uuid,
     ) -> Result<(Vec<Service>, Vec<Port>), Error> {
         use crate::server::services::definitions::{
             docker_container::DockerContainer, open_ports::OpenPorts,
@@ -1661,7 +1661,7 @@ impl DiscoveryOps {
                     baseline_params,
                     daemon_id,
                     discovery_type: &self.discovery_type,
-                    network_id,
+                    site_id,
                     gateway_ips,
                     host_id: &host.id,
                 };
@@ -1718,7 +1718,7 @@ impl DiscoveryOps {
         let ServiceMatchBaselineParams { ip_address, .. } = params;
 
         let daemon_id = self.daemon_id().await?;
-        let network_id = self.network_id().await?;
+        let site_id = self.site_id().await?;
         let session = self.get_session().await?;
         let gateway_ips = session.gateway_ips.clone();
 
@@ -1726,7 +1726,7 @@ impl DiscoveryOps {
             name: HostName::unnamed(),
             hostname,
             tags: Vec::new(),
-            network_id,
+            site_id,
             description: None,
             source: EntitySource::Discovery,
             virtualization_metadata: None,
@@ -1752,7 +1752,7 @@ impl DiscoveryOps {
         let ip_addresses = vec![ip_address.clone()];
 
         let (services, ports) =
-            self.match_services(&host, &params, &gateway_ips, &daemon_id, &network_id)?;
+            self.match_services(&host, &params, &gateway_ips, &daemon_id, &site_id)?;
 
         // Determine host name
         let best_service_name = services
@@ -2048,7 +2048,7 @@ mod tests {
         use crate::server::interfaces::r#impl::base::{IfAdminStatus, IfOperStatus, InterfaceBase};
         Interface::new(InterfaceBase {
             host_id: Uuid::new_v4(),
-            network_id: Uuid::new_v4(),
+            site_id: Uuid::new_v4(),
             if_index: Some(if_index),
             if_descr: Some(name.to_string()),
             if_name: Some(name.to_string()),
@@ -2266,7 +2266,7 @@ mod tests {
 
     /// The case this replaced a hand-written guard for: two contributors of equal reach where one
     /// is thin. A device can answer SNMP with an almost-empty ifTable and gNMI with the real one,
-    /// and network-wide credentials make the order arbitrary — so neither order may lose rows.
+    /// and site-wide credentials make the order arbitrary — so neither order may lose rows.
     #[test]
     fn a_thin_view_never_erases_a_rich_one_in_either_order() {
         let rich = vec![port("eth1", 1), port("eth2", 2), port("eth3", 3)];
@@ -2328,7 +2328,7 @@ mod tests {
             subnet_type: SubnetType::DockerBridge,
             ..Default::default()
         };
-        // Distinct rows, same CIDR and network — exactly what a second execute() produces, since
+        // Distinct rows, same CIDR and site — exactly what a second execute() produces, since
         // every run mints fresh UUIDs for the subnets it reports.
         host_data.add_subnet(Subnet::new(base.clone()));
         host_data.add_subnet(Subnet::new(base));

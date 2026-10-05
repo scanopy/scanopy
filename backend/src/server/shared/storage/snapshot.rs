@@ -28,7 +28,7 @@ use crate::server::shared::types::entities::EntityFreshness;
 
 /// SCD2 row lifecycle accessors. Shared by entities (Host, Service, …) and
 /// junction tables (subnet_vlans, dependency_members, entity_tags) that
-/// participate in network snapshots or per-action close-and-clone.
+/// participate in site snapshots or per-action close-and-clone.
 pub trait Snapshotable: Storable {
     fn id_value(&self) -> Uuid;
     fn set_id_value(&mut self, id: Uuid);
@@ -155,11 +155,11 @@ pub trait DiscoveryTracked: Snapshotable + crate::server::shared::storage::trait
     }
 
     /// Freshness of this entity as of `cutoff` — the instant before which
-    /// `last_seen_at` counts as stale, from `Network::stale_cutoff`.
+    /// `last_seen_at` counts as stale, from `Site::stale_cutoff`.
     ///
     /// The single definition of staleness. Both the digest and the read path
     /// call this so they cannot drift apart; the equivalent SQL predicate lives
-    /// in `StorableFilter::stale_by_network` and must be kept in step with it.
+    /// in `StorableFilter::stale_by_site` and must be kept in step with it.
     fn freshness(&self, cutoff: DateTime<Utc>) -> EntityFreshness {
         if !self.is_discovery_managed() || self.last_seen_at() >= cutoff {
             EntityFreshness::Current
@@ -206,7 +206,7 @@ impl FkMaps {
     /// `EntityDiscriminants` in the app (serialized to/from text in DB via
     /// `SqlValue::EntityDiscriminant`). Returns None for org-scoped variants
     /// (Daemon, User, DaemonApiKey, UserApiKey, etc.) — those rows aren't
-    /// cloned at network snapshot.
+    /// cloned at site snapshot.
     pub fn lookup_by_entity_type(
         &self,
         entity_type: EntityDiscriminants,
@@ -227,7 +227,7 @@ mod fk_maps_tests {
     use super::*;
 
     #[test]
-    fn lookup_returns_closed_id_for_network_scoped_entity_types() {
+    fn lookup_returns_closed_id_for_site_scoped_entity_types() {
         let mut maps = FkMaps::default();
         let live_host = Uuid::new_v4();
         let closed_host = Uuid::new_v4();
@@ -263,7 +263,7 @@ mod fk_maps_tests {
 
     #[test]
     fn lookup_returns_none_for_org_scoped_entity_types() {
-        // Org-scoped variants (Daemon, User, …) aren't cloned at network
+        // Org-scoped variants (Daemon, User, …) aren't cloned at site
         // snapshot, so lookup never has an entry for them.
         let maps = FkMaps::default();
         let some_id = Uuid::new_v4();
@@ -311,7 +311,7 @@ mod discovery_tracked_stamping_tests {
     fn fresh_host() -> Host {
         Host::new(HostBase {
             name: crate::server::hosts::r#impl::name::HostName::manual("test".to_string()),
-            network_id: Uuid::new_v4(),
+            site_id: Uuid::new_v4(),
             ..Default::default()
         })
     }

@@ -27,7 +27,6 @@ use crate::server::{
     billing::types::base::BillingPlan,
     config::AppState,
     credentials::r#impl::types::REDACTED_SECRET_SENTINEL,
-    networks::r#impl::Network,
     shared::validation::validate_csp_domain,
     shared::{
         events::{
@@ -46,6 +45,7 @@ use crate::server::{
         },
         base::Share,
     },
+    sites::r#impl::Site,
     topology::types::base::Topology,
 };
 
@@ -242,19 +242,19 @@ async fn update_share(
 
 /// Helper to get the organization's plan for a share
 async fn get_share_org_plan(state: &AppState, share: &Share) -> Result<BillingPlan, ApiError> {
-    // Get network to find organization
-    let network = state
+    // Get site to find organization
+    let site = state
         .services
-        .network_service
-        .get_by_id(&share.base.network_id)
+        .site_service
+        .get_by_id(&share.base.site_id)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?
-        .ok_or_else(|| ApiError::entity_not_found::<Network>(share.base.network_id))?;
+        .ok_or_else(|| ApiError::entity_not_found::<Site>(share.base.site_id))?;
 
     Ok(state
         .services
         .organization_service
-        .get_by_id(&network.base.organization_id)
+        .get_by_id(&site.base.organization_id)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?
         .and_then(|o| o.base.plan)
@@ -305,7 +305,7 @@ async fn get_public_share_metadata(
     let support = state
         .services
         .topology_service
-        .get_view_support(topology.base.network_id)
+        .get_view_support(topology.base.site_id)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
@@ -461,7 +461,7 @@ async fn get_share_topology(
     let support = state
         .services
         .topology_service
-        .get_view_support(topology.base.network_id)
+        .get_view_support(topology.base.site_id)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     let enabled_views = topology.resolve_available_views(&share.base.enabled_views, &support);
@@ -478,11 +478,11 @@ async fn get_share_topology(
     // topologies; snapshot-pinned shares are deferred until the snapshots
     // service is fully wired into AppState.
     let service = &state.services.topology_service;
-    let network_id = topology.base.network_id;
-    // Build the per-view graph on request from current entities + the network's
+    let site_id = topology.base.site_id;
+    // Build the per-view graph on request from current entities + the site's
     // grouping options (the graph is no longer persisted).
     let data = service
-        .get_topology_render_data(network_id, None)
+        .get_topology_render_data(site_id, None)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
@@ -511,8 +511,8 @@ async fn get_share_topology(
     {
         let org_id = state
             .services
-            .network_service
-            .get_by_id(&share.base.network_id)
+            .site_service
+            .get_by_id(&share.base.site_id)
             .await
             .ok()
             .flatten()

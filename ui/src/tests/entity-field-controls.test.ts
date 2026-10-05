@@ -110,7 +110,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			virtualized_by: server('virtualization_service_ids'),
 			interface_ip: serverIdentity('Unique per host'),
 			mac_address: serverIdentity('Unique per host'),
-			network_id: server('network_ids'),
+			site_id: server('site_ids'),
 			created_at: DATE,
 			updated_at: DATE,
 			last_seen_at: LAST_SEEN,
@@ -147,7 +147,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			interfaces: ownedArray('Interface names are unique per host; search finds them'),
 			ports: ownedArray('No port filter on the hosts list; Services filters by port'),
 			services: { ...SHARED_ARRAY, filter: { param: 'service_names' } },
-			presented_by: none('Set on network identities only; Virtualized by groups and filters them'),
+			presented_by: none('Set on site identities only; Virtualized by groups and filters them'),
 			first_found_by: FOUND_BY,
 			last_found_by: FOUND_BY
 		}
@@ -157,7 +157,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 		columns: {
 			name: serverIdentity('Type groups the same values'),
 			host: server('host_ids'),
-			network_id: server('network_ids'),
+			site_id: server('site_ids'),
 			service_definition: server('service_definitions'),
 			position: { sort: true, group: 'Per-host ordinal', filter: 'Per-host ordinal' },
 			created_at: DATE,
@@ -184,7 +184,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			// Runs of one scan share its name, so grouping gathers a scan's history.
 			name: { sort: true, group: true, filter: SEARCH },
 			daemon_id: server('daemon_ids'),
-			network_id: server('network_ids'),
+			site_id: server('site_ids'),
 			discovery_type: server('discovery_types'),
 			created_at: DATE,
 			updated_at: DATE,
@@ -206,7 +206,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			created_at: DATE,
 			updated_at: DATE,
 			daemon_id: YES,
-			network_id: YES,
+			site_id: YES,
 			discovery_type: YES,
 			phase: RUN_RESULT,
 			started_at: RUN_RESULT,
@@ -226,7 +226,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 	'daemons/components/DaemonTab.svelte': {
 		columns: {
 			name: IDENTITY,
-			network_id: YES,
+			site_id: YES,
 			last_seen: DATE,
 			created_at: DATE,
 			updated_at: DATE,
@@ -244,7 +244,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 	'daemon_api_keys/components/ApiKeyTab.svelte': {
 		columns: {
 			name: IDENTITY,
-			network_id: YES,
+			site_id: YES,
 			is_enabled: BOOLEAN,
 			last_used: DATE,
 			expires_at: DATE,
@@ -264,13 +264,13 @@ const DECISIONS: Record<string, TabDecisions> = {
 			description: TEXT
 		}
 	},
-	'networks/components/NetworksTab.svelte': {
+	'sites/components/SitesTab.svelte': {
 		columns: {
 			name: IDENTITY,
-			vlans: ownedArray('Each belongs to one network'),
-			daemons: ownedArray('Each belongs to one network'),
-			subnets: ownedArray('Each belongs to one network'),
-			// Credentials are shared across networks.
+			vlans: ownedArray('Each belongs to one site'),
+			daemons: ownedArray('Each belongs to one site'),
+			subnets: ownedArray('Each belongs to one site'),
+			// Credentials are shared across sites.
 			credentials: SHARED_ARRAY,
 			tags: SHARED_ARRAY,
 			created_at: DATE,
@@ -283,7 +283,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			email: IDENTITY,
 			invite_status: YES,
 			permissions: YES,
-			network_ids: SHARED_ARRAY,
+			site_ids: SHARED_ARRAY,
 			oidc_provider: YES,
 			invited_by: YES,
 			invite_url: none('Unique per invite'),
@@ -299,7 +299,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 		columns: {
 			name: IDENTITY,
 			permissions: YES,
-			network_ids: SHARED_ARRAY,
+			site_ids: SHARED_ARRAY,
 			is_enabled: BOOLEAN,
 			last_used: DATE,
 			expires_at: DATE,
@@ -313,7 +313,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			name: IDENTITY,
 			cidr: IDENTITY,
 			subnet_type: YES,
-			network_id: YES,
+			site_id: YES,
 			created_at: DATE,
 			updated_at: DATE,
 			last_seen_at: DATE,
@@ -335,7 +335,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			beta: BOOLEAN,
 			unofficial_api: BOOLEAN,
 			description: TEXT,
-			assigned_networks: SHARED_ARRAY,
+			assigned_sites: SHARED_ARRAY,
 			assigned_hosts: ownedArray(SEARCH),
 			target: SHARED_ARRAY,
 			tags: SHARED_ARRAY
@@ -343,14 +343,14 @@ const DECISIONS: Record<string, TabDecisions> = {
 	},
 	'vlans/components/VlanTab.svelte': {
 		columns: {
-			vlan_number: { sort: true, group: 'Unique per network', filter: SEARCH },
+			vlan_number: { sort: true, group: 'Unique per site', filter: SEARCH },
 			name: IDENTITY,
 			created_at: DATE,
 			updated_at: DATE,
 			last_seen_at: DATE,
 			description: TEXT,
 			source: YES,
-			network_id: YES,
+			site_id: YES,
 			subnet_ids: SHARED_ARRAY,
 			first_found_by: FOUND_BY,
 			last_found_by: FOUND_BY

@@ -132,7 +132,7 @@ impl Subscriber<DiscoveryPhase> for BrevoService {
         let mut failures = Vec::new();
         for event in &events {
             if event.operation == DiscoveryPhase::Scanning
-                && let Some(org_id) = self.get_org_id_from_network(&event.scope.network_id).await
+                && let Some(org_id) = self.get_org_id_from_site(&event.scope.site_id).await
                 && let Err(e) = self.update_company_last_discovery(org_id).await
             {
                 failures.push(anyhow!("discovery sync for org {org_id}: {e:#}"));
@@ -151,7 +151,7 @@ impl Subscriber<EntityOperation> for BrevoService {
             EntityOperationDiscriminants::Deleted,
         ]);
         EntityEventFilter::by_entity(HashMap::from([
-            (EntityDiscriminants::Network, create_or_delete.clone()),
+            (EntityDiscriminants::Site, create_or_delete.clone()),
             (EntityDiscriminants::Host, create_or_delete.clone()),
             (EntityDiscriminants::User, create_or_delete),
         ]))
@@ -163,8 +163,8 @@ impl Subscriber<EntityOperation> for BrevoService {
         for event in &events {
             if let Some(org_id) = event.scope.organization_id() {
                 org_ids_for_metrics.insert(org_id);
-            } else if let Some(network_id) = event.scope.network_id()
-                && let Some(org_id) = self.get_org_id_from_network(&network_id).await
+            } else if let Some(site_id) = event.scope.site_id()
+                && let Some(org_id) = self.get_org_id_from_site(&site_id).await
             {
                 org_ids_for_metrics.insert(org_id);
             }

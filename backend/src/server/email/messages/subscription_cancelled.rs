@@ -34,7 +34,7 @@ impl Email for SubscriptionCancelled<'_> {
                         "Your Scanopy subscription ended on {}. Your account is now read-only: you can still see everything Scanopy found, but scans, edits and daemon work are paused.",
                         self.period_end_date
                     ))
-                    .paragraph("Choose a paid plan from Settings to resume. Your networks, hosts and schedules are all still there."),
+                    .paragraph("Choose a paid plan from Settings to resume. Your sites, hosts and schedules are all still there."),
             )
             .cta(links::PLAN_PICKER, "Resubscribe")
             .render()

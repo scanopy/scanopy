@@ -77,7 +77,7 @@ pub struct NetworkScan {
     >,
     /// Specific addresses to scan (a rescan). `None` sweeps the subnets.
     target_ips: Option<HashSet<std::net::IpAddr>>,
-    /// The network's subnets as the server sent them with this run. See
+    /// The site's subnets as the server sent them with this run. See
     /// `DiscoveryRunner::known_subnets`.
     known_subnets: Vec<Subnet>,
     /// Precomputed TCP port set: discovery ports, credential-required ports, and

@@ -4,17 +4,17 @@ use crate::infra::{BASE_URL, TestContext};
 use reqwest::StatusCode;
 use scanopy::server::daemons::r#impl::base::Daemon;
 use scanopy::server::hosts::r#impl::api::{CreateHostRequest, HostResponse};
-use scanopy::server::networks::r#impl::{Network, NetworkBase};
 use scanopy::server::services::definitions::ServiceDefinitionRegistry;
 use scanopy::server::services::r#impl::base::{Service, ServiceBase};
 use scanopy::server::shared::storage::traits::Storable;
 use scanopy::server::shared::types::entities::EntitySource;
+use scanopy::server::sites::r#impl::{Site, SiteBase};
 use scanopy::server::tags::r#impl::base::{Tag, TagBase};
 
 pub async fn run_validation_tests(ctx: &TestContext) -> Result<(), String> {
     println!("\n=== Testing Handler Validations ===\n");
 
-    test_service_network_validation(ctx).await?;
+    test_service_site_validation(ctx).await?;
     test_host_daemon_deletion_prevention(ctx).await?;
     test_bulk_delete_validation(ctx).await?;
 
@@ -22,22 +22,22 @@ pub async fn run_validation_tests(ctx: &TestContext) -> Result<(), String> {
     Ok(())
 }
 
-async fn test_service_network_validation(ctx: &TestContext) -> Result<(), String> {
-    println!("Testing: Service must be on same network as host...");
+async fn test_service_site_validation(ctx: &TestContext) -> Result<(), String> {
+    println!("Testing: Service must be on same site as host...");
 
-    // Create a second network that the user has access to
-    let second_network = Network::new(NetworkBase {
-        name: "Validation Test Network".to_string(),
+    // Create a second site that the user has access to
+    let second_site = Site::new(SiteBase {
+        name: "Validation Test Site".to_string(),
         organization_id: ctx.organization_id,
         ..Default::default()
     });
-    let second_network: Network = ctx.client.post("/api/v1/networks", &second_network).await?;
+    let second_site: Site = ctx.client.post("/api/v1/sites", &second_site).await?;
 
-    // Create host on the first network
+    // Create host on the first site
     let host_request = CreateHostRequest {
         name: "Validation Test Host".to_string(),
         hostname: Some("validation.local".to_string()),
-        network_id: ctx.network_id,
+        site_id: ctx.site_id,
         description: None,
         virtualization_metadata: None,
         virtualization_service_id: None,
@@ -59,13 +59,13 @@ async fn test_service_network_validation(ctx: &TestContext) -> Result<(), String
     };
     let created_host: HostResponse = ctx.client.post("/api/v1/hosts", &host_request).await?;
 
-    // Try to create a service on the second network that references the host on the first network
+    // Try to create a service on the second site that references the host on the first site
     let service_def = ServiceDefinitionRegistry::all_service_definitions()[0].clone();
     let service = Service::new(ServiceBase {
-        name: "Wrong Network Service".to_string(),
+        name: "Wrong Site Service".to_string(),
         host_id: created_host.id,
         bindings: vec![],
-        network_id: second_network.id, // Different network than host!
+        site_id: second_site.id, // Different site than host!
         service_definition: service_def,
         virtualization_metadata: None,
         virtualization_service_id: None,
@@ -80,17 +80,17 @@ async fn test_service_network_validation(ctx: &TestContext) -> Result<(), String
         .await;
     assert!(
         result.is_ok(),
-        "Service on different network should return 400: {:?}",
+        "Service on different site should return 400: {:?}",
         result
     );
-    println!("  ✓ Service with different network_id than host returns 400");
+    println!("  ✓ Service with different site_id than host returns 400");
 
     // Cleanup
     ctx.client
         .delete_no_content(&format!("/api/v1/hosts/{}", created_host.id))
         .await?;
     ctx.client
-        .delete_no_content(&format!("/api/v1/networks/{}", second_network.id))
+        .delete_no_content(&format!("/api/v1/sites/{}", second_site.id))
         .await?;
 
     Ok(())

@@ -63,27 +63,27 @@ impl Default for BindingType {
 pub struct BindingBase {
     /// The service this entity refers to.
     pub service_id: Uuid,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// What the service is bound to — a port, or an IP address on its own.
     #[serde(flatten)]
     pub binding_type: BindingType,
 }
 
 impl BindingBase {
-    pub fn new(service_id: Uuid, network_id: Uuid, binding_type: BindingType) -> Self {
+    pub fn new(service_id: Uuid, site_id: Uuid, binding_type: BindingType) -> Self {
         Self {
             service_id,
-            network_id,
+            site_id,
             binding_type,
         }
     }
 
-    /// Create a BindingBase without service/network (will be set by server)
+    /// Create a BindingBase without service/site (will be set by server)
     pub fn new_serviceless(binding_type: BindingType) -> Self {
         Self {
             service_id: Uuid::nil(),
-            network_id: Uuid::nil(),
+            site_id: Uuid::nil(),
             binding_type,
         }
     }
@@ -245,7 +245,7 @@ impl Binding {
         }
     }
 
-    /// Create a Binding with just a BindingType (service_id/network_id set to nil).
+    /// Create a Binding with just a BindingType (service_id/site_id set to nil).
     /// Use this for bindings created during discovery before service assignment.
     pub fn new_serviceless(binding_type: BindingType) -> Self {
         Self::new(BindingBase::new_serviceless(binding_type))
@@ -260,8 +260,8 @@ impl Binding {
         self.base.service_id
     }
 
-    pub fn network_id(&self) -> Uuid {
-        self.base.network_id
+    pub fn site_id(&self) -> Uuid {
+        self.base.site_id
     }
 
     pub fn binding_type(&self) -> BindingType {
@@ -304,31 +304,31 @@ impl Binding {
         })
     }
 
-    /// Set the service_id and network_id (for serviceless bindings that get resolved later)
-    pub fn with_service(mut self, service_id: Uuid, network_id: Uuid) -> Self {
+    /// Set the service_id and site_id (for serviceless bindings that get resolved later)
+    pub fn with_service(mut self, service_id: Uuid, site_id: Uuid) -> Self {
         self.base.service_id = service_id;
-        self.base.network_id = network_id;
+        self.base.site_id = site_id;
         self
     }
 
     // Legacy convenience constructors (full versions)
-    pub fn new_ip_address(service_id: Uuid, network_id: Uuid, ip_address_id: Uuid) -> Self {
+    pub fn new_ip_address(service_id: Uuid, site_id: Uuid, ip_address_id: Uuid) -> Self {
         Self::new(BindingBase::new(
             service_id,
-            network_id,
+            site_id,
             BindingType::IPAddress { ip_address_id },
         ))
     }
 
     pub fn new_port(
         service_id: Uuid,
-        network_id: Uuid,
+        site_id: Uuid,
         port_id: Uuid,
         ip_address_id: Option<Uuid>,
     ) -> Self {
         Self::new(BindingBase::new(
             service_id,
-            network_id,
+            site_id,
             BindingType::Port {
                 port_id,
                 ip_address_id,

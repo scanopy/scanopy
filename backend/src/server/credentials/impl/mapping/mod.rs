@@ -54,7 +54,7 @@ pub use super::types::snmp::{
 // Generic Credential Mapping
 // ============================================================================
 
-/// Generic credential mapping: a default credential for the network
+/// Generic credential mapping: a default credential for the site
 /// plus per-IP overrides for specific hosts.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct CredentialMapping<T> {
@@ -147,8 +147,8 @@ impl<T> CredentialMapping<T> {
 
 /// A credential payload paired with its server-side ID (if host-assignable).
 /// `credential_id` is Some for host-scoped credentials (IP overrides from host assignments).
-/// None for network-level defaults and fallbacks — those don't get auto-assigned
-/// to discovered hosts because they're already available network-wide.
+/// None for site-level defaults and fallbacks — those don't get auto-assigned
+/// to discovered hosts because they're already available site-wide.
 #[derive(Debug, Clone)]
 pub struct ResolvedCredential<T> {
     pub credential: T,
@@ -168,7 +168,7 @@ pub struct ResolvedCredential<T> {
     Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, ToSchema, EnumDiscriminants,
 )]
 // `Target` is the capability enum returned by `CredentialType::targets()`: where a credential
-// can apply (DaemonHost / Network / Hosts). It's the strum discriminant of `IntegrationTarget`.
+// can apply (DaemonHost / Site / Hosts). It's the strum discriminant of `IntegrationTarget`.
 #[strum_discriminants(
     name(Target),
     derive(Serialize, Deserialize, Hash, ToSchema, strum::VariantNames)
@@ -182,10 +182,12 @@ pub enum IntegrationTarget {
         /// Credential to use on the daemon host.
         credential_id: Uuid,
     },
-    /// All hosts on the network — a broadcast default credential.
-    #[schema(title = "Network")]
-    Network {
-        /// Credential to use across the network.
+    /// All hosts on the site, as a broadcast default credential. Daemons at or below
+    /// `last_network_wire` call this scope `"Network"`; the wire rewrite in
+    /// `server/shared/legacy.rs` translates it both ways.
+    #[schema(title = "Site")]
+    Site {
+        /// Credential to use across the site.
         credential_id: Uuid,
     },
     /// Specific host IPs — one IP-override per address.
@@ -204,7 +206,7 @@ impl IntegrationTarget {
     pub fn credential_id(&self) -> Uuid {
         match self {
             Self::DaemonHost { credential_id }
-            | Self::Network { credential_id }
+            | Self::Site { credential_id }
             | Self::Hosts { credential_id, .. } => *credential_id,
         }
     }
@@ -218,7 +220,7 @@ impl std::fmt::Display for IntegrationTarget {
         match self {
             // A sole loopback target *is* the daemon-host scope, per the parser.
             Self::DaemonHost { credential_id } => write!(f, "{credential_id}@127.0.0.1"),
-            Self::Network { credential_id } => write!(f, "{credential_id}"),
+            Self::Site { credential_id } => write!(f, "{credential_id}"),
             Self::Hosts { credential_id, ips } => {
                 write!(f, "{credential_id}@")?;
                 for (i, ip) in ips.iter().enumerate() {

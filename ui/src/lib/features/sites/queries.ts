@@ -1,20 +1,20 @@
 /**
- * TanStack Query hooks for Networks
+ * TanStack Query hooks for Sites
  */
 
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys, queryClient } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
 import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
-import type { Network } from './types';
+import type { Site } from './types';
 import type { User } from '$lib/features/users/types';
 
 /**
- * Query hook for fetching all networks
+ * Query hook for fetching all sites
  */
-export function useNetworksQuery(options?: {
+export function useSitesQuery(options?: {
 	enabled?: () => boolean;
-	/** Refetch every few seconds while the org has no network, e.g. while a
+	/** Refetch every few seconds while the org has no site, e.g. while a
 	 * plan-change webhook is still creating it. */
 	pollWhileEmpty?: () => boolean;
 }) {
@@ -22,7 +22,7 @@ export function useNetworksQuery(options?: {
 		enabled: options?.enabled?.() ?? true,
 		refetchInterval: (query: { state: { data?: unknown[] } }) =>
 			options?.pollWhileEmpty?.() && query.state.data?.length === 0 ? 3000 : false,
-		queryKey: queryKeys.networks.all,
+		queryKey: queryKeys.sites.all,
 		queryFn: async () => {
 			// Guard: only fetch if user is logged in (check query cache)
 			const user = queryClient.getQueryData<User | null>(queryKeys.auth.currentUser());
@@ -30,7 +30,7 @@ export function useNetworksQuery(options?: {
 				return [];
 			}
 			return unwrapData(
-				await apiClient.GET('/api/v1/networks', {
+				await apiClient.GET('/api/v1/sites', {
 					params: { query: { limit: 0 } }
 				})
 			);
@@ -39,69 +39,69 @@ export function useNetworksQuery(options?: {
 }
 
 /**
- * Mutation hook for creating a network
+ * Mutation hook for creating a site
  */
-export function useCreateNetworkMutation() {
+export function useCreateSiteMutation() {
 	const queryClient = useQueryClient();
 
 	return createMutation(() => ({
-		mutationFn: async (network: Network) => {
-			return unwrapData(await apiClient.POST('/api/v1/networks', { body: network }));
+		mutationFn: async (site: Site) => {
+			return unwrapData(await apiClient.POST('/api/v1/sites', { body: site }));
 		},
-		onSuccess: (newNetwork: Network) => {
-			queryClient.setQueryData<Network[]>(queryKeys.networks.all, (old) =>
-				old ? [...old, newNetwork] : [newNetwork]
+		onSuccess: (newSite: Site) => {
+			queryClient.setQueryData<Site[]>(queryKeys.sites.all, (old) =>
+				old ? [...old, newSite] : [newSite]
 			);
-			// credential_ids changes are reflected on credentials' assigned_network_ids
+			// credential_ids changes are reflected on credentials' assigned_site_ids
 			queryClient.invalidateQueries({ queryKey: queryKeys.credentials.all });
 		}
 	}));
 }
 
 /**
- * Mutation hook for updating a network
+ * Mutation hook for updating a site
  */
-export function useUpdateNetworkMutation() {
+export function useUpdateSiteMutation() {
 	const queryClient = useQueryClient();
 
 	return createMutation(() => ({
-		mutationFn: async (network: Network) => {
+		mutationFn: async (site: Site) => {
 			return unwrapData(
-				await apiClient.PUT('/api/v1/networks/{id}', {
-					params: { path: { id: network.id } },
-					body: network
+				await apiClient.PUT('/api/v1/sites/{id}', {
+					params: { path: { id: site.id } },
+					body: site
 				})
 			);
 		},
-		onSuccess: (updatedNetwork: Network) => {
-			queryClient.setQueryData<Network[]>(
-				queryKeys.networks.all,
-				(old) => old?.map((n) => (n.id === updatedNetwork.id ? updatedNetwork : n)) ?? []
+		onSuccess: (updatedSite: Site) => {
+			queryClient.setQueryData<Site[]>(
+				queryKeys.sites.all,
+				(old) => old?.map((n) => (n.id === updatedSite.id ? updatedSite : n)) ?? []
 			);
-			// credential_ids changes are reflected on credentials' assigned_network_ids
+			// credential_ids changes are reflected on credentials' assigned_site_ids
 			queryClient.invalidateQueries({ queryKey: queryKeys.credentials.all });
 		}
 	}));
 }
 
 /**
- * Mutation hook for deleting a network
+ * Mutation hook for deleting a site
  */
-export function useDeleteNetworkMutation() {
+export function useDeleteSiteMutation() {
 	const queryClient = useQueryClient();
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
 			requireSuccess(
-				await apiClient.DELETE('/api/v1/networks/{id}', {
+				await apiClient.DELETE('/api/v1/sites/{id}', {
 					params: { path: { id } }
 				})
 			);
 			return id;
 		},
 		onSuccess: (id: string) => {
-			queryClient.setQueryData<Network[]>(
-				queryKeys.networks.all,
+			queryClient.setQueryData<Site[]>(
+				queryKeys.sites.all,
 				(old) => old?.filter((n) => n.id !== id) ?? []
 			);
 		}
@@ -109,19 +109,19 @@ export function useDeleteNetworkMutation() {
 }
 
 /**
- * Mutation hook for bulk deleting networks
+ * Mutation hook for bulk deleting sites
  */
-export function useBulkDeleteNetworksMutation() {
+export function useBulkDeleteSitesMutation() {
 	const queryClient = useQueryClient();
 
 	return createMutation(() => ({
 		mutationFn: async (ids: string[]) => {
-			requireSuccess(await apiClient.POST('/api/v1/networks/bulk-delete', { body: ids }));
+			requireSuccess(await apiClient.POST('/api/v1/sites/bulk-delete', { body: ids }));
 			return ids;
 		},
 		onSuccess: (ids: string[]) => {
-			queryClient.setQueryData<Network[]>(
-				queryKeys.networks.all,
+			queryClient.setQueryData<Site[]>(
+				queryKeys.sites.all,
 				(old) => old?.filter((n) => !ids.includes(n.id)) ?? []
 			);
 		}
@@ -135,9 +135,9 @@ import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formattin
 // ============================================================================
 
 /**
- * Create empty form data for creating a new network
+ * Create empty form data for creating a new site
  */
-export function createEmptyNetworkFormData(): Network {
+export function createEmptySiteFormData(): Site {
 	return {
 		id: uuidv4Sentinel,
 		name: '',

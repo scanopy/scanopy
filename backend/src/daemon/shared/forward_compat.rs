@@ -178,7 +178,7 @@ impl DaemonResponse for Subnet {
             base:
                 SubnetBase {
                     cidr: _,
-                    network_id: _,
+                    site_id: _,
                     name: _,
                     description: _,
                     subnet_type: _,
@@ -217,7 +217,7 @@ impl DaemonResponse for HostResponse {
             display_name_rung: _,
             name_ladder: _,
             name_source: _,
-            network_id: _,
+            site_id: _,
             hostname: _,
             hostname_source: _,
             description: _,

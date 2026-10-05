@@ -252,7 +252,7 @@ pub fn host_coverage() -> Vec<(&'static str, ScriptCoverage)> {
     use SshScriptField as F;
     script_coverage!(HostBase {
         name => NotWritable(NAMING),
-        network_id => NotWritable(IDENTITY),
+        site_id => NotWritable(IDENTITY),
         hostname => Writable(F::Hostname),
         description => NotWritable(USER_SET),
         source => NotWritable(IDENTITY),
@@ -283,7 +283,7 @@ pub fn interface_coverage() -> Vec<(&'static str, ScriptCoverage)> {
     use SshScriptField as F;
     script_coverage!(InterfaceBase {
         host_id => NotWritable(IDENTITY),
-        network_id => NotWritable(IDENTITY),
+        site_id => NotWritable(IDENTITY),
         if_index => NotWritable("an SNMP table index; interfaces are matched by name, then MAC"),
         if_descr => Writable(F::InterfaceDescr),
         if_name => Writable(F::InterfaceName),

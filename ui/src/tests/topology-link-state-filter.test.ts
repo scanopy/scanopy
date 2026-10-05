@@ -8,7 +8,7 @@ import {
 import type { RenderableTopology, Topology } from '$lib/features/topology/types/base';
 import { entityBundleFrom, toRenderableTopology } from '$lib/features/topology/enriched';
 
-const NETWORK_ID = 'net-1';
+const SITE_ID = 'net-1';
 
 /**
  * The L2 bundle as it arrives with the link-state filter already applied server-side.
@@ -25,7 +25,7 @@ function filteredL2Bundle(): RenderableTopology {
 	const iface = (id: string, host: string) => ({
 		id,
 		host_id: host,
-		network_id: NETWORK_ID,
+		site_id: SITE_ID,
 		tags: []
 	});
 	const node = (id: string, host: string) => ({
@@ -38,10 +38,10 @@ function filteredL2Bundle(): RenderableTopology {
 
 	return {
 		id: 'topo-1',
-		network_id: NETWORK_ID,
+		site_id: SITE_ID,
 		hosts: [
-			{ id: 'switch-a', network_id: NETWORK_ID, tags: [] },
-			{ id: 'switch-b', network_id: NETWORK_ID, tags: [] }
+			{ id: 'switch-a', site_id: SITE_ID, tags: [] },
+			{ id: 'switch-b', site_id: SITE_ID, tags: [] }
 		],
 		interfaces: [
 			iface('p-own-1', 'switch-a'),
@@ -78,7 +78,7 @@ function filteredL2Bundle(): RenderableTopology {
 		dependencies: [],
 		vlans: [],
 		entity_tags: [],
-		name: 'My Network'
+		name: 'My Site'
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	} as any;
 }
@@ -154,9 +154,9 @@ describe('hiding unlinked interfaces in L2', () => {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} as any;
 		const topology = toRenderableTopology(
-			{ id: 'topo-1', network_id: NETWORK_ID } as Topology,
+			{ id: 'topo-1', site_id: SITE_ID } as Topology,
 			entityBundleFrom(response),
-			'My Network',
+			'My Site',
 			'L2Physical'
 		);
 

@@ -1,4 +1,4 @@
-//! Email subscriber for entity (Host/Network/User Created/Deleted) and
+//! Email subscriber for entity (Host/Site/User Created/Deleted) and
 //! onboarding (FirstDaemonRegistered, FirstDiscoveryCompleted) events.
 //!
 //! Triggers transactional emails: plan-limit notifications on entity
@@ -183,7 +183,7 @@ impl Subscriber<BillingOperation> for EmailService {
                     plan,
                     has_payment_method,
                 } => {
-                    // The cloud email recaps hosts, networks, daemons and
+                    // The cloud email recaps hosts, sites, daemons and
                     // services found during the trial. A self-hosted trial's
                     // are on the customer's own server, so the recap would be
                     // four zeros.
@@ -589,7 +589,7 @@ impl Subscriber<EntityOperation> for EmailService {
         ]);
         EntityEventFilter::by_entity(HashMap::from([
             (EntityDiscriminants::Host, create_or_delete.clone()),
-            (EntityDiscriminants::Network, create_or_delete.clone()),
+            (EntityDiscriminants::Site, create_or_delete.clone()),
             (EntityDiscriminants::User, create_or_delete.clone()),
             // Organization deletion sends a confirmation email to the
             // initiating user.
@@ -610,9 +610,9 @@ impl Subscriber<EntityOperation> for EmailService {
         for event in events {
             let org_id = if let Some(org_id) = event.scope.organization_id() {
                 Some(org_id)
-            } else if let Some(network_id) = event.scope.network_id() {
-                self.network_service
-                    .get_by_id(&network_id)
+            } else if let Some(site_id) = event.scope.site_id() {
+                self.site_service
+                    .get_by_id(&site_id)
                     .await?
                     .map(|n| n.base.organization_id)
             } else {
@@ -665,10 +665,10 @@ impl Subscriber<OnboardingOperation> for EmailService {
             let org_id = event.scope.organization_id;
             if let OnboardingOperation::FirstDaemonRegistered {
                 daemon_name,
-                network_name,
+                site_name,
             } = &event.operation
             {
-                self.send_discovery_guide_for_org(org_id, daemon_name, network_name)
+                self.send_discovery_guide_for_org(org_id, daemon_name, site_name)
                     .await
                     .map_err(|e| e.context(format!("send discovery guide for org {org_id}")))?;
             }

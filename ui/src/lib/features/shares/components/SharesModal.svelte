@@ -48,7 +48,7 @@
 		isOpen = false,
 		onClose,
 		topologyId = '',
-		networkId = '',
+		siteId = '',
 		name = undefined,
 		topologyDisplayName = '',
 		isSnapshotView = false
@@ -56,11 +56,11 @@
 		isOpen?: boolean;
 		onClose: () => void;
 		topologyId?: string;
-		networkId?: string;
+		siteId?: string;
 		/** Modal-registry slug; threaded into GenericModal. */
 		name?: string;
 		/** Display name used in the modal title. Topology rows no longer carry
-		 *  a name field, so callers pass it explicitly (network name for live,
+		 *  a name field, so callers pass it explicitly (site name for live,
 		 *  formatted snapshot timestamp otherwise). */
 		topologyDisplayName?: string;
 		/** True when the user opened this while viewing a snapshot. A share always
@@ -147,7 +147,7 @@
 
 	function handleCreateNew() {
 		const newShare: Share = {
-			...createEmptyShare(topologyId, networkId),
+			...createEmptyShare(topologyId, siteId),
 			id: uuidv4(),
 			created_by: currentUser?.id ?? ''
 		};
@@ -185,7 +185,7 @@
 			id: share.id,
 			name: v.name?.trim() || '',
 			topology_id: share.topology_id,
-			network_id: share.network_id,
+			site_id: share.site_id,
 			created_by: currentUser?.id || share.created_by,
 			allowed_domains: v.allowed_domains?.trim()
 				? v.allowed_domains

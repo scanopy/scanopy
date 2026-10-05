@@ -16,7 +16,7 @@
 	} from '$lib/features/topology/queries';
 	import { get } from 'svelte/store';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import BillingPlanModal from '$lib/features/billing/BillingPlanModal.svelte';
 	import DaemonPromptModal from '$lib/features/daemons/components/DaemonPromptModal.svelte';
 	import { useConfigQuery, isLicenseSigningAvailable } from '$lib/shared/stores/config-query';
@@ -95,13 +95,13 @@
 			((needsPlanSelection && !planJustActivated) || $modalState.name === 'billing-plan')
 	);
 
-	// A self-hosted signup that picks a cloud plan gets its network from the plan
-	// webhook, so the daemon prompt waits (polling) until that network exists.
-	const networksQuery = useNetworksQuery({
+	// A self-hosted signup that picks a cloud plan gets its site from the plan
+	// webhook, so the daemon prompt waits (polling) until that site exists.
+	const sitesQuery = useSitesQuery({
 		enabled: () => isAuthenticated && mainAppAvailable,
 		pollWhileEmpty: () => planJustActivated
 	});
-	let hasNetwork = $derived((networksQuery.data?.length ?? 0) > 0);
+	let hasSite = $derived((sitesQuery.data?.length ?? 0) > 0);
 
 	// Daemon prompt: driven by modal registry
 	let showDaemonPrompt = $derived($modalState.name === 'daemon-prompt');
@@ -251,7 +251,7 @@
 			organization?.onboarding?.includes('OrgCreated') &&
 			!organization?.onboarding?.includes('FirstDaemonRegistered') &&
 			!daemonPromptResponded &&
-			hasNetwork &&
+			hasSite &&
 			daemonsQuery.isSuccess &&
 			daemonsQuery.data?.length === 0
 		) {
@@ -425,7 +425,7 @@
 			} else if (
 				!isViewer &&
 				!daemonPromptResponded &&
-				hasNetwork &&
+				hasSite &&
 				daemonsQuery.data?.length === 0
 			) {
 				// Mark as shown here too so the first Skip click sticks — otherwise the

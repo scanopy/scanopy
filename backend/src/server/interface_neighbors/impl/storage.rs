@@ -55,7 +55,7 @@ impl Storable for InterfaceNeighborCandidate {
         Ok((
             vec![
                 "id",
-                "network_id",
+                "site_id",
                 "interface_id",
                 "lldp_chassis_id",
                 "lldp_port_id",
@@ -71,7 +71,7 @@ impl Storable for InterfaceNeighborCandidate {
             ],
             vec![
                 SqlValue::Uuid(self.id),
-                SqlValue::Uuid(self.base.network_id),
+                SqlValue::Uuid(self.base.site_id),
                 SqlValue::Uuid(self.base.interface_id),
                 SqlValue::OptionalLldpChassisId(evidence.lldp_chassis_id.clone()),
                 SqlValue::OptionalLldpPortId(evidence.lldp_port_id.clone()),
@@ -93,7 +93,7 @@ impl Storable for InterfaceNeighborCandidate {
             id: row.get("id"),
             created_at: row.get("created_at"),
             base: InterfaceNeighborCandidateBase {
-                network_id: row.get("network_id"),
+                site_id: row.get("site_id"),
                 interface_id: row.get("interface_id"),
                 evidence: InterfaceNeighborEvidence {
                     lldp_chassis_id: parse_lldp_chassis_id(row, "lldp_chassis_id"),
@@ -141,7 +141,7 @@ impl Storable for InterfaceNeighborInterface {
         Ok((
             vec![
                 "id",
-                "network_id",
+                "site_id",
                 "interface_id",
                 "neighbor_interface_id",
                 "neighbor_seen_at",
@@ -156,7 +156,7 @@ impl Storable for InterfaceNeighborInterface {
             ],
             vec![
                 SqlValue::Uuid(self.id),
-                SqlValue::Uuid(self.base.network_id),
+                SqlValue::Uuid(self.base.site_id),
                 SqlValue::Uuid(self.base.interface_id),
                 SqlValue::Uuid(self.base.neighbor_interface_id),
                 SqlValue::OptionTimestamp(self.base.neighbor_seen_at),
@@ -184,7 +184,7 @@ impl Storable for InterfaceNeighborInterface {
             last_discovery_id: row.get("last_discovery_id"),
             first_discovery_id: row.get("first_discovery_id"),
             base: InterfaceNeighborInterfaceBase {
-                network_id: row.get("network_id"),
+                site_id: row.get("site_id"),
                 interface_id: row.get("interface_id"),
                 neighbor_interface_id: row.get("neighbor_interface_id"),
                 neighbor_seen_at: row.get("neighbor_seen_at"),
@@ -262,7 +262,7 @@ impl Storable for InterfaceNeighborHost {
         Ok((
             vec![
                 "id",
-                "network_id",
+                "site_id",
                 "interface_id",
                 "neighbor_host_id",
                 "neighbor_seen_at",
@@ -277,7 +277,7 @@ impl Storable for InterfaceNeighborHost {
             ],
             vec![
                 SqlValue::Uuid(self.id),
-                SqlValue::Uuid(self.base.network_id),
+                SqlValue::Uuid(self.base.site_id),
                 SqlValue::Uuid(self.base.interface_id),
                 SqlValue::Uuid(self.base.neighbor_host_id),
                 SqlValue::OptionTimestamp(self.base.neighbor_seen_at),
@@ -305,7 +305,7 @@ impl Storable for InterfaceNeighborHost {
             last_discovery_id: row.get("last_discovery_id"),
             first_discovery_id: row.get("first_discovery_id"),
             base: InterfaceNeighborHostBase {
-                network_id: row.get("network_id"),
+                site_id: row.get("site_id"),
                 interface_id: row.get("interface_id"),
                 neighbor_host_id: row.get("neighbor_host_id"),
                 neighbor_seen_at: row.get("neighbor_seen_at"),

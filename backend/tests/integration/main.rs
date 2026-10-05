@@ -62,11 +62,11 @@ async fn integration_tests() {
         .expect("Failed to find organization");
     println!("✅ Organization: {}", organization.base.name);
 
-    println!("\n=== Waiting for Network ===");
-    let network = wait_for_network(&client)
+    println!("\n=== Waiting for Site ===");
+    let site = wait_for_network(&client)
         .await
-        .expect("Failed to find network");
-    println!("✅ Network: {}", network.base.name);
+        .expect("Failed to find site");
+    println!("✅ Site: {}", site.base.name);
 
     // =========================================================================
     // Phase 2: DaemonPoll Discovery (creates subnets needed for compat tests)
@@ -96,11 +96,11 @@ async fn integration_tests() {
     println!("Phase 3: ServerPoll Provisioning");
     println!("============================================================\n");
 
-    // Clear discovery data but keep network structure
+    // Clear discovery data but keep site structure
     clear_discovery_data().expect("Failed to clear discovery data");
 
     // Provision ServerPoll daemon (needed for compat tests)
-    let serverpoll_provision = provision_serverpoll_daemon(&client, network.id)
+    let serverpoll_provision = provision_serverpoll_daemon(&client, site.id)
         .await
         .expect("Failed to provision ServerPoll daemon");
     let serverpoll_daemon_id = serverpoll_provision.daemon.id;
@@ -136,14 +136,10 @@ async fn integration_tests() {
 
     // Trigger discovery for the ServerPoll daemon and get the session_id
     let serverpoll_host_id = serverpoll_provision.daemon.base.host_id;
-    let session_id = discovery::trigger_discovery(
-        &client,
-        serverpoll_daemon_id,
-        serverpoll_host_id,
-        network.id,
-    )
-    .await
-    .expect("Failed to trigger discovery for ServerPoll daemon");
+    let session_id =
+        discovery::trigger_discovery(&client, serverpoll_daemon_id, serverpoll_host_id, site.id)
+            .await
+            .expect("Failed to trigger discovery for ServerPoll daemon");
 
     // Wait for this specific session to complete via SSE stream
     // (filters by session_id to avoid catching stalled sessions from other daemons)
@@ -166,7 +162,7 @@ async fn integration_tests() {
         .await
         .expect("Failed to apply tag to discovered service");
 
-    let _dependency = discovery::create_dependency(&client, network.id)
+    let _dependency = discovery::create_dependency(&client, site.id)
         .await
         .expect("Failed to create dependency");
 
@@ -183,7 +179,7 @@ async fn integration_tests() {
 
     compat::run_compat_tests(
         daemon.id, // Use DaemonPoll daemon ID (like original)
-        network.id,
+        site.id,
         organization.id,
         user.id,
         &serverpoll_api_key,
@@ -204,7 +200,7 @@ async fn integration_tests() {
 
     let ctx = TestContext {
         client: TestClient::new(),
-        network_id: network.id,
+        site_id: site.id,
         organization_id: organization.id,
         db_pool,
     };

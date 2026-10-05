@@ -42,11 +42,11 @@ pub struct CredentialBase {
     #[serde(default = "default_tags")]
     #[schema(required)]
     pub tags: Vec<Uuid>,
-    /// Networks this credential is assigned to (Broadcast scope).
-    /// Hydrated from the `network_credentials` junction table.
+    /// Sites this credential is assigned to (Broadcast scope).
+    /// Hydrated from the `site_credentials` junction table.
     #[serde(default)]
     #[schema(required)]
-    pub assigned_network_ids: Vec<Uuid>,
+    pub assigned_site_ids: Vec<Uuid>,
     /// Hosts this credential is assigned to (PerHost scope), with optional IP scoping.
     /// Hydrated from the `host_credentials` junction table.
     #[serde(default)]
@@ -62,7 +62,7 @@ impl PartialEq for CredentialBase {
             && self.credential_type == other.credential_type
             && self.daemon_os == other.daemon_os
             && self.tags == other.tags
-            && self.assigned_network_ids == other.assigned_network_ids
+            && self.assigned_site_ids == other.assigned_site_ids
             && self.host_assignments == other.host_assignments
     }
 }
@@ -125,7 +125,7 @@ impl Default for CredentialBase {
             },
             daemon_os: None,
             tags: Vec::new(),
-            assigned_network_ids: Vec::new(),
+            assigned_site_ids: Vec::new(),
             host_assignments: Vec::new(),
         }
     }

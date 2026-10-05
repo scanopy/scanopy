@@ -7,7 +7,7 @@
 	import InlineSuccess from '$lib/shared/components/feedback/InlineSuccess.svelte';
 	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import SelectNetwork from '$lib/features/networks/components/SelectNetwork.svelte';
+	import SelectSite from '$lib/features/sites/components/SelectSite.svelte';
 	import RadioGroup from '$lib/shared/components/forms/input/RadioGroup.svelte';
 	import OsSelector from '../../OsSelector.svelte';
 	import type { DaemonOS } from '../../../utils';
@@ -22,7 +22,7 @@
 		daemons_config_modeServerPollHelp,
 		daemons_config_namePlaceholder,
 		daemons_config_portHelpServerPoll,
-		daemons_networkCannotChange,
+		daemons_siteCannotChange,
 		daemons_docsPollingMode,
 		daemons_docsPollingModeLinkText,
 		daemons_httpDaemonUrlWarning,
@@ -36,8 +36,8 @@
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		form: { Field: any };
 		formValues: Record<string, string | number | boolean>;
-		selectedNetworkId: string;
-		onNetworkChange: (id: string) => void;
+		selectedSiteId: string;
+		onSiteChange: (id: string) => void;
 		onNameInput?: () => void;
 		/** Daemon identity is frozen once Configure is left — the record is provisioned from it. */
 		identityLocked: boolean;
@@ -55,8 +55,8 @@
 	let {
 		form,
 		formValues,
-		selectedNetworkId,
-		onNetworkChange,
+		selectedSiteId,
+		onSiteChange,
 		onNameInput,
 		identityLocked,
 		isFirstDaemon = false,
@@ -120,11 +120,11 @@
 
 <div class="space-y-4">
 	{#if !isFirstDaemon}
-		<SelectNetwork
-			{selectedNetworkId}
-			onNetworkChange={(id) => onNetworkChange(id)}
+		<SelectSite
+			{selectedSiteId}
+			onSiteChange={(id) => onSiteChange(id)}
 			disabled={identityLocked}
-			disabledReason={daemons_networkCannotChange()}
+			disabledReason={daemons_siteCannotChange()}
 		/>
 	{/if}
 

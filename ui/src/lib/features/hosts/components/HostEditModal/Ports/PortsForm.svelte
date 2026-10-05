@@ -87,7 +87,7 @@
 		const newPort: Port = {
 			id: uuidv4(), // Temp ID for form - store will detect as new since it's not in ports store
 			host_id: formData.id,
-			network_id: formData.network_id,
+			site_id: formData.site_id,
 			protocol: 'Tcp',
 			number: Math.floor(Math.random() * 65535) + 1,
 			type: 'Custom',
@@ -106,7 +106,7 @@
 			const newPort: Port = {
 				id: uuidv4(), // Temp ID for form - store will detect as new since it's not in ports store
 				host_id: formData.id,
-				network_id: formData.network_id,
+				site_id: formData.site_id,
 				number: portType.metadata.number as number,
 				protocol: portType.metadata.protocol,
 				// `ports.getItem` just matched this id in the port-type registry, which is

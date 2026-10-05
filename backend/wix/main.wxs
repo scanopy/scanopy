@@ -65,7 +65,7 @@
         <Property Id="SERVERURL" Secure="yes" />
         <Property Id="APIKEY" Secure="yes" />
         <!-- Communication mode, baked into the download filename (default DaemonPoll for a
-             plain manual download). NETWORKID is gone: a provisioned daemon gets its network
+             plain manual download). NETWORKID is gone: a provisioned daemon gets its site
              from the 1:1 key, so the install command no longer passes it. -->
         <Property Id="MODE" Value="daemon_poll" Secure="yes" />
         <!-- Advanced, pre-filled, all optional. Silent installs and filename-encoded downloads
@@ -152,7 +152,7 @@
             Value="--interfaces &quot;[INTERFACES]&quot;"
             Execute="immediate" />
 
-        <!-- Mode-gated install command. NETWORKID is gone (network comes from the 1:1 key).
+        <!-- Mode-gated install command. NETWORKID is gone (the site comes from the 1:1 key).
              DaemonPoll dials the server (needs a server url + heartbeat + self-signed-cert
              option); ServerPoll is dialed by the server (listen bind/port, no server url). The
              mode flag is explicit so the daemon does not have to infer it from a service config.

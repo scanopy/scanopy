@@ -455,7 +455,7 @@ fn credential_name(credential: &CredentialType) -> String {
     }
 }
 
-/// The SQL that seeds every credential the lab needs, assigned to every network.
+/// The SQL that seeds every credential the lab needs, assigned to every site.
 ///
 /// The device list in each comment is derived, so it cannot go stale the way the hand-maintained
 /// one did.
@@ -481,7 +481,7 @@ pub fn credentials_sql(devices: &[SimDevice]) -> String {
          -- credential selection and the v1/v2c/v3 negotiation paths rather than one community\n\
          -- answering everything.\n\
          --\n\
-         -- Each credential is assigned to every network (Broadcast scope). Broadcast is the only\n\
+         -- Each credential is assigned to every site (Broadcast scope). Broadcast is the only\n\
          -- option that works before a scan has run: PerHost assignment needs hosts to exist, and\n\
          -- the sim devices are exactly what the first scan discovers.\n\
          --\n\
@@ -510,28 +510,28 @@ pub fn credentials_sql(devices: &[SimDevice]) -> String {
     sql.push_str(&rows.join(",\n"));
     sql.push_str(
         ";\n\n\
-         -- One credential per (organization owning a network, credential). md5(...)::uuid gives a\n\
+         -- One credential per (organization owning a site, credential). md5(...)::uuid gives a\n\
          -- stable id per organization, so two organizations each get their own copy rather than\n\
          -- fighting over one row, and a re-run finds the same ids.\n\
          INSERT INTO credentials (id, organization_id, name, credential_type, created_at, updated_at)\n\
          SELECT\n    \
          md5(org.id::text || c.name)::uuid,\n    org.id,\n    c.name,\n    c.credential_type,\n    \
          NOW(),\n    NOW()\n\
-         FROM (SELECT DISTINCT organization_id AS id FROM networks) org\n\
+         FROM (SELECT DISTINCT organization_id AS id FROM sites) org\n\
          CROSS JOIN seed_snmp_credentials c\n\
          ON CONFLICT (id) DO UPDATE\n    \
          SET name = EXCLUDED.name,\n        credential_type = EXCLUDED.credential_type,\n        \
          updated_at = NOW();\n\n\
-         INSERT INTO network_credentials (network_id, credential_id)\n\
+         INSERT INTO site_credentials (site_id, credential_id)\n\
          SELECT n.id, md5(n.organization_id::text || c.name)::uuid\n\
-         FROM networks n\n\
+         FROM sites n\n\
          CROSS JOIN seed_snmp_credentials c\n\
-         ON CONFLICT (network_id, credential_id) DO NOTHING;\n\n\
-         -- A network count of 0 is the interesting case: the database has no networks yet, so\n\
+         ON CONFLICT (site_id, credential_id) DO NOTHING;\n\n\
+         -- A site count of 0 is the interesting case: the database has no sites yet, so\n\
          -- nothing was seeded and nothing will scan.\n\
          SELECT\n    \
-         (SELECT COUNT(*) FROM networks) AS networks,\n    \
-         (SELECT COUNT(*) FROM seed_snmp_credentials) AS credentials_per_network;\n\n\
+         (SELECT COUNT(*) FROM sites) AS sites,\n    \
+         (SELECT COUNT(*) FROM seed_snmp_credentials) AS credentials_per_site;\n\n\
          COMMIT;\n",
     );
     sql

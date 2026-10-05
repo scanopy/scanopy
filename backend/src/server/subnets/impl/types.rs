@@ -225,7 +225,7 @@ impl SubnetType {
     }
 
     /// The categories Scanopy assigns to the subnets it fabricates for itself:
-    /// the per-network `0.0.0.0/0` Internet and Remote supernets seeded by
+    /// the per-site `0.0.0.0/0` Internet and Remote supernets seeded by
     /// `seed_data`, and the `127.0.0.0/8` loopback row seeded per daemon host.
     ///
     /// One definition, shared by [`Self::is_synthetic_category`] and the SQL in

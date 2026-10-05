@@ -27,7 +27,7 @@
         "dependency_creation": null,
         "element_sections": [
           "Identity",
-          "IfEntryData",
+          "InterfaceData",
           "Tags"
         ],
         "show_application_group_picker": false
@@ -68,7 +68,7 @@
         "element_sections": [
           "Identity",
           "HostDetail",
-          "IfEntryData",
+          "InterfaceData",
           "Services",
           "OtherInterfaces"
         ],

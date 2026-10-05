@@ -16,7 +16,7 @@ function service(id: string, ipId: string) {
 		id,
 		name: id,
 		host_id: 'host-1',
-		network_id: 'net-1',
+		site_id: 'net-1',
 		tags: [],
 		bindings: [{ id: `bind-${id}`, ip_address_id: ipId }]
 	};
@@ -25,9 +25,9 @@ function service(id: string, ipId: string) {
 function buildTopology(): RenderableTopology {
 	return {
 		id: 'topo-1',
-		network_id: 'net-1',
+		site_id: 'net-1',
 		name: 'test',
-		hosts: [{ id: 'host-1', name: 'host-1', network_id: 'net-1', tags: [] }],
+		hosts: [{ id: 'host-1', name: 'host-1', site_id: 'net-1', tags: [] }],
 		services: [service('svc-a', 'ip-a'), service('svc-b', 'ip-b'), service('svc-c', 'ip-c')],
 		nodes: [
 			{ id: 'svc-a', node_type: 'Element', element_type: 'Service' },

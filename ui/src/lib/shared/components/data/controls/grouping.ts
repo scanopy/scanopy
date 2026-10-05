@@ -93,7 +93,7 @@ export function computeGroupOffsets(counts: ServerGroupCount[] | null): Map<stri
 
 /**
  * The value the server grouped these rows under, which is not always what the
- * header displays — a network group reads as a name but groups by id.
+ * header displays — a site group reads as a name but groups by id.
  */
 export function serverGroupKey<T>(
 	groupItems: T[],

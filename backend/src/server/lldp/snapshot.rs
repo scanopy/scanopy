@@ -1,5 +1,5 @@
 //! The same identity lookups [`LldpResolverImpl`] runs as queries, served from one preloaded
-//! network.
+//! site.
 //!
 //! Resolution asks the same handful of questions once per neighbour-bearing interface — which host
 //! carries this chassis id, which port on it carries this name — and a query apiece made the pass
@@ -15,7 +15,7 @@
 //! The indexes keep the **0 / 1 / many** verdict rather than a first match. `Unique::Multiple` is
 //! how a non-unique column reports that it identifies nothing, and flattening it to "found one"
 //! would start attaching links to an arbitrary one of several identically named devices — the
-//! failure `find_host_by_sys_name` and `find_if_entry_by_mac` are documented as preventing.
+//! failure `find_host_by_sys_name` and `find_interface_by_mac` are documented as preventing.
 
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
@@ -68,7 +68,7 @@ fn claim<K: Eq + Hash>(index: &mut HashMap<K, Claim>, key: K, id: Uuid) {
         .or_insert(Claim::One(id));
 }
 
-/// Every identity lookup resolution needs, for one network, read once.
+/// Every identity lookup resolution needs, for one site, read once.
 ///
 /// Built from live rows only — each index is populated from an already-filtered load, so there is
 /// no `valid_to` test here and none of the queries this replaces had one beyond `.live()`.
@@ -85,13 +85,13 @@ pub struct LldpInventorySnapshot {
     /// `interfaces.mac_address` → the distinct hosts carrying it. A switch repeating its chassis
     /// MAC across 48 ports is one host and one answer, so this collapses before counting.
     hosts_by_interface_mac: HashMap<MacAddress, HashSet<Uuid>>,
-    /// `interfaces.if_descr` → host, network-wide, walked rows (`if_index` set) only.
+    /// `interfaces.if_descr` → host, site-wide, walked rows (`if_index` set) only.
     host_by_interface_descr: HashMap<String, Claim>,
 
     /// `(host, MAC)` → interface, physical rows only.
     interface_by_host_mac: HashMap<(Uuid, MacAddress), Claim>,
     /// `(host, MAC)` → interface, physical rows with `ip_configured` set only. Consulted as a tie-break
-    /// when `interface_by_host_mac` comes back `Claim::Many` — see `find_if_entry_by_mac`.
+    /// when `interface_by_host_mac` comes back `Claim::Many` — see `find_interface_by_mac`.
     interface_by_host_mac_ip_configured: HashMap<(Uuid, MacAddress), Claim>,
     /// `(host, if_descr)` → interface.
     interface_by_host_descr: HashMap<(Uuid, String), Claim>,
@@ -108,7 +108,7 @@ pub struct LldpInventorySnapshot {
 }
 
 impl LldpInventorySnapshot {
-    /// Index one network's live hosts, interfaces and addresses.
+    /// Index one site's live hosts, interfaces and addresses.
     ///
     /// The caller loads them; this only decides how they are looked up. Keeping the loads outside
     /// means the snapshot has no opinion about which service or filter produced the rows, and can
@@ -241,7 +241,7 @@ impl LldpInventorySnapshot {
         snapshot
     }
 
-    /// One rung of `find_if_entry_by_name`: the three name columns, in the order the queries try
+    /// One rung of `find_interface_by_name`: the three name columns, in the order the queries try
     /// them, resolving on a single match only.
     fn interface_named(&self, host_id: Uuid, name: &str) -> Option<Uuid> {
         let key = (host_id, name.to_string());
@@ -257,7 +257,7 @@ impl LldpInventorySnapshot {
 
 #[async_trait]
 impl LldpResolver for LldpInventorySnapshot {
-    async fn find_host_by_mac(&self, mac: &str, _network_id: Uuid) -> IdentityResolution {
+    async fn find_host_by_mac(&self, mac: &str, _site_id: Uuid) -> IdentityResolution {
         let Ok(mac_addr) = mac.parse::<MacAddress>() else {
             return IdentityResolution::NotFound;
         };
@@ -284,27 +284,27 @@ impl LldpResolver for LldpInventorySnapshot {
         }
     }
 
-    async fn find_host_by_ip(&self, ip: &IpAddr, _network_id: Uuid) -> IdentityResolution {
+    async fn find_host_by_ip(&self, ip: &IpAddr, _site_id: Uuid) -> IdentityResolution {
         IdentityResolution::from_unique(Claim::verdict(self.host_by_address.get(ip)))
     }
 
-    async fn find_host_by_if_name(&self, name: &str, _network_id: Uuid) -> IdentityResolution {
+    async fn find_host_by_if_name(&self, name: &str, _site_id: Uuid) -> IdentityResolution {
         IdentityResolution::from_unique(Claim::verdict(self.host_by_interface_descr.get(name)))
     }
 
     async fn find_host_by_chassis_id(
         &self,
         chassis_id: &str,
-        _network_id: Uuid,
+        _site_id: Uuid,
     ) -> IdentityResolution {
         IdentityResolution::from_unique(Claim::verdict(self.host_by_chassis_id.get(chassis_id)))
     }
 
-    async fn find_host_by_sys_name(&self, sys_name: &str, _network_id: Uuid) -> IdentityResolution {
+    async fn find_host_by_sys_name(&self, sys_name: &str, _site_id: Uuid) -> IdentityResolution {
         IdentityResolution::from_unique(Claim::verdict(self.host_by_sys_name.get(sys_name)))
     }
 
-    async fn find_if_entry_by_mac(&self, mac: &str, host_id: Uuid) -> IdentityResolution {
+    async fn find_interface_by_mac(&self, mac: &str, host_id: Uuid) -> IdentityResolution {
         let Ok(mac_addr) = mac.parse::<MacAddress>() else {
             return IdentityResolution::NotFound;
         };
@@ -325,7 +325,7 @@ impl LldpResolver for LldpInventorySnapshot {
         }
     }
 
-    async fn find_if_entry_by_name(&self, name: &str, host_id: Uuid) -> Option<Uuid> {
+    async fn find_interface_by_name(&self, name: &str, host_id: Uuid) -> Option<Uuid> {
         if let Some(id) = self.interface_named(host_id, name) {
             return Some(id);
         }
@@ -338,11 +338,11 @@ impl LldpResolver for LldpInventorySnapshot {
         self.interface_named(host_id, suffix)
     }
 
-    async fn find_if_entry_by_if_index(&self, if_index: i32, host_id: Uuid) -> Option<Uuid> {
+    async fn find_interface_by_if_index(&self, if_index: i32, host_id: Uuid) -> Option<Uuid> {
         Claim::verdict(self.interface_by_host_index.get(&(host_id, if_index))).found()
     }
 
-    async fn find_if_entry_by_ip(&self, ip: &IpAddr, host_id: Uuid) -> Option<Uuid> {
+    async fn find_interface_by_ip(&self, ip: &IpAddr, host_id: Uuid) -> Option<Uuid> {
         let address_row =
             Claim::verdict(self.address_row_by_host_address.get(&(host_id, *ip))).found()?;
         Claim::verdict(self.interface_by_address_row.get(&address_row)).found()

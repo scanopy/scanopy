@@ -162,13 +162,13 @@ impl ServiceService {
 
         self.storage.update(&mut existing_service).await?;
 
-        // Save bindings to separate table with correct service_id and network_id
+        // Save bindings to separate table with correct service_id and site_id
         let bindings_with_ids: Vec<Binding> = existing_service
             .base
             .bindings
             .iter()
             .cloned()
-            .map(|b| b.with_service(existing_service.id, existing_service.base.network_id))
+            .map(|b| b.with_service(existing_service.id, existing_service.base.site_id))
             .collect();
 
         let saved_bindings = self
@@ -195,7 +195,7 @@ impl ServiceService {
             if let Some(scope) = EntityScope::from_ids(
                 existing_service.id,
                 existing_service.clone().into(),
-                self.get_network_id(&existing_service),
+                self.get_site_id(&existing_service),
                 self.get_organization_id(&existing_service),
             ) {
                 self.event_bus()

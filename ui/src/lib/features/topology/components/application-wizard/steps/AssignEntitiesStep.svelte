@@ -22,19 +22,19 @@
 
 	let {
 		appTags,
-		networkId
+		siteId
 	}: {
 		appTags: TagType[];
-		networkId: string;
+		siteId: string;
 	} = $props();
 
-	// Bulk-tagging surface: it needs every host on the network, but only their
+	// Bulk-tagging surface: it needs every host on the site, but only their
 	// id/name/hostname/tags. Per-host service lists come from `servicesQuery`
 	// below, so the nested children this used to download were never read.
-	const hostsQuery = useHostSummariesQuery(() => ({ network_id: networkId }));
+	const hostsQuery = useHostSummariesQuery(() => ({ site_id: siteId }));
 	const servicesQuery = useServicesQuery(() => ({
 		limit: 0,
-		network_ids: [networkId],
+		site_ids: [siteId],
 		exclude_categories: ['OpenPorts']
 	}));
 	const bulkAddTagMutation = useBulkAddTagMutation();

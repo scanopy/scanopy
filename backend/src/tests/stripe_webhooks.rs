@@ -64,7 +64,7 @@ pub(super) async fn billing_with(state: &AppState, router: Router) -> BillingSer
         webhook_secret: WEBHOOK_SECRET.to_string(),
         organization_service: services.organization_service.clone(),
         user_service: services.user_service.clone(),
-        network_service: services.network_service.clone(),
+        site_service: services.site_service.clone(),
         host_service: services.host_service.clone(),
         event_bus: services.event_bus.clone(),
     });

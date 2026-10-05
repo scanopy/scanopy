@@ -23,7 +23,7 @@
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
 	import { defineFields, entityRef, type CardAction } from '$lib/shared/components/data/types';
 	import { tagNames } from '$lib/features/tags/columns';
-	import { networkItems } from '$lib/features/networks/columns';
+	import { siteItems } from '$lib/features/sites/columns';
 	import { credentialItems } from '$lib/features/credentials/columns';
 	import {
 		entities,
@@ -60,7 +60,7 @@
 		common_manufacturer,
 		common_model,
 		common_name,
-		common_network,
+		common_site,
 		common_noEntityYet,
 		common_rescan,
 		common_serialNumber,
@@ -72,7 +72,7 @@
 		common_services,
 		common_tags,
 		common_unknownEntity,
-		common_unknownNetwork,
+		common_unknownSite,
 		common_updated,
 		common_contact,
 		common_location,
@@ -112,7 +112,7 @@
 	import type { Credential } from '$lib/features/credentials/types/base';
 	import type { Interface } from '$lib/features/credentials/types/base';
 	import { formatIPAddress } from '../address-labels';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 	import type { components } from '$lib/api/schema';
 	import { hasDaemon } from '$lib/shared/onboarding/checklist';
@@ -150,7 +150,7 @@
 	// Field filter state. Server-side for the same reason as the two above: the
 	// client holds one page of hosts, so filtering here would narrow that page
 	// while the total count kept describing every match.
-	let filterNetworkIds = $state<string[]>([]);
+	let filterSiteIds = $state<string[]>([]);
 	let filterHidden = $state<boolean[]>([]);
 	let filterVirtualizationServiceNames = $state<string[]>([]);
 	let filterIncludeUnvirtualized = $state(false);
@@ -201,7 +201,7 @@
 		tag_ids: tagIds.length > 0 ? tagIds : undefined,
 		stale: stale ?? undefined,
 		search: search || undefined,
-		network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
+		site_ids: filterSiteIds.length > 0 ? filterSiteIds : undefined,
 		// Both values checked is no constraint, so it is sent as nothing.
 		hidden: filterHidden.length === 1 ? filterHidden : undefined,
 		virtualization_service_names:
@@ -211,7 +211,7 @@
 		sources: filterSources.length > 0 ? filterSources : undefined,
 		...fieldFilterParams()
 	}));
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	useDaemonsQuery();
 	const ipAddressesQuery = useIPAddressesQuery();
 	const portsQuery = usePortsQuery();
@@ -222,7 +222,7 @@
 	// loaded page would only offer the values on it, and the fixtures and caches would offer values
 	// no host holds. None of these takes the tab's active filters, so the options do not shrink as
 	// the user filters.
-	const networkValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'network_id');
+	const siteValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'site_id');
 	const virtualizedByValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'virtualized_by');
 	const sourceValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'source');
 	const osFamilyValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'os_family');
@@ -270,7 +270,7 @@
 	let discoveryRunsData = $derived(discoveryRunsQuery.data ?? []);
 	const servicesCacheQuery = useServicesCacheQuery();
 	let allServicesData = $derived(servicesCacheQuery.data ?? []);
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
 	let ipAddressesData = $derived(ipAddressesQuery.data ?? []);
 	let portsData = $derived(portsQuery.data ?? []);
 	let interfacesData = $derived(interfacesQuery.data ?? []);
@@ -327,7 +327,7 @@
 	/**
 	 * Server-side field filter handler.
 	 *
-	 * The panel offers what the user reads — a network's name, a service's name —
+	 * The panel offers what the user reads — a site's name, a service's name —
 	 * while the API filters on ids, so each case resolves the labels back through
 	 * the same data the options were built from. Every key here must match a
 	 * field marked `serverFiltered`; an unhandled one would filter nothing at
@@ -335,8 +335,8 @@
 	 */
 	function handleFilterChange(fieldKey: string, values: string[]) {
 		switch (fieldKey) {
-			case 'network_id':
-				filterNetworkIds = idsForNames(values, networksData);
+			case 'site_id':
+				filterSiteIds = idsForNames(values, sitesData);
 				break;
 			case 'hidden':
 				filterHidden = values.map((value) => value === 'true');
@@ -403,7 +403,7 @@
 		tag_ids: tagIds.length > 0 ? tagIds : undefined,
 		order_by: orderBy,
 		order_direction: orderDirection,
-		network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
+		site_ids: filterSiteIds.length > 0 ? filterSiteIds : undefined,
 		hidden: filterHidden.length === 1 ? filterHidden : undefined,
 		virtualization_service_names:
 			filterVirtualizationServiceNames.length > 0 ? filterVirtualizationServiceNames : undefined,
@@ -606,23 +606,23 @@
 							}))
 					}
 				},
-				network_id: {
-					label: common_network(),
+				site_id: {
+					label: common_site(),
 					type: 'string',
 					searchable: true,
 					filterable: true,
 					serverFiltered: true,
 					groupable: true,
-					// The networks some host is on, by name.
+					// The sites some host is on, by name.
 					filterOptions: labelledFieldValueOptions(
-						networkValuesQuery.data,
-						(id) => networksData.find((n) => n.id === id)?.name
+						siteValuesQuery.data,
+						(id) => sitesData.find((n) => n.id === id)?.name
 					),
 					// Displayed as a name, but grouped by id on the server.
-					getGroupValue: (item) => item.network_id,
+					getGroupValue: (item) => item.site_id,
 					getValue: (item) =>
-						networksData.find((n) => n.id == item.network_id)?.name || common_unknownNetwork(),
-					display: { order: 2, getItems: (item) => networkItems(item.network_id, networksData) }
+						sitesData.find((n) => n.id == item.site_id)?.name || common_unknownSite(),
+					display: { order: 2, getItems: (item) => siteItems(item.site_id, sitesData) }
 				},
 				// Audit dates stay available but off by default: 12 columns at once
 				// is unreadable, and these are rarely what someone is scanning for.
@@ -632,7 +632,7 @@
 					label: common_lastSeen(),
 					type: 'date',
 					staleFilter: true,
-					display: { recency: true, order: 1, getItems: lastSeenItems(() => networksData, 'Host') }
+					display: { recency: true, order: 1, getItems: lastSeenItems(() => sitesData, 'Host') }
 				},
 				// How the host came to exist, read from `source.type`. An inferred host (one a
 				// neighbour advertised and nothing scanned) looks the same as a down device by its

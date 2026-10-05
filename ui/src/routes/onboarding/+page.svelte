@@ -5,7 +5,7 @@
 	import { themeStore } from '$lib/shared/stores/theme.svelte';
 	import { ChevronLeft } from 'lucide-svelte';
 	import Toast from '$lib/shared/components/feedback/Toast.svelte';
-	import OrgNetworksModal from '$lib/features/auth/components/onboarding/OrgNetworksModal.svelte';
+	import OrgSitesModal from '$lib/features/auth/components/onboarding/OrgSitesModal.svelte';
 	import OrgLimitModal from '$lib/features/auth/components/OrgLimitModal.svelte';
 	import RegisterModal from '$lib/features/auth/components/RegisterModal.svelte';
 	import UseCaseStep from '$lib/features/auth/components/onboarding/UseCaseStep.svelte';
@@ -19,7 +19,7 @@
 	import { fetchOrganization } from '$lib/features/organizations/queries';
 	import { navigate } from '$lib/shared/utils/navigation';
 	import { resolve } from '$app/paths';
-	import { asksForNetwork, onboardingStore } from '$lib/features/auth/stores/onboarding';
+	import { asksForSite, onboardingStore } from '$lib/features/auth/stores/onboarding';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import { pushError } from '$lib/shared/stores/feedback';
 	import { auth_emailAlreadyInUse, common_goBack } from '$lib/paraglide/messages';
@@ -107,11 +107,11 @@
 				onboardingStore.setOrganizationName(stateData.org_name);
 			}
 
-			// Restore network (with ID and name)
-			if (stateData.network) {
-				onboardingStore.setNetwork({
-					id: stateData.network.id ?? undefined,
-					name: stateData.network.name
+			// Restore site (with ID and name)
+			if (stateData.site) {
+				onboardingStore.setSite({
+					id: stateData.site.id ?? undefined,
+					name: stateData.site.name
 				});
 			}
 
@@ -172,12 +172,12 @@
 		try {
 			// Submit setup data to backend (stored in session)
 			const result = await setupMutation.mutateAsync(formData);
-			// Update store with network ID
-			if (result.network_id) onboardingStore.setNetworkId(result.network_id);
+			// Update store with site ID
+			if (result.site_id) onboardingStore.setSiteId(result.site_id);
 
 			// Track onboarding modal completion
 			trackEvent('onboarding_modal_completed', {
-				network_count: formData.network ? 1 : 0
+				site_count: formData.site ? 1 : 0
 			});
 
 			currentStep = 'register';
@@ -307,13 +307,13 @@
 					onSwitchToLogin={handleSwitchToLogin}
 				/>
 			{:else if currentStep === 'setup'}
-				<!-- Organization & Network Setup -->
-				<OrgNetworksModal
+				<!-- Organization & Site Setup -->
+				<OrgSitesModal
 					isOpen={true}
 					onClose={handleClose}
 					onSubmit={handleSetupSubmit}
 					{useCase}
-					askNetwork={asksForNetwork(
+					askSite={asksForSite(
 						$onboardingStore.hosting,
 						!!onboardingConfigData && isCloud(onboardingConfigData)
 					)}

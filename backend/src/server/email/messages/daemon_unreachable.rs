@@ -3,7 +3,7 @@ use super::{Body, Content, Email, EmailCategory, EmailPreference, PausableCatego
 /// Alerts that a daemon is unreachable and scheduled discoveries are skipped.
 pub struct DaemonUnreachable<'a> {
     pub daemon_name: &'a str,
-    pub network_name: &'a str,
+    pub site_name: &'a str,
 }
 
 impl Email for DaemonUnreachable<'_> {
@@ -31,13 +31,13 @@ impl Email for DaemonUnreachable<'_> {
                     .paragraph("Hi there,")
                     .paragraph(&format!(
                         "Your daemon <strong>{}</strong> on <strong>{}</strong> is unreachable. Scheduled discoveries targeting this daemon will be skipped until connectivity is restored.",
-                        self.daemon_name, self.network_name
+                        self.daemon_name, self.site_name
                     ))
                     .paragraph("To resolve:")
                     .raw(&format!(
 r#"                            <ol style="margin: 0 0 20px 0; padding-left: 20px; font-size: 16px; line-height: 28px; color: #4a4a4a;">
                                 <li>Check that the daemon host is online and the daemon process is running.</li>
-                                <li>Verify network connectivity between the server and daemon (<a href="{}" style="color: #2563eb; text-decoration: none;">troubleshooting guide</a>).</li>
+                                <li>Verify site connectivity between the server and daemon (<a href="{}" style="color: #2563eb; text-decoration: none;">troubleshooting guide</a>).</li>
                             </ol>
 "#,
                         links::DOCS_DAEMON_TROUBLESHOOTING

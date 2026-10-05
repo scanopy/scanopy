@@ -333,22 +333,19 @@ impl DaemonService {
             );
 
             // Determine if org is on Free plan for discovery defaults
-            let is_free_plan = if let Ok(Some(network)) = self
-                .network_service
-                .get_by_id(&daemon.base.network_id)
-                .await
-            {
-                self.organization_service
-                    .get_by_id(&network.base.organization_id)
-                    .await
-                    .ok()
-                    .flatten()
-                    .and_then(|o| o.base.plan)
-                    .map(|p| p.is_free())
-                    .unwrap_or(true)
-            } else {
-                false
-            };
+            let is_free_plan =
+                if let Ok(Some(site)) = self.site_service.get_by_id(&daemon.base.site_id).await {
+                    self.organization_service
+                        .get_by_id(&site.base.organization_id)
+                        .await
+                        .ok()
+                        .flatten()
+                        .and_then(|o| o.base.plan)
+                        .map(|p| p.is_free())
+                        .unwrap_or(true)
+                } else {
+                    false
+                };
 
             // Create default discovery jobs. ServerPoll first-contact carries no init-command
             // targeting (admin-provisioned via status, not the register endpoint), so targeting
@@ -356,7 +353,7 @@ impl DaemonService {
             if let Err(e) = self
                 .create_default_discovery_jobs(
                     daemon.id,
-                    daemon.base.network_id,
+                    daemon.base.site_id,
                     daemon.base.host_id,
                     is_free_plan,
                     &[],
@@ -372,7 +369,7 @@ impl DaemonService {
 
             // Emit telemetry
             if let Err(e) = self
-                .emit_first_daemon_telemetry(daemon.id, daemon.base.network_id)
+                .emit_first_daemon_telemetry(daemon.id, daemon.base.site_id)
                 .await
             {
                 tracing::warn!(
@@ -476,10 +473,10 @@ impl DaemonService {
                 .discovery_service
                 .build_daemon_request(
                     &work,
-                    work.network_id,
+                    work.site_id,
                     &integration_targets,
                     daemon.base.version.as_ref(),
-                    self.network_subnets(work.network_id).await,
+                    self.site_subnets(work.site_id).await,
                 )
                 .await
                 .unwrap_or_else(|e| {

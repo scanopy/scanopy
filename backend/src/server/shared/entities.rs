@@ -20,7 +20,6 @@ use crate::server::{
     daemons::r#impl::base::Daemon,
     discovery::r#impl::base::Discovery,
     hosts::r#impl::base::Host,
-    networks::r#impl::Network,
     organizations::r#impl::base::Organization,
     shared::{
         storage::traits::Entity as EntityTrait,
@@ -29,6 +28,7 @@ use crate::server::{
             metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider},
         },
     },
+    sites::r#impl::Site,
     user_api_keys::r#impl::base::UserApiKey,
     users::r#impl::base::User,
 };
@@ -71,7 +71,7 @@ pub enum Entity {
     Organization(Organization),
     Invite(Invite),
     Share(Share),
-    Network(Network),
+    Site(Site),
     DaemonApiKey(DaemonApiKey),
     UserApiKey(UserApiKey),
     User(User),
@@ -124,9 +124,9 @@ impl Entity {
                 <Share as EntityTrait>::ENTITY_NAME_SINGULAR,
                 <Share as EntityTrait>::ENTITY_NAME_PLURAL,
             ),
-            Entity::Network(_) => (
-                <Network as EntityTrait>::ENTITY_NAME_SINGULAR,
-                <Network as EntityTrait>::ENTITY_NAME_PLURAL,
+            Entity::Site(_) => (
+                <Site as EntityTrait>::ENTITY_NAME_SINGULAR,
+                <Site as EntityTrait>::ENTITY_NAME_PLURAL,
             ),
             Entity::DaemonApiKey(_) => (
                 <DaemonApiKey as EntityTrait>::ENTITY_NAME_SINGULAR,
@@ -227,7 +227,7 @@ impl EntityDiscriminants {
             | EntityDiscriminants::Service
             | EntityDiscriminants::Subnet
             | EntityDiscriminants::Dependency
-            | EntityDiscriminants::Network
+            | EntityDiscriminants::Site
             | EntityDiscriminants::Discovery
             | EntityDiscriminants::Daemon
             | EntityDiscriminants::DaemonApiKey
@@ -264,7 +264,7 @@ impl EntityDiscriminants {
             EntityDiscriminants::Service
             | EntityDiscriminants::Binding
             | EntityDiscriminants::Organization
-            | EntityDiscriminants::Network
+            | EntityDiscriminants::Site
             | EntityDiscriminants::User
             | EntityDiscriminants::Invite
             | EntityDiscriminants::Share
@@ -289,7 +289,7 @@ impl EntityMetadataProvider for EntityDiscriminants {
     fn color(&self) -> Color {
         match self {
             EntityDiscriminants::Organization => Color::Blue,
-            EntityDiscriminants::Network => Color::Blue,
+            EntityDiscriminants::Site => Color::Blue,
             EntityDiscriminants::User => Color::Blue,
             EntityDiscriminants::Invite => Color::Sky,
 
@@ -326,7 +326,7 @@ impl EntityMetadataProvider for EntityDiscriminants {
     fn icon(&self) -> Icon {
         match self {
             EntityDiscriminants::Organization => Icon::Building,
-            EntityDiscriminants::Network => Icon::LandPlot,
+            EntityDiscriminants::Site => Icon::LandPlot,
             EntityDiscriminants::User => Icon::User,
             EntityDiscriminants::Tag => Icon::Tag,
             EntityDiscriminants::Invite => Icon::UserPlus,
@@ -400,9 +400,9 @@ impl From<Share> for Entity {
     }
 }
 
-impl From<Network> for Entity {
-    fn from(value: Network) -> Self {
-        Self::Network(value)
+impl From<Site> for Entity {
+    fn from(value: Site) -> Self {
+        Self::Site(value)
     }
 }
 
@@ -527,7 +527,7 @@ impl From<EntityDiscriminants> for Entity {
             EntityDiscriminants::Binding => Entity::Binding(Binding::default()),
             EntityDiscriminants::Interface => Entity::Interface(Interface::default()),
             EntityDiscriminants::Tag => Entity::Tag(Tag::default()),
-            EntityDiscriminants::Network => Entity::Network(Network::default()),
+            EntityDiscriminants::Site => Entity::Site(Site::default()),
             EntityDiscriminants::Organization => Entity::Organization(Organization::default()),
             EntityDiscriminants::User => Entity::User(User::default()),
             EntityDiscriminants::Invite => Entity::Invite(Invite::default()),

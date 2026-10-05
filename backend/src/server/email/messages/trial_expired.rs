@@ -34,7 +34,7 @@ impl Email for TrialExpired<'_> {
                         "Your {} {} trial has ended. Your account is now read-only: you can still see everything Scanopy found, but scans, edits and daemon work are paused.",
                         self.plan_name, self.billing_period
                     ))
-                    .paragraph("Choose a paid plan from Settings to pick up where the trial left off. Your networks, hosts and schedules are all still there."),
+                    .paragraph("Choose a paid plan from Settings to pick up where the trial left off. Your sites, hosts and schedules are all still there."),
             )
             .cta(links::PLAN_PICKER, "Choose a plan")
             .render()

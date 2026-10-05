@@ -355,7 +355,7 @@ impl BillingService {
                         },
                         BillingOperation::CheckoutCompleted {
                             plan,
-                            included_networks: plan_config.included_networks,
+                            included_sites: plan_config.included_sites,
                             included_seats: plan_config.included_seats,
                             mrr_amount_cents: mrr_from_subscription(&sub),
                             is_trialing,

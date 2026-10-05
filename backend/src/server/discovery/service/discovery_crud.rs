@@ -69,7 +69,7 @@ impl DiscoveryService {
         if let Some(scope) = EntityScope::from_ids(
             created_discovery.id(),
             created_discovery.clone().into(),
-            self.get_network_id(&created_discovery),
+            self.get_site_id(&created_discovery),
             self.get_organization_id(&created_discovery),
         ) {
             self.event_bus()
@@ -118,7 +118,7 @@ impl DiscoveryService {
         if let Some(scope) = EntityScope::from_ids(
             discovery.id(),
             discovery.clone().into(),
-            self.get_network_id(&discovery),
+            self.get_site_id(&discovery),
             self.get_organization_id(&discovery),
         ) {
             self.event_bus()

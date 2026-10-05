@@ -291,7 +291,7 @@ impl SnmpQueryCredential {
 /// Legacy: SNMP credential mapping type alias for pre-v0.15.0 daemon DiscoveryType::Network.
 pub type SnmpCredentialMapping = CredentialMapping<SnmpQueryCredential>;
 
-/// Legacy: SNMP-specific resolution: IP override → network default → "public" fallback.
+/// Legacy: SNMP-specific resolution: IP override → site default → "public" fallback.
 /// Deduplicates by community string.
 /// Returns `ResolvedCredential` wrappers that pair each credential with its server-side ID.
 impl SnmpCredentialMapping {
@@ -314,7 +314,7 @@ impl SnmpCredentialMapping {
             });
         }
 
-        // 2. Network default — already network-wide, don't auto-assign
+        // 2. Site default — already site-wide, don't auto-assign
         if let Some(ref default) = self.default_credential
             && !credentials
                 .iter()
@@ -480,7 +480,7 @@ mod tests {
         assert_eq!(community_value(&creds[0].credential), "override-community");
         assert_eq!(creds[0].credential_id, Some(cred_id)); // IP override has credential_id
         assert_eq!(community_value(&creds[1].credential), "default-community");
-        assert_eq!(creds[1].credential_id, None); // Network default has no credential_id
+        assert_eq!(creds[1].credential_id, None); // Site default has no credential_id
         assert_eq!(community_value(&creds[2].credential), "public");
         assert_eq!(creds[2].credential_id, None); // Fallback has no credential_id
 

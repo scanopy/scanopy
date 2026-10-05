@@ -46,7 +46,7 @@ const hidden: FieldConfig<Row> = {
 	filterable: true,
 	serverFiltered: true
 };
-const network: FieldConfig<Row> = { orderField: 'network_id', label: 'Network', type: 'string' };
+const site: FieldConfig<Row> = { orderField: 'site_id', label: 'Site', type: 'string' };
 const mode: FieldConfig<Row> = { key: 'mode', label: 'Mode', type: 'string', groupable: true };
 const description: FieldConfig<Row> = { key: 'description', label: 'Desc', type: 'string' };
 const lastSeen: FieldConfig<Row> = {
@@ -57,7 +57,7 @@ const lastSeen: FieldConfig<Row> = {
 };
 const tags: FieldConfig<Row> = { key: 'tags', label: 'Tags', type: 'array', filterable: true };
 
-const FIELDS = [status, category, hidden, network, mode, description, lastSeen, tags];
+const FIELDS = [status, category, hidden, site, mode, description, lastSeen, tags];
 
 function filtersWith(mutate: (state: FilterState) => FilterState | null): FilterState {
 	return mutate(blankFilterState(FIELDS, false)) ?? blankFilterState(FIELDS, false);
@@ -73,7 +73,7 @@ describe('columnControls', () => {
 			filter: true,
 			group: false
 		});
-		expect(columnControls('network_id', FIELDS, false, false)).toMatchObject({
+		expect(columnControls('site_id', FIELDS, false, false)).toMatchObject({
 			filter: false,
 			group: true
 		});
@@ -86,7 +86,7 @@ describe('columnControls', () => {
 
 	it('drops client-side grouping on a server-paginated list, keeping orderable grouping', () => {
 		expect(columnControls('mode', FIELDS, true, false)).toBeNull();
-		expect(columnControls('network_id', FIELDS, true, false)?.group).toBe(true);
+		expect(columnControls('site_id', FIELDS, true, false)?.group).toBe(true);
 	});
 
 	it("resolves the appended tags column to the tab's tags field", () => {
@@ -209,14 +209,14 @@ describe('dropHiddenColumnState', () => {
 		const next = dropHiddenColumnState(
 			bound({
 				filterState: filtersWith((s) => toggleValue(s, 'category', 'Media')),
-				sortState: { field: 'network_id', direction: 'desc' },
+				sortState: { field: 'site_id', direction: 'desc' },
 				groupField: 'status'
 			}),
 			FIELDS,
 			without('category')
 		)!;
 
-		expect(next.sortState).toEqual({ field: 'network_id', direction: 'desc' });
+		expect(next.sortState).toEqual({ field: 'site_id', direction: 'desc' });
 		expect(next.groupField).toBe('status');
 	});
 
@@ -244,7 +244,7 @@ describe('dropHiddenColumnState', () => {
 
 	it('offers only rendered fields to the card controls', () => {
 		expect(renderedFields(FIELDS, without('status', 'mode'))).not.toContain(status);
-		expect(renderedFields(FIELDS, without('status', 'mode'))).toContain(network);
+		expect(renderedFields(FIELDS, without('status', 'mode'))).toContain(site);
 	});
 });
 
@@ -312,7 +312,7 @@ describe('switching views', () => {
 			filterState: Object.fromEntries(
 				Object.entries(filterState).map(([key, f]) => [key, { ...f, values: [...f.values] }])
 			),
-			sortState: { field: 'network_id', direction: 'desc' as const },
+			sortState: { field: 'site_id', direction: 'desc' as const },
 			selectedGroupField: 'status',
 			showFilters: true,
 			viewMode: 'table' as const,

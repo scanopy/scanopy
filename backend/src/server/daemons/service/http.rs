@@ -62,6 +62,17 @@ impl RetryPolicy {
     }
 }
 
+/// A daemon's response envelope, read with
+/// [`rewrite_from_network_wire`](crate::server::shared::legacy::rewrite_from_network_wire): a
+/// daemon that predates the site rename reports `network_id`.
+async fn read_daemon_response<T: serde::de::DeserializeOwned>(
+    response: reqwest::Response,
+) -> Result<ApiResponse<T>> {
+    let mut json: serde_json::Value = response.json().await?;
+    crate::server::shared::legacy::rewrite_from_network_wire(&mut json);
+    Ok(serde_json::from_value(json)?)
+}
+
 impl DaemonService {
     // ========================================================================
     // Daemon HTTP helpers with built-in retry
@@ -98,7 +109,7 @@ impl DaemonService {
                 .into());
             }
 
-            let api_response: ApiResponse<T> = response.json().await?;
+            let api_response: ApiResponse<T> = read_daemon_response(response).await?;
 
             if !api_response.is_success() {
                 anyhow::bail!(
@@ -142,7 +153,11 @@ impl DaemonService {
     ) -> Result<Option<T>> {
         let url = format!("{}{}", daemon.base.url, path);
         let daemon_id = daemon.id;
-        let body_json = serde_json::to_value(body)?;
+        let mut body_json = serde_json::to_value(body)?;
+        let version = daemon.base.version.as_ref().map(|v| v.to_string());
+        if crate::server::daemons::r#impl::version::speaks_network_wire(version.as_deref()) {
+            crate::server::shared::legacy::rewrite_for_network_wire(&mut body_json);
+        }
         let api_key_owned = api_key.map(|s| s.to_owned());
 
         // SSRF guard: in cloud mode, refuse to POST (including credential-bearing
@@ -172,7 +187,7 @@ impl DaemonService {
                 .into());
             }
 
-            let api_response: ApiResponse<T> = response.json().await?;
+            let api_response: ApiResponse<T> = read_daemon_response(response).await?;
 
             if !api_response.is_success() {
                 anyhow::bail!(
@@ -361,7 +376,7 @@ impl DaemonService {
 
         let request = FirstContactRequest {
             daemon_id: daemon.id,
-            network_id: Some(daemon.base.network_id),
+            site_id: Some(daemon.base.site_id),
             name: Some(daemon.base.name.clone()),
             server_capabilities,
         };
@@ -377,20 +392,23 @@ impl DaemonService {
         .ok_or_else(|| anyhow::anyhow!("First contact response missing daemon status"))
     }
 
-    /// Initialize a local daemon (for integrated daemon setup)
+    /// Initialize a local daemon (for integrated daemon setup).
+    ///
+    /// The daemon's version is unknown until it registers, so the body always takes the
+    /// network-era names: an older daemon requires `network_id`, and a newer one accepts it as an
+    /// alias of `site_id`.
     pub async fn initialize_local_daemon(
         &self,
         daemon_url: String,
-        network_id: Uuid,
+        site_id: Uuid,
         api_key: String,
     ) -> Result<(), Error> {
+        let mut body = serde_json::to_value(InitializeDaemonRequest { site_id, api_key })?;
+        crate::server::shared::legacy::rewrite_for_network_wire(&mut body);
         match self
             .client
             .post(format!("{}/api/initialize", daemon_url))
-            .json(&InitializeDaemonRequest {
-                network_id,
-                api_key,
-            })
+            .json(&body)
             .send()
             .await
         {

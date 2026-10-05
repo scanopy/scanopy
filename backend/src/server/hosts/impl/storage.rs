@@ -30,7 +30,7 @@ pub struct HostCsvRow {
     pub name: String,
     pub hostname: Option<String>,
     pub description: Option<String>,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub source: String,
     pub hidden: bool,
     // Everything the device reported about itself. Field order is column order — headers are
@@ -145,7 +145,7 @@ impl Storable for Host {
                     name,
                     description,
                     hostname,
-                    network_id,
+                    site_id,
                     hidden,
                     source,
                     virtualization_metadata,
@@ -200,7 +200,7 @@ impl Storable for Host {
                 "name",
                 "name_source",
                 "description",
-                "network_id",
+                "site_id",
                 "source",
                 "hostname",
                 "hostname_source",
@@ -248,7 +248,7 @@ impl Storable for Host {
                 name_value,
                 name_source,
                 SqlValue::OptionalString(description),
-                SqlValue::Uuid(network_id),
+                SqlValue::Uuid(site_id),
                 SqlValue::EntitySource(source),
                 hostname_value,
                 hostname_source,
@@ -328,7 +328,7 @@ impl Storable for Host {
             base: HostBase {
                 name,
                 description: row.get("description"),
-                network_id: row.get("network_id"),
+                site_id: row.get("site_id"),
                 source,
                 hostname: attributed::read_optional(row)?,
                 hidden: row.get("hidden"),
@@ -380,7 +380,7 @@ impl Entity for Host {
             name: self.base.name.to_string(),
             hostname: attribution::text_of(&self.base.hostname),
             description: self.base.description.clone(),
-            network_id: self.base.network_id,
+            site_id: self.base.site_id,
             source: format!("{:?}", self.base.source),
             hidden: self.base.hidden,
             sys_descr: attribution::text_of(&self.base.sys_descr),
@@ -414,8 +414,8 @@ impl Entity for Host {
         EntityCategory::NetworkInfrastructure
     }
 
-    fn network_id(&self) -> Option<Uuid> {
-        Some(self.base.network_id)
+    fn site_id(&self) -> Option<Uuid> {
+        Some(self.base.site_id)
     }
 
     fn organization_id(&self) -> Option<Uuid> {

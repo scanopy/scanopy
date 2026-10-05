@@ -247,7 +247,7 @@
         "dependency_creation": null,
         "element_sections": [
           "Identity",
-          "IfEntryData"
+          "InterfaceData"
         ],
         "show_application_picker": false
       }
@@ -686,7 +686,7 @@
         "element_sections": [
           "Identity",
           "HostDetail",
-          "IfEntryData",
+          "InterfaceData",
           "Services",
           "OtherInterfaces"
         ],

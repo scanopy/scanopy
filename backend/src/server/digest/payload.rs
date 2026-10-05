@@ -148,20 +148,20 @@ mod email_address_serde {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DiscoveryDigestPayload {
     pub session_id: Uuid,
-    pub network_id: Uuid,
-    pub network_name: String,
+    pub site_id: Uuid,
+    pub site_name: String,
     pub started_at: DateTime<Utc>,
     pub finished_at: DateTime<Utc>,
-    /// The network's *effective* staleness window in hours (its configured
+    /// The site's *effective* staleness window in hours (its configured
     /// value, or the default). Carried so the email can state what "stale"
-    /// meant for this network instead of asserting it without a definition —
-    /// the threshold is per-network, so the legend cannot be static.
+    /// meant for this site instead of asserting it without a definition —
+    /// the threshold is per-site, so the legend cannot be static.
     pub stale_after_hours: i64,
 
     pub subnets_scanned: Vec<SubnetSummary>,
     pub hosts_added: Vec<AffectedHostCard>,
     /// Hosts that crossed into `Stale` during this session. Named for the
-    /// claim we actually make — "not observed within this network's window" —
+    /// claim we actually make — "not observed within this site's window" —
     /// rather than "vanished", which asserted a removal we cannot detect.
     pub hosts_stale: Vec<AffectedHostCard>,
     pub hosts_changed: Vec<AffectedHostCard>,
@@ -195,11 +195,11 @@ pub enum DiscoveryDigestOperation {
 }
 
 /// Org scope mirrors the existing `OrgScope` used by Billing/Onboarding —
-/// digests are per-org-keyed for routing; the network_id rides on the payload.
+/// digests are per-org-keyed for routing; the site_id rides on the payload.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct DiscoveryDigestScope {
     pub organization_id: Uuid,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, Hash)]

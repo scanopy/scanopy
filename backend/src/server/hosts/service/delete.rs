@@ -53,7 +53,7 @@ impl HostService {
         if let Some(scope) = EntityScope::from_ids(
             host.id(),
             host.clone().into(),
-            self.get_network_id(&host),
+            self.get_site_id(&host),
             self.get_organization_id(&host),
         ) {
             self.event_bus()

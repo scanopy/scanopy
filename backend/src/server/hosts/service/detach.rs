@@ -127,17 +127,13 @@ impl HostService {
             let new_id = if ports_still_bound.contains(&port_id) {
                 self.port_service
                     .create(
-                        Port::new(PortBase::new(
-                            to.id,
-                            to.base.network_id,
-                            port.base.port_type,
-                        )),
+                        Port::new(PortBase::new(to.id, to.base.site_id, port.base.port_type)),
                         authentication.clone(),
                     )
                     .await?
                     .id
             } else {
-                let mut moved = port.with_host(to.id, to.base.network_id);
+                let mut moved = port.with_host(to.id, to.base.site_id);
                 self.port_service
                     .update(&mut moved, authentication.clone())
                     .await?;

@@ -166,7 +166,7 @@ impl TypeMetadataProvider for SaveOffer {
 )]
 #[serde(rename_all = "snake_case")]
 pub enum LimitType {
-    Networks,
+    Sites,
     Hosts,
     Seats,
     Snapshots,

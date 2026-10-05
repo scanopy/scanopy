@@ -47,8 +47,8 @@ impl EventBusService<Subnet> for SubnetService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, entity: &Subnet) -> Option<Uuid> {
-        Some(entity.base.network_id)
+    fn get_site_id(&self, entity: &Subnet) -> Option<Uuid> {
+        Some(entity.base.site_id)
     }
     fn get_organization_id(&self, _entity: &Subnet) -> Option<Uuid> {
         None
@@ -91,7 +91,7 @@ impl SubnetService {
         self.event_bus()
             .publish(Event::new(
                 SubnetCorrectionScope {
-                    network_id: corrected.base.network_id,
+                    site_id: corrected.base.site_id,
                     subnet_id: corrected.id,
                     from_cidr: from_cidr.to_string(),
                     to_cidr: corrected.base.cidr.to_string(),
@@ -139,8 +139,8 @@ impl SubnetService {
         if source.id == target.id {
             return Err(Error::msg("a subnet cannot be merged into itself"));
         }
-        if source.base.network_id != target.base.network_id {
-            return Err(Error::msg("subnets on different networks cannot be merged"));
+        if source.base.site_id != target.base.site_id {
+            return Err(Error::msg("subnets on different sites cannot be merged"));
         }
         if target.is_organizational_subnet() {
             return Err(Error::msg(
@@ -167,7 +167,7 @@ impl SubnetService {
         tracing::info!(
             merged = %source.base.cidr,
             into = %target.base.cidr,
-            network_id = %target.base.network_id,
+            site_id = %target.base.site_id,
             "Merged an assumed range into the range that contains it"
         );
 
@@ -252,7 +252,7 @@ impl SubnetService {
                 continue;
             }
             let placement = self
-                .place_address(corrected.base.network_id, address.base.ip_address)
+                .place_address(corrected.base.site_id, address.base.ip_address)
                 .await;
             let subnet_id = match placement {
                 Ok(Placement::Existing(id) | Placement::Inferred(id)) => id,
@@ -350,14 +350,14 @@ impl CrudService<Subnet> for SubnetService {
         Some(&self.entity_tag_service)
     }
 
-    /// Counts only the subnets the user curates, so the dashboard's per-network
+    /// Counts only the subnets the user curates, so the dashboard's per-site
     /// subnet count agrees with the rows the management lists show.
     ///
     /// The default counts every live row (`shared/services/traits.rs`), which is
     /// how the reporter's dashboard total came to include a subnet no page would
     /// display (GH #677).
-    async fn count_for_networks(&self, network_ids: &[Uuid]) -> Result<u64, anyhow::Error> {
-        let filter = StorableFilter::<Subnet>::new_from_network_ids(network_ids)
+    async fn count_for_sites(&self, site_ids: &[Uuid]) -> Result<u64, anyhow::Error> {
+        let filter = StorableFilter::<Subnet>::new_from_site_ids(site_ids)
             .live()
             .user_managed();
         self.storage().count(filter).await
@@ -370,8 +370,7 @@ impl CrudService<Subnet> for SubnetService {
     ) -> Result<Subnet, anyhow::Error> {
         // SCD2: natural-key match (CIDR + virtualization) runs against live
         // subnets only; closed historical copies must not match.
-        let filter =
-            StorableFilter::<Subnet>::new_from_network_ids(&[subnet.base.network_id]).live();
+        let filter = StorableFilter::<Subnet>::new_from_site_ids(&[subnet.base.site_id]).live();
         let all_subnets = self.storage.get_all(filter).await?;
 
         let subnet = if subnet.id == Uuid::nil() {
@@ -395,7 +394,7 @@ impl CrudService<Subnet> for SubnetService {
             [] => None,
             several => {
                 tracing::info!(
-                    network_id = %subnet.base.network_id,
+                    site_id = %subnet.base.site_id,
                     observed_cidr = %subnet.base.cidr,
                     inferred_count = several.len(),
                     "A read range covers several inferred ranges; leaving them for a person to merge"
@@ -413,7 +412,7 @@ impl CrudService<Subnet> for SubnetService {
                     .await =>
             {
                 tracing::info!(
-                    network_id = %subnet.base.network_id,
+                    site_id = %subnet.base.site_id,
                     observed_cidr = %subnet.base.cidr,
                     assumed_cidr = %existing.base.cidr,
                     "A read range would leave an address of the range it narrows with nowhere to \
@@ -521,7 +520,7 @@ impl CrudService<Subnet> for SubnetService {
                 if let Some(scope) = EntityScope::from_ids(
                     created.id,
                     created.clone().into(),
-                    self.get_network_id(&created),
+                    self.get_site_id(&created),
                     self.get_organization_id(&created),
                 ) {
                     self.event_bus()
@@ -546,18 +545,18 @@ impl CrudService<Subnet> for SubnetService {
 /// Where an address belongs, and how sure we are of it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Placement {
-    /// A subnet this network already holds contains it.
+    /// A subnet this site already holds contains it.
     Existing(Uuid),
     /// Nothing held it, so a range was inferred and created. The row carries
     /// [`AttributeSource::LldpNeighbourAddress`], so it badges and asks an operator to confirm it.
     Inferred(Uuid),
     /// Nothing holds it and nothing may be invented for it — a public address, or IPv6 global
-    /// unicast, neither of which is a segment of this network to create. The caller decides.
+    /// unicast, neither of which is a segment of this site to create. The caller decides.
     Unplaceable,
 }
 
 impl SubnetService {
-    /// Place an address, inferring a range for it when nothing this network holds contains it.
+    /// Place an address, inferring a range for it when nothing this site holds contains it.
     ///
     /// The single automatic-placement entry point. Every source of a discovered address goes
     /// through it — an LLDP far end, a controller-reported device, a repaired daemon payload — so
@@ -567,9 +566,9 @@ impl SubnetService {
     /// Deliberately not the placement rule for a *container* endpoint: the runtime API already says
     /// which network the endpoint is on, and re-deriving that by address would throw away an
     /// identity for a guess. See `container_interfaces` in the daemon's `container/interfaces.rs`.
-    pub async fn place_address(&self, network_id: Uuid, ip: IpAddr) -> Result<Placement, Error> {
+    pub async fn place_address(&self, site_id: Uuid, ip: IpAddr) -> Result<Placement, Error> {
         let live = self
-            .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())
+            .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live())
             .await?;
 
         if let Some(subnet) = placeable_subnet(&live, ip) {
@@ -583,7 +582,7 @@ impl SubnetService {
         let mut subnet = Subnet::new(SubnetBase {
             // A range nothing read, only inferred — the whole reason this rung exists.
             cidr: SubnetCidr::new(SubnetCidrValue(cidr), AttributeSource::LldpNeighbourAddress),
-            network_id,
+            site_id,
             name: cidr.to_string(),
             description: None,
             // Not `Management` even where a management address produced it: on a flat network that
@@ -598,11 +597,11 @@ impl SubnetService {
 
         let created = self.create(subnet, AuthenticatedEntity::System).await?;
         tracing::info!(
-            network_id = %network_id,
+            site_id = %site_id,
             ip = %ip,
             cidr = %cidr,
             subnet_id = %created.id,
-            "Inferred a subnet for an address nothing on this network holds"
+            "Inferred a subnet for an address nothing on this site holds"
         );
         Ok(Placement::Inferred(created.id))
     }
@@ -634,7 +633,7 @@ mod tests {
                 cidr_source,
             ),
             source,
-            network_id: Uuid::nil(),
+            site_id: Uuid::nil(),
             ..Default::default()
         })
     }

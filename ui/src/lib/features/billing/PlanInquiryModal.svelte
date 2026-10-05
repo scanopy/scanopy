@@ -16,8 +16,8 @@
 		billing_inquiryJustExploring,
 		billing_inquiryMessagePlaceholder,
 		billing_inquiryNamePlaceholder,
-		billing_inquiryNetworkCountLabel,
-		billing_inquiryNetworkCountPlaceholder,
+		billing_inquirySiteCountLabel,
+		billing_inquirySiteCountPlaceholder,
 		billing_inquiryReceived,
 		billing_inquiryTeamSizeSelect,
 		billing_inquiryThanks,
@@ -100,7 +100,7 @@
 			teamSize: companySize as TeamSize | '',
 			message: '',
 			urgency: '' as InquiryTimeline | '',
-			networkCount: undefined as number | undefined
+			siteCount: undefined as number | undefined
 		};
 	}
 
@@ -125,7 +125,7 @@
 							team_size: teamSize,
 							message: value.message.trim(),
 							urgency: value.urgency || undefined,
-							network_count: value.networkCount ?? undefined,
+							site_count: value.siteCount ?? undefined,
 							plan_type: planType || undefined
 						}
 					})
@@ -245,14 +245,14 @@
 						{/snippet}
 					</form.Field>
 
-					<form.Field name="networkCount">
+					<form.Field name="siteCount">
 						{#snippet children(field)}
 							<TextInput
-								label={billing_inquiryNetworkCountLabel()}
-								id="inquiry-network-count"
+								label={billing_inquirySiteCountLabel()}
+								id="inquiry-site-count"
 								{field}
 								type="number"
-								placeholder={billing_inquiryNetworkCountPlaceholder()}
+								placeholder={billing_inquirySiteCountPlaceholder()}
 							/>
 						{/snippet}
 					</form.Field>

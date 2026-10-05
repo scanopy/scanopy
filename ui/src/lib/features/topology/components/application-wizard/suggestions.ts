@@ -6,7 +6,7 @@ export const USE_CASE_SUGGESTIONS: Record<string, string[]> = {
 		'Media',
 		'Home Automation',
 		'Monitoring',
-		'Network Infrastructure',
+		'Site Infrastructure',
 		'Development',
 		'Gaming',
 		'Productivity',

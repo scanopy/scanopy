@@ -41,9 +41,9 @@ pub struct UserApiKeyBase {
     #[serde(default)]
     #[schema(required)]
     pub tags: Vec<Uuid>,
-    /// Network IDs this key has access to (hydrated from junction table)
+    /// Site IDs this key has access to (hydrated from junction table)
     #[serde(default)]
-    pub network_ids: Vec<Uuid>,
+    pub site_ids: Vec<Uuid>,
 }
 
 #[derive(
@@ -76,7 +76,7 @@ impl UserApiKey {
             && self.base.expires_at == other.base.expires_at
             && self.base.is_enabled == other.base.is_enabled
             && self.base.permissions == other.base.permissions
-            && self.base.network_ids == other.base.network_ids
+            && self.base.site_ids == other.base.site_ids
     }
 }
 

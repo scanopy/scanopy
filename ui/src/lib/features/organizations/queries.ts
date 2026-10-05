@@ -77,17 +77,17 @@ export function useCreateInviteMutation() {
 	return createMutation(() => ({
 		mutationFn: async ({
 			permissions,
-			network_ids,
+			site_ids,
 			email
 		}: {
 			permissions: UserOrgPermissions;
-			network_ids: string[];
+			site_ids: string[];
 			email: string;
 		}) => {
 			const request: CreateInviteRequest = {
 				expiration_hours: null,
 				permissions,
-				network_ids,
+				site_ids,
 				send_to: email?.length === 0 ? null : email
 			};
 

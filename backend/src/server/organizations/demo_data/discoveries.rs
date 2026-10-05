@@ -12,24 +12,19 @@ use crate::server::credentials::r#impl::types::ssh_script::{SshScriptOutcome, Ss
 // ============================================================================
 
 pub(super) fn generate_discoveries(
-    networks: &[Network],
+    sites: &[Site],
     subnets: &[Subnet],
     daemons: &[Daemon],
     _hosts: &[&Host],
     credentials: &[Credential],
     now: DateTime<Utc>,
 ) -> Vec<Discovery> {
-    let find_network = |name: &str| {
-        networks
-            .iter()
-            .find(|n| n.base.name.contains(name))
-            .unwrap()
-    };
+    let find_site = |name: &str| sites.iter().find(|n| n.base.name.contains(name)).unwrap();
     let find_daemon = |name: &str| daemons.iter().find(|d| d.base.name.contains(name));
-    let find_subnets_for_network = |network_id: Uuid| -> Vec<Uuid> {
+    let find_subnets_for_site = |site_id: Uuid| -> Vec<Uuid> {
         subnets
             .iter()
-            .filter(|s| s.base.network_id == network_id)
+            .filter(|s| s.base.site_id == site_id)
             .map(|s| s.id)
             .collect()
     };
@@ -61,14 +56,14 @@ pub(super) fn generate_discoveries(
         .unwrap()
         .id;
 
-    // Both SNMP creds are broadcast to every network (see
-    // `generate_network_credential_assignments`), so every discovery targets both.
+    // Both SNMP creds are broadcast to every site (see
+    // `generate_site_credential_assignments`), so every discovery targets both.
     let snmp_network_targets = || {
         vec![
-            IntegrationTarget::Network {
+            IntegrationTarget::Site {
                 credential_id: default_snmp_cred_id,
             },
-            IntegrationTarget::Network {
+            IntegrationTarget::Site {
                 credential_id: network_devices_cred_id,
             },
         ]
@@ -92,9 +87,9 @@ pub(super) fn generate_discoveries(
     let mut discoveries = Vec::new();
 
     // ===== HQ Unified discovery =====
-    let hq = find_network("Headquarters");
+    let hq = find_site("Headquarters");
     if let Some(daemon) = find_daemon("HQ") {
-        let hq_subnet_ids = find_subnets_for_network(hq.id);
+        let hq_subnet_ids = find_subnets_for_site(hq.id);
         discoveries.push(Discovery {
             id: Uuid::new_v4(),
             created_at: now,
@@ -106,7 +101,7 @@ pub(super) fn generate_discoveries(
                 },
                 name: "Discovery".to_string(),
                 daemon_id: daemon.id,
-                network_id: hq.id,
+                site_id: hq.id,
                 tags: vec![],
             },
             scan_count: 0,
@@ -127,7 +122,7 @@ pub(super) fn generate_discoveries(
                     results: Box::new(DiscoveryUpdatePayload {
                         session_id: Uuid::new_v4(),
                         daemon_id: daemon.id,
-                        network_id: hq.id,
+                        site_id: hq.id,
                         phase: DiscoveryPhase::Complete,
                         discovery_type: hq_unified.clone(),
                         progress: 100,
@@ -147,7 +142,7 @@ pub(super) fn generate_discoveries(
                 },
                 name: "Discovery".to_string(),
                 daemon_id: daemon.id,
-                network_id: hq.id,
+                site_id: hq.id,
                 tags: vec![],
             },
             scan_count: 0,
@@ -167,7 +162,7 @@ pub(super) fn generate_discoveries(
                     results: Box::new(DiscoveryUpdatePayload {
                         session_id: Uuid::new_v4(),
                         daemon_id: daemon.id,
-                        network_id: hq.id,
+                        site_id: hq.id,
                         phase: DiscoveryPhase::Complete,
                         discovery_type: hq_unified,
                         progress: 100,
@@ -256,7 +251,7 @@ pub(super) fn generate_discoveries(
                 },
                 name: "Discovery".to_string(),
                 daemon_id: daemon.id,
-                network_id: hq.id,
+                site_id: hq.id,
                 tags: vec![],
             },
             scan_count: 0,
@@ -266,9 +261,9 @@ pub(super) fn generate_discoveries(
     }
 
     // ===== DC Unified discovery =====
-    let dc = find_network("Data Center");
+    let dc = find_site("Data Center");
     if let Some(daemon) = find_daemon("DC") {
-        let dc_subnet_ids = find_subnets_for_network(dc.id);
+        let dc_subnet_ids = find_subnets_for_site(dc.id);
         discoveries.push(Discovery {
             id: Uuid::new_v4(),
             created_at: now,
@@ -280,7 +275,7 @@ pub(super) fn generate_discoveries(
                 },
                 name: "Discovery".to_string(),
                 daemon_id: daemon.id,
-                network_id: dc.id,
+                site_id: dc.id,
                 tags: vec![],
             },
             scan_count: 0,

@@ -85,7 +85,7 @@ pub enum LldpPortId {
 /// into a bare `None`: [`Self::NoStrategy`] means the neighbor advertised an identity this system
 /// has no way to look up (a code-side gap, or a subtype that genuinely carries no usable
 /// identity), while [`Self::NotFound`] means the lookup ran correctly and the device simply isn't
-/// in this network's inventory (an operator-side gap — scan it and the link appears).
+/// in this site's inventory (an operator-side gap — scan it and the link appears).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IdentityResolution {
     /// Matched exactly one entity.
@@ -182,7 +182,7 @@ impl AdvertisedIdentity<'_> {
     pub async fn resolve_host_id<R: LldpResolver>(
         &self,
         resolver: &R,
-        network_id: Uuid,
+        site_id: Uuid,
     ) -> IdentityResolution {
         let mut strategy_ran = false;
         let mut saw_ambiguous = false;
@@ -191,7 +191,7 @@ impl AdvertisedIdentity<'_> {
         // while `sysName` is a label an operator assigned and a vendor may have defaulted.
         if let Some(address) = self.address.filter(is_usable_identity_address) {
             strategy_ran = true;
-            let by_address = resolver.find_host_by_ip(&address, network_id).await;
+            let by_address = resolver.find_host_by_ip(&address, site_id).await;
             if !by_address.is_unresolved() {
                 return by_address;
             }
@@ -200,7 +200,7 @@ impl AdvertisedIdentity<'_> {
 
         if let Some(sys_name) = self.sys_name.map(str::trim).filter(|s| !s.is_empty()) {
             strategy_ran = true;
-            let by_sys_name = resolver.find_host_by_sys_name(sys_name, network_id).await;
+            let by_sys_name = resolver.find_host_by_sys_name(sys_name, site_id).await;
             if !by_sys_name.is_unresolved() {
                 return by_sys_name;
             }
@@ -351,7 +351,7 @@ impl LldpChassisId {
     pub async fn resolve_host_id<R: LldpResolver>(
         &self,
         resolver: &R,
-        network_id: Uuid,
+        site_id: Uuid,
         advertised: AdvertisedIdentity<'_>,
     ) -> IdentityResolution {
         let mut strategy_ran = false;
@@ -363,11 +363,11 @@ impl LldpChassisId {
         let mut saw_ambiguous = false;
 
         let by_subtype = match self {
-            Self::MacAddress(mac) => resolver.find_host_by_mac(mac, network_id).await,
-            Self::NetworkAddress(ip) => resolver.find_host_by_ip(ip, network_id).await,
-            Self::InterfaceName(name) => resolver.find_host_by_if_name(name, network_id).await,
+            Self::MacAddress(mac) => resolver.find_host_by_mac(mac, site_id).await,
+            Self::NetworkAddress(ip) => resolver.find_host_by_ip(ip, site_id).await,
+            Self::InterfaceName(name) => resolver.find_host_by_if_name(name, site_id).await,
             Self::ChassisComponent(id) | Self::LocallyAssigned(id) => {
-                resolver.find_host_by_chassis_id(id, network_id).await
+                resolver.find_host_by_chassis_id(id, site_id).await
             }
             // These subtypes don't have reliable resolution strategies
             Self::InterfaceAlias(_) | Self::PortComponent(_) => IdentityResolution::NoStrategy,
@@ -381,9 +381,7 @@ impl LldpChassisId {
         let identifier = self.identifier();
         if !identifier.is_empty() {
             strategy_ran = true;
-            let by_chassis = resolver
-                .find_host_by_chassis_id(&identifier, network_id)
-                .await;
+            let by_chassis = resolver.find_host_by_chassis_id(&identifier, site_id).await;
             if !by_chassis.is_unresolved() {
                 return by_chassis;
             }
@@ -392,7 +390,7 @@ impl LldpChassisId {
 
         // Tiers 2 and 3, which need nothing from the chassis id and are therefore shared with CDP.
         // `NoStrategy` here means neither ran, which must not promote a `NotFound` verdict.
-        let by_advertised = advertised.resolve_host_id(resolver, network_id).await;
+        let by_advertised = advertised.resolve_host_id(resolver, site_id).await;
         if !by_advertised.is_unresolved() {
             return by_advertised;
         }
@@ -465,17 +463,17 @@ impl LldpPortId {
     ///
     /// The resolution strategy depends on the port ID subtype:
     /// - MacAddress: Look up via interfaces.mac_address, and only when that MAC belongs to exactly
-    ///   one of the host's ports — see [`LldpResolver::find_if_entry_by_mac`]
+    ///   one of the host's ports — see [`LldpResolver::find_interface_by_mac`]
     /// - NetworkAddress: Look up via ip_address_id FK on interfaces
     /// - InterfaceName/PortComponent/AgentCircuitId/LocallyAssigned/InterfaceAlias: device-local
     ///   port identifier — see [`Self::resolve_device_local_port`]
-    pub async fn resolve_if_entry_id<R: LldpResolver>(
+    pub async fn resolve_interface_id<R: LldpResolver>(
         &self,
         resolver: &R,
         host_id: Uuid,
     ) -> IdentityResolution {
         match self {
-            Self::MacAddress(mac) => resolver.find_if_entry_by_mac(mac, host_id).await,
+            Self::MacAddress(mac) => resolver.find_interface_by_mac(mac, host_id).await,
             // `ifAlias` is user-configurable and not required to be unique, so it is resolved the
             // same way every other name-shaped identifier is: against the far end's own ifDescr /
             // ifName / ifAlias columns, on a single match only. Declining outright cost the port
@@ -485,7 +483,7 @@ impl LldpPortId {
                 Self::resolve_device_local_port(resolver, id, host_id).await
             }
             Self::NetworkAddress(ip) => {
-                IdentityResolution::found(resolver.find_if_entry_by_ip(ip, host_id).await)
+                IdentityResolution::found(resolver.find_interface_by_ip(ip, host_id).await)
             }
             Self::InterfaceName(id)
             | Self::PortComponent(id)
@@ -527,13 +525,13 @@ impl LldpPortId {
             return IdentityResolution::NoStrategy;
         }
 
-        if let Some(interface_id) = resolver.find_if_entry_by_name(id, host_id).await {
+        if let Some(interface_id) = resolver.find_interface_by_name(id, host_id).await {
             return IdentityResolution::Resolved(interface_id);
         }
 
         match id.parse::<i32>() {
             Ok(if_index) => IdentityResolution::found(
-                resolver.find_if_entry_by_if_index(if_index, host_id).await,
+                resolver.find_interface_by_if_index(if_index, host_id).await,
             ),
             Err(_) => IdentityResolution::NotFound,
         }
@@ -1091,7 +1089,7 @@ mod resolution_tests {
 
     #[async_trait]
     impl LldpResolver for FakeInventory {
-        async fn find_host_by_mac(&self, mac: &str, _network_id: Uuid) -> IdentityResolution {
+        async fn find_host_by_mac(&self, mac: &str, _site_id: Uuid) -> IdentityResolution {
             // Collapsed to distinct hosts before the single-match rule, exactly as the production
             // resolver does: many ports of one switch carrying the chassis MAC is one host.
             let hosts: Vec<Uuid> = self
@@ -1106,7 +1104,7 @@ mod resolution_tests {
             IdentityResolution::from_unique(Self::only(hosts))
         }
 
-        async fn find_host_by_ip(&self, ip: &IpAddr, _network_id: Uuid) -> IdentityResolution {
+        async fn find_host_by_ip(&self, ip: &IpAddr, _site_id: Uuid) -> IdentityResolution {
             IdentityResolution::from_unique(
                 Self::only(
                     self.hosts
@@ -1118,7 +1116,7 @@ mod resolution_tests {
             )
         }
 
-        async fn find_host_by_if_name(&self, name: &str, _network_id: Uuid) -> IdentityResolution {
+        async fn find_host_by_if_name(&self, name: &str, _site_id: Uuid) -> IdentityResolution {
             IdentityResolution::from_unique(Self::only(
                 self.interfaces
                     .iter()
@@ -1131,7 +1129,7 @@ mod resolution_tests {
         async fn find_host_by_chassis_id(
             &self,
             chassis_id: &str,
-            _network_id: Uuid,
+            _site_id: Uuid,
         ) -> IdentityResolution {
             IdentityResolution::from_unique(
                 Self::only(
@@ -1147,7 +1145,7 @@ mod resolution_tests {
         async fn find_host_by_sys_name(
             &self,
             sys_name: &str,
-            _network_id: Uuid,
+            _site_id: Uuid,
         ) -> IdentityResolution {
             IdentityResolution::from_unique(
                 Self::only(
@@ -1160,7 +1158,7 @@ mod resolution_tests {
             )
         }
 
-        async fn find_if_entry_by_mac(&self, mac: &str, host_id: Uuid) -> IdentityResolution {
+        async fn find_interface_by_mac(&self, mac: &str, host_id: Uuid) -> IdentityResolution {
             let matches: Vec<Uuid> = self
                 .interfaces
                 .iter()
@@ -1176,7 +1174,7 @@ mod resolution_tests {
             }
         }
 
-        async fn find_if_entry_by_name(&self, name: &str, host_id: Uuid) -> Option<Uuid> {
+        async fn find_interface_by_name(&self, name: &str, host_id: Uuid) -> Option<Uuid> {
             self.interfaces
                 .iter()
                 .find(|i| {
@@ -1188,14 +1186,14 @@ mod resolution_tests {
                 .map(|i| i.id)
         }
 
-        async fn find_if_entry_by_if_index(&self, if_index: i32, host_id: Uuid) -> Option<Uuid> {
+        async fn find_interface_by_if_index(&self, if_index: i32, host_id: Uuid) -> Option<Uuid> {
             self.interfaces
                 .iter()
                 .find(|i| i.host_id == host_id && i.if_index == if_index)
                 .map(|i| i.id)
         }
 
-        async fn find_if_entry_by_ip(&self, _ip: &IpAddr, _host_id: Uuid) -> Option<Uuid> {
+        async fn find_interface_by_ip(&self, _ip: &IpAddr, _host_id: Uuid) -> Option<Uuid> {
             None
         }
     }
@@ -1232,7 +1230,7 @@ mod resolution_tests {
     }
 
     #[tokio::test]
-    async fn neighbour_on_a_device_this_network_never_scanned_is_not_found() {
+    async fn neighbour_on_a_device_this_site_never_scanned_is_not_found() {
         let inventory = FakeInventory::default();
         let chassis = LldpChassisId::MacAddress("00:1a:2b:3c:4d:63".to_string());
 
@@ -1321,7 +1319,7 @@ mod resolution_tests {
 
         let port = LldpPortId::LocallyAssigned("41".to_string());
         assert_eq!(
-            port.resolve_if_entry_id(&inventory, switch).await,
+            port.resolve_interface_id(&inventory, switch).await,
             IdentityResolution::Resolved(port_41)
         );
     }
@@ -1348,7 +1346,7 @@ mod resolution_tests {
 
         let port = LldpPortId::InterfaceName("9".to_string());
         assert_eq!(
-            port.resolve_if_entry_id(&inventory, switch).await,
+            port.resolve_interface_id(&inventory, switch).await,
             IdentityResolution::Resolved(port_9)
         );
     }
@@ -1382,7 +1380,7 @@ mod resolution_tests {
 
         let port = LldpPortId::InterfaceName("2".to_string());
         assert_eq!(
-            port.resolve_if_entry_id(&inventory, switch).await,
+            port.resolve_interface_id(&inventory, switch).await,
             IdentityResolution::Resolved(named)
         );
     }
@@ -1426,7 +1424,7 @@ mod resolution_tests {
 
         let port = LldpPortId::LocallyAssigned("197".to_string());
         assert_eq!(
-            port.resolve_if_entry_id(&inventory, switch).await,
+            port.resolve_interface_id(&inventory, switch).await,
             IdentityResolution::Resolved(uplink)
         );
     }
@@ -1447,7 +1445,7 @@ mod resolution_tests {
 
         let port = LldpPortId::LocallyAssigned("WAN PORT".to_string());
         assert_eq!(
-            port.resolve_if_entry_id(&inventory, switch).await,
+            port.resolve_interface_id(&inventory, switch).await,
             IdentityResolution::NotFound
         );
     }
@@ -1471,7 +1469,7 @@ mod resolution_tests {
 
         let port = LldpPortId::LocallyAssigned("41".to_string());
         assert_eq!(
-            port.resolve_if_entry_id(&inventory, switch).await,
+            port.resolve_interface_id(&inventory, switch).await,
             IdentityResolution::NotFound
         );
     }
@@ -1500,7 +1498,7 @@ mod resolution_tests {
 
         let port = LldpPortId::InterfaceAlias("eth9".to_string());
         assert_eq!(
-            port.resolve_if_entry_id(&inventory, switch).await,
+            port.resolve_interface_id(&inventory, switch).await,
             IdentityResolution::Resolved(target)
         );
     }
@@ -1526,7 +1524,7 @@ mod resolution_tests {
 
         let port = LldpPortId::InterfaceName("eth1".to_string());
         assert_eq!(
-            port.resolve_if_entry_id(&inventory, switch).await,
+            port.resolve_interface_id(&inventory, switch).await,
             IdentityResolution::Resolved(target)
         );
     }
@@ -1636,7 +1634,7 @@ mod resolution_tests {
 
         let port = LldpPortId::MacAddress(shared.to_string());
         assert_eq!(
-            port.resolve_if_entry_id(&inventory, switch).await,
+            port.resolve_interface_id(&inventory, switch).await,
             IdentityResolution::Resolved(target)
         );
     }
@@ -1670,7 +1668,7 @@ mod resolution_tests {
 
         let port = LldpPortId::MacAddress("00:ad:24:af:4e:00".to_string());
         assert_eq!(
-            port.resolve_if_entry_id(&inventory, switch).await,
+            port.resolve_interface_id(&inventory, switch).await,
             IdentityResolution::Ambiguous
         );
     }
@@ -1703,7 +1701,7 @@ mod resolution_tests {
 
         let port = LldpPortId::MacAddress("00:11:b4:8c:02:ea".to_string());
         assert_eq!(
-            port.resolve_if_entry_id(&inventory, switch).await,
+            port.resolve_interface_id(&inventory, switch).await,
             IdentityResolution::Resolved(target)
         );
     }
@@ -1874,7 +1872,7 @@ mod resolution_tests {
     /// identity holds no interface row to carry the chassis MAC its neighbours advertise and no
     /// `chassis_id` of its own — every tier above the address is structurally dead for it. The
     /// address it publishes in `lldpRemManAddr` is the one identifier that survives, and this
-    /// network already holds it.
+    /// site already holds it.
     ///
     /// The host deliberately has no `sys_name`, so only the address tier can produce this answer.
     #[tokio::test]

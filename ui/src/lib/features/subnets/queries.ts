@@ -165,13 +165,13 @@ export function isContainerSubnet(subnet: Subnet): boolean {
 
 /**
  * Whether this subnet belongs to the inventory the user curates, and so belongs in
- * the management lists (Subnets, Networks, Daemon and VLAN tabs).
+ * the management lists (Subnets, Sites, Daemon and VLAN tabs).
  *
  * Mirrors `Subnet::is_user_managed` (`backend/src/server/subnets/impl/base.rs`), which
  * the dashboard's subnet count uses — the two must agree or the totals disagree with
  * the pages, as they did in GH #677.
  *
- * Provenance, not category: Scanopy fabricates the per-network `0.0.0.0/0` Internet and
+ * Provenance, not category: Scanopy fabricates the per-site `0.0.0.0/0` Internet and
  * Remote supernets and the loopback rows, and those stay out of the way; a subnet the
  * user created is theirs to manage whatever category they gave it.
  *
@@ -206,7 +206,7 @@ export function getSubnetByIdFromCache(
 /**
  * Create empty form data for a new subnet
  */
-export function createEmptySubnetFormData(defaultNetworkId?: string): Subnet {
+export function createEmptySubnetFormData(defaultSiteId?: string): Subnet {
 	return {
 		id: uuidv4Sentinel,
 		created_at: utcTimeZoneSentinel,
@@ -216,7 +216,7 @@ export function createEmptySubnetFormData(defaultNetworkId?: string): Subnet {
 		cidr_source: 'Manual',
 		tags: [],
 		name: '',
-		network_id: defaultNetworkId ?? '',
+		site_id: defaultSiteId ?? '',
 		cidr: '',
 		description: '',
 		subnet_type: 'Unknown',

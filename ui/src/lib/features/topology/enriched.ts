@@ -2,7 +2,7 @@
  * Enriched topology helpers.
  *
  * The slim backend `Topology` row carries only the user's grouping
- * `options` (plus `id`/`network_id`). The per-view graph (`nodes`/`edges`)
+ * `options` (plus `id`/`site_id`). The per-view graph (`nodes`/`edges`)
  * is built on request and returned on the `TopologyData` bundle alongside
  * the entity arrays (`hosts`, `services`, `subnets`, …). This module wraps
  * the row + bundle so consumers can keep reading `topology.nodes` /
@@ -110,11 +110,11 @@ export function entityBundleFrom(data: TopologyData): EntityBundle {
  * Combine a slim `Topology` row with the entity arrays + built graph from the
  * `TopologyData` bundle.
  *
- * `name` is a UI-side display string supplied by the caller (network
+ * `name` is a UI-side display string supplied by the caller (site
  * name for live view, formatted `taken_at` for snapshots, share name
  * for read-only shared topologies).
  *
- * Filters entity arrays to the topology's network so a multi-network
+ * Filters entity arrays to the topology's site so a multi-site
  * cache doesn't leak into the inspector.
  *
  * `view` selects which per-view node/edge slice (built on request, carried on
@@ -127,13 +127,13 @@ export function toRenderableTopology(
 	name: string,
 	view: TopologyView
 ): RenderableTopology {
-	const networkId = topology.network_id;
+	const siteId = topology.site_id;
 	const nodes = bundle.nodes?.[view] ?? [];
 	const edges = bundle.edges?.[view] ?? [];
-	const hosts = bundle.hosts.filter((h) => h.network_id === networkId);
-	const subnets = bundle.subnets.filter((s) => s.network_id === networkId);
-	const dependencies = bundle.dependencies.filter((d) => d.network_id === networkId);
-	const vlans = bundle.vlans.filter((v) => v.network_id === networkId);
+	const hosts = bundle.hosts.filter((h) => h.site_id === siteId);
+	const subnets = bundle.subnets.filter((s) => s.site_id === siteId);
+	const dependencies = bundle.dependencies.filter((d) => d.site_id === siteId);
+	const vlans = bundle.vlans.filter((v) => v.site_id === siteId);
 	const hostIds = new Set(hosts.map((h) => h.id));
 	const services = bundle.services.filter((s) => hostIds.has(s.host_id));
 	const ipAddresses = bundle.ip_addresses.filter((i) => hostIds.has(i.host_id));
@@ -145,7 +145,7 @@ export function toRenderableTopology(
 	const interfaceIds = new Set(interfaces.map((i) => i.id));
 	const neighbours = (bundle.neighbours ?? []).filter((n) => interfaceIds.has(n.interface_id));
 	const candidates = (bundle.candidates ?? []).filter((c) => interfaceIds.has(c.base.interface_id));
-	const bindings = bundle.bindings.filter((b) => b.network_id === networkId);
+	const bindings = bundle.bindings.filter((b) => b.site_id === siteId);
 	// Tags are org-scoped; keep the ones referenced by entities here, plus tags
 	// referenced by grouping rules (ByTag / ByApplication) — those may apply to no
 	// entity but still need their name/color to label the group (the backend ships
@@ -179,7 +179,7 @@ export function toRenderableTopology(
 		interfaces,
 		neighbours,
 		candidates,
-		// Network-scoped already: the bundle is fetched per network, so its tally needs no
+		// Site-scoped already: the bundle is fetched per site, so its tally needs no
 		// filtering the way the entity arrays above do.
 		filtered_out: bundle.filtered_out ?? {},
 		dependencies,

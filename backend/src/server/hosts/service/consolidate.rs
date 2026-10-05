@@ -16,7 +16,7 @@ impl HostService {
     /// are the same device ([`hosts_proven_same_device`]), which the caller merges.
     pub(crate) async fn find_matching_host_by_ip_addresses(
         &self,
-        network_id: &Uuid,
+        site_id: &Uuid,
         incoming_ip_addresses: &[IPAddress],
         incoming_interfaces: &[Interface],
         incoming_chassis_id: Option<&str>,
@@ -36,7 +36,7 @@ impl HostService {
 
         // SCD2: only match against live rows. Closed historical copies
         // (set when a snapshot fires) must not influence reconciliation.
-        let filter = StorableFilter::<Host>::new_from_network_ids(&[*network_id]).live();
+        let filter = StorableFilter::<Host>::new_from_site_ids(&[*site_id]).live();
         let mut all_hosts = self.get_all(filter).await?;
 
         if all_hosts.is_empty() {
@@ -74,7 +74,7 @@ impl HostService {
                 // it. What arrives is a device with no address at all, or one whose address moved.
                 None => match self
                     .find_host_id_by_mac(
-                        network_id,
+                        site_id,
                         &incoming_macs,
                         incoming_ip_addresses,
                         &candidates,
@@ -87,7 +87,7 @@ impl HostService {
             };
 
         let same_device = self
-            .find_same_device(network_id, incoming_ip_addresses, matched_id, &candidates)
+            .find_same_device(site_id, incoming_ip_addresses, matched_id, &candidates)
             .await?;
 
         let host_ip_addresses = candidates
@@ -120,7 +120,7 @@ impl HostService {
     /// payload's addresses, which on almost every submission none does.
     async fn find_same_device(
         &self,
-        network_id: &Uuid,
+        site_id: &Uuid,
         incoming_ip_addresses: &[IPAddress],
         matched: Uuid,
         candidates: &[HostCandidate],
@@ -140,7 +140,7 @@ impl HostService {
 
         let internal_subnet_ids: HashSet<Uuid> = self
             .subnet_service
-            .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[*network_id]).live())
+            .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[*site_id]).live())
             .await?
             .into_iter()
             .filter(|s| s.is_container_bridge_subnet())
@@ -148,9 +148,7 @@ impl HostService {
             .collect();
         let daemon_host_ids: HashSet<Uuid> = self
             .daemon_service
-            .get_all(StorableFilter::<Daemon>::new_from_network_ids(&[
-                *network_id,
-            ]))
+            .get_all(StorableFilter::<Daemon>::new_from_site_ids(&[*site_id]))
             .await?
             .into_iter()
             .map(|d| d.base.host_id)
@@ -165,12 +163,12 @@ impl HostService {
         ))
     }
 
-    /// The host on this network already carrying one of these MACs, or `None`.
+    /// The host on this site already carrying one of these MACs, or `None`.
     ///
     /// Looked up by targeted query rather than by widening the candidate load above. That load
     /// already fetches every live host and all their addresses, and this function runs twice per
     /// host per scan — once for `previous_subnets` and again inside `create_with_children` — so
-    /// pulling every interface in the network alongside it would multiply the most-repeated read
+    /// pulling every interface in the site alongside it would multiply the most-repeated read
     /// in discovery by the port count of the biggest switch on it. Two indexed reads keyed on the
     /// handful of addresses actually in the payload cost the same whatever the fleet looks like.
     ///
@@ -178,11 +176,11 @@ impl HostService {
     /// by an address puts it on an `ip_addresses` row, one known only at the link layer on an
     /// interface. Both are the same claim about the same NIC.
     ///
-    /// Restricted to the candidate set so a row belonging to a host this network no longer holds
+    /// Restricted to the candidate set so a row belonging to a host this site no longer holds
     /// live cannot resolve, and via each entity's service rather than its storage.
     async fn find_host_id_by_mac(
         &self,
-        network_id: &Uuid,
+        site_id: &Uuid,
         incoming_macs: &[MacEvidence],
         incoming_ip_addresses: &[IPAddress],
         candidates: &[HostCandidate],
@@ -202,7 +200,7 @@ impl HostService {
         let ip_rows = self
             .ip_address_service
             .get_all(
-                StorableFilter::<IPAddress>::new_from_network_ids(&[*network_id])
+                StorableFilter::<IPAddress>::new_from_site_ids(&[*site_id])
                     .mac_address_in(&anchors)
                     .live(),
             )
@@ -210,7 +208,7 @@ impl HostService {
         let interface_rows = self
             .interface_service
             .get_all(
-                StorableFilter::<Interface>::new_from_network_ids(&[*network_id])
+                StorableFilter::<Interface>::new_from_site_ids(&[*site_id])
                     .mac_address_in(&anchors)
                     .live(),
             )
@@ -318,7 +316,7 @@ impl HostService {
             if let Some(scope) = EntityScope::from_ids(
                 existing_host.id(),
                 existing_host.clone().into(),
-                self.get_network_id(&existing_host),
+                self.get_site_id(&existing_host),
                 self.get_organization_id(&existing_host),
             ) {
                 self.event_bus()
@@ -489,7 +487,7 @@ impl HostService {
             } else {
                 // No conflict: transfer port to destination host
                 let mut transferred =
-                    other_port.with_host(destination_host.id, destination_host.base.network_id);
+                    other_port.with_host(destination_host.id, destination_host.base.site_id);
                 self.port_service
                     .update(&mut transferred, authentication.clone())
                     .await?;
@@ -516,11 +514,7 @@ impl HostService {
                 Some(dest_if_id) => {
                     claimed.insert(dest_if_id);
                     self.interface_neighbor_service
-                        .repoint_interface(
-                            destination_host.base.network_id,
-                            other_if.id,
-                            dest_if_id,
-                        )
+                        .repoint_interface(destination_host.base.site_id, other_if.id, dest_if_id)
                         .await?;
                     self.repoint_virtualization_interface(
                         &other_if.id,
@@ -596,7 +590,7 @@ impl HostService {
                 self.repoint_virtualization_service(
                     &service.id,
                     dest_svc.id,
-                    &updated_host.base.network_id,
+                    &updated_host.base.site_id,
                     &authentication,
                 )
                 .await?;
@@ -605,7 +599,7 @@ impl HostService {
 
             // Update host_id
             service.base.host_id = updated_host.id;
-            service.base.network_id = updated_host.base.network_id;
+            service.base.site_id = updated_host.base.site_id;
 
             // Remap binding IDs using our maps
             for binding in &mut service.base.bindings {
@@ -764,7 +758,7 @@ impl HostService {
             .collect();
         self.interface_neighbor_service
             .repoint_neighbor_host(
-                updated_host.base.network_id,
+                updated_host.base.site_id,
                 other_host.id,
                 updated_host.id,
                 &dest_interface_ids,
@@ -774,8 +768,8 @@ impl HostService {
         // Tags: deleting the host clears its junction rows, so copy them across first. A tag the
         // destination cannot take (a second application tag) is left behind and logged.
         let organization_id = self
-            .network_service
-            .get_by_id(&updated_host.base.network_id)
+            .site_service
+            .get_by_id(&updated_host.base.site_id)
             .await?
             .map(|n| n.base.organization_id);
         if let Some(organization_id) = organization_id {
@@ -883,12 +877,12 @@ impl HostService {
         &self,
         from: &Uuid,
         to: Uuid,
-        network_id: &Uuid,
+        site_id: &Uuid,
         authentication: &AuthenticatedEntity,
     ) -> Result<()> {
         let guests = self
             .get_all(
-                StorableFilter::<Host>::new_from_network_ids(&[*network_id])
+                StorableFilter::<Host>::new_from_site_ids(&[*site_id])
                     .virtualization_service_in(&[*from], false)
                     .live(),
             )
@@ -900,7 +894,7 @@ impl HostService {
         let subnets = self
             .subnet_service
             .get_all(
-                StorableFilter::<Subnet>::new_from_network_ids(&[*network_id])
+                StorableFilter::<Subnet>::new_from_site_ids(&[*site_id])
                     .virtualization_service_in(&[*from], false)
                     .live(),
             )

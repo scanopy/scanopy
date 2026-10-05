@@ -9,7 +9,7 @@
     "metadata": null
   },
   {
-    "id": "IfEntryData",
+    "id": "InterfaceData",
     "name": "Interface data",
     "description": "Status and counters the device reports for this port",
     "category": null,

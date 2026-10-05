@@ -189,11 +189,11 @@ impl Snapshotable for EntityTag {
 
     fn remap_fks_for_clone(&mut self, maps: &FkMaps) {
         // Only remap entity_id when the row's entity_type is one of the
-        // network-scoped entities cloned at network snapshot. Org-scoped
+        // site-scoped entities cloned at site snapshot. Org-scoped
         // entity_types (Daemon, User, DaemonApiKey, UserApiKey, etc.) are
         // filtered out at fetch time by SnapshotService — those rows aren't
         // cloned. tag_id stays pointing at the live tag (tags follow per-
-        // action lifecycle, not network-snapshot lifecycle).
+        // action lifecycle, not site-snapshot lifecycle).
         if let Some(closed) = maps.lookup_by_entity_type(self.base.entity_type, self.base.entity_id)
         {
             self.base.entity_id = closed;

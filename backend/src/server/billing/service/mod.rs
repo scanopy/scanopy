@@ -13,8 +13,6 @@ use crate::server::billing::types::stripe_metadata::{
 };
 use crate::server::hosts::service::HostService;
 use crate::server::license::types::LicenseKeyType;
-use crate::server::networks::r#impl::Network;
-use crate::server::networks::service::NetworkService;
 use crate::server::organizations::r#impl::base::Organization;
 use crate::server::organizations::service::OrganizationService;
 use crate::server::shared::events::bus::EventBus;
@@ -25,6 +23,8 @@ use crate::server::shared::events::types::{
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::types::metadata::TypeMetadataProvider;
+use crate::server::sites::r#impl::Site;
+use crate::server::sites::service::SiteService;
 use crate::server::users::service::UserService;
 use anyhow::Error;
 use anyhow::anyhow;
@@ -98,7 +98,7 @@ pub struct BillingService {
     pub webhook_secret: String,
     pub organization_service: Arc<OrganizationService>,
     pub user_service: Arc<UserService>,
-    pub network_service: Arc<NetworkService>,
+    pub site_service: Arc<SiteService>,
     pub host_service: Arc<HostService>,
     pub plans: OnceLock<Vec<BillingPlan>>,
     pub event_bus: Arc<EventBus>,
@@ -113,15 +113,15 @@ pub struct BillingService {
 
 const SEAT_PRODUCT_ID: &str = "extra_seats";
 const SEAT_PRODUCT_NAME: &str = "Extra Seats";
-const NETWORK_PRODUCT_ID: &str = "extra_networks";
-const NETWORK_PRODUCT_NAME: &str = "Extra Networks";
+const SITE_PRODUCT_ID: &str = "extra_sites";
+const SITE_PRODUCT_NAME: &str = "Extra Sites";
 
 pub struct BillingServiceParams {
     pub stripe_secret: String,
     pub webhook_secret: String,
     pub organization_service: Arc<OrganizationService>,
     pub user_service: Arc<UserService>,
-    pub network_service: Arc<NetworkService>,
+    pub site_service: Arc<SiteService>,
     pub host_service: Arc<HostService>,
     pub event_bus: Arc<EventBus>,
 }

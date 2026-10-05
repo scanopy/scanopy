@@ -10,7 +10,7 @@ pub struct TrialEnding<'a> {
     pub plan_name: &'a str,
     pub billing_period: &'a str,
     pub hosts_count: u64,
-    pub networks_count: u64,
+    pub sites_count: u64,
     pub daemons_count: u64,
     pub services_count: u64,
     pub days_into_trial: i64,
@@ -63,7 +63,7 @@ impl Email for TrialEnding<'_> {
             r#"                            <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse: collapse;">
                                 <tr>
                                     <td style="padding: 8px 0; font-size: 14px; color: #4a4a4a;"><strong>{hosts}</strong> hosts discovered</td>
-                                    <td style="padding: 8px 0; font-size: 14px; color: #4a4a4a;"><strong>{networks}</strong> networks mapped</td>
+                                    <td style="padding: 8px 0; font-size: 14px; color: #4a4a4a;"><strong>{sites}</strong> sites mapped</td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 8px 0; font-size: 14px; color: #4a4a4a;"><strong>{daemons}</strong> daemons connected</td>
@@ -75,7 +75,7 @@ impl Email for TrialEnding<'_> {
                             </table>
 "#,
             hosts = self.hosts_count,
-            networks = self.networks_count,
+            sites = self.sites_count,
             daemons = self.daemons_count,
             services = self.services_count,
             days = self.days_into_trial,

@@ -2,13 +2,8 @@
 
 use super::*;
 
-pub(super) fn generate_api_keys(networks: &[Network], now: DateTime<Utc>) -> Vec<DaemonApiKey> {
-    let find_network = |name: &str| {
-        networks
-            .iter()
-            .find(|n| n.base.name.contains(name))
-            .unwrap()
-    };
+pub(super) fn generate_api_keys(sites: &[Site], now: DateTime<Utc>) -> Vec<DaemonApiKey> {
+    let find_site = |name: &str| sites.iter().find(|n| n.base.name.contains(name)).unwrap();
 
     vec![
         DaemonApiKey {
@@ -20,7 +15,7 @@ pub(super) fn generate_api_keys(networks: &[Network], now: DateTime<Utc>) -> Vec
                 name: "HQ Daemon Key".to_string(),
                 last_used: Some(now),
                 expires_at: None,
-                network_id: find_network("Headquarters").id,
+                site_id: find_site("Headquarters").id,
                 is_enabled: true,
                 tags: vec![],
                 daemon_id: None,
@@ -36,7 +31,7 @@ pub(super) fn generate_api_keys(networks: &[Network], now: DateTime<Utc>) -> Vec
                 name: "DC Daemon Key".to_string(),
                 last_used: Some(now),
                 expires_at: None,
-                network_id: find_network("Data Center").id,
+                site_id: find_site("Data Center").id,
                 is_enabled: true,
                 tags: vec![],
                 daemon_id: None,
@@ -47,14 +42,14 @@ pub(super) fn generate_api_keys(networks: &[Network], now: DateTime<Utc>) -> Vec
 }
 
 pub(super) fn generate_user_api_keys(
-    networks: &[Network],
+    sites: &[Site],
     organization_id: Uuid,
     now: DateTime<Utc>,
 ) -> Vec<(UserApiKey, Vec<Uuid>)> {
     use super::super::handlers::DEMO_USER_ID;
 
-    let network_ids: Vec<Uuid> = networks.iter().map(|n| n.id).collect();
-    let hq_id = networks
+    let site_ids: Vec<Uuid> = sites.iter().map(|n| n.id).collect();
+    let hq_id = sites
         .iter()
         .find(|n| n.base.name.contains("Headquarters"))
         .map(|n| n.id)
@@ -79,7 +74,7 @@ pub(super) fn generate_user_api_keys(
                     expires_at: Some(now + Duration::days(180)),
                     is_enabled: true,
                     tags: vec![],
-                    network_ids: vec![], // hydrated by create_with_networks
+                    site_ids: vec![], // hydrated by create_with_sites
                 },
             },
             vec![hq_id],
@@ -99,10 +94,10 @@ pub(super) fn generate_user_api_keys(
                     expires_at: None,
                     is_enabled: true,
                     tags: vec![],
-                    network_ids: vec![], // hydrated by create_with_networks
+                    site_ids: vec![], // hydrated by create_with_sites
                 },
             },
-            network_ids,
+            site_ids,
         ),
     ]
 }

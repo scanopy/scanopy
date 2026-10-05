@@ -1,7 +1,7 @@
 use super::{Body, Content, Email, EmailCategory, EmailPreference, links};
 
 /// Sent instead of the cloud trial-ending email when the trial is for a
-/// self-hosted plan. The cloud email recaps hosts, networks, daemons and
+/// self-hosted plan. The cloud email recaps hosts, sites, daemons and
 /// services found during the trial, and those all live on the customer's own
 /// server, so the cloud org's counts are zero. What ends with this trial is
 /// the license key, so the copy is about the key.

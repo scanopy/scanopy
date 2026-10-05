@@ -388,7 +388,7 @@
 							{loading}
 							onGenerate={() => {}}
 							onRotate={handleRotateKey}
-							showNetwork={false}
+							showSite={false}
 							showName={false}
 							showTags={false}
 							showHeading={false}

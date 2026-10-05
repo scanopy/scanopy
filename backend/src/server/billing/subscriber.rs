@@ -1,4 +1,4 @@
-//! Billing subscriber for Network/User Created/Deleted entity events.
+//! Billing subscriber for Site/User Created/Deleted entity events.
 //!
 //! Drives billing-side bookkeeping when tenant resources change: seat counts,
 //! Stripe metered usage, plan-limit enforcement.
@@ -9,7 +9,6 @@ use std::collections::HashMap;
 
 use crate::server::{
     billing::service::BillingService,
-    networks::r#impl::Network,
     shared::{
         entities::EntityDiscriminants,
         events::{
@@ -20,6 +19,7 @@ use crate::server::{
         services::traits::CrudService,
         storage::filter::StorableFilter,
     },
+    sites::r#impl::Site,
     users::r#impl::base::User,
 };
 
@@ -31,7 +31,7 @@ impl Subscriber<EntityOperation> for BillingService {
             EntityOperationDiscriminants::Deleted,
         ]);
         EntityEventFilter::by_entity(HashMap::from([
-            (EntityDiscriminants::Network, create_or_delete.clone()),
+            (EntityDiscriminants::Site, create_or_delete.clone()),
             (EntityDiscriminants::User, create_or_delete),
         ]))
     }
@@ -43,12 +43,12 @@ impl Subscriber<EntityOperation> for BillingService {
 
         for event in events {
             // Resolve the org_id from the event scope (org-scoped entity) or
-            // from the network (network-scoped entity).
+            // from the site (site-scoped entity).
             let org_id = if let Some(org_id) = event.scope.organization_id() {
                 org_id
-            } else if let Some(network_id) = event.scope.network_id() {
-                match self.network_service.get_by_id(&network_id).await? {
-                    Some(network) => network.base.organization_id,
+            } else if let Some(site_id) = event.scope.site_id() {
+                match self.site_service.get_by_id(&site_id).await? {
+                    Some(site) => site.base.organization_id,
                     None => continue,
                 }
             } else {
@@ -59,17 +59,17 @@ impl Subscriber<EntityOperation> for BillingService {
                 continue;
             };
 
-            let network_filter = StorableFilter::<Network>::new_from_org_id(&org_id);
+            let site_filter = StorableFilter::<Site>::new_from_org_id(&org_id);
             let user_filter = StorableFilter::<User>::new_from_org_id(&org_id);
 
-            let network_count = self.network_service.get_all(network_filter).await?.len();
+            let site_count = self.site_service.get_all(site_filter).await?.len();
             let seat_count = self.user_service.get_all(user_filter).await?.len();
 
             let plan = org
                 .base
                 .plan
                 .unwrap_or_else(crate::server::billing::plans::get_free_plan);
-            if plan.config().seat_cents.is_none() && plan.config().network_cents.is_none() {
+            if plan.config().seat_cents.is_none() && plan.config().site_cents.is_none() {
                 continue;
             }
             // A lapsed org has no live subscription to carry add-on
@@ -79,7 +79,7 @@ impl Subscriber<EntityOperation> for BillingService {
                 continue;
             }
 
-            self.update_addon_prices(org, network_count as u64, seat_count as u64)
+            self.update_addon_prices(org, site_count as u64, seat_count as u64)
                 .await?;
         }
 

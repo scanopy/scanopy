@@ -9,7 +9,7 @@
 	} from '$lib/shared/components/forms/validators';
 	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import type { Network } from '$lib/features/networks/types';
+	import type { Site } from '$lib/features/sites/types';
 	import { getFreshnessTag } from '$lib/shared/utils/freshness';
 	import { entityRef } from '$lib/shared/components/data/types';
 	import type { Subnet } from '$lib/features/subnets/types/base';
@@ -35,8 +35,8 @@
 		form: { Field: any };
 		onChange?: (iface: IPAddress) => void;
 		isEditing?: boolean;
-		/** The address's network, whose window judges its staleness. Without it, no Stale tag. */
-		network?: Network;
+		/** The address's site, whose window judges its staleness. Without it, no Stale tag. */
+		site?: Site;
 	}
 
 	let {
@@ -46,11 +46,11 @@
 		form,
 		onChange = () => {},
 		isEditing = false,
-		network = undefined
+		site = undefined
 	}: Props = $props();
 
 	let staleTag = $derived(
-		getFreshnessTag(iface, network, {
+		getFreshnessTag(iface, site, {
 			entityTypeLabel: entities.getName('IPAddress') || undefined
 		})
 	);

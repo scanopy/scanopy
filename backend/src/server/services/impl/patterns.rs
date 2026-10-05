@@ -1388,7 +1388,7 @@ mod tests {
     use crate::server::services::r#impl::base::Service;
     use crate::server::services::r#impl::virtualization::ServiceVirtualization;
     use crate::server::shared::attribution::AttributeSource;
-    use crate::tests::{network, organization};
+    use crate::tests::{organization, site};
     use uuid::Uuid;
 
     use crate::{
@@ -1418,7 +1418,7 @@ mod tests {
         pi: Box<dyn ServiceDefinition>,
         host_id: Uuid,
         daemon_id: Uuid,
-        network_id: Uuid,
+        site_id: Uuid,
         discovery_type: DiscoveryType,
         gateway_ips: Vec<IpAddr>,
         endpoint_responses: Vec<EndpointResponse>,
@@ -1432,9 +1432,9 @@ mod tests {
     impl TestContext {
         fn new() -> Self {
             let organization = organization();
-            let network = network(&organization.id);
-            let subnet = subnet(&network.id);
-            let ip_address = ip_address(&network.id, &subnet.id);
+            let site = site(&organization.id);
+            let subnet = subnet(&site.id);
+            let ip_address = ip_address(&site.id, &subnet.id);
             let pi = ServiceDefinitionRegistry::find_by_id("Pi-Hole")
                 .expect("Pi-hole service not found");
 
@@ -1450,7 +1450,7 @@ mod tests {
                 ip_address,
                 pi,
                 host_id: Uuid::new_v4(),
-                network_id: Uuid::new_v4(),
+                site_id: Uuid::new_v4(),
                 daemon_id: Uuid::new_v4(),
                 discovery_type: DiscoveryType::Network {
                     subnet_ids: None,
@@ -1476,7 +1476,7 @@ mod tests {
                 host_id: &self.host_id,
                 gateway_ips: &self.gateway_ips,
                 daemon_id: &self.daemon_id,
-                network_id: &self.network_id,
+                site_id: &self.site_id,
                 discovery_type: &self.discovery_type,
                 baseline_params,
                 service_params: ServiceMatchServiceParams {
@@ -1703,7 +1703,7 @@ mod tests {
             host_id: &ctx.host_id,
             gateway_ips: &ctx.gateway_ips,
             daemon_id: &ctx.daemon_id,
-            network_id: &ctx.network_id,
+            site_id: &ctx.site_id,
             discovery_type: &ctx.discovery_type,
             baseline_params: &baseline,
             service_params: ServiceMatchServiceParams {
@@ -1767,7 +1767,7 @@ mod tests {
             host_id: &ctx.host_id,
             gateway_ips: &ctx.gateway_ips,
             daemon_id: &ctx.daemon_id,
-            network_id: &ctx.network_id,
+            site_id: &ctx.site_id,
             discovery_type: &ctx.discovery_type,
             baseline_params: &baseline,
             service_params: ServiceMatchServiceParams {
@@ -1814,7 +1814,7 @@ mod tests {
             host_id: &ctx.host_id,
             gateway_ips: &ctx.gateway_ips,
             daemon_id: &ctx.daemon_id,
-            network_id: &ctx.network_id,
+            site_id: &ctx.site_id,
             discovery_type: &ctx.discovery_type,
             baseline_params: &baseline,
             service_params: ServiceMatchServiceParams {

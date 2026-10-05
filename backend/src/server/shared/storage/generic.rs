@@ -133,9 +133,9 @@ where
             Some(c) if c.contains("group_bindings") => {
                 "This binding already exists in the group".to_string()
             }
-            // user_network_access(user_id, network_id)
-            Some(c) if c.contains("user_network_access") => {
-                "This user already has access to this network".to_string()
+            // user_site_access(user_id, site_id)
+            Some(c) if c.contains("user_site_access") => {
+                "This user already has access to this site".to_string()
             }
             // users - email or name
             Some(c) if c.contains("users") && c.contains("email") => {
@@ -434,7 +434,7 @@ where
     /// Bulk INSERT mirroring `create_many_with_executor`'s shape but bound
     /// to an externally-owned `sqlx::Transaction`. Same chunking around
     /// `MAX_BIND_PARAMS`. Used by `SnapshotService` so close-and-clone is
-    /// atomic across all 12 network-scoped entity types.
+    /// atomic across all 12 site-scoped entity types.
     pub async fn create_many_in_tx(
         entities: &[T],
         tx: &mut sqlx::Transaction<'_, Postgres>,

@@ -345,8 +345,8 @@ mod tests {
             "/api/hosts/:id"
         );
         assert_eq!(
-            normalize_path_for_metrics("/api/networks/:network_id/hosts"),
-            "/api/networks/:network_id/hosts"
+            normalize_path_for_metrics("/api/sites/:site_id/hosts"),
+            "/api/sites/:site_id/hosts"
         );
         assert_eq!(normalize_path_for_metrics("/api/metrics"), "/api/metrics");
     }
@@ -358,8 +358,8 @@ mod tests {
         assert_eq!(normalize_path_for_metrics("/login"), "/login");
         assert_eq!(normalize_path_for_metrics("/dashboard"), "/dashboard");
         assert_eq!(
-            normalize_path_for_metrics("/networks/:id/hosts"),
-            "/networks/:id/hosts"
+            normalize_path_for_metrics("/sites/:id/hosts"),
+            "/sites/:id/hosts"
         );
     }
 }

@@ -40,7 +40,7 @@ pub fn device() -> SimDevice {
         ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "GH #668",
-            defect: "its neighbours publish a management address and nothing else this network \
+            defect: "its neighbours publish a management address and nothing else this site \
                      holds, so before the address tier every one of them resolved to nothing and \
                      the ports drew as unconnected",
         },

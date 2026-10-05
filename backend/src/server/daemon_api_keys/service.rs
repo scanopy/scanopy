@@ -25,8 +25,8 @@ use crate::server::{
 #[derive(Clone)]
 pub struct ResolvedDaemonKey {
     pub api_key_id: Uuid,
-    pub network_id: Uuid,
-    /// The daemon bound 1:1 to this key, or None for a legacy network-shared key.
+    pub site_id: Uuid,
+    /// The daemon bound 1:1 to this key, or None for a legacy site-shared key.
     pub daemon_id: Option<Uuid>,
     pub is_enabled: bool,
     pub expires_at: Option<DateTime<Utc>>,
@@ -50,8 +50,8 @@ impl EventBusService<DaemonApiKey> for DaemonApiKeyService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, entity: &DaemonApiKey) -> Option<Uuid> {
-        Some(entity.base.network_id)
+    fn get_site_id(&self, entity: &DaemonApiKey) -> Option<Uuid> {
+        Some(entity.base.site_id)
     }
 
     fn get_organization_id(&self, _entity: &DaemonApiKey) -> Option<Uuid> {
@@ -124,10 +124,10 @@ impl ApiKeyService for DaemonApiKeyService {
     }
 
     fn validate_access(&self, key: &DaemonApiKey, entity: &AuthenticatedEntity) -> Result<()> {
-        // User must have access to the network this key belongs to
-        if !entity.network_ids().contains(&key.base.network_id) {
+        // User must have access to the site this key belongs to
+        if !entity.site_ids().contains(&key.base.site_id) {
             return Err(anyhow!(
-                "You don't have access to the network for this daemon API key"
+                "You don't have access to the site for this daemon API key"
             ));
         }
         Ok(())

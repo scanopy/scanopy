@@ -46,16 +46,16 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         .routes(routes!(generated::export_csv))
 }
 
-/// Validate that port's host is on the same network as the port
-async fn validate_port_network_consistency(state: &AppState, port: &Port) -> Result<(), ApiError> {
+/// Validate that port's host is on the same site as the port
+async fn validate_port_site_consistency(state: &AppState, port: &Port) -> Result<(), ApiError> {
     if let Some(host) = state
         .services
         .host_service
         .get_by_id(&port.base.host_id)
         .await?
-        && host.base.network_id != port.base.network_id
+        && host.base.site_id != port.base.site_id
     {
-        return Err(ApiError::entity_network_mismatch::<Host>());
+        return Err(ApiError::entity_site_mismatch::<Host>());
     }
 
     Ok(())
@@ -69,7 +69,7 @@ async fn validate_port_network_consistency(state: &AppState, port: &Port) -> Res
     request_body = Port,
     responses(
         (status = 200, description = "Port created successfully", body = ApiResponse<Port>),
-        (status = 400, description = "Network mismatch or duplicate port", body = ApiErrorResponse),
+        (status = 400, description = "Site mismatch or duplicate port", body = ApiErrorResponse),
     ),
      security(("user_api_key" = []), ("session" = []))
 )]
@@ -78,7 +78,7 @@ async fn create_port(
     auth: Authorized<Member>,
     ApiJson(port): ApiJson<Port>,
 ) -> ApiResult<Json<ApiResponse<Port>>> {
-    validate_port_network_consistency(&state, &port).await?;
+    validate_port_site_consistency(&state, &port).await?;
     create_handler::<Port>(State(state), auth, ApiJson(port)).await
 }
 
@@ -91,7 +91,7 @@ async fn create_port(
     request_body = Port,
     responses(
         (status = 200, description = "Port updated successfully", body = ApiResponse<Port>),
-        (status = 400, description = "Network mismatch or invalid request", body = ApiErrorResponse),
+        (status = 400, description = "Site mismatch or invalid request", body = ApiErrorResponse),
         (status = 404, description = "Port not found", body = ApiErrorResponse),
     ),
      security(("user_api_key" = []), ("session" = []))
@@ -102,6 +102,6 @@ async fn update_port(
     path: Path<Uuid>,
     ApiJson(port): ApiJson<Port>,
 ) -> ApiResult<Json<ApiResponse<Port>>> {
-    validate_port_network_consistency(&state, &port).await?;
+    validate_port_site_consistency(&state, &port).await?;
     update_handler::<Port>(State(state), auth, path, ApiJson(port)).await
 }

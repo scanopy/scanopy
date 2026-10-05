@@ -78,7 +78,7 @@
 </script>
 
 {#if iface}
-	<InspectorSection id="IfEntryData" section="IfEntryData">
+	<InspectorSection id="InterfaceData" section="InterfaceData">
 		<InterfaceDetailsCard
 			{iface}
 			{linkedIpAddress}

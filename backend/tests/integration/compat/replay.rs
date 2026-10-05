@@ -20,7 +20,7 @@ use uuid::Uuid;
 /// Context for replaying requests with substituted IDs.
 pub struct ReplayContext {
     pub daemon_id: Uuid,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub user_id: Uuid,
     pub organization_id: Uuid,
     pub api_key: String,
@@ -53,10 +53,11 @@ impl ReplayContext {
                     serde_json::json!(self.daemon_id.to_string()),
                 );
             }
+            // Fixtures are captured from daemons that predate the site rename.
             if obj.contains_key("network_id") {
                 obj.insert(
                     "network_id".to_string(),
-                    serde_json::json!(self.network_id.to_string()),
+                    serde_json::json!(self.site_id.to_string()),
                 );
             }
             if obj.contains_key("user_id") {
@@ -115,17 +116,26 @@ pub struct ReplayResult {
     pub actual_body: serde_json::Value,
     pub status_ok: bool,
     pub schema_validation: Option<Result<(), String>>,
+    /// Whether the response kept the field names the recording daemon reads.
+    pub wire_names: Result<(), String>,
 }
 
 impl ReplayResult {
-    /// Check if the replay was fully successful (2xx status and valid schema).
+    /// Check if the replay was fully successful (2xx status, valid schema, names the daemon reads).
     pub fn is_success(&self) -> bool {
-        self.status_ok && self.schema_validation.as_ref().is_none_or(|r| r.is_ok())
+        self.status_ok
+            && self.schema_validation.as_ref().is_none_or(|r| r.is_ok())
+            && self.wire_names.is_ok()
     }
 
     /// Format result for display.
     fn format_result(&self) -> String {
-        if self.is_success() {
+        if let (true, Err(e)) = (self.status_ok, &self.wire_names) {
+            format!(
+                "  ✗ {} {} -> {} ({e})",
+                self.exchange.method, self.exchange.path, self.actual_status
+            )
+        } else if self.is_success() {
             format!(
                 "  ✓ {} {} -> {} (schema: valid)",
                 self.exchange.method, self.exchange.path, self.actual_status
@@ -160,6 +170,7 @@ pub async fn replay_exchange(
     exchange: &CapturedExchange,
     ctx: &ReplayContext,
     openapi: Option<&serde_json::Value>,
+    daemon_version: Option<&str>,
 ) -> Result<ReplayResult, String> {
     let path = ctx.substitute_path(&exchange.path);
     let url = format!("{}{}", base_url, path);
@@ -179,6 +190,9 @@ pub async fn replay_exchange(
         .header(FIXTURE_REPLAY_HEADER, "true")
         .header("X-Daemon-ID", ctx.daemon_id.to_string())
         .header("Authorization", format!("Bearer {}", &ctx.api_key));
+    if let Some(version) = daemon_version {
+        req = req.header("X-Daemon-Version", version);
+    }
 
     let response = req.send().await.map_err(|e| e.to_string())?;
     let actual_status = response.status().as_u16();
@@ -201,13 +215,38 @@ pub async fn replay_exchange(
         )
     });
 
+    // A status code says nothing about whether the daemon can read the body: one that predates
+    // the site rename fails to parse an entity without `network_id`.
+    let wire_names = match daemon_version {
+        Some(_) if has_key(&exchange.response_body, "network_id") => {
+            if !has_key(&actual_body, "network_id") || has_key(&actual_body, "site_id") {
+                Err("the recorded response named network_id; this one does not".to_string())
+            } else {
+                Ok(())
+            }
+        }
+        _ => Ok(()),
+    };
+
     Ok(ReplayResult {
         exchange: exchange.clone(),
         actual_status,
         actual_body,
         status_ok,
         schema_validation,
+        wire_names,
     })
+}
+
+/// Whether `key` appears anywhere in `value`.
+fn has_key(value: &serde_json::Value, key: &str) -> bool {
+    match value {
+        serde_json::Value::Object(map) => {
+            map.contains_key(key) || map.values().any(|v| has_key(v, key))
+        }
+        serde_json::Value::Array(arr) => arr.iter().any(|v| has_key(v, key)),
+        _ => false,
+    }
 }
 
 /// Paths that should be skipped during replay.
@@ -270,7 +309,11 @@ pub async fn replay_manifest(
             continue;
         }
 
-        let result = replay_exchange(client, base_url, exchange, ctx, openapi).await;
+        // Against the server, replay as the daemon that recorded the fixture, so the response is
+        // shaped for that version.
+        let daemon_version = (!is_daemon_test).then_some(manifest.version.as_str());
+        let result =
+            replay_exchange(client, base_url, exchange, ctx, openapi, daemon_version).await;
         results.push(result);
     }
 

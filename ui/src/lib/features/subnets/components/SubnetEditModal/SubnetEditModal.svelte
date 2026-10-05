@@ -8,7 +8,7 @@
 	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
 	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
 	import type { Subnet } from '../../types/base';
-	import SelectNetwork from '$lib/features/networks/components/SelectNetwork.svelte';
+	import SelectSite from '$lib/features/sites/components/SelectSite.svelte';
 	import TagPicker from '$lib/features/tags/components/TagPicker.svelte';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
 	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
@@ -17,7 +17,7 @@
 		SimpleOptionDisplay,
 		type SimpleOption
 	} from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import {
 		common_cancel,
 		common_cidr,
@@ -39,9 +39,9 @@
 	} from '$lib/paraglide/messages';
 
 	// TanStack Query hooks
-	const networksQuery = useNetworksQuery();
-	let networksData = $derived(networksQuery.data ?? []);
-	let defaultNetworkId = $derived(networksData[0]?.id ?? '');
+	const sitesQuery = useSitesQuery();
+	let sitesData = $derived(sitesQuery.data ?? []);
+	let defaultSiteId = $derived(sitesData[0]?.id ?? '');
 
 	interface Props {
 		subnet?: Subnet | null;
@@ -73,7 +73,7 @@
 	let saveLabel = $derived(isEditing ? common_update() : common_create());
 
 	function getDefaultValues(): Subnet {
-		return subnet ? { ...subnet } : createEmptySubnetFormData(defaultNetworkId);
+		return subnet ? { ...subnet } : createEmptySubnetFormData(defaultSiteId);
 	}
 
 	// Create form with initial empty values - we'll reset it when the modal opens
@@ -205,12 +205,12 @@
 						{/snippet}
 					</form.Field>
 
-					<!-- Network Selection -->
-					<form.Field name="network_id">
+					<!-- Site Selection -->
+					<form.Field name="site_id">
 						{#snippet children(field)}
-							<SelectNetwork
-								selectedNetworkId={field.state.value}
-								onNetworkChange={(id) => field.handleChange(id)}
+							<SelectSite
+								selectedSiteId={field.state.value}
+								onSiteChange={(id) => field.handleChange(id)}
 							/>
 						{/snippet}
 					</form.Field>

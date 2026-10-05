@@ -273,7 +273,7 @@ export function useOnboardingStateQuery() {
 		queryFn: async () => {
 			const { data } = await apiClient.GET('/api/auth/onboarding-state', {});
 			if (!data?.success || !data.data) {
-				return { step: null, use_case: null, org_name: null, network: null, network_id: null };
+				return { step: null, use_case: null, org_name: null, site: null, site_id: null };
 			}
 			return data.data;
 		},

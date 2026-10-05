@@ -54,7 +54,7 @@ describe('parseStoredState', () => {
 				hidden: { type: 'boolean', values: [], showTrue: true, showFalse: false }
 			},
 			sortState: { field: 'name', direction: 'desc' },
-			selectedGroupField: 'network_id',
+			selectedGroupField: 'site_id',
 			currentPage: 3,
 			pageSize: 50
 		});
@@ -67,7 +67,7 @@ describe('parseStoredState', () => {
 		expect(parsed!.filterState.hidden.showFalse).toBe(false);
 		expect(parsed!.sortState).toEqual({ field: 'name', direction: 'desc' });
 		expect(parsed!.searchQuery).toBe('switch');
-		expect(parsed!.selectedGroupField).toBe('network_id');
+		expect(parsed!.selectedGroupField).toBe('site_id');
 		expect(parsed!.currentPage).toBe(3);
 		expect(parsed!.pageSize).toBe(50);
 	});

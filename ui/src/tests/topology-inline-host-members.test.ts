@@ -15,7 +15,7 @@ import { inlineHostsMatching } from '$lib/features/topology/interactions';
  * services were invisible to search and highlighting.
  */
 
-const NETWORK_ID = 'net-1';
+const SITE_ID = 'net-1';
 
 function service(id: string, hostId: string, definition: string) {
 	return { id, host_id: hostId, name: id, service_definition: definition, tags: [], bindings: [] };
@@ -37,24 +37,24 @@ const guestNode = {
 function buildTopology(): RenderableTopology {
 	return {
 		id: 'topo-1',
-		network_id: NETWORK_ID,
+		site_id: SITE_ID,
 		name: 'test',
 		options: { request: { element_rules: [] } },
 		hosts: [
-			{ id: 'guest', network_id: NETWORK_ID, tags: [], display_name: 'snmp-test' },
+			{ id: 'guest', site_id: SITE_ID, tags: [], display_name: 'snmp-test' },
 			{
 				id: 'mv-1',
-				network_id: NETWORK_ID,
+				site_id: SITE_ID,
 				tags: [],
 				display_name: '192.168.4.101',
 				virtualization_metadata: { type: 'NetworkIdentity', details: { interface: 'mv-snmp1' } }
 			},
-			{ id: 'mv-2', network_id: NETWORK_ID, tags: [], display_name: '192.168.4.102' }
+			{ id: 'mv-2', site_id: SITE_ID, tags: [], display_name: '192.168.4.102' }
 		],
 		subnets: [],
 		ip_addresses: [],
 		services: [
-			service('identities', 'guest', 'Network Identities'),
+			service('identities', 'guest', 'Site Identities'),
 			service('tftp', 'guest', 'TFTP Server'),
 			service('mv-1-snmp', 'mv-1', 'SNMP'),
 			service('mv-2-snmp', 'mv-2', 'SNMP')
@@ -139,7 +139,7 @@ describe('host metadata hover on inline members', () => {
 		color: 'Amber'
 	});
 
-	it('marks a network identity as a network identity, not virtualized or bare metal', () => {
+	it('marks a site identity as a site identity, not virtualized or bare metal', () => {
 		const topology = buildTopology();
 		expect(
 			inlineHostsMatching(groups(), hover('NetworkIdentity'), () => undefined, topology)

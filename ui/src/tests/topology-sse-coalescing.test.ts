@@ -3,7 +3,7 @@ import { topologySSEManager } from '$lib/features/topology/queries';
 import { queryClient } from '$lib/api/query-client';
 
 /**
- * The topology SSE stream pings ~5×/sec/network during discovery, and each ping
+ * The topology SSE stream pings ~5×/sec/site during discovery, and each ping
  * would otherwise refetch the uncached, full-rebuild `/topology/data`. The
  * manager coalesces a burst of pings into at most one invalidation pass per
  * ~1s window (trailing edge). These tests assert the coalescing *ratio* and
@@ -11,13 +11,13 @@ import { queryClient } from '$lib/api/query-client';
  */
 
 // The manager wires its ping handler inside createConfig(); reach it to drive pings.
-function ping(networkId: string) {
+function ping(siteId: string) {
 	const cfg = (
 		topologySSEManager as unknown as {
-			createConfig(): { onMessage(u: { network_id: string }): void };
+			createConfig(): { onMessage(u: { site_id: string }): void };
 		}
 	).createConfig();
-	cfg.onMessage({ network_id: networkId });
+	cfg.onMessage({ site_id: siteId });
 }
 
 describe('TopologySSEManager ping coalescing', () => {
@@ -37,14 +37,14 @@ describe('TopologySSEManager ping coalescing', () => {
 		vi.restoreAllMocks();
 	});
 
-	it('collapses a burst of pings for one network into a single flush', () => {
+	it('collapses a burst of pings for one site into a single flush', () => {
 		for (let i = 0; i < 20; i++) ping('net-a');
 		// Trailing throttle: nothing fires until the window elapses.
 		expect(invalidateSpy).not.toHaveBeenCalled();
 
 		vi.advanceTimersByTime(1000);
 
-		// One flush for one network = one topology-data predicate invalidation
+		// One flush for one site = one topology-data predicate invalidation
 		// + one snapshots invalidation (org is absent from cache, so skipped).
 		// The point: 20 pings did NOT produce 20 (or 40) invalidations.
 		expect(invalidateSpy.mock.calls.length).toBe(2);
@@ -67,17 +67,17 @@ describe('TopologySSEManager ping coalescing', () => {
 		expect(invalidateSpy.mock.calls.length).toBe(2);
 	});
 
-	it('drains every pinged network in one flush', () => {
+	it('drains every pinged site in one flush', () => {
 		ping('net-a');
 		ping('net-b');
 		ping('net-a');
 		vi.advanceTimersByTime(1000);
 
-		// One predicate pass (covers both networks' data + the list) plus one
-		// snapshots invalidation per distinct network (a, b) = 1 + 2 = 3.
+		// One predicate pass (covers both sites' data + the list) plus one
+		// snapshots invalidation per distinct site (a, b) = 1 + 2 = 3.
 		expect(invalidateSpy.mock.calls.length).toBe(3);
 
-		// The snapshot invalidations target both distinct networks.
+		// The snapshot invalidations target both distinct sites.
 		const snapshotCalls = invalidateSpy.mock.calls.filter((c: unknown[]) => {
 			const key = (c[0] as { queryKey?: readonly unknown[] })?.queryKey;
 			return Array.isArray(key) && key.includes('snapshots');

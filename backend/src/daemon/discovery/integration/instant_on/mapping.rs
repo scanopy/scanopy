@@ -67,7 +67,7 @@ pub struct MappedDevice {
 pub fn map_devices(
     devices: &[InstantOnDevice],
     clients: &[InstantOnClient],
-    network_id: Uuid,
+    site_id: Uuid,
     subnets: &[Subnet],
 ) -> Vec<MappedDevice> {
     // Indexed by the portal's device id, because that is what an uplink names. Resolving it gives
@@ -96,7 +96,7 @@ pub fn map_devices(
                 .and_then(|id| clients_by_device.get(id))
                 .map(Vec::as_slice)
                 .unwrap_or(&[]);
-            map_device(device, attached, network_id, subnets, &by_id)
+            map_device(device, attached, site_id, subnets, &by_id)
         })
         .collect()
 }
@@ -104,7 +104,7 @@ pub fn map_devices(
 fn map_device(
     device: &InstantOnDevice,
     clients: &[&InstantOnClient],
-    network_id: Uuid,
+    site_id: Uuid,
     subnets: &[Subnet],
     by_id: &HashMap<&str, &InstantOnDevice>,
 ) -> Option<MappedDevice> {
@@ -132,7 +132,7 @@ fn map_device(
     };
 
     let ip_address = IPAddress::new(IPAddressBase {
-        network_id,
+        site_id,
         host_id: Uuid::nil(), // server assigns
         subnet_id: subnet.id,
         ip_address: ip,
@@ -150,7 +150,7 @@ fn map_device(
     Some(MappedDevice {
         identity,
         ip_address,
-        interfaces: map_interfaces(device, clients, network_id, by_id),
+        interfaces: map_interfaces(device, clients, site_id, by_id),
         device_type: device.device_type.clone().filter(|t| !t.trim().is_empty()),
         ip,
     })
@@ -160,14 +160,14 @@ fn map_device(
 fn map_interfaces(
     device: &InstantOnDevice,
     clients: &[&InstantOnClient],
-    network_id: Uuid,
+    site_id: Uuid,
     by_id: &HashMap<&str, &InstantOnDevice>,
 ) -> Vec<Interface> {
     let mut interfaces: Vec<Interface> = device
         .ports
         .iter()
         .enumerate()
-        .map(|(position, port)| port_to_interface(port, position, network_id))
+        .map(|(position, port)| port_to_interface(port, position, site_id))
         .collect();
 
     // A portless device — an access point, in practice — still has one real interface: its
@@ -183,7 +183,7 @@ fn map_interfaces(
             .unwrap_or_else(|| "uplink".to_string());
         interfaces.push(Interface::new(InterfaceBase {
             host_id: Uuid::nil(),
-            network_id,
+            site_id,
             if_index: Some(1),
             if_descr: Some(name.clone()),
             if_name: Some(name),
@@ -233,7 +233,7 @@ fn port_if_index(port: &InstantOnPort, position: usize) -> i32 {
         .unwrap_or((position as i32).saturating_add(1))
 }
 
-fn port_to_interface(port: &InstantOnPort, position: usize, network_id: Uuid) -> Interface {
+fn port_to_interface(port: &InstantOnPort, position: usize, site_id: Uuid) -> Interface {
     let if_index = port_if_index(port, position);
     // Prefer the portal's own label, then its port id — which on a stack is the member-qualified
     // form and therefore the most informative name available. `if_descr` is validated non-empty,
@@ -253,7 +253,7 @@ fn port_to_interface(port: &InstantOnPort, position: usize, network_id: Uuid) ->
 
     Interface::new(InterfaceBase {
         host_id: Uuid::nil(),
-        network_id,
+        site_id,
         if_index: Some(if_index),
         if_descr: Some(name.clone()),
         if_name: Some(name),
@@ -406,7 +406,7 @@ fn apply_client_macs(
 /// name for the same device.
 pub fn map_clients(
     clients: &[InstantOnClient],
-    network_id: Uuid,
+    site_id: Uuid,
     device_ips: &[IpAddr],
     subnets: &[Subnet],
 ) -> Vec<MappedClient> {
@@ -429,7 +429,7 @@ pub fn map_clients(
                 identity,
                 client.ip_address.as_deref(),
                 client.mac_address.as_deref(),
-                network_id,
+                site_id,
                 subnets,
             )
         })
@@ -469,15 +469,15 @@ mod tests {
         envelope.elements
     }
 
-    /// The 192.168.20.0/24 the fixtures live on, **plus the two `0.0.0.0/0` rows every network is
+    /// The 192.168.20.0/24 the fixtures live on, **plus the two `0.0.0.0/0` rows every site is
     /// seeded with** — because that is what the daemon actually receives, and a list without them
     /// is what let first-match placement file every device under `Internet` while looking correct
     /// in every test. `10.99.99.99` is deliberately outside the real subnet.
-    fn test_subnets(network_id: Uuid) -> Vec<Subnet> {
+    fn test_subnets(site_id: Uuid) -> Vec<Subnet> {
         let subnet = |name: &str, cidr: &str, subnet_type| Subnet {
             base: SubnetBase {
                 name: name.to_string(),
-                network_id,
+                site_id,
                 cidr: SubnetCidr::new(
                     SubnetCidrValue(cidr.parse().expect("valid CIDR")),
                     AttributeSource::DaemonSelfReport,
@@ -498,12 +498,12 @@ mod tests {
         ]
     }
 
-    /// A device on the real subnet is placed there, and one outside every range this network holds
+    /// A device on the real subnet is placed there, and one outside every range this site holds
     /// is skipped — not filed under a catch-all that technically contains it.
     #[test]
     fn devices_are_placed_on_real_subnets_and_never_on_a_catch_all() {
-        let network_id = Uuid::new_v4();
-        let subnets = test_subnets(network_id);
+        let site_id = Uuid::new_v4();
+        let subnets = test_subnets(site_id);
         let real = subnets
             .iter()
             .find(|s| s.base.cidr.to_string() == "192.168.20.0/24")
@@ -513,7 +513,7 @@ mod tests {
         let mapped = map_devices(
             &parse::<InstantOnDevice>(INVENTORY),
             &parse::<InstantOnClient>(CLIENTS),
-            network_id,
+            site_id,
             &subnets,
         );
 
@@ -539,8 +539,8 @@ mod tests {
     /// infer a range for, and is never filed under a catch-all.
     #[test]
     fn a_client_carries_the_subnet_that_holds_it_and_nil_where_none_does() {
-        let network_id = Uuid::new_v4();
-        let subnets = test_subnets(network_id);
+        let site_id = Uuid::new_v4();
+        let subnets = test_subnets(site_id);
         let real = subnets
             .iter()
             .find(|s| s.base.cidr.to_string() == "192.168.20.0/24")
@@ -554,7 +554,7 @@ mod tests {
 
         let clients = map_clients(
             &[client("192.168.20.77"), client("10.99.99.99")],
-            network_id,
+            site_id,
             &[],
             &subnets,
         );
@@ -573,12 +573,12 @@ mod tests {
     }
 
     fn map() -> Vec<MappedDevice> {
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         map_devices(
             &parse::<InstantOnDevice>(INVENTORY),
             &parse::<InstantOnClient>(CLIENTS),
-            network_id,
-            &test_subnets(network_id),
+            site_id,
+            &test_subnets(site_id),
         )
     }
 

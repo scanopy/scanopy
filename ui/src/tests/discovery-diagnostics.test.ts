@@ -15,7 +15,7 @@ const stalled = {
 	session_id: '11111111-1111-4111-8111-111111111111',
 	discovery_id: '22222222-2222-4222-8222-222222222222',
 	daemon_id: '33333333-3333-4333-8333-333333333333',
-	network_id: '44444444-4444-4444-8444-444444444444',
+	site_id: '44444444-4444-4444-8444-444444444444',
 	daemon_version: '0.17.14',
 	discovery_type: { type: 'SelfReport', host_id: '55555555-5555-4555-8555-555555555555' },
 	phase: 'Failed',
@@ -32,7 +32,7 @@ describe('formatDiagnostics', () => {
 		expect(fields.get('session_id')).toBe(stalled.session_id);
 		expect(fields.get('discovery_id')).toBe(stalled.discovery_id);
 		expect(fields.get('daemon_id')).toBe(stalled.daemon_id);
-		expect(fields.get('network_id')).toBe(stalled.network_id);
+		expect(fields.get('site_id')).toBe(stalled.site_id);
 		expect(fields.get('reason')).toBe(stalled.reason);
 		expect(fields.get('daemon_version')).toBe(stalled.daemon_version);
 		expect(fields.get('last_update_at')).toBe(stalled.last_update_at);

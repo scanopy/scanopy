@@ -43,8 +43,8 @@ export function hostDisplayContext(
 }
 
 export interface HostPickerOptions {
-	/** Omit for a picker that spans every network the user can see. */
-	networkId?: string;
+	/** Omit for a picker that spans every site the user can see. */
+	siteId?: string;
 	/** Set false to hold the fetch until the picker is shown. */
 	enabled?: boolean;
 }
@@ -61,8 +61,8 @@ export function useHostPicker(getOptions: () => HostPickerOptions = () => ({})) 
 	let search = $state('');
 
 	const query = useHostPickerQuery(() => {
-		const { networkId, enabled } = getOptions();
-		return { network_id: networkId, enabled, search };
+		const { siteId, enabled } = getOptions();
+		return { site_id: siteId, enabled, search };
 	});
 
 	// Offset paging over a list that can change between fetches can repeat a host across pages,

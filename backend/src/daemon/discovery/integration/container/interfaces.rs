@@ -71,7 +71,7 @@ pub fn container_lan_network_type(
 /// Bound by the runtime's own network **identity**, not by which CIDR happens to contain the
 /// address. The API already told us which network the endpoint is on and
 /// `create_network_subnets` names each subnet after it, so re-deriving that by address would
-/// trade a fact for a guess, and a guess that goes wrong in two ways: the network-wide list
+/// trade a fact for a guess, and a guess that goes wrong in two ways: the site-wide list
 /// carries `0.0.0.0/0` catch-alls that contain every IPv4 address, and a bridge is host-scoped,
 /// so two daemons legitimately hold the same `172.17.0.0/16` and containment cannot tell them
 /// apart.
@@ -117,7 +117,7 @@ fn bridge_endpoint_address(
     let subnet = subnet_for_container_network(bridge_subnets, network_name, ip_address)?;
     Some((
         IPAddress::new(IPAddressBase {
-            network_id: subnet.base.network_id,
+            site_id: subnet.base.site_id,
             host_id: Uuid::nil(), // Placeholder - server will set correct host_id
             subnet_id: subnet.id,
             ip_address,
@@ -274,7 +274,7 @@ pub fn container_host_addresses(
     lan_subnets: &[Subnet],
     bridge_subnets: &[Subnet],
     placement_subnets: &[Subnet],
-    network_id: Uuid,
+    site_id: Uuid,
 ) -> Vec<(IPAddress, Option<Subnet>)> {
     let endpoints = sorted_endpoints(container);
     let mut lan_addresses: Vec<(IPAddress, Option<Subnet>)> = Vec::new();
@@ -306,7 +306,7 @@ pub fn container_host_addresses(
             .filter_map(|ip| ip.as_ref()?.parse::<IpAddr>().ok());
         for ip_address in ips {
             let Some(address) = IPAddress::discovered(
-                network_id,
+                site_id,
                 placement_subnets,
                 ip_address,
                 mac_address.clone(),
@@ -527,7 +527,7 @@ pub(crate) mod tests {
         let lan_network = subnet("lan", "192.168.1.0/24", SubnetType::MacVlan);
         let known_lan = subnet("Office LAN", "192.168.1.0/24", SubnetType::Lan);
         let known_v6 = subnet("Office LAN v6", "2001:db8:1::/64", SubnetType::Lan);
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let pihole = container(
             "b",
             "pihole",
@@ -553,7 +553,7 @@ pub(crate) mod tests {
             std::slice::from_ref(&lan_network),
             std::slice::from_ref(&bridge),
             &[known_lan.clone(), known_v6.clone()],
-            network_id,
+            site_id,
         );
 
         let placed: Vec<(IpAddr, Uuid, Option<&str>, i32)> = addresses

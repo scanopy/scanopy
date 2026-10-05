@@ -41,7 +41,7 @@ impl EventBusService<Organization> for OrganizationService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, _entity: &Organization) -> Option<Uuid> {
+    fn get_site_id(&self, _entity: &Organization) -> Option<Uuid> {
         None
     }
     fn get_organization_id(&self, entity: &Organization) -> Option<Uuid> {

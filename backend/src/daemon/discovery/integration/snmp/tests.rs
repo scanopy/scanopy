@@ -20,11 +20,11 @@ fn interfaces_built_without_enrichment_keep_their_iftable_identity() {
         if_oper_status: Some(1),
         ..Default::default()
     };
-    let network_id = Uuid::new_v4();
+    let site_id = Uuid::new_v4();
 
     let interface = convert_snmp_if_entry(
         &entry,
-        network_id,
+        site_id,
         &[],
         &[],
         &[],
@@ -39,7 +39,7 @@ fn interfaces_built_without_enrichment_keep_their_iftable_identity() {
     assert_eq!(interface.base.if_name.as_deref(), Some("swp7"));
     assert_eq!(interface.base.if_type, Some(6));
     assert_eq!(interface.base.speed_bps, Some(1_000_000_000));
-    assert_eq!(interface.base.network_id, network_id);
+    assert_eq!(interface.base.site_id, site_id);
 
     // Enrichment that hasn't been collected yet is absent, not fabricated.
     assert!(interface.base.neighbor_candidates.is_empty());
@@ -681,7 +681,7 @@ mod reported_range {
         )
     }
 
-    /// A router listing its interfaces on other VLANs reports ranges the network does not hold
+    /// A router listing its interfaces on other VLANs reports ranges the site does not hold
     /// yet. Those are real segments, and each becomes a subnet.
     #[test]
     fn a_router_interface_on_a_separate_vlan_is_created() {

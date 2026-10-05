@@ -34,7 +34,7 @@ pub struct ShareCsvRow {
     pub id: Uuid,
     pub name: String,
     pub topology_id: Uuid,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub created_by: Uuid,
     pub is_enabled: bool,
     pub expires_at: Option<DateTime<Utc>>,
@@ -76,8 +76,8 @@ impl Default for ShareOptions {
 pub struct ShareBase {
     /// The topology this share exposes.
     pub topology_id: Uuid,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// User who created the share.
     pub created_by: Uuid,
     /// Human-facing name for this share.
@@ -184,7 +184,7 @@ impl ShareBase {
 impl PartialEq for ShareBase {
     fn eq(&self, other: &Self) -> bool {
         self.topology_id == other.topology_id
-            && self.network_id == other.network_id
+            && self.site_id == other.site_id
             && self.created_by == other.created_by
             && self.name == other.name
             && self.is_enabled == other.is_enabled
@@ -199,7 +199,7 @@ impl Eq for ShareBase {}
 impl std::hash::Hash for ShareBase {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.topology_id.hash(state);
-        self.network_id.hash(state);
+        self.site_id.hash(state);
         self.created_by.hash(state);
         self.name.hash(state);
         self.is_enabled.hash(state);
@@ -262,7 +262,7 @@ impl Storable for Share {
             vec![
                 "id",
                 "topology_id",
-                "network_id",
+                "site_id",
                 "created_by",
                 "name",
                 "is_enabled",
@@ -277,7 +277,7 @@ impl Storable for Share {
             vec![
                 SqlValue::Uuid(self.id),
                 SqlValue::Uuid(self.base.topology_id),
-                SqlValue::Uuid(self.base.network_id),
+                SqlValue::Uuid(self.base.site_id),
                 SqlValue::Uuid(self.base.created_by),
                 SqlValue::String(self.base.name.clone()),
                 SqlValue::Bool(self.base.is_enabled),
@@ -313,7 +313,7 @@ impl Storable for Share {
             updated_at: row.get("updated_at"),
             base: ShareBase {
                 topology_id: row.get("topology_id"),
-                network_id: row.get("network_id"),
+                site_id: row.get("site_id"),
                 created_by: row.get("created_by"),
                 name: row.get("name"),
                 is_enabled: row.get("is_enabled"),
@@ -352,7 +352,7 @@ impl Entity for Share {
             id: self.id,
             name: self.base.name.clone(),
             topology_id: self.base.topology_id,
-            network_id: self.base.network_id,
+            site_id: self.base.site_id,
             created_by: self.base.created_by,
             is_enabled: self.base.is_enabled,
             expires_at: self.base.expires_at,
@@ -375,8 +375,8 @@ impl Entity for Share {
         EntityCategory::Visualization
     }
 
-    fn network_id(&self) -> Option<Uuid> {
-        Some(self.base.network_id)
+    fn site_id(&self) -> Option<Uuid> {
+        Some(self.base.site_id)
     }
 
     fn organization_id(&self) -> Option<Uuid> {

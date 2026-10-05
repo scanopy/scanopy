@@ -17,7 +17,7 @@
 		type DiscoveryHistoryQueryParams
 	} from '../../queries';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { hasDaemon } from '$lib/shared/onboarding/checklist';
@@ -28,7 +28,7 @@
 	import { modalState, openModal, closeModal } from '$lib/shared/stores/modal-registry';
 	import { Info } from 'lucide-svelte';
 	import { daemonItems } from '$lib/features/daemons/columns';
-	import { networkItems } from '$lib/features/networks/columns';
+	import { siteItems } from '$lib/features/sites/columns';
 	import { tagItems, tagNames } from '$lib/features/tags/columns';
 	import { useTagsQuery } from '$lib/features/tags/queries';
 	import { toColor } from '$lib/shared/utils/styling';
@@ -44,11 +44,11 @@
 		common_status,
 		common_tags,
 		common_warnings,
-		common_network,
+		common_site,
 		common_type,
 		common_unknown,
 		common_unknownEntity,
-		common_unknownNetwork,
+		common_unknownSite,
 		common_updated,
 		daemons_installPromptDiscoveries,
 		discovery_confirmDeleteHistorical,
@@ -86,12 +86,12 @@
 	let search = $state('');
 
 	// Field filter state, server-side for the same reason.
-	let filterNetworkIds = $state<string[]>([]);
+	let filterSiteIds = $state<string[]>([]);
 	let filterDaemonIds = $state<string[]>([]);
 	let filterDiscoveryTypes = $state<string[]>([]);
 	let filterPhases = $state<DiscoveryPhase[]>([]);
 	let hasServerFilters = $derived(
-		filterNetworkIds.length > 0 ||
+		filterSiteIds.length > 0 ||
 			filterDaemonIds.length > 0 ||
 			filterDiscoveryTypes.length > 0 ||
 			filterPhases.length > 0
@@ -106,7 +106,7 @@
 			order_by: orderBy,
 			order_direction: orderDirection,
 			search: search || undefined,
-			network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
+			site_ids: filterSiteIds.length > 0 ? filterSiteIds : undefined,
 			daemon_ids: filterDaemonIds.length > 0 ? filterDaemonIds : undefined,
 			discovery_types: filterDiscoveryTypes.length > 0 ? filterDiscoveryTypes : undefined,
 			phases: filterPhases.length > 0 ? filterPhases : undefined
@@ -123,9 +123,9 @@
 		historyScope,
 		() => isActive
 	);
-	const networkValuesQuery = useFieldValuesQuery(
+	const siteValuesQuery = useFieldValuesQuery(
 		DISCOVERY_FIELD_VALUES,
-		'network_id',
+		'site_id',
 		historyScope,
 		() => isActive
 	);
@@ -143,7 +143,7 @@
 	);
 	const tagsQuery = useTagsQuery();
 	const daemonsQuery = useDaemonsQuery();
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 
 	// Mutations
 	const createDiscoveryMutation = useCreateDiscoveryMutation();
@@ -155,7 +155,7 @@
 	let discoveriesPagination = $derived(discoveriesQuery.data?.pagination ?? null);
 	let tagsData = $derived(tagsQuery.data ?? []);
 	let daemonsData = $derived(daemonsQuery.data ?? []);
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
 
 	// Only the hosts the daemons run on. This was an unpaginated org-wide hosts
 	// query (~1.9MB on a few hundred hosts), issued so the edit modal's daemon
@@ -199,7 +199,7 @@
 	/**
 	 * Server-side field filter handler.
 	 *
-	 * The panel offers what the user reads — a daemon's name, a network's name —
+	 * The panel offers what the user reads — a daemon's name, a site's name —
 	 * while the API filters on ids, so each case resolves the labels back
 	 * through the same data the options were built from. Every key here must
 	 * match a field marked `serverFiltered`; an unhandled one would filter
@@ -211,8 +211,8 @@
 			case 'daemon_id':
 				filterDaemonIds = daemonsData.filter((d) => wanted.has(d.name)).map((d) => d.id);
 				break;
-			case 'network_id':
-				filterNetworkIds = networksData.filter((n) => wanted.has(n.name)).map((n) => n.id);
+			case 'site_id':
+				filterSiteIds = sitesData.filter((n) => wanted.has(n.name)).map((n) => n.id);
 				break;
 			case 'discovery_type':
 				filterDiscoveryTypes = discoveryTypes
@@ -343,22 +343,22 @@
 						common_unknownEntity({ entity: common_daemon() }),
 					display: { order: 7, getItems: (item) => daemonItems(item.daemon_id, daemonsData) }
 				},
-				network_id: {
-					label: common_network(),
+				site_id: {
+					label: common_site(),
 					type: 'string',
 					searchable: true,
 					filterable: true,
 					serverFiltered: true,
-					// The networks some run scanned, by name.
+					// The sites some run scanned, by name.
 					filterOptions: labelledFieldValueOptions(
-						networkValuesQuery.data,
-						(id) => networksData.find((n) => n.id === id)?.name
+						siteValuesQuery.data,
+						(id) => sitesData.find((n) => n.id === id)?.name
 					),
 					groupable: true,
-					getGroupValue: (item) => item.network_id,
+					getGroupValue: (item) => item.site_id,
 					getValue: (item) =>
-						networksData.find((n) => n.id === item.network_id)?.name ?? common_unknownNetwork(),
-					display: { order: 6, getItems: (item) => networkItems(item.network_id, networksData) }
+						sitesData.find((n) => n.id === item.site_id)?.name ?? common_unknownSite(),
+					display: { order: 6, getItems: (item) => siteItems(item.site_id, sitesData) }
 				},
 				discovery_type: {
 					label: common_type(),

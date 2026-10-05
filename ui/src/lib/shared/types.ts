@@ -10,7 +10,7 @@ export type HostNamingFallback = components['schemas']['HostNamingFallback'];
 
 // Frontend-specific types
 export interface GetAllEntitiesRequest {
-	network_id: string;
+	site_id: string;
 }
 
 // Shared props interface for sidebar tab components

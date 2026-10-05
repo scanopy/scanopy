@@ -595,7 +595,7 @@
 	);
 
 	// Infra rule id derived from the topology bundle being rendered (not the
-	// global options store, which hydrates out-of-band and lags a network
+	// global options store, which hydrates out-of-band and lags a site
 	// switch). Keeps auto-collapse of the infra subcontainer correct on switch.
 	const getInfrastructureRuleId = () => getInfrastructureRuleIdForTopology(topology);
 

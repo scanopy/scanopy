@@ -16,7 +16,7 @@
 	} from './CredentialWizardStep.svelte';
 
 	interface Props {
-		networkId?: string;
+		siteId?: string;
 		description?: string;
 		/** New credentials being configured (bindable so parents can seed from
 		 *  existing assignments and read back, e.g. to derive an install flag). */
@@ -44,7 +44,7 @@
 	}
 
 	let {
-		networkId = '',
+		siteId = '',
 		description,
 		pendingCredentials = $bindable([]),
 		credentialIds = $bindable([]),
@@ -140,7 +140,7 @@
 <div class="flex min-h-0 flex-1 flex-col">
 	<CredentialWizardStep
 		bind:this={credentialWizardRef}
-		{networkId}
+		{siteId}
 		{description}
 		bind:pendingCredentials
 		{claimedDaemonHostIntegrations}

@@ -7,19 +7,16 @@ use super::*;
 /// Generate demo dependencies with pre-generated service IDs for member wiring.
 #[allow(clippy::vec_init_then_push)]
 pub(super) fn generate_dependencies(
-    networks: &[Network],
+    sites: &[Site],
     tags: &[Tag],
     svc_ids: &DependencyServiceIds,
 ) -> Vec<Dependency> {
     let now = Utc::now();
-    let hq = networks
+    let hq = sites
         .iter()
         .find(|n| n.base.name == "Headquarters")
         .unwrap();
-    let dc = networks
-        .iter()
-        .find(|n| n.base.name == "Data Center")
-        .unwrap();
+    let dc = sites.iter().find(|n| n.base.name == "Data Center").unwrap();
 
     let monitoring_tag = tags
         .iter()
@@ -40,7 +37,7 @@ pub(super) fn generate_dependencies(
         updated_at: now,
         base: DependencyBase {
             name: "Monitoring Stack".to_string(),
-            network_id: hq.id,
+            site_id: hq.id,
             description: Some(
                 "Prometheus metrics collection with Grafana visualization".to_string(),
             ),
@@ -69,7 +66,7 @@ pub(super) fn generate_dependencies(
         updated_at: now,
         base: DependencyBase {
             name: "Backup Flow".to_string(),
-            network_id: hq.id,
+            site_id: hq.id,
             description: Some("Server backup targets to TrueNAS storage".to_string()),
             dependency_type: DependencyType::RequestPath,
             members: DependencyMembers::Bindings {
@@ -92,7 +89,7 @@ pub(super) fn generate_dependencies(
         updated_at: now,
         base: DependencyBase {
             name: "Reverse Proxy Path".to_string(),
-            network_id: hq.id,
+            site_id: hq.id,
             description: Some("Traffic path through reverse proxy to code hosting".to_string()),
             dependency_type: DependencyType::RequestPath,
             members: DependencyMembers::Bindings {
@@ -117,7 +114,7 @@ pub(super) fn generate_dependencies(
         updated_at: now,
         base: DependencyBase {
             name: "Web Traffic Flow".to_string(),
-            network_id: dc.id,
+            site_id: dc.id,
             description: Some(
                 "Production web request path from load balancer through app servers to database"
                     .to_string(),
@@ -147,7 +144,7 @@ pub(super) fn generate_dependencies(
         updated_at: now,
         base: DependencyBase {
             name: "Observability Stack".to_string(),
-            network_id: dc.id,
+            site_id: dc.id,
             description: Some(
                 "Containerized observability: Prometheus, Grafana, and Jaeger".to_string(),
             ),
@@ -172,7 +169,7 @@ pub(super) fn generate_dependencies(
         updated_at: now,
         base: DependencyBase {
             name: "Storage Tier".to_string(),
-            network_id: dc.id,
+            site_id: dc.id,
             description: Some("Object storage, distributed storage, and search".to_string()),
             dependency_type: DependencyType::HubAndSpoke,
             members: DependencyMembers::Services {

@@ -13,7 +13,7 @@ import type { RenderableTopology } from '$lib/features/topology/types/base';
 function l2Topology(filteredOut: Record<string, Record<string, number>>): RenderableTopology {
 	return {
 		id: 'topo-1',
-		network_id: 'net-1',
+		site_id: 'net-1',
 		nodes: [],
 		edges: [],
 		hosts: [],
@@ -22,7 +22,7 @@ function l2Topology(filteredOut: Record<string, Record<string, number>>): Render
 		ip_addresses: [],
 		ports: [],
 		bindings: [],
-		interfaces: [{ id: 'if-linked', host_id: 'h1', network_id: 'net-1' }],
+		interfaces: [{ id: 'if-linked', host_id: 'h1', site_id: 'net-1' }],
 		neighbours: [
 			{ id: 'row-1', interface_id: 'if-linked', neighbor: { type: 'Interface', id: 'if-far' } }
 		],
@@ -31,7 +31,7 @@ function l2Topology(filteredOut: Record<string, Record<string, number>>): Render
 		dependencies: [],
 		vlans: [],
 		entity_tags: [],
-		name: 'My Network'
+		name: 'My Site'
 	} as unknown as RenderableTopology;
 }
 

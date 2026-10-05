@@ -31,7 +31,7 @@ use crate::server::shared::events::types::EventLogLevel;
 /// operator could not read.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct DiscoveryWarningScope {
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub session_id: Uuid,
     pub daemon_id: Uuid,
     /// `None` for the scan-level and link-resolution findings, which belong to the pipeline rather
@@ -56,13 +56,13 @@ impl Operation for DiscoveryWarningCode {
 impl DiscoveryWarningScope {
     /// The scope for one warning from one session.
     pub fn new(
-        network_id: Uuid,
+        site_id: Uuid,
         session_id: Uuid,
         daemon_id: Uuid,
         warning: DiscoveryWarning,
     ) -> Self {
         Self {
-            network_id,
+            site_id,
             session_id,
             daemon_id,
             integration: warning.integration(),

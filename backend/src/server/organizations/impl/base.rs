@@ -70,7 +70,7 @@ pub enum LimitNotificationLevel {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct OrgNotifications {
     pub hosts: LimitNotificationLevel,
-    pub networks: LimitNotificationLevel,
+    pub sites: LimitNotificationLevel,
     pub seats: LimitNotificationLevel,
     /// The **highest** announced daemon-sunset floor this org has already been
     /// emailed about (e.g. "0.17.5"); every cutover at or below it counts as

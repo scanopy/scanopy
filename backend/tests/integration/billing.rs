@@ -62,7 +62,7 @@ async fn test_billing_past_due_blocks_requests(ctx: &TestContext) -> Result<(), 
     let subnet = Subnet::new(SubnetBase {
         name: "Blocked Subnet".to_string(),
         description: None,
-        network_id: ctx.network_id,
+        site_id: ctx.site_id,
         cidr: SubnetCidr::new(
             SubnetCidrValue(IpCidr::V4(
                 Ipv4Cidr::new(Ipv4Addr::new(10, 1, 0, 0), 24).unwrap(),
@@ -111,7 +111,7 @@ async fn test_billing_canceled_blocks_requests(ctx: &TestContext) -> Result<(), 
     let subnet = Subnet::new(SubnetBase {
         name: "Lapsed Subnet".to_string(),
         description: None,
-        network_id: ctx.network_id,
+        site_id: ctx.site_id,
         cidr: SubnetCidr::new(
             SubnetCidrValue(IpCidr::V4(
                 Ipv4Cidr::new(Ipv4Addr::new(10, 2, 0, 0), 24).unwrap(),

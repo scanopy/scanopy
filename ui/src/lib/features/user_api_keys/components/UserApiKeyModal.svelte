@@ -15,7 +15,7 @@
 	// Shared components
 	import ApiKeyGenerator from '$lib/shared/components/api-keys/ApiKeyGenerator.svelte';
 	import PermissionSelect from '$lib/shared/components/api-keys/PermissionSelect.svelte';
-	import NetworkAccessSelect from '$lib/shared/components/api-keys/NetworkAccessSelect.svelte';
+	import SiteAccessSelect from '$lib/shared/components/api-keys/SiteAccessSelect.svelte';
 
 	import type { UserApiKey } from '../queries';
 	import {
@@ -36,7 +36,7 @@
 		common_keyDetails,
 		common_name,
 		common_nameRequired,
-		common_networkRequired,
+		common_siteRequired,
 		common_permissions,
 		common_save,
 		common_saving,
@@ -132,8 +132,8 @@
 			pushError(common_nameRequired());
 			return;
 		}
-		if (!formData.network_ids?.length) {
-			pushError(common_networkRequired());
+		if (!formData.site_ids?.length) {
+			pushError(common_siteRequired());
 			return;
 		}
 
@@ -176,9 +176,9 @@
 		}
 	}
 
-	// Handle network selection changes
-	function handleNetworkChange(networkIds: string[]) {
-		form.setFieldValue('network_ids', networkIds);
+	// Handle site selection changes
+	function handleSiteChange(siteIds: string[]) {
+		form.setFieldValue('site_ids', siteIds);
 	}
 
 	let colorHelper = entities.getColorHelper('UserApiKey');
@@ -246,11 +246,11 @@
 						{/snippet}
 					</form.Field>
 
-					<form.Field name="network_ids">
+					<form.Field name="site_ids">
 						{#snippet children(field)}
-							<NetworkAccessSelect
-								selectedNetworkIds={field.state.value ?? []}
-								onChange={handleNetworkChange}
+							<SiteAccessSelect
+								selectedSiteIds={field.state.value ?? []}
+								onChange={handleSiteChange}
 								permissionLevel={permissionsValue}
 								helpText="Leave empty for org-scoped resources only (tags, users)"
 								alwaysShowSelection={true}

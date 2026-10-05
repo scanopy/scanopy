@@ -25,7 +25,6 @@ use crate::server::interfaces::r#impl::base::{Interface, InterfaceBase, Interfac
 use crate::server::ip_addresses::r#impl::base::{
     IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue,
 };
-use crate::server::networks::r#impl::{Network, NetworkBase};
 use crate::server::services::definitions::ServiceDefinitionRegistry;
 use crate::server::services::r#impl::base::{Service, ServiceBase};
 use crate::server::services::r#impl::patterns::ClientProbe;
@@ -36,6 +35,7 @@ use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Storable, Storage};
 use crate::server::shared::types::entities::EntitySource;
+use crate::server::sites::r#impl::{Site, SiteBase};
 use crate::server::subnets::r#impl::base::{Subnet, SubnetBase, SubnetCidr, SubnetCidrValue};
 use crate::server::subnets::r#impl::types::SubnetType;
 use crate::server::tags::r#impl::base::{Tag, TagBase};
@@ -50,32 +50,32 @@ fn ens19() -> MacAddress {
     "bc:24:11:9b:24:86".parse().unwrap()
 }
 
-/// Seed an organization and a network with a LAN and a Docker bridge subnet, and hand back the
+/// Seed an organization and a site with a LAN and a Docker bridge subnet, and hand back the
 /// wired-up services. The container is returned so the caller keeps Postgres alive.
 macro_rules! harness {
     ($storage:ident, $services:ident, $lab:ident, $container:ident) => {
         let ($storage, $services, $container) = test_services().await;
         let org = organization();
         $storage.organizations.create(&org).await.unwrap();
-        let network = $services
-            .network_service
+        let site = $services
+            .site_service
             .create(
-                Network::new(NetworkBase::new(org.id)),
+                Site::new(SiteBase::new(org.id)),
                 AuthenticatedEntity::System,
             )
             .await
             .unwrap();
-        let lan = create_subnet(&$services, network.id, "192.168.4.0/22", SubnetType::Lan).await;
+        let lan = create_subnet(&$services, site.id, "192.168.4.0/22", SubnetType::Lan).await;
         let bridge = create_subnet(
             &$services,
-            network.id,
+            site.id,
             "172.17.0.0/16",
             SubnetType::DockerBridge,
         )
         .await;
         let $lab = Lab {
             organization_id: org.id,
-            network_id: network.id,
+            site_id: site.id,
             lan,
             bridge,
         };
@@ -84,14 +84,14 @@ macro_rules! harness {
 
 struct Lab {
     organization_id: Uuid,
-    network_id: Uuid,
+    site_id: Uuid,
     lan: Uuid,
     bridge: Uuid,
 }
 
 async fn create_subnet(
     services: &ServiceFactory,
-    network_id: Uuid,
+    site_id: Uuid,
     cidr: &str,
     subnet_type: SubnetType,
 ) -> Uuid {
@@ -100,7 +100,7 @@ async fn create_subnet(
         .create(
             Subnet::new(SubnetBase {
                 name: cidr.to_string(),
-                network_id,
+                site_id,
                 cidr: SubnetCidr::new(
                     SubnetCidrValue(cidr.parse().unwrap()),
                     AttributeSource::DaemonSelfReport,
@@ -123,7 +123,7 @@ fn address(
     mac: Option<(MacAddress, AttributeSource)>,
 ) -> IPAddress {
     IPAddress::new(IPAddressBase {
-        network_id: lab.network_id,
+        site_id: lab.site_id,
         subnet_id,
         ip_address: ip.parse::<IpAddr>().unwrap(),
         mac_address: mac.map(|(m, s)| MacEvidence::new(MacEvidenceValue(m), s)),
@@ -153,7 +153,7 @@ fn snmp(lab: &Lab, ip: &str, mac: MacAddress) -> IPAddress {
 fn service(lab: &Lab, definition: &str) -> Service {
     Service::new(ServiceBase {
         name: definition.to_string(),
-        network_id: lab.network_id,
+        site_id: lab.site_id,
         service_definition: ServiceDefinitionRegistry::find_by_id(definition)
             .unwrap_or_else(|| panic!("{definition} is registered")),
         source: EntitySource::Discovery,
@@ -163,7 +163,7 @@ fn service(lab: &Lab, definition: &str) -> Service {
 
 fn interface(lab: &Lab, name: &str, mac: MacAddress) -> Interface {
     Interface::new(InterfaceBase {
-        network_id: lab.network_id,
+        site_id: lab.site_id,
         if_name: Some(name.to_string()),
         mac_address: Some(MacEvidence::new(
             MacEvidenceValue(mac),
@@ -186,7 +186,7 @@ async fn discover(
         .host_service
         .discover_host(
             Host::new(HostBase {
-                network_id: lab.network_id,
+                site_id: lab.site_id,
                 source: EntitySource::Discovery,
                 ..host
             }),
@@ -209,7 +209,7 @@ async fn discover(
 async fn live_hosts(services: &ServiceFactory, lab: &Lab) -> Vec<Host> {
     services
         .host_service
-        .get_all(StorableFilter::<Host>::new_from_network_ids(&[lab.network_id]).live())
+        .get_all(StorableFilter::<Host>::new_from_site_ids(&[lab.site_id]).live())
         .await
         .unwrap()
 }
@@ -335,7 +335,7 @@ async fn a_payload_naming_both_halves_of_a_split_vm_merges_them_and_keeps_everyt
     services
         .interface_neighbor_service
         .reconcile_interface_neighbors(
-            lab.network_id,
+            lab.site_id,
             switch_port,
             &[(Neighbor::Host(h2.id), None)],
             Utc::now(),
@@ -346,7 +346,7 @@ async fn a_payload_naming_both_halves_of_a_split_vm_merges_them_and_keeps_everyt
     services
         .interface_neighbor_service
         .reconcile_interface_neighbors(
-            lab.network_id,
+            lab.site_id,
             h2_interface,
             &[(Neighbor::Host(switch.id), None)],
             Utc::now(),
@@ -376,7 +376,7 @@ async fn a_payload_naming_both_halves_of_a_split_vm_merges_them_and_keeps_everyt
         )
         .await
         .unwrap();
-    let mut chain = dependency(&lab.network_id);
+    let mut chain = dependency(&lab.site_id);
     chain.base.members = DependencyMembers::Services {
         service_ids: vec![h2_portainer, docker_id],
     };
@@ -798,7 +798,7 @@ async fn a_daemon_host_is_never_merged_away() {
     .await;
     let owner = user(&lab.organization_id);
     storage.users.create(&owner).await.unwrap();
-    let mut d = daemon(&lab.network_id, &h2.id);
+    let mut d = daemon(&lab.site_id, &h2.id);
     d.base.user_id = owner.id;
     storage.daemons.create(&d).await.unwrap();
 
@@ -865,7 +865,7 @@ async fn a_manual_merge_keeps_interfaces_adjacencies_and_tags() {
     services
         .interface_neighbor_service
         .reconcile_interface_neighbors(
-            lab.network_id,
+            lab.site_id,
             b_interface,
             &[(Neighbor::Host(a.id), None)],
             Utc::now(),
@@ -1040,7 +1040,7 @@ async fn a_presenting_interface_on_another_host_is_refused() {
     assert_eq!(identity.virtualization_interface_id, None);
 
     let mut request = crate::server::shared::types::examples::create_host_request();
-    request.network_id = lab.network_id;
+    request.site_id = lab.site_id;
     request.ip_addresses = vec![];
     request.ports = vec![];
     request.services = vec![];
@@ -1095,7 +1095,7 @@ async fn a_second_address_behind_the_same_mac_is_kept() {
 #[tokio::test]
 async fn a_nic_that_moved_to_another_range_is_rehomed() {
     harness!(_storage, services, lab, _container);
-    let other = create_subnet(&services, lab.network_id, "10.20.0.0/24", SubnetType::Lan).await;
+    let other = create_subnet(&services, lab.site_id, "10.20.0.0/24", SubnetType::Lan).await;
     let nic: MacAddress = "bc:24:11:00:00:70".parse().unwrap();
 
     let first = discover(
@@ -1146,7 +1146,7 @@ fn runtime_payload(
     let port = Port::new(PortBase {
         port_type: PortType::new_tcp(2375),
         host_id: Uuid::nil(),
-        network_id: lab.network_id,
+        site_id: lab.site_id,
     });
     let mut runtime = service(lab, "Docker");
     runtime.base.bindings = vec![Binding::new_port_serviceless(port.id, Some(ip.id))];
@@ -1168,7 +1168,7 @@ async fn discover_with_ports(
         .host_service
         .discover_host(
             Host::new(HostBase {
-                network_id: lab.network_id,
+                site_id: lab.site_id,
                 source: EntitySource::Discovery,
                 ..Default::default()
             }),
@@ -1216,7 +1216,7 @@ fn container_on_api_port(
 async fn docker_services(services: &ServiceFactory, lab: &Lab) -> Vec<Service> {
     services
         .service_service
-        .get_all(StorableFilter::<Service>::new_from_network_ids(&[lab.network_id]).live())
+        .get_all(StorableFilter::<Service>::new_from_site_ids(&[lab.site_id]).live())
         .await
         .unwrap()
 }
@@ -1422,7 +1422,7 @@ fn swept_with_service(
     let port = Port::new(PortBase {
         port_type: PortType::new_tcp(port),
         host_id: Uuid::nil(),
-        network_id: lab.network_id,
+        site_id: lab.site_id,
     });
     let mut found = service(lab, definition);
     found.base.bindings = vec![Binding::new_port_serviceless(port.id, Some(address.id))];
@@ -1640,7 +1640,7 @@ async fn a_dcp_report_joins_the_network_identity_its_mac_presents() {
     let proxmox = AttributeSource::Probe(ClientProbe::Proxmox);
     let nic = |source: AttributeSource| {
         Interface::new(InterfaceBase {
-            network_id: lab.network_id,
+            site_id: lab.site_id,
             if_name: Some("mv-dcp0".to_string()),
             mac_address: Some(MacEvidence::new(MacEvidenceValue(mv), source)),
             ..Default::default()

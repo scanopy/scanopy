@@ -47,8 +47,8 @@ pub struct LegacyCapabilities {
 pub struct DaemonRegistrationRequest {
     /// The daemon this entity refers to.
     pub daemon_id: Uuid,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// Name the daemon reports for itself.
     pub name: String,
     /// URL is ignored by server - kept for backwards compat with old daemons.
@@ -108,7 +108,7 @@ pub struct DaemonDiscoveryRequest {
     /// The discovery configuration this session belongs to. Old daemons ignore this field.
     #[serde(default)]
     pub discovery_id: Uuid,
-    /// The network's subnets as the server holds them.
+    /// The site's subnets as the server holds them.
     ///
     /// A scan that names specific subnets knows them by id, and the CIDR behind each id lives on
     /// the server. A DaemonPoll daemon can ask for them; a ServerPoll daemon has no server URL to
@@ -255,8 +255,8 @@ pub struct DiscoveryUpdatePayload {
     pub session_id: Uuid,
     /// The daemon this entity refers to.
     pub daemon_id: Uuid,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// Which stage of the run is in progress.
     pub phase: DiscoveryPhase,
     /// What type of discovery is running.
@@ -343,7 +343,7 @@ impl DiscoveryUpdatePayload {
     ) -> Event<DiscoveryPhase> {
         Event::new(
             DiscoveryScope {
-                network_id: self.network_id,
+                site_id: self.site_id,
                 session_id: self.session_id,
                 daemon_id: self.daemon_id,
                 discovery_type: self.discovery_type.clone(),
@@ -358,14 +358,14 @@ impl DiscoveryUpdatePayload {
     pub fn new(
         session_id: Uuid,
         daemon_id: Uuid,
-        network_id: Uuid,
+        site_id: Uuid,
         discovery_type: DiscoveryType,
         discovery_id: Option<Uuid>,
     ) -> Self {
         Self {
             session_id,
             daemon_id,
-            network_id,
+            site_id,
             phase: DiscoveryPhase::Queued,
             progress: 0,
             discovery_type,
@@ -392,7 +392,7 @@ impl DiscoveryUpdatePayload {
         Self {
             session_id: info.session_id,
             discovery_type,
-            network_id: info.network_id,
+            site_id: info.site_id,
             daemon_id: info.daemon_id,
             phase: update.phase,
             progress: update.progress,
@@ -508,10 +508,10 @@ impl ServerCapabilities {
 pub struct FirstContactRequest {
     /// The daemon's server-assigned ID
     pub daemon_id: Uuid,
-    /// The network the daemon belongs to (server-provisioned identity). Additive:
+    /// The site the daemon belongs to (server-provisioned identity). Additive:
     /// an older daemon that ignores this field still works off its cached id.
     #[serde(default)]
-    pub network_id: Option<Uuid>,
+    pub site_id: Option<Uuid>,
     /// The daemon's server-assigned name.
     #[serde(default)]
     pub name: Option<String>,
@@ -549,10 +549,10 @@ pub struct ProvisionDaemonRequest {
     /// the existing record's name is kept.
     #[serde(default)]
     pub name: Option<String>,
-    /// Network this daemon will be associated with. Required unless `daemon_id` is set, in
-    /// which case the existing record's network is kept.
+    /// Site this daemon will be associated with. Required unless `daemon_id` is set, in
+    /// which case the existing record's site is kept.
     #[serde(default)]
-    pub network_id: Option<Uuid>,
+    pub site_id: Option<Uuid>,
     /// How the daemon communicates with the server. Defaults to DaemonPoll
     /// (the daemon dials out) for forward-compat with older clients.
     #[serde(default)]
@@ -572,7 +572,7 @@ pub struct ProvisionDaemonRequest {
     pub os: Option<DaemonOs>,
     /// Mint a fresh 1:1 key for this existing daemon instead of creating a new record,
     /// keeping its host, discovery jobs and history. Used to give a legacy daemon (no bound
-    /// key) a dedicated one. When set, `name`/`network_id`/`mode`/`url` are ignored — those
+    /// key) a dedicated one. When set, `name`/`site_id`/`mode`/`url` are ignored — those
     /// come from the existing record.
     ///
     /// Only accepted for a daemon that has never checked in or has no bound key; a live

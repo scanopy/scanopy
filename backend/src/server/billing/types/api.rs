@@ -221,8 +221,8 @@ pub struct ChangePlanRequest {
 pub struct ChangePlanPreview {
     /// Hosts over the target plan's allowance, which would be billed as overage.
     pub excess_hosts: u64,
-    /// Networks over the target plan's allowance.
-    pub excess_networks: u64,
+    /// Sites over the target plan's allowance.
+    pub excess_sites: u64,
     /// Seats over the target plan's allowance.
     pub excess_seats: u64,
 }

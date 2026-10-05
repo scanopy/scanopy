@@ -30,7 +30,7 @@ export type FilteredOutCounts = Record<string, Record<string, number>>;
 /**
  * Topology row plus the built graph + entity arrays needed for inspectors,
  * resolvers, and rendering. The slim backend `Topology` only carries
- * `{ id, network_id, options, ... }`. The per-view graph (`nodes`/`edges`) is
+ * `{ id, site_id, options, ... }`. The per-view graph (`nodes`/`edges`) is
  * built on request and the entity arrays (hosts, services, subnets, etc.) are
  * loaded via the `TopologyData` bundle; both are merged here so consumers can
  * read everything off a single object — preserving the field shape used across
@@ -39,7 +39,7 @@ export type FilteredOutCounts = Record<string, Record<string, number>>;
  * Snapshot-aware: when a snapshot is selected, the bundle's graph + entities are
  * the snapshot's (built from its closed copies).
  *
- * `name` is a UI-side display string (network name for live, formatted
+ * `name` is a UI-side display string (site name for live, formatted
  * `taken_at` for snapshots, share name for shared topologies).
  *
  * The built graph carries `nodes`/`edges` keyed per view; `toRenderableTopology`

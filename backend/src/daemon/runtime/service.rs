@@ -154,18 +154,16 @@ impl DaemonRuntimeService {
         running: Uuid,
         age: Duration,
     ) {
-        let (daemon_id, network_id) = match (
-            self.config.get_id().await,
-            self.config.get_network_id().await,
-        ) {
-            (Ok(daemon_id), Ok(Some(network_id))) => (daemon_id, network_id),
-            _ => return,
-        };
+        let (daemon_id, site_id) =
+            match (self.config.get_id().await, self.config.get_site_id().await) {
+                (Ok(daemon_id), Ok(Some(site_id))) => (daemon_id, site_id),
+                _ => return,
+            };
 
         let mut payload = DiscoveryUpdatePayload::new(
             request.session_id,
             daemon_id,
-            network_id,
+            site_id,
             request.discovery_type.clone(),
             // The server replaces its stored session with this payload, so the historical row
             // keeps its discovery only if the payload names it.
@@ -211,8 +209,8 @@ impl DaemonRuntimeService {
         loop {
             interval_timer.tick().await;
 
-            if self.config.get_network_id().await?.is_none() {
-                tracing::warn!(target: LOG_TARGET, "Work request skipped - network_id not configured");
+            if self.config.get_site_id().await?.is_none() {
+                tracing::warn!(target: LOG_TARGET, "Work request skipped - site_id not configured");
                 continue;
             }
 
@@ -389,7 +387,7 @@ impl DaemonRuntimeService {
     async fn detect_interfaced_subnets(
         &self,
     ) -> Result<Vec<crate::server::subnets::r#impl::base::Subnet>> {
-        let network_id = match self.config.get_network_id().await? {
+        let site_id = match self.config.get_site_id().await? {
             Some(id) => id,
             None => return Ok(Vec::new()),
         };
@@ -397,7 +395,7 @@ impl DaemonRuntimeService {
 
         let (_, subnets, _) = self
             .utils
-            .get_own_interfaces(network_id, &interface_filter)
+            .get_own_interfaces(site_id, &interface_filter)
             .await?;
 
         Ok(subnets)
@@ -405,10 +403,10 @@ impl DaemonRuntimeService {
 
     pub async fn initialize_services(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         api_key: String,
     ) -> Result<StartupOutcome> {
-        self.config.set_network_id(network_id).await?;
+        self.config.set_site_id(site_id).await?;
         self.config.set_api_key(api_key).await?;
 
         let daemon_id = self.config.get_id().await?;
@@ -466,7 +464,7 @@ impl DaemonRuntimeService {
             return Ok(StartupOutcome::Ok);
         }
 
-        match self.register_with_server(daemon_id, network_id).await {
+        match self.register_with_server(daemon_id, site_id).await {
             Ok(()) => Ok(StartupOutcome::Ok),
             // Version rejection is terminal and gets its own outcome so the process
             // exits non-zero with the upgrade message rather than a generic reject.
@@ -500,7 +498,7 @@ impl DaemonRuntimeService {
     }
 
     /// Maximum number of registration retries (about 5 minutes with backoff)
-    pub async fn register_with_server(&self, daemon_id: Uuid, network_id: Uuid) -> Result<()> {
+    pub async fn register_with_server(&self, daemon_id: Uuid, site_id: Uuid) -> Result<()> {
         let config = self.api_client.config();
         let mode = config.get_mode().await?;
         let name = config.get_name().await?;
@@ -512,7 +510,7 @@ impl DaemonRuntimeService {
 
         let registration_request = DaemonRegistrationRequest {
             daemon_id,
-            network_id,
+            site_id,
             // URL not sent - server manages this via provisioning for ServerPoll,
             // and doesn't need it for DaemonPoll
             url: None,
@@ -529,7 +527,7 @@ impl DaemonRuntimeService {
 
         tracing::info!(target: LOG_TARGET, "Registering with server:");
         tracing::info!(target: LOG_TARGET, "  Daemon ID:       {}", daemon_id);
-        tracing::info!(target: LOG_TARGET, "  Network ID:      {}", network_id);
+        tracing::info!(target: LOG_TARGET, "  Site ID:         {}", site_id);
         tracing::info!(target: LOG_TARGET, "  Version:         {}", version);
 
         let result = self
@@ -553,20 +551,17 @@ impl DaemonRuntimeService {
                     caps.log_warnings();
                 }
                 // Cache the server-authoritative identity. For a provisioned daemon the
-                // server resolves the record from the 1:1 key (ignoring the id/network we
+                // server resolves the record from the 1:1 key (ignoring the id/site we
                 // sent), so persist what it returns for subsequent starts.
                 if response.daemon.id != daemon_id
                     && let Err(e) = self.config.set_id(response.daemon.id).await
                 {
                     tracing::warn!(target: LOG_TARGET, error = %e, "Failed to cache server-assigned daemon ID");
                 }
-                if response.daemon.base.network_id != network_id
-                    && let Err(e) = self
-                        .config
-                        .set_network_id(response.daemon.base.network_id)
-                        .await
+                if response.daemon.base.site_id != site_id
+                    && let Err(e) = self.config.set_site_id(response.daemon.base.site_id).await
                 {
-                    tracing::warn!(target: LOG_TARGET, error = %e, "Failed to cache server-assigned network ID");
+                    tracing::warn!(target: LOG_TARGET, error = %e, "Failed to cache server-assigned site ID");
                 }
                 if response.daemon.base.name != name
                     && let Err(e) = self

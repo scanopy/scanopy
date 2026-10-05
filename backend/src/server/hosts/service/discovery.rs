@@ -23,7 +23,7 @@ impl HostService {
     pub async fn seed_loopback(
         &self,
         host_id: Uuid,
-        network_id: Uuid,
+        site_id: Uuid,
         authentication: AuthenticatedEntity,
     ) -> Result<()> {
         let Some(loopback_subnet) = Subnet::from_discovery(
@@ -32,7 +32,7 @@ impl HostService {
                 pnet::ipnetwork::Ipv4Network::new(std::net::Ipv4Addr::LOCALHOST, 8)
                     .map_err(|e| anyhow::anyhow!("Invalid loopback network: {e}"))?,
             ),
-            network_id,
+            site_id,
             // Stands in for the daemon's own report of its `lo`, which arrives on the next scan
             // with this exact range. Stamping it the same keeps that report from relabelling it.
             crate::server::shared::attribution::AttributeSource::DaemonSelfReport,
@@ -47,7 +47,7 @@ impl HostService {
 
         let loopback_ip =
             IPAddress::new(crate::server::ip_addresses::r#impl::base::IPAddressBase {
-                network_id,
+                site_id,
                 host_id,
                 subnet_id: created_subnet.id,
                 ip_address: std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST),
@@ -171,7 +171,7 @@ impl HostService {
         // disappeared entirely from the host.
         let previous_subnets: HashSet<Uuid> = self
             .find_matching_host_by_ip_addresses(
-                &host.base.network_id,
+                &host.base.site_id,
                 &ip_addresses,
                 &interfaces,
                 host.base.chassis_id.as_ref().map(|c| c.value().0.as_str()),
@@ -219,7 +219,7 @@ impl HostService {
         Ok(discovered)
     }
 
-    /// Link Interface records (SNMP if-entries) to IPAddress records for a host by matching MAC addresses.
+    /// Link Interface records (SNMP ifTable entries) to IPAddress records for a host by matching MAC addresses.
     ///
     /// For each Interface with a MAC address, finds an IPAddress on the same host with
     /// the same MAC address and sets `interface.ip_address_id = ip_address.id`.

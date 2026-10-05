@@ -53,32 +53,32 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         .routes(routes!(generated::export_csv))
 }
 
-/// Validate that the IP address's host and subnet are on the same network as the IP address,
+/// Validate that the IP address's host and subnet are on the same site as the IP address,
 /// and that the IP value falls within the subnet's CIDR range.
 async fn validate_ip_address_consistency(
     state: &AppState,
     ip_address: &IPAddress,
 ) -> Result<(), ApiError> {
-    // Validate host is on the same network
+    // Validate host is on the same site
     if let Some(host) = state
         .services
         .host_service
         .get_by_id(&ip_address.base.host_id)
         .await?
-        && host.base.network_id != ip_address.base.network_id
+        && host.base.site_id != ip_address.base.site_id
     {
-        return Err(ApiError::entity_network_mismatch::<Host>());
+        return Err(ApiError::entity_site_mismatch::<Host>());
     }
 
-    // Validate subnet is on the same network AND IP is within CIDR
+    // Validate subnet is on the same site AND IP is within CIDR
     if let Some(subnet) = state
         .services
         .subnet_service
         .get_by_id(&ip_address.base.subnet_id)
         .await?
     {
-        if subnet.base.network_id != ip_address.base.network_id {
-            return Err(ApiError::entity_network_mismatch::<Subnet>());
+        if subnet.base.site_id != ip_address.base.site_id {
+            return Err(ApiError::entity_site_mismatch::<Subnet>());
         }
 
         // Validate IP address is within subnet CIDR
@@ -102,7 +102,7 @@ async fn validate_ip_address_consistency(
     request_body = IPAddress,
     responses(
         (status = 200, description = "IP address created successfully", body = ApiResponse<IPAddress>),
-        (status = 400, description = "Network mismatch or invalid request", body = ApiErrorResponse),
+        (status = 400, description = "Site mismatch or invalid request", body = ApiErrorResponse),
     ),
      security(("user_api_key" = []), ("session" = []))
 )]
@@ -154,7 +154,7 @@ async fn create_ip_address(
     request_body = IPAddress,
     responses(
         (status = 200, description = "IP address updated successfully", body = ApiResponse<IPAddress>),
-        (status = 400, description = "Network mismatch or invalid request", body = ApiErrorResponse),
+        (status = 400, description = "Site mismatch or invalid request", body = ApiErrorResponse),
         (status = 404, description = "IP address not found", body = ApiErrorResponse),
     ),
      security(("user_api_key" = []), ("session" = []))
@@ -195,7 +195,7 @@ pub async fn delete_ip_address(
     auth: Authorized<Member>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
@@ -210,12 +210,7 @@ pub async fn delete_ip_address(
         .map_err(|e| ApiError::internal_error(&e.to_string()))?
         .ok_or_else(|| ApiError::entity_not_found::<IPAddress>(id))?;
 
-    validate_delete_access(
-        Some(entity.base.network_id),
-        None,
-        &network_ids,
-        organization_id,
-    )?;
+    validate_delete_access(Some(entity.base.site_id), None, &site_ids, organization_id)?;
 
     let host_id = entity.base.host_id;
 
@@ -256,7 +251,7 @@ async fn bulk_delete_ip_addresses(
         return Err(ApiError::bulk_empty());
     }
 
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
@@ -273,12 +268,7 @@ async fn bulk_delete_ip_addresses(
 
     // Verify ownership of ALL entities before deleting any
     for entity in &entities {
-        validate_bulk_delete_access(
-            Some(entity.base.network_id),
-            None,
-            &network_ids,
-            organization_id,
-        )?;
+        validate_bulk_delete_access(Some(entity.base.site_id), None, &site_ids, organization_id)?;
     }
 
     // Only delete entities that actually exist and user has access to

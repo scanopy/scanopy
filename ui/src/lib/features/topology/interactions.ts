@@ -28,7 +28,7 @@ import {
 	entityCollection,
 	type EntityNodeIndex
 } from './resolvers';
-import type { Network } from '$lib/features/networks/types';
+import type { Site } from '$lib/features/sites/types';
 import { entityFreshness, type FreshnessSubject } from '$lib/shared/utils/freshness';
 import { buildFullParentMap, resolveCollapsedAncestor } from './collapse';
 import { formatEntityLabelTitle } from './labels';
@@ -327,11 +327,11 @@ function hideContainersAndDescendants(
  */
 /**
  * Context for extractors whose value isn't intrinsic to the entity. Staleness
- * is the first such filter: it depends on the entity's network staleness
- * window and the current time, so the network has to be threaded in.
+ * is the first such filter: it depends on the entity's site staleness
+ * window and the current time, so the site has to be threaded in.
  */
 export interface FilterValueContext {
-	network?: Network;
+	site?: Site;
 	/** The graph being filtered, for values that depend on other entities rather than just this one. */
 	topology?: RenderableTopology;
 }
@@ -390,7 +390,7 @@ export const FILTER_VALUE_EXTRACTORS: Record<string, Record<string, FilterValueE
 			null,
 		// Delegates to the same helper the card badge and the node tag use, so
 		// the filter cannot disagree with what the user sees marked as stale.
-		Staleness: (s, ctx) => entityFreshness(s as FreshnessSubject, ctx.network),
+		Staleness: (s, ctx) => entityFreshness(s as FreshnessSubject, ctx.site),
 		// Every service virtualization is a container runtime, as on the backend's `HasFilterValues`;
 		// a service with none carries no value rather than Bare metal, which describes hosts.
 		Virtualization: (s) =>
@@ -407,16 +407,16 @@ export const FILTER_VALUE_EXTRACTORS: Record<string, Record<string, FilterValueE
 				? (hostVirtualizations.getMetadata(type).virtualization_state ?? null)
 				: 'BareMetal';
 		},
-		Staleness: (h, ctx) => entityFreshness(h as FreshnessSubject, ctx.network)
+		Staleness: (h, ctx) => entityFreshness(h as FreshnessSubject, ctx.site)
 	},
 	IPAddress: {
-		Staleness: (ip, ctx) => entityFreshness(ip as FreshnessSubject, ctx.network)
+		Staleness: (ip, ctx) => entityFreshness(ip as FreshnessSubject, ctx.site)
 	},
 	Subnet: {
-		Staleness: (s, ctx) => entityFreshness(s as FreshnessSubject, ctx.network)
+		Staleness: (s, ctx) => entityFreshness(s as FreshnessSubject, ctx.site)
 	},
 	Interface: {
-		Staleness: (i, ctx) => entityFreshness(i as FreshnessSubject, ctx.network),
+		Staleness: (i, ctx) => entityFreshness(i as FreshnessSubject, ctx.site),
 		// A status never read has no value; the MIB's own `Unknown` is a reading.
 		OperStatus: (i) => (i as { oper_status?: string | null }).oper_status ?? null,
 		// Ids match `InterfaceLinkState` on the backend, which is what supplies the filter's
@@ -447,13 +447,13 @@ export function matchesHoveredMetadata(
 	entity: unknown,
 	entityType: string,
 	hovered: HoveredMetadata,
-	network: Network | undefined,
+	site: Site | undefined,
 	topology: RenderableTopology | null | undefined
 ): boolean {
 	if (!entity || !(hovered.entityTypes as string[]).includes(entityType)) return false;
 	const extract = FILTER_VALUE_EXTRACTORS[entityType]?.[hovered.filterType];
 	if (!extract) return false;
-	return extract(entity, { network, topology: topology ?? undefined }) === hovered.valueId;
+	return extract(entity, { site, topology: topology ?? undefined }) === hovered.valueId;
 }
 
 /**
@@ -480,7 +480,7 @@ export const presentFilterValues = writable<Record<string, Record<string, string
 
 function computePresentFilterValues(
 	topology: RenderableTopology,
-	network: Network | undefined
+	site: Site | undefined
 ): Record<string, Record<string, string[]>> {
 	const out: Record<string, Record<string, string[]>> = {};
 	for (const [entityType, extractors] of Object.entries(FILTER_VALUE_EXTRACTORS)) {
@@ -489,7 +489,7 @@ function computePresentFilterValues(
 		for (const [filterType, extract] of Object.entries(extractors)) {
 			const seen = new Set<string>();
 			for (const entity of collection) {
-				const value = extract(entity, { network, topology });
+				const value = extract(entity, { site, topology });
 				if (value) seen.add(value);
 			}
 			(out[entityType] ??= {})[filterType] = [...seen];
@@ -530,8 +530,8 @@ export function updateTagFilter(
 	/** hide_metadata_values[activeView] — a nested map keyed by entity type, then filter type, to hidden value ids. */
 	hiddenMetadataValues?: Record<string, Record<string, string[]>>,
 	hiddenEntityTypes?: string[],
-	/** The topology's network — supplies the staleness window to extractors. */
-	network?: Network
+	/** The topology's site — supplies the staleness window to extractors. */
+	site?: Site
 ) {
 	if (!topology) {
 		tagHiddenNodeIds.set(new Set());
@@ -550,7 +550,7 @@ export function updateTagFilter(
 	// group is judged to offer no choice, the panel drops it — and the user has no way to bring
 	// 16,000 ports back. They are hidden *because* they exist.
 	presentFilterValues.set(
-		withHiddenValues(computePresentFilterValues(topology, network), hiddenMetadataValues)
+		withHiddenValues(computePresentFilterValues(topology, site), hiddenMetadataValues)
 	);
 
 	const hasTagFilter = tagFilter && !isTagFilterEmpty(tagFilter);
@@ -672,7 +672,7 @@ export function updateTagFilter(
 					if (!hiddenValues.length) continue;
 					const extract = extractors[filterType];
 					if (!extract) continue;
-					const value = extract(entity, { network, topology });
+					const value = extract(entity, { site, topology });
 					if (value && hiddenValues.includes(value)) {
 						noteHidden(entityType, entity.id);
 					}
@@ -786,7 +786,7 @@ export function activeViewFilters(
 	hiddenMetadataValues: Record<string, Record<string, string[]>> | undefined,
 	hiddenEntityTypes: string[] | undefined,
 	tagFilter: TagFilter | undefined,
-	network?: Network
+	site?: Site
 ): ActiveFilterSummary[] {
 	const summaries: ActiveFilterSummary[] = [];
 	if (!topology) return summaries;
@@ -812,7 +812,7 @@ export function activeViewFilters(
 			const extract = FILTER_VALUE_EXTRACTORS[entityType]?.[filter.filter_type];
 			if (!extract) continue;
 			for (const entity of entityCollection(topology, entityType) ?? []) {
-				const value = extract(entity, { network, topology });
+				const value = extract(entity, { site, topology });
 				if (value && hiddenHere.includes(value)) count++;
 			}
 		}
@@ -1523,13 +1523,13 @@ export function clearSearch() {
 export function inlineHostsMatching(
 	groups: ElementInlineGroup[],
 	hovered: HoveredMetadata | null,
-	networkFor: (entity: { network_id?: string }) => Network | undefined,
+	siteFor: (entity: { site_id?: string }) => Site | undefined,
 	topology: RenderableTopology | null | undefined
 ): Set<string> {
 	const out = new Set<string>();
 	if (!hovered) return out;
 	for (const { host } of groups.flatMap((g) => g.hosts)) {
-		if (matchesHoveredMetadata(host, 'Host', hovered, networkFor(host), topology)) out.add(host.id);
+		if (matchesHoveredMetadata(host, 'Host', hovered, siteFor(host), topology)) out.add(host.id);
 	}
 	return out;
 }

@@ -1,13 +1,13 @@
 //! Hosts and services for the demo org.
 //!
-//! Kept as one file rather than split further by network: this is one hand-authored host/
+//! Kept as one file rather than split further by site: this is one hand-authored host/
 //! service dataset (the HQ/DC split lives in the inline comments below), not a set of
 //! independent responsibilities -- splitting it would fragment a single dataset without
 //! adding clarity.
 
 use super::*;
 
-/// A small set of "recently discovered" hosts, created AFTER the per-network
+/// A small set of "recently discovered" hosts, created AFTER the per-site
 /// snapshot in the populate handler so the snapshot captures an earlier state
 /// and the live view visibly differs (these hosts/services appear only in
 /// live). Kept fully self-contained — no dependencies, neighbor links, or
@@ -15,20 +15,15 @@ use super::*;
 /// FK-ordering concerns. Uses only service-definition ids already proven in the
 /// main demo set.
 pub(super) fn generate_recent_hosts(
-    networks: &[Network],
+    sites: &[Site],
     subnets: &[Subnet],
     now: DateTime<Utc>,
 ) -> Vec<HostWithServices> {
-    let find_network = |name: &str| {
-        networks
-            .iter()
-            .find(|n| n.base.name.contains(name))
-            .unwrap()
-    };
+    let find_site = |name: &str| sites.iter().find(|n| n.base.name.contains(name)).unwrap();
     let find_subnet = |name: &str| subnets.iter().find(|s| s.base.name.contains(name)).unwrap();
 
-    let hq = find_network("Headquarters");
-    let dc = find_network("Data Center");
+    let hq = find_site("Headquarters");
+    let dc = find_site("Data Center");
 
     vec![
         // HQ: a new employee workstation on the office LAN. Windows ships OpenSSH Server as an
@@ -110,7 +105,7 @@ pub(super) fn generate_recent_hosts(
 }
 
 pub(super) fn generate_hosts_and_services(
-    networks: &[Network],
+    sites: &[Site],
     subnets: &[Subnet],
     tags: &[Tag],
     credentials: &[Credential],
@@ -120,12 +115,7 @@ pub(super) fn generate_hosts_and_services(
     let mut result = Vec::new();
 
     // Helper to find entities
-    let find_network = |name: &str| {
-        networks
-            .iter()
-            .find(|n| n.base.name.contains(name))
-            .unwrap()
-    };
+    let find_site = |name: &str| sites.iter().find(|n| n.base.name.contains(name)).unwrap();
     let find_subnet = |name: &str| subnets.iter().find(|s| s.base.name.contains(name)).unwrap();
     let find_tag = |name: &str| tags.iter().find(|t| t.base.name == name).map(|t| t.id);
 
@@ -200,9 +190,9 @@ pub(super) fn generate_hosts_and_services(
     let elasticsearch_dc_svc_id = dep_svc_ids.elasticsearch_dc;
 
     // ========================================================================
-    // HEADQUARTERS NETWORK — 30 hosts
+    // HEADQUARTERS SITE — 30 hosts
     // ========================================================================
-    let hq = find_network("Headquarters");
+    let hq = find_site("Headquarters");
     let hq_mgmt = find_subnet("HQ Management");
     let hq_servers = find_subnet("HQ Servers");
     let hq_storage = find_subnet("HQ Storage");
@@ -775,7 +765,7 @@ pub(super) fn generate_hosts_and_services(
             created_at: now,
             updated_at: now,
             base: IPAddressBase {
-                network_id: hq.id,
+                site_id: hq.id,
                 host_id,
                 subnet_id: hq_servers.id,
                 ip_address: IpAddr::V4(Ipv4Addr::new(10, 0, 20, 20)),
@@ -798,7 +788,7 @@ pub(super) fn generate_hosts_and_services(
             created_at: now,
             updated_at: now,
             base: IPAddressBase {
-                network_id: hq.id,
+                site_id: hq.id,
                 host_id,
                 subnet_id: hq_docker.id,
                 ip_address: IpAddr::V4(Ipv4Addr::new(172, 17, 0, 1)),
@@ -822,7 +812,7 @@ pub(super) fn generate_hosts_and_services(
             updated_at: now,
             base: HostBase {
                 name: HostName::manual("docker-prod01".to_string()),
-                network_id: hq.id,
+                site_id: hq.id,
                 hostname: Some(Attributed::new(
                     crate::server::hosts::r#impl::attributes::HostHostnameValue(
                         "docker-prod01.acme.local".to_string(),
@@ -1665,7 +1655,7 @@ pub(super) fn generate_hosts_and_services(
             created_at: now,
             updated_at: now,
             base: IPAddressBase {
-                network_id: hq.id,
+                site_id: hq.id,
                 host_id,
                 subnet_id: hq_annex.id,
                 ip_address: IpAddr::V4(Ipv4Addr::new(10, 0, 50, 1)),
@@ -1688,7 +1678,7 @@ pub(super) fn generate_hosts_and_services(
                 // An LLDP far end arrives nameless. It is titled by the chassis ID it advertised,
                 // which here is a locally assigned string rather than a MAC.
                 name: HostName::unnamed(),
-                network_id: hq.id,
+                site_id: hq.id,
                 hostname: None,
                 description: Some(
                     "Seen via LLDP from the HQ core switch; not yet scanned directly".to_string(),
@@ -1727,9 +1717,9 @@ pub(super) fn generate_hosts_and_services(
     }
 
     // ========================================================================
-    // DATA CENTER NETWORK — 20 hosts
+    // DATA CENTER SITE — 20 hosts
     // ========================================================================
-    let dc = find_network("Data Center");
+    let dc = find_site("Data Center");
     let dc_mgmt = find_subnet("DC Management");
     let dc_compute = find_subnet("DC Compute");
     let dc_storage = find_subnet("DC Storage");
@@ -2188,7 +2178,7 @@ pub(super) fn generate_hosts_and_services(
             created_at: now,
             updated_at: now,
             base: IPAddressBase {
-                network_id: dc.id,
+                site_id: dc.id,
                 host_id,
                 subnet_id: dc_compute.id,
                 ip_address: IpAddr::V4(Ipv4Addr::new(172, 16, 10, 20)),
@@ -2211,7 +2201,7 @@ pub(super) fn generate_hosts_and_services(
             created_at: now,
             updated_at: now,
             base: IPAddressBase {
-                network_id: dc.id,
+                site_id: dc.id,
                 host_id,
                 subnet_id: dc_docker.id,
                 ip_address: IpAddr::V4(Ipv4Addr::new(172, 18, 0, 1)),
@@ -2235,7 +2225,7 @@ pub(super) fn generate_hosts_and_services(
             updated_at: now,
             base: HostBase {
                 name: HostName::manual("dc-docker01".to_string()),
-                network_id: dc.id,
+                site_id: dc.id,
                 hostname: Some(Attributed::new(
                     crate::server::hosts::r#impl::attributes::HostHostnameValue(
                         "docker01.dc.acme.io".to_string(),

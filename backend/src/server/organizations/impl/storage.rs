@@ -297,7 +297,7 @@ impl Entity for Organization {
         EntityCategory::OrganizationsAndUsers
     }
 
-    fn network_id(&self) -> Option<Uuid> {
+    fn site_id(&self) -> Option<Uuid> {
         None
     }
 

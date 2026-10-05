@@ -26,7 +26,7 @@ impl EventBusService<Invite> for InviteService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, _entity: &Invite) -> Option<Uuid> {
+    fn get_site_id(&self, _entity: &Invite) -> Option<Uuid> {
         None
     }
 

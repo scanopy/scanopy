@@ -2,7 +2,7 @@
 //!
 //! When discovery inserts/updates/deletes any topology-relevant entity (host,
 //! ip_address, service, subnet, dependency, port, binding, interface, vlan,
-//! tag), we broadcast the affected `network_id` on `live_update_tx` so frontend
+//! tag), we broadcast the affected `site_id` on `live_update_tx` so frontend
 //! SSE consumers refetch. The graph itself is built on request from current
 //! entities + options (no stored graph to rebuild here), so the subscriber only
 //! pings — it does not touch any topology row.
@@ -50,37 +50,37 @@ impl Subscriber<EntityOperation> for TopologyService {
             return Ok(());
         }
 
-        let mut affected_networks: HashSet<Uuid> = HashSet::new();
+        let mut affected_sites: HashSet<Uuid> = HashSet::new();
 
         for event in events {
             // For org-scoped events (e.g., Tag changes), fan out to every
-            // network in the org so live consumers refetch.
-            let scope_network_id = event.scope.network_id();
+            // site in the org so live consumers refetch.
+            let scope_site_id = event.scope.site_id();
             let scope_org_id = event.scope.organization_id();
 
-            if let Some(network_id) = scope_network_id {
-                affected_networks.insert(network_id);
+            if let Some(site_id) = scope_site_id {
+                affected_sites.insert(site_id);
             } else if let Some(org_id) = scope_org_id {
                 let nets = self
-                    .network_service
+                    .site_service
                     .get_all(
-                        StorageFilter::<crate::server::networks::r#impl::Network>::new_from_org_id(
+                        StorageFilter::<crate::server::sites::r#impl::Site>::new_from_org_id(
                             &org_id,
                         ),
                     )
                     .await?;
                 for n in nets {
-                    affected_networks.insert(n.id);
+                    affected_sites.insert(n.id);
                 }
             }
         }
 
         // Broadcast live-update pings. Clients refetch and rebuild the graph on
-        // request. The SSE handler filters by user network_ids before forwarding.
-        for network_id in &affected_networks {
-            let _ = self.live_update_tx.send(*network_id).inspect_err(|e| {
+        // request. The SSE handler filters by user site_ids before forwarding.
+        for site_id in &affected_sites {
+            let _ = self.live_update_tx.send(*site_id).inspect_err(|e| {
                 tracing::debug!(
-                    network_id = %network_id,
+                    site_id = %site_id,
                     "Live-update broadcast skipped (no receivers): {e}"
                 )
             });

@@ -103,7 +103,7 @@ async fn demo_seed_persists_every_virtualization_relationship() {
     .await
     .expect("demo seeding must satisfy the virtualization_service_id foreign keys");
 
-    // Live rows only: step 14 snapshots each network, and close-and-clone leaves a closed copy of
+    // Live rows only: step 14 snapshots each site, and close-and-clone leaves a closed copy of
     // every entity behind. Counting those would double every figure below.
     let subnets: Vec<Subnet> = storage
         .subnets
@@ -291,6 +291,6 @@ async fn demo_seed_writes_daemon_subnets_and_the_demo_logins_api_keys() {
     assert!(
         demo_login_keys
             .iter()
-            .all(|key| !key.base.network_ids.is_empty())
+            .all(|key| !key.base.site_ids.is_empty())
     );
 }

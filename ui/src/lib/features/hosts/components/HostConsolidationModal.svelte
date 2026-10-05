@@ -43,7 +43,7 @@
 
 	// TanStack Query hooks
 	//
-	// The destination picker only offers hosts on the same network as the host
+	// The destination picker only offers hosts on the same site as the host
 	// being consolidated away, a page at a time, searched on the server.
 	//
 	// It is also gated on `isOpen`. This modal is rendered unconditionally by
@@ -51,8 +51,8 @@
 	// `useHostsQuery({ limit: 0 })` it therefore pulled ~1.9MB on page load for a
 	// dropdown nobody had opened, and shared that key with every other consumer.
 	const hostPicker = useHostPicker(() => ({
-		networkId: otherHost?.network_id,
-		// Also guards against `network_id: undefined` meaning "every network".
+		siteId: otherHost?.site_id,
+		// Also guards against `site_id: undefined` meaning "every site".
 		enabled: isOpen && !!otherHost
 	}));
 	const otherHostServices = useHostServices(() => (isOpen && otherHost ? [otherHost.id] : []));

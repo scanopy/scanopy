@@ -24,7 +24,7 @@ impl HostResponse {
             display_name_rung: _,
             name_ladder: _,
             name_source,
-            network_id,
+            site_id,
             hostname,
             hostname_source,
             description,
@@ -83,7 +83,7 @@ impl HostResponse {
             first_discovery_id: *first_discovery_id,
             base: HostBase {
                 name: host_name_from_parts(name.clone(), *name_source),
-                network_id: *network_id,
+                site_id: *site_id,
                 hostname: hostname
                     .clone()
                     .map(|v| Attributed::new(HostHostnameValue(v), *hostname_source)),
@@ -194,7 +194,7 @@ impl HostResponse {
         // If a field is added to HostBase, this will fail to compile
         let crate::server::hosts::r#impl::base::HostBase {
             name,
-            network_id,
+            site_id,
             hostname,
             description,
             source,
@@ -231,7 +231,7 @@ impl HostResponse {
             name_ladder: name_ladder.to_vec(),
             name_source: name.source(),
             name: name.value().to_string(),
-            network_id,
+            site_id,
             hostname_source: hostname.as_ref().map(|v| v.source()).unwrap_or_default(),
             hostname: attribution::text_of(&hostname),
             description,

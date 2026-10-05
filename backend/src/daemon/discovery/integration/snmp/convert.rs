@@ -58,7 +58,7 @@ fn cdp_candidates_for_port(
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn convert_snmp_if_entry(
     entry: &IfTableEntry,
-    network_id: Uuid,
+    site_id: Uuid,
     lldp_neighbors: &[LldpNeighbor],
     cdp_neighbors: &[CdpNeighbor],
     bridge_fdb: &[BridgeFdbEntry],
@@ -90,7 +90,7 @@ pub(crate) fn convert_snmp_if_entry(
 
     Interface::new(InterfaceBase {
         host_id: Uuid::nil(), // Placeholder - server will set correct host_id
-        network_id,
+        site_id,
         if_index: Some(entry.if_index),
         if_descr: entry.if_descr.clone(),
         if_name: entry.if_name.clone(),

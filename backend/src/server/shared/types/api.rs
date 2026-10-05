@@ -245,7 +245,7 @@ impl<T> ApiResponse<T> {
     }
 
     /// For handlers that wrap a generic one and fill in fields it does not know
-    /// about, such as a network's credential ids from their junction table.
+    /// about, such as a site's credential ids from their junction table.
     pub fn data_mut(&mut self) -> Option<&mut T> {
         self.data.as_mut()
     }
@@ -571,11 +571,11 @@ impl ApiError {
         )
     }
 
-    /// Bad request (400) - entity is on a different network
-    pub fn entity_network_mismatch<T: Entity>() -> Self {
+    /// Bad request (400) - entity is on a different site
+    pub fn entity_site_mismatch<T: Entity>() -> Self {
         Self::coded(
             StatusCode::BAD_REQUEST,
-            ErrorCode::EntityNetworkMismatch {
+            ErrorCode::EntitySiteMismatch {
                 entity: T::entity_name_singular().to_string(),
             },
         )
@@ -697,11 +697,11 @@ impl ApiError {
         )
     }
 
-    /// Bad request (400) - subnet is on a different network than the discovery
-    pub fn discovery_subnet_network_mismatch(subnet: &str) -> Self {
+    /// Bad request (400) - subnet is on a different site than the discovery
+    pub fn discovery_subnet_site_mismatch(subnet: &str) -> Self {
         Self::coded(
             StatusCode::BAD_REQUEST,
-            ErrorCode::DiscoverySubnetNetworkMismatch {
+            ErrorCode::DiscoverySubnetSiteMismatch {
                 subnet: subnet.to_string(),
             },
         )
@@ -709,9 +709,9 @@ impl ApiError {
 
     // === Daemon errors ===
 
-    /// Forbidden (403) - daemon cannot send updates for a different network
-    pub fn daemon_network_mismatch() -> Self {
-        Self::coded(StatusCode::FORBIDDEN, ErrorCode::DaemonNetworkMismatch)
+    /// Forbidden (403) - daemon cannot send updates for a different site
+    pub fn daemon_site_mismatch() -> Self {
+        Self::coded(StatusCode::FORBIDDEN, ErrorCode::DaemonSiteMismatch)
     }
 
     /// Forbidden (403) - daemon cannot send updates for a different daemon

@@ -12,7 +12,7 @@ export function formatDiagnostics(results: DiscoveryUpdatePayload): string {
 		['session_id', results.session_id],
 		['discovery_id', results.discovery_id],
 		['daemon_id', results.daemon_id],
-		['network_id', results.network_id],
+		['site_id', results.site_id],
 		['daemon_version', results.daemon_version],
 		['ui_version', VERSION],
 		['discovery_type', results.discovery_type.type],

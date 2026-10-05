@@ -173,7 +173,7 @@ impl ServiceService {
 
         mutable_service.base.host_id = updated_host.id;
 
-        mutable_service.base.network_id = updated_host.base.network_id;
+        mutable_service.base.site_id = updated_host.base.site_id;
 
         tracing::trace!(
             "Reassigned service {:?} bindings for from host {:?} to host {:?}",
@@ -205,10 +205,10 @@ impl ServiceService {
     ) -> Result<()> {
         use crate::server::dependencies::r#impl::base::DependencyMembers;
 
-        let network_id = old.base.network_id;
+        let site_id = old.base.site_id;
         let containers = self
             .get_all(
-                StorableFilter::<Service>::new_from_network_ids(&[network_id])
+                StorableFilter::<Service>::new_from_site_ids(&[site_id])
                     .virtualization_service_in(&[old.id], false)
                     .live(),
             )
@@ -221,16 +221,11 @@ impl ServiceService {
         // Same lock `update_dependency_members` takes, held across the read-modify-write.
         let lock_guard = self
             .storage
-            .session_lock(
-                LockKey::DependencyMembers { network_id },
-                DEFAULT_LOCK_TIMEOUT,
-            )
+            .session_lock(LockKey::DependencyMembers { site_id }, DEFAULT_LOCK_TIMEOUT)
             .await?;
         let dependencies = self
             .dependency_service
-            .get_all(StorableFilter::<Dependency>::new_from_network_ids(&[
-                network_id,
-            ]))
+            .get_all(StorableFilter::<Dependency>::new_from_site_ids(&[site_id]))
             .await?;
         for mut dependency in dependencies {
             let changed = match &mut dependency.base.members {

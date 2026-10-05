@@ -123,7 +123,7 @@ function toBindingInput(binding: Service['bindings'][0]): BindingInput {
 function toCreateHostRequest(formData: HostFormData): CreateHostRequest {
 	return {
 		name: formData.name,
-		network_id: formData.network_id,
+		site_id: formData.site_id,
 		hostname: formData.hostname ?? null,
 		description: formData.description,
 		virtualization_metadata: formData.virtualization_metadata,
@@ -163,8 +163,8 @@ function toCreateHostRequest(formData: HostFormData): CreateHostRequest {
 export interface HostQueryOptions {
 	limit?: number;
 	offset?: number;
-	/** Filter by network ID. Several narrows to the union of them. */
-	network_ids?: string[];
+	/** Filter by site ID. Several narrows to the union of them. */
+	site_ids?: string[];
 	/** Filter by the `hidden` flag. Omit for no constraint. */
 	hidden?: boolean[];
 	/** Filter by the name of the service virtualizing the host, the value "Virtualized By" groups on. */
@@ -193,7 +193,7 @@ export interface HostQueryOptions {
 	order_direction?: components['schemas']['OrderDirection'];
 	/** Filter by tag IDs (returns hosts that have ANY of the specified tags). */
 	tag_ids?: string[];
-	/** `true` returns only hosts discovery hasn't observed within their network's
+	/** `true` returns only hosts discovery hasn't observed within their site's
 	 * staleness window; omit for no staleness constraint. */
 	stale?: boolean;
 	/** Free-text search across host name, hostname, description, IP addresses
@@ -242,7 +242,7 @@ export function useHostsQuery(optionsOrGetter: HostQueryOptions | (() => HostQue
 							query: {
 								limit: options.limit,
 								offset: options.offset,
-								network_ids: options.network_ids,
+								site_ids: options.site_ids,
 								group_by: options.group_by,
 								order_by: options.order_by,
 								order_direction: options.order_direction,
@@ -319,13 +319,13 @@ export function useHostsQuery(optionsOrGetter: HostQueryOptions | (() => HostQue
  * so it takes scoping and ordering but no offset paging.
  */
 export interface HostSummaryQueryOptions {
-	/** Filter by network ID. Prefer this over an org-wide query wherever the surface is network-scoped. */
-	network_id?: string;
+	/** Filter by site ID. Prefer this over an org-wide query wherever the surface is site-scoped. */
+	site_id?: string;
 	/** Filter by specific host IDs. */
 	ids?: string[];
 	/** Filter by tag IDs (returns hosts that have ANY of the specified tags). */
 	tag_ids?: string[];
-	/** Maximum number of results. Defaults to 0 (no limit) — scope with `network_id` or `ids`. */
+	/** Maximum number of results. Defaults to 0 (no limit) — scope with `site_id` or `ids`. */
 	limit?: number;
 	/** As-of timestamp (ISO 8601) for a snapshot read instead of live state. */
 	at?: string;
@@ -341,7 +341,7 @@ export interface HostSummaryQueryOptions {
  * Query hook for host identity only — no nested children.
  *
  * Use this for anything that needs hosts as *labels or options*: name lookups,
- * pickers, per-network lists. It requests `include_children=false`, so the
+ * pickers, per-site lists. It requests `include_children=false`, so the
  * response carries the host row, its tags and its ip_addresses but not ports,
  * services or interfaces — which are the bulk of a host payload. The addresses
  * stay because a host's title can be its address, and pickers show and search them.
@@ -380,9 +380,9 @@ export function useHostSummariesQuery(
 					await apiClient.GET('/api/v1/hosts', {
 						params: {
 							query: {
-								// One network stays the ergonomic shape for a picker; the
+								// One site stays the ergonomic shape for a picker; the
 								// wire param takes a list.
-								network_ids: options.network_id ? [options.network_id] : undefined,
+								site_ids: options.site_id ? [options.site_id] : undefined,
 								ids: options.ids,
 								tag_ids: options.tag_ids,
 								limit: options.limit ?? 0,
@@ -409,8 +409,8 @@ const HOST_PICKER_PAGE_SIZE = 50;
 
 /** Options for {@link useHostPickerQuery}. */
 export interface HostPickerQueryOptions {
-	/** Filter by network ID. Omit for a picker that spans every network the user can see. */
-	network_id?: string;
+	/** Filter by site ID. Omit for a picker that spans every site the user can see. */
+	site_id?: string;
 	/** Server-side search: name, hostname, sysName, chassis id, description, IPs, MACs, services. */
 	search?: string;
 	/** Set false to hold the fetch until the picker is shown. Excluded from the query key. */
@@ -446,7 +446,7 @@ export function useHostPickerQuery(
 					await apiClient.GET('/api/v1/hosts', {
 						params: {
 							query: {
-								network_ids: options.network_id ? [options.network_id] : undefined,
+								site_ids: options.site_id ? [options.site_id] : undefined,
 								search,
 								limit: HOST_PICKER_PAGE_SIZE,
 								offset: pageParam,
@@ -920,9 +920,9 @@ import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formattin
 
 /**
  * Create empty form data for creating a new host.
- * @param defaultNetworkId - Optional network ID to use as default.
+ * @param defaultSiteId - Optional site ID to use as default.
  */
-export function createEmptyHostFormData(defaultNetworkId?: string): HostFormData {
+export function createEmptyHostFormData(defaultSiteId?: string): HostFormData {
 	return {
 		id: uuidv4Sentinel,
 		created_at: utcTimeZoneSentinel,
@@ -939,7 +939,7 @@ export function createEmptyHostFormData(defaultNetworkId?: string): HostFormData
 		virtualization_metadata: null,
 		virtualization_service_id: null,
 		virtualization_interface_id: null,
-		network_id: defaultNetworkId ?? '',
+		site_id: defaultSiteId ?? '',
 		hidden: false,
 		// The discovered attributes are simply absent on a host nothing has scanned yet. They each
 		// travel with the source that produced them, so there is no value here without one — which

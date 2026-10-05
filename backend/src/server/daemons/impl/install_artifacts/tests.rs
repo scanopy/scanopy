@@ -6,7 +6,7 @@ use crate::server::shared::storage::traits::Storable;
 fn daemon(mode: DaemonMode, url: &str) -> Daemon {
     Daemon::new(DaemonBase {
         host_id: uuid::Uuid::new_v4(),
-        network_id: uuid::Uuid::new_v4(),
+        site_id: uuid::Uuid::new_v4(),
         url: url.to_string(),
         last_seen: None,
         mode,
@@ -155,7 +155,7 @@ fn commands_targeting_an_existing_install_carry_a_selector_for_it() {
     );
 }
 
-/// Every flag and env var an install artifact may carry. Identity (network, user, name, mode)
+/// Every flag and env var an install artifact may carry. Identity (site, user, name, mode)
 /// and the `--instance` selector are deliberately absent: the server assigns identity at
 /// provision, and a first install has no existing install to select.
 fn allowed_install_settings(mode: DaemonMode) -> Vec<&'static str> {
@@ -353,7 +353,7 @@ fn docker_install_yields_a_compose_carrying_config_but_never_identity() {
     );
 
     for identity in [
-        "SCANOPY_NETWORK_ID",
+        "SCANOPY_SITE_ID",
         "SCANOPY_USER_ID",
         "SCANOPY_NAME",
         "SCANOPY_MODE",
@@ -454,7 +454,7 @@ fn client_supplied_config_cannot_override_server_controlled_fields() {
         "log_level": "trace",
         "daemon_api_key": "attacker-key",
         "server_url": "https://evil.example",
-        "network_id": "00000000-0000-0000-0000-000000000001",
+        "site_id": "00000000-0000-0000-0000-000000000001",
         "name": "impostor"
     }"#;
     let config: DaemonArgs = serde_json::from_str(body).unwrap();
@@ -462,7 +462,7 @@ fn client_supplied_config_cannot_override_server_controlled_fields() {
     assert_eq!(config.log_level.as_deref(), Some("trace"));
     assert_eq!(config.daemon_api_key, None);
     assert_eq!(config.server_url, None);
-    assert_eq!(config.network_id, None);
+    assert_eq!(config.site_id, None);
     assert_eq!(config.name, None);
 
     let artifacts = build_install_artifacts(

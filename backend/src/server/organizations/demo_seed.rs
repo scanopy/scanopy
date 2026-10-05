@@ -230,29 +230,29 @@ pub(crate) async fn insert_demo_data(
         .create_many(&demo_data.credentials)
         .await?;
 
-    // 3. Networks (depends on organization, tags)
-    let created_networks = services
-        .network_service
+    // 3. Sites (depends on organization, tags)
+    let created_sites = services
+        .site_service
         .storage()
-        .create_many(&demo_data.networks)
+        .create_many(&demo_data.sites)
         .await?;
-    collect_entity_tags(&created_networks, &mut all_entity_tags);
+    collect_entity_tags(&created_sites, &mut all_entity_tags);
 
-    // 3.5. Network-credential associations — one bulk insert across all
-    // networks (no per-network lock/delete; the org was just reset).
-    let network_cred_pairs: Vec<(Uuid, Uuid)> = demo_data
-        .network_credential_assignments
+    // 3.5. Site-credential associations — one bulk insert across all
+    // sites (no per-site lock/delete; the org was just reset).
+    let site_cred_pairs: Vec<(Uuid, Uuid)> = demo_data
+        .site_credential_assignments
         .iter()
         .flat_map(|a| {
-            let network_id = a.network_id;
+            let site_id = a.site_id;
             a.credential_ids
                 .iter()
-                .map(move |&cred_id| (network_id, cred_id))
+                .map(move |&cred_id| (site_id, cred_id))
         })
         .collect();
     services
         .credential_service
-        .create_network_credentials(&network_cred_pairs)
+        .create_site_credentials(&site_cred_pairs)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
@@ -265,14 +265,14 @@ pub(crate) async fn insert_demo_data(
     let mut all_services: Vec<Service> = Vec::new();
     for hws in &demo_data.hosts_with_services {
         let host_id = hws.host.id;
-        let network_id = hws.host.base.network_id;
+        let site_id = hws.host.base.site_id;
         all_hosts.push(hws.host.clone());
         all_ip_addresses.extend(hws.ip_addresses.clone());
         all_ports.extend(
             hws.ports
                 .iter()
                 .cloned()
-                .map(|p| p.with_host(host_id, network_id)),
+                .map(|p| p.with_host(host_id, site_id)),
         );
         all_services.extend(hws.services.clone());
     }
@@ -298,14 +298,14 @@ pub(crate) async fn insert_demo_data(
         .await?;
     collect_entity_tags(&created_owner_services, &mut all_entity_tags);
 
-    // 4. Subnets (depends on networks, and on the owner services written above)
+    // 4. Subnets (depends on sites, and on the owner services written above)
     let created_subnets = services
         .subnet_service
         .create_many(&demo_data.subnets, entity.clone())
         .await?;
     collect_entity_tags(&created_subnets, &mut all_entity_tags);
 
-    // 4.5. VLANs (depends on networks)
+    // 4.5. VLANs (depends on sites)
     services
         .vlan_service
         .storage()
@@ -345,16 +345,16 @@ pub(crate) async fn insert_demo_data(
             .map(|h| (h.id, h.display_name(&[]).unwrap_or_default()))
             .collect();
 
-        let mut if_entry_lookup: HashMap<(String, Option<i32>), Uuid> = HashMap::new();
+        let mut interface_lookup: HashMap<(String, Option<i32>), Uuid> = HashMap::new();
         let mut interface_context: HashMap<Uuid, (Uuid, DateTime<Utc>)> = HashMap::new();
         for entry in &demo_data.interfaces {
             if let Some(host_name) = host_id_to_name.get(&entry.base.host_id) {
-                if_entry_lookup.insert((host_name.clone(), entry.base.if_index), entry.id);
+                interface_lookup.insert((host_name.clone(), entry.base.if_index), entry.id);
             }
-            interface_context.insert(entry.id, (entry.base.network_id, entry.last_seen_at));
+            interface_context.insert(entry.id, (entry.base.site_id, entry.last_seen_at));
         }
 
-        // Build (network_id, source_interface_id, target_interface_id, scan_time) tuples.
+        // Build (site_id, source_interface_id, target_interface_id, scan_time) tuples.
         let mut links = Vec::new();
         for neighbor_update in &demo_data.neighbor_updates {
             let source_key = (
@@ -366,11 +366,11 @@ pub(crate) async fn insert_demo_data(
                 Some(neighbor_update.target_if_index),
             );
             if let (Some(&source_id), Some(&target_id)) = (
-                if_entry_lookup.get(&source_key),
-                if_entry_lookup.get(&target_key),
-            ) && let Some(&(network_id, scan_time)) = interface_context.get(&source_id)
+                interface_lookup.get(&source_key),
+                interface_lookup.get(&target_key),
+            ) && let Some(&(site_id, scan_time)) = interface_context.get(&source_id)
             {
-                links.push((network_id, source_id, target_id, scan_time));
+                links.push((site_id, source_id, target_id, scan_time));
             }
         }
         links
@@ -419,11 +419,11 @@ pub(crate) async fn insert_demo_data(
     // 5.5b. Write the resolved neighbour rows computed in 5.3, now that the interfaces they
     // reference exist. One `reconcile_interface_neighbors` call per source interface — demo data
     // is not a real discovery run, so `discovery_id` is `None`.
-    for (network_id, source_id, target_id, scan_time) in neighbor_links {
+    for (site_id, source_id, target_id, scan_time) in neighbor_links {
         services
             .interface_neighbor_service
             .reconcile_interface_neighbors(
-                network_id,
+                site_id,
                 source_id,
                 &[(Neighbor::Interface(target_id), Some(scan_time))],
                 scan_time,
@@ -443,7 +443,7 @@ pub(crate) async fn insert_demo_data(
                 .bindings
                 .iter()
                 .cloned()
-                .map(|b| b.with_service(s.id, s.base.network_id))
+                .map(|b| b.with_service(s.id, s.base.site_id))
         })
         .collect();
     services
@@ -466,7 +466,7 @@ pub(crate) async fn insert_demo_data(
             .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     }
 
-    // 6. Daemons (depends on hosts, networks, subnets)
+    // 6. Daemons (depends on hosts, sites, subnets)
     services
         .daemon_service
         .storage()
@@ -482,14 +482,14 @@ pub(crate) async fn insert_demo_data(
             .await?;
     }
 
-    // 7. Daemon API Keys (depends on networks)
+    // 7. Daemon API Keys (depends on sites)
     services
         .daemon_api_key_service
         .storage()
         .create_many(&demo_data.api_keys)
         .await?;
 
-    // 8. Discoveries (depends on daemons, networks, subnets)
+    // 8. Discoveries (depends on daemons, sites, subnets)
     services
         .discovery_service
         .storage()
@@ -559,7 +559,7 @@ pub(crate) async fn insert_demo_data(
             .await?;
     }
 
-    // 10. Topologies (depends on networks + the entities created above).
+    // 10. Topologies (depends on sites + the entities created above).
     // The graph is built on request from the persisted entities, so `create`
     // just persists the row + options. Must run before shares (step 11), whose
     // `topology_id` FK references these rows.
@@ -603,25 +603,25 @@ pub(crate) async fn insert_demo_data(
         .create(demo_admin, entity.clone())
         .await?;
 
-    // 13. User API Keys (depends on demo admin user + network access junction table)
-    for (api_key, network_ids) in demo_data.user_api_keys {
+    // 13. User API Keys (depends on demo admin user + site access junction table)
+    for (api_key, site_ids) in demo_data.user_api_keys {
         services
             .user_api_key_service
-            .create_with_networks(api_key, network_ids, entity.clone())
+            .create_with_sites(api_key, site_ids, entity.clone())
             .await
             .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     }
 
-    // 14. One snapshot per network so the snapshot UI is exercised in demo orgs.
+    // 14. One snapshot per site so the snapshot UI is exercised in demo orgs.
     // Must run last: close-and-clone captures the live entity set, so all demo
     // entities (and their entity-tags + live topology rows) must already exist.
-    // Each network's snapshot is scoped to its own network_id and runs in its
-    // own transaction, so the networks' snapshots run concurrently.
-    let snapshot_futures = created_networks.iter().map(|network| {
+    // Each site's snapshot is scoped to its own site_id and runs in its
+    // own transaction, so the sites' snapshots run concurrently.
+    let snapshot_futures = created_sites.iter().map(|site| {
         let entity = entity.clone();
         async move {
             let snapshot = Snapshot {
-                base: SnapshotBase::new(network.id, chrono::Utc::now(), Some(user_id)),
+                base: SnapshotBase::new(site.id, chrono::Utc::now(), Some(user_id)),
                 ..Default::default()
             };
             let created = services
@@ -631,7 +631,7 @@ pub(crate) async fn insert_demo_data(
                 .map_err(ApiError::from)?;
             services
                 .snapshot_service
-                .run_close_and_clone(created.base.network_id, created.base.taken_at, created.id)
+                .run_close_and_clone(created.base.site_id, created.base.taken_at, created.id)
                 .await
                 .map_err(|e| ApiError::internal_error(&e.to_string()))?;
             // No snapshot topology row — the graph is built on request from the
@@ -653,14 +653,14 @@ pub(crate) async fn insert_demo_data(
         let mut recent_services: Vec<Service> = Vec::new();
         for hws in &demo_data.recent_hosts_with_services {
             let host_id = hws.host.id;
-            let network_id = hws.host.base.network_id;
+            let site_id = hws.host.base.site_id;
             recent_hosts.push(hws.host.clone());
             recent_ips.extend(hws.ip_addresses.clone());
             recent_ports.extend(
                 hws.ports
                     .iter()
                     .cloned()
-                    .map(|p| p.with_host(host_id, network_id)),
+                    .map(|p| p.with_host(host_id, site_id)),
             );
             recent_services.extend(hws.services.clone());
         }
@@ -728,7 +728,7 @@ pub(crate) async fn insert_demo_data(
                     .bindings
                     .iter()
                     .cloned()
-                    .map(|b| b.with_service(s.id, s.base.network_id))
+                    .map(|b| b.with_service(s.id, s.base.site_id))
             })
             .collect();
         services
@@ -755,15 +755,15 @@ mod tests {
     /// The shape the demo dataset actually has: a bare-metal runtime host, the runtime service on
     /// it, a bridge subnet owned by that service, and a guest host owned by it too.
     fn dataset() -> (Vec<Subnet>, Vec<Host>, Vec<Service>) {
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
 
-        let runtime_host = host(&network_id);
-        let guest_host = host(&network_id);
-        let runtime_service = service(&network_id, &runtime_host.id);
-        let mut guest_service = service(&network_id, &guest_host.id);
+        let runtime_host = host(&site_id);
+        let guest_host = host(&site_id);
+        let runtime_service = service(&site_id, &runtime_host.id);
+        let mut guest_service = service(&site_id, &guest_host.id);
         guest_service.base.virtualization_service_id = Some(runtime_service.id);
 
-        let mut bridge = subnet(&network_id);
+        let mut bridge = subnet(&site_id);
         bridge.base.virtualization_service_id = Some(runtime_service.id);
 
         let mut guest_host = guest_host;

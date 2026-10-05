@@ -91,7 +91,7 @@ pub struct IntegrationTransport {
     pub description: String,
     pub requires_config: bool,
     pub single_endpoint_per_host: bool,
-    /// Where this transport can be applied (daemon host, hosts, network).
+    /// Where this transport can be applied (daemon host, hosts, site).
     pub targets: Vec<Target>,
     /// Release maturity of this specific transport.
     pub stability: CredentialStability,

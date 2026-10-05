@@ -97,15 +97,15 @@ impl PosthogService {
         None
     }
 
-    async fn resolve_distinct_id_via_network(
+    async fn resolve_distinct_id_via_site(
         &self,
         auth: &AuthenticatedEntity,
-        network_id: Uuid,
+        site_id: Uuid,
     ) -> Option<String> {
         if let Some(user_id) = auth.user_id() {
             return Some(user_id.to_string());
         }
-        if let Some(org_id) = self.get_org_id_from_network(&network_id).await {
+        if let Some(org_id) = self.get_org_id_from_site(&site_id).await {
             return Some(format!("org:{}", org_id));
         }
         if let Some(org_id) = auth.organization_id() {
@@ -129,7 +129,7 @@ fn entity_filter() -> EntityEventFilter {
             EntityDiscriminants::Organization,
             Some(vec![EntityOperationDiscriminants::Deleted]),
         ),
-        (EntityDiscriminants::Network, create_or_delete.clone()),
+        (EntityDiscriminants::Site, create_or_delete.clone()),
         (EntityDiscriminants::Host, create_or_delete.clone()),
         (EntityDiscriminants::Subnet, create_or_delete.clone()),
         (EntityDiscriminants::Discovery, create_or_delete.clone()),
@@ -163,10 +163,10 @@ impl Subscriber<EntityOperation> for PosthogService {
             let entity_disc = event.scope.entity_type().discriminant();
 
             let scope_org_id = event.scope.organization_id();
-            let scope_network_id = event.scope.network_id();
+            let scope_site_id = event.scope.site_id();
 
-            let distinct_id = if let Some(network_id) = scope_network_id {
-                self.resolve_distinct_id_via_network(&event.authentication, network_id)
+            let distinct_id = if let Some(site_id) = scope_site_id {
+                self.resolve_distinct_id_via_site(&event.authentication, site_id)
                     .await
             } else {
                 self.resolve_distinct_id_for_user(&event.authentication, scope_org_id)
@@ -186,9 +186,9 @@ impl Subscriber<EntityOperation> for PosthogService {
 
             let mut props = auth_properties(&event.authentication);
             props["entity_id"] = json!(event.scope.entity_id().to_string());
-            if let Some(network_id) = scope_network_id {
-                props["network_id"] = json!(network_id.to_string());
-                if let Some(org_id) = self.get_org_id_from_network(&network_id).await {
+            if let Some(site_id) = scope_site_id {
+                props["site_id"] = json!(site_id.to_string());
+                if let Some(org_id) = self.get_org_id_from_site(&site_id).await {
                     props["organization_id"] = json!(org_id.to_string());
                 }
             }
@@ -338,7 +338,7 @@ impl Subscriber<OnboardingOperation> for PosthogService {
             OnboardingOperationDiscriminants::FirstTopologyRebuild,
             OnboardingOperationDiscriminants::FirstDiscoveryCompleted,
             OnboardingOperationDiscriminants::FirstHostDiscovered,
-            OnboardingOperationDiscriminants::SecondNetworkCreated,
+            OnboardingOperationDiscriminants::SecondSiteCreated,
             OnboardingOperationDiscriminants::FirstTagCreated,
             OnboardingOperationDiscriminants::FirstDependencyCreated,
             OnboardingOperationDiscriminants::FirstUserApiKeyCreated,
@@ -499,7 +499,7 @@ impl Subscriber<DiscoveryPhase> for PosthogService {
             };
 
             let Some(distinct_id) = self
-                .resolve_distinct_id_via_network(&event.authentication, event.scope.network_id)
+                .resolve_distinct_id_via_site(&event.authentication, event.scope.site_id)
                 .await
             else {
                 tracing::debug!(
@@ -511,7 +511,7 @@ impl Subscriber<DiscoveryPhase> for PosthogService {
 
             let mut props = auth_properties(&event.authentication);
             props["session_id"] = json!(event.scope.session_id.to_string());
-            props["network_id"] = json!(event.scope.network_id.to_string());
+            props["site_id"] = json!(event.scope.site_id.to_string());
             props["daemon_id"] = json!(event.scope.daemon_id.to_string());
 
             let type_name: &'static str = (&event.scope.discovery_type).into();
@@ -528,7 +528,7 @@ impl Subscriber<DiscoveryPhase> for PosthogService {
                 props["reason"] = json!(reason);
             }
 
-            if let Some(org_id) = self.get_org_id_from_network(&event.scope.network_id).await {
+            if let Some(org_id) = self.get_org_id_from_site(&event.scope.site_id).await {
                 props["organization_id"] = json!(org_id.to_string());
             }
 
@@ -580,7 +580,7 @@ impl Subscriber<DiscoveryWarningCode> for PosthogService {
                 .entry((event.scope.session_id, event.operation, integration))
                 .or_insert_with(|| Grouped {
                     occurrences: 0,
-                    network_id: event.scope.network_id,
+                    site_id: event.scope.site_id,
                     daemon_id: event.scope.daemon_id,
                     authentication: event.authentication.clone(),
                 });
@@ -589,7 +589,7 @@ impl Subscriber<DiscoveryWarningCode> for PosthogService {
 
         for ((session_id, code, integration), group) in grouped {
             let Some(distinct_id) = self
-                .resolve_distinct_id_via_network(&group.authentication, group.network_id)
+                .resolve_distinct_id_via_site(&group.authentication, group.site_id)
                 .await
             else {
                 tracing::debug!(
@@ -601,13 +601,13 @@ impl Subscriber<DiscoveryWarningCode> for PosthogService {
 
             let mut props = auth_properties(&group.authentication);
             props["session_id"] = json!(session_id.to_string());
-            props["network_id"] = json!(group.network_id.to_string());
+            props["site_id"] = json!(group.site_id.to_string());
             props["daemon_id"] = json!(group.daemon_id.to_string());
             props["code"] = json!(code.to_string());
             props["integration"] = json!(integration.unwrap_or_else(|| "none".to_string()));
             props["occurrences"] = json!(group.occurrences);
 
-            if let Some(org_id) = self.get_org_id_from_network(&group.network_id).await {
+            if let Some(org_id) = self.get_org_id_from_site(&group.site_id).await {
                 props["organization_id"] = json!(org_id.to_string());
             }
 
@@ -633,7 +633,7 @@ inventory::submit!(SubscriberRegistration::new::<
 /// One `(session, code, integration)` bucket, and what it takes to attribute it once.
 struct Grouped {
     occurrences: usize,
-    network_id: Uuid,
+    site_id: Uuid,
     daemon_id: Uuid,
     authentication: AuthenticatedEntity,
 }

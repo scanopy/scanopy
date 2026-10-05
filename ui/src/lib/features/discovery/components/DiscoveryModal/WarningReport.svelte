@@ -99,7 +99,7 @@
 	 *
 	 * Only the LLDP/CDP resolution warnings carry one — everything else carries an address, which
 	 * this deliberately does not try to resolve back to a host: there is no address index on the
-	 * hosts API, and buying names for those rows means downloading every host on the network with
+	 * hosts API, and buying names for those rows means downloading every host on the site with
 	 * its nested children to serve one modal.
 	 */
 	let neededHostIds = $derived([

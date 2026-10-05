@@ -10,7 +10,6 @@ use crate::server::{
     },
     hosts::r#impl::base::{Host, HostBase},
     ip_addresses::r#impl::base::{IPAddress, IPAddressBase},
-    networks::r#impl::{Network, NetworkBase},
     organizations::r#impl::base::{Organization, OrganizationBase},
     ports::r#impl::base::{Port, PortBase, PortType},
     services::{
@@ -22,6 +21,7 @@ use crate::server::{
         storage::{factory::StorageFactory, traits::Storable},
         types::{Color, entities::EntitySource},
     },
+    sites::r#impl::{Site, SiteBase},
     subnets::r#impl::{
         base::{Subnet, SubnetBase},
         types::SubnetType,
@@ -131,18 +131,18 @@ pub fn user(organization_id: &Uuid) -> User {
     user
 }
 
-pub fn network(organization_id: &Uuid) -> Network {
-    Network::new(NetworkBase::new(*organization_id))
+pub fn site(organization_id: &Uuid) -> Site {
+    Site::new(SiteBase::new(*organization_id))
 }
 
-pub fn host(network_id: &Uuid) -> Host {
+pub fn host(site_id: &Uuid) -> Host {
     Host::new(HostBase {
         name: HostName::manual("Test Host".to_string()),
         hostname: Some(crate::server::shared::attribution::Attributed::new(
             crate::server::hosts::r#impl::attributes::HostHostnameValue("test.local".to_string()),
             AttributeSource::ReverseDns,
         )),
-        network_id: *network_id,
+        site_id: *site_id,
         description: None,
         source: EntitySource::System,
         virtualization_metadata: None,
@@ -153,9 +153,9 @@ pub fn host(network_id: &Uuid) -> Host {
     })
 }
 
-pub fn ip_address(network_id: &Uuid, subnet_id: &Uuid) -> IPAddress {
+pub fn ip_address(site_id: &Uuid, subnet_id: &Uuid) -> IPAddress {
     IPAddress::new(IPAddressBase {
-        network_id: *network_id,
+        site_id: *site_id,
         subnet_id: *subnet_id,
         ip_address: IpAddr::V4(Ipv4Addr::new(192, 168, 1, 100)),
         mac_address: None, // MAC populated during ARP discovery
@@ -165,19 +165,19 @@ pub fn ip_address(network_id: &Uuid, subnet_id: &Uuid) -> IPAddress {
     })
 }
 
-pub fn port(network_id: &Uuid, host_id: &Uuid) -> Port {
+pub fn port(site_id: &Uuid, host_id: &Uuid) -> Port {
     Port::new(PortBase {
         port_type: PortType::default(),
         host_id: *host_id,
-        network_id: *network_id,
+        site_id: *site_id,
     })
 }
 
-pub fn subnet(network_id: &Uuid) -> Subnet {
+pub fn subnet(site_id: &Uuid) -> Subnet {
     Subnet::new(SubnetBase {
         name: "Test Subnet".to_string(),
         description: None,
-        network_id: *network_id,
+        site_id: *site_id,
         cidr: SubnetCidr::new(
             SubnetCidrValue(IpCidr::V4(
                 Ipv4Cidr::new(Ipv4Addr::new(192, 168, 1, 0), 24).unwrap(),
@@ -191,7 +191,7 @@ pub fn subnet(network_id: &Uuid) -> Subnet {
     })
 }
 
-pub fn service(network_id: &Uuid, host_id: &Uuid) -> Service {
+pub fn service(site_id: &Uuid, host_id: &Uuid) -> Service {
     let service_def = ServiceDefinitionRegistry::find_by_id("Dns Server")
         .unwrap_or_else(|| ServiceDefinitionRegistry::all_service_definitions()[0].clone());
 
@@ -199,7 +199,7 @@ pub fn service(network_id: &Uuid, host_id: &Uuid) -> Service {
         name: "Test Service".to_string(),
         host_id: *host_id,
         bindings: vec![],
-        network_id: *network_id,
+        site_id: *site_id,
         service_definition: service_def,
         virtualization_metadata: None,
         virtualization_service_id: None,
@@ -209,11 +209,11 @@ pub fn service(network_id: &Uuid, host_id: &Uuid) -> Service {
     })
 }
 
-pub fn dependency(network_id: &Uuid) -> Dependency {
+pub fn dependency(site_id: &Uuid) -> Dependency {
     Dependency::new(DependencyBase {
         name: "Test Dependency".to_string(),
         description: None,
-        network_id: *network_id,
+        site_id: *site_id,
         color: Color::default(),
         dependency_type: DependencyType::RequestPath,
         members: DependencyMembers::default(),
@@ -223,10 +223,10 @@ pub fn dependency(network_id: &Uuid) -> Dependency {
     })
 }
 
-pub fn daemon(network_id: &Uuid, host_id: &Uuid) -> Daemon {
+pub fn daemon(site_id: &Uuid, host_id: &Uuid) -> Daemon {
     Daemon::new(DaemonBase {
         host_id: *host_id,
-        network_id: *network_id,
+        site_id: *site_id,
         tags: Vec::new(),
         name: "daemon".to_string(),
         url: "http://192.168.1.50:60073".to_string(),

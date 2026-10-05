@@ -10,7 +10,7 @@ use crate::daemon::discovery::types::warnings::ProvisionalSubnet;
 use crate::server::daemons::r#impl::api::ScannedEntityIds;
 use crate::server::interfaces::r#impl::base::InterfaceBase;
 use crate::server::ip_addresses::r#impl::base::{IPAddressBase, MacEvidence, MacEvidenceValue};
-use crate::server::networks::r#impl::Network;
+use crate::server::sites::r#impl::Site;
 use crate::server::subnets::r#impl::{
     base::{SubnetBase, SubnetCidr, SubnetCidrValue},
     inference::{UnplacedFarEnd, infer_ranges, placeable_subnet},
@@ -23,7 +23,7 @@ impl HostService {
     /// Create a subnet for every range these far ends imply, and report each one.
     ///
     /// Runs after the resolution pass rather than inside it: the ranges are a property of the whole
-    /// network's unplaced far ends, not of any one interface, and pooling them is the entire reason
+    /// site's unplaced far ends, not of any one interface, and pooling them is the entire reason
     /// this lives on the server (see the module docs).
     ///
     /// A failure to create one range never fails the pass. Link resolution is the caller's actual
@@ -31,7 +31,7 @@ impl HostService {
     /// far worse outcome than one missing range that the next scan re-proposes anyway.
     pub(super) async fn infer_far_end_subnets(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         far_ends: Vec<UnplacedFarEnd>,
         limit_ctx: Option<&HostLimitContext>,
         scan_time: DateTime<Utc>,
@@ -41,7 +41,7 @@ impl HostService {
         // the only ones left to tell an operator about.
         let live = self
             .subnet_service
-            .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())
+            .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live())
             .await?;
 
         let mut warnings = Vec::new();
@@ -60,7 +60,7 @@ impl HostService {
                     SubnetCidrValue(range.cidr),
                     AttributeSource::LldpNeighbourAddress,
                 ),
-                network_id,
+                site_id,
                 name: range.cidr.to_string(),
                 description: None,
                 // Not `Management` even though a management address is what usually produces this:
@@ -81,7 +81,7 @@ impl HostService {
                 Ok(created) => created,
                 Err(e) => {
                     tracing::warn!(
-                        network_id = %network_id,
+                        site_id = %site_id,
                         cidr = %range.cidr,
                         error = %e,
                         "Could not create inferred subnet; leaving its far ends unplaced"
@@ -91,7 +91,7 @@ impl HostService {
             };
 
             tracing::info!(
-                network_id = %network_id,
+                site_id = %site_id,
                 cidr = %range.cidr,
                 subnet_id = %created.id,
                 addresses = range.far_ends.len(),
@@ -149,18 +149,15 @@ impl HostService {
         // is still one nothing has contacted, and minting it is what turns an unresolved neighbour
         // into a host the next pass can place and the topology can draw.
         observed.merge(
-            self.mint_far_end_hosts(network_id, &far_ends, &placements, limit_ctx, scan_time)
+            self.mint_far_end_hosts(site_id, &far_ends, &placements, limit_ctx, scan_time)
                 .await,
         );
 
-        warnings.extend(
-            self.provisional_subnet_warnings(network_id, evidence)
-                .await?,
-        );
+        warnings.extend(self.provisional_subnet_warnings(site_id, evidence).await?);
         Ok(InferenceOutcome { observed, warnings })
     }
 
-    /// Report every range on this network still waiting to be confirmed, not only the ones this
+    /// Report every range on this site still waiting to be confirmed, not only the ones this
     /// pass created.
     ///
     /// A provisional CIDR is a standing state, not a per-scan delta — the same reasoning that makes
@@ -174,12 +171,12 @@ impl HostService {
     /// advertised it.
     async fn provisional_subnet_warnings(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         mut evidence: HashMap<Uuid, ProvisionalSubnet>,
     ) -> Result<Vec<DiscoveryWarning>> {
         let live = self
             .subnet_service
-            .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())
+            .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live())
             .await?;
 
         Ok(live
@@ -211,20 +208,20 @@ pub(super) struct InferenceOutcome {
     /// its digest like anything else. Ranges go in `found_subnet_ids`, never `subnet_ids`: the scan
     /// found evidence in them without sweeping them.
     pub observed: ScannedEntityIds,
-    /// Every range on the network still waiting to be confirmed, not only the ones created here.
+    /// Every range on the site still waiting to be confirmed, not only the ones created here.
     pub warnings: Vec<DiscoveryWarning>,
 }
 
 impl HostService {
-    /// The plan limit that applies to hosts on this network, or `None` where the plan sets none.
+    /// The plan limit that applies to hosts on this site, or `None` where the plan sets none.
     ///
-    /// Best-effort by design: a network or organization that cannot be read yields no context, and
+    /// Best-effort by design: a site or organization that cannot be read yields no context, and
     /// the mint proceeds ungated rather than the whole resolution pass failing over a lookup. The
     /// alternative — treating an unreadable plan as a full one — would silently stop drawing links
     /// on a healthy fleet.
-    pub(super) async fn host_limit_context(&self, network_id: Uuid) -> Option<HostLimitContext> {
-        let network = self.network_service.get_by_id(&network_id).await.ok()??;
-        let org_id = network.base.organization_id;
+    pub(super) async fn host_limit_context(&self, site_id: Uuid) -> Option<HostLimitContext> {
+        let site = self.site_service.get_by_id(&site_id).await.ok()??;
+        let org_id = site.base.organization_id;
         let plan = self
             .organization_service
             .get_by_id(&org_id)
@@ -234,9 +231,9 @@ impl HostService {
             .unwrap_or_else(crate::server::billing::plans::get_free_plan);
 
         let limit = plan.host_limit()?;
-        let org_network_ids = self
-            .network_service
-            .get_all(StorableFilter::<Network>::new_from_org_id(&org_id))
+        let org_site_ids = self
+            .site_service
+            .get_all(StorableFilter::<Site>::new_from_org_id(&org_id))
             .await
             .unwrap_or_default()
             .iter()
@@ -246,7 +243,7 @@ impl HostService {
         Some(HostLimitContext {
             limit,
             org_id,
-            org_network_ids,
+            org_site_ids,
             plan,
         })
     }
@@ -255,7 +252,7 @@ impl HostService {
     ///
     /// The same thing `ControllerIdentity::into_host` does for a device a controller reports but
     /// the sweep never scanned, and deliberately through the same pipeline: `create_with_children`
-    /// runs `select_matching_host` first, so a far end whose address or chassis id this network
+    /// runs `select_matching_host` first, so a far end whose address or chassis id this site
     /// already holds updates that host instead of duplicating it. Minting is only ever the
     /// *fallback*, which is what keeps a device from appearing twice.
     ///
@@ -268,7 +265,7 @@ impl HostService {
     /// not a reason to lose every link the pass resolved.
     async fn mint_far_end_hosts(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         far_ends: &[UnplacedFarEnd],
         placements: &HashMap<String, Uuid>,
         limit_ctx: Option<&HostLimitContext>,
@@ -287,7 +284,7 @@ impl HostService {
             }
 
             let mut host = Host::new(HostBase {
-                network_id,
+                site_id,
                 // Reported by something else and never contacted. Distinct from `Discovery` so a
                 // host with no ports and no services is not read as a device that is merely down,
                 // and promoted the moment a scan reaches it.
@@ -325,7 +322,7 @@ impl HostService {
                 .zip(placements.get(&far_end.chassis_id).copied())
             {
                 Some((address, subnet_id)) => vec![IPAddress::new(IPAddressBase {
-                    network_id,
+                    site_id,
                     host_id: Uuid::nil(), // Server assigns.
                     subnet_id,
                     ip_address: address,
@@ -359,7 +356,7 @@ impl HostService {
                 // one beside it. `if_descr` takes the name too, being NOT NULL and validated
                 // non-empty.
                 (Some(port_name), mac) => vec![Interface::new(InterfaceBase {
-                    network_id,
+                    site_id,
                     host_id: Uuid::nil(), // Server assigns.
                     if_descr: Some(port_name.clone()),
                     if_name: Some(port_name.clone()),
@@ -373,7 +370,7 @@ impl HostService {
                 // matches it. `if_descr` carries the address because something has to, and it is
                 // what the device gave us to call this port by.
                 (None, Some(mac)) => vec![Interface::new(InterfaceBase {
-                    network_id,
+                    site_id,
                     host_id: Uuid::nil(), // Server assigns.
                     if_descr: Some(mac.to_string()),
                     mac_address: Some(MacEvidence::new(
@@ -406,7 +403,7 @@ impl HostService {
             {
                 // The server-assigned id, not the one this loop generated: `create_with_children`
                 // matches an existing host before it creates, so what comes back may be a host this
-                // network already held. Recording that id is still right — the scan did touch it.
+                // site already held. Recording that id is still right — the scan did touch it.
                 Ok(created) => minted.merge(ScannedEntityIds {
                     host_ids: vec![created.host.id],
                     interface_ids: created.host.interfaces.iter().map(|i| i.id).collect(),
@@ -415,7 +412,7 @@ impl HostService {
                     ..Default::default()
                 }),
                 Err(e) => tracing::warn!(
-                    network_id = %network_id,
+                    site_id = %site_id,
                     chassis_id = %far_end.chassis_id,
                     address = ?far_end.address,
                     error = %e,

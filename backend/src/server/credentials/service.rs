@@ -3,7 +3,7 @@ use crate::server::{
     auth::middleware::auth::AuthenticatedEntity,
     credentials::r#impl::{
         base::Credential,
-        junction::{HostCredentialStorage, NetworkCredential, NetworkCredentialStorage},
+        junction::{HostCredentialStorage, SiteCredential, SiteCredentialStorage},
         mapping::{
             CredentialMapping, CredentialQueryPayload, IntegrationTarget, IpOverride,
             SnmpCredentialMapping, SnmpQueryCredential,
@@ -15,7 +15,6 @@ use crate::server::{
     },
     hosts::{r#impl::base::Host, service::HostService},
     ip_addresses::{r#impl::base::IPAddress, service::IPAddressService},
-    networks::service::NetworkService,
     organizations::service::OrganizationService,
     shared::{
         events::{
@@ -26,6 +25,7 @@ use crate::server::{
         services::traits::{CrudService, EventBusService},
         storage::{filter::StorableFilter, generic::GenericPostgresStorage},
     },
+    sites::service::SiteService,
     tags::entity_tags::EntityTagService,
 };
 use anyhow::Error;
@@ -37,21 +37,21 @@ use std::sync::{Arc, OnceLock};
 use strum::IntoDiscriminant;
 use uuid::Uuid;
 
-/// The set of things a credential targets, normalized across the network and host
+/// The set of things a credential targets, normalized across the site and host
 /// junction tables so two credentials can be tested for overlap. Used to enforce
 /// the single-endpoint invariant — see
 /// [`CredentialService::find_single_endpoint_conflict`].
 #[derive(Debug, Default)]
 struct CredentialTargets {
-    networks: HashSet<Uuid>,
+    sites: HashSet<Uuid>,
     /// host_id → the IPs it is scoped to (`None` = the whole host).
     hosts: Vec<(Uuid, Option<HashSet<Uuid>>)>,
 }
 
 impl CredentialTargets {
-    fn build(networks: &[Uuid], host_assignments: &[CredentialHostAssignment]) -> Self {
+    fn build(sites: &[Uuid], host_assignments: &[CredentialHostAssignment]) -> Self {
         Self {
-            networks: networks.iter().copied().collect(),
+            sites: sites.iter().copied().collect(),
             hosts: host_assignments
                 .iter()
                 .map(|h| {
@@ -74,11 +74,11 @@ impl CredentialTargets {
         }
     }
 
-    /// Two target sets overlap if they share a network, a target IP, or a host —
+    /// Two target sets overlap if they share a site, a target IP, or a host —
     /// where a shared host overlaps when either side covers the whole host or
     /// their IP scopes intersect.
     fn overlaps(&self, other: &Self) -> bool {
-        if !self.networks.is_disjoint(&other.networks) {
+        if !self.sites.is_disjoint(&other.sites) {
             return true;
         }
         self.hosts.iter().any(|(h1, s1)| {
@@ -118,11 +118,11 @@ pub struct CredentialService {
     event_bus: Arc<EventBus>,
     entity_tag_service: Arc<EntityTagService>,
     #[allow(dead_code)]
-    network_service: Arc<NetworkService>,
+    site_service: Arc<SiteService>,
     ip_address_service: Arc<IPAddressService>,
     organization_service: Arc<OrganizationService>,
     host_service: OnceLock<Arc<HostService>>,
-    network_credential_storage: NetworkCredentialStorage,
+    site_credential_storage: SiteCredentialStorage,
     host_credential_storage: HostCredentialStorage,
 }
 
@@ -131,7 +131,7 @@ impl EventBusService<Credential> for CredentialService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, _entity: &Credential) -> Option<Uuid> {
+    fn get_site_id(&self, _entity: &Credential) -> Option<Uuid> {
         None
     }
 
@@ -208,7 +208,7 @@ impl CredentialService {
         storage: Arc<GenericPostgresStorage<Credential>>,
         event_bus: Arc<EventBus>,
         entity_tag_service: Arc<EntityTagService>,
-        network_service: Arc<NetworkService>,
+        site_service: Arc<SiteService>,
         ip_address_service: Arc<IPAddressService>,
         organization_service: Arc<OrganizationService>,
         pool: sqlx::PgPool,
@@ -217,11 +217,11 @@ impl CredentialService {
             storage,
             event_bus,
             entity_tag_service,
-            network_service,
+            site_service,
             ip_address_service,
             organization_service,
             host_service: OnceLock::new(),
-            network_credential_storage: NetworkCredentialStorage::new(pool.clone()),
+            site_credential_storage: SiteCredentialStorage::new(pool.clone()),
             host_credential_storage: HostCredentialStorage::new(pool),
         }
     }
@@ -235,23 +235,20 @@ impl CredentialService {
     // Junction table methods — delegates to typed storage
     // ========================================================================
 
-    /// Get credential IDs for a network from the junction table.
-    pub async fn get_credential_ids_for_network(
-        &self,
-        network_id: &Uuid,
-    ) -> Result<Vec<Uuid>, Error> {
-        self.network_credential_storage
-            .get_credential_ids_for_network(network_id)
+    /// Get credential IDs for a site from the junction table.
+    pub async fn get_credential_ids_for_site(&self, site_id: &Uuid) -> Result<Vec<Uuid>, Error> {
+        self.site_credential_storage
+            .get_credential_ids_for_site(site_id)
             .await
     }
 
-    /// Get credential IDs for multiple networks (batch).
-    pub async fn get_credential_ids_for_networks(
+    /// Get credential IDs for multiple sites (batch).
+    pub async fn get_credential_ids_for_sites(
         &self,
-        network_ids: &[Uuid],
+        site_ids: &[Uuid],
     ) -> Result<std::collections::HashMap<Uuid, Vec<Uuid>>, Error> {
-        self.network_credential_storage
-            .get_credential_ids_for_networks(network_ids)
+        self.site_credential_storage
+            .get_credential_ids_for_sites(site_ids)
             .await
     }
 
@@ -275,50 +272,50 @@ impl CredentialService {
             .await
     }
 
-    /// Replace all credentials for a network (atomic).
-    pub async fn set_network_credentials(
+    /// Replace all credentials for a site (atomic).
+    pub async fn set_site_credentials(
         &self,
-        network_id: &Uuid,
+        site_id: &Uuid,
         credential_ids: &[Uuid],
     ) -> Result<(), Error> {
-        self.network_credential_storage
-            .save_for_network(network_id, credential_ids)
+        self.site_credential_storage
+            .save_for_site(site_id, credential_ids)
             .await
     }
 
-    /// Bulk-insert many network↔credential assignments at once, skipping the
-    /// per-network lock/delete. For seed paths on a freshly reset org. Each
-    /// pair is `(network_id, credential_id)`.
-    pub async fn create_network_credentials(&self, pairs: &[(Uuid, Uuid)]) -> Result<(), Error> {
-        let records: Vec<NetworkCredential> = pairs
+    /// Bulk-insert many site↔credential assignments at once, skipping the
+    /// per-site lock/delete. For seed paths on a freshly reset org. Each
+    /// pair is `(site_id, credential_id)`.
+    pub async fn create_site_credentials(&self, pairs: &[(Uuid, Uuid)]) -> Result<(), Error> {
+        let records: Vec<SiteCredential> = pairs
             .iter()
-            .map(|&(network_id, credential_id)| NetworkCredential {
-                network_id,
+            .map(|&(site_id, credential_id)| SiteCredential {
+                site_id,
                 credential_id,
             })
             .collect();
-        self.network_credential_storage.create_many(&records).await
+        self.site_credential_storage.create_many(&records).await
     }
 
-    /// Merge `incoming` credentials into a network's junction (additive — never prunes).
+    /// Merge `incoming` credentials into a site's junction (additive — never prunes).
     ///
-    /// The network-side counterpart of [`Self::merge_host_credentials`], for promoting a
-    /// discovery's one-shot `IntegrationTarget::Network` targets into the durable network-wide
+    /// The site-side counterpart of [`Self::merge_host_credentials`], for promoting a
+    /// discovery's one-shot `IntegrationTarget::Site` targets into the durable site-wide
     /// channel when the scan completes. Replacing would delete credentials assigned from the
-    /// networks page or the credential modal, which this path knows nothing about.
-    pub async fn merge_network_credentials(
+    /// sites page or the credential modal, which this path knows nothing about.
+    pub async fn merge_site_credentials(
         &self,
-        network_id: &Uuid,
+        site_id: &Uuid,
         incoming: &[Uuid],
     ) -> Result<(), Error> {
-        let existing = self.get_credential_ids_for_network(network_id).await?;
+        let existing = self.get_credential_ids_for_site(site_id).await?;
         let mut merged = existing;
         for credential_id in incoming {
             if !merged.contains(credential_id) {
                 merged.push(*credential_id);
             }
         }
-        self.set_network_credentials(network_id, &merged).await
+        self.set_site_credentials(site_id, &merged).await
     }
 
     /// Replace all credential assignments for a host (atomic).
@@ -361,23 +358,23 @@ impl CredentialService {
         self.set_host_credentials(host_id, &merged).await
     }
 
-    /// Get the network IDs a credential is assigned to (reverse lookup).
-    pub async fn get_network_ids_for_credential(
+    /// Get the site IDs a credential is assigned to (reverse lookup).
+    pub async fn get_site_ids_for_credential(
         &self,
         credential_id: &Uuid,
     ) -> Result<Vec<Uuid>, Error> {
-        self.network_credential_storage
-            .get_network_ids_for_credential(credential_id)
+        self.site_credential_storage
+            .get_site_ids_for_credential(credential_id)
             .await
     }
 
-    /// Get the network IDs for multiple credentials (batch, reverse lookup).
-    pub async fn get_network_ids_for_credentials(
+    /// Get the site IDs for multiple credentials (batch, reverse lookup).
+    pub async fn get_site_ids_for_credentials(
         &self,
         credential_ids: &[Uuid],
     ) -> Result<std::collections::HashMap<Uuid, Vec<Uuid>>, Error> {
-        self.network_credential_storage
-            .get_network_ids_for_credentials(credential_ids)
+        self.site_credential_storage
+            .get_site_ids_for_credentials(credential_ids)
             .await
     }
 
@@ -401,14 +398,14 @@ impl CredentialService {
             .await
     }
 
-    /// Replace the full set of networks a credential is assigned to (atomic).
-    pub async fn set_credential_networks(
+    /// Replace the full set of sites a credential is assigned to (atomic).
+    pub async fn set_credential_sites(
         &self,
         credential_id: &Uuid,
-        network_ids: &[Uuid],
+        site_ids: &[Uuid],
     ) -> Result<(), Error> {
-        self.network_credential_storage
-            .save_networks_for_credential(credential_id, network_ids)
+        self.site_credential_storage
+            .save_sites_for_credential(credential_id, site_ids)
             .await
     }
 
@@ -426,12 +423,12 @@ impl CredentialService {
     /// Enforce the single-endpoint-per-host invariant: integrations whose
     /// credential type returns `single_endpoint_per_host()` (e.g. Docker) resolve
     /// to exactly one endpoint per host, so two credentials of that integration
-    /// must not target an overlapping network, host, or IP (incl. the daemon host
+    /// must not target an overlapping site, host, or IP (incl. the daemon host
     /// at 127.0.0.1). Returns the name of the first conflicting credential, if any.
     ///
-    /// `candidate` carries its intended assignments in `base` (network ids, host
+    /// `candidate` carries its intended assignments in `base` (site ids, host
     /// assignments) — call this before persisting. Try-many
-    /// integrations (e.g. SNMP, multiple communities per network) are unconstrained.
+    /// integrations (e.g. SNMP, multiple communities per site) are unconstrained.
     pub async fn find_single_endpoint_conflict(
         &self,
         candidate: &Credential,
@@ -461,13 +458,13 @@ impl CredentialService {
 
         // Hydrate the others' junction-backed assignments.
         let other_ids: Vec<Uuid> = others.iter().map(|c| c.id).collect();
-        let net_map = self.get_network_ids_for_credentials(&other_ids).await?;
+        let net_map = self.get_site_ids_for_credentials(&other_ids).await?;
         let host_map = self
             .get_host_assignments_for_credentials(&other_ids)
             .await?;
 
         let cand = CredentialTargets::build(
-            &candidate.base.assigned_network_ids,
+            &candidate.base.assigned_site_ids,
             &candidate.base.host_assignments,
         );
         for other in &others {
@@ -556,43 +553,43 @@ impl CredentialService {
     /// Remove when minimum daemon version >= 0.15.0.
     pub async fn build_snmp_credentials_for_discovery(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
     ) -> Result<SnmpCredentialMapping, Error> {
         let host_service = self
             .host_service
             .get()
             .ok_or_else(|| anyhow::anyhow!("HostService not initialized"))?;
-        let host_filter = StorableFilter::<Host>::new_from_network_ids(&[network_id]);
+        let host_filter = StorableFilter::<Host>::new_from_site_ids(&[site_id]);
         let hosts = host_service.get_all(host_filter).await?;
 
-        let interface_filter = StorableFilter::<IPAddress>::new_from_network_ids(&[network_id]);
+        let interface_filter = StorableFilter::<IPAddress>::new_from_site_ids(&[site_id]);
         let ip_addresses = self.ip_address_service.get_all(interface_filter).await?;
 
-        // Get network's SNMP credentials (from junction table)
-        let network_cred_ids = self.get_credential_ids_for_network(&network_id).await?;
+        // Get site's SNMP credentials (from junction table)
+        let site_cred_ids = self.get_credential_ids_for_site(&site_id).await?;
         tracing::debug!(
-            network_id = %network_id,
-            credential_count = network_cred_ids.len(),
-            "Credential IDs found for network via junction table"
+            site_id = %site_id,
+            credential_count = site_cred_ids.len(),
+            "Credential IDs found for site via junction table"
         );
         // Legacy mapping only carries SNMPv2c — pre-v0.15.0 daemons can't speak
         // v1 or v3. v1/v3 credentials reach modern daemons via
         // build_all_credential_mappings.
-        let mut network_snmp_credential: Option<SnmpQueryCredential> = None;
-        for cred_id in &network_cred_ids {
+        let mut site_snmp_credential: Option<SnmpQueryCredential> = None;
+        for cred_id in &site_cred_ids {
             if let Some(cred) = self.get_by_id(cred_id).await?
                 && let CredentialQueryPayload::Snmp(snmp) =
                     cred.base.credential_type.to_query_payload()
                 && snmp.version == SnmpVersion::V2c
             {
-                network_snmp_credential = Some(snmp);
+                site_snmp_credential = Some(snmp);
                 break;
             }
         }
         tracing::debug!(
-            network_id = %network_id,
-            has_default = network_snmp_credential.is_some(),
-            "Network default SNMP credential resolution"
+            site_id = %site_id,
+            has_default = site_snmp_credential.is_some(),
+            "Site default SNMP credential resolution"
         );
 
         // Get host-level SNMP credential overrides
@@ -636,16 +633,16 @@ impl CredentialService {
         }
 
         tracing::debug!(
-            network_id = %network_id,
+            site_id = %site_id,
             ip_overrides = overrides.len(),
-            has_default = network_snmp_credential.is_some(),
+            has_default = site_snmp_credential.is_some(),
             "SNMP credential mapping built for discovery"
         );
 
         Ok(SnmpCredentialMapping {
             daemon_os: Default::default(),
-            default_credential: network_snmp_credential,
-            // Legacy pre-v0.15.0 path: this mapping is built per network rather than per
+            default_credential: site_snmp_credential,
+            // Legacy pre-v0.15.0 path: this mapping is built per site rather than per
             // credential, so there is no single id for its default to carry, and the daemons it
             // serves predate coded warnings anyway.
             default_credential_id: None,
@@ -658,7 +655,7 @@ impl CredentialService {
     /// Build generic credential mappings for unified discovery dispatch.
     /// Returns one `CredentialMapping<CredentialQueryPayload>` per credential type discriminant.
     ///
-    /// Combines: network-level credentials (broadcast defaults), host-level credential
+    /// Combines: site-level credentials (broadcast defaults), host-level credential
     /// assignments (IP overrides on discovered hosts), and the per-daemon `integration_targets`
     /// from the daemon's `Discovery` (init-command targeting — both credentialed cred↔IP and
     /// credential-less local sockets). The `integration_targets` source replaces the old global
@@ -666,7 +663,7 @@ impl CredentialService {
     /// daemons — #637) and the discovery modal's one-shot `pending_credential_ids`.
     pub async fn build_all_credential_mappings(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         integration_targets: &[IntegrationTarget],
         daemon_version: Option<&semver::Version>,
     ) -> Result<Vec<CredentialMapping<CredentialQueryPayload>>, Error> {
@@ -675,34 +672,34 @@ impl CredentialService {
             .get()
             .ok_or_else(|| anyhow::anyhow!("HostService not initialized"))?;
 
-        // Fetch hosts + ip_addresses on network
-        let host_filter = StorableFilter::<Host>::new_from_network_ids(&[network_id]);
+        // Fetch hosts + ip_addresses on site
+        let host_filter = StorableFilter::<Host>::new_from_site_ids(&[site_id]);
         let hosts = host_service.get_all(host_filter).await?;
 
-        let interface_filter = StorableFilter::<IPAddress>::new_from_network_ids(&[network_id]);
+        let interface_filter = StorableFilter::<IPAddress>::new_from_site_ids(&[site_id]);
         let ip_addresses = self.ip_address_service.get_all(interface_filter).await?;
 
         // Defense-in-depth: only ever hand a daemon credentials owned by the
-        // scanned network's own organization. Write-time validation already
-        // rejects cross-org credential↔network/host assignments, but a stale or
+        // scanned site's own organization. Write-time validation already
+        // rejects cross-org credential↔site/host assignments, but a stale or
         // otherwise-inconsistent junction row must never serialize a foreign
-        // tenant's secret onto the wire. If the network's org can't be resolved
+        // tenant's secret onto the wire. If the site's org can't be resolved
         // we fall back to the write-time guard rather than break a live scan.
-        let network_org_id = self
-            .network_service
-            .get_by_id(&network_id)
+        let site_org_id = self
+            .site_service
+            .get_by_id(&site_id)
             .await?
             .map(|n| n.base.organization_id);
-        let owned_by_network_org = |cred: &Credential| -> bool {
-            network_org_id
+        let owned_by_site_org = |cred: &Credential| -> bool {
+            site_org_id
                 .map(|org| cred.base.organization_id == org)
                 .unwrap_or(true)
         };
 
-        // Fetch network-level credentials
-        let network_cred_ids = self.get_credential_ids_for_network(&network_id).await?;
+        // Fetch site-level credentials
+        let site_cred_ids = self.get_credential_ids_for_site(&site_id).await?;
 
-        // One mapping per *credential*, not per credential type. Keying by type meant a network
+        // One mapping per *credential*, not per credential type. Keying by type meant a site
         // assigned two SNMPv2c communities dispatched only the lower-UUID one and silently dropped
         // the other, leaving every device that answers to the dropped community unscanned. Two
         // communities is ordinary practice (per site, per vendor), and the daemon already expects
@@ -716,9 +713,9 @@ impl CredentialService {
         // applies between credentials of one integration.
         let mut created_at: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
 
-        for cred_id in &network_cred_ids {
+        for cred_id in &site_cred_ids {
             if let Some(cred) = self.get_by_id(cred_id).await?
-                && owned_by_network_org(&cred)
+                && owned_by_site_org(&cred)
             {
                 created_at.insert(cred.id, cred.created_at);
                 let cred_type = &cred.base.credential_type;
@@ -736,7 +733,7 @@ impl CredentialService {
             if let Some(assignments) = host_cred_map.get(&host.id) {
                 for assignment in assignments {
                     if let Some(cred) = self.get_by_id(&assignment.credential_id).await?
-                        && owned_by_network_org(&cred)
+                        && owned_by_site_org(&cred)
                     {
                         created_at.insert(cred.id, cred.created_at);
                         apply_host_assignment(
@@ -817,7 +814,7 @@ impl TypedCredentialMapping {
 
 /// The mapping for one credential, created on first use.
 ///
-/// The single place the accumulator is keyed, shared by the network-default, host-override and
+/// The single place the accumulator is keyed, shared by the site-default, host-override and
 /// integration-target paths so they cannot drift back apart.
 pub(crate) fn mapping_for<'a>(
     mappings: &'a mut BTreeMap<Uuid, TypedCredentialMapping>,
@@ -836,9 +833,9 @@ pub(crate) fn mapping_for<'a>(
 /// SnmpV1 and SnmpV3 carry a higher daemon floor than SnmpV2c but all three collapse to one `Snmp`
 /// tag on the wire — gating after that collapse could not tell them apart.
 /// Configuring an incompatible credential is already refused at the API with an actionable 400,
-/// but only for a discovery's `integration_targets`. This set also carries network credentials and
-/// host assignments, which are network-scoped and cannot be validated against one daemon version
-/// because a network may hold several daemons on different ones. So reaching here means a
+/// but only for a discovery's `integration_targets`. This set also carries site credentials and
+/// host assignments, which are site-scoped and cannot be validated against one daemon version
+/// because a site may hold several daemons on different ones. So reaching here means a
 /// mixed-version fleet or a downgrade, where the credential silently does nothing on this daemon
 /// until it is upgraded — worth saying out loud, since a silent filter is indistinguishable from
 /// a credential that simply never worked.
@@ -866,10 +863,10 @@ pub(crate) fn retain_daemon_compatible(
 ///
 /// Mappings carrying IP overrides are emitted **last**, and this is load-bearing. Within a single
 /// mapping the daemon tries overrides before the default and stops at the first success, so a
-/// host-specific credential beats a network-wide one. Across mappings the rule inverts — the *last*
+/// host-specific credential beats a site-wide one. Across mappings the rule inverts — the *last*
 /// successful probe is recorded as that host's working credential — so splitting one-mapping-per-type
 /// into one-per-credential would have flipped that precedence and started attributing hosts to a
-/// network-wide credential instead of the specific one assigned to them.
+/// site-wide credential instead of the specific one assigned to them.
 ///
 /// Within each tier the oldest credential goes last, so of two equally specific credentials that
 /// both work, the one created first is used. A credential missing from `created_at` counts as the
@@ -895,7 +892,7 @@ fn order_mappings_for_dispatch(
         .map(|(credential_id, typed)| {
             // The key is the credential this whole mapping belongs to, and dropping it here is
             // what used to leave a broadcast default unattributable on the daemon. Stamped rather
-            // than set at build time so all three accumulator paths — network default, host
+            // than set at build time so all three accumulator paths — site default, host
             // override, integration target — get it from the one place they are keyed by.
             let mut mapping = typed.mapping;
             if mapping.default_credential.is_some() {
@@ -940,7 +937,7 @@ pub(crate) fn apply_integration_target(
     let target_ips: Vec<IpAddr> = match target {
         IntegrationTarget::DaemonHost { .. } => vec![IpAddr::V4(Ipv4Addr::LOCALHOST)],
         IntegrationTarget::Hosts { ips, .. } => ips.clone(),
-        IntegrationTarget::Network { .. } => Vec::new(),
+        IntegrationTarget::Site { .. } => Vec::new(),
     };
     if matches!(target, IntegrationTarget::Hosts { .. }) && target_ips.is_empty() {
         return;
@@ -948,12 +945,12 @@ pub(crate) fn apply_integration_target(
 
     let payload = credential_type.to_query_payload();
     let credential_id = target.credential_id();
-    // Keyed by credential, so a second `Network` target of the same type no longer displaces the
-    // first — the same collapse that dropped network-assigned credentials applied here too.
+    // Keyed by credential, so a second `Site` target of the same type no longer displaces the
+    // first — the same collapse that dropped site-assigned credentials applied here too.
     let mapping = mapping_for(mappings_by_credential, credential_id, credential_type);
 
     match target {
-        IntegrationTarget::Network { .. } => {
+        IntegrationTarget::Site { .. } => {
             mapping.default_credential = Some(payload);
         }
         IntegrationTarget::Hosts { .. } | IntegrationTarget::DaemonHost { .. } => {
@@ -966,7 +963,7 @@ pub(crate) fn apply_integration_target(
 
 /// Apply one host credential assignment to the per-credential mapping accumulator.
 ///
-/// Pure (no I/O): the caller resolves the credential and supplies the network's addresses.
+/// Pure (no I/O): the caller resolves the credential and supplies the site's addresses.
 /// `ip_address_ids` scopes the assignment to specific addresses on the host; `None` means the
 /// whole host (how SNMP reports its assignments, and the fallback when a daemon-reported
 /// address can't be resolved — see `remap_assignment_ip_ids`).
@@ -1276,11 +1273,11 @@ mod integration_target_tests {
     }
 
     /// A target whose scope isn't permitted by its credential type's `targets()` is skipped —
-    /// e.g. a `DockerSocket` credential (daemon-host only) given a `Network` scope.
+    /// e.g. a `DockerSocket` credential (daemon-host only) given a `Site` scope.
     #[test]
     fn scope_not_permitted_by_credential_type_is_skipped() {
         let cred_type = CredentialTypeDiscriminants::DockerSocket.to_credential_type();
-        let target = IntegrationTarget::Network {
+        let target = IntegrationTarget::Site {
             credential_id: Uuid::new_v4(),
         };
         let mut map: Mappings = Mappings::new();
@@ -1290,7 +1287,7 @@ mod integration_target_tests {
 
     /// Two credentials of the same type must both reach the daemon.
     ///
-    /// Keying the accumulator by credential *type* meant a network assigned two SNMPv2c
+    /// Keying the accumulator by credential *type* meant a site assigned two SNMPv2c
     /// communities dispatched only one of them — chosen by whichever had the lower UUID — and
     /// dropped the other with no log. Every device answering to the dropped community was then
     /// never scanned at all: no interfaces, no LLDP, absent from L2. Two communities (per site,
@@ -1320,7 +1317,7 @@ mod integration_target_tests {
     /// A broadcast default must reach the daemon knowing which credential it is.
     ///
     /// The accumulator is keyed by credential id, and this is the only place that key can be put
-    /// on the mapping — it was dropped here, which left a malformed network-wide credential able
+    /// on the mapping — it was dropped here, which left a malformed site-wide credential able
     /// to say what failed but not which record to open. A malformed default is the one attempt
     /// outcome that is reported for a broadcast credential (see `issue_for_attempt`), so this is
     /// the whole path by which that warning gets an id.
@@ -1402,13 +1399,13 @@ mod integration_target_tests {
         assert_eq!(map.keys().copied().collect::<Vec<_>>(), vec![v2c_id]);
     }
 
-    /// Overrides are emitted last so a host-specific credential still beats a network-wide one.
+    /// Overrides are emitted last so a host-specific credential still beats a site-wide one.
     ///
     /// Within one mapping the daemon tries overrides first and stops at the first success; across
     /// mappings it records the *last* success as the host's working credential. Splitting one
     /// mapping per type into one per credential inverts which rule applies, so without this
     /// ordering a host with its own assigned credential would start being attributed to whichever
-    /// network-wide credential also happened to work.
+    /// site-wide credential also happened to work.
     #[test]
     fn overrides_are_probed_after_broadcasts() {
         let mut map: Mappings = Mappings::new();
@@ -1416,7 +1413,7 @@ mod integration_target_tests {
         let broadcast_id = Uuid::from_u128(1);
         let host_id = Uuid::from_u128(2);
 
-        let broadcast = snmp_v2c("network-wide");
+        let broadcast = snmp_v2c("site-wide");
         mapping_for(&mut map, broadcast_id, &broadcast).default_credential =
             Some(broadcast.to_query_payload());
 
@@ -1658,17 +1655,17 @@ mod integration_target_tests {
         );
     }
 
-    /// A second `Network` target of the same credential type must not displace the first — the
+    /// A second `Site` target of the same credential type must not displace the first — the
     /// same collapse, reached through the init-command targeting path instead.
     #[test]
-    fn two_network_targets_of_one_type_both_survive() {
+    fn two_site_targets_of_one_type_both_survive() {
         let mut map: Mappings = Mappings::new();
         let cred_type = CredentialTypeDiscriminants::SnmpV2c.to_credential_type();
 
         for id in [Uuid::from_u128(1), Uuid::from_u128(2)] {
             apply_integration_target(
                 &mut map,
-                &IntegrationTarget::Network { credential_id: id },
+                &IntegrationTarget::Site { credential_id: id },
                 &cred_type,
             );
         }
@@ -1680,11 +1677,11 @@ mod integration_target_tests {
         );
     }
 
-    /// A `Network`-scoped target becomes a network-level default, not an IP override.
+    /// A `Site`-scoped target becomes a site-level default, not an IP override.
     #[test]
-    fn network_scope_sets_default_not_override() {
+    fn site_scope_sets_default_not_override() {
         let cred_type = CredentialTypeDiscriminants::SnmpV2c.to_credential_type();
-        let target = IntegrationTarget::Network {
+        let target = IntegrationTarget::Site {
             credential_id: Uuid::new_v4(),
         };
         let mut map: Mappings = Mappings::new();

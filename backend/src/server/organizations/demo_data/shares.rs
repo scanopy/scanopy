@@ -6,17 +6,16 @@ use super::*;
 
 pub(super) fn generate_shares(
     topologies: &[Topology],
-    networks: &[Network],
+    sites: &[Site],
     user_id: Uuid,
     now: DateTime<Utc>,
 ) -> Vec<Share> {
-    let hq_network = networks.iter().find(|n| n.base.name == "Headquarters");
-    let hq_topology =
-        hq_network.and_then(|net| topologies.iter().find(|t| t.base.network_id == net.id));
+    let hq_site = sites.iter().find(|n| n.base.name == "Headquarters");
+    let hq_topology = hq_site.and_then(|net| topologies.iter().find(|t| t.base.site_id == net.id));
 
     let mut shares = Vec::new();
 
-    if let (Some(network), Some(topology)) = (hq_network, hq_topology) {
+    if let (Some(site), Some(topology)) = (hq_site, hq_topology) {
         if let Ok(id) = Uuid::parse_str("a1b2c3d4-e5f6-7890-abcd-ef1234567890") {
             shares.push(Share {
                 // Fixed UUID for demo share — used in onboarding embed
@@ -25,7 +24,7 @@ pub(super) fn generate_shares(
                 updated_at: now,
                 base: ShareBase {
                     topology_id: topology.id,
-                    network_id: network.id,
+                    site_id: site.id,
                     created_by: user_id,
                     name: "HQ Public View".to_string(),
                     is_enabled: true,
@@ -52,7 +51,7 @@ pub(super) fn generate_shares(
                 updated_at: now,
                 base: ShareBase {
                     topology_id: topology.id,
-                    network_id: network.id,
+                    site_id: site.id,
                     created_by: user_id,
                     name: "HQ Public View - With Inspect Panel".to_string(),
                     is_enabled: true,

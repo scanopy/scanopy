@@ -22,7 +22,6 @@ use crate::server::{
     ip_addresses::service::IPAddressService,
     logging::service::LoggingService,
     metrics::service::MetricsService,
-    networks::service::NetworkService,
     organizations::service::OrganizationService,
     ports::service::PortService,
     posthog::PosthogService,
@@ -36,6 +35,7 @@ use crate::server::{
         trusted_ca::TrustedCaBundle,
     },
     shares::service::ShareService,
+    sites::service::SiteService,
     snapshots::service::SnapshotService,
     subnets::service::SubnetService,
     tags::{entity_tags::EntityTagService, service::TagService},
@@ -54,7 +54,7 @@ static PROMETHEUS_HANDLE: OnceLock<PrometheusHandle> = OnceLock::new();
 pub struct ServiceFactory {
     pub user_service: Arc<UserService>,
     pub auth_service: Arc<AuthService>,
-    pub network_service: Arc<NetworkService>,
+    pub site_service: Arc<SiteService>,
     pub host_service: Arc<HostService>,
     pub ip_address_service: Arc<IPAddressService>,
     pub dependency_service: Arc<DependencyService>,
@@ -144,7 +144,7 @@ impl ServiceFactory {
 
         let user_api_key_service = Arc::new(UserApiKeyService::new(
             storage.user_api_keys.clone(),
-            storage.user_api_key_network_access.clone(),
+            storage.user_api_key_site_access.clone(),
             event_bus.clone(),
             entity_tag_service.clone(),
         ));
@@ -212,8 +212,8 @@ impl ServiceFactory {
             storage.subnet_vlan.clone(),
         ));
 
-        let network_service = Arc::new(NetworkService::new(
-            storage.networks.clone(),
+        let site_service = Arc::new(SiteService::new(
+            storage.sites.clone(),
             subnet_service.clone(),
             event_bus.clone(),
             entity_tag_service.clone(),
@@ -221,7 +221,7 @@ impl ServiceFactory {
 
         let user_service = Arc::new(UserService::new(
             storage.users.clone(),
-            storage.user_network_access.clone(),
+            storage.user_site_access.clone(),
             event_bus.clone(),
         ));
 
@@ -252,7 +252,7 @@ impl ServiceFactory {
             storage.credentials.clone(),
             event_bus.clone(),
             entity_tag_service.clone(),
-            network_service.clone(),
+            site_service.clone(),
             ip_address_service.clone(),
             organization_service.clone(),
             storage.pool.clone(),
@@ -264,7 +264,7 @@ impl ServiceFactory {
             event_bus.clone(),
             entity_tag_service.clone(),
             credential_service.clone(),
-            network_service.clone(),
+            site_service.clone(),
             organization_service.clone(),
         )
         .await?;
@@ -277,7 +277,7 @@ impl ServiceFactory {
             discovery_service.clone(),
             credential_service.clone(),
             subnet_service.clone(),
-            network_service.clone(),
+            site_service.clone(),
             organization_service.clone(),
             user_service.clone(),
             daemon_api_key_service.clone(),
@@ -297,7 +297,7 @@ impl ServiceFactory {
             credential_service.clone(),
             subnet_service.clone(),
             vlan_service.clone(),
-            network_service.clone(),
+            site_service.clone(),
             organization_service.clone(),
             event_bus.clone(),
             entity_tag_service.clone(),
@@ -321,7 +321,7 @@ impl ServiceFactory {
             interface_neighbor_service.clone(),
             tag_service.clone(),
             vlan_service.clone(),
-            network_service.clone(),
+            site_service.clone(),
             storage.topologies.clone(),
             event_bus.clone(),
         ));
@@ -330,7 +330,7 @@ impl ServiceFactory {
             Arc::new(storage.pool.clone()),
             storage.snapshots.clone(),
             event_bus.clone(),
-            network_service.clone(),
+            site_service.clone(),
             organization_service.clone(),
         );
 
@@ -344,7 +344,7 @@ impl ServiceFactory {
             subnet_service.clone(),
             vlan_service.clone(),
             user_service.clone(),
-            network_service.clone(),
+            site_service.clone(),
             discovery_service.clone(),
             event_bus.clone(),
         ));
@@ -365,7 +365,7 @@ impl ServiceFactory {
                 user_service.clone(),
                 organization_service.clone(),
                 host_service.clone(),
-                network_service.clone(),
+                site_service.clone(),
                 service_service.clone(),
                 daemon_service.clone(),
                 public_url,
@@ -386,7 +386,7 @@ impl ServiceFactory {
                 user_service.clone(),
                 organization_service.clone(),
                 host_service.clone(),
-                network_service.clone(),
+                site_service.clone(),
                 service_service.clone(),
                 daemon_service.clone(),
                 public_url,
@@ -417,7 +417,7 @@ impl ServiceFactory {
                             user_service.clone(),
                             organization_service.clone(),
                             host_service.clone(),
-                            network_service.clone(),
+                            site_service.clone(),
                             service_service.clone(),
                             daemon_service.clone(),
                             public_url,
@@ -466,7 +466,7 @@ impl ServiceFactory {
                 webhook_secret,
                 organization_service: organization_service.clone(),
                 user_service: user_service.clone(),
-                network_service: network_service.clone(),
+                site_service: site_service.clone(),
                 host_service: host_service.clone(),
                 event_bus: event_bus.clone(),
             })))
@@ -486,7 +486,7 @@ impl ServiceFactory {
         let brevo_service = config.brevo_api_key.map(|api_key| {
             Arc::new(BrevoService::new(
                 api_key.clone(),
-                network_service.clone(),
+                site_service.clone(),
                 host_service.clone(),
                 user_service.clone(),
                 organization_service.clone(),
@@ -502,7 +502,7 @@ impl ServiceFactory {
                 PosthogService::new(
                     api_key,
                     "https://ph.scanopy.net".to_string(),
-                    network_service.clone(),
+                    site_service.clone(),
                 )
                 .await,
             ))
@@ -528,7 +528,7 @@ impl ServiceFactory {
         let factory = Self {
             user_service,
             auth_service,
-            network_service,
+            site_service,
             host_service,
             ip_address_service,
             dependency_service,
@@ -585,7 +585,7 @@ impl ServiceFactory {
         let Self {
             user_service,
             auth_service,
-            network_service,
+            site_service,
             host_service,
             ip_address_service,
             dependency_service,
@@ -624,7 +624,7 @@ impl ServiceFactory {
         ServiceCollector::new()
             .with(user_service.clone())
             .with(auth_service.clone())
-            .with(network_service.clone())
+            .with(site_service.clone())
             .with(host_service.clone())
             .with(ip_address_service.clone())
             .with(dependency_service.clone())

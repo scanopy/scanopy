@@ -6,7 +6,7 @@
 	import { CredentialTypeDisplay } from '$lib/shared/components/forms/selection/display/CredentialTypeDisplay.svelte';
 	import { CredentialDisplay } from '$lib/shared/components/forms/selection/display/CredentialDisplay.svelte';
 	import CredentialForm from '$lib/features/credentials/components/CredentialForm.svelte';
-	import { slugifyNetworkName } from '$lib/features/daemons/utils';
+	import { slugifySiteName } from '$lib/features/daemons/utils';
 	import EntityConfigEmpty from '$lib/shared/components/forms/EntityConfigEmpty.svelte';
 	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
 	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
@@ -20,7 +20,7 @@
 		isDaemonHostOnly as isDaemonHostOnlyTargets
 	} from '$lib/features/credentials/types/base';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { useCredentialsQuery } from '$lib/features/credentials/queries';
 	import {
 		daemonOsRefusal,
@@ -43,7 +43,7 @@
 		daemons_credentialWizardDescriptionLinkText,
 		daemons_credentialWizardSelectType,
 		daemons_credentialWizardEmpty,
-		daemons_credentialWizardNetworkCredentials,
+		daemons_credentialWizardSiteCredentials,
 		daemons_credentialWizardCreateNew,
 		daemons_credentialWizardAddExisting,
 		daemons_credentialWizardSelectExisting,
@@ -57,17 +57,17 @@
 		targetIps: string[];
 		fieldValues: Record<string, string>;
 		isExisting?: boolean;
-		/** Hosts on this network the credential is already assigned to through the
+		/** Hosts on this site the credential is already assigned to through the
 		 *  host/credential junction. Listed on the card, not editable here. Resolved by
 		 *  the caller — this component has no hosts query. */
 		lockedHosts?: Host[];
-		// How the new credential is assigned: 'broadcast' (network default) or
+		// How the new credential is assigned: 'broadcast' (site default) or
 		// 'per_host' (target IPs). Defaults based on the type's scope_models.
 		scope?: 'broadcast' | 'per_host';
 	}
 
 	interface Props {
-		networkId?: string;
+		siteId?: string;
 		pendingCredentials: PendingCredential[];
 		onRemoveCredential?: (credential: Credential) => void;
 		description?: string;
@@ -89,7 +89,7 @@
 	}
 
 	let {
-		networkId = '',
+		siteId = '',
 		pendingCredentials = $bindable([]),
 		onRemoveCredential,
 		description,
@@ -102,15 +102,15 @@
 
 	let fixedDaemonOs = $derived(daemonOs ? osFamilyOf(daemonOs) : null);
 
-	// Query network and credential data for network-level credential display
-	const networksQuery = useNetworksQuery();
+	// Query site and credential data for site-level credential display
+	const sitesQuery = useSitesQuery();
 	const credentialsQuery = useCredentialsQuery();
 
-	let networkCredentials = $derived.by(() => {
-		if (!networkId || !networksQuery.data || !credentialsQuery.data) return [];
-		const network = networksQuery.data.find((n) => n.id === networkId);
-		if (!network?.credential_ids?.length) return [];
-		return credentialsQuery.data.filter((c) => network.credential_ids!.includes(c.id));
+	let siteCredentials = $derived.by(() => {
+		if (!siteId || !sitesQuery.data || !credentialsQuery.data) return [];
+		const site = sitesQuery.data.find((n) => n.id === siteId);
+		if (!site?.credential_ids?.length) return [];
+		return credentialsQuery.data.filter((c) => site.credential_ids!.includes(c.id));
 	});
 
 	const organizationQuery = useOrganizationQuery();
@@ -189,7 +189,7 @@
 	let typeOptions = $derived(
 		credentialTypes.getItems().filter((t) => {
 			// A daemon-host-only type (the local socket) can only be added once (one daemon
-			// host). Locked-only rows are excluded: they span every host on the network, and
+			// host). Locked-only rows are excluded: they span every host on the site, and
 			// one assigned to some *other* host leaves this daemon's host free. When one
 			// genuinely occupies it, that reaches the dropdown through
 			// `claimedDaemonHostIntegrations` instead, which disables the option with a
@@ -227,15 +227,15 @@
 			: null;
 	}
 
-	// Available existing credentials (filter out already-added and network-level)
+	// Available existing credentials (filter out already-added and site-level)
 	let availableExistingCredentials = $derived.by(() => {
 		if (!credentialsQuery.data) return [];
 		// Every credential gets exactly one card, junction-assigned ones included — adding
 		// a target to an existing card is how you target it here, so re-offering it would
 		// only produce a duplicate.
 		const pendingIds = new Set(pendingCredentials.map((p) => p.credential.id));
-		const networkCredIds = new Set(networkCredentials.map((c) => c.id));
-		return credentialsQuery.data.filter((c) => !pendingIds.has(c.id) && !networkCredIds.has(c.id));
+		const siteCredIds = new Set(siteCredentials.map((c) => c.id));
+		return credentialsQuery.data.filter((c) => !pendingIds.has(c.id) && !siteCredIds.has(c.id));
 	});
 
 	// Refs to each CredentialForm for buildCredentialType()
@@ -276,7 +276,7 @@
 	// Auto-generate a stable name: the type kebab-cased plus the next free number
 	// (e.g. docker-proxy-1, docker-proxy-2). Avoids collisions on remove/re-add.
 	function nextCredentialName(typeId: string): string {
-		const prefix = `${slugifyNetworkName(credentialTypes.getName(typeId) ?? typeId)}-`;
+		const prefix = `${slugifySiteName(credentialTypes.getName(typeId) ?? typeId)}-`;
 		let max = 0;
 		for (const p of pendingCredentials) {
 			if (!p.credential.name.startsWith(prefix)) continue;
@@ -313,11 +313,9 @@
 		}
 
 		const fieldValues = initDefaultFieldValues(typeId);
-		// Network-capable types (e.g. SNMP) default to broadcast scope, matching
+		// Site-capable types (e.g. SNMP) default to broadcast scope, matching
 		// CredentialForm's initial target.
-		const supportsBroadcast = (credentialTypes.getMetadata(typeId)?.targets ?? []).includes(
-			'Network'
-		);
+		const supportsBroadcast = (credentialTypes.getMetadata(typeId)?.targets ?? []).includes('Site');
 		pendingCredentials = [
 			...pendingCredentials,
 			{
@@ -366,7 +364,7 @@
 				// never emits it, so the row must carry it or a broadcast type would be
 				// added with no recorded selection and written out as no target at all.
 				scope: (credentialTypes.getMetadata(existing.credential_type.type)?.targets ?? []).includes(
-					'Network'
+					'Site'
 				)
 					? 'broadcast'
 					: 'per_host'
@@ -499,8 +497,8 @@
 						// Set only when the credential reads something on the daemon; the form applies
 						// `fixedDaemonOs` itself. Without a form the server clears an unused one.
 						daemon_os: ref ? ref.getDaemonOs() : (fixedDaemonOs ?? p.credential.daemon_os),
-						// Broadcast: assign as a network default. Per-host: leave to target_ips.
-						assigned_network_ids: isBroadcast && networkId ? [networkId] : []
+						// Broadcast: assign as a site default. Per-host: leave to target_ips.
+						assigned_site_ids: isBroadcast && siteId ? [siteId] : []
 					},
 					targetIps: isBroadcast ? [] : p.targetIps
 				};
@@ -521,10 +519,10 @@
 		href="https://scanopy.net/docs/using-scanopy/credentials/"
 		linkText={descriptionLinkText ?? daemons_credentialWizardDescriptionLinkText()}
 	/>
-	{#if networkCredentials.length > 0}
+	{#if siteCredentials.length > 0}
 		<p class="text-tertiary mt-1 text-xs">
-			{daemons_credentialWizardNetworkCredentials()}
-			{#each networkCredentials as cred (cred.id)}
+			{daemons_credentialWizardSiteCredentials()}
+			{#each siteCredentials as cred (cred.id)}
 				<EntityTag
 					entityRef={{
 						entityType: 'Credential',

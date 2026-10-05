@@ -7,7 +7,7 @@
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import type { FieldConfig } from '$lib/shared/components/data/types';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import { networkItems } from '$lib/features/networks/columns';
+	import { siteItems } from '$lib/features/sites/columns';
 	import CreateApiKeyModal from './ApiKeyModal.svelte';
 	import type { ApiKey } from '../types/base';
 	import { useTagsQuery } from '$lib/features/tags/queries';
@@ -17,7 +17,7 @@
 		useDeleteApiKeyMutation,
 		useBulkDeleteApiKeysMutation
 	} from '../queries';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import type { TabProps } from '$lib/shared/types';
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
@@ -34,11 +34,11 @@
 		common_confirmDeleteName,
 		common_created,
 		common_name,
-		common_network,
+		common_site,
 		common_noEntityYet,
 		common_tags,
 		common_updated,
-		common_unknownNetwork,
+		common_unknownSite,
 		daemonApiKeys_title,
 		daemonApiKeys_provisionOnlyHint,
 		daemons_legacyKeyHelp
@@ -49,7 +49,7 @@
 	// Queries
 	const tagsQuery = useTagsQuery();
 	const apiKeysQuery = useApiKeysQuery();
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	// Daemons query — also used to determine which API keys are in use
 	const daemonsQuery = useDaemonsQuery();
 
@@ -62,7 +62,7 @@
 	// (daemon_id set) is managed from the daemon record, not this tab.
 	let tagsData = $derived(tagsQuery.data ?? []);
 	let apiKeysData = $derived((apiKeysQuery.data ?? []).filter((k) => k.daemon_id == null));
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
 	let isLoading = $derived(apiKeysQuery.isPending);
 	let apiKeyIdsInUse = $derived(
 		new Set(
@@ -155,17 +155,17 @@
 			sortable: true
 		},
 		{
-			key: 'network_id',
+			key: 'site_id',
 			type: 'string',
-			label: common_network(),
+			label: common_site(),
 			searchable: true,
 			filterable: true,
 			groupable: true,
 			sortable: true,
 			getValue(item) {
-				return networksData.find((n) => n.id == item.network_id)?.name || common_unknownNetwork();
+				return sitesData.find((n) => n.id == item.site_id)?.name || common_unknownSite();
 			},
-			display: { getItems: (item) => networkItems(item.network_id, networksData) }
+			display: { getItems: (item) => siteItems(item.site_id, sitesData) }
 		},
 		{
 			key: 'is_enabled',

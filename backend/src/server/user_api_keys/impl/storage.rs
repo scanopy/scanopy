@@ -67,8 +67,8 @@ impl Storable for UserApiKey {
                     last_used,
                     expires_at,
                     is_enabled,
-                    tags: _,        // Stored in entity_tags junction table
-                    network_ids: _, // Stored in junction table, not here
+                    tags: _,     // Stored in entity_tags junction table
+                    site_ids: _, // Stored in junction table, not here
                 },
         } = self.clone();
 
@@ -121,8 +121,8 @@ impl Storable for UserApiKey {
                 last_used: row.get("last_used"),
                 expires_at: row.get("expires_at"),
                 is_enabled: row.get("is_enabled"),
-                tags: Vec::new(),        // Hydrated from entity_tags junction table
-                network_ids: Vec::new(), // Hydrated separately from junction table
+                tags: Vec::new(),     // Hydrated from entity_tags junction table
+                site_ids: Vec::new(), // Hydrated separately from junction table
             },
         })
     }
@@ -174,8 +174,8 @@ impl Entity for UserApiKey {
         EntityCategory::OrganizationsAndUsers
     }
 
-    fn network_id(&self) -> Option<Uuid> {
-        // User API keys use a junction table for network access
+    fn site_id(&self) -> Option<Uuid> {
+        // User API keys use a junction table for site access
         None
     }
 

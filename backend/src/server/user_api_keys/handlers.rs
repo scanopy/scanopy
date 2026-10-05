@@ -3,7 +3,7 @@ use crate::server::shared::events::types::{OnboardingOperation, OnboardingOperat
 use crate::server::shared::extractors::Query;
 use crate::server::shared::storage::traits::Entity;
 use crate::server::shared::types::api::ApiJson;
-use crate::server::shared::validation::validate_network_ids_access;
+use crate::server::shared::validation::validate_site_ids_access;
 use crate::server::{
     auth::middleware::{
         features::{ApiKeyFeature, RequireFeature},
@@ -117,7 +117,7 @@ pub async fn get_all(
     responses(
         (status = 200, description = "API key created", body = ApiResponse<UserApiKeyResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
-        (status = 403, description = "Invalid permissions or network access", body = ApiErrorResponse),
+        (status = 403, description = "Invalid permissions or site access", body = ApiErrorResponse),
         (status = 500, description = "Internal server error", body = ApiErrorResponse),
     ),
     security(("session" = []))
@@ -131,7 +131,7 @@ pub async fn create_user_api_key(
     let user_id = auth.require_user_id()?;
     let organization_id = auth.require_organization_id()?;
     let user_permissions = auth.require_permissions()?;
-    let user_network_ids = auth.network_ids();
+    let user_site_ids = auth.site_ids();
     let entity = auth.entity.clone();
 
     tracing::debug!(
@@ -145,8 +145,8 @@ pub async fn create_user_api_key(
     UserApiKeyService::validate_permissions(api_key.base.permissions, user_permissions)
         .map_err(|_| ApiError::permission_denied())?;
 
-    // Validate network access is a subset of user's access
-    validate_network_ids_access(&api_key.base.network_ids, &user_network_ids)?;
+    // Validate site access is a subset of user's access
+    validate_site_ids_access(&api_key.base.site_ids, &user_site_ids)?;
 
     // Set user_id and organization_id from authenticated user
     api_key.base.user_id = user_id;
@@ -155,11 +155,11 @@ pub async fn create_user_api_key(
     let (plaintext, hashed) = generate_api_key_for_storage(ApiKeyType::User);
     api_key.base.key = hashed;
 
-    let network_ids = api_key.base.network_ids.clone();
+    let site_ids = api_key.base.site_ids.clone();
 
     let service = &state.services.user_api_key_service;
     let api_key = service
-        .create_with_networks(api_key, network_ids, entity.clone())
+        .create_with_sites(api_key, site_ids, entity.clone())
         .await
         .map_err(|e| {
             tracing::error!(
@@ -220,7 +220,7 @@ pub async fn update_user_api_key(
 ) -> ApiResult<Json<ApiResponse<UserApiKey>>> {
     let user_id = auth.require_user_id()?;
     let user_permissions = auth.require_permissions()?;
-    let user_network_ids = auth.network_ids();
+    let user_site_ids = auth.site_ids();
 
     let service = &state.services.user_api_key_service;
 
@@ -239,15 +239,15 @@ pub async fn update_user_api_key(
     UserApiKeyService::validate_permissions(request.base.permissions, user_permissions)
         .map_err(|_| ApiError::permission_denied())?;
 
-    // Validate network access is a subset of user's access
-    validate_network_ids_access(&request.base.network_ids, &user_network_ids)?;
+    // Validate site access is a subset of user's access
+    validate_site_ids_access(&request.base.site_ids, &user_site_ids)?;
 
     // Preserve immutable fields
     request.preserve_immutable_fields(&existing);
 
-    // Update network access
-    let network_ids = request.base.network_ids.clone();
-    service.update_network_access(&id, &network_ids).await?;
+    // Update site access
+    let site_ids = request.base.site_ids.clone();
+    service.update_site_access(&id, &site_ids).await?;
 
     // Update the entity
     let updated = service
@@ -255,9 +255,9 @@ pub async fn update_user_api_key(
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
-    // Return with hydrated network_ids
+    // Return with hydrated site_ids
     let mut result = updated;
-    result.base.network_ids = network_ids;
+    result.base.site_ids = site_ids;
 
     Ok(Json(ApiResponse::success(result)))
 }

@@ -3,20 +3,17 @@
 use super::*;
 
 pub(super) fn generate_subnets(
-    networks: &[Network],
+    sites: &[Site],
     tags: &[Tag],
     docker_hq_svc_id: Uuid,
     docker_dc_svc_id: Uuid,
     now: DateTime<Utc>,
 ) -> Vec<Subnet> {
-    let hq = networks
+    let hq = sites
         .iter()
         .find(|n| n.base.name == "Headquarters")
         .unwrap();
-    let dc = networks
-        .iter()
-        .find(|n| n.base.name == "Data Center")
-        .unwrap();
+    let dc = sites.iter().find(|n| n.base.name == "Data Center").unwrap();
 
     let monitoring_tag = tags
         .iter()
@@ -42,7 +39,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: hq.id,
+                site_id: hq.id,
                 name: "HQ Management".to_string(),
                 description: Some("Network management and monitoring".to_string()),
                 subnet_type: SubnetType::Management,
@@ -68,7 +65,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: hq.id,
+                site_id: hq.id,
                 name: "HQ Office LAN".to_string(),
                 description: Some("Office workstations".to_string()),
                 subnet_type: SubnetType::Lan,
@@ -94,7 +91,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: hq.id,
+                site_id: hq.id,
                 name: "HQ Servers".to_string(),
                 description: Some("On-premises servers and hypervisors".to_string()),
                 subnet_type: SubnetType::Lan,
@@ -120,7 +117,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: hq.id,
+                site_id: hq.id,
                 name: "HQ Storage".to_string(),
                 description: Some("Storage area network".to_string()),
                 subnet_type: SubnetType::Storage,
@@ -146,7 +143,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: hq.id,
+                site_id: hq.id,
                 name: "HQ IoT".to_string(),
                 description: Some("Smart office devices".to_string()),
                 subnet_type: SubnetType::IoT,
@@ -172,7 +169,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: hq.id,
+                site_id: hq.id,
                 name: "HQ Docker Bridge".to_string(),
                 description: Some("Docker container network".to_string()),
                 subnet_type: SubnetType::DockerBridge,
@@ -198,7 +195,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: hq.id,
+                site_id: hq.id,
                 name: "HQ Guest WiFi".to_string(),
                 description: Some("Guest wireless network".to_string()),
                 subnet_type: SubnetType::Guest,
@@ -229,7 +226,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::LldpNeighbourAddress,
                 ),
-                network_id: hq.id,
+                site_id: hq.id,
                 name: "HQ Annex".to_string(),
                 description: Some(
                     "Recently added office annex, not yet scanned directly".to_string(),
@@ -258,7 +255,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: dc.id,
+                site_id: dc.id,
                 name: "DC Management".to_string(),
                 description: Some("Data center management network".to_string()),
                 subnet_type: SubnetType::Management,
@@ -284,7 +281,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: dc.id,
+                site_id: dc.id,
                 name: "DC Compute".to_string(),
                 description: Some("Compute and hypervisor hosts".to_string()),
                 subnet_type: SubnetType::Lan,
@@ -310,7 +307,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: dc.id,
+                site_id: dc.id,
                 name: "DC Storage".to_string(),
                 description: Some("Storage network".to_string()),
                 subnet_type: SubnetType::Storage,
@@ -336,7 +333,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: dc.id,
+                site_id: dc.id,
                 name: "DC DMZ".to_string(),
                 description: Some("Demilitarized zone for public-facing services".to_string()),
                 subnet_type: SubnetType::Dmz,
@@ -362,7 +359,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: dc.id,
+                site_id: dc.id,
                 name: "DC Docker Bridge".to_string(),
                 description: Some("Docker container network".to_string()),
                 subnet_type: SubnetType::DockerBridge,
@@ -388,7 +385,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: dc.id,
+                site_id: dc.id,
                 name: "DC VPN Tunnel".to_string(),
                 description: Some("VPN tunnel to headquarters".to_string()),
                 subnet_type: SubnetType::VpnTunnel,

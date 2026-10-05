@@ -6,21 +6,21 @@
 	import type { Daemon } from '$lib/features/daemons/types/base';
 	import type { components } from '$lib/api/schema';
 
-	type NetworkSummary = components['schemas']['NetworkSummary'];
+	type SiteSummary = components['schemas']['SiteSummary'];
 
 	export interface HomeDiscoveryContext {
 		daemons: Daemon[];
-		networks: NetworkSummary[];
+		sites: SiteSummary[];
 	}
 
 	export const HomeDiscoveryDisplay: EntityDisplayComponent<Discovery, HomeDiscoveryContext> = {
 		getId: (discovery) => discovery.id,
 		getLabel: (discovery, context) => {
-			// New records already have enriched names ("Type — Network").
+			// New records already have enriched names ("Type — Site").
 			// Old records missing the separator get enriched client-side.
 			if (discovery.name.includes(' \u2014 ')) return discovery.name;
-			const network = context?.networks.find((n) => n.id === discovery.network_id);
-			if (network) return `${discovery.name} \u2014 ${network.name}`;
+			const site = context?.sites.find((n) => n.id === discovery.site_id);
+			if (site) return `${discovery.name} \u2014 ${site.name}`;
 			return discovery.name;
 		},
 		getDescription: (discovery, context) => {
@@ -46,7 +46,7 @@
 
 	let {
 		item,
-		context = { daemons: [], networks: [] }
+		context = { daemons: [], sites: [] }
 	}: { item: Discovery; context?: HomeDiscoveryContext } = $props();
 </script>
 

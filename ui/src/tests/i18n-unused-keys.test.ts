@@ -32,8 +32,8 @@ const ALLOWED_SINGLE_WORD_KEYS = new Set([
 	// Billing pricing-simulator tokens - lowercase count units and rate/hosting labels
 	// that are context-specific to the inline pricing breakdown (distinct from the
 	// title-case common_ nouns used as standalone labels)
-	'billing_networkUnit',
-	'billing_networkUnitPlural',
+	'billing_siteUnit',
+	'billing_siteUnitPlural',
 	'billing_seatUnit',
 	'billing_seatUnitPlural',
 	'billing_priceBase',

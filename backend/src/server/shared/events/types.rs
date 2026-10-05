@@ -1,5 +1,5 @@
 use crate::server::{
-    auth::r#impl::{base::PendingNetworkSetup, oidc::OidcProviderMetadata},
+    auth::r#impl::{base::PendingSiteSetup, oidc::OidcProviderMetadata},
     billing::types::base::{
         BillingInvoice, BillingPlan, BillingReason, CancelReason, LimitSource, LimitType, SaveOffer,
     },
@@ -191,7 +191,7 @@ pub enum BillingOperation {
     },
     CheckoutCompleted {
         plan: BillingPlan,
-        included_networks: Option<u64>,
+        included_sites: Option<u64>,
         included_seats: Option<u64>,
         mrr_amount_cents: i64,
         is_trialing: bool,
@@ -616,10 +616,10 @@ pub enum OnboardingOperation {
         org_name: String,
         plan: BillingPlan,
         use_case: UseCase,
-        /// The first network requested at signup. `None` for a self-hosted
+        /// The first site requested at signup. `None` for a self-hosted
         /// license buyer and on events recorded before this field existed.
         #[serde(default)]
-        network: Option<PendingNetworkSetup>,
+        site: Option<PendingSiteSetup>,
     },
     OnboardingModalCompleted,
     PlanSelected {
@@ -629,7 +629,7 @@ pub enum OnboardingOperation {
     DaemonPromptAccepted,
     FirstDaemonRegistered {
         daemon_name: String,
-        network_name: String,
+        site_name: String,
     },
     /// Emitted when a user views their live topology after discovery has produced
     /// at least one host. (Originally tied to the topology-rebuild lifecycle, which
@@ -640,10 +640,10 @@ pub enum OnboardingOperation {
         discovery_type: DiscoveryType,
     },
     FirstHostDiscovered,
-    SecondNetworkCreated {
-        network_id: Uuid,
-        network_name: String,
-        total_networks: u32,
+    SecondSiteCreated {
+        site_id: Uuid,
+        site_name: String,
+        total_sites: u32,
     },
     FirstTagCreated,
     #[serde(alias = "FirstGroupCreated")]
@@ -654,7 +654,7 @@ pub enum OnboardingOperation {
     FirstCredentialCreated,
     FirstSnapshotCreated {
         snapshot_id: Uuid,
-        network_id: Uuid,
+        site_id: Uuid,
     },
     InviteSent,
     InviteAccepted,
@@ -791,7 +791,7 @@ mod tests {
     fn checkout_completed_round_trip_paid() {
         round_trip(BillingOperation::CheckoutCompleted {
             plan: get_free_plan(),
-            included_networks: Some(3),
+            included_sites: Some(3),
             included_seats: Some(5),
             mrr_amount_cents: 4900,
             is_trialing: false,
@@ -803,7 +803,7 @@ mod tests {
     fn checkout_completed_round_trip_trialing() {
         round_trip(BillingOperation::CheckoutCompleted {
             plan: get_free_plan(),
-            included_networks: Some(3),
+            included_sites: Some(3),
             included_seats: Some(5),
             mrr_amount_cents: 4900,
             is_trialing: true,
@@ -912,7 +912,7 @@ mod tests {
         // Non-downgrade events return the plan they carry.
         let checkout = BillingOperation::CheckoutCompleted {
             plan: get_enterprise_plan(),
-            included_networks: None,
+            included_sites: None,
             included_seats: None,
             mrr_amount_cents: 4900,
             is_trialing: false,

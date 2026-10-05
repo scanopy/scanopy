@@ -85,13 +85,13 @@ impl OrderDirection {
 // Filter Query Extractor Trait
 // ============================================================================
 
-/// Trait for query structs that filter entities by network or organization.
+/// Trait for query structs that filter entities by site or organization.
 pub trait FilterQueryExtractor: DeserializeOwned + Send + Sync + Default {
     /// Apply query parameters to the filter, respecting user's access permissions.
     fn apply_to_filter<T: Storable>(
         &self,
         filter: StorableFilter<T>,
-        user_network_ids: &[Uuid],
+        user_site_ids: &[Uuid],
         user_organization_id: Uuid,
     ) -> StorableFilter<T>;
 
@@ -110,12 +110,12 @@ pub trait FilterQueryExtractor: DeserializeOwned + Send + Sync + Default {
 // Standard filter query types for CrudHandlers
 // ============================================================================
 
-/// Filter query for entities keyed by network_id.
-/// Allows filtering to a specific network the user has access to.
+/// Filter query for entities keyed by site_id.
+/// Allows filtering to a specific site the user has access to.
 #[derive(Deserialize, Default, Debug, Clone, IntoParams)]
-pub struct NetworkFilterQuery {
-    /// Filter by network ID
-    pub network_id: Option<Uuid>,
+pub struct SiteFilterQuery {
+    /// Filter by site ID
+    pub site_id: Option<Uuid>,
     /// Filter by specific entity IDs (for selective loading)
     pub ids: Option<Vec<Uuid>>,
     /// Maximum number of results to return (1-1000, default: 50). Use 0 for no limit.
@@ -126,11 +126,11 @@ pub struct NetworkFilterQuery {
     pub offset: Option<u32>,
 }
 
-impl FilterQueryExtractor for NetworkFilterQuery {
+impl FilterQueryExtractor for SiteFilterQuery {
     fn apply_to_filter<T: Storable>(
         &self,
         filter: StorableFilter<T>,
-        user_network_ids: &[Uuid],
+        user_site_ids: &[Uuid],
         _user_organization_id: Uuid,
     ) -> StorableFilter<T> {
         // Apply IDs filter first if provided
@@ -138,11 +138,11 @@ impl FilterQueryExtractor for NetworkFilterQuery {
             Some(ids) if !ids.is_empty() => filter.entity_ids(ids),
             _ => filter,
         };
-        // Then apply network filter
-        match self.network_id {
-            Some(id) if user_network_ids.contains(&id) => filter.network_ids(&[id]),
-            Some(_) => filter.network_ids(&[]), // User doesn't have access - return empty
-            None => filter.network_ids(user_network_ids),
+        // Then apply site filter
+        match self.site_id {
+            Some(id) if user_site_ids.contains(&id) => filter.site_ids(&[id]),
+            Some(_) => filter.site_ids(&[]), // User doesn't have access - return empty
+            None => filter.site_ids(user_site_ids),
         }
     }
 
@@ -169,10 +169,10 @@ impl FilterQueryExtractor for NoFilterQuery {
     fn apply_to_filter<T: Storable>(
         &self,
         filter: StorableFilter<T>,
-        _user_network_ids: &[Uuid],
+        _user_site_ids: &[Uuid],
         _user_organization_id: Uuid,
     ) -> StorableFilter<T> {
-        // Don't apply additional filters (network_id / org_id permissioning is taken care of in handler)
+        // Don't apply additional filters (site_id / org_id permissioning is taken care of in handler)
         filter
     }
 
@@ -189,8 +189,8 @@ impl FilterQueryExtractor for NoFilterQuery {
 pub struct GroupIdQuery {
     /// Filter by group ID
     pub group_id: Uuid,
-    /// Filter by network ID
-    pub network_id: Uuid,
+    /// Filter by site ID
+    pub site_id: Uuid,
     /// Maximum number of results to return (1-1000, default: 50). Use 0 for no limit.
     #[param(minimum = 0, maximum = 1000)]
     pub limit: Option<u32>,
@@ -200,16 +200,16 @@ pub struct GroupIdQuery {
 }
 
 // ============================================================================
-// Combined query types for child entities with network filtering
+// Combined query types for child entities with site filtering
 // ============================================================================
 
-/// Query for filtering ports by host_id and/or network_id.
+/// Query for filtering ports by host_id and/or site_id.
 #[derive(Deserialize, Default, Debug, Clone, IntoParams)]
 pub struct HostChildQuery {
     /// Filter by host ID
     pub host_id: Option<Uuid>,
-    /// Filter by network ID
-    pub network_id: Option<Uuid>,
+    /// Filter by site ID
+    pub site_id: Option<Uuid>,
     /// Filter by specific entity IDs (for selective loading)
     pub ids: Option<Vec<Uuid>>,
     /// Maximum number of results to return (1-1000, default: 50). Use 0 for no limit.
@@ -231,7 +231,7 @@ impl FilterQueryExtractor for HostChildQuery {
     fn apply_to_filter<T: Storable>(
         &self,
         filter: StorableFilter<T>,
-        user_network_ids: &[Uuid],
+        user_site_ids: &[Uuid],
         _user_organization_id: Uuid,
     ) -> StorableFilter<T> {
         // Apply IDs filter first if provided
@@ -239,11 +239,11 @@ impl FilterQueryExtractor for HostChildQuery {
             Some(ids) if !ids.is_empty() => filter.entity_ids(ids),
             _ => filter,
         };
-        // Then apply network filter
-        let filter = match self.network_id {
-            Some(id) if user_network_ids.contains(&id) => filter.network_ids(&[id]),
-            Some(_) => filter.network_ids(&[]),
-            None => filter.network_ids(user_network_ids),
+        // Then apply site filter
+        let filter = match self.site_id {
+            Some(id) if user_site_ids.contains(&id) => filter.site_ids(&[id]),
+            Some(_) => filter.site_ids(&[]),
+            None => filter.site_ids(user_site_ids),
         };
         // Then apply host filter
         match self.host_id {
@@ -260,13 +260,13 @@ impl FilterQueryExtractor for HostChildQuery {
     }
 }
 
-/// Query for filtering bindings by service_id and/or network_id.
+/// Query for filtering bindings by service_id and/or site_id.
 #[derive(Deserialize, Default, Debug, Clone, IntoParams)]
 pub struct BindingQuery {
     /// Filter by service ID
     pub service_id: Option<Uuid>,
-    /// Filter by network ID
-    pub network_id: Option<Uuid>,
+    /// Filter by site ID
+    pub site_id: Option<Uuid>,
     /// Filter by port ID
     pub port_id: Option<Uuid>,
     /// Filter by interface ID
@@ -290,13 +290,13 @@ impl FilterQueryExtractor for BindingQuery {
     fn apply_to_filter<T: Storable>(
         &self,
         filter: StorableFilter<T>,
-        user_network_ids: &[Uuid],
+        user_site_ids: &[Uuid],
         _user_organization_id: Uuid,
     ) -> StorableFilter<T> {
-        let mut filter = match self.network_id {
-            Some(id) if user_network_ids.contains(&id) => filter.network_ids(&[id]),
-            Some(_) => filter.network_ids(&[]),
-            None => filter.network_ids(user_network_ids),
+        let mut filter = match self.site_id {
+            Some(id) if user_site_ids.contains(&id) => filter.site_ids(&[id]),
+            Some(_) => filter.site_ids(&[]),
+            None => filter.site_ids(user_site_ids),
         };
         filter = match self.service_id {
             Some(id) => filter.service_id(&id),
@@ -322,15 +322,15 @@ impl FilterQueryExtractor for BindingQuery {
     }
 }
 
-/// Query for filtering ip_addresses by host_id, subnet_id, and/or network_id.
+/// Query for filtering ip_addresses by host_id, subnet_id, and/or site_id.
 #[derive(Deserialize, Default, Debug, Clone, IntoParams)]
 pub struct IPAddressQuery {
     /// Filter by host ID
     pub host_id: Option<Uuid>,
     /// Filter by subnet ID
     pub subnet_id: Option<Uuid>,
-    /// Filter by network ID
-    pub network_id: Option<Uuid>,
+    /// Filter by site ID
+    pub site_id: Option<Uuid>,
     /// Maximum number of results to return (1-1000, default: 50). Use 0 for no limit.
     #[param(minimum = 0, maximum = 1000)]
     pub limit: Option<u32>,
@@ -350,13 +350,13 @@ impl FilterQueryExtractor for IPAddressQuery {
     fn apply_to_filter<T: Storable>(
         &self,
         filter: StorableFilter<T>,
-        user_network_ids: &[Uuid],
+        user_site_ids: &[Uuid],
         _user_organization_id: Uuid,
     ) -> StorableFilter<T> {
-        let mut filter = match self.network_id {
-            Some(id) if user_network_ids.contains(&id) => filter.network_ids(&[id]),
-            Some(_) => filter.network_ids(&[]),
-            None => filter.network_ids(user_network_ids),
+        let mut filter = match self.site_id {
+            Some(id) if user_site_ids.contains(&id) => filter.site_ids(&[id]),
+            Some(_) => filter.site_ids(&[]),
+            None => filter.site_ids(user_site_ids),
         };
         filter = match self.subnet_id {
             Some(id) => filter.subnet_id(&id),
@@ -378,11 +378,11 @@ impl FilterQueryExtractor for IPAddressQuery {
     }
 }
 
-/// Query for filtering shares by network_id or topology_id
+/// Query for filtering shares by site_id or topology_id
 #[derive(Deserialize, Default, Debug, Clone, IntoParams)]
 pub struct SharesQuery {
-    /// Filter by network ID
-    pub network_id: Option<Uuid>,
+    /// Filter by site ID
+    pub site_id: Option<Uuid>,
     /// Filter by topology ID
     pub topology_id: Option<Uuid>,
     /// Maximum number of results to return (1-1000, default: 50). Use 0 for no limit.
@@ -397,13 +397,13 @@ impl FilterQueryExtractor for SharesQuery {
     fn apply_to_filter<T: Storable>(
         &self,
         filter: StorableFilter<T>,
-        user_network_ids: &[Uuid],
+        user_site_ids: &[Uuid],
         _user_organization_id: Uuid,
     ) -> StorableFilter<T> {
-        let mut filter = match self.network_id {
-            Some(id) if user_network_ids.contains(&id) => filter.network_ids(&[id]),
-            Some(_) => filter.network_ids(&[]),
-            None => filter.network_ids(user_network_ids),
+        let mut filter = match self.site_id {
+            Some(id) if user_site_ids.contains(&id) => filter.site_ids(&[id]),
+            Some(_) => filter.site_ids(&[]),
+            None => filter.site_ids(user_site_ids),
         };
         filter = match self.topology_id {
             Some(id) => filter.uuid_column("topology_id", &id),

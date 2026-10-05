@@ -51,10 +51,10 @@
 	// topology bundle (`neighbours`/`candidates` — see `InterfaceNeighborRow`/
 	// `InterfaceNeighborCandidate`). The plain host/interface CRUD responses this modal otherwise
 	// reads from cache no longer carry either, so this admin/debug panel fetches the interface's
-	// network's topology bundle directly. Usually a cache hit: opening this modal from the
+	// site's topology bundle directly. Usually a cache hit: opening this modal from the
 	// Topology tab's own host editor means the same query is already populated.
 	const topologyDataQuery = useTopologyDataQuery(
-		() => iface.network_id,
+		() => iface.site_id,
 		() => undefined
 	);
 

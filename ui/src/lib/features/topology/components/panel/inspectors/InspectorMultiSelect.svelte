@@ -464,7 +464,7 @@
 		updated_at: '',
 		dependency_type: DEFAULT_DEP_TYPE,
 		source: { type: 'Manual' as const },
-		network_id: '',
+		site_id: '',
 		tags: []
 	});
 
@@ -587,7 +587,7 @@
 				previewEdges.set([]);
 				onDone?.();
 			} else {
-				const newDependency = createEmptyDependencyFormData(topology.network_id);
+				const newDependency = createEmptyDependencyFormData(topology.site_id);
 				newDependency.name = v.name.trim();
 				newDependency.dependency_type = v.dependency_type;
 				newDependency.color = dependencyColor;

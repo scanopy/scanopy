@@ -50,7 +50,7 @@ pub struct MappedDevice {
 
 /// Translate a `stat/device` payload.
 ///
-/// A device whose IP is missing, unparseable, or in no subnet this network holds is skipped,
+/// A device whose IP is missing, unparseable, or in no subnet this site holds is skipped,
 /// because service matching needs a subnet to evaluate `Pattern::SubnetIsType` and the gateway
 /// patterns against, and there is nothing honest to hand it. A kept device's address carries the
 /// subnet it was placed on, so the server matches it to the sweep's row for the same IP.
@@ -64,7 +64,7 @@ pub struct MappedDevice {
 /// everything and this skip never happened.
 pub fn map_devices(
     devices: &[UnifiDevice],
-    network_id: Uuid,
+    site_id: Uuid,
     subnets: &[Subnet],
 ) -> Vec<MappedDevice> {
     // Index by chassis MAC once, so a downlink can be resolved to the downstream device's own
@@ -76,13 +76,13 @@ pub fn map_devices(
 
     devices
         .iter()
-        .filter_map(|device| map_device(device, network_id, subnets, &by_mac))
+        .filter_map(|device| map_device(device, site_id, subnets, &by_mac))
         .collect()
 }
 
 fn map_device(
     device: &UnifiDevice,
-    network_id: Uuid,
+    site_id: Uuid,
     subnets: &[Subnet],
     by_mac: &HashMap<String, &UnifiDevice>,
 ) -> Option<MappedDevice> {
@@ -106,7 +106,7 @@ fn map_device(
     };
 
     let ip_address = IPAddress::new(IPAddressBase {
-        network_id,
+        site_id,
         host_id: Uuid::nil(), // server assigns
         subnet_id: subnet.id,
         ip_address: ip,
@@ -124,7 +124,7 @@ fn map_device(
     Some(MappedDevice {
         identity,
         ip_address,
-        interfaces: map_interfaces(device, network_id, device_mac.as_deref(), by_mac),
+        interfaces: map_interfaces(device, site_id, device_mac.as_deref(), by_mac),
         device_type: device.device_type.clone().filter(|t| !t.trim().is_empty()),
         ip,
     })
@@ -133,14 +133,14 @@ fn map_device(
 /// Build the device's interfaces, then decorate them with neighbor data.
 fn map_interfaces(
     device: &UnifiDevice,
-    network_id: Uuid,
+    site_id: Uuid,
     device_mac: Option<&str>,
     by_mac: &HashMap<String, &UnifiDevice>,
 ) -> Vec<Interface> {
     let mut interfaces: Vec<Interface> = device
         .port_table
         .iter()
-        .map(|port| port_to_interface(port, network_id, device_mac))
+        .map(|port| port_to_interface(port, site_id, device_mac))
         .collect();
 
     // A portless device (typically an AP) still has one real interface — its uplink. Model it
@@ -157,7 +157,7 @@ fn map_interfaces(
             .unwrap_or_else(|| "uplink".to_string());
         interfaces.push(Interface::new(InterfaceBase {
             host_id: Uuid::nil(),
-            network_id,
+            site_id,
             if_index: Some(if_index),
             if_descr: Some(name.clone()),
             if_name: Some(name),
@@ -189,7 +189,7 @@ fn map_interfaces(
     interfaces
 }
 
-fn port_to_interface(port: &UnifiPort, network_id: Uuid, device_mac: Option<&str>) -> Interface {
+fn port_to_interface(port: &UnifiPort, site_id: Uuid, device_mac: Option<&str>) -> Interface {
     let if_index = port.port_idx.map(|p| p.as_i32()).unwrap_or(0);
     let name = port
         .name
@@ -223,7 +223,7 @@ fn port_to_interface(port: &UnifiPort, network_id: Uuid, device_mac: Option<&str
 
     Interface::new(InterfaceBase {
         host_id: Uuid::nil(),
-        network_id,
+        site_id,
         if_index: Some(if_index),
         if_descr: Some(name.clone()),
         if_name: Some(name),
@@ -371,7 +371,7 @@ fn apply_lldp_table(interfaces: &mut [Interface], device: &UnifiDevice) {
 /// DHCP hostname compete with the adopted device's administrator-assigned name at the same rung.
 pub fn map_clients(
     stations: &[UnifiStation],
-    network_id: Uuid,
+    site_id: Uuid,
     device_ips: &[IpAddr],
     subnets: &[Subnet],
 ) -> Vec<MappedClient> {
@@ -392,7 +392,7 @@ pub fn map_clients(
                 identity,
                 station.ip.as_deref(),
                 station.mac.as_deref(),
-                network_id,
+                site_id,
                 subnets,
             )
         })
@@ -437,11 +437,11 @@ mod tests {
     }
 
     /// The 192.168.20.0/24 the fixtures live on. `10.99.99.99` is deliberately outside it.
-    fn test_subnets(network_id: Uuid) -> Vec<Subnet> {
+    fn test_subnets(site_id: Uuid) -> Vec<Subnet> {
         vec![Subnet {
             base: SubnetBase {
                 name: "Test".to_string(),
-                network_id,
+                site_id,
                 cidr: SubnetCidr::new(
                     SubnetCidrValue("192.168.20.0/24".parse().expect("valid CIDR")),
                     AttributeSource::DaemonSelfReport,
@@ -455,16 +455,16 @@ mod tests {
         }]
     }
 
-    /// Every network is seeded with an `Internet` and a `Remote Network` subnet, both `0.0.0.0/0`,
-    /// and the daemon's list is the network's whole address space — so both are in it. No test
+    /// Every site is seeded with an `Internet` and a `Remote Network` subnet, both `0.0.0.0/0`,
+    /// and the daemon's list is the site's whole address space — so both are in it. No test
     /// here included them, which is why first-match placement survived: `find` matched `Internet`
     /// for every IPv4 address, so a device was never actually skipped and every one of them was
     /// filed under the internet.
-    fn subnets_with_catch_alls(network_id: Uuid) -> Vec<Subnet> {
+    fn subnets_with_catch_alls(site_id: Uuid) -> Vec<Subnet> {
         let catch_all = |name: &str| Subnet {
             base: SubnetBase {
                 name: name.to_string(),
-                network_id,
+                site_id,
                 cidr: SubnetCidr::new(
                     SubnetCidrValue("0.0.0.0/0".parse().expect("valid CIDR")),
                     AttributeSource::DaemonSelfReport,
@@ -479,23 +479,23 @@ mod tests {
 
         // Seeded first, so they lead the `created_at ASC` order the daemon receives.
         let mut subnets = vec![catch_all("Internet"), catch_all("Remote Network")];
-        subnets.extend(test_subnets(network_id));
+        subnets.extend(test_subnets(site_id));
         subnets
     }
 
     /// A device on a real subnet is placed there even with the catch-alls ahead of it in the list.
     #[test]
     fn a_device_is_placed_on_its_real_subnet_not_a_catch_all() {
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let devices = parse(USW_UPLINK);
-        let subnets = subnets_with_catch_alls(network_id);
+        let subnets = subnets_with_catch_alls(site_id);
         let real = subnets
             .iter()
             .find(|s| s.base.cidr.to_string() == "192.168.20.0/24")
             .expect("the real subnet")
             .id;
 
-        let mapped = map_devices(&devices, network_id, &subnets);
+        let mapped = map_devices(&devices, site_id, &subnets);
 
         assert!(
             !mapped.is_empty(),
@@ -510,20 +510,20 @@ mod tests {
         }
     }
 
-    /// And a device in a range this network does not hold is skipped rather than filed under one —
+    /// And a device in a range this site does not hold is skipped rather than filed under one —
     /// service matching has no subnet to evaluate its subnet patterns against for it.
     #[test]
     fn a_device_in_no_held_range_is_skipped_rather_than_filed_under_a_catch_all() {
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let devices = parse(USW_UPLINK);
 
         // Only the catch-alls: nothing here holds the fixture's addresses.
-        let only_catch_alls: Vec<Subnet> = subnets_with_catch_alls(network_id)
+        let only_catch_alls: Vec<Subnet> = subnets_with_catch_alls(site_id)
             .into_iter()
             .filter(|s| s.base.cidr.to_string() == "0.0.0.0/0")
             .collect();
 
-        assert!(map_devices(&devices, network_id, &only_catch_alls).is_empty());
+        assert!(map_devices(&devices, site_id, &only_catch_alls).is_empty());
     }
 
     /// A client inside a held subnet carries that subnet's id, so the server matches it to the
@@ -531,8 +531,8 @@ mod tests {
     /// infer a range for, and is never filed under a catch-all.
     #[test]
     fn a_client_carries_the_subnet_that_holds_it_and_nil_where_none_does() {
-        let network_id = Uuid::new_v4();
-        let subnets = subnets_with_catch_alls(network_id);
+        let site_id = Uuid::new_v4();
+        let subnets = subnets_with_catch_alls(site_id);
         let real = subnets
             .iter()
             .find(|s| s.base.cidr.to_string() == "192.168.20.0/24")
@@ -546,7 +546,7 @@ mod tests {
 
         let clients = map_clients(
             &[station("192.168.20.77"), station("10.99.99.99")],
-            network_id,
+            site_id,
             &[],
             &subnets,
         );
@@ -565,8 +565,8 @@ mod tests {
     }
 
     fn map(json: &str) -> Vec<MappedDevice> {
-        let network_id = Uuid::new_v4();
-        map_devices(&parse(json), network_id, &test_subnets(network_id))
+        let site_id = Uuid::new_v4();
+        map_devices(&parse(json), site_id, &test_subnets(site_id))
     }
 
     fn interface(device: &MappedDevice, if_index: i32) -> &Interface {
@@ -711,10 +711,10 @@ mod tests {
     /// Degrades to a host-level neighbor rather than inventing a port when the peer is absent.
     #[test]
     fn downlink_without_the_peer_in_the_payload_has_no_far_port() {
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let mut devices = parse(TOPOLOGY);
         devices.retain(|d| d.name.as_deref() != Some("Core Switch"));
-        let mapped = map_devices(&devices, network_id, &test_subnets(network_id));
+        let mapped = map_devices(&devices, site_id, &test_subnets(site_id));
 
         let gateway = find(&mapped, "Border Gateway");
         let port = interface(gateway, 4);
