@@ -206,6 +206,7 @@ pub(crate) mod mac_identity;
 mod same_device;
 mod topology;
 mod update;
+mod virtualization_tree;
 
 pub(crate) use same_device::{SameDevice, hosts_proven_same_device};
 

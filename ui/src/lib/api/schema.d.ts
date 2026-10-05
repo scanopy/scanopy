@@ -2940,7 +2940,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Subnet by ID */
+        /**
+         * Get subnet by ID
+         * @description Returns the subnet with its utilization and the range it sits inside, if any.
+         */
         get: operations["get_subnet_by_id"];
         /**
          * Update a subnet
@@ -3528,19 +3531,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-05T21:30:31.590734Z",
+             *       "created_at": "2026-10-05T22:22:43.899465Z",
              *       "first_discovery_id": null,
-             *       "id": "f86cd2d6-7853-49c9-9378-ac2dcd11d518",
+             *       "id": "0f8bc506-0f5a-41fc-9745-8e45b8cc1c27",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-05T21:30:31.590734Z",
+             *       "last_seen_at": "2026-10-05T22:22:43.899465Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-10-05T21:30:31.590734Z",
-             *       "valid_from": "2026-10-05T21:30:31.590734Z",
+             *       "updated_at": "2026-10-05T22:22:43.899465Z",
+             *       "valid_from": "2026-10-05T22:22:43.899465Z",
              *       "valid_to": null
              *     }
              */
@@ -4247,6 +4250,8 @@ export interface components {
              * @description Response type for host endpoints.
              *     Includes children (ip_addresses, ports, services, interfaces).
              * @example {
+             *       "asset_tag": "IT-00412",
+             *       "asset_tag_source": "Manual",
              *       "chassis_id_source": "Unspecified",
              *       "created_at": "2026-01-15T10:30:00Z",
              *       "credential_assignments": [],
@@ -4369,19 +4374,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-05T21:30:31.570951Z",
+             *               "created_at": "2026-10-05T22:22:43.875096Z",
              *               "first_discovery_id": null,
-             *               "id": "f0803b6f-c5fc-40eb-a045-dfad9b225b92",
+             *               "id": "14d25a4f-306b-45ac-8022-33b90f371a8e",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-05T21:30:31.570951Z",
+             *               "last_seen_at": "2026-10-05T22:22:43.875096Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-10-05T21:30:31.570951Z",
-             *               "valid_from": "2026-10-05T21:30:31.570951Z",
+             *               "updated_at": "2026-10-05T22:22:43.875096Z",
+             *               "valid_from": "2026-10-05T22:22:43.875096Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4394,7 +4399,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Actual Budget",
+             *           "service_definition": "Eero Repeater",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -4420,12 +4425,22 @@ export interface components {
              *       "sys_object_id_source": "Unspecified",
              *       "tags": [],
              *       "updated_at": "2026-01-15T10:30:00Z",
+             *       "virtualization_depth": 0,
              *       "virtualization_interface_id": null,
              *       "virtualization_metadata": null,
+             *       "virtualization_parent_host_id": null,
+             *       "virtualization_root_host_id": null,
              *       "virtualization_service_id": null
              *     }
              */
             data?: {
+                /**
+                 * @description The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person.
+                 *     Set it through `asset_tag` on create and update; a typed value outranks what discovery reads.
+                 */
+                readonly asset_tag?: string | null;
+                /** @description What produced the asset tag. Read-only: `Manual` when a person typed it. */
+                asset_tag_source?: components["schemas"]["AttributeSource"];
                 /** @description LLDP chassis identifier, used to match the host to its neighbours. */
                 chassis_id?: string | null;
                 /** @description What produced the LLDP chassis identifier. Read-only: decided by whichever source read it. */
@@ -4567,11 +4582,27 @@ export interface components {
                  */
                 updated_at: string;
                 /**
+                 * Format: int32
+                 * @description How many hosts sit above this one in its virtualization chain.
+                 */
+                readonly virtualization_depth?: number;
+                /**
                  * Format: uuid
                  * @description The interface on the virtualizing host that presents this host, for a network identity.
                  */
                 virtualization_interface_id?: string | null;
                 virtualization_metadata?: null | components["schemas"]["HostVirtualization"];
+                /**
+                 * Format: uuid
+                 * @description The host this one runs under: the host of its virtualizing service.
+                 */
+                readonly virtualization_parent_host_id?: string | null;
+                /**
+                 * Format: uuid
+                 * @description The host at the top of this host's virtualization chain, itself when it is the top.
+                 *     `null` when the host neither runs under nor runs another host.
+                 */
+                readonly virtualization_root_host_id?: string | null;
                 /**
                  * Format: uuid
                  * @description The hypervisor service this VM runs on.
@@ -5274,19 +5305,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-05T21:30:31.586099Z",
+             *           "created_at": "2026-10-05T22:22:43.894336Z",
              *           "first_discovery_id": null,
-             *           "id": "5d302bf6-620d-42ee-8830-55a0b2462941",
+             *           "id": "4af531fa-525a-4a5d-985b-a15e7878207c",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-05T21:30:31.586099Z",
+             *           "last_seen_at": "2026-10-05T22:22:43.894336Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-10-05T21:30:31.586099Z",
-             *           "valid_from": "2026-10-05T21:30:31.586099Z",
+             *           "updated_at": "2026-10-05T22:22:43.894336Z",
+             *           "valid_from": "2026-10-05T22:22:43.894336Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5299,7 +5330,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Actual Budget",
+             *       "service_definition": "Eero Repeater",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -5693,6 +5724,40 @@ export interface components {
                  * @description End of the interval this revision was current for. `null` while it is the live revision.
                  */
                 readonly valid_to?: string | null;
+            };
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_SubnetResponse: {
+            /** @description A subnet together with what is derived from the rest of its site. */
+            data?: components["schemas"]["Subnet"] & {
+                /**
+                 * Format: uuid
+                 * @description The most specific other subnet on the same site whose range contains this one. `null` when
+                 *     none does. Children are the subnets whose parent is this one.
+                 */
+                readonly parent_subnet_id?: string | null;
+                /**
+                 * Format: int64
+                 * @description Addresses a host can hold in this range. Saturates for IPv6 ranges wider than a `/64`.
+                 */
+                readonly usable_addresses: number;
+                /**
+                 * Format: int64
+                 * @description Distinct addresses held in this range, including those filed in subnets nested inside it.
+                 */
+                readonly used_addresses: number;
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -6458,19 +6523,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-05T21:30:31.571422Z",
+         *       "created_at": "2026-10-05T22:22:43.875841Z",
          *       "first_discovery_id": null,
-         *       "id": "60b40b16-1436-4b87-b070-a544d927e436",
+         *       "id": "c0a23a8e-3416-4f4d-a7aa-2ab6acb3b514",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-05T21:30:31.571422Z",
+         *       "last_seen_at": "2026-10-05T22:22:43.875841Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-10-05T21:30:31.571422Z",
-         *       "valid_from": "2026-10-05T21:30:31.571422Z",
+         *       "updated_at": "2026-10-05T22:22:43.875841Z",
+         *       "valid_from": "2026-10-05T22:22:43.875841Z",
          *       "valid_to": null
          *     }
          */
@@ -6781,6 +6846,7 @@ export interface components {
          *     Client must provide UUIDs for all entities, enabling services to reference
          *     ip_addresses/ports by ID in the same request.
          * @example {
+         *       "asset_tag": "IT-00412",
          *       "credential_assignments": [],
          *       "description": "Primary web server",
          *       "hidden": false,
@@ -6817,7 +6883,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Actual Budget",
+         *           "service_definition": "Eero Repeater",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -6831,6 +6897,11 @@ export interface components {
          *     }
          */
         CreateHostRequest: {
+            /**
+             * @description The organization's asset tag for the device. Outranks the value discovery reads from
+             *     ENTITY-MIB entPhysicalAssetID.
+             */
+            asset_tag?: string | null;
             /** @description LLDP chassis identifier, used to match the host to its neighbours. */
             chassis_id?: string | null;
             /** @description Credentials to scan this host with. */
@@ -9063,6 +9134,8 @@ export interface components {
         };
         /**
          * @example {
+         *       "asset_tag": "IT-00412",
+         *       "asset_tag_source": "Manual",
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "credential_assignments": [],
          *       "description": "Primary web server",
@@ -9145,12 +9218,17 @@ export interface components {
              */
             readonly valid_to?: string | null;
         };
+        HostAssetTag: {
+            /** @description ENTITY-MIB entPhysicalAssetID - the organization's asset tag */
+            asset_tag?: string;
+            asset_tag_source?: components["schemas"]["AttributeSource"];
+        };
         /**
          * @description Base data for a Host entity (stored in database).
          *     Child entities (ip_addresses, ports, services) are stored in their own tables
          *     and queried by `host_id`. They are NOT stored on the host.
          */
-        HostBase: components["schemas"]["HostName"] & components["schemas"]["HostHostname"] & components["schemas"]["HostSysDescr"] & components["schemas"]["HostSysObjectId"] & components["schemas"]["HostSysLocation"] & components["schemas"]["HostSysContact"] & components["schemas"]["HostManagementUrl"] & components["schemas"]["HostChassisId"] & components["schemas"]["HostSysName"] & components["schemas"]["HostManufacturer"] & components["schemas"]["HostModel"] & components["schemas"]["HostSerialNumber"] & components["schemas"]["HostFirmwareRevision"] & components["schemas"]["HostSoftwareRevision"] & components["schemas"]["HostOperatingSystem"] & {
+        HostBase: components["schemas"]["HostName"] & components["schemas"]["HostHostname"] & components["schemas"]["HostSysDescr"] & components["schemas"]["HostSysObjectId"] & components["schemas"]["HostSysLocation"] & components["schemas"]["HostSysContact"] & components["schemas"]["HostManagementUrl"] & components["schemas"]["HostChassisId"] & components["schemas"]["HostSysName"] & components["schemas"]["HostManufacturer"] & components["schemas"]["HostModel"] & components["schemas"]["HostSerialNumber"] & components["schemas"]["HostAssetTag"] & components["schemas"]["HostFirmwareRevision"] & components["schemas"]["HostSoftwareRevision"] & components["schemas"]["HostOperatingSystem"] & {
             /** @description Credential assignments for this host (hydrated from junction table). */
             credential_assignments: components["schemas"]["CredentialAssignment"][];
             /** @description Free-text notes about the host. */
@@ -9260,7 +9338,7 @@ export interface components {
          * @description Fields that hosts can be ordered/grouped by.
          * @enum {string}
          */
-        HostOrderField: "created_at" | "name" | "hostname" | "updated_at" | "virtualized_by" | "site_id" | "interface_ip" | "last_seen_at" | "mac_address" | "source" | "manufacturer" | "model" | "sys_location" | "os_family" | "hidden";
+        HostOrderField: "created_at" | "name" | "hostname" | "updated_at" | "virtualized_by" | "site_id" | "interface_ip" | "last_seen_at" | "mac_address" | "source" | "manufacturer" | "model" | "sys_location" | "os_family" | "hidden" | "virtualization_tree";
         /** @description Operating system of a host, as one source read or inferred it. */
         HostOs: {
             /** @description Release codename, such as "noble". */
@@ -9293,6 +9371,8 @@ export interface components {
          * @description Response type for host endpoints.
          *     Includes children (ip_addresses, ports, services, interfaces).
          * @example {
+         *       "asset_tag": "IT-00412",
+         *       "asset_tag_source": "Manual",
          *       "chassis_id_source": "Unspecified",
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "credential_assignments": [],
@@ -9415,19 +9495,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-05T21:30:31.570422Z",
+         *               "created_at": "2026-10-05T22:22:43.874256Z",
          *               "first_discovery_id": null,
-         *               "id": "dd30b5ca-a25e-4a0e-a5fe-02cc3c538bff",
+         *               "id": "0de4d962-0e53-4066-bc19-fa19d74ce68b",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-05T21:30:31.570422Z",
+         *               "last_seen_at": "2026-10-05T22:22:43.874256Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-10-05T21:30:31.570422Z",
-         *               "valid_from": "2026-10-05T21:30:31.570422Z",
+         *               "updated_at": "2026-10-05T22:22:43.874256Z",
+         *               "valid_from": "2026-10-05T22:22:43.874256Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9440,7 +9520,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Actual Budget",
+         *           "service_definition": "Eero Repeater",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -9466,12 +9546,22 @@ export interface components {
          *       "sys_object_id_source": "Unspecified",
          *       "tags": [],
          *       "updated_at": "2026-01-15T10:30:00Z",
+         *       "virtualization_depth": 0,
          *       "virtualization_interface_id": null,
          *       "virtualization_metadata": null,
+         *       "virtualization_parent_host_id": null,
+         *       "virtualization_root_host_id": null,
          *       "virtualization_service_id": null
          *     }
          */
         HostResponse: {
+            /**
+             * @description The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person.
+             *     Set it through `asset_tag` on create and update; a typed value outranks what discovery reads.
+             */
+            readonly asset_tag?: string | null;
+            /** @description What produced the asset tag. Read-only: `Manual` when a person typed it. */
+            asset_tag_source?: components["schemas"]["AttributeSource"];
             /** @description LLDP chassis identifier, used to match the host to its neighbours. */
             chassis_id?: string | null;
             /** @description What produced the LLDP chassis identifier. Read-only: decided by whichever source read it. */
@@ -9613,11 +9703,27 @@ export interface components {
              */
             updated_at: string;
             /**
+             * Format: int32
+             * @description How many hosts sit above this one in its virtualization chain.
+             */
+            readonly virtualization_depth?: number;
+            /**
              * Format: uuid
              * @description The interface on the virtualizing host that presents this host, for a network identity.
              */
             virtualization_interface_id?: string | null;
             virtualization_metadata?: null | components["schemas"]["HostVirtualization"];
+            /**
+             * Format: uuid
+             * @description The host this one runs under: the host of its virtualizing service.
+             */
+            readonly virtualization_parent_host_id?: string | null;
+            /**
+             * Format: uuid
+             * @description The host at the top of this host's virtualization chain, itself when it is the top.
+             *     `null` when the host neither runs under nor runs another host.
+             */
+            readonly virtualization_root_host_id?: string | null;
             /**
              * Format: uuid
              * @description The hypervisor service this VM runs on.
@@ -11154,6 +11260,13 @@ export interface components {
         PaginatedApiResponse_HostResponse: {
             /** @description The page of results. Empty when nothing matched the query. */
             data: {
+                /**
+                 * @description The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person.
+                 *     Set it through `asset_tag` on create and update; a typed value outranks what discovery reads.
+                 */
+                readonly asset_tag?: string | null;
+                /** @description What produced the asset tag. Read-only: `Manual` when a person typed it. */
+                asset_tag_source?: components["schemas"]["AttributeSource"];
                 /** @description LLDP chassis identifier, used to match the host to its neighbours. */
                 chassis_id?: string | null;
                 /** @description What produced the LLDP chassis identifier. Read-only: decided by whichever source read it. */
@@ -11295,11 +11408,27 @@ export interface components {
                  */
                 updated_at: string;
                 /**
+                 * Format: int32
+                 * @description How many hosts sit above this one in its virtualization chain.
+                 */
+                readonly virtualization_depth?: number;
+                /**
                  * Format: uuid
                  * @description The interface on the virtualizing host that presents this host, for a network identity.
                  */
                 virtualization_interface_id?: string | null;
                 virtualization_metadata?: null | components["schemas"]["HostVirtualization"];
+                /**
+                 * Format: uuid
+                 * @description The host this one runs under: the host of its virtualizing service.
+                 */
+                readonly virtualization_parent_host_id?: string | null;
+                /**
+                 * Format: uuid
+                 * @description The host at the top of this host's virtualization chain, itself when it is the top.
+                 *     `null` when the host neither runs under nor runs another host.
+                 */
+                readonly virtualization_root_host_id?: string | null;
                 /**
                  * Format: uuid
                  * @description The hypervisor service this VM runs on.
@@ -11371,54 +11500,25 @@ export interface components {
             success: boolean;
         };
         /** @description Response type for paginated list endpoints (pagination is always present in meta) */
-        PaginatedApiResponse_Subnet: {
+        PaginatedApiResponse_SubnetResponse: {
             /** @description The page of results. Empty when nothing matched the query. */
-            data: (components["schemas"]["SubnetBase"] & {
-                /**
-                 * Format: date-time
-                 * @description When this record was first created.
-                 */
-                readonly created_at: string;
+            data: (components["schemas"]["Subnet"] & {
                 /**
                  * Format: uuid
-                 * @description The discovery that first observed this entity.
+                 * @description The most specific other subnet on the same site whose range contains this one. `null` when
+                 *     none does. Children are the subnets whose parent is this one.
                  */
-                readonly first_discovery_id?: string | null;
+                readonly parent_subnet_id?: string | null;
                 /**
-                 * Format: uuid
-                 * @description Server-assigned unique identifier.
+                 * Format: int64
+                 * @description Addresses a host can hold in this range. Saturates for IPv6 ranges wider than a `/64`.
                  */
-                readonly id: string;
+                readonly usable_addresses: number;
                 /**
-                 * Format: uuid
-                 * @description The most recent discovery that observed this entity.
+                 * Format: int64
+                 * @description Distinct addresses held in this range, including those filed in subnets nested inside it.
                  */
-                readonly last_discovery_id?: string | null;
-                /**
-                 * Format: date-time
-                 * @description When a discovery last observed this entity.
-                 */
-                readonly last_seen_at?: string;
-                /**
-                 * Format: uuid
-                 * @description Stable identifier shared by every revision of the same entity across its history.
-                 */
-                readonly lineage_id?: string | null;
-                /**
-                 * Format: date-time
-                 * @description When this record was last modified.
-                 */
-                readonly updated_at: string;
-                /**
-                 * Format: date-time
-                 * @description Start of the interval this revision was current for (SCD2 history).
-                 */
-                readonly valid_from?: string;
-                /**
-                 * Format: date-time
-                 * @description End of the interval this revision was current for. `null` while it is the live revision.
-                 */
-                readonly valid_to?: string | null;
+                readonly used_addresses: number;
             })[];
             /** @description Human-readable failure message. Omitted on success. */
             error?: string | null;
@@ -12505,19 +12605,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-05T21:30:31.571283Z",
+         *           "created_at": "2026-10-05T22:22:43.875638Z",
          *           "first_discovery_id": null,
-         *           "id": "c6bba27d-b3fb-4a6b-b4f2-72bc32614bcc",
+         *           "id": "58e58082-678a-4ef3-ac2e-99447bdb926c",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-05T21:30:31.571283Z",
+         *           "last_seen_at": "2026-10-05T22:22:43.875638Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-10-05T21:30:31.571283Z",
-         *           "valid_from": "2026-10-05T21:30:31.571283Z",
+         *           "updated_at": "2026-10-05T22:22:43.875638Z",
+         *           "valid_from": "2026-10-05T22:22:43.875638Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12530,7 +12630,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Actual Budget",
+         *       "service_definition": "Eero Repeater",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -13116,6 +13216,25 @@ export interface components {
          * @enum {string}
          */
         SubnetOrderField: "created_at" | "name" | "cidr" | "subnet_type" | "updated_at" | "site_id" | "last_seen_at";
+        /** @description A subnet together with what is derived from the rest of its site. */
+        SubnetResponse: components["schemas"]["Subnet"] & {
+            /**
+             * Format: uuid
+             * @description The most specific other subnet on the same site whose range contains this one. `null` when
+             *     none does. Children are the subnets whose parent is this one.
+             */
+            readonly parent_subnet_id?: string | null;
+            /**
+             * Format: int64
+             * @description Addresses a host can hold in this range. Saturates for IPv6 ranges wider than a `/64`.
+             */
+            readonly usable_addresses: number;
+            /**
+             * Format: int64
+             * @description Distinct addresses held in this range, including those filed in subnets nested inside it.
+             */
+            readonly used_addresses: number;
+        };
         /** @enum {string} */
         SubnetType: "Internet" | "Remote" | "Gateway" | "VpnTunnel" | "Dmz" | "Lan" | "WiFi" | "IoT" | "Guest" | "DockerBridge" | "PodmanBridge" | "MacVlan" | "IpVlan" | "Management" | "Storage" | "Loopback" | "Unknown";
         /** @enum {string} */
@@ -13389,7 +13508,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "3190b6c6-125e-47ce-b593-d186fc7c5c36",
+             *           "id": "90f74e2b-ddee-4489-8282-e4d393e7b022",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13399,23 +13518,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "aa66c17e-0490-4361-a7d2-851d551b2b22",
+             *           "id": "af7e4ac9-1d9a-4475-ab85-9f0621e04b46",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "3efb081e-ae89-47bc-826d-c4c63eb9eaf7",
+             *           "id": "42429593-507d-437e-a289-2d9e6325f7c0",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "3dbb01bd-8e63-4870-9738-310e967844de",
+             *           "id": "9ec8a5c8-e821-4704-a498-85bbc0f3eae2",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "aa66c17e-0490-4361-a7d2-851d551b2b22",
+             *           "id": "af7e4ac9-1d9a-4475-ab85-9f0621e04b46",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13428,19 +13547,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "3caf1e33-30dd-4e13-850b-920c4297f085",
+             *         "id": "c3d80d2a-af66-424b-b693-7f3dcc9197b9",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "57477b10-a579-4d29-9ced-4664824f596c",
+             *         "id": "78e86a26-07d1-4b17-85ec-2d9ecc261824",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "2ccf382a-53ac-4084-9c1f-9c04dc8fcc25",
+             *         "id": "89dfd5b3-6da7-4ff5-973b-44c3397ee460",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "d19a01ea-6d7e-4d18-aba7-580abf5ff3ca",
+             *         "id": "c0cd64c5-c2b9-4a78-8103-42786babb7fa",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13459,7 +13578,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "05acda4d-d34f-4038-882a-ec09ec2d23d7",
+             *         "id": "0642f41a-3b1a-4378-a6ee-c2e902fe4c2a",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13468,15 +13587,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "c351ce99-3ec0-4155-996f-5ae947eaed34",
+             *         "id": "210a4529-e1f3-4b45-9ed7-3110149359b6",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "7825f7ab-8486-454e-a053-8a986252c988",
+             *         "id": "2589eb37-98d5-4397-82c2-ac0b950b93cb",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "5aa0caec-c8bb-4112-9958-52de26ba4fb9",
+             *         "id": "4422dd19-8d6f-4ea1-8fc2-3a855e1fffc4",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -13627,6 +13746,12 @@ export interface components {
          *     Server will sync children (create new, update existing, delete removed) only if provided.
          */
         UpdateHostRequest: {
+            /**
+             * @description The organization's asset tag for the device. Omit it to keep the current one, send an
+             *     empty string to clear it. A changed value outranks what discovery reads from ENTITY-MIB
+             *     entPhysicalAssetID.
+             */
+            asset_tag?: string | null;
             /**
              * @description Credential assignments for this host.
              *     If provided, replaces all existing credential assignments.
@@ -17898,8 +18023,9 @@ export interface operations {
                 tag_ids?: string[] | null;
                 /**
                  * @description Free-text search. Case-insensitive substring match against the host's
-                 *     name, hostname, sysName, chassis id and description, and against its IP
-                 *     addresses and the names of services running on it.
+                 *     name, hostname, sysName, chassis id, serial number, asset tag and
+                 *     description, and against its IP addresses and the names of services
+                 *     running on it.
                  *
                  *     sysName and chassis id are in there because they are rungs of the title
                  *     ladder: a host with no name of its own is *shown* under one of them, and
@@ -18107,8 +18233,9 @@ export interface operations {
                 tag_ids?: string[] | null;
                 /**
                  * @description Free-text search. Case-insensitive substring match against the host's
-                 *     name, hostname, sysName, chassis id and description, and against its IP
-                 *     addresses and the names of services running on it.
+                 *     name, hostname, sysName, chassis id, serial number, asset tag and
+                 *     description, and against its IP addresses and the names of services
+                 *     running on it.
                  *
                  *     sysName and chassis id are in there because they are rungs of the title
                  *     ladder: a host with no name of its own is *shown* under one of them, and
@@ -18207,8 +18334,9 @@ export interface operations {
                 tag_ids?: string[] | null;
                 /**
                  * @description Free-text search. Case-insensitive substring match against the host's
-                 *     name, hostname, sysName, chassis id and description, and against its IP
-                 *     addresses and the names of services running on it.
+                 *     name, hostname, sysName, chassis id, serial number, asset tag and
+                 *     description, and against its IP addresses and the names of services
+                 *     running on it.
                  *
                  *     sysName and chassis id are in there because they are rungs of the title
                  *     ladder: a host with no name of its own is *shown* under one of them, and
@@ -18307,8 +18435,9 @@ export interface operations {
                 tag_ids?: string[] | null;
                 /**
                  * @description Free-text search. Case-insensitive substring match against the host's
-                 *     name, hostname, sysName, chassis id and description, and against its IP
-                 *     addresses and the names of services running on it.
+                 *     name, hostname, sysName, chassis id, serial number, asset tag and
+                 *     description, and against its IP addresses and the names of services
+                 *     running on it.
                  *
                  *     sysName and chassis id are in there because they are rungs of the title
                  *     ladder: a host with no name of its own is *shown* under one of them, and
@@ -21215,7 +21344,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedApiResponse_Subnet"];
+                    "application/json": components["schemas"]["PaginatedApiResponse_SubnetResponse"];
                 };
             };
         };
@@ -21345,7 +21474,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Subnet"];
+                    "application/json": components["schemas"]["ApiResponse_SubnetResponse"];
                 };
             };
             /** @description Subnet not found */

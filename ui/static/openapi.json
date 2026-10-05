@@ -6980,7 +6980,7 @@
           {
             "name": "search",
             "in": "query",
-            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id and description, and against its IP\naddresses and the names of services running on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
+            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id, serial number, asset tag and\ndescription, and against its IP addresses and the names of services\nrunning on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
             "required": false,
             "schema": {
               "type": [
@@ -7514,7 +7514,7 @@
           {
             "name": "search",
             "in": "query",
-            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id and description, and against its IP\naddresses and the names of services running on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
+            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id, serial number, asset tag and\ndescription, and against its IP addresses and the names of services\nrunning on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
             "required": false,
             "schema": {
               "type": [
@@ -7884,7 +7884,7 @@
           {
             "name": "search",
             "in": "query",
-            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id and description, and against its IP\naddresses and the names of services running on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
+            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id, serial number, asset tag and\ndescription, and against its IP addresses and the names of services\nrunning on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
             "required": false,
             "schema": {
               "type": [
@@ -8263,7 +8263,7 @@
           {
             "name": "search",
             "in": "query",
-            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id and description, and against its IP\naddresses and the names of services running on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
+            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id, serial number, asset tag and\ndescription, and against its IP addresses and the names of services\nrunning on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
             "required": false,
             "schema": {
               "type": [
@@ -14025,7 +14025,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaginatedApiResponse_Subnet"
+                  "$ref": "#/components/schemas/PaginatedApiResponse_SubnetResponse"
                 }
               }
             }
@@ -14302,7 +14302,8 @@
         "tags": [
           "Subnets"
         ],
-        "summary": "Get Subnet by ID",
+        "summary": "Get subnet by ID",
+        "description": "Returns the subnet with its utilization and the range it sits inside, if any.",
         "operationId": "get_subnet_by_id",
         "parameters": [
           {
@@ -14322,7 +14323,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponse_Subnet"
+                  "$ref": "#/components/schemas/ApiResponse_SubnetResponse"
                 }
               }
             }
@@ -17015,19 +17016,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-05T21:30:31.590734Z",
+              "created_at": "2026-10-05T22:22:43.899465Z",
               "first_discovery_id": null,
-              "id": "f86cd2d6-7853-49c9-9378-ac2dcd11d518",
+              "id": "0f8bc506-0f5a-41fc-9745-8e45b8cc1c27",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T21:30:31.590734Z",
+              "last_seen_at": "2026-10-05T22:22:43.899465Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-05T21:30:31.590734Z",
-              "valid_from": "2026-10-05T21:30:31.590734Z",
+              "updated_at": "2026-10-05T22:22:43.899465Z",
+              "valid_from": "2026-10-05T22:22:43.899465Z",
               "valid_to": null
             }
           },
@@ -18201,6 +18202,18 @@
               "interfaces"
             ],
             "properties": {
+              "asset_tag": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person.\nSet it through `asset_tag` on create and update; a typed value outranks what discovery reads.",
+                "readOnly": true
+              },
+              "asset_tag_source": {
+                "$ref": "#/components/schemas/AttributeSource",
+                "description": "What produced the asset tag. Read-only: `Manual` when a person typed it."
+              },
               "chassis_id": {
                 "type": [
                   "string",
@@ -18500,6 +18513,13 @@
                 "format": "date-time",
                 "description": "When this record was last modified."
               },
+              "virtualization_depth": {
+                "type": "integer",
+                "format": "int32",
+                "description": "How many hosts sit above this one in its virtualization chain.",
+                "readOnly": true,
+                "minimum": 0
+              },
               "virtualization_interface_id": {
                 "type": [
                   "string",
@@ -18519,6 +18539,24 @@
                   }
                 ]
               },
+              "virtualization_parent_host_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The host this one runs under: the host of its virtualizing service.",
+                "readOnly": true
+              },
+              "virtualization_root_host_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The host at the top of this host's virtualization chain, itself when it is the top.\n`null` when the host neither runs under nor runs another host.",
+                "readOnly": true
+              },
               "virtualization_service_id": {
                 "type": [
                   "string",
@@ -18529,6 +18567,8 @@
               }
             },
             "example": {
+              "asset_tag": "IT-00412",
+              "asset_tag_source": "Manual",
               "chassis_id_source": "Unspecified",
               "created_at": "2026-01-15T10:30:00Z",
               "credential_assignments": [],
@@ -18651,19 +18691,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-05T21:30:31.570951Z",
+                      "created_at": "2026-10-05T22:22:43.875096Z",
                       "first_discovery_id": null,
-                      "id": "f0803b6f-c5fc-40eb-a045-dfad9b225b92",
+                      "id": "14d25a4f-306b-45ac-8022-33b90f371a8e",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-05T21:30:31.570951Z",
+                      "last_seen_at": "2026-10-05T22:22:43.875096Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-05T21:30:31.570951Z",
-                      "valid_from": "2026-10-05T21:30:31.570951Z",
+                      "updated_at": "2026-10-05T22:22:43.875096Z",
+                      "valid_from": "2026-10-05T22:22:43.875096Z",
                       "valid_to": null
                     }
                   ],
@@ -18676,7 +18716,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Actual Budget",
+                  "service_definition": "Eero Repeater",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -18702,8 +18742,11 @@
               "sys_object_id_source": "Unspecified",
               "tags": [],
               "updated_at": "2026-01-15T10:30:00Z",
+              "virtualization_depth": 0,
               "virtualization_interface_id": null,
               "virtualization_metadata": null,
+              "virtualization_parent_host_id": null,
+              "virtualization_root_host_id": null,
               "virtualization_service_id": null
             }
           },
@@ -19999,19 +20042,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T21:30:31.586099Z",
+                  "created_at": "2026-10-05T22:22:43.894336Z",
                   "first_discovery_id": null,
-                  "id": "5d302bf6-620d-42ee-8830-55a0b2462941",
+                  "id": "4af531fa-525a-4a5d-985b-a15e7878207c",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T21:30:31.586099Z",
+                  "last_seen_at": "2026-10-05T22:22:43.894336Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-05T21:30:31.586099Z",
-                  "valid_from": "2026-10-05T21:30:31.586099Z",
+                  "updated_at": "2026-10-05T22:22:43.894336Z",
+                  "valid_from": "2026-10-05T22:22:43.894336Z",
                   "valid_to": null
                 }
               ],
@@ -20024,7 +20067,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Actual Budget",
+              "service_definition": "Eero Repeater",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -20570,6 +20613,71 @@
               "valid_to": null,
               "virtualization_service_id": null
             }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_SubnetResponse": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Subnet"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "used_addresses",
+                  "usable_addresses"
+                ],
+                "properties": {
+                  "parent_subnet_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid",
+                    "description": "The most specific other subnet on the same site whose range contains this one. `null` when\nnone does. Children are the subnets whose parent is this one.",
+                    "readOnly": true
+                  },
+                  "usable_addresses": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Addresses a host can hold in this range. Saturates for IPv6 ranges wider than a `/64`.",
+                    "readOnly": true,
+                    "minimum": 0
+                  },
+                  "used_addresses": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Distinct addresses held in this range, including those filed in subnets nested inside it.",
+                    "readOnly": true,
+                    "minimum": 0
+                  }
+                }
+              }
+            ],
+            "description": "A subnet together with what is derived from the rest of its site."
           },
           "error": {
             "type": [
@@ -22595,19 +22703,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-05T21:30:31.571422Z",
+          "created_at": "2026-10-05T22:22:43.875841Z",
           "first_discovery_id": null,
-          "id": "60b40b16-1436-4b87-b070-a544d927e436",
+          "id": "c0a23a8e-3416-4f4d-a7aa-2ab6acb3b514",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-05T21:30:31.571422Z",
+          "last_seen_at": "2026-10-05T22:22:43.875841Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-05T21:30:31.571422Z",
-          "valid_from": "2026-10-05T21:30:31.571422Z",
+          "updated_at": "2026-10-05T22:22:43.875841Z",
+          "valid_from": "2026-10-05T22:22:43.875841Z",
           "valid_to": null
         }
       },
@@ -23196,6 +23304,13 @@
           "tags"
         ],
         "properties": {
+          "asset_tag": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The organization's asset tag for the device. Outranks the value discovery reads from\nENTITY-MIB entPhysicalAssetID."
+          },
           "chassis_id": {
             "type": [
               "string",
@@ -23337,6 +23452,7 @@
           }
         },
         "example": {
+          "asset_tag": "IT-00412",
           "credential_assignments": [],
           "description": "Primary web server",
           "hidden": false,
@@ -23373,7 +23489,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Actual Budget",
+              "service_definition": "Eero Repeater",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -28872,6 +28988,8 @@
           }
         ],
         "example": {
+          "asset_tag": "IT-00412",
+          "asset_tag_source": "Manual",
           "created_at": "2026-01-15T10:30:00Z",
           "credential_assignments": [],
           "description": "Primary web server",
@@ -28896,6 +29014,18 @@
           "virtualization_interface_id": null,
           "virtualization_metadata": null,
           "virtualization_service_id": null
+        }
+      },
+      "HostAssetTag": {
+        "type": "object",
+        "properties": {
+          "asset_tag": {
+            "type": "string",
+            "description": "ENTITY-MIB entPhysicalAssetID - the organization's asset tag"
+          },
+          "asset_tag_source": {
+            "$ref": "#/components/schemas/AttributeSource"
+          }
         }
       },
       "HostBase": {
@@ -28947,6 +29077,10 @@
           {
             "$ref": "#/components/schemas/HostSerialNumber",
             "description": "ENTITY-MIB entPhysicalSerialNum - hardware serial number"
+          },
+          {
+            "$ref": "#/components/schemas/HostAssetTag",
+            "description": "The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person."
           },
           {
             "$ref": "#/components/schemas/HostFirmwareRevision",
@@ -29252,7 +29386,8 @@
           "model",
           "sys_location",
           "os_family",
-          "hidden"
+          "hidden",
+          "virtualization_tree"
         ]
       },
       "HostOs": {
@@ -29382,6 +29517,18 @@
           "interfaces"
         ],
         "properties": {
+          "asset_tag": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person.\nSet it through `asset_tag` on create and update; a typed value outranks what discovery reads.",
+            "readOnly": true
+          },
+          "asset_tag_source": {
+            "$ref": "#/components/schemas/AttributeSource",
+            "description": "What produced the asset tag. Read-only: `Manual` when a person typed it."
+          },
           "chassis_id": {
             "type": [
               "string",
@@ -29681,6 +29828,13 @@
             "format": "date-time",
             "description": "When this record was last modified."
           },
+          "virtualization_depth": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many hosts sit above this one in its virtualization chain.",
+            "readOnly": true,
+            "minimum": 0
+          },
           "virtualization_interface_id": {
             "type": [
               "string",
@@ -29700,6 +29854,24 @@
               }
             ]
           },
+          "virtualization_parent_host_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The host this one runs under: the host of its virtualizing service.",
+            "readOnly": true
+          },
+          "virtualization_root_host_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The host at the top of this host's virtualization chain, itself when it is the top.\n`null` when the host neither runs under nor runs another host.",
+            "readOnly": true
+          },
           "virtualization_service_id": {
             "type": [
               "string",
@@ -29710,6 +29882,8 @@
           }
         },
         "example": {
+          "asset_tag": "IT-00412",
+          "asset_tag_source": "Manual",
           "chassis_id_source": "Unspecified",
           "created_at": "2026-01-15T10:30:00Z",
           "credential_assignments": [],
@@ -29832,19 +30006,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T21:30:31.570422Z",
+                  "created_at": "2026-10-05T22:22:43.874256Z",
                   "first_discovery_id": null,
-                  "id": "dd30b5ca-a25e-4a0e-a5fe-02cc3c538bff",
+                  "id": "0de4d962-0e53-4066-bc19-fa19d74ce68b",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T21:30:31.570422Z",
+                  "last_seen_at": "2026-10-05T22:22:43.874256Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-05T21:30:31.570422Z",
-                  "valid_from": "2026-10-05T21:30:31.570422Z",
+                  "updated_at": "2026-10-05T22:22:43.874256Z",
+                  "valid_from": "2026-10-05T22:22:43.874256Z",
                   "valid_to": null
                 }
               ],
@@ -29857,7 +30031,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Actual Budget",
+              "service_definition": "Eero Repeater",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -29883,8 +30057,11 @@
           "sys_object_id_source": "Unspecified",
           "tags": [],
           "updated_at": "2026-01-15T10:30:00Z",
+          "virtualization_depth": 0,
           "virtualization_interface_id": null,
           "virtualization_metadata": null,
+          "virtualization_parent_host_id": null,
+          "virtualization_root_host_id": null,
           "virtualization_service_id": null
         }
       },
@@ -33132,6 +33309,18 @@
                 "interfaces"
               ],
               "properties": {
+                "asset_tag": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person.\nSet it through `asset_tag` on create and update; a typed value outranks what discovery reads.",
+                  "readOnly": true
+                },
+                "asset_tag_source": {
+                  "$ref": "#/components/schemas/AttributeSource",
+                  "description": "What produced the asset tag. Read-only: `Manual` when a person typed it."
+                },
                 "chassis_id": {
                   "type": [
                     "string",
@@ -33431,6 +33620,13 @@
                   "format": "date-time",
                   "description": "When this record was last modified."
                 },
+                "virtualization_depth": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "How many hosts sit above this one in its virtualization chain.",
+                  "readOnly": true,
+                  "minimum": 0
+                },
                 "virtualization_interface_id": {
                   "type": [
                     "string",
@@ -33450,6 +33646,24 @@
                     }
                   ]
                 },
+                "virtualization_parent_host_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid",
+                  "description": "The host this one runs under: the host of its virtualizing service.",
+                  "readOnly": true
+                },
+                "virtualization_root_host_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid",
+                  "description": "The host at the top of this host's virtualization chain, itself when it is the top.\n`null` when the host neither runs under nor runs another host.",
+                  "readOnly": true
+                },
                 "virtualization_service_id": {
                   "type": [
                     "string",
@@ -33460,6 +33674,8 @@
                 }
               },
               "example": {
+                "asset_tag": "IT-00412",
+                "asset_tag_source": "Manual",
                 "chassis_id_source": "Unspecified",
                 "created_at": "2026-01-15T10:30:00Z",
                 "credential_assignments": [],
@@ -33582,19 +33798,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-05T21:30:31.560582Z",
+                        "created_at": "2026-10-05T22:22:43.857207Z",
                         "first_discovery_id": null,
-                        "id": "e0099d32-6424-4ee6-ad7a-4be34d8f284d",
+                        "id": "f8169bb5-71a7-49c5-b2e7-4f761f41453f",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-05T21:30:31.560582Z",
+                        "last_seen_at": "2026-10-05T22:22:43.857207Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-05T21:30:31.560582Z",
-                        "valid_from": "2026-10-05T21:30:31.560582Z",
+                        "updated_at": "2026-10-05T22:22:43.857207Z",
+                        "valid_from": "2026-10-05T22:22:43.857207Z",
                         "valid_to": null
                       }
                     ],
@@ -33607,7 +33823,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Actual Budget",
+                    "service_definition": "Eero Repeater",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -33633,8 +33849,11 @@
                 "sys_object_id_source": "Unspecified",
                 "tags": [],
                 "updated_at": "2026-01-15T10:30:00Z",
+                "virtualization_depth": 0,
                 "virtualization_interface_id": null,
                 "virtualization_metadata": null,
+                "virtualization_parent_host_id": null,
+                "virtualization_root_host_id": null,
                 "virtualization_service_id": null
               }
             },
@@ -33753,19 +33972,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-05T21:30:31.585314Z",
+                    "created_at": "2026-10-05T22:22:43.893428Z",
                     "first_discovery_id": null,
-                    "id": "be289cb8-5846-4d89-bed9-7b7d281c8891",
+                    "id": "cca97442-73b0-438f-88a9-cf72788404e0",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-05T21:30:31.585314Z",
+                    "last_seen_at": "2026-10-05T22:22:43.893428Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-05T21:30:31.585314Z",
-                    "valid_from": "2026-10-05T21:30:31.585314Z",
+                    "updated_at": "2026-10-05T22:22:43.893428Z",
+                    "valid_from": "2026-10-05T22:22:43.893428Z",
                     "valid_to": null
                   }
                 ],
@@ -33778,7 +33997,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Actual Budget",
+                "service_definition": "Eero Repeater",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -33810,7 +34029,7 @@
           }
         }
       },
-      "PaginatedApiResponse_Subnet": {
+      "PaginatedApiResponse_SubnetResponse": {
         "type": "object",
         "description": "Response type for paginated list endpoints (pagination is always present in meta)",
         "required": [
@@ -33824,107 +34043,42 @@
             "items": {
               "allOf": [
                 {
-                  "$ref": "#/components/schemas/SubnetBase"
+                  "$ref": "#/components/schemas/Subnet"
                 },
                 {
                   "type": "object",
                   "required": [
-                    "id",
-                    "created_at",
-                    "updated_at"
+                    "used_addresses",
+                    "usable_addresses"
                   ],
                   "properties": {
-                    "created_at": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "When this record was first created.",
-                      "readOnly": true
-                    },
-                    "first_discovery_id": {
+                    "parent_subnet_id": {
                       "type": [
                         "string",
                         "null"
                       ],
                       "format": "uuid",
-                      "description": "The discovery that first observed this entity.",
+                      "description": "The most specific other subnet on the same site whose range contains this one. `null` when\nnone does. Children are the subnets whose parent is this one.",
                       "readOnly": true
                     },
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "description": "Server-assigned unique identifier.",
-                      "readOnly": true
+                    "usable_addresses": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Addresses a host can hold in this range. Saturates for IPv6 ranges wider than a `/64`.",
+                      "readOnly": true,
+                      "minimum": 0
                     },
-                    "last_discovery_id": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "format": "uuid",
-                      "description": "The most recent discovery that observed this entity.",
-                      "readOnly": true
-                    },
-                    "last_seen_at": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "When a discovery last observed this entity.",
-                      "readOnly": true
-                    },
-                    "lineage_id": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "format": "uuid",
-                      "description": "Stable identifier shared by every revision of the same entity across its history.",
-                      "readOnly": true
-                    },
-                    "updated_at": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "When this record was last modified.",
-                      "readOnly": true
-                    },
-                    "valid_from": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Start of the interval this revision was current for (SCD2 history).",
-                      "readOnly": true
-                    },
-                    "valid_to": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "format": "date-time",
-                      "description": "End of the interval this revision was current for. `null` while it is the live revision.",
-                      "readOnly": true
+                    "used_addresses": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Distinct addresses held in this range, including those filed in subnets nested inside it.",
+                      "readOnly": true,
+                      "minimum": 0
                     }
                   }
                 }
               ],
-              "example": {
-                "cidr": "192.168.1.0/24",
-                "cidr_source": "DaemonSelfReport",
-                "created_at": "2026-01-15T10:30:00Z",
-                "description": "Local area network",
-                "first_discovery_id": null,
-                "id": "550e8400-e29b-41d4-a716-446655440004",
-                "last_discovery_id": null,
-                "last_seen_at": "2026-01-15T10:30:00Z",
-                "lineage_id": null,
-                "name": "LAN",
-                "site_id": "550e8400-e29b-41d4-a716-446655440002",
-                "source": {
-                  "type": "Manual"
-                },
-                "subnet_type": "Lan",
-                "tags": [],
-                "updated_at": "2026-01-15T10:30:00Z",
-                "valid_from": "2026-01-15T10:30:00Z",
-                "valid_to": null,
-                "virtualization_service_id": null
-              }
+              "description": "A subnet together with what is derived from the rest of its site."
             },
             "description": "The page of results. Empty when nothing matched the query."
           },
@@ -36018,19 +36172,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-05T21:30:31.571283Z",
+              "created_at": "2026-10-05T22:22:43.875638Z",
               "first_discovery_id": null,
-              "id": "c6bba27d-b3fb-4a6b-b4f2-72bc32614bcc",
+              "id": "58e58082-678a-4ef3-ac2e-99447bdb926c",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T21:30:31.571283Z",
+              "last_seen_at": "2026-10-05T22:22:43.875638Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-05T21:30:31.571283Z",
-              "valid_from": "2026-10-05T21:30:31.571283Z",
+              "updated_at": "2026-10-05T22:22:43.875638Z",
+              "valid_from": "2026-10-05T22:22:43.875638Z",
               "valid_to": null
             }
           ],
@@ -36043,7 +36197,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Actual Budget",
+          "service_definition": "Eero Repeater",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -37110,6 +37264,46 @@
           "last_seen_at"
         ]
       },
+      "SubnetResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Subnet"
+          },
+          {
+            "type": "object",
+            "required": [
+              "used_addresses",
+              "usable_addresses"
+            ],
+            "properties": {
+              "parent_subnet_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The most specific other subnet on the same site whose range contains this one. `null` when\nnone does. Children are the subnets whose parent is this one.",
+                "readOnly": true
+              },
+              "usable_addresses": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Addresses a host can hold in this range. Saturates for IPv6 ranges wider than a `/64`.",
+                "readOnly": true,
+                "minimum": 0
+              },
+              "used_addresses": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Distinct addresses held in this range, including those filed in subnets nested inside it.",
+                "readOnly": true,
+                "minimum": 0
+              }
+            }
+          }
+        ],
+        "description": "A subnet together with what is derived from the rest of its site."
+      },
       "SubnetType": {
         "type": "string",
         "enum": [
@@ -37663,7 +37857,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "3190b6c6-125e-47ce-b593-d186fc7c5c36",
+                  "id": "90f74e2b-ddee-4489-8282-e4d393e7b022",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -37673,23 +37867,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "aa66c17e-0490-4361-a7d2-851d551b2b22",
+                  "id": "af7e4ac9-1d9a-4475-ab85-9f0621e04b46",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "3efb081e-ae89-47bc-826d-c4c63eb9eaf7",
+                  "id": "42429593-507d-437e-a289-2d9e6325f7c0",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "3dbb01bd-8e63-4870-9738-310e967844de",
+                  "id": "9ec8a5c8-e821-4704-a498-85bbc0f3eae2",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "aa66c17e-0490-4361-a7d2-851d551b2b22",
+                  "id": "af7e4ac9-1d9a-4475-ab85-9f0621e04b46",
                   "rule": "ByHost"
                 }
               ]
@@ -37719,19 +37913,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "3caf1e33-30dd-4e13-850b-920c4297f085",
+                "id": "c3d80d2a-af66-424b-b693-7f3dcc9197b9",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "57477b10-a579-4d29-9ced-4664824f596c",
+                "id": "78e86a26-07d1-4b17-85ec-2d9ecc261824",
                 "rule": "ByVLAN"
               },
               {
-                "id": "2ccf382a-53ac-4084-9c1f-9c04dc8fcc25",
+                "id": "89dfd5b3-6da7-4ff5-973b-44c3397ee460",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "d19a01ea-6d7e-4d18-aba7-580abf5ff3ca",
+                "id": "c0cd64c5-c2b9-4a78-8103-42786babb7fa",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -37750,7 +37944,7 @@
                 }
               },
               {
-                "id": "05acda4d-d34f-4038-882a-ec09ec2d23d7",
+                "id": "0642f41a-3b1a-4378-a6ee-c2e902fe4c2a",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -37759,15 +37953,15 @@
                 }
               },
               {
-                "id": "c351ce99-3ec0-4155-996f-5ae947eaed34",
+                "id": "210a4529-e1f3-4b45-9ed7-3110149359b6",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "7825f7ab-8486-454e-a053-8a986252c988",
+                "id": "2589eb37-98d5-4397-82c2-ac0b950b93cb",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "5aa0caec-c8bb-4112-9958-52de26ba4fb9",
+                "id": "4422dd19-8d6f-4ea1-8fc2-3a855e1fffc4",
                 "rule": "ByStack"
               }
             ]
@@ -38055,6 +38249,13 @@
           "tags"
         ],
         "properties": {
+          "asset_tag": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The organization's asset tag for the device. Omit it to keep the current one, send an\nempty string to clear it. A changed value outranks what discovery reads from ENTITY-MIB\nentPhysicalAssetID."
+          },
           "credential_assignments": {
             "type": [
               "array",

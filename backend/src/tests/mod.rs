@@ -60,6 +60,7 @@ pub mod snmp_sim_resolution;
 pub mod stripe_webhook_retries;
 pub mod stripe_webhooks;
 pub mod subnet_placement;
+pub mod virtualization_tree;
 
 pub const DAEMON_CONFIG_FIXTURE: &str = "src/tests/daemon_config.json";
 pub const SERVER_DB_FIXTURE: &str = "src/tests/scanopy.sql";

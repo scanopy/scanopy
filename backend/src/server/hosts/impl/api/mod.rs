@@ -935,6 +935,19 @@ pub struct HostResponse {
     /// The interface on the virtualizing host that presents this host, for a network identity.
     #[serde(default)]
     pub virtualization_interface_id: Option<Uuid>,
+    /// The host this one runs under: the host of its virtualizing service.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub virtualization_parent_host_id: Option<Uuid>,
+    /// The host at the top of this host's virtualization chain, itself when it is the top.
+    /// `null` when the host neither runs under nor runs another host.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub virtualization_root_host_id: Option<Uuid>,
+    /// How many hosts sit above this one in its virtualization chain.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub virtualization_depth: u32,
     /// Whether the host is hidden from topology views.
     pub hidden: bool,
     /// Tags assigned to this entity.

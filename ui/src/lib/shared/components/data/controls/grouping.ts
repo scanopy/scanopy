@@ -1,4 +1,10 @@
-import { getFieldKey, type FieldConfig, type GroupPosition, type TreeConfig } from '../types';
+import {
+	getFieldKey,
+	isOrderableField,
+	type FieldConfig,
+	type GroupPosition,
+	type TreeConfig
+} from '../types';
 import { getFieldValue, type FieldValue } from './fieldValues';
 
 /**
@@ -52,7 +58,7 @@ export function groupItems<T>(
 	const groups = new Map<string, T[]>();
 
 	items.forEach((item) => {
-		const value = getFieldValue(item, field);
+		const value = field.getGroupLabel ? field.getGroupLabel(item) : getFieldValue(item, field);
 		const groupKey = groupLabel(value, field, labels);
 
 		if (!groups.has(groupKey)) {
@@ -159,6 +165,19 @@ export function computeGroupOffsets(counts: ServerGroupCount[] | null): Map<stri
 	}
 
 	return offsets;
+}
+
+/**
+ * The backend field to ask the server to group by when the list is grouped by `groupFieldKey`:
+ * the field's `groupOrderField` when it has one, otherwise the key itself.
+ */
+export function serverGroupField<T>(
+	fields: FieldConfig<T>[],
+	groupFieldKey: string | null
+): string | null {
+	const field = fields.find((f) => getFieldKey(f) === groupFieldKey);
+	if (field && isOrderableField(field) && field.groupOrderField) return field.groupOrderField;
+	return groupFieldKey;
 }
 
 /**

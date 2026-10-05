@@ -342,6 +342,10 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				updated_at: 'updated_at',
 				virtualization_interface_id: 'presented_by',
 				virtualization_service_id: 'virtualized_by',
+				// Where the host sits in its virtualization tree: how Virtualized By groups.
+				virtualization_parent_host_id: 'virtualized_by',
+				virtualization_root_host_id: 'virtualized_by',
+				virtualization_depth: 'virtualized_by',
 				...FOUND_BY,
 				// Each source is explained in its value's tooltip (`getSource`, or `OsTag` for OS).
 				chassis_id_source: 'chassis_id',

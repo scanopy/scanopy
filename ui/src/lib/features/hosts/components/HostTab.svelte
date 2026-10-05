@@ -69,6 +69,7 @@
 		common_firmwareRevision,
 		common_softwareRevision,
 		common_operatingSystem,
+		common_host,
 		common_service,
 		common_services,
 		common_tags,
@@ -91,7 +92,14 @@
 
 	let { isReadOnly = false }: TabProps = $props();
 	import {
+		missingRootIds,
+		virtualizationGroupKey,
+		virtualizationGroupLabel,
+		virtualizationTree
+	} from '../virtualization-tree';
+	import {
 		useHostsQuery,
+		useHostsByIds,
 		useCreateHostMutation,
 		useUpdateHostMutation,
 		useDeleteHostMutation,
@@ -253,6 +261,11 @@
 	const discoveryRunsQuery = useDiscoveriesByIds(() =>
 		discoveryRunIds(hostsQuery.data?.items ?? [])
 	);
+	// The hosts that head a virtualization tree on this page but sit on another, so the group
+	// header can name them.
+	const virtualizationRootsQuery = useHostsByIds(() =>
+		missingRootIds(hostsQuery.data?.items ?? [])
+	);
 
 	// Mutations
 	const createHostMutation = useCreateHostMutation();
@@ -269,6 +282,9 @@
 	let servicesData = $derived(servicesQuery.data ?? []);
 	let presentingInterfacesData = $derived(presentingInterfacesQuery.data ?? []);
 	let discoveryRunsData = $derived(discoveryRunsQuery.data ?? []);
+	let virtualizationRoots = $derived(
+		new Map([...hostsData, ...(virtualizationRootsQuery.data ?? [])].map((h) => [h.id, h]))
+	);
 	const servicesCacheQuery = useServicesCacheQuery();
 	let allServicesData = $derived(servicesCacheQuery.data ?? []);
 	let sitesData = $derived(sitesQuery.data ?? []);
@@ -527,10 +543,17 @@
 						hasEmptyFieldValue(virtualizedByValuesQuery.data) ? [hosts_notVirtualized()] : []
 					),
 					groupable: true,
-					// The server groups on the virtualizing service's name,
-					// coalescing hosts without one to an empty string.
-					getGroupValue: (host) =>
-						servicesData.find((s) => s.id === host.virtualization_service_id)?.name ?? '',
+					// Grouped as a tree: every host under the host at the top of its chain, parent
+					// first. The server orders and counts by the root's id ('' for a host in no tree);
+					// the column itself still shows, sorts and filters on the immediate runtime.
+					groupOrderField: 'virtualization_tree',
+					getGroupValue: virtualizationGroupKey,
+					getGroupLabel: (host) =>
+						virtualizationGroupLabel(host, virtualizationRoots, {
+							notVirtualized: hosts_notVirtualized(),
+							unknownRoot: common_unknownEntity({ entity: common_host() })
+						}),
+					tree: virtualizationTree,
 					getValue: (host) => {
 						if (host.virtualization_service_id) {
 							const virtualizationService = servicesData.find(
@@ -563,6 +586,13 @@
 							];
 						}
 					}
+				},
+				virtualization_tree: {
+					// Grouping only, reached through Virtualized By's `groupOrderField`; never a column.
+					label: hosts_fields_virtualizedBy(),
+					type: 'string',
+					groupable: false,
+					display: { hidden: true }
 				},
 				interface_ip: {
 					// The card calls this "IP Addresses"; it named one thing two ways.

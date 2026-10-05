@@ -655,8 +655,11 @@ pub(super) fn generate_hosts_and_services(
         ));
     }
 
-    // 10. gitlab-vm — VM on hv01 (vm_id=100)
-    result.push(host_with_services!(
+    // 10. gitlab-vm — VM on hv01 (vm_id=100). Also runs a Docker engine for its CI runner, which
+    // sits on a macvlan network with an address of its own (10b), so proxmox-hv01 → gitlab-vm →
+    // gitlab-runner is a three-level virtualization chain.
+    let docker_gitlab_svc_id = Uuid::new_v4();
+    let mut gitlab_vm = host_with_services!(
         with_mac(
             reported_by_proxmox(create_host(
                 "gitlab-vm",
@@ -686,7 +689,62 @@ pub(super) fn generate_hosts_and_services(
             Some(PortType::Https),
             [production_tag, devops_tag].into_iter().flatten().collect()
         ),
-    ));
+    );
+    if let Some((svc, port)) = create_service_with_id(
+        docker_gitlab_svc_id,
+        "Docker",
+        "Docker Daemon",
+        &gitlab_vm.host,
+        &gitlab_vm.ip_addresses[0],
+        Some(PortType::Docker),
+        vec![],
+        now,
+    ) {
+        if let Some(p) = port {
+            gitlab_vm.ports.push(p);
+        }
+        gitlab_vm.services.push(svc);
+    }
+    result.push(gitlab_vm);
+
+    // 10b. gitlab-runner — the CI runner container on gitlab-vm's macvlan network
+    {
+        let (mut host, mut ip_address) = create_host(
+            "gitlab-runner",
+            Some("runner.acme.local"),
+            Some("GitLab CI runner (macvlan container on gitlab-vm)"),
+            hq,
+            hq_servers,
+            Ipv4Addr::new(10, 0, 20, 13),
+            [devops_tag].into_iter().flatten().collect(),
+            None,
+            Some((
+                HostVirtualization::Docker(ContainerHostVirtualization {
+                    container_name: Some("gitlab-runner".to_string()),
+                    container_id: Some("7b1c2d3e4f5a".to_string()),
+                    compose_project: Some("ci".to_string()),
+                    network_type: ContainerNetworkType::MacVlan,
+                }),
+                docker_gitlab_svc_id,
+            )),
+            now,
+        );
+        // Discovered and titled by the Docker integration, as the daemon records a container host.
+        host.base.source = EntitySource::Discovery;
+        host.base.name =
+            HostName::from_controller("gitlab-runner".to_string(), ClientProbe::Docker);
+        ip_address.base.mac_address = Some(MacEvidence::new(
+            MacEvidenceValue(MacAddress::new([0x02, 0x42, 0x0a, 0x00, 0x14, 0x0d])),
+            AttributeSource::HypervisorConfig,
+        ));
+        ip_address.base.name = Some("lan".to_string());
+        result.push(HostWithServices {
+            host,
+            ip_addresses: vec![ip_address],
+            ports: vec![],
+            services: vec![],
+        });
+    }
 
     // 11. nextcloud-vm — VM on hv01 (vm_id=101)
     result.push(host_with_services!(

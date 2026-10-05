@@ -39,6 +39,15 @@ pub trait OrderField: Clone + Copy + Default + Send + Sync + 'static {
         false
     }
 
+    /// The order inside each group when the list is grouped by this field, if the field
+    /// prescribes one. It takes precedence over the user's sort, which still breaks its ties.
+    ///
+    /// For a group that is a tree: the rows have to arrive parent first for the indentation to
+    /// mean anything, and a paginated list can't reorder rows it hasn't received.
+    fn group_order_sql(&self) -> Option<&'static str> {
+        None
+    }
+
     /// The field's ORDER BY term in the given direction.
     fn order_term(&self, dir: &str) -> String {
         if self.nulls_last() {
@@ -103,6 +112,9 @@ where
             filter = filter.join(join);
         }
         order_parts.push(group_field.order_term("ASC"));
+        if let Some(within_group) = group_field.group_order_sql() {
+            order_parts.push(format!("{within_group} ASC"));
+        }
     }
 
     // Secondary: order_by field with specified direction

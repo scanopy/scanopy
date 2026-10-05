@@ -225,6 +225,11 @@ impl DaemonResponse for HostResponse {
             virtualization_metadata: _,
             virtualization_service_id: _,
             virtualization_interface_id: _,
+            // A plain optional UUID pair and a number, derived for the UI; the daemon never reads
+            // them.
+            virtualization_parent_host_id: _,
+            virtualization_root_host_id: _,
+            virtualization_depth: _,
             hidden: _,
             tags: _,
             sys_descr: _,

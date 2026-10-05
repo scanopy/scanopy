@@ -16,7 +16,15 @@ import type { HostOs } from '$lib/features/hosts/host-os';
  * never read `name` for display.
  */
 export type Host = components['schemas']['Host'] &
-	Pick<components['schemas']['HostResponse'], 'display_name' | 'display_name_rung' | 'name_ladder'>;
+	Pick<
+		components['schemas']['HostResponse'],
+		| 'display_name'
+		| 'display_name_rung'
+		| 'name_ladder'
+		| 'virtualization_parent_host_id'
+		| 'virtualization_root_host_id'
+		| 'virtualization_depth'
+	>;
 /** A host with its addresses, as the summary and picker queries return it. */
 export type HostWithAddresses = Host & Pick<components['schemas']['HostResponse'], 'ip_addresses'>;
 export type HostNameRung = components['schemas']['HostNameRung'];

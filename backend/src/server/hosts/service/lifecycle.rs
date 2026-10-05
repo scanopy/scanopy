@@ -67,13 +67,16 @@ impl HostService {
 
         let (ip_addresses, ports, services, interfaces) =
             self.load_children_for_host(&host.id).await?;
-        Ok(Some(HostResponse::from_host_with_children(
+        let mut response = [HostResponse::from_host_with_children(
             host,
             ip_addresses,
             ports,
             services,
             interfaces,
-        )))
+        )];
+        self.place_in_virtualization_trees(&mut response).await?;
+        let [response] = response;
+        Ok(Some(response))
     }
 
     /// Get all hosts with all children hydrated for API response
@@ -115,7 +118,9 @@ impl HostService {
                     interfaces,
                 )
             })
-            .collect();
+            .collect::<Vec<_>>();
+        let mut responses = responses;
+        self.place_in_virtualization_trees(&mut responses).await?;
 
         Ok(responses)
     }
@@ -195,7 +200,9 @@ impl HostService {
                     interfaces,
                 )
             })
-            .collect();
+            .collect::<Vec<_>>();
+        let mut responses = responses;
+        self.place_in_virtualization_trees(&mut responses).await?;
 
         Ok(PaginatedResult {
             items: responses,
