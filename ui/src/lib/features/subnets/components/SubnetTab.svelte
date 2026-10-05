@@ -344,7 +344,7 @@
 						getItems: (subnet) => [
 							{
 								id: subnet.subnet_type,
-								...subnetTypes.getTag(subnet.subnet_type, subnets_subnetType()),
+								...subnetTypes.getTag(subnet.subnet_type),
 								icon: subnetTypes.getIconComponent(subnet.subnet_type)
 							}
 						]

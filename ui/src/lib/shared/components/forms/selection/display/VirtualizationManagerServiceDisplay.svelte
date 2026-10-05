@@ -7,7 +7,6 @@
 	import type { Host } from '$lib/features/hosts/types/base';
 	import type { Service } from '$lib/features/services/types/base';
 	import {
-		common_runtime,
 		hosts_virtualization_identityCount,
 		hosts_virtualization_vmCount,
 		topology_containerCount
@@ -51,7 +50,7 @@
 
 			if (service.virtualization_metadata) {
 				const tag: TagProps = {
-					...serviceVirtualizations.getTag(service.virtualization_metadata.type, common_runtime()),
+					...serviceVirtualizations.getTag(service.virtualization_metadata.type),
 					color: concepts.getColorHelper('Virtualization').color
 				};
 

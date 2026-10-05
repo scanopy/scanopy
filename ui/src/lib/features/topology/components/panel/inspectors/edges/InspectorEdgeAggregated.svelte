@@ -9,7 +9,6 @@
 		topology_containerCount,
 		common_containerizedServices,
 		common_dependenciesLabel,
-		common_runtime,
 		common_presentedBy,
 		hosts_virtualization_containerHosts,
 		inspector_dockerService
@@ -340,7 +339,7 @@
 								/>
 								<div class="flex items-center gap-2 px-3 pb-2">
 									{#each runtimes as runtime (runtime)}
-										<Tag {...serviceDefinitions.getTag(runtime, common_runtime())} />
+										<Tag {...serviceDefinitions.getTag(runtime)} />
 									{/each}
 									<span class="text-tertiary text-xs"
 										>{topology_containerCount({ count: containerCount })}</span

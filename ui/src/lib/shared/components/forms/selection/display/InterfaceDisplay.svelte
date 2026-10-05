@@ -1,9 +1,12 @@
 <script lang="ts" context="module">
 	import type { Interface } from '$lib/features/hosts/types/base';
 	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
-	import { entities } from '$lib/shared/stores/metadata';
-	import { getOperStatusLabels } from '$lib/features/credentials/types/base';
-	import { common_status, common_unknown, hosts_noMacAddress } from '$lib/paraglide/messages';
+	import { entities, ifOperStatuses } from '$lib/shared/stores/metadata';
+	import {
+		common_unknown,
+		hosts_interfaces_operStatusNotReported,
+		hosts_noMacAddress
+	} from '$lib/paraglide/messages';
 	import { interfaceDisplayName } from '$lib/features/hosts/interface-display-name';
 
 	/** `linkFault` is a link reported Down; `linkStatus` is any other status, Up or unknown. */
@@ -26,19 +29,21 @@
 		// every other row "Status: Up" repeats what the link being drawn already says.
 		compactHides: ['linkStatus'] satisfies InterfaceTagRole[],
 		getTags: (entry: Interface) => {
-			// Operational (link) status — prefixed with "Status" so a bare "Unknown" badge next to
-			// the interface name doesn't read as "we don't know anything about this interface".
-			// oper_status genuinely is unset for e.g. a PROFINET DCP identify, which reports a MAC
-			// and nothing else; that's real information, not a rendering gap.
-			const operStatusLabels = getOperStatusLabels();
-			const status = entry.oper_status ? operStatusLabels[entry.oper_status] : common_unknown();
-			const statusColor =
-				entry.oper_status === 'Up' ? 'Green' : entry.oper_status === 'Down' ? 'Red' : 'Yellow';
+			// Operational (link) status, named and coloured by the IfOperStatus metadata the L2
+			// OperStatus filter uses; its tooltip says what the status means. oper_status is unset
+			// for e.g. a PROFINET DCP identify, which reports a MAC and nothing else: the tag then
+			// reads Unknown, and its tooltip says the device didn't report it.
+			const status: TagProps = entry.oper_status
+				? ifOperStatuses.getTag(entry.oper_status)
+				: {
+						label: common_unknown(),
+						color: ifOperStatuses.getColorHelper('Unknown').color,
+						title: hosts_interfaces_operStatusNotReported()
+					};
 
 			const tags: TagProps[] = [
 				{
-					label: `${common_status()}: ${status}`,
-					color: statusColor,
+					...status,
 					role: (entry.oper_status === 'Down'
 						? 'linkFault'
 						: 'linkStatus') satisfies InterfaceTagRole

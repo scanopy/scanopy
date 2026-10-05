@@ -19,7 +19,7 @@
 	import { tagNames } from '$lib/features/tags/columns';
 	import { networkItems } from '$lib/features/networks/columns';
 	import { entityRef } from '$lib/shared/components/data/types';
-	import { entities, tagTitle } from '$lib/shared/stores/metadata';
+	import { entities } from '$lib/shared/stores/metadata';
 	import { isUserManagedSubnet, useSubnetsQuery } from '$lib/features/subnets/queries';
 	import type { Subnet } from '$lib/features/subnets/types/base';
 	import { Plus, Trash2, Edit, ArrowBigUp, RefreshCw } from 'lucide-svelte';
@@ -422,12 +422,10 @@
 									daemon.mode === 'server_poll'
 										? daemons_mode_serverPoll()
 										: daemons_mode_daemonPoll(),
-								title: tagTitle(
-									daemons_config_mode(),
+								title:
 									daemon.mode === 'server_poll'
 										? daemons_mode_serverPollDescription()
 										: daemons_mode_daemonPollDescription()
-								)
 							}
 						]
 					}

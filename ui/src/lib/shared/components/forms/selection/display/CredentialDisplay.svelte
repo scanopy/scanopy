@@ -18,7 +18,7 @@
 		},
 		getTags: (credential) => {
 			const typeId = credential.credential_type.type;
-			return [credentialTypes.getTag(typeId, credentials_credentialType())];
+			return [credentialTypes.getTag(typeId)];
 		},
 		getCategory: (credential) => {
 			const typeId = credential.credential_type.type;
@@ -32,7 +32,6 @@
 	import type { EntityDisplayComponent } from '../types';
 	import { type Credential, getCredentialDescription } from '$lib/features/credentials/types/base';
 	import { credentialTypes } from '$lib/shared/stores/metadata';
-	import { credentials_credentialType } from '$lib/paraglide/messages';
 
 	interface Props {
 		item: Credential;

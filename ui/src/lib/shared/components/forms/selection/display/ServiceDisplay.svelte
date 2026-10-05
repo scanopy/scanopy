@@ -6,7 +6,7 @@
 		serviceVirtualizations
 	} from '$lib/shared/stores/metadata';
 	import type { Port } from '$lib/features/hosts/types/base';
-	import { common_runtime, services_bindingCount } from '$lib/paraglide/messages';
+	import { services_bindingCount } from '$lib/paraglide/messages';
 
 	export type ServiceTagRole = 'category' | 'virtualization';
 
@@ -86,7 +86,7 @@
 
 			if (service.virtualization_metadata) {
 				tags.push({
-					...serviceVirtualizations.getTag(service.virtualization_metadata.type, common_runtime()),
+					...serviceVirtualizations.getTag(service.virtualization_metadata.type),
 					color: concepts.getColorHelper('Virtualization').color,
 					role: 'virtualization' satisfies ServiceTagRole
 				});

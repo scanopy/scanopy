@@ -39,7 +39,6 @@ import {
 } from '../utils/styling';
 import { metaName, metaDescription } from '$lib/i18n/metadata';
 import type { TagProps } from '$lib/shared/components/data/types';
-import { common_tagTitle } from '$lib/paraglide/messages';
 
 export type Color = components['schemas']['Color'];
 
@@ -319,14 +318,6 @@ export const metadata = writable<MetadataRegistry>({
 	if_oper_statuses: ifOperStatusesJson
 } as unknown as MetadataRegistry);
 
-/**
- * A tag's tooltip: what the tag says (`dimension`, e.g. "Category") and what its value means.
- * With no description, the dimension alone still says what the tag is.
- */
-export function tagTitle(dimension: string, description: string | null | undefined): string {
-	return description ? common_tagTitle({ dimension, description }) : dimension;
-}
-
 // Shared color helper functions that work for both TypeMetadata and EntityMetadata
 function createSharedHelpers<T extends keyof MetadataRegistry>(category: T) {
 	return {
@@ -437,18 +428,13 @@ function createTypeMetadataHelpers<T extends TypeMetadataKeys, M = unknown>(cate
 			return metaDescription(category, id, fallback);
 		},
 
-		/**
-		 * A tag for this value: its name and colour, and a tooltip naming what the tag says
-		 * (`dimension`, e.g. "Category") and what the value means. A bare "Docker" or "Orchestrator"
-		 * doesn't say whether it is a category, a runtime or a manager. Without a `dimension` the
-		 * tooltip is the description alone, for values whose description already says what they are.
-		 */
-		getTag: (id: string | null, dimension?: string): TagProps & { label: string } => {
+		/** A tag for this value: its name and colour, with its description as the tooltip. */
+		getTag: (id: string | null): TagProps & { label: string } => {
 			const description = helpers.getDescription(id);
 			return {
 				label: helpers.getName(id),
 				color: helpers.getColorHelper(id).color,
-				title: dimension ? tagTitle(dimension, description) : description || undefined
+				title: description || undefined
 			};
 		},
 

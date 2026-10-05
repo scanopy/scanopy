@@ -39,7 +39,7 @@
 <div class="space-y-4">
 	{#if protocol}
 		<div class="flex items-center gap-2">
-			<Tag {...discoveryProtocols.getTag(protocol, common_source())} />
+			<Tag {...discoveryProtocols.getTag(protocol)} />
 		</div>
 	{/if}
 

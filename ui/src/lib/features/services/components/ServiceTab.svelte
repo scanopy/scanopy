@@ -622,7 +622,7 @@
 						getItems: (service) => [
 							{
 								id: service.service_definition,
-								...serviceDefinitions.getTag(service.service_definition, common_type()),
+								...serviceDefinitions.getTag(service.service_definition),
 								icon: serviceDefinitions.getIconComponent(service.service_definition)
 							}
 						]

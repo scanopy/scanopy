@@ -10,7 +10,7 @@ import {
 	serviceDefinitions,
 	serviceVirtualizations,
 	subnetTypes,
-	tagTitle
+	ifOperStatuses
 } from '$lib/shared/stores/metadata';
 import type { TagProps } from '$lib/shared/components/data/types';
 import { ServiceDisplay } from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
@@ -18,22 +18,12 @@ import { ServiceTypeDisplay } from '$lib/shared/components/forms/selection/displ
 import { SubnetDisplay } from '$lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
 import type { Service } from '$lib/features/services/types/base';
 import type { Subnet } from '$lib/features/subnets/types/base';
+import { InterfaceDisplay } from '$lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
+import type { Interface } from '$lib/features/hosts/types/base';
+import { common_unknown, hosts_interfaces_operStatusNotReported } from '$lib/paraglide/messages';
 
-describe('tagTitle', () => {
-	it('names the dimension and carries the description', () => {
-		const title = tagTitle('Category', 'Container orchestration platforms');
-		expect(title).toContain('Category');
-		expect(title).toContain('Container orchestration platforms');
-	});
-
-	it('falls back to the dimension alone when there is no description', () => {
-		expect(tagTitle('Category', '')).toBe('Category');
-		expect(tagTitle('Category', null)).toBe('Category');
-	});
-});
-
-// Every store a tag is built from: the tag reads the value's display name and its tooltip says
-// what the tag is and what the value means.
+// Every store a tag is built from: the tag reads the value's display name, and its tooltip is
+// what the value means, with no "Category:"-style prefix naming the dimension.
 const TAG_STORES = {
 	serviceCategories,
 	serviceVirtualizations,
@@ -43,30 +33,22 @@ const TAG_STORES = {
 	containerNetworkTypes,
 	permissions,
 	credentialTypes,
-	dependencyTypes
+	dependencyTypes,
+	ifOperStatuses
 };
 
 describe('getTag', () => {
 	for (const [name, store] of Object.entries(TAG_STORES)) {
-		it(`${name}: label is the display name, title names the dimension and the meaning`, () => {
+		it(`${name}: label is the display name, title is the description alone`, () => {
 			const items = store.getItems();
 			expect(items.length).toBeGreaterThan(0);
 			for (const item of items) {
-				const tag = store.getTag(item.id, 'Dimension');
+				const tag = store.getTag(item.id);
 				expect(tag.label).toBe(store.getName(item.id));
-				expect(tag.title).toContain('Dimension');
-				const description = store.getDescription(item.id);
-				if (description) expect(tag.title).toContain(description);
+				expect(tag.title).toBe(store.getDescription(item.id) || undefined);
 			}
 		});
 	}
-
-	it('without a dimension, the tooltip is the description alone', () => {
-		for (const item of serviceCategories.getItems()) {
-			const description = serviceCategories.getDescription(item.id);
-			expect(serviceCategories.getTag(item.id).title).toBe(description || undefined);
-		}
-	});
 });
 
 /** A tag explains itself: by tooltip, or by the entity popover an `entityRef` opens. */
@@ -99,6 +81,20 @@ describe('display tags explain themselves', () => {
 			expect(explained(tag)).toBe(true);
 			expect(tag.label).toBe(serviceCategories.getName(definition.category));
 		}
+	});
+
+	it('InterfaceDisplay names the link status with no "Status:" prefix', () => {
+		for (const status of ifOperStatuses.getItems()) {
+			const iface = { id: 'i', if_name: 'eth0', oper_status: status.id } as unknown as Interface;
+			const [tag] = InterfaceDisplay.getTags!(iface, undefined);
+			expect(tag.label).toBe(ifOperStatuses.getName(status.id));
+			expect(explained(tag)).toBe(true);
+		}
+		// Unreported (a PROFINET DCP identify carries a MAC only): Unknown, and the tooltip says why.
+		const unreported = { id: 'i', if_name: 'eth0', oper_status: null } as unknown as Interface;
+		const [tag] = InterfaceDisplay.getTags!(unreported, undefined);
+		expect(tag.label).toBe(common_unknown());
+		expect(tag.title).toBe(hosts_interfaces_operStatusNotReported());
 	});
 
 	it('SubnetDisplay shows the subnet type name, never its raw id', () => {

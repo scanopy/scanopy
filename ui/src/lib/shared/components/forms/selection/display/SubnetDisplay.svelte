@@ -27,7 +27,7 @@
 			if (!subnetTypes.getMetadata(subnet.subnet_type).show_label) return [];
 			return [
 				{
-					...subnetTypes.getTag(subnet.subnet_type, subnets_subnetType()),
+					...subnetTypes.getTag(subnet.subnet_type),
 					role: 'subnetType' satisfies SubnetTagRole
 				}
 			];
@@ -49,7 +49,6 @@
 	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
 	import { subnetTypes } from '$lib/shared/stores/metadata';
-	import { subnets_subnetType } from '$lib/paraglide/messages';
 	import type { Subnet } from '$lib/features/subnets/types/base';
 
 	interface Props {
