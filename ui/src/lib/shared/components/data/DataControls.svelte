@@ -32,7 +32,6 @@
 		groupItems as groupItemsBy,
 		arrangeTree,
 		computeGroupOffsets,
-		serverGroupField,
 		serverGroupKey as serverGroupKeyOf
 	} from './controls/grouping';
 	import {
@@ -315,11 +314,7 @@
 
 		// Notify parent of restored ordering state
 		if (onOrderChange && (activeGroupField || activeSort.field)) {
-			onOrderChange(
-				serverGroupField(fields, activeGroupField),
-				activeSort.field,
-				activeSort.direction
-			);
+			onOrderChange(activeGroupField, activeSort.field, activeSort.direction);
 		}
 
 		// Notify parent of restored search state
@@ -778,7 +773,7 @@
 
 		if (orderTracker.changed(ordering)) {
 			resetToFirstPage();
-			onOrderChange?.(serverGroupField(fields, ordering[0]), ordering[1], ordering[2]);
+			onOrderChange?.(...ordering);
 		}
 	});
 

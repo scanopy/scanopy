@@ -108,7 +108,6 @@ const DECISIONS: Record<string, TabDecisions> = {
 			name: serverIdentity('Unique per host'),
 			hostname: serverIdentity('Near-unique per host'),
 			virtualized_by: server('virtualization_service_ids'),
-			virtualization_tree: none('Never a column; grouping by Virtualized By groups through it'),
 			interface_ip: serverIdentity('Unique per host'),
 			mac_address: serverIdentity('Unique per host'),
 			site_id: server('site_ids'),
@@ -717,8 +716,7 @@ function decisionProblems(tab: string, decided: TabDecisions): string[] {
 			);
 			continue;
 		}
-		// A field with no column offers nothing: sort and group live on column headers only.
-		const config = fields.get(column)?.columnless ? undefined : configs.get(column);
+		const config = configs.get(column);
 		const offered: Record<Capability, boolean> = {
 			sort: config ? isSortableField(config, serverPaginated) : false,
 			group: config ? isGroupableField(config, serverPaginated) : false,

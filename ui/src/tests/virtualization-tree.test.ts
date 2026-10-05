@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { groupItems, serverGroupField } from '$lib/shared/components/data/controls/grouping';
+import { groupItems } from '$lib/shared/components/data/controls/grouping';
 import type { FieldConfig } from '$lib/shared/components/data/types';
 import {
 	missingRootIds,
@@ -57,12 +57,11 @@ describe('virtualization tree grouping', () => {
 		expect(virtualizationGroupLabel(container, new Map(), labels)).toBe('Unknown host');
 	});
 
-	it('groups by the tree while the column keeps showing the runtime, and asks the server for the tree', () => {
+	it('groups by the tree while the column keeps showing the runtime', () => {
 		const roots = new Map([['pve-01', { display_name: 'pve-01' }]]);
 		const fields: FieldConfig<Row>[] = [
 			{
 				orderField: 'virtualized_by',
-				groupOrderField: 'virtualization_tree',
 				label: 'Virtualized By',
 				type: 'string',
 				getValue: (r) => r.runtime,
@@ -83,8 +82,5 @@ describe('virtualization tree grouping', () => {
 			['Not virtualized', ['printer']],
 			['pve-01', ['docker-vm', 'pihole']]
 		]);
-
-		expect(serverGroupField(fields, 'virtualized_by')).toBe('virtualization_tree');
-		expect(serverGroupField(fields, null)).toBeNull();
 	});
 });

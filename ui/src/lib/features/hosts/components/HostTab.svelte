@@ -544,9 +544,8 @@
 					),
 					groupable: true,
 					// Grouped as a tree: every host under the host at the top of its chain, parent
-					// first. The server orders and counts by the root's id ('' for a host in no tree);
-					// the column itself still shows, sorts and filters on the immediate runtime.
-					groupOrderField: 'virtualization_tree',
+					// first. The server groups, orders and counts by the root's id ('' for a host in no
+					// tree); the column itself still shows, sorts and filters on the immediate runtime.
 					getGroupValue: virtualizationGroupKey,
 					getGroupLabel: (host) =>
 						virtualizationGroupLabel(host, virtualizationRoots, {
@@ -586,13 +585,6 @@
 							];
 						}
 					}
-				},
-				virtualization_tree: {
-					// Grouping only, reached through Virtualized By's `groupOrderField`; never a column.
-					label: hosts_fields_virtualizedBy(),
-					type: 'string',
-					groupable: false,
-					display: { hidden: true }
 				},
 				interface_ip: {
 					// The card calls this "IP Addresses"; it named one thing two ways.

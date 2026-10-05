@@ -103,10 +103,6 @@ pub enum HostOrderField {
     OsFamily,
     /// Sort by the `hidden` flag.
     Hidden,
-    /// Group by the host at the top of each host's virtualization chain, listing every tree
-    /// parent first. Grouping only: the "Virtualized By" column groups here and sorts and filters
-    /// on [`Self::VirtualizedBy`].
-    VirtualizationTree,
 }
 
 /// The host title in SQL, built once: `to_sql` hands out `&'static str`.
@@ -132,13 +128,28 @@ impl OrderField for HostOrderField {
             Self::SysLocation => "hosts.sys_location",
             Self::OsFamily => "hosts.os->>'family'",
             Self::Hidden => "hosts.hidden",
-            Self::VirtualizationTree => VIRTUALIZATION_TREE_GROUP_SQL,
+        }
+    }
+
+    /// Grouping by Virtualized By groups each host under the top of its virtualization chain,
+    /// parent first, while sorting and filter options stay on the immediate service's name.
+    fn group_sql(&self) -> &'static str {
+        match self {
+            Self::VirtualizedBy => VIRTUALIZATION_TREE_GROUP_SQL,
+            _ => self.to_sql(),
+        }
+    }
+
+    fn group_join_sql(&self) -> Option<&'static str> {
+        match self {
+            Self::VirtualizedBy => Some(VIRTUALIZATION_TREE_JOIN.as_str()),
+            _ => self.join_sql(),
         }
     }
 
     fn group_order_sql(&self) -> Option<&'static str> {
         match self {
-            Self::VirtualizationTree => Some(VIRTUALIZATION_TREE_ORDER_SQL),
+            Self::VirtualizedBy => Some(VIRTUALIZATION_TREE_ORDER_SQL),
             _ => None,
         }
     }
@@ -165,7 +176,6 @@ impl OrderField for HostOrderField {
             // the two are equal, so what matters is that they cannot stop being equal.
             Self::Name | Self::InterfaceIp => Some(PRIMARY_INTERFACE_JOIN),
             Self::MacAddress => Some(HOST_MAC_JOIN),
-            Self::VirtualizationTree => Some(VIRTUALIZATION_TREE_JOIN.as_str()),
             _ => None,
         }
     }
@@ -455,7 +465,7 @@ async fn get_all_hosts(
             state
                 .services
                 .host_service
-                .count_by_group(filter.clone(), group_field.to_sql())
+                .count_by_group(filter.clone(), group_field.group_sql())
                 .await?,
         ),
         None => None,

@@ -391,7 +391,7 @@ async fn get_all_services(
             state
                 .services
                 .service_service
-                .count_by_group(filter.clone(), group_field.to_sql())
+                .count_by_group(filter.clone(), group_field.group_sql())
                 .await?,
         ),
         None => None,

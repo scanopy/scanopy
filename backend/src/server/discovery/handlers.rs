@@ -276,7 +276,7 @@ async fn get_all_discoveries(
             state
                 .services
                 .discovery_service
-                .count_by_group(filter.clone(), group_field.to_sql())
+                .count_by_group(filter.clone(), group_field.group_sql())
                 .await?,
         ),
         None => None,

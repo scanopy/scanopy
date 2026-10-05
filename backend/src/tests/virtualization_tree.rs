@@ -49,7 +49,7 @@ async fn sql_and_rust_place_every_host_in_the_same_tree() {
     storage.hosts.create(&lone).await.unwrap();
 
     let query = HostFilterQuery {
-        group_by: Some(HostOrderField::VirtualizationTree),
+        group_by: Some(HostOrderField::VirtualizedBy),
         ..Default::default()
     };
     let (filter, order_by) =
@@ -85,7 +85,7 @@ async fn sql_and_rust_place_every_host_in_the_same_tree() {
     }
     let sql_groups: Vec<(String, u64)> = services
         .host_service
-        .count_by_group(filter, HostOrderField::VirtualizationTree.to_sql())
+        .count_by_group(filter, HostOrderField::VirtualizedBy.group_sql())
         .await
         .unwrap()
         .into_iter()

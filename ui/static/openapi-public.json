@@ -14117,19 +14117,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-05T22:33:02.057722Z",
+              "created_at": "2026-10-05T22:43:23.300326Z",
               "first_discovery_id": null,
-              "id": "72066c51-c8c7-42d6-ade4-3a014d2fd4aa",
+              "id": "e0084195-ff04-42ca-9b02-2909b38c51c6",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T22:33:02.057722Z",
+              "last_seen_at": "2026-10-05T22:43:23.300326Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-05T22:33:02.057722Z",
-              "valid_from": "2026-10-05T22:33:02.057722Z",
+              "updated_at": "2026-10-05T22:43:23.300326Z",
+              "valid_from": "2026-10-05T22:43:23.300326Z",
               "valid_to": null
             }
           },
@@ -15792,19 +15792,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-05T22:33:02.038749Z",
+                      "created_at": "2026-10-05T22:43:23.285054Z",
                       "first_discovery_id": null,
-                      "id": "144a639a-be07-46c1-b053-ece2ed56e470",
+                      "id": "98141479-3b61-4de0-98c3-57f5be558b3d",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-05T22:33:02.038749Z",
+                      "last_seen_at": "2026-10-05T22:43:23.285054Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-05T22:33:02.038749Z",
-                      "valid_from": "2026-10-05T22:33:02.038749Z",
+                      "updated_at": "2026-10-05T22:43:23.285054Z",
+                      "valid_from": "2026-10-05T22:43:23.285054Z",
                       "valid_to": null
                     }
                   ],
@@ -15817,7 +15817,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Docker Swarm",
+                  "service_definition": "Loki",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -17143,19 +17143,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T22:33:02.052528Z",
+                  "created_at": "2026-10-05T22:43:23.296675Z",
                   "first_discovery_id": null,
-                  "id": "e93cc391-910d-4b6e-aa41-a1076e23f30d",
+                  "id": "43273447-b2f9-4077-813f-3fc89ac2c271",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T22:33:02.052528Z",
+                  "last_seen_at": "2026-10-05T22:43:23.296675Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-05T22:33:02.052528Z",
-                  "valid_from": "2026-10-05T22:33:02.052528Z",
+                  "updated_at": "2026-10-05T22:43:23.296675Z",
+                  "valid_from": "2026-10-05T22:43:23.296675Z",
                   "valid_to": null
                 }
               ],
@@ -17168,7 +17168,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Docker Swarm",
+              "service_definition": "Loki",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -19805,19 +19805,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-05T22:33:02.039226Z",
+          "created_at": "2026-10-05T22:43:23.285489Z",
           "first_discovery_id": null,
-          "id": "679d6a36-9df1-486f-b087-a0044ab131b3",
+          "id": "ebf7b217-dcc1-46d8-b35f-3b9f507edc1c",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-05T22:33:02.039226Z",
+          "last_seen_at": "2026-10-05T22:43:23.285489Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-05T22:33:02.039226Z",
-          "valid_from": "2026-10-05T22:33:02.039226Z",
+          "updated_at": "2026-10-05T22:43:23.285489Z",
+          "valid_from": "2026-10-05T22:43:23.285489Z",
           "valid_to": null
         }
       },
@@ -20591,7 +20591,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Docker Swarm",
+              "service_definition": "Loki",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -26528,8 +26528,7 @@
           "model",
           "sys_location",
           "os_family",
-          "hidden",
-          "virtualization_tree"
+          "hidden"
         ]
       },
       "HostOs": {
@@ -27148,19 +27147,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T22:33:02.038160Z",
+                  "created_at": "2026-10-05T22:43:23.284565Z",
                   "first_discovery_id": null,
-                  "id": "dbfe9955-e6f2-4c3d-b2d2-cd9326c24652",
+                  "id": "da8a309f-7738-4056-9574-777d85547adb",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T22:33:02.038160Z",
+                  "last_seen_at": "2026-10-05T22:43:23.284565Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-05T22:33:02.038160Z",
-                  "valid_from": "2026-10-05T22:33:02.038160Z",
+                  "updated_at": "2026-10-05T22:43:23.284565Z",
+                  "valid_from": "2026-10-05T22:43:23.284565Z",
                   "valid_to": null
                 }
               ],
@@ -27173,7 +27172,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Docker Swarm",
+              "service_definition": "Loki",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -30940,19 +30939,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-05T22:33:02.029898Z",
+                        "created_at": "2026-10-05T22:43:23.277570Z",
                         "first_discovery_id": null,
-                        "id": "64e617b4-8221-4404-aba6-64b9896250f0",
+                        "id": "02cfa8e7-be79-42ca-878c-151c99025d15",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-05T22:33:02.029898Z",
+                        "last_seen_at": "2026-10-05T22:43:23.277570Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-05T22:33:02.029898Z",
-                        "valid_from": "2026-10-05T22:33:02.029898Z",
+                        "updated_at": "2026-10-05T22:43:23.277570Z",
+                        "valid_from": "2026-10-05T22:43:23.277570Z",
                         "valid_to": null
                       }
                     ],
@@ -30965,7 +30964,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Docker Swarm",
+                    "service_definition": "Loki",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -31114,19 +31113,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-05T22:33:02.051790Z",
+                    "created_at": "2026-10-05T22:43:23.296021Z",
                     "first_discovery_id": null,
-                    "id": "ee9c7a3b-71f9-4460-bf7d-4153eca3d548",
+                    "id": "c14ba0d1-c07c-42e0-867d-7f25ce1b5684",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-05T22:33:02.051790Z",
+                    "last_seen_at": "2026-10-05T22:43:23.296021Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-05T22:33:02.051790Z",
-                    "valid_from": "2026-10-05T22:33:02.051790Z",
+                    "updated_at": "2026-10-05T22:43:23.296021Z",
+                    "valid_from": "2026-10-05T22:43:23.296021Z",
                     "valid_to": null
                   }
                 ],
@@ -31139,7 +31138,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Docker Swarm",
+                "service_definition": "Loki",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -33315,19 +33314,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-05T22:33:02.039085Z",
+              "created_at": "2026-10-05T22:43:23.285359Z",
               "first_discovery_id": null,
-              "id": "757640ce-0281-456c-884c-e9ad316df70b",
+              "id": "3de542fb-5f50-4899-ba58-77364a5bff49",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T22:33:02.039085Z",
+              "last_seen_at": "2026-10-05T22:43:23.285359Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-05T22:33:02.039085Z",
-              "valid_from": "2026-10-05T22:33:02.039085Z",
+              "updated_at": "2026-10-05T22:43:23.285359Z",
+              "valid_from": "2026-10-05T22:43:23.285359Z",
               "valid_to": null
             }
           ],
@@ -33340,7 +33339,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Docker Swarm",
+          "service_definition": "Loki",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -35023,7 +35022,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "0dfcbe10-2aa8-41aa-b753-ddeb08c4740f",
+                  "id": "291e2a93-4d89-4b4a-9523-9fff75886b68",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -35033,23 +35032,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "a898eb31-98e6-42f9-9b1e-673ca8033b9e",
+                  "id": "5f06981a-0fee-4ff4-90dc-a80fff8dd062",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "2b95baaf-6e04-4d58-9cd1-dfe139c6bf91",
+                  "id": "47408423-0511-4c1c-bf5a-b27256bfdb64",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "f3aaac55-6733-48cf-9525-d009e1477c44",
+                  "id": "fbc90db3-8496-4103-92a7-b736df94d02b",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "a898eb31-98e6-42f9-9b1e-673ca8033b9e",
+                  "id": "5f06981a-0fee-4ff4-90dc-a80fff8dd062",
                   "rule": "ByHost"
                 }
               ]
@@ -35079,19 +35078,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "bd2a41d8-4d70-4c6d-be11-170991ecb01b",
+                "id": "8c3127ee-2ee4-4729-9c0f-e2729cc41581",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "c214dd38-d36d-48ef-a248-ade2382a8a5b",
+                "id": "ea7239a7-0eb9-4eef-9d19-e96346236ac8",
                 "rule": "ByVLAN"
               },
               {
-                "id": "333e5f6d-7932-4b82-9b82-0bca31eb347b",
+                "id": "35c9732d-e877-4d05-85d9-f28f7a43184e",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "07f2b7d1-9113-49bc-bfdf-fd120c4017d5",
+                "id": "b4bd4e9c-933e-44a5-ab2d-56d5867a6c89",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -35110,7 +35109,7 @@
                 }
               },
               {
-                "id": "44365bf5-4889-4b2d-8fa1-7ab1b0e13a4c",
+                "id": "6852a8a4-dc5e-41a3-84a9-944a6527b212",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -35119,15 +35118,15 @@
                 }
               },
               {
-                "id": "8d14a90d-eea5-4111-ac0c-71e55948da99",
+                "id": "b406e2d9-14c6-4674-b2ac-e72abc0f4f9f",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "c8df68dd-95fd-4a98-a064-622c6202957b",
+                "id": "15a0c3a6-fc68-43b0-b104-d9fdf3ca137c",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "79ca9d0d-587b-4bbc-b875-69aa7b806531",
+                "id": "76045800-8f0d-4fab-98f5-2512bd14a36c",
                 "rule": "ByStack"
               }
             ]

@@ -285,12 +285,6 @@ export interface OrderableFieldConfig<T, O extends string> extends BaseFieldConf
 	orderField: O;
 	/** Whether this field can be used for grouping. Defaults to true for string types. */
 	groupable?: boolean;
-	/**
-	 * The backend field the server groups by when the list is grouped by this column, if it is
-	 * not `orderField`. For a column that sorts and filters on one expression and groups on
-	 * another, like a tree grouping. Pair it with `getGroupValue` and `getGroupLabel`.
-	 */
-	groupOrderField?: string;
 }
 
 /**
@@ -393,8 +387,6 @@ export function groupPageSlice(
  */
 type OrderableFieldEntry<T> = BaseFieldConfig<T> & {
 	groupable?: boolean;
-	/** See {@link OrderableFieldConfig.groupOrderField}. */
-	groupOrderField?: string;
 };
 
 /**
