@@ -3528,19 +3528,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-04T23:05:40.977020Z",
+             *       "created_at": "2026-10-05T00:35:44.028739Z",
              *       "first_discovery_id": null,
-             *       "id": "c144051d-bd0f-4094-840f-56d9ca5f0120",
+             *       "id": "c37e23bd-06a4-48c7-8a3a-24e4594e3e92",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-04T23:05:40.977020Z",
+             *       "last_seen_at": "2026-10-05T00:35:44.028739Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-04T23:05:40.977020Z",
-             *       "valid_from": "2026-10-04T23:05:40.977020Z",
+             *       "updated_at": "2026-10-05T00:35:44.028739Z",
+             *       "valid_from": "2026-10-05T00:35:44.028739Z",
              *       "valid_to": null
              *     }
              */
@@ -4368,19 +4368,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-04T23:05:40.952353Z",
+             *               "created_at": "2026-10-05T00:35:44.005423Z",
              *               "first_discovery_id": null,
-             *               "id": "5c2209d5-ff85-41de-94ce-dd6034a802df",
+             *               "id": "353d41dd-bdb5-44c0-8897-5efcd6f35f27",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-04T23:05:40.952353Z",
+             *               "last_seen_at": "2026-10-05T00:35:44.005423Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-04T23:05:40.952353Z",
-             *               "valid_from": "2026-10-04T23:05:40.952353Z",
+             *               "updated_at": "2026-10-05T00:35:44.005423Z",
+             *               "valid_from": "2026-10-05T00:35:44.005423Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4394,7 +4394,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Grocy",
+             *           "service_definition": "Wiz",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4713,9 +4713,8 @@ export interface components {
                  *
                  *     Read-only and computed from [`Interface::display_name`] — the same ladder topology port
                  *     labels an interface with, so it cannot be called one thing in a list and another on the
-                 *     map. Only set on outbound responses nested under a host (`HostResponse::interfaces`);
-                 *     absent on a daemon's own submission and on the standalone `/interfaces` CRUD endpoints,
-                 *     which return `Interface` directly without this computation.
+                 *     map. Set on every interface read from storage, so every endpoint that returns one carries
+                 *     it; absent on a daemon's own submission, and ignored on write.
                  */
                 readonly display_name?: string | null;
                 /**
@@ -5319,19 +5318,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-04T23:05:40.971838Z",
+             *           "created_at": "2026-10-05T00:35:44.023616Z",
              *           "first_discovery_id": null,
-             *           "id": "63c0cba5-6f82-46ce-bbc9-1aab4a14dbee",
+             *           "id": "cf3b271a-9961-4cc0-bc98-a4d454d2b989",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-04T23:05:40.971838Z",
+             *           "last_seen_at": "2026-10-05T00:35:44.023616Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-04T23:05:40.971838Z",
-             *           "valid_from": "2026-10-04T23:05:40.971838Z",
+             *           "updated_at": "2026-10-05T00:35:44.023616Z",
+             *           "valid_from": "2026-10-05T00:35:44.023616Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5345,7 +5344,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Grocy",
+             *       "service_definition": "Wiz",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6447,19 +6446,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-04T23:05:40.953089Z",
+         *       "created_at": "2026-10-05T00:35:44.006085Z",
          *       "first_discovery_id": null,
-         *       "id": "c157db3e-f16e-46f5-adc6-01d9f2493ccc",
+         *       "id": "cd1a744d-5622-4e8f-bfd9-cdbe8947f35c",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-04T23:05:40.953089Z",
+         *       "last_seen_at": "2026-10-05T00:35:44.006085Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-04T23:05:40.953089Z",
-         *       "valid_from": "2026-10-04T23:05:40.953089Z",
+         *       "updated_at": "2026-10-05T00:35:44.006085Z",
+         *       "valid_from": "2026-10-05T00:35:44.006085Z",
          *       "valid_to": null
          *     }
          */
@@ -6807,7 +6806,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Grocy",
+         *           "service_definition": "Wiz",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9400,19 +9399,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-04T23:05:40.951537Z",
+         *               "created_at": "2026-10-05T00:35:44.004872Z",
          *               "first_discovery_id": null,
-         *               "id": "3b60a2f0-f9c9-4573-938a-ce4eca2df200",
+         *               "id": "8109f45b-ce44-499f-a99b-7a107b77c9c9",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-04T23:05:40.951537Z",
+         *               "last_seen_at": "2026-10-05T00:35:44.004872Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-04T23:05:40.951537Z",
-         *               "valid_from": "2026-10-04T23:05:40.951537Z",
+         *               "updated_at": "2026-10-05T00:35:44.004872Z",
+         *               "valid_from": "2026-10-05T00:35:44.004872Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9426,7 +9425,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Grocy",
+         *           "service_definition": "Wiz",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9990,9 +9989,8 @@ export interface components {
              *
              *     Read-only and computed from [`Interface::display_name`] — the same ladder topology port
              *     labels an interface with, so it cannot be called one thing in a list and another on the
-             *     map. Only set on outbound responses nested under a host (`HostResponse::interfaces`);
-             *     absent on a daemon's own submission and on the standalone `/interfaces` CRUD endpoints,
-             *     which return `Interface` directly without this computation.
+             *     map. Set on every interface read from storage, so every endpoint that returns one carries
+             *     it; absent on a daemon's own submission, and ignored on write.
              */
             readonly display_name?: string | null;
             /**
@@ -12552,19 +12550,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-04T23:05:40.952872Z",
+         *           "created_at": "2026-10-05T00:35:44.005866Z",
          *           "first_discovery_id": null,
-         *           "id": "ade70599-6619-43d6-8ca8-2c9526e5eaa6",
+         *           "id": "fbbe40a6-8a6f-4a41-9764-3656662beba5",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-04T23:05:40.952872Z",
+         *           "last_seen_at": "2026-10-05T00:35:44.005866Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-04T23:05:40.952872Z",
-         *           "valid_from": "2026-10-04T23:05:40.952872Z",
+         *           "updated_at": "2026-10-05T00:35:44.005866Z",
+         *           "valid_from": "2026-10-05T00:35:44.005866Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12578,7 +12576,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Grocy",
+         *       "service_definition": "Wiz",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -13338,7 +13336,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "4ecf82d8-343a-4a84-826c-205a390c42a5",
+             *           "id": "1e2fe1d5-0556-4936-bb70-438cbd8096e8",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13348,23 +13346,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "74a051ea-83e5-42dd-b3e0-b08ca30a0a16",
+             *           "id": "f4b4421d-e8d1-4cf0-bfe0-e9545062f4ff",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "9d7e777b-b1de-4667-b2d3-cfe57b1c74af",
+             *           "id": "57ba80aa-0089-4c2f-8042-f8e01fdc7845",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "09377fc2-ea18-45a2-96c4-e0d394ab2713",
+             *           "id": "46d32071-69e4-4eee-9889-018d72e39a7b",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "74a051ea-83e5-42dd-b3e0-b08ca30a0a16",
+             *           "id": "f4b4421d-e8d1-4cf0-bfe0-e9545062f4ff",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13377,19 +13375,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "72b998e3-f362-464c-a542-c5d70e0a3ed7",
+             *         "id": "cd619077-bf04-45cf-806d-26f1098627ca",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "787cb2a4-b439-4506-878b-ec366850ac3e",
+             *         "id": "84639d84-edd3-4255-9b28-b00465ab05b4",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "c6a6f788-3492-45db-8de2-f357f602de7c",
+             *         "id": "1abca3bf-4c90-4f06-b74c-0f2e0bde0ec9",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "e0602546-a630-48b9-af12-cede0608e85a",
+             *         "id": "d5a736d6-70c2-428a-af60-b3ba80f15453",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13408,7 +13406,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "09783b8b-0f68-4867-981b-944e597b42bd",
+             *         "id": "c3754018-af46-4b88-98f4-2571183d4d11",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13417,15 +13415,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "5f830234-ec6b-4341-aece-41c0d10337d1",
+             *         "id": "53946829-9111-4016-bdad-3dd0d4af8f9d",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "94eab24f-220c-47bb-81b8-abfcd80c8170",
+             *         "id": "f01bb275-1b02-446d-9185-ac3c484d2c49",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "ff91bfd9-6924-4bb1-911d-23c0eb6db793",
+             *         "id": "7bca7683-b763-4552-a9d9-dda53a359890",
              *         "rule": "ByStack"
              *       }
              *     ]

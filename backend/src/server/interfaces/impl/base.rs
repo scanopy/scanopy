@@ -497,9 +497,8 @@ pub struct Interface {
     ///
     /// Read-only and computed from [`Interface::display_name`] — the same ladder topology port
     /// labels an interface with, so it cannot be called one thing in a list and another on the
-    /// map. Only set on outbound responses nested under a host (`HostResponse::interfaces`);
-    /// absent on a daemon's own submission and on the standalone `/interfaces` CRUD endpoints,
-    /// which return `Interface` directly without this computation.
+    /// map. Set on every interface read from storage, so every endpoint that returns one carries
+    /// it; absent on a daemon's own submission, and ignored on write.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schema(read_only)]
     pub display_name: Option<String>,

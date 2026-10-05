@@ -240,6 +240,22 @@ impl Subnet {
             && !self.base.subnet_type.is_container_bridge()
     }
 
+    /// The runtime owner this fresh bridge observation gives `existing`, when it has none.
+    ///
+    /// The CIDR dedup matches an incoming bridge against a stored one with no owner, and the
+    /// stored row is what gets written back. Without this, a bridge that lost its owner (the
+    /// runtime service deleted, `ON DELETE SET NULL`; a pre-v0.17.10 daemon; the v0.17.10
+    /// migration's unresolvable ids) stayed ownerless through every later scan that named it.
+    /// An owner already stored is kept: a different one never matches the dedup.
+    pub fn owner_for_ownerless_bridge(&self, existing: &Subnet) -> Option<Uuid> {
+        let adopts = existing.base.subnet_type.is_container_bridge()
+            && existing.base.virtualization_service_id.is_none()
+            && self.base.subnet_type.is_container_bridge();
+        adopts
+            .then_some(self.base.virtualization_service_id)
+            .flatten()
+    }
+
     /// A subnet built from an interface address and its prefix.
     ///
     /// `cidr_source` says who read the range. A daemon describing its own NIC is
@@ -492,6 +508,28 @@ mod tests {
     /// rediscovery dedups into the stale row. A bridge row with no virtualization
     /// can only be a name-derived guess, so a current non-bridge observation
     /// corrects it.
+    #[test]
+    fn ownerless_bridge_adopts_the_owner_a_scan_reports() {
+        let runtime = Uuid::new_v4();
+        let stored = subnet(SubnetType::DockerBridge, None);
+        let scanned = subnet(SubnetType::DockerBridge, Some(runtime));
+        assert_eq!(scanned.owner_for_ownerless_bridge(&stored), Some(runtime));
+    }
+
+    #[test]
+    fn owned_bridge_keeps_its_owner() {
+        let stored = subnet(SubnetType::DockerBridge, Some(Uuid::new_v4()));
+        let scanned = subnet(SubnetType::DockerBridge, Some(Uuid::new_v4()));
+        assert_eq!(scanned.owner_for_ownerless_bridge(&stored), None);
+    }
+
+    #[test]
+    fn only_a_bridge_observation_gives_an_owner() {
+        let stored = subnet(SubnetType::DockerBridge, None);
+        let scanned = subnet(SubnetType::Lan, Some(Uuid::new_v4()));
+        assert_eq!(scanned.owner_for_ownerless_bridge(&stored), None);
+    }
+
     #[test]
     fn stale_bridge_guess_is_corrected_by_a_fresh_observation() {
         let guess = subnet(SubnetType::DockerBridge, None);

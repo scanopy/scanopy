@@ -462,6 +462,16 @@ impl CrudService<Subnet> for SubnetService {
                     refreshed.base.subnet_type = subnet.base.subnet_type;
                 }
 
+                if let Some(owner) = subnet.owner_for_ownerless_bridge(existing_subnet) {
+                    tracing::info!(
+                        subnet_id = %existing_subnet.id,
+                        subnet_cidr = %existing_subnet.base.cidr,
+                        owner = %owner,
+                        "Ownerless container bridge adopts the runtime that reported it"
+                    );
+                    refreshed.base.virtualization_service_id = Some(owner);
+                }
+
                 // The confidence ladder, finally applied. `apply_cidr` refuses anything less
                 // authoritative than what is stored, so an inference never displaces a reading and
                 // nothing displaces a range a person confirmed. Without this the incoming rung was

@@ -14068,19 +14068,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-04T23:05:41.035527Z",
+              "created_at": "2026-10-05T00:35:44.090981Z",
               "first_discovery_id": null,
-              "id": "3d1337c6-b14c-4195-9aa6-144de3d5a53c",
+              "id": "b2e0b7db-9e36-4189-8192-5d83c1942cc4",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-04T23:05:41.035527Z",
+              "last_seen_at": "2026-10-05T00:35:44.090981Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-04T23:05:41.035527Z",
-              "valid_from": "2026-10-04T23:05:41.035527Z",
+              "updated_at": "2026-10-05T00:35:44.090981Z",
+              "valid_from": "2026-10-05T00:35:44.090981Z",
               "valid_to": null
             }
           },
@@ -15685,19 +15685,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-04T23:05:41.020131Z",
+                      "created_at": "2026-10-05T00:35:44.075634Z",
                       "first_discovery_id": null,
-                      "id": "27045c56-b42b-41dd-aca1-03948fbcdbcc",
+                      "id": "ac664e11-6e78-459a-8291-54695da73c0e",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-04T23:05:41.020131Z",
+                      "last_seen_at": "2026-10-05T00:35:44.075634Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-04T23:05:41.020131Z",
-                      "valid_from": "2026-10-04T23:05:41.020131Z",
+                      "updated_at": "2026-10-05T00:35:44.075634Z",
+                      "valid_from": "2026-10-05T00:35:44.075634Z",
                       "valid_to": null
                     }
                   ],
@@ -15711,7 +15711,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Grocy",
+                  "service_definition": "Wiz",
                   "source": {
                     "type": "Manual"
                   },
@@ -15980,7 +15980,7 @@
                       "string",
                       "null"
                     ],
-                    "description": "What to call this interface when it has no `if_alias`/`if_descr`: the MAC it was\nidentified by, or \"Interface\" when it has neither.\n\nRead-only and computed from [`Interface::display_name`] — the same ladder topology port\nlabels an interface with, so it cannot be called one thing in a list and another on the\nmap. Only set on outbound responses nested under a host (`HostResponse::interfaces`);\nabsent on a daemon's own submission and on the standalone `/interfaces` CRUD endpoints,\nwhich return `Interface` directly without this computation.",
+                    "description": "What to call this interface when it has no `if_alias`/`if_descr`: the MAC it was\nidentified by, or \"Interface\" when it has neither.\n\nRead-only and computed from [`Interface::display_name`] — the same ladder topology port\nlabels an interface with, so it cannot be called one thing in a list and another on the\nmap. Set on every interface read from storage, so every endpoint that returns one carries\nit; absent on a daemon's own submission, and ignored on write.",
                     "readOnly": true
                   },
                   "first_discovery_id": {
@@ -17110,19 +17110,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-04T23:05:41.031889Z",
+                  "created_at": "2026-10-05T00:35:44.087345Z",
                   "first_discovery_id": null,
-                  "id": "0ec24ac1-a4be-4d01-b965-20b476df1a9b",
+                  "id": "bd08daa6-895c-4e09-8b4a-0ba782485154",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-04T23:05:41.031889Z",
+                  "last_seen_at": "2026-10-05T00:35:44.087345Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-04T23:05:41.031889Z",
-                  "valid_from": "2026-10-04T23:05:41.031889Z",
+                  "updated_at": "2026-10-05T00:35:44.087345Z",
+                  "valid_from": "2026-10-05T00:35:44.087345Z",
                   "valid_to": null
                 }
               ],
@@ -17136,7 +17136,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Grocy",
+              "service_definition": "Wiz",
               "source": {
                 "type": "Manual"
               },
@@ -19628,19 +19628,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-04T23:05:41.020568Z",
+          "created_at": "2026-10-05T00:35:44.076051Z",
           "first_discovery_id": null,
-          "id": "a49f06bc-ee7a-4713-b295-e61ddcea1717",
+          "id": "5264ab29-cc39-4a32-86e4-e0549dcde155",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-04T23:05:41.020568Z",
+          "last_seen_at": "2026-10-05T00:35:44.076051Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-04T23:05:41.020568Z",
-          "valid_from": "2026-10-04T23:05:41.020568Z",
+          "updated_at": "2026-10-05T00:35:44.076051Z",
+          "valid_from": "2026-10-05T00:35:44.076051Z",
           "valid_to": null
         }
       },
@@ -20407,7 +20407,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Grocy",
+              "service_definition": "Wiz",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -26846,19 +26846,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-04T23:05:41.019657Z",
+                  "created_at": "2026-10-05T00:35:44.075168Z",
                   "first_discovery_id": null,
-                  "id": "540eea2e-72c0-4723-9893-03ae03b2306d",
+                  "id": "db652a18-05ad-402e-b67e-e8e1a4d14226",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-04T23:05:41.019657Z",
+                  "last_seen_at": "2026-10-05T00:35:44.075168Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-04T23:05:41.019657Z",
-                  "valid_from": "2026-10-04T23:05:41.019657Z",
+                  "updated_at": "2026-10-05T00:35:44.075168Z",
+                  "valid_from": "2026-10-05T00:35:44.075168Z",
                   "valid_to": null
                 }
               ],
@@ -26872,7 +26872,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Grocy",
+              "service_definition": "Wiz",
               "source": {
                 "type": "Manual"
               },
@@ -27749,7 +27749,7 @@
                   "string",
                   "null"
                 ],
-                "description": "What to call this interface when it has no `if_alias`/`if_descr`: the MAC it was\nidentified by, or \"Interface\" when it has neither.\n\nRead-only and computed from [`Interface::display_name`] — the same ladder topology port\nlabels an interface with, so it cannot be called one thing in a list and another on the\nmap. Only set on outbound responses nested under a host (`HostResponse::interfaces`);\nabsent on a daemon's own submission and on the standalone `/interfaces` CRUD endpoints,\nwhich return `Interface` directly without this computation.",
+                "description": "What to call this interface when it has no `if_alias`/`if_descr`: the MAC it was\nidentified by, or \"Interface\" when it has neither.\n\nRead-only and computed from [`Interface::display_name`] — the same ladder topology port\nlabels an interface with, so it cannot be called one thing in a list and another on the\nmap. Set on every interface read from storage, so every endpoint that returns one carries\nit; absent on a daemon's own submission, and ignored on write.",
                 "readOnly": true
               },
               "first_discovery_id": {
@@ -30725,19 +30725,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-04T23:05:41.012825Z",
+                        "created_at": "2026-10-05T00:35:44.068376Z",
                         "first_discovery_id": null,
-                        "id": "1ab65f1c-e9bb-4293-88f7-de2805939169",
+                        "id": "beeba3e0-04ea-4bc5-968d-f8c603861026",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-04T23:05:41.012825Z",
+                        "last_seen_at": "2026-10-05T00:35:44.068376Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-04T23:05:41.012825Z",
-                        "valid_from": "2026-10-04T23:05:41.012825Z",
+                        "updated_at": "2026-10-05T00:35:44.068376Z",
+                        "valid_from": "2026-10-05T00:35:44.068376Z",
                         "valid_to": null
                       }
                     ],
@@ -30751,7 +30751,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Grocy",
+                    "service_definition": "Wiz",
                     "source": {
                       "type": "Manual"
                     },
@@ -30895,19 +30895,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-04T23:05:41.031210Z",
+                    "created_at": "2026-10-05T00:35:44.086686Z",
                     "first_discovery_id": null,
-                    "id": "e6269117-3d7e-48ce-9834-6c03156fe28e",
+                    "id": "f0cfdd15-0403-4277-b119-e487d32d0343",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-04T23:05:41.031210Z",
+                    "last_seen_at": "2026-10-05T00:35:44.086686Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-04T23:05:41.031210Z",
-                    "valid_from": "2026-10-04T23:05:41.031210Z",
+                    "updated_at": "2026-10-05T00:35:44.086686Z",
+                    "valid_from": "2026-10-05T00:35:44.086686Z",
                     "valid_to": null
                   }
                 ],
@@ -30921,7 +30921,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Grocy",
+                "service_definition": "Wiz",
                 "source": {
                   "type": "Manual"
                 },
@@ -33152,19 +33152,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-04T23:05:41.020438Z",
+              "created_at": "2026-10-05T00:35:44.075926Z",
               "first_discovery_id": null,
-              "id": "5bdcac68-dfeb-445c-b862-9450358061e3",
+              "id": "99c248a0-2dc5-4533-8f3b-4256c3bfc576",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-04T23:05:41.020438Z",
+              "last_seen_at": "2026-10-05T00:35:44.075926Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-04T23:05:41.020438Z",
-              "valid_from": "2026-10-04T23:05:41.020438Z",
+              "updated_at": "2026-10-05T00:35:44.075926Z",
+              "valid_from": "2026-10-05T00:35:44.075926Z",
               "valid_to": null
             }
           ],
@@ -33178,7 +33178,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Grocy",
+          "service_definition": "Wiz",
           "source": {
             "type": "Manual"
           },
@@ -34640,7 +34640,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "aa931219-0deb-44fb-bd2b-4775b674085d",
+                  "id": "10f6a2ad-adc1-430f-bc67-46cc1930d797",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34650,23 +34650,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "77845f1b-73b6-4039-b361-b96a7fdea0aa",
+                  "id": "7a75b6ca-a529-47ce-8439-753ee9888c86",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "f1da4380-ac58-4d13-8e68-27cf5f9092b9",
+                  "id": "3a22f09d-2a9f-4e7e-a7de-14be1919d8fd",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "335d4a42-5736-4e7e-8e9f-fb6f53907cb4",
+                  "id": "804efb44-d064-41e1-a109-2ab28c194c1c",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "77845f1b-73b6-4039-b361-b96a7fdea0aa",
+                  "id": "7a75b6ca-a529-47ce-8439-753ee9888c86",
                   "rule": "ByHost"
                 }
               ]
@@ -34696,19 +34696,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "abf4e98e-6df8-4b2c-9a0a-0dc6a9c34eaf",
+                "id": "274282ec-d736-40d6-bcf8-af209eab5d4a",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "521a1e00-cb32-4500-a554-c90e02b4c51e",
+                "id": "bdc2e425-cc4f-4f5d-9b3e-7c6cda274989",
                 "rule": "ByVLAN"
               },
               {
-                "id": "f6ba06b3-29fd-4557-abb7-3be1dec6bf4f",
+                "id": "a3e888d7-068d-4aba-b72f-63bec66d2f41",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "5b9e4949-80f2-4d27-8b50-78d7fa828c4b",
+                "id": "4b957891-9075-403e-9584-d3c5306adcfc",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34727,7 +34727,7 @@
                 }
               },
               {
-                "id": "699b0f60-5ac2-461f-98bc-48acd81dd756",
+                "id": "308adc52-84ef-4633-83eb-aae92e8f8e26",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34736,15 +34736,15 @@
                 }
               },
               {
-                "id": "00e60481-9de0-4ae3-b6f0-609cf409920a",
+                "id": "35533e0e-584d-4723-bf4e-5f431059ab46",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "f95e705d-53d1-4dc7-8026-556bc8188c9d",
+                "id": "635d3c5a-912b-4e45-be71-afbd2b725982",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "421922bc-7c77-424e-9abc-4cfd152e45af",
+                "id": "22f15ac1-7c32-4fe0-bc44-9c4901222bd6",
                 "rule": "ByStack"
               }
             ]
