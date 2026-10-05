@@ -246,13 +246,10 @@ mod tests {
             trial_days: 14,
         };
 
-        assert!(lands_on_cloud_plan(&trial(cloud.clone())));
-        assert!(!lands_on_cloud_plan(&trial(licensed.clone())));
-        assert!(lands_on_cloud_plan(&plan_changed(
-            licensed.clone(),
-            cloud.clone()
-        )));
-        assert!(!lands_on_cloud_plan(&plan_changed(cloud.clone(), licensed)));
+        assert!(lands_on_cloud_plan(&trial(cloud)));
+        assert!(!lands_on_cloud_plan(&trial(licensed)));
+        assert!(lands_on_cloud_plan(&plan_changed(licensed, cloud)));
+        assert!(!lands_on_cloud_plan(&plan_changed(cloud, licensed)));
         assert!(!lands_on_cloud_plan(&plan_changed(other_cloud, cloud)));
     }
 

@@ -43,6 +43,7 @@ pub struct ContainerHostRecord {
 ///
 /// `runtime_service_id` is the runtime's **stored** service id, read back from the server: the
 /// server keeps a guest's link only when it names a real service.
+#[allow(clippy::too_many_arguments)]
 pub fn container_host_record(
     runtime: ContainerRuntime,
     container: &ContainerInspectResponse,

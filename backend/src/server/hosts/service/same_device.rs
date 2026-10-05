@@ -342,8 +342,8 @@ mod tests {
             AttributeSource::ForwardingTable,
         ] {
             let payload = [
-                row("192.168.4.126", lan, ens18(), source.clone()),
-                row("192.168.4.63", lan, ens19(), source.clone()),
+                row("192.168.4.126", lan, ens18(), source),
+                row("192.168.4.63", lan, ens19(), source),
             ];
             assert!(
                 proven(&payload, h1, &candidates, &[]).is_empty(),
