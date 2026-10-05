@@ -200,6 +200,12 @@ struct NeighbourPass {
     /// candidates on interfaces the scan walked count, because candidates on other interfaces were
     /// read by an earlier scan and carry no evidence about this one.
     resolved_far_ends: HashSet<Uuid>,
+    /// Far-end ports those neighbours resolved to, or re-advertised when already recorded. A port
+    /// recorded from an advertisement has no walk to refresh it; this is its only evidence.
+    re_observed_ports: HashSet<Uuid>,
+    /// Management addresses those neighbours advertised. The range holding one is a range the scan
+    /// found evidence in, even when no address row of the far end is filed under it.
+    re_advertised_addresses: HashSet<IpAddr>,
 }
 
 mod inference;
@@ -212,7 +218,7 @@ use crate::server::interface_neighbors::r#impl::base::{
 };
 use crate::server::interfaces::r#impl::base::InterfaceBase;
 use crate::server::ip_addresses::r#impl::base::{MacEvidence, MacEvidenceValue};
-use crate::server::subnets::r#impl::inference::UnplacedFarEnd;
+use crate::server::subnets::r#impl::inference::{UnplacedFarEnd, placeable_subnet};
 
 use reciprocal::PortBinding;
 
@@ -312,13 +318,15 @@ impl HostService {
         // (host, advertised port name, advertised port MAC) for far ends resolved to a device but
         // to no port of it. Collected here and acted on after the loop rather than mid-tier, so the
         // resolution pass stays a read of identities and a write of neighbours.
-        let mut advertised_ports: Vec<(Uuid, Option<String>, Option<String>)> = Vec::new();
+        let mut advertised_ports: Vec<(Uuid, Option<String>, Option<String>, bool)> = Vec::new();
         // (host, the system description its LLDP advertisement carried), acted on after the loop for
         // the same reason.
         let mut advertised_os: Vec<(Uuid, String)> = Vec::new();
         let mut reopened = 0usize;
         let mut rebound = 0usize;
         let mut resolved_far_ends: HashSet<Uuid> = HashSet::new();
+        let mut re_observed_ports: HashSet<Uuid> = HashSet::new();
+        let mut re_advertised_addresses: HashSet<IpAddr> = HashSet::new();
 
         for interface in &interfaces {
             let candidates = candidates_by_interface
@@ -542,8 +550,18 @@ impl HostService {
                 };
 
                 if let Some((host_id, neighbor)) = resolved_neighbor {
-                    if run_interface_ids.contains(&interface.id) {
+                    let in_run = run_interface_ids.contains(&interface.id);
+                    if in_run {
                         resolved_far_ends.insert(host_id);
+                        if let Some(port_id) = neighbor.interface_id() {
+                            re_observed_ports.insert(port_id);
+                        }
+                        re_advertised_addresses.extend(
+                            evidence
+                                .lldp_mgmt_addr
+                                .into_iter()
+                                .chain(evidence.cdp_address),
+                        );
                     }
                     // Evidence freshness for this adjacency = when this candidate's evidence was
                     // last confirmed by a scan (its `created_at` — see
@@ -564,6 +582,7 @@ impl HostService {
                                 host_id,
                                 port.name.map(str::to_string),
                                 port.mac.map(str::to_string),
+                                in_run,
                             ));
                         }
                     }
@@ -583,9 +602,10 @@ impl HostService {
                 .await?;
         }
 
-        let recorded_port_ids = self
+        let (recorded_port_ids, re_advertised_ports) = self
             .record_advertised_far_end_ports(network_id, advertised_ports, scan_time)
             .await;
+        re_observed_ports.extend(re_advertised_ports);
         self.record_advertised_far_end_os(advertised_os).await;
 
         tracing::info!(
@@ -611,6 +631,8 @@ impl HostService {
             unplaced,
             recorded_port_ids,
             resolved_far_ends,
+            re_observed_ports,
+            re_advertised_addresses,
         })
     }
 
@@ -659,6 +681,8 @@ impl HostService {
         let mut rerun = !observed.host_ids.is_empty() || !first.recorded_port_ids.is_empty();
         // Unioned across passes: a far end minted above first resolves in a re-run.
         let mut resolved_far_ends = std::mem::take(&mut first.resolved_far_ends);
+        let mut re_observed_ports = std::mem::take(&mut first.re_observed_ports);
+        let mut re_advertised_addresses = std::mem::take(&mut first.re_advertised_addresses);
         observed.merge(ScannedEntityIds {
             interface_ids: std::mem::take(&mut first.recorded_port_ids),
             ..Default::default()
@@ -673,10 +697,58 @@ impl HostService {
                 .await?;
             rerun = !last.recorded_port_ids.is_empty();
             resolved_far_ends.extend(std::mem::take(&mut last.resolved_far_ends));
+            re_observed_ports.extend(std::mem::take(&mut last.re_observed_ports));
+            re_advertised_addresses.extend(std::mem::take(&mut last.re_advertised_addresses));
             observed.merge(ScannedEntityIds {
                 interface_ids: std::mem::take(&mut last.recorded_port_ids),
                 ..Default::default()
             });
+        }
+
+        // Far-end ports this scan's neighbours bound to or advertised again. A port recorded from
+        // an advertisement has no walk to refresh it, so this is the only way it is ever seen.
+        if !re_observed_ports.is_empty() {
+            let ports: Vec<Uuid> = re_observed_ports.into_iter().collect();
+            let refreshed = self
+                .interface_service
+                .refresh_observed(
+                    StorableFilter::<Interface>::new_from_entity_ids(&ports),
+                    scan_time,
+                )
+                .await?;
+            observed.merge(ScannedEntityIds {
+                interface_ids: refreshed.iter().map(|i| i.id).collect(),
+                ..Default::default()
+            });
+        }
+
+        // The ranges holding the management addresses this scan's neighbours advertised. A far end
+        // can carry no address row of its own (minted before its range existed), and the range is
+        // still where the scan found it.
+        if !re_advertised_addresses.is_empty() {
+            let live = self
+                .subnet_service
+                .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())
+                .await?;
+            let ranges: Vec<Uuid> = re_advertised_addresses
+                .into_iter()
+                .filter_map(|address| placeable_subnet(&live, address).map(|s| s.id))
+                .collect::<HashSet<_>>()
+                .into_iter()
+                .collect();
+            if !ranges.is_empty() {
+                let refreshed = self
+                    .subnet_service
+                    .refresh_observed(
+                        StorableFilter::<Subnet>::new_from_entity_ids(&ranges),
+                        scan_time,
+                    )
+                    .await?;
+                observed.merge(ScannedEntityIds {
+                    found_subnet_ids: refreshed.iter().map(|s| s.id).collect(),
+                    ..Default::default()
+                });
+            }
         }
 
         // Far ends this scan's neighbours re-advertised. Hosts the daemon submitted are already
@@ -826,19 +898,26 @@ impl HostService {
     /// Distinct from the minting path, which builds these for a host that did not exist. Here the
     /// host is real and already resolved; only its ports are missing.
     ///
-    /// Returns the ports it recorded: the caller reports them as touched by this scan, and any at
-    /// all means another pass has something new to bind.
+    /// Returns the ports it recorded, and the already-recorded ports this scan's neighbours
+    /// advertised again (`in_run`). The caller reports both as touched by this scan; only recorded
+    /// ones mean another pass has something new to bind.
     async fn record_advertised_far_end_ports(
         &self,
         network_id: Uuid,
-        advertised: Vec<(Uuid, Option<String>, Option<String>)>,
+        advertised: Vec<(Uuid, Option<String>, Option<String>, bool)>,
         scan_time: DateTime<Utc>,
-    ) -> Vec<Uuid> {
+    ) -> (Vec<Uuid>, Vec<Uuid>) {
         let mut recorded_ids = Vec::new();
+        let mut re_advertised_ids = Vec::new();
         let mut by_host: HashMap<Uuid, AdvertisedPorts> = HashMap::new();
-        for (host_id, name, mac) in advertised {
+        // Ports a neighbour this scan walked advertised, per host: evidence the port is still there.
+        let mut in_run_keys: HashMap<Uuid, HashSet<AdvertisedPortKey>> = HashMap::new();
+        for (host_id, name, mac, in_run) in advertised {
             let mac = mac.as_deref().and_then(|m| m.parse::<MacAddress>().ok());
             if name.is_some() || mac.is_some() {
+                if in_run && let Some(key) = AdvertisedPortKey::of(name.as_deref(), mac) {
+                    in_run_keys.entry(host_id).or_default().insert(key);
+                }
                 by_host.entry(host_id).or_default().push((name, mac));
             }
         }
@@ -862,6 +941,21 @@ impl HostService {
             // The device has described itself, which beats any advertisement about it.
             if existing.iter().any(|row| row.base.if_index.is_some()) {
                 continue;
+            }
+
+            if let Some(keys) = in_run_keys.get(&host_id) {
+                re_advertised_ids.extend(
+                    existing
+                        .iter()
+                        .filter(|row| {
+                            AdvertisedPortKey::of(
+                                row.base.if_name.as_deref(),
+                                mac_of(&row.base.mac_address),
+                            )
+                            .is_some_and(|key| keys.contains(&key))
+                        })
+                        .map(|row| row.id),
+                );
             }
 
             let mut recorded: HashSet<AdvertisedPortKey> = existing
@@ -925,7 +1019,7 @@ impl HostService {
             }
         }
 
-        recorded_ids
+        (recorded_ids, re_advertised_ids)
     }
 
     /// Name an OS for each far end from the system description its LLDP advertisement carried.
