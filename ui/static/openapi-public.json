@@ -4902,7 +4902,7 @@
           {
             "name": "search",
             "in": "query",
-            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id and description, and against its IP\naddresses and the names of services running on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
+            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id, serial number, asset tag and\ndescription, and against its IP addresses and the names of services\nrunning on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
             "required": false,
             "schema": {
               "type": [
@@ -5388,7 +5388,7 @@
           {
             "name": "search",
             "in": "query",
-            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id and description, and against its IP\naddresses and the names of services running on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
+            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id, serial number, asset tag and\ndescription, and against its IP addresses and the names of services\nrunning on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
             "required": false,
             "schema": {
               "type": [
@@ -5758,7 +5758,7 @@
           {
             "name": "search",
             "in": "query",
-            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id and description, and against its IP\naddresses and the names of services running on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
+            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id, serial number, asset tag and\ndescription, and against its IP addresses and the names of services\nrunning on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
             "required": false,
             "schema": {
               "type": [
@@ -6137,7 +6137,7 @@
           {
             "name": "search",
             "in": "query",
-            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id and description, and against its IP\naddresses and the names of services running on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
+            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id, serial number, asset tag and\ndescription, and against its IP addresses and the names of services\nrunning on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
             "required": false,
             "schema": {
               "type": [
@@ -11308,7 +11308,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaginatedApiResponse_Subnet"
+                  "$ref": "#/components/schemas/PaginatedApiResponse_SubnetResponse"
                 }
               }
             }
@@ -11585,7 +11585,8 @@
         "tags": [
           "Subnets"
         ],
-        "summary": "Get Subnet by ID",
+        "summary": "Get subnet by ID",
+        "description": "Returns the subnet with its utilization and the range it sits inside, if any.",
         "operationId": "get_subnet_by_id",
         "parameters": [
           {
@@ -11605,7 +11606,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponse_Subnet"
+                  "$ref": "#/components/schemas/ApiResponse_SubnetResponse"
                 }
               }
             }
@@ -14116,19 +14117,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-05T21:30:31.654957Z",
+              "created_at": "2026-10-05T22:03:27.152882Z",
               "first_discovery_id": null,
-              "id": "e80ad63c-b297-4cc7-9779-c460ec140ca0",
+              "id": "5222411d-c6de-40b8-b703-34f437e5a77e",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T21:30:31.654957Z",
+              "last_seen_at": "2026-10-05T22:03:27.152882Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-05T21:30:31.654957Z",
-              "valid_from": "2026-10-05T21:30:31.654957Z",
+              "updated_at": "2026-10-05T22:03:27.152882Z",
+              "valid_from": "2026-10-05T22:03:27.152882Z",
               "valid_to": null
             }
           },
@@ -15302,6 +15303,18 @@
               "interfaces"
             ],
             "properties": {
+              "asset_tag": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person.\nSet it through `asset_tag` on create and update; a typed value outranks what discovery reads.",
+                "readOnly": true
+              },
+              "asset_tag_source": {
+                "$ref": "#/components/schemas/AttributeSource",
+                "description": "What produced the asset tag. Read-only: `Manual` when a person typed it."
+              },
               "chassis_id": {
                 "type": [
                   "string",
@@ -15630,6 +15643,8 @@
               }
             },
             "example": {
+              "asset_tag": "IT-00412",
+              "asset_tag_source": "Manual",
               "chassis_id_source": "Unspecified",
               "created_at": "2026-01-15T10:30:00Z",
               "credential_assignments": [],
@@ -15752,19 +15767,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-05T21:30:31.637764Z",
+                      "created_at": "2026-10-05T22:03:27.137360Z",
                       "first_discovery_id": null,
-                      "id": "21d41981-d9c4-4207-8ab6-40fdf050f888",
+                      "id": "8972d9ab-c150-4faf-9564-f1bced01a15d",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-05T21:30:31.637764Z",
+                      "last_seen_at": "2026-10-05T22:03:27.137360Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-05T21:30:31.637764Z",
-                      "valid_from": "2026-10-05T21:30:31.637764Z",
+                      "updated_at": "2026-10-05T22:03:27.137360Z",
+                      "valid_from": "2026-10-05T22:03:27.137360Z",
                       "valid_to": null
                     }
                   ],
@@ -15777,7 +15792,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Actual Budget",
+                  "service_definition": "Homepage",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -17100,19 +17115,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T21:30:31.650904Z",
+                  "created_at": "2026-10-05T22:03:27.149217Z",
                   "first_discovery_id": null,
-                  "id": "380fcad1-52ff-49da-9f86-938404774fb8",
+                  "id": "e12f8dc4-bbf9-407e-a556-23fa6e48d943",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T21:30:31.650904Z",
+                  "last_seen_at": "2026-10-05T22:03:27.149217Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-05T21:30:31.650904Z",
-                  "valid_from": "2026-10-05T21:30:31.650904Z",
+                  "updated_at": "2026-10-05T22:03:27.149217Z",
+                  "valid_from": "2026-10-05T22:03:27.149217Z",
                   "valid_to": null
                 }
               ],
@@ -17125,7 +17140,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Actual Budget",
+              "service_definition": "Homepage",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -17671,6 +17686,71 @@
               "valid_to": null,
               "virtualization_service_id": null
             }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_SubnetResponse": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Subnet"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "used_addresses",
+                  "usable_addresses"
+                ],
+                "properties": {
+                  "parent_subnet_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uuid",
+                    "description": "The most specific other subnet on the same site whose range contains this one. `null` when\nnone does. Children are the subnets whose parent is this one.",
+                    "readOnly": true
+                  },
+                  "usable_addresses": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Addresses a host can hold in this range. Saturates for IPv6 ranges wider than a `/64`.",
+                    "readOnly": true,
+                    "minimum": 0
+                  },
+                  "used_addresses": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Distinct addresses held in this range, including those filed in subnets nested inside it.",
+                    "readOnly": true,
+                    "minimum": 0
+                  }
+                }
+              }
+            ],
+            "description": "A subnet together with what is derived from the rest of its site."
           },
           "error": {
             "type": [
@@ -19696,19 +19776,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-05T21:30:31.638223Z",
+          "created_at": "2026-10-05T22:03:27.137790Z",
           "first_discovery_id": null,
-          "id": "85935ec9-3259-404a-8d07-f9f703143e4a",
+          "id": "b229f1bd-8957-4e9c-a0e1-fbc00c2e2a4a",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-05T21:30:31.638223Z",
+          "last_seen_at": "2026-10-05T22:03:27.137790Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-05T21:30:31.638223Z",
-          "valid_from": "2026-10-05T21:30:31.638223Z",
+          "updated_at": "2026-10-05T22:03:27.137790Z",
+          "valid_from": "2026-10-05T22:03:27.137790Z",
           "valid_to": null
         }
       },
@@ -20297,6 +20377,13 @@
           "tags"
         ],
         "properties": {
+          "asset_tag": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The organization's asset tag for the device. Outranks the value discovery reads from\nENTITY-MIB entPhysicalAssetID."
+          },
           "chassis_id": {
             "type": [
               "string",
@@ -20438,6 +20525,7 @@
           }
         },
         "example": {
+          "asset_tag": "IT-00412",
           "credential_assignments": [],
           "description": "Primary web server",
           "hidden": false,
@@ -20474,7 +20562,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Actual Budget",
+              "service_definition": "Homepage",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -25973,6 +26061,8 @@
           }
         ],
         "example": {
+          "asset_tag": "IT-00412",
+          "asset_tag_source": "Manual",
           "created_at": "2026-01-15T10:30:00Z",
           "credential_assignments": [],
           "description": "Primary web server",
@@ -25997,6 +26087,18 @@
           "virtualization_interface_id": null,
           "virtualization_metadata": null,
           "virtualization_service_id": null
+        }
+      },
+      "HostAssetTag": {
+        "type": "object",
+        "properties": {
+          "asset_tag": {
+            "type": "string",
+            "description": "ENTITY-MIB entPhysicalAssetID - the organization's asset tag"
+          },
+          "asset_tag_source": {
+            "$ref": "#/components/schemas/AttributeSource"
+          }
         }
       },
       "HostBase": {
@@ -26048,6 +26150,10 @@
           {
             "$ref": "#/components/schemas/HostSerialNumber",
             "description": "ENTITY-MIB entPhysicalSerialNum - hardware serial number"
+          },
+          {
+            "$ref": "#/components/schemas/HostAssetTag",
+            "description": "The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person."
           },
           {
             "$ref": "#/components/schemas/HostFirmwareRevision",
@@ -26483,6 +26589,18 @@
           "interfaces"
         ],
         "properties": {
+          "asset_tag": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person.\nSet it through `asset_tag` on create and update; a typed value outranks what discovery reads.",
+            "readOnly": true
+          },
+          "asset_tag_source": {
+            "$ref": "#/components/schemas/AttributeSource",
+            "description": "What produced the asset tag. Read-only: `Manual` when a person typed it."
+          },
           "chassis_id": {
             "type": [
               "string",
@@ -26811,6 +26929,8 @@
           }
         },
         "example": {
+          "asset_tag": "IT-00412",
+          "asset_tag_source": "Manual",
           "chassis_id_source": "Unspecified",
           "created_at": "2026-01-15T10:30:00Z",
           "credential_assignments": [],
@@ -26933,19 +27053,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T21:30:31.637253Z",
+                  "created_at": "2026-10-05T22:03:27.136886Z",
                   "first_discovery_id": null,
-                  "id": "a50db393-db15-47e9-bf20-31847c925e0e",
+                  "id": "5c7e6169-28d0-4f9b-982a-83046296847e",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T21:30:31.637253Z",
+                  "last_seen_at": "2026-10-05T22:03:27.136886Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-05T21:30:31.637253Z",
-                  "valid_from": "2026-10-05T21:30:31.637253Z",
+                  "updated_at": "2026-10-05T22:03:27.136886Z",
+                  "valid_from": "2026-10-05T22:03:27.136886Z",
                   "valid_to": null
                 }
               ],
@@ -26958,7 +27078,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Actual Budget",
+              "service_definition": "Homepage",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -30233,6 +30353,18 @@
                 "interfaces"
               ],
               "properties": {
+                "asset_tag": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person.\nSet it through `asset_tag` on create and update; a typed value outranks what discovery reads.",
+                  "readOnly": true
+                },
+                "asset_tag_source": {
+                  "$ref": "#/components/schemas/AttributeSource",
+                  "description": "What produced the asset tag. Read-only: `Manual` when a person typed it."
+                },
                 "chassis_id": {
                   "type": [
                     "string",
@@ -30561,6 +30693,8 @@
                 }
               },
               "example": {
+                "asset_tag": "IT-00412",
+                "asset_tag_source": "Manual",
                 "chassis_id_source": "Unspecified",
                 "created_at": "2026-01-15T10:30:00Z",
                 "credential_assignments": [],
@@ -30683,19 +30817,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-05T21:30:31.629659Z",
+                        "created_at": "2026-10-05T22:03:27.129927Z",
                         "first_discovery_id": null,
-                        "id": "8c3afee4-da49-4a82-a9b8-bdb17296a900",
+                        "id": "2aad1d96-a7e6-4164-a2b7-bd57adb77c7e",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-05T21:30:31.629659Z",
+                        "last_seen_at": "2026-10-05T22:03:27.129927Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-05T21:30:31.629659Z",
-                        "valid_from": "2026-10-05T21:30:31.629659Z",
+                        "updated_at": "2026-10-05T22:03:27.129927Z",
+                        "valid_from": "2026-10-05T22:03:27.129927Z",
                         "valid_to": null
                       }
                     ],
@@ -30708,7 +30842,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Actual Budget",
+                    "service_definition": "Homepage",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -30854,19 +30988,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-05T21:30:31.650178Z",
+                    "created_at": "2026-10-05T22:03:27.148534Z",
                     "first_discovery_id": null,
-                    "id": "c4dac741-9ddf-4feb-9009-1048884b5e4d",
+                    "id": "fc9820f8-78f4-4dc8-94f3-b213eba915df",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-05T21:30:31.650178Z",
+                    "last_seen_at": "2026-10-05T22:03:27.148534Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-05T21:30:31.650178Z",
-                    "valid_from": "2026-10-05T21:30:31.650178Z",
+                    "updated_at": "2026-10-05T22:03:27.148534Z",
+                    "valid_from": "2026-10-05T22:03:27.148534Z",
                     "valid_to": null
                   }
                 ],
@@ -30879,7 +31013,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Actual Budget",
+                "service_definition": "Homepage",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -30911,7 +31045,7 @@
           }
         }
       },
-      "PaginatedApiResponse_Subnet": {
+      "PaginatedApiResponse_SubnetResponse": {
         "type": "object",
         "description": "Response type for paginated list endpoints (pagination is always present in meta)",
         "required": [
@@ -30925,107 +31059,42 @@
             "items": {
               "allOf": [
                 {
-                  "$ref": "#/components/schemas/SubnetBase"
+                  "$ref": "#/components/schemas/Subnet"
                 },
                 {
                   "type": "object",
                   "required": [
-                    "id",
-                    "created_at",
-                    "updated_at"
+                    "used_addresses",
+                    "usable_addresses"
                   ],
                   "properties": {
-                    "created_at": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "When this record was first created.",
-                      "readOnly": true
-                    },
-                    "first_discovery_id": {
+                    "parent_subnet_id": {
                       "type": [
                         "string",
                         "null"
                       ],
                       "format": "uuid",
-                      "description": "The discovery that first observed this entity.",
+                      "description": "The most specific other subnet on the same site whose range contains this one. `null` when\nnone does. Children are the subnets whose parent is this one.",
                       "readOnly": true
                     },
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "description": "Server-assigned unique identifier.",
-                      "readOnly": true
+                    "usable_addresses": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Addresses a host can hold in this range. Saturates for IPv6 ranges wider than a `/64`.",
+                      "readOnly": true,
+                      "minimum": 0
                     },
-                    "last_discovery_id": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "format": "uuid",
-                      "description": "The most recent discovery that observed this entity.",
-                      "readOnly": true
-                    },
-                    "last_seen_at": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "When a discovery last observed this entity.",
-                      "readOnly": true
-                    },
-                    "lineage_id": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "format": "uuid",
-                      "description": "Stable identifier shared by every revision of the same entity across its history.",
-                      "readOnly": true
-                    },
-                    "updated_at": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "When this record was last modified.",
-                      "readOnly": true
-                    },
-                    "valid_from": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Start of the interval this revision was current for (SCD2 history).",
-                      "readOnly": true
-                    },
-                    "valid_to": {
-                      "type": [
-                        "string",
-                        "null"
-                      ],
-                      "format": "date-time",
-                      "description": "End of the interval this revision was current for. `null` while it is the live revision.",
-                      "readOnly": true
+                    "used_addresses": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "Distinct addresses held in this range, including those filed in subnets nested inside it.",
+                      "readOnly": true,
+                      "minimum": 0
                     }
                   }
                 }
               ],
-              "example": {
-                "cidr": "192.168.1.0/24",
-                "cidr_source": "DaemonSelfReport",
-                "created_at": "2026-01-15T10:30:00Z",
-                "description": "Local area network",
-                "first_discovery_id": null,
-                "id": "550e8400-e29b-41d4-a716-446655440004",
-                "last_discovery_id": null,
-                "last_seen_at": "2026-01-15T10:30:00Z",
-                "lineage_id": null,
-                "name": "LAN",
-                "site_id": "550e8400-e29b-41d4-a716-446655440002",
-                "source": {
-                  "type": "Manual"
-                },
-                "subnet_type": "Lan",
-                "tags": [],
-                "updated_at": "2026-01-15T10:30:00Z",
-                "valid_from": "2026-01-15T10:30:00Z",
-                "valid_to": null,
-                "virtualization_service_id": null
-              }
+              "description": "A subnet together with what is derived from the rest of its site."
             },
             "description": "The page of results. Empty when nothing matched the query."
           },
@@ -33119,19 +33188,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-05T21:30:31.638086Z",
+              "created_at": "2026-10-05T22:03:27.137660Z",
               "first_discovery_id": null,
-              "id": "60a2f0f4-f1f1-4bb8-ab4b-9d14fba7a891",
+              "id": "53b87f5f-2de4-4879-9ba4-8761c54fd4d4",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T21:30:31.638086Z",
+              "last_seen_at": "2026-10-05T22:03:27.137660Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-05T21:30:31.638086Z",
-              "valid_from": "2026-10-05T21:30:31.638086Z",
+              "updated_at": "2026-10-05T22:03:27.137660Z",
+              "valid_from": "2026-10-05T22:03:27.137660Z",
               "valid_to": null
             }
           ],
@@ -33144,7 +33213,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Actual Budget",
+          "service_definition": "Homepage",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -34211,6 +34280,46 @@
           "last_seen_at"
         ]
       },
+      "SubnetResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Subnet"
+          },
+          {
+            "type": "object",
+            "required": [
+              "used_addresses",
+              "usable_addresses"
+            ],
+            "properties": {
+              "parent_subnet_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The most specific other subnet on the same site whose range contains this one. `null` when\nnone does. Children are the subnets whose parent is this one.",
+                "readOnly": true
+              },
+              "usable_addresses": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Addresses a host can hold in this range. Saturates for IPv6 ranges wider than a `/64`.",
+                "readOnly": true,
+                "minimum": 0
+              },
+              "used_addresses": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Distinct addresses held in this range, including those filed in subnets nested inside it.",
+                "readOnly": true,
+                "minimum": 0
+              }
+            }
+          }
+        ],
+        "description": "A subnet together with what is derived from the rest of its site."
+      },
       "SubnetType": {
         "type": "string",
         "enum": [
@@ -34764,7 +34873,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "8b1ee075-8ca8-41f3-b7c4-9efa7f190d81",
+                  "id": "b50e0c48-c311-49e6-bc78-f3d0b434000e",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34774,23 +34883,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "58f10367-6271-4bbc-a377-1de9fc276b21",
+                  "id": "2b0170e1-2680-4f48-b9c0-cc7a0e8dc461",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "f306b679-d1e3-4acd-a609-f9e49c6e6c84",
+                  "id": "9f602d01-9bc1-4012-a4c0-076482847f92",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "788c6192-e2d6-4f41-b086-bdad2caa722e",
+                  "id": "6a6e8b53-4b30-4e8a-a225-37720e99637d",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "58f10367-6271-4bbc-a377-1de9fc276b21",
+                  "id": "2b0170e1-2680-4f48-b9c0-cc7a0e8dc461",
                   "rule": "ByHost"
                 }
               ]
@@ -34820,19 +34929,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "a3451830-a8bc-4f15-9916-51fe3935b21e",
+                "id": "38f9cc59-47e3-4fbc-b2b4-7390c5529346",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "cbbd9a4d-653f-4063-9817-69ebd4fffc61",
+                "id": "0b16d58e-064d-4779-bc77-9c6acfb16f6c",
                 "rule": "ByVLAN"
               },
               {
-                "id": "9e5cd3db-bb6b-4337-a9ea-17493992b73a",
+                "id": "1c59027f-ff87-4485-a799-5029e3117e2f",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "4e9029cd-f175-4c5b-b66b-7288c7077d7f",
+                "id": "90f75555-fb1e-462b-b613-4d141f44c37f",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34851,7 +34960,7 @@
                 }
               },
               {
-                "id": "d88ce1c9-7683-4bda-bf7e-12b2c507f0a7",
+                "id": "ada807ce-7db6-4afa-a2db-89a0c616ff61",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34860,15 +34969,15 @@
                 }
               },
               {
-                "id": "1218dad9-f193-4449-8fa9-a52603ea2d7a",
+                "id": "5c0fe1ba-5388-410c-98c3-6a51abba2bda",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "5d4dd4c0-e4c3-41fc-bde6-8880abb6cdd0",
+                "id": "fae5ab83-9901-4aed-8c71-8cb772e133fa",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "aec66def-3400-4c3e-bdff-b250a68a0030",
+                "id": "07d71095-ccb9-492c-b975-cd7db01c3f20",
                 "rule": "ByStack"
               }
             ]
@@ -35156,6 +35265,13 @@
           "tags"
         ],
         "properties": {
+          "asset_tag": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The organization's asset tag for the device. Omit it to keep the current one, send an\nempty string to clear it. A changed value outranks what discovery reads from ENTITY-MIB\nentPhysicalAssetID."
+          },
           "credential_assignments": {
             "type": [
               "array",
