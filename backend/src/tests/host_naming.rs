@@ -174,6 +174,7 @@ async fn save_from_ui(
                 id: existing.id,
                 name: name.to_string(),
                 hostname: existing.hostname.clone(),
+                asset_tag: None,
                 description: existing.description.clone(),
                 virtualization_metadata: None,
                 virtualization_service_id: None,

@@ -54,6 +54,8 @@ impl HostResponse {
             model_source,
             serial_number,
             serial_number_source,
+            asset_tag,
+            asset_tag_source,
             firmware_revision,
             firmware_revision_source,
             software_revision,
@@ -124,6 +126,9 @@ impl HostResponse {
                 serial_number: serial_number
                     .clone()
                     .map(|v| Attributed::new(HostSerialNumberValue(v), *serial_number_source)),
+                asset_tag: asset_tag
+                    .clone()
+                    .map(|v| Attributed::new(HostAssetTagValue(v), *asset_tag_source)),
                 firmware_revision: firmware_revision.clone().map(|v| {
                     Attributed::new(HostFirmwareRevisionValue(v), *firmware_revision_source)
                 }),
@@ -213,6 +218,7 @@ impl HostResponse {
             manufacturer,
             model,
             serial_number,
+            asset_tag,
             firmware_revision,
             software_revision,
             os,
@@ -276,6 +282,8 @@ impl HostResponse {
                 .map(|v| v.source())
                 .unwrap_or_default(),
             serial_number: attribution::text_of(&serial_number),
+            asset_tag_source: asset_tag.as_ref().map(|v| v.source()).unwrap_or_default(),
+            asset_tag: attribution::text_of(&asset_tag),
             firmware_revision_source: firmware_revision
                 .as_ref()
                 .map(|v| v.source())

@@ -100,10 +100,10 @@ macro_rules! impl_string_attribute_column {
 }
 
 use crate::server::hosts::r#impl::attributes::{
-    HostChassisIdValue, HostFirmwareRevisionValue, HostHostnameValue, HostManagementUrlValue,
-    HostManufacturerValue, HostModelValue, HostSerialNumberValue, HostSoftwareRevisionValue,
-    HostSysContactValue, HostSysDescrValue, HostSysLocationValue, HostSysNameValue,
-    HostSysObjectIdValue,
+    HostAssetTagValue, HostChassisIdValue, HostFirmwareRevisionValue, HostHostnameValue,
+    HostManagementUrlValue, HostManufacturerValue, HostModelValue, HostSerialNumberValue,
+    HostSoftwareRevisionValue, HostSysContactValue, HostSysDescrValue, HostSysLocationValue,
+    HostSysNameValue, HostSysObjectIdValue,
 };
 
 impl_string_attribute_column!(
@@ -118,6 +118,7 @@ impl_string_attribute_column!(
     HostManufacturerValue,
     HostModelValue,
     HostSerialNumberValue,
+    HostAssetTagValue,
     HostFirmwareRevisionValue,
     HostSoftwareRevisionValue,
 );

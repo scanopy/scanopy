@@ -209,6 +209,7 @@ impl DiscoveryRunner {
             manufacturer: None,
             model: None,
             serial_number: None,
+            asset_tag: None,
             firmware_revision: None,
             software_revision: None,
             os: Some(Attributed::new(

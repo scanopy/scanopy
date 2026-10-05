@@ -13,6 +13,7 @@ pub async fn query_entity_physical<T: SnmpWalkTransport>(
         class: Option<i32>,
         name: Option<String>,
         serial_number: Option<String>,
+        asset_id: Option<String>,
         manufacturer: Option<String>,
         model: Option<String>,
         firmware_revision: Option<String>,
@@ -27,6 +28,7 @@ pub async fn query_entity_physical<T: SnmpWalkTransport>(
         (oids::entity::entry::ENT_PHYSICAL_CLASS, "class"),
         (oids::entity::entry::ENT_PHYSICAL_NAME, "name"),
         (oids::entity::entry::ENT_PHYSICAL_SERIAL_NUM, "serialNum"),
+        (oids::entity::entry::ENT_PHYSICAL_ASSET_ID, "assetId"),
         (oids::entity::entry::ENT_PHYSICAL_MFG_NAME, "mfgName"),
         (oids::entity::entry::ENT_PHYSICAL_MODEL_NAME, "modelName"),
         (
@@ -57,6 +59,7 @@ pub async fn query_entity_physical<T: SnmpWalkTransport>(
                         class: None,
                         name: None,
                         serial_number: None,
+                        asset_id: None,
                         manufacturer: None,
                         model: None,
                         firmware_revision: None,
@@ -69,6 +72,7 @@ pub async fn query_entity_physical<T: SnmpWalkTransport>(
                     "serialNum" => {
                         entry.serial_number = value_to_string(value).filter(|s| !s.is_empty())
                     }
+                    "assetId" => entry.asset_id = value_to_string(value).filter(|s| !s.is_empty()),
                     "mfgName" => {
                         entry.manufacturer = value_to_string(value).filter(|s| !s.is_empty())
                     }
@@ -112,6 +116,7 @@ pub async fn query_entity_physical<T: SnmpWalkTransport>(
         manufacturer: e.manufacturer.clone(),
         model: e.model.clone(),
         serial_number: e.serial_number.clone(),
+        asset_id: e.asset_id.clone(),
         firmware_revision: e.firmware_revision.clone(),
         software_revision: e.software_revision.clone(),
     });

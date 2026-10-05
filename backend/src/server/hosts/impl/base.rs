@@ -1,10 +1,11 @@
 use crate::server::credentials::r#impl::types::CredentialAssignment;
 use crate::server::hosts::r#impl::attributes::{
-    HostChassisIdAttributed, HostFirmwareRevisionAttributed, HostHostnameAttributed,
-    HostManagementUrlAttributed, HostManufacturerAttributed, HostModelAttributed, HostOsAttributed,
-    HostOsValue, HostSerialNumberAttributed, HostSoftwareRevisionAttributed,
-    HostSysContactAttributed, HostSysDescrAttributed, HostSysLocationAttributed,
-    HostSysNameAttributed, HostSysObjectIdAttributed,
+    HostAssetTagAttributed, HostAssetTagValue, HostChassisIdAttributed,
+    HostFirmwareRevisionAttributed, HostHostnameAttributed, HostManagementUrlAttributed,
+    HostManufacturerAttributed, HostModelAttributed, HostOsAttributed, HostOsValue,
+    HostSerialNumberAttributed, HostSoftwareRevisionAttributed, HostSysContactAttributed,
+    HostSysDescrAttributed, HostSysLocationAttributed, HostSysNameAttributed,
+    HostSysObjectIdAttributed,
 };
 use crate::server::hosts::r#impl::name::{HostName, HostNameSources};
 use crate::server::hosts::r#impl::os::recog::RecogDatabase;
@@ -137,6 +138,10 @@ pub struct HostBase {
     #[serde(flatten, deserialize_with = "attribution::optional")]
     #[schema(value_type = HostSerialNumberAttributed)]
     pub serial_number: Option<HostSerialNumberAttributed>,
+    /// The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person.
+    #[serde(flatten, deserialize_with = "attribution::optional")]
+    #[schema(value_type = HostAssetTagAttributed)]
+    pub asset_tag: Option<HostAssetTagAttributed>,
     /// Firmware revision of the device as a whole — ENTITY-MIB `entPhysicalFirmwareRev`.
     ///
     /// Written by whichever source read it — a controller's REST inventory, an industrial probe's
@@ -192,6 +197,7 @@ impl Default for HostBase {
             manufacturer: None,
             model: None,
             serial_number: None,
+            asset_tag: None,
             firmware_revision: None,
             software_revision: None,
             os: None,
@@ -280,6 +286,26 @@ impl HostBase {
         true
     }
 
+    /// Apply the asset tag an update request carries. Returns whether anything changed.
+    ///
+    /// `None` keeps the stored tag: the field is newer than the API, and a client that predates it
+    /// must not clear a tag discovery read. The edit modal sends the stored value back on every
+    /// save, so only an actual change is a person asserting one, stamped `Manual` so no scan
+    /// displaces it. A blank string is a person clearing it, after which the next scan may fill it
+    /// again.
+    pub fn apply_requested_asset_tag(&mut self, requested: Option<String>) -> bool {
+        let Some(requested) = requested else {
+            return false;
+        };
+        let requested = Some(requested.trim().to_string()).filter(|v| !v.is_empty());
+        if requested == attribution::text_of(&self.asset_tag) {
+            return false;
+        }
+        self.asset_tag =
+            requested.map(|v| Attributed::new(HostAssetTagValue(v), AttributeSource::Manual));
+        true
+    }
+
     /// Merge every discovered attribute from `incoming`, returning whether anything changed.
     ///
     /// Rank-based, not first-write-wins. Before provenance this was an `is_none()` gate, so
@@ -322,6 +348,7 @@ impl HostBase {
             manufacturer,
             model,
             serial_number,
+            asset_tag,
             firmware_revision,
             software_revision,
             os,
@@ -353,6 +380,7 @@ impl HostBase {
             manufacturer,
             model,
             serial_number,
+            asset_tag,
             firmware_revision,
             software_revision,
             os,
@@ -958,6 +986,76 @@ mod tests {
         assert_eq!(
             read.virtualization_service_id,
             host.virtualization_service_id
+        );
+    }
+
+    fn snmp_asset_tag(tag: &str) -> Option<HostAssetTagAttributed> {
+        Some(Attributed::new(
+            HostAssetTagValue(tag.to_string()),
+            AttributeSource::Probe(ClientProbe::Snmp),
+        ))
+    }
+
+    /// The edit modal sends the stored tag back on every save. Resending what a scan read must not
+    /// restamp it `Manual`, or the next relabel on the device would never land.
+    #[test]
+    fn resending_the_stored_asset_tag_keeps_its_source() {
+        let mut base = HostBase {
+            asset_tag: snmp_asset_tag("IT-00412"),
+            ..Default::default()
+        };
+
+        assert!(!base.apply_requested_asset_tag(Some(" IT-00412 ".to_string())));
+        assert!(!base.apply_requested_asset_tag(None));
+        assert_eq!(
+            base.asset_tag.as_ref().map(|t| t.source()),
+            Some(AttributeSource::Probe(ClientProbe::Snmp))
+        );
+    }
+
+    /// A typed tag outranks the device's own, so a later scan reading the old label leaves it.
+    #[test]
+    fn a_typed_asset_tag_survives_the_next_scan() {
+        let mut base = HostBase {
+            asset_tag: snmp_asset_tag("IT-00412"),
+            ..Default::default()
+        };
+
+        assert!(base.apply_requested_asset_tag(Some("IT-09001".to_string())));
+        let rescan = HostBase {
+            asset_tag: snmp_asset_tag("IT-00412"),
+            ..Default::default()
+        };
+        base.apply_attributes_from(&rescan);
+
+        assert_eq!(
+            attribution::text_of(&base.asset_tag).as_deref(),
+            Some("IT-09001")
+        );
+    }
+
+    /// A blank field is a person clearing the tag, and clearing hands it back to discovery.
+    #[test]
+    fn a_blank_asset_tag_clears_it_and_the_next_scan_refills_it() {
+        let mut base = HostBase {
+            asset_tag: Some(Attributed::new(
+                HostAssetTagValue("IT-09001".to_string()),
+                AttributeSource::Manual,
+            )),
+            ..Default::default()
+        };
+
+        assert!(base.apply_requested_asset_tag(Some("  ".to_string())));
+        assert_eq!(base.asset_tag, None);
+
+        let rescan = HostBase {
+            asset_tag: snmp_asset_tag("IT-00412"),
+            ..Default::default()
+        };
+        assert!(base.apply_attributes_from(&rescan));
+        assert_eq!(
+            attribution::text_of(&base.asset_tag).as_deref(),
+            Some("IT-00412")
         );
     }
 }

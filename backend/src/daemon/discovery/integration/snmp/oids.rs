@@ -386,6 +386,9 @@ pub mod entity {
 
         /// entPhysicalModelName - Model name
         pub const ENT_PHYSICAL_MODEL_NAME: &str = "1.3.6.1.2.1.47.1.1.1.1.13";
+
+        /// entPhysicalAssetID - Asset tag an administrator set on the device
+        pub const ENT_PHYSICAL_ASSET_ID: &str = "1.3.6.1.2.1.47.1.1.1.1.15";
     }
 }
 

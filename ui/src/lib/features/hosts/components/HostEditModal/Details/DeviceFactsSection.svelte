@@ -22,6 +22,7 @@
 	import { useInterfacesQuery } from '$lib/features/interfaces/queries';
 	import { sysContactEmail } from '$lib/features/hosts/sys-contact';
 	import {
+		common_assetTag,
 		common_contact,
 		common_firmwareRevision,
 		common_hardware,
@@ -223,6 +224,12 @@
 							label: common_serialNumber(),
 							value: host.serial_number,
 							source: host.serial_number_source,
+							identifier: true
+						},
+						{
+							label: common_assetTag(),
+							value: host.asset_tag,
+							source: host.asset_tag_source,
 							identifier: true
 						},
 						{

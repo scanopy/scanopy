@@ -168,6 +168,24 @@ attributed_value! {
 }
 
 attributed_value! {
+    /// The organization's own inventory label for the device — ENTITY-MIB `entPhysicalAssetID`, or
+    /// typed in by a person.
+    ///
+    /// Refreshable, unlike the serial: an asset tag is assigned by the organization, not burned in
+    /// by the manufacturer, so a relabelled device is the same device with a new tag. Most devices
+    /// answer `entPhysicalAssetID` with an empty string because nothing sets it but an
+    /// administrator, so on most hosts this is entered by hand and `Manual` keeps it there.
+    pub struct HostAssetTagValue(String) as HostAssetTagAttributed {
+        key: "asset_tag",
+        source_key: "asset_tag_source",
+        schema_name: "HostAssetTag",
+        refreshable: true,
+        blank: blank,
+        schema: string_schema("ENTITY-MIB entPhysicalAssetID - the organization's asset tag"),
+    }
+}
+
+attributed_value! {
     /// Firmware revision of the device as a whole — ENTITY-MIB `entPhysicalFirmwareRev`.
     ///
     /// Refreshable, and the field that most needs to be: it changes on every upgrade, which is the

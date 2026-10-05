@@ -20,6 +20,7 @@ impl HostService {
             id,
             name,
             hostname,
+            asset_tag,
             description,
             virtualization_metadata,
             virtualization_service_id,
@@ -99,6 +100,7 @@ impl HostService {
                 manufacturer: existing.base.manufacturer.clone(),
                 model: existing.base.model.clone(),
                 serial_number: existing.base.serial_number.clone(),
+                asset_tag: existing.base.asset_tag.clone(),
                 firmware_revision: existing.base.firmware_revision.clone(),
                 software_revision: existing.base.software_revision.clone(),
                 os: existing.base.os.clone(),
@@ -129,6 +131,8 @@ impl HostService {
             updated_host.base.hostname = requested_hostname
                 .map(|h| Attributed::new(HostHostnameValue(h), AttributeSource::Manual));
         }
+
+        updated_host.base.apply_requested_asset_tag(asset_tag);
 
         if let Some(org_id) = authentication.organization_id() {
             self.entity_tag_service

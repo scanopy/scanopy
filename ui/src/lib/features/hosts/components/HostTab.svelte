@@ -64,6 +64,7 @@
 		common_noEntityYet,
 		common_rescan,
 		common_serialNumber,
+		common_assetTag,
 		common_source,
 		common_firmwareRevision,
 		common_softwareRevision,
@@ -719,6 +720,12 @@
 					label: common_serialNumber(),
 					type: 'string',
 					display: { hiddenByDefault: true, getSource: (host) => host.serial_number_source }
+				},
+				{
+					key: 'asset_tag',
+					label: common_assetTag(),
+					type: 'string',
+					display: { hiddenByDefault: true, getSource: (host) => host.asset_tag_source }
 				},
 				{
 					key: 'firmware_revision',

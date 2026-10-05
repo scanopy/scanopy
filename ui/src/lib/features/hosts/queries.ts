@@ -75,6 +75,7 @@ export function toHostPrimitive(response: HostResponse): Host {
 		manufacturer: hostFields.manufacturer ?? undefined,
 		model: hostFields.model ?? undefined,
 		serial_number: hostFields.serial_number ?? undefined,
+		asset_tag: hostFields.asset_tag ?? undefined,
 		firmware_revision: hostFields.firmware_revision ?? undefined,
 		software_revision: hostFields.software_revision ?? undefined,
 		os: hostFields.os ?? undefined
@@ -125,6 +126,7 @@ function toCreateHostRequest(formData: HostFormData): CreateHostRequest {
 		name: formData.name,
 		site_id: formData.site_id,
 		hostname: formData.hostname ?? null,
+		asset_tag: formData.asset_tag?.trim() || null,
 		description: formData.description,
 		virtualization_metadata: formData.virtualization_metadata,
 		virtualization_service_id: formData.virtualization_service_id,
@@ -196,8 +198,8 @@ export interface HostQueryOptions {
 	/** `true` returns only hosts discovery hasn't observed within their site's
 	 * staleness window; omit for no staleness constraint. */
 	stale?: boolean;
-	/** Free-text search across host name, hostname, description, IP addresses
-	 * and the names of services running on the host. */
+	/** Free-text search across host name, hostname, serial number, asset tag,
+	 * description, IP addresses and the names of services running on the host. */
 	search?: string;
 	/** As-of timestamp (ISO 8601). When set, returns SCD2 state as of this instant
 	 * (snapshot view) instead of live state. */
@@ -411,7 +413,7 @@ const HOST_PICKER_PAGE_SIZE = 50;
 export interface HostPickerQueryOptions {
 	/** Filter by site ID. Omit for a picker that spans every site the user can see. */
 	site_id?: string;
-	/** Server-side search: name, hostname, sysName, chassis id, description, IPs, MACs, services. */
+	/** Server-side search: name, hostname, sysName, chassis id, serial, asset tag, description, IPs, MACs, services. */
 	search?: string;
 	/** Set false to hold the fetch until the picker is shown. Excluded from the query key. */
 	enabled?: boolean;
@@ -567,6 +569,9 @@ export function useUpdateHostMutation() {
 				id: data.host.id,
 				name: data.host.name,
 				hostname: data.host.hostname ?? null,
+				// Omitted keeps the stored tag, an empty string clears it, and the stored value sent back
+				// unchanged leaves its source alone.
+				asset_tag: data.host.asset_tag,
 				description: data.host.description,
 				virtualization_metadata: data.host.virtualization_metadata,
 				virtualization_service_id: data.host.virtualization_service_id,

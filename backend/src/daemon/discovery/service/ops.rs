@@ -44,11 +44,11 @@ use crate::{
         hosts::r#impl::{
             api::{DiscoveryHostRequest, HostResponse},
             attributes::{
-                HostChassisIdValue, HostFirmwareRevisionValue, HostHostnameAttributed,
-                HostHostnameValue, HostManagementUrlValue, HostManufacturerValue, HostModelValue,
-                HostOsAttributed, HostOsValue, HostSerialNumberValue, HostSoftwareRevisionValue,
-                HostSysContactValue, HostSysDescrValue, HostSysLocationValue, HostSysNameValue,
-                HostSysObjectIdValue,
+                HostAssetTagValue, HostChassisIdValue, HostFirmwareRevisionValue,
+                HostHostnameAttributed, HostHostnameValue, HostManagementUrlValue,
+                HostManufacturerValue, HostModelValue, HostOsAttributed, HostOsValue,
+                HostSerialNumberValue, HostSoftwareRevisionValue, HostSysContactValue,
+                HostSysDescrValue, HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
             },
             base::{Host, HostBase},
             name::{HostName, HostNameSources},
@@ -318,6 +318,14 @@ impl HostData {
         Attributed::apply(
             &mut self.host.base.serial_number,
             Attributed::new(HostSerialNumberValue(v), source),
+        );
+        self
+    }
+
+    pub fn with_asset_tag(&mut self, v: String, source: AttributeSource) -> &mut Self {
+        Attributed::apply(
+            &mut self.host.base.asset_tag,
+            Attributed::new(HostAssetTagValue(v), source),
         );
         self
     }
@@ -1743,6 +1751,7 @@ impl DiscoveryOps {
             manufacturer: None,
             model: None,
             serial_number: None,
+            asset_tag: None,
             firmware_revision: None,
             software_revision: None,
             os: None,

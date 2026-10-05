@@ -46,6 +46,7 @@ pub struct HostCsvRow {
     pub manufacturer: Option<String>,
     pub model: Option<String>,
     pub serial_number: Option<String>,
+    pub asset_tag: Option<String>,
     pub firmware_revision: Option<String>,
     pub software_revision: Option<String>,
     pub os: Option<String>,
@@ -77,6 +78,9 @@ impl Storable for Host {
     /// by default: a host that never got a name is *listed* under one of them,
     /// and searching for the title on screen has to find the host wearing it.
     ///
+    /// Serial number and asset tag are the identifiers someone holding the
+    /// physical device reads off its label, so they find it too.
+    ///
     /// Children are matched with `EXISTS` rather than a JOIN so a host with
     /// many IPs or services is not duplicated in the result set — which would
     /// also corrupt the paginated `COUNT(*)`. The `valid_to IS NULL` guards
@@ -90,6 +94,8 @@ impl Storable for Host {
             "hosts.hostname ILIKE {}",
             "hosts.sys_name ILIKE {}",
             "hosts.chassis_id ILIKE {}",
+            "hosts.serial_number ILIKE {}",
+            "hosts.asset_tag ILIKE {}",
             "hosts.description ILIKE {}",
             "EXISTS (SELECT 1 FROM ip_addresses ia WHERE ia.host_id = hosts.id \
              AND ia.valid_to IS NULL AND host(ia.ip_address) ILIKE {})",
@@ -162,6 +168,7 @@ impl Storable for Host {
                     manufacturer,
                     model,
                     serial_number,
+                    asset_tag,
                     firmware_revision,
                     software_revision,
                     os,
@@ -186,6 +193,7 @@ impl Storable for Host {
         let [model_value, model_source] = attributed::optional_params(&model);
         let [serial_number_value, serial_number_source] =
             attributed::optional_params(&serial_number);
+        let [asset_tag_value, asset_tag_source] = attributed::optional_params(&asset_tag);
         let [firmware_revision_value, firmware_revision_source] =
             attributed::optional_params(&firmware_revision);
         let [software_revision_value, software_revision_source] =
@@ -228,6 +236,8 @@ impl Storable for Host {
                 "model_source",
                 "serial_number",
                 "serial_number_source",
+                "asset_tag",
+                "asset_tag_source",
                 "firmware_revision",
                 "firmware_revision_source",
                 "software_revision",
@@ -276,6 +286,8 @@ impl Storable for Host {
                 model_source,
                 serial_number_value,
                 serial_number_source,
+                asset_tag_value,
+                asset_tag_source,
                 firmware_revision_value,
                 firmware_revision_source,
                 software_revision_value,
@@ -346,6 +358,7 @@ impl Storable for Host {
                 manufacturer: attributed::read_optional(row)?,
                 model: attributed::read_optional(row)?,
                 serial_number: attributed::read_optional(row)?,
+                asset_tag: attributed::read_optional(row)?,
                 firmware_revision: attributed::read_optional(row)?,
                 software_revision: attributed::read_optional(row)?,
                 os: attributed::read_optional(row)?,
@@ -393,6 +406,7 @@ impl Entity for Host {
             manufacturer: attribution::text_of(&self.base.manufacturer),
             model: attribution::text_of(&self.base.model),
             serial_number: attribution::text_of(&self.base.serial_number),
+            asset_tag: attribution::text_of(&self.base.asset_tag),
             firmware_revision: attribution::text_of(&self.base.firmware_revision),
             software_revision: attribution::text_of(&self.base.software_revision),
             os: attribution::text_of(&self.base.os),

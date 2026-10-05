@@ -11,8 +11,9 @@ use crate::server::{
             InterfaceInput, PortInput, ServiceInput, UpdateHostRequest,
         },
         attributes::{
-            HostChassisIdValue, HostHostnameValue, HostManagementUrlValue, HostSysContactValue,
-            HostSysDescrValue, HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
+            HostAssetTagValue, HostChassisIdValue, HostHostnameValue, HostManagementUrlValue,
+            HostSysContactValue, HostSysDescrValue, HostSysLocationValue, HostSysNameValue,
+            HostSysObjectIdValue,
         },
         base::{Host, HostBase},
         name::{HostName, HostNameSources},

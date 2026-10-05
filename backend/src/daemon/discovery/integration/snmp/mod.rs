@@ -782,6 +782,9 @@ impl DiscoveryIntegration for SnmpIntegration {
             if let Some(ref v) = inventory.serial_number {
                 host_data.with_serial_number(v.clone(), probe);
             }
+            if let Some(ref v) = inventory.asset_id {
+                host_data.with_asset_tag(v.clone(), probe);
+            }
             // Two columns, two fields. `entPhysicalFirmwareRev` and `entPhysicalSoftwareRev` are
             // distinct objects in RFC 4133 — on a Cisco chassis the bootloader and the IOS
             // version — so neither is folded into the other.
