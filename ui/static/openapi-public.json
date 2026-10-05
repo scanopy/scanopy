@@ -14117,19 +14117,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-05T22:03:27.152882Z",
+              "created_at": "2026-10-05T22:13:25.737543Z",
               "first_discovery_id": null,
-              "id": "5222411d-c6de-40b8-b703-34f437e5a77e",
+              "id": "cec21bba-ed2a-4b47-b1dd-5c19c26cea4f",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T22:03:27.152882Z",
+              "last_seen_at": "2026-10-05T22:13:25.737543Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-05T22:03:27.152882Z",
-              "valid_from": "2026-10-05T22:03:27.152882Z",
+              "updated_at": "2026-10-05T22:13:25.737543Z",
+              "valid_from": "2026-10-05T22:13:25.737543Z",
               "valid_to": null
             }
           },
@@ -15767,19 +15767,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-05T22:03:27.137360Z",
+                      "created_at": "2026-10-05T22:13:25.722222Z",
                       "first_discovery_id": null,
-                      "id": "8972d9ab-c150-4faf-9564-f1bced01a15d",
+                      "id": "b694d95e-60f1-4cda-ac63-e24f01e69286",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-05T22:03:27.137360Z",
+                      "last_seen_at": "2026-10-05T22:13:25.722222Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-05T22:03:27.137360Z",
-                      "valid_from": "2026-10-05T22:03:27.137360Z",
+                      "updated_at": "2026-10-05T22:13:25.722222Z",
+                      "valid_from": "2026-10-05T22:13:25.722222Z",
                       "valid_to": null
                     }
                   ],
@@ -15792,7 +15792,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Homepage",
+                  "service_definition": "Paperless-NGX",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -17115,19 +17115,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T22:03:27.149217Z",
+                  "created_at": "2026-10-05T22:13:25.733861Z",
                   "first_discovery_id": null,
-                  "id": "e12f8dc4-bbf9-407e-a556-23fa6e48d943",
+                  "id": "7d3c33ef-e0fb-49c5-993d-a19f56cc63d4",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T22:03:27.149217Z",
+                  "last_seen_at": "2026-10-05T22:13:25.733861Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-05T22:03:27.149217Z",
-                  "valid_from": "2026-10-05T22:03:27.149217Z",
+                  "updated_at": "2026-10-05T22:13:25.733861Z",
+                  "valid_from": "2026-10-05T22:13:25.733861Z",
                   "valid_to": null
                 }
               ],
@@ -17140,7 +17140,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Homepage",
+              "service_definition": "Paperless-NGX",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -17840,8 +17840,9 @@
               "color": "Green",
               "created_at": "2026-01-15T10:30:00Z",
               "description": "Production environment resources",
+              "exclusive_set": null,
+              "icon": null,
               "id": "550e8400-e29b-41d4-a716-44665544000a",
-              "is_application": false,
               "lineage_id": null,
               "name": "production",
               "organization_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -19776,19 +19777,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-05T22:03:27.137790Z",
+          "created_at": "2026-10-05T22:13:25.722649Z",
           "first_discovery_id": null,
-          "id": "b229f1bd-8957-4e9c-a0e1-fbc00c2e2a4a",
+          "id": "85802a53-3bf7-464b-8733-8d1d8c26d107",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-05T22:03:27.137790Z",
+          "last_seen_at": "2026-10-05T22:13:25.722649Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-05T22:03:27.137790Z",
-          "valid_from": "2026-10-05T22:03:27.137790Z",
+          "updated_at": "2026-10-05T22:13:25.722649Z",
+          "valid_from": "2026-10-05T22:13:25.722649Z",
           "valid_to": null
         }
       },
@@ -20562,7 +20563,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Homepage",
+              "service_definition": "Paperless-NGX",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -25689,6 +25690,46 @@
           }
         }
       },
+      "ExclusiveSet": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "The built-in set of application tags.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Application"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "A set the organization named.",
+            "required": [
+              "name",
+              "type"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The set's name, shared by every tag in it."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Group"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "A set of tags of which an entity may hold at most one.\n\nAssigning a tag from a set replaces whichever tag of the same set the entity already holds.\n`Application` is the built-in set: its tags drive the application view, which can place an\nentity in one application only. `Group` sets are named by the organization (a lifecycle, an\nenvironment, a tier) and exist for as long as a tag carries the name."
+      },
       "ExportFeatures": {
         "type": "object",
         "description": "Export feature flags derived from the share creator's billing plan",
@@ -27053,19 +27094,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T22:03:27.136886Z",
+                  "created_at": "2026-10-05T22:13:25.721746Z",
                   "first_discovery_id": null,
-                  "id": "5c7e6169-28d0-4f9b-982a-83046296847e",
+                  "id": "8c8627db-3397-4253-be55-c32795c69c23",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T22:03:27.136886Z",
+                  "last_seen_at": "2026-10-05T22:13:25.721746Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-05T22:03:27.136886Z",
-                  "valid_from": "2026-10-05T22:03:27.136886Z",
+                  "updated_at": "2026-10-05T22:13:25.721746Z",
+                  "valid_from": "2026-10-05T22:13:25.721746Z",
                   "valid_to": null
                 }
               ],
@@ -27078,7 +27119,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Homepage",
+              "service_definition": "Paperless-NGX",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -30817,19 +30858,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-05T22:03:27.129927Z",
+                        "created_at": "2026-10-05T22:13:25.714774Z",
                         "first_discovery_id": null,
-                        "id": "2aad1d96-a7e6-4164-a2b7-bd57adb77c7e",
+                        "id": "4c8492b2-2733-4d3d-839a-6a436cf95293",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-05T22:03:27.129927Z",
+                        "last_seen_at": "2026-10-05T22:13:25.714774Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-05T22:03:27.129927Z",
-                        "valid_from": "2026-10-05T22:03:27.129927Z",
+                        "updated_at": "2026-10-05T22:13:25.714774Z",
+                        "valid_from": "2026-10-05T22:13:25.714774Z",
                         "valid_to": null
                       }
                     ],
@@ -30842,7 +30883,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Homepage",
+                    "service_definition": "Paperless-NGX",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -30988,19 +31029,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-05T22:03:27.148534Z",
+                    "created_at": "2026-10-05T22:13:25.733203Z",
                     "first_discovery_id": null,
-                    "id": "fc9820f8-78f4-4dc8-94f3-b213eba915df",
+                    "id": "0e720f74-bead-42e7-ab65-ebb61e097b09",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-05T22:03:27.148534Z",
+                    "last_seen_at": "2026-10-05T22:13:25.733203Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-05T22:03:27.148534Z",
-                    "valid_from": "2026-10-05T22:03:27.148534Z",
+                    "updated_at": "2026-10-05T22:13:25.733203Z",
+                    "valid_from": "2026-10-05T22:13:25.733203Z",
                     "valid_to": null
                   }
                 ],
@@ -31013,7 +31054,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Homepage",
+                "service_definition": "Paperless-NGX",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -31188,8 +31229,9 @@
                 "color": "Green",
                 "created_at": "2026-01-15T10:30:00Z",
                 "description": "Production environment resources",
+                "exclusive_set": null,
+                "icon": null,
                 "id": "550e8400-e29b-41d4-a716-44665544000a",
-                "is_application": false,
                 "lineage_id": null,
                 "name": "production",
                 "organization_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -33188,19 +33230,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-05T22:03:27.137660Z",
+              "created_at": "2026-10-05T22:13:25.722524Z",
               "first_discovery_id": null,
-              "id": "53b87f5f-2de4-4879-9ba4-8761c54fd4d4",
+              "id": "5dff429f-a8a0-464d-a299-0d2e5ad7e560",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T22:03:27.137660Z",
+              "last_seen_at": "2026-10-05T22:13:25.722524Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-05T22:03:27.137660Z",
-              "valid_from": "2026-10-05T22:03:27.137660Z",
+              "updated_at": "2026-10-05T22:13:25.722524Z",
+              "valid_from": "2026-10-05T22:13:25.722524Z",
               "valid_to": null
             }
           ],
@@ -33213,7 +33255,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Homepage",
+          "service_definition": "Paperless-NGX",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -34411,8 +34453,9 @@
           "color": "Green",
           "created_at": "2026-01-15T10:30:00Z",
           "description": "Production environment resources",
+          "exclusive_set": null,
+          "icon": null,
           "id": "550e8400-e29b-41d4-a716-44665544000a",
-          "is_application": false,
           "lineage_id": null,
           "name": "production",
           "organization_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -34440,9 +34483,27 @@
             ],
             "description": "Free-text notes about the tag."
           },
-          "is_application": {
-            "type": "boolean",
-            "description": "Whether this tag groups an application, so it drives the application view."
+          "exclusive_set": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExclusiveSet",
+                "description": "The set this tag belongs to, if any. An entity holds at most one tag of a set."
+              }
+            ]
+          },
+          "icon": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TagIcon",
+                "description": "Icon drawn on the tag. Application tags always use the application icon."
+              }
+            ]
           },
           "name": {
             "type": "string",
@@ -34455,6 +34516,10 @@
           }
         }
       },
+      "TagIcon": {
+        "type": "string",
+        "description": "A lucide icon a person chose for a tag.\n\nA newtype because `lucide_icons::Icon` derives neither `Eq` nor `Hash`, which every entity\nbase needs. The icon is a fieldless enum, so its discriminant is a complete identity."
+      },
       "TagOrderField": {
         "type": "string",
         "description": "Fields that tags can be ordered/grouped by.",
@@ -34463,7 +34528,7 @@
           "name",
           "color",
           "updated_at",
-          "is_application"
+          "exclusive_set"
         ]
       },
       "TeamSize": {
@@ -34873,7 +34938,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "b50e0c48-c311-49e6-bc78-f3d0b434000e",
+                  "id": "88ebf303-4806-4044-8ca3-363c16581bd8",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34883,23 +34948,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "2b0170e1-2680-4f48-b9c0-cc7a0e8dc461",
+                  "id": "f05ea013-7400-49c3-806d-31619e166cc7",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "9f602d01-9bc1-4012-a4c0-076482847f92",
+                  "id": "79e7ba93-625f-407f-be7b-1af89873e5bc",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "6a6e8b53-4b30-4e8a-a225-37720e99637d",
+                  "id": "50dcae57-183a-4d34-859f-84ebf1c89cc7",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "2b0170e1-2680-4f48-b9c0-cc7a0e8dc461",
+                  "id": "f05ea013-7400-49c3-806d-31619e166cc7",
                   "rule": "ByHost"
                 }
               ]
@@ -34929,19 +34994,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "38f9cc59-47e3-4fbc-b2b4-7390c5529346",
+                "id": "4884fad5-3289-467d-ac1f-04aabfbf714c",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "0b16d58e-064d-4779-bc77-9c6acfb16f6c",
+                "id": "569e40f7-04cf-4d82-9778-958c1bda2317",
                 "rule": "ByVLAN"
               },
               {
-                "id": "1c59027f-ff87-4485-a799-5029e3117e2f",
+                "id": "5cacda82-0781-4cf4-b70f-cc897403e30d",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "90f75555-fb1e-462b-b613-4d141f44c37f",
+                "id": "6bc1f9b9-cb4a-4211-9c5c-5c9f57ffd312",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34960,7 +35025,7 @@
                 }
               },
               {
-                "id": "ada807ce-7db6-4afa-a2db-89a0c616ff61",
+                "id": "4bff9891-7adf-487b-bdb3-95eee92d1fbd",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34969,15 +35034,15 @@
                 }
               },
               {
-                "id": "5c0fe1ba-5388-410c-98c3-6a51abba2bda",
+                "id": "0c3db362-abdf-4032-ae02-189ad0f785c8",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "fae5ab83-9901-4aed-8c71-8cb772e133fa",
+                "id": "0dcc29b6-a969-4361-877e-8c8fd387ffa7",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "07d71095-ccb9-492c-b975-cd7db01c3f20",
+                "id": "d1d0386b-682c-4f59-9e63-77fbb493510f",
                 "rule": "ByStack"
               }
             ]

@@ -3531,19 +3531,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-05T22:03:27.094969Z",
+             *       "created_at": "2026-10-05T22:13:25.677287Z",
              *       "first_discovery_id": null,
-             *       "id": "598aa298-2927-4666-a45a-4fcbdaae2191",
+             *       "id": "a672c824-e8fa-4e1e-b8cd-040b957cf8a6",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-05T22:03:27.094969Z",
+             *       "last_seen_at": "2026-10-05T22:13:25.677287Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-10-05T22:03:27.094969Z",
-             *       "valid_from": "2026-10-05T22:03:27.094969Z",
+             *       "updated_at": "2026-10-05T22:13:25.677287Z",
+             *       "valid_from": "2026-10-05T22:13:25.677287Z",
              *       "valid_to": null
              *     }
              */
@@ -4374,19 +4374,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-05T22:03:27.072294Z",
+             *               "created_at": "2026-10-05T22:13:25.652759Z",
              *               "first_discovery_id": null,
-             *               "id": "919ae412-e741-4711-8424-8a92107fd492",
+             *               "id": "6990b73e-ddce-474d-b81c-f2faeecdaff9",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-05T22:03:27.072294Z",
+             *               "last_seen_at": "2026-10-05T22:13:25.652759Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-10-05T22:03:27.072294Z",
-             *               "valid_from": "2026-10-05T22:03:27.072294Z",
+             *               "updated_at": "2026-10-05T22:13:25.652759Z",
+             *               "valid_from": "2026-10-05T22:13:25.652759Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4399,7 +4399,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Homepage",
+             *           "service_definition": "Paperless-NGX",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -5286,19 +5286,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-05T22:03:27.090186Z",
+             *           "created_at": "2026-10-05T22:13:25.672150Z",
              *           "first_discovery_id": null,
-             *           "id": "944f9c46-a795-4996-91a8-e8b97c8f94d8",
+             *           "id": "a15f30fa-1d46-4eaf-b4fd-7117f7622e26",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-05T22:03:27.090186Z",
+             *           "last_seen_at": "2026-10-05T22:13:25.672150Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-10-05T22:03:27.090186Z",
-             *           "valid_from": "2026-10-05T22:03:27.090186Z",
+             *           "updated_at": "2026-10-05T22:13:25.672150Z",
+             *           "valid_from": "2026-10-05T22:13:25.672150Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5311,7 +5311,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Homepage",
+             *       "service_definition": "Paperless-NGX",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -5761,8 +5761,9 @@ export interface components {
              *       "color": "Green",
              *       "created_at": "2026-01-15T10:30:00Z",
              *       "description": "Production environment resources",
+             *       "exclusive_set": null,
+             *       "icon": null,
              *       "id": "550e8400-e29b-41d4-a716-44665544000a",
-             *       "is_application": false,
              *       "lineage_id": null,
              *       "name": "production",
              *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -6504,19 +6505,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-05T22:03:27.072945Z",
+         *       "created_at": "2026-10-05T22:13:25.653514Z",
          *       "first_discovery_id": null,
-         *       "id": "38d8db1a-3dd8-4599-a7d0-da47652da493",
+         *       "id": "c4ad7624-2d6a-4515-b2ed-ccae945085e7",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-05T22:03:27.072945Z",
+         *       "last_seen_at": "2026-10-05T22:13:25.653514Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-10-05T22:03:27.072945Z",
-         *       "valid_from": "2026-10-05T22:03:27.072945Z",
+         *       "updated_at": "2026-10-05T22:13:25.653514Z",
+         *       "valid_from": "2026-10-05T22:13:25.653514Z",
          *       "valid_to": null
          *     }
          */
@@ -6864,7 +6865,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Homepage",
+         *           "service_definition": "Paperless-NGX",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8978,6 +8979,23 @@ export interface components {
             /** @description Guest name as configured on the ESXi host. */
             vm_name?: string | null;
         };
+        /**
+         * @description A set of tags of which an entity may hold at most one.
+         *
+         *     Assigning a tag from a set replaces whichever tag of the same set the entity already holds.
+         *     `Application` is the built-in set: its tags drive the application view, which can place an
+         *     entity in one application only. `Group` sets are named by the organization (a lifecycle, an
+         *     environment, a tier) and exist for as long as a tag carries the name.
+         */
+        ExclusiveSet: {
+            /** @enum {string} */
+            type: "Application";
+        } | {
+            /** @description The set's name, shared by every tag in it. */
+            name: string;
+            /** @enum {string} */
+            type: "Group";
+        };
         /** @description Export feature flags derived from the share creator's billing plan */
         ExportFeatures: {
             /** @description Viewer may export the diagram for Confluence. */
@@ -9476,19 +9494,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-05T22:03:27.071545Z",
+         *               "created_at": "2026-10-05T22:13:25.651930Z",
          *               "first_discovery_id": null,
-         *               "id": "346e0f48-c98a-4f58-a119-19f93d8d95c2",
+         *               "id": "68478fc2-84cc-44b0-908c-609e1505228d",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-05T22:03:27.071545Z",
+         *               "last_seen_at": "2026-10-05T22:13:25.651930Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-10-05T22:03:27.071545Z",
-         *               "valid_from": "2026-10-05T22:03:27.071545Z",
+         *               "updated_at": "2026-10-05T22:13:25.651930Z",
+         *               "valid_from": "2026-10-05T22:13:25.651930Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9501,7 +9519,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Homepage",
+         *           "service_definition": "Paperless-NGX",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -12551,19 +12569,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-05T22:03:27.072756Z",
+         *           "created_at": "2026-10-05T22:13:25.653292Z",
          *           "first_discovery_id": null,
-         *           "id": "74bd8ff2-776a-41cb-a6e3-b7182e0e586c",
+         *           "id": "2d7391a2-1e84-4b6f-84a4-9649ac2b96be",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-05T22:03:27.072756Z",
+         *           "last_seen_at": "2026-10-05T22:13:25.653292Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-10-05T22:03:27.072756Z",
-         *           "valid_from": "2026-10-05T22:03:27.072756Z",
+         *           "updated_at": "2026-10-05T22:13:25.653292Z",
+         *           "valid_from": "2026-10-05T22:13:25.653292Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12576,7 +12594,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Homepage",
+         *       "service_definition": "Paperless-NGX",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -13190,8 +13208,9 @@ export interface components {
          *       "color": "Green",
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "description": "Production environment resources",
+         *       "exclusive_set": null,
+         *       "icon": null,
          *       "id": "550e8400-e29b-41d4-a716-44665544000a",
-         *       "is_application": false,
          *       "lineage_id": null,
          *       "name": "production",
          *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -13237,8 +13256,8 @@ export interface components {
             color: components["schemas"]["Color"];
             /** @description Free-text notes about the tag. */
             description?: string | null;
-            /** @description Whether this tag groups an application, so it drives the application view. */
-            is_application?: boolean;
+            exclusive_set?: null | components["schemas"]["ExclusiveSet"];
+            icon?: null | components["schemas"]["TagIcon"];
             /** @description Human-facing name for this tag. */
             name: string;
             /**
@@ -13248,10 +13267,17 @@ export interface components {
             organization_id: string;
         };
         /**
+         * @description A lucide icon a person chose for a tag.
+         *
+         *     A newtype because `lucide_icons::Icon` derives neither `Eq` nor `Hash`, which every entity
+         *     base needs. The icon is a fieldless enum, so its discriminant is a complete identity.
+         */
+        TagIcon: string;
+        /**
          * @description Fields that tags can be ordered/grouped by.
          * @enum {string}
          */
-        TagOrderField: "created_at" | "name" | "color" | "updated_at" | "is_application";
+        TagOrderField: "created_at" | "name" | "color" | "updated_at" | "exclusive_set";
         /**
          * @description Company size bracket offered by the plan-inquiry form.
          * @enum {string}
@@ -13454,7 +13480,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "458a344f-a16e-473f-bc6d-44533a8165a5",
+             *           "id": "43caef1e-692a-4a2a-bab5-893d14f2c8ba",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13464,23 +13490,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "6612f89e-69dd-4572-881f-879e1337ff4f",
+             *           "id": "791a1bb9-df34-44a8-a523-7e8ead37f415",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "68117ac6-5445-4784-8ca5-f9c348b6ac25",
+             *           "id": "9a253dc9-c824-454b-b164-b0f3cc8e34a6",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "47d0faf5-9c0f-433b-9c06-632f2f8ad9d3",
+             *           "id": "9a405adf-3d2f-47b1-892a-91d403c0aaa9",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "6612f89e-69dd-4572-881f-879e1337ff4f",
+             *           "id": "791a1bb9-df34-44a8-a523-7e8ead37f415",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13493,19 +13519,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "a8d86052-f224-40e3-91b0-56918bc03338",
+             *         "id": "f548234b-5073-47b6-a0a7-e7c9e850fc02",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "f9e852d2-e284-46a7-a234-5520defd3cc1",
+             *         "id": "f4d98cc7-5029-4417-91f2-c686ae9ef9a5",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "36a876be-8088-4cf4-b43b-7149ec236a43",
+             *         "id": "897960e9-b59a-40c7-9b23-0b6c3607b7f7",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "3f4fe180-c23d-4f2f-b3ab-161270baaf5e",
+             *         "id": "67a21527-0b78-43a5-b6f2-fe1d87701ab4",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13524,7 +13550,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "983c093d-ecb0-4111-94cc-51c5fa677995",
+             *         "id": "be03aa3b-d872-4c17-9503-1c2c75c26eed",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13533,15 +13559,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "6e444cd4-f7d8-4b84-8cba-a2088072c13f",
+             *         "id": "88b6948e-000d-48b1-9184-eab6508b8f3d",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "9dc5b227-9562-412a-9812-a062d10cd3b5",
+             *         "id": "2bbac2cf-3d8a-495a-9da7-f8a84ed36975",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "f7ee2798-5586-4f48-8508-afc0f67800ee",
+             *         "id": "45af5d5f-6da1-47a3-b323-24651850be02",
              *         "rule": "ByStack"
              *       }
              *     ]
