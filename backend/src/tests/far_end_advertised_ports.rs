@@ -231,7 +231,10 @@ fn names(ports: &[(&str, &str)]) -> HashSet<String> {
 async fn re_advertised_far_end(lab: &Lab) -> (Host, Interface) {
     let mut switch = lab.far_end(MUTE_SWITCH).await;
     switch.base.source = EntitySource::Inferred;
-    switch.last_seen_at = Utc::now() - chrono::Duration::days(3);
+    // Microseconds, the precision Postgres keeps, so a test can compare the stored value to this
+    // one. Linux clocks carry nanoseconds, which the round trip drops.
+    switch.last_seen_at =
+        chrono::SubsecRound::trunc_subsecs(Utc::now() - chrono::Duration::days(3), 6);
     lab.storage.hosts.update(&mut switch).await.unwrap();
     let neighbour = lab.neighbour("access-1", MUTE_SWITCH, "ge-0/0/1").await;
     (switch, neighbour)
