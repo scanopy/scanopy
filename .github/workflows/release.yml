@@ -102,7 +102,7 @@ jobs:
           fi
 
       - name: Upload generated UI fixtures
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ui-fixtures
           path: ui/src/lib/data/*.json
@@ -113,7 +113,7 @@ jobs:
       # rust-builder stage; the standalone UI build (build-ui) has no Rust
       # toolchain, so it needs them as an artifact.
       - name: Upload generated service logos
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ui-logos
           path: ui/static/logos/services/
@@ -356,7 +356,7 @@ jobs:
           test -f build/index.html || (echo "UI build produced no index.html" && exit 1)
 
       - name: Upload UI build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ui-build
           path: ui/build/
@@ -421,7 +421,7 @@ jobs:
           file ${{ matrix.binary }}
 
       - name: Upload binary artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.binary }}
           path: ${{ matrix.binary }}
@@ -541,7 +541,7 @@ jobs:
           fileType: pecoff
 
       - name: Upload binary artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.binary }}
           path: ${{ matrix.binary }}
@@ -594,7 +594,7 @@ jobs:
 
       - name: Upload MSI artifact
         if: matrix.target == 'x86_64-pc-windows-msvc'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: scanopy-daemon-windows-amd64.msi
           path: scanopy-daemon-windows-amd64.msi
