@@ -50,6 +50,7 @@
 		common_credentials,
 		common_hosts,
 		common_interfaces,
+		common_ports,
 		common_firstFoundBy,
 		common_lastFoundBy,
 		common_ipAddresses,
@@ -101,6 +102,8 @@
 	import { useServicesByIds, useServicesCacheQuery } from '$lib/features/services/queries';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
+	import { usePortsQuery } from '$lib/features/ports/queries';
+	import { formatPort } from '$lib/shared/utils/formatting';
 	import { useInterfacesByIds, useInterfacesQuery } from '$lib/features/interfaces/queries';
 	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
 	import { discoveryRunIds, discoveryRunItems } from '$lib/features/discovery/columns';
@@ -211,6 +214,7 @@
 	const networksQuery = useNetworksQuery();
 	useDaemonsQuery();
 	const ipAddressesQuery = useIPAddressesQuery();
+	const portsQuery = usePortsQuery();
 	const interfacesQuery = useInterfacesQuery();
 	const credentialsQuery = useCredentialsQuery();
 	const subnetsQuery = useSubnetsQuery();
@@ -268,6 +272,7 @@
 	let allServicesData = $derived(servicesCacheQuery.data ?? []);
 	let networksData = $derived(networksQuery.data ?? []);
 	let ipAddressesData = $derived(ipAddressesQuery.data ?? []);
+	let portsData = $derived(portsQuery.data ?? []);
 	let interfacesData = $derived(interfacesQuery.data ?? []);
 	let credentialsData = $derived(credentialsQuery.data ?? []);
 	let subnetsData = $derived(subnetsQuery.data ?? []);
@@ -455,6 +460,10 @@
 
 	function hostIPAddresses(host: Host) {
 		return ipAddressesData.filter((i) => i.host_id === host.id);
+	}
+
+	function hostPorts(host: Host) {
+		return portsData.filter((p) => p.host_id === host.id).sort((a, b) => a.number - b.number);
 	}
 
 	/** The host's distinct MACs across its IP addresses and interfaces, lowest first — the
@@ -841,6 +850,25 @@
 								label: interfaceDisplayName(iface),
 								color: entities.getColorHelper('Interface').color,
 								entityRef: entityRef('Interface', iface.id, iface)
+							}))
+					}
+				},
+				{
+					// Off by default: Services already says what answers on a port, and the open ports
+					// alone matter when nothing was matched to them.
+					key: 'ports',
+					label: common_ports(),
+					type: 'array',
+					searchable: true,
+					getValue: (host) => hostPorts(host).map((p) => formatPort(p)),
+					display: {
+						hiddenByDefault: true,
+						getItems: (host) =>
+							hostPorts(host).map((port) => ({
+								id: port.id,
+								label: formatPort(port),
+								color: entities.getColorHelper('Port').color,
+								entityRef: entityRef('Port', port.id, port)
 							}))
 					}
 				},

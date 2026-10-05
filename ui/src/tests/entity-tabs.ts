@@ -312,7 +312,9 @@ export const COVERAGE: Record<string, TabCoverage> = {
 	'hosts/components/HostTab.svelte': {
 		orderField: 'HostOrderField',
 		schemas: [
-			decide('Host', {
+			// The response the tab lists, not the stored `Host`: they differ, and a field only the
+			// stored type has never reaches the table (the discovery ids once didn't).
+			decide('HostResponse', {
 				chassis_id: 'chassis_id',
 				created_at: 'created_at',
 				credential_assignments: 'credentials',
@@ -356,8 +358,18 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				sys_location_source: 'sys_location',
 				sys_name_source: 'sys_name',
 				sys_object_id_source: 'sys_object_id',
+				// Name renders `display_name`, the winning rung of the ladder; every other rung is
+				// its own column (Hostname, sysName, Chassis ID, IP Addresses), and the rung picks
+				// whether Name's tooltip explains its source.
+				display_name: 'name',
+				display_name_rung: 'name',
+				name_ladder: 'name',
+				// The children the response nests, each its own column.
+				interfaces: 'interfaces',
+				ip_addresses: 'interface_ip',
+				ports: 'ports',
+				services: 'services',
 				id: ID,
-				...HISTORY,
 				// Decided with Maya, 2026-10-04.
 				virtualization_metadata: excluded(
 					"Nested provider details of a guest; they don't read as one column value"
