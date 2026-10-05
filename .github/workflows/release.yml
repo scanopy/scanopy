@@ -686,7 +686,7 @@ jobs:
             org.opencontainers.image.licenses=AGPL-3.0-only
 
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./backend/Dockerfile
@@ -759,7 +759,7 @@ jobs:
             org.opencontainers.image.licenses=AGPL-3.0-only
 
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./backend
           file: ./backend/Dockerfile.daemon
