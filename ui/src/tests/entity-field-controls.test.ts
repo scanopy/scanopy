@@ -145,6 +145,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			tags: { ...SHARED_ARRAY, filter: { param: 'tag_ids' } },
 			credentials: { ...SHARED_ARRAY, filter: { param: 'credential_ids' } },
 			interfaces: ownedArray('Interface names are unique per host; search finds them'),
+			ports: ownedArray('No port filter on the hosts list; Services filters by port'),
 			services: { ...SHARED_ARRAY, filter: { param: 'service_names' } },
 			presented_by: none('Set on network identities only; Virtualized by groups and filters them'),
 			first_found_by: FOUND_BY,
