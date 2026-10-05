@@ -24,7 +24,9 @@
     "HttpServerMatch",
     "DnsSdDeviceInfoMatch",
     "DnsSdAirPlayMatch",
-    "ContainerRuntimeInfo"
+    "ContainerRuntimeInfo",
+    "HypervisorConfig",
+    "GuestAgent"
   ],
   "AuthenticatedEntity": [
     "User",
@@ -113,7 +115,12 @@
     "Zmtp",
     "Bacula",
     "BeszelAgent",
-    "H323"
+    "H323",
+    "Proxmox"
+  ],
+  "ContainerNetworkType": [
+    "MacVlan",
+    "IpVlan"
   ],
   "CredentialQueryPayloadDiscriminants": [
     "Snmp",
@@ -126,7 +133,8 @@
     "Unknown",
     "Gnmi",
     "Ssh",
-    "WakeOnLan"
+    "WakeOnLan",
+    "Proxmox"
   ],
   "CredentialType": [
     "SnmpV2c",
@@ -142,7 +150,8 @@
     "Gnmi",
     "SshPassword",
     "SshKey",
-    "WakeOnLan"
+    "WakeOnLan",
+    "ProxmoxApiToken"
   ],
   "DaemonMode": [
     "ServerPoll",
@@ -306,7 +315,10 @@
   "HostVirtualization": [
     "Proxmox",
     "VCenter",
-    "ESXi"
+    "ESXi",
+    "Docker",
+    "Podman",
+    "NetworkIdentity"
   ],
   "IntegrationTarget": [
     "DaemonHost",
@@ -361,6 +373,10 @@
   "OsFamily": [
     "Unix",
     "Windows"
+  ],
+  "ProxmoxGuestType": [
+    "Qemu",
+    "Lxc"
   ],
   "RunType": [
     "Scheduled",
