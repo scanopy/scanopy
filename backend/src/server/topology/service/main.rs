@@ -389,7 +389,7 @@ impl TopologyService {
                 &ip_addresses,
                 !neighbours.is_empty(),
             ),
-            application: tags.iter().any(|t| t.base.is_application),
+            application: tags.iter().any(|t| t.is_application()),
         };
         let available_views: Vec<TopologyView> = TopologyView::iter()
             .filter(|v| v.is_supported(&support))
@@ -505,7 +505,7 @@ impl TopologyService {
                 ))
                 .await?
                 .iter()
-                .any(|t| t.base.is_application),
+                .any(|t| t.is_application()),
             None => false,
         };
 

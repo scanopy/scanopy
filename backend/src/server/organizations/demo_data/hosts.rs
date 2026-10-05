@@ -153,6 +153,8 @@ pub(super) fn generate_hosts_and_services(
 
     let critical_tag = find_tag("Critical");
     let production_tag = find_tag("Production");
+    let development_tag = find_tag("Development");
+    let decommissioned_tag = find_tag("Decommissioned");
     let database_tag = find_tag("Database");
     let monitoring_tag = find_tag("Monitoring");
     let iot_tag = find_tag("IoT Device");
@@ -1018,7 +1020,7 @@ pub(super) fn generate_hosts_and_services(
                     hq,
                     hq_servers,
                     Ipv4Addr::new(10, 0, 20, 30),
-                    production_tag.into_iter().collect(),
+                    development_tag.into_iter().collect(),
                     None,
                     None,
                     now
@@ -1044,7 +1046,10 @@ pub(super) fn generate_hosts_and_services(
             "Jenkins",
             "Jenkins",
             Some(PortType::Http8080),
-            [production_tag, devops_tag].into_iter().flatten().collect()
+            [development_tag, devops_tag]
+                .into_iter()
+                .flatten()
+                .collect()
         ),
         ("SSH", "SSH", Some(PortType::Ssh), vec![]),
     );
@@ -1409,7 +1414,7 @@ pub(super) fn generate_hosts_and_services(
                             hq,
                             hq_iot,
                             Ipv4Addr::new(10, 0, 30, 50),
-                            iot_tag.into_iter().collect(),
+                            iot_tag.into_iter().chain(decommissioned_tag).collect(),
                             None,
                             None,
                             now,
@@ -2560,7 +2565,7 @@ pub(super) fn generate_hosts_and_services(
                     dc,
                     dc_storage,
                     Ipv4Addr::new(172, 16, 20, 31),
-                    database_tag.into_iter().chain(monitoring_tag).collect(),
+                    monitoring_tag.into_iter().collect(),
                     None,
                     None,
                     now

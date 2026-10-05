@@ -352,3 +352,49 @@ fn daemons_report_the_subnets_their_host_has_addresses_on() {
         );
     }
 }
+
+/// The demo's tag assignments keep the rule exclusive sets exist for: no entity holds two tags of
+/// one set. Seeding writes the junction rows directly, so nothing else would catch a demo host
+/// tagged both Production and Development.
+#[test]
+fn no_demo_entity_holds_two_tags_of_one_exclusive_set() {
+    let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4());
+    let set_of: HashMap<Uuid, String> = demo
+        .tags
+        .iter()
+        .filter_map(|t| t.base.exclusive_set.as_ref().map(|s| (t.id, s.to_string())))
+        .collect();
+
+    let hosts: Vec<&HostWithServices> = demo
+        .hosts_with_services
+        .iter()
+        .chain(&demo.recent_hosts_with_services)
+        .collect();
+    let tag_lists = hosts
+        .iter()
+        .map(|h| (h.host.id, h.host.base.tags.clone()))
+        .chain(
+            hosts
+                .iter()
+                .flat_map(|h| h.services.iter().map(|s| (s.id, s.base.tags.clone()))),
+        )
+        .chain(demo.subnets.iter().map(|s| (s.id, s.base.tags.clone())))
+        .chain(demo.sites.iter().map(|s| (s.id, s.base.tags.clone())));
+
+    let name_of = |tag_id: &Uuid| {
+        demo.tags
+            .iter()
+            .find(|t| t.id == *tag_id)
+            .map(|t| t.base.name.clone())
+    };
+    for (id, tags) in tag_lists {
+        let mut seen = HashSet::new();
+        for set in tags.iter().filter_map(|id| set_of.get(id)) {
+            assert!(
+                seen.insert(set),
+                "entity {id} holds two tags of the {set} set: {:?}",
+                tags.iter().filter_map(name_of).collect::<Vec<_>>()
+            );
+        }
+    }
+}

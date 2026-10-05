@@ -130,7 +130,11 @@ impl ServiceFactory {
             .clone();
         let metrics_service = Arc::new(MetricsService::new(prometheus_handle));
 
-        let tag_service = Arc::new(TagService::new(storage.tags.clone(), event_bus.clone()));
+        let tag_service = Arc::new(TagService::new(
+            storage.tags.clone(),
+            storage.entity_tags.clone(),
+            event_bus.clone(),
+        ));
         let entity_tag_service = Arc::new(EntityTagService::new(
             storage.entity_tags.clone(),
             tag_service.clone(),

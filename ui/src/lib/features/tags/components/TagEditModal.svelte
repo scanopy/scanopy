@@ -13,7 +13,11 @@
 	import { pushError } from '$lib/shared/stores/feedback';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
 	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
-	import Checkbox from '$lib/shared/components/forms/input/Checkbox.svelte';
+	import IconPicker from '$lib/shared/components/forms/IconPicker.svelte';
+	import ExclusiveSetSelect from './ExclusiveSetSelect.svelte';
+	import { useTagsQuery } from '../queries';
+	import { groupNames, type ExclusiveSet } from '../sets';
+	import tagIconsFixture from '$lib/data/tag-icons.json';
 	import {
 		common_cancel,
 		common_color,
@@ -24,13 +28,17 @@
 		common_description,
 		common_details,
 		common_editName,
+		common_icon,
 		common_name,
 		common_saving,
 		common_update,
-		common_application,
 		tags_applicationHelp,
 		tags_createTag,
 		tags_descriptionPlaceholder,
+		tags_exclusiveSet,
+		tags_exclusiveSetHelp,
+		tags_exclusiveSetPlaceholder,
+		tags_iconApplicationFixed,
 		tags_tagNamePlaceholder
 	} from '$lib/paraglide/messages';
 
@@ -55,6 +63,11 @@
 	// TanStack Query for organization
 	const organizationQuery = useOrganizationQuery();
 	let organization = $derived(organizationQuery.data);
+
+	// Every tag, for the names of the sets already in use.
+	const tagsQuery = useTagsQuery();
+	let allTags = $derived(tagsQuery.data ?? []);
+	const tagIconNames: string[] = tagIconsFixture;
 
 	let loading = $state(false);
 	let deleting = $state(false);
@@ -99,10 +112,28 @@
 		}
 	}));
 
+	// The set and icon are source of truth here and synced into the form: switching to the
+	// Application set clears the icon programmatically, which the form store alone would not show.
+	let selectedSet = $state<ExclusiveSet | null>(null);
+	let selectedIcon = $state<string | null>(null);
+
+	function handleSetChange(set: ExclusiveSet | null) {
+		selectedSet = set;
+		form.setFieldValue('exclusive_set', set);
+		if (set?.type === 'Application') handleIconChange(null);
+	}
+
+	function handleIconChange(icon: string | null) {
+		selectedIcon = icon;
+		form.setFieldValue('icon', icon);
+	}
+
 	// Reset form when modal opens
 	function handleOpen() {
 		const defaults = getDefaultValues();
 		form.reset(defaults);
+		selectedSet = defaults.exclusive_set ?? null;
+		selectedIcon = defaults.icon ?? null;
 	}
 
 	async function handleSubmit() {
@@ -184,14 +215,40 @@
 						{/snippet}
 					</form.Field>
 
-					<!-- Application Group -->
-					<form.Field name="is_application">
-						{#snippet children(field)}
-							<Checkbox
-								label={common_application()}
-								helpText={tags_applicationHelp()}
-								{field}
-								id="is_application"
+					<!-- Exclusive set. Held in $state: choosing Application clears the icon, a
+					     programmatic write TanStack Form would not re-render. -->
+					<form.Field name="exclusive_set">
+						{#snippet children()}
+							<div class="space-y-2">
+								<label for="exclusive_set" class="text-secondary block text-sm font-medium">
+									{tags_exclusiveSet()}
+								</label>
+								<ExclusiveSetSelect
+									id="exclusive_set"
+									value={selectedSet}
+									groups={groupNames(allTags)}
+									placeholder={tags_exclusiveSetPlaceholder()}
+									onChange={handleSetChange}
+								/>
+								<p class="text-tertiary text-xs">
+									{selectedSet?.type === 'Application'
+										? tags_applicationHelp()
+										: tags_exclusiveSetHelp()}
+								</p>
+							</div>
+						{/snippet}
+					</form.Field>
+
+					<form.Field name="icon">
+						{#snippet children()}
+							<IconPicker
+								id="icon"
+								label={common_icon()}
+								value={selectedSet?.type === 'Application' ? null : selectedIcon}
+								icons={tagIconNames}
+								disabled={selectedSet?.type === 'Application'}
+								helpText={selectedSet?.type === 'Application' ? tags_iconApplicationFixed() : ''}
+								onChange={handleIconChange}
 							/>
 						{/snippet}
 					</form.Field>

@@ -19,11 +19,11 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { permissions, billingPlans, concepts } from '$lib/shared/stores/metadata';
 	import type { TabProps } from '$lib/shared/types';
+	import { exclusiveSetLabel, isApplicationTag, tagIcon } from '../sets';
 	import type { components } from '$lib/api/schema';
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
 	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 	import {
-		common_application,
 		common_color,
 		common_confirmBulkDelete,
 		common_confirmDeleteName,
@@ -36,6 +36,7 @@
 		common_noEntityYet,
 		common_tags,
 		common_updated,
+		tags_exclusiveSet,
 		tags_noTagsHelp,
 		tags_subtitle
 	} from '$lib/paraglide/messages';
@@ -185,10 +186,11 @@
 					]
 				}
 			},
-			is_application: {
-				label: common_application(),
-				type: 'boolean',
-				filterable: true
+			exclusive_set: {
+				label: tags_exclusiveSet(),
+				type: 'string',
+				filterable: true,
+				getValue: (tag) => exclusiveSetLabel(tag.exclusive_set)
 			},
 			created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
 			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } }
@@ -226,8 +228,8 @@
 			onBulkDelete={handleBulkDelete}
 			getItemId={(item) => item.id}
 			getIcon={(tag) => ({
-				icon: tag.is_application ? concepts.getIconComponent('Application') : TagIcon,
-				color: tag.is_application
+				icon: tagIcon(tag) ?? TagIcon,
+				color: isApplicationTag(tag)
 					? concepts.getColorHelper('Application')?.icon
 					: createColorHelper(tag.color).icon
 			})}

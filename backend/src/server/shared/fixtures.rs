@@ -27,6 +27,7 @@ use crate::server::shared::entities::EntityDiscriminants;
 use crate::server::shared::types::entities::EntitySourceDiscriminants;
 use crate::server::shared::types::metadata::{EntityMetadata, MetadataProvider, TypeMetadata};
 use crate::server::subnets::r#impl::types::SubnetType;
+use crate::server::tags::r#impl::base::TagIcon;
 use crate::server::topology::types::edges::EdgeType;
 use crate::server::topology::types::grouping::{ContainerRule, ElementRule, ElementSort};
 use crate::server::topology::types::nodes::ContainerType;
@@ -350,6 +351,11 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
 
     let client_probes: Vec<TypeMetadata> = ClientProbe::iter().map(|p| p.to_metadata()).collect();
     write_fixture(&client_probes, output_dir, "client-probes.json");
+
+    // Every icon a tag may carry, by the name the API stores. From the backend's lucide build so
+    // the picker can offer nothing the server would refuse.
+    let tag_icons: Vec<TagIcon> = TagIcon::all().collect();
+    write_fixture(&tag_icons, output_dir, "tag-icons.json");
 
     println!("Done! Generated all metadata fixtures.");
 }

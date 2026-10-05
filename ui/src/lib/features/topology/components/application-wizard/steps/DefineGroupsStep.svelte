@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isApplicationTag } from '$lib/features/tags/sets';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
 	import { AVAILABLE_COLORS, type Color } from '$lib/shared/utils/styling';
@@ -45,7 +46,7 @@
 
 	let suggestions = $derived(getSuggestions(useCase));
 	let allTags = $derived(tagsQuery.data ?? []);
-	let nonAppTags = $derived(allTags.filter((t) => !t.is_application));
+	let nonAppTags = $derived(allTags.filter((t) => !isApplicationTag(t)));
 	// Exclude suggestions whose name collides with ANY existing tag — creating one
 	// would violate the name-unique constraint, whether the existing tag is an app
 	// tag or not.
@@ -67,7 +68,11 @@
 		if (isConverting) return;
 		isConverting = true;
 		try {
-			await updateTagMutation.mutateAsync({ ...tag, is_application: true });
+			await updateTagMutation.mutateAsync({
+				...tag,
+				exclusive_set: { type: 'Application' },
+				icon: null
+			});
 		} finally {
 			isConverting = false;
 		}
@@ -87,7 +92,7 @@
 			const tag = createDefaultTag(organization.id);
 			tag.name = trimmed;
 			tag.color = color ?? getRandomColor();
-			(tag as TagType & { is_application: boolean }).is_application = true;
+			tag.exclusive_set = { type: 'Application' };
 			await createTagMutation.mutateAsync(tag);
 		} finally {
 			isCreating = false;

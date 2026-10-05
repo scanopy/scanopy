@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isApplicationTag } from '$lib/features/tags/sets';
 	import { get } from 'svelte/store';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { Eye, EyeOff, X, Crosshair, ArrowDown } from 'lucide-svelte';
@@ -216,13 +217,13 @@
 		return [...topoTags, ...cachedTags.filter((t) => !topoIds.has(t.id))];
 	});
 
-	let appTagIds = $derived(topoEntityTags.filter((t) => t.is_application).map((t) => t.id));
+	let appTagIds = $derived(topoEntityTags.filter((t) => isApplicationTag(t)).map((t) => t.id));
 
 	let appTagSet = $derived(new Set(appTagIds));
 
 	// Filtered tag lists for pickers
-	let nonAppTags = $derived(topoEntityTags.filter((t) => !t.is_application));
-	let appTags = $derived(topoEntityTags.filter((t) => t.is_application));
+	let nonAppTags = $derived(topoEntityTags.filter((t) => !isApplicationTag(t)));
+	let appTags = $derived(topoEntityTags.filter((t) => isApplicationTag(t)));
 
 	// Common app tags across selected services (for app picker selectedTagIds).
 	// Always derived from services — app-group tagging only applies to services.
