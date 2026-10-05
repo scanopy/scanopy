@@ -18,6 +18,7 @@ import { TopologyDisplay } from '$lib/shared/components/forms/selection/display/
 import { DaemonApiKeyDisplay } from '$lib/shared/components/forms/selection/display/DaemonApiKeyDisplay.svelte';
 import { BindingDisplay } from '$lib/shared/components/forms/selection/display/BindingDisplay.svelte';
 import { UserDisplay } from '$lib/shared/components/forms/selection/display/UserDisplay.svelte';
+import { DiscoveryDisplay } from '$lib/shared/components/forms/selection/display/DiscoveryDisplay.svelte';
 
 export interface EntityUIConfig {
 	tabId: string;
@@ -106,6 +107,7 @@ export const entityUIConfig: Record<EntityDiscriminants, EntityUIConfig | null> 
 	Discovery: {
 		tabId: 'discovery-scans',
 		modalName: 'discovery-editor',
+		displayComponent: DiscoveryDisplay,
 		forEntity: (data) =>
 			(data.run_type as { type?: string } | undefined)?.type === 'Historical'
 				? { tabId: 'discovery-history', modalName: 'discovery-history-detail' }

@@ -200,7 +200,7 @@ impl Storable for Interface {
         // Read mac_address from MACADDR column
         let mac_address = attributed::read_optional::<MacEvidenceValue>(row)?;
 
-        Ok(Interface {
+        let mut interface = Interface {
             id: row.get("id"),
             created_at: row.get("created_at"),
             updated_at: row.get("updated_at"),
@@ -210,8 +210,8 @@ impl Storable for Interface {
             last_seen_at: row.get("last_seen_at"),
             last_discovery_id: row.get("last_discovery_id"),
             first_discovery_id: row.get("first_discovery_id"),
-            // Never stored — computed at response-serialization time, see
-            // `HostResponse::from_host_with_children`.
+            // Never stored: computed below from the row, so every endpoint that returns an
+            // interface names it the same way.
             display_name: None,
             base: InterfaceBase {
                 host_id: row.get("host_id"),
@@ -240,7 +240,9 @@ impl Storable for Interface {
                     .flatten()
                     .and_then(|v| serde_json::from_value(v).ok()),
             },
-        })
+        };
+        interface.display_name = Some(interface.display_name());
+        Ok(interface)
     }
 }
 
