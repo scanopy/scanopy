@@ -41,6 +41,9 @@ use crate::server::{
         api::{CreateHostRequest, DiscoveryHostRequest, HostResponse, UpdateHostRequest},
         base::{HOST_MAC_JOIN, Host, PRIMARY_INTERFACE_JOIN},
         legacy::{HostCreateRequestBody, HostCreateResponse, LegacyHostWithServicesResponse},
+        virtualization_tree::{
+            VIRTUALIZATION_TREE_GROUP_SQL, VIRTUALIZATION_TREE_JOIN, VIRTUALIZATION_TREE_ORDER_SQL,
+        },
     },
     shared::types::api::{ApiError, ApiResponse, ApiResult, PaginatedApiResponse},
 };
@@ -100,6 +103,10 @@ pub enum HostOrderField {
     OsFamily,
     /// Sort by the `hidden` flag.
     Hidden,
+    /// Group by the host at the top of each host's virtualization chain, listing every tree
+    /// parent first. Grouping only: the "Virtualized By" column groups here and sorts and filters
+    /// on [`Self::VirtualizedBy`].
+    VirtualizationTree,
 }
 
 /// The host title in SQL, built once: `to_sql` hands out `&'static str`.
@@ -125,6 +132,14 @@ impl OrderField for HostOrderField {
             Self::SysLocation => "hosts.sys_location",
             Self::OsFamily => "hosts.os->>'family'",
             Self::Hidden => "hosts.hidden",
+            Self::VirtualizationTree => VIRTUALIZATION_TREE_GROUP_SQL,
+        }
+    }
+
+    fn group_order_sql(&self) -> Option<&'static str> {
+        match self {
+            Self::VirtualizationTree => Some(VIRTUALIZATION_TREE_ORDER_SQL),
+            _ => None,
         }
     }
 
@@ -150,6 +165,7 @@ impl OrderField for HostOrderField {
             // the two are equal, so what matters is that they cannot stop being equal.
             Self::Name | Self::InterfaceIp => Some(PRIMARY_INTERFACE_JOIN),
             Self::MacAddress => Some(HOST_MAC_JOIN),
+            Self::VirtualizationTree => Some(VIRTUALIZATION_TREE_JOIN.as_str()),
             _ => None,
         }
     }

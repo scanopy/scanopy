@@ -248,6 +248,12 @@ interface BaseFieldConfig<T> {
 	 * the response's `group_counts`. Defaults to the displayed value.
 	 */
 	getGroupValue?: (item: T) => string | null;
+	/**
+	 * The header a row groups under, when grouping follows something other than the value the
+	 * column shows. "Virtualized By" shows the runtime a host runs under but groups under the host
+	 * at the top of its chain. Defaults to the displayed value.
+	 */
+	getGroupLabel?: (item: T) => string | null;
 	/** Default checked values for the filter (applied on first load if no localStorage state). */
 	filterDefaults?: string[];
 	/**
@@ -279,6 +285,12 @@ export interface OrderableFieldConfig<T, O extends string> extends BaseFieldConf
 	orderField: O;
 	/** Whether this field can be used for grouping. Defaults to true for string types. */
 	groupable?: boolean;
+	/**
+	 * The backend field the server groups by when the list is grouped by this column, if it is
+	 * not `orderField`. For a column that sorts and filters on one expression and groups on
+	 * another, like a tree grouping. Pair it with `getGroupValue` and `getGroupLabel`.
+	 */
+	groupOrderField?: string;
 }
 
 /**
@@ -381,6 +393,8 @@ export function groupPageSlice(
  */
 type OrderableFieldEntry<T> = BaseFieldConfig<T> & {
 	groupable?: boolean;
+	/** See {@link OrderableFieldConfig.groupOrderField}. */
+	groupOrderField?: string;
 };
 
 /**

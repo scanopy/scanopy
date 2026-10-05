@@ -32,6 +32,10 @@ impl HostResponse {
             virtualization_metadata,
             virtualization_service_id,
             virtualization_interface_id,
+            // Derived from the virtualization links of other rows; nothing to carry back in.
+            virtualization_parent_host_id: _,
+            virtualization_root_host_id: _,
+            virtualization_depth: _,
             hidden,
             tags,
             sys_descr,
@@ -245,6 +249,10 @@ impl HostResponse {
             virtualization_metadata,
             virtualization_service_id,
             virtualization_interface_id,
+            // Placed by `HostService::place_in_virtualization_trees`, which reads other rows.
+            virtualization_parent_host_id: None,
+            virtualization_root_host_id: None,
+            virtualization_depth: 0,
             hidden,
             tags,
             sys_descr_source: sys_descr.as_ref().map(|v| v.source()).unwrap_or_default(),
