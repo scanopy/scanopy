@@ -828,8 +828,9 @@ mod tests {
             "the enforced daemon floor is {floor}, above {last}: every supported daemon now \
              speaks `site_id`. Delete the network-wire rewrites and middlewares in \
              server/shared/legacy.rs and their callers (daemon api_client and router, \
-             daemons/service/http.rs), `last_network_wire`, and this test. Keep \
-             `DiscoveryUpdatePayload`'s `network_id` alias: stored run history uses it."
+             daemons/service/http.rs), `last_network_wire`, and this test. The daemon \
+             config loader's use of `rewrite_from_network_wire` stays: config files written \
+             before the rename live on disk until the daemon next saves."
         );
     }
 }

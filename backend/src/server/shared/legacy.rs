@@ -386,31 +386,4 @@ mod tests {
         let read: Subnet = serde_json::from_value(wire).unwrap();
         assert_eq!(read.base.site_id, subnet.base.site_id);
     }
-
-    /// Discovery history stored before the rename keeps `network_id` inside `run_type`, and is
-    /// read through `DiscoveryUpdatePayload`'s alias rather than rewritten.
-    #[test]
-    fn stored_run_history_reads_its_network_id() {
-        let dump = std::fs::read_to_string(
-            Path::new(env!("CARGO_MANIFEST_DIR")).join(crate::tests::SERVER_DB_FIXTURE),
-        )
-        .unwrap();
-        let mut read = 0;
-        for line in dump
-            .lines()
-            .filter(|l| l.contains("\"type\": \"Historical\""))
-        {
-            let run_type = line
-                .split('\t')
-                .find(|c| c.contains("\"Historical\""))
-                .unwrap();
-            let run_type: serde_json::Value = serde_json::from_str(run_type).unwrap();
-            let stored = run_type["results"]["network_id"].as_str().unwrap();
-            let payload: DiscoveryUpdatePayload =
-                serde_json::from_value(run_type["results"].clone()).unwrap();
-            assert_eq!(payload.site_id.to_string(), stored);
-            read += 1;
-        }
-        assert!(read > 0, "the fixture holds no historical run");
-    }
 }

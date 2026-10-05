@@ -70,7 +70,6 @@ pub enum LimitNotificationLevel {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct OrgNotifications {
     pub hosts: LimitNotificationLevel,
-    #[serde(alias = "networks")]
     pub sites: LimitNotificationLevel,
     pub seats: LimitNotificationLevel,
     /// The **highest** announced daemon-sunset floor this org has already been

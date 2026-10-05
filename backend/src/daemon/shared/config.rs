@@ -19,6 +19,7 @@ use std::net::IpAddr;
 use crate::server::credentials::r#impl::mapping::IntegrationTarget;
 use crate::server::daemons::r#impl::{api::LegacyCapabilities, base::DaemonMode};
 use crate::server::shared::env_file::apply_file_env_vars;
+use crate::server::shared::legacy::rewrite_from_network_wire;
 use crate::server::shared::trusted_ca::TrustedCaBundle;
 
 /// Parse the `SCANOPY_CREDENTIAL_IDS` / `--credential-id` compact token grammar into per-daemon
@@ -77,18 +78,21 @@ fn parse_integration_target_token(token: &str) -> anyhow::Result<IntegrationTarg
     }
 }
 
-/// The daemon config file's contents, with a `network_id` key (written before the site rename)
-/// read as `site_id`. A file holding both keeps `site_id`. The next save writes the new key.
-fn config_file_with_site_key(path: &Path) -> anyhow::Result<String> {
+/// The daemon config file's contents with the names it was written under before the site rename
+/// read as the current ones: `network_id` as `site_id`, and an integration target's
+/// `"scope":"Network"` as `"Site"`. A file holding both ids keeps `site_id`. The next save writes
+/// the new names.
+fn config_file_with_site_names(path: &Path) -> anyhow::Result<String> {
     let raw = std::fs::read_to_string(path)
         .with_context(|| format!("Failed to read config file {}", path.display()))?;
     let mut value: serde_json::Value = serde_json::from_str(&raw)
         .with_context(|| format!("Config file {} is not valid JSON", path.display()))?;
     if let Some(map) = value.as_object_mut()
-        && let Some(site_id) = map.remove("network_id")
+        && map.contains_key("site_id")
     {
-        map.entry("site_id").or_insert(site_id);
+        map.remove("network_id");
     }
+    rewrite_from_network_wire(&mut value);
     Ok(value.to_string())
 }
 
@@ -798,7 +802,7 @@ impl AppConfig {
 
         // Add config file if it exists
         if config_exists {
-            figment = figment.merge(Json::string(&config_file_with_site_key(&config_path)?));
+            figment = figment.merge(Json::string(&config_file_with_site_names(&config_path)?));
         }
 
         // Handle SCANOPY_INTERFACES specially - Figment doesn't auto-split comma-separated values
@@ -1383,9 +1387,13 @@ mod tests {
     fn a_config_written_before_the_site_rename_keeps_its_site() {
         use crate::daemon::shared::config::DaemonArgs;
 
-        let fixture: serde_json::Value =
+        let mut fixture: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(DAEMON_CONFIG_FIXTURE).unwrap()).unwrap();
         let network_id: Uuid = fixture["network_id"].as_str().unwrap().parse().unwrap();
+        // A broadcast credential, as `--credential-id <uuid>` persisted it before the rename.
+        let credential_id = Uuid::new_v4();
+        fixture["integration_targets"] =
+            serde_json::json!([{ "scope": "Network", "credential_id": credential_id }]);
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("config.json"), fixture.to_string()).unwrap();
 
@@ -1395,10 +1403,15 @@ mod tests {
         })
         .expect("a pre-rename config loads");
         assert_eq!(config.site_id, Some(network_id));
+        assert_eq!(
+            config.integration_targets,
+            vec![IntegrationTarget::Site { credential_id }]
+        );
 
         let saved = serde_json::to_value(&config).unwrap();
         assert_eq!(saved["site_id"], network_id.to_string());
         assert!(saved.get("network_id").is_none());
+        assert_eq!(saved["integration_targets"][0]["scope"], "Site");
     }
 
     /// Composes and service units written before the site rename set `SCANOPY_NETWORK_ID` or pass

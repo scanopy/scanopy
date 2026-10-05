@@ -253,7 +253,6 @@
   ],
   "IntegrationTarget": [
     "DaemonHost",
-    "Network",
     "Site",
     "Hosts"
   ],

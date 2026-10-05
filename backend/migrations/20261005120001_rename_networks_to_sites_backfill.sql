@@ -11,13 +11,13 @@
 --                                                                    -> included_sites, site_cents
 --   organizations.notifications          networks                    -> sites
 --   discovery.integration_targets[]      {"scope": "Network"}        -> {"scope": "Site"}
+--   discovery.run_type.results           network_id                  -> site_id
 --
 -- `entity_tags` is SCD2: the update covers live, closed and snapshot rows, and touches no
--- validity or lineage column. `discovery.run_type` history keeps `network_id` inside its stored
--- results; the server reads that through a serde alias rather than rewriting history.
+-- validity or lineage column. `run_type.results` is the final progress of a Historical run.
 --
--- The plan and integration-target types also accept the old names (Stripe subscription metadata
--- still carries the old plan keys), so a row this misses still reads.
+-- Only the plan type still accepts the old key names, because Stripe subscription metadata
+-- carries them. Every other value here is read under its new name only.
 --
 -- Batched at 1000 rows with a COMMIT per batch (hence `-- no-transaction`), keyset-paginated by
 -- `id`. Re-running is harmless: rewritten rows no longer match.
@@ -120,6 +120,31 @@ BEGIN
                               ORDER BY ord)
                      FROM jsonb_array_elements(d.integration_targets) WITH ORDINALITY AS a(t, ord))
          WHERE d.id = ANY(batch);
+
+        last_id := batch[array_length(batch, 1)];
+        COMMIT;
+    END LOOP;
+END $$;
+
+DO $$
+DECLARE
+    last_id UUID := '00000000-0000-0000-0000-000000000000';
+    batch UUID[];
+BEGIN
+    LOOP
+        SELECT array_agg(id ORDER BY id)
+          INTO batch
+          FROM (SELECT id FROM discovery
+                 WHERE id > last_id AND run_type -> 'results' ? 'network_id'
+                 ORDER BY id LIMIT 1000) t;
+
+        EXIT WHEN batch IS NULL;
+
+        UPDATE discovery
+           SET run_type = jsonb_set(run_type #- '{results,network_id}',
+                                    '{results,site_id}',
+                                    run_type -> 'results' -> 'network_id')
+         WHERE id = ANY(batch);
 
         last_id := batch[array_length(batch, 1)];
         COMMIT;

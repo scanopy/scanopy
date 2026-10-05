@@ -255,9 +255,7 @@ pub struct DiscoveryUpdatePayload {
     pub session_id: Uuid,
     /// The daemon this entity refers to.
     pub daemon_id: Uuid,
-    /// The site this entity belongs to. Historical runs stored before the site rename hold this
-    /// as `network_id` inside `discovery.run_type`.
-    #[serde(alias = "network_id")]
+    /// The site this entity belongs to.
     pub site_id: Uuid,
     /// Which stage of the run is in progress.
     pub phase: DiscoveryPhase,

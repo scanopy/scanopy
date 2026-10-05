@@ -182,11 +182,10 @@ pub enum IntegrationTarget {
         /// Credential to use on the daemon host.
         credential_id: Uuid,
     },
-    /// All hosts on the site, as a broadcast default credential. Rows written before the
-    /// site rename hold `"scope":"Network"`; daemons older than
-    /// `minimum_site_wire` are sent that spelling.
+    /// All hosts on the site, as a broadcast default credential. Daemons at or below
+    /// `last_network_wire` call this scope `"Network"`; the wire rewrite in
+    /// `server/shared/legacy.rs` translates it both ways.
     #[schema(title = "Site")]
-    #[serde(alias = "Network")]
     Site {
         /// Credential to use across the site.
         credential_id: Uuid,

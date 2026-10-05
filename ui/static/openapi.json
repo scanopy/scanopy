@@ -16967,19 +16967,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-05T20:14:00.493037Z",
+              "created_at": "2026-10-05T20:29:44.131676Z",
               "first_discovery_id": null,
-              "id": "792fb3f1-bf9c-45b8-978c-7654a6604b36",
+              "id": "2c19f415-0bca-4966-874d-eade7cdb0bc3",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T20:14:00.493037Z",
+              "last_seen_at": "2026-10-05T20:29:44.131676Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-05T20:14:00.493037Z",
-              "valid_from": "2026-10-05T20:14:00.493037Z",
+              "updated_at": "2026-10-05T20:29:44.131676Z",
+              "valid_from": "2026-10-05T20:29:44.131676Z",
               "valid_to": null
             }
           },
@@ -18049,7 +18049,7 @@
               "site_id": {
                 "type": "string",
                 "format": "uuid",
-                "description": "The site this entity belongs to. Historical runs stored before the site rename hold this\nas `network_id` inside `discovery.run_type`."
+                "description": "The site this entity belongs to."
               },
               "started_at": {
                 "type": [
@@ -18603,19 +18603,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-05T20:14:00.465509Z",
+                      "created_at": "2026-10-05T20:29:44.107385Z",
                       "first_discovery_id": null,
-                      "id": "f625411a-1d69-44e9-83b6-f11b599e83f8",
+                      "id": "e51bd89f-2480-4336-a273-2f4ba0c4f2d3",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-05T20:14:00.465509Z",
+                      "last_seen_at": "2026-10-05T20:29:44.107385Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-05T20:14:00.465509Z",
-                      "valid_from": "2026-10-05T20:14:00.465509Z",
+                      "updated_at": "2026-10-05T20:29:44.107385Z",
+                      "valid_from": "2026-10-05T20:29:44.107385Z",
                       "valid_to": null
                     }
                   ],
@@ -18628,7 +18628,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Veeam",
+                  "service_definition": "DHCP Server",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -19951,19 +19951,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T20:14:00.487118Z",
+                  "created_at": "2026-10-05T20:29:44.126614Z",
                   "first_discovery_id": null,
-                  "id": "c39c963c-54e8-4b51-9b69-ff7ed33bd2a3",
+                  "id": "5fd7a9d3-baef-43f7-8cb8-7172050f5fd3",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T20:14:00.487118Z",
+                  "last_seen_at": "2026-10-05T20:29:44.126614Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-05T20:14:00.487118Z",
-                  "valid_from": "2026-10-05T20:14:00.487118Z",
+                  "updated_at": "2026-10-05T20:29:44.126614Z",
+                  "valid_from": "2026-10-05T20:29:44.126614Z",
                   "valid_to": null
                 }
               ],
@@ -19976,7 +19976,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Veeam",
+              "service_definition": "DHCP Server",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -21615,7 +21615,7 @@
                 "site_id": {
                   "type": "string",
                   "format": "uuid",
-                  "description": "The site this entity belongs to. Historical runs stored before the site rename hold this\nas `network_id` inside `discovery.run_type`."
+                  "description": "The site this entity belongs to."
                 },
                 "started_at": {
                   "type": [
@@ -22547,19 +22547,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-05T20:14:00.466359Z",
+          "created_at": "2026-10-05T20:29:44.108118Z",
           "first_discovery_id": null,
-          "id": "631282c5-a89a-4437-8815-cddb2cd9a595",
+          "id": "4d5c3b28-6aba-473d-8311-d48dca77f1d2",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-05T20:14:00.466359Z",
+          "last_seen_at": "2026-10-05T20:29:44.108118Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-05T20:14:00.466359Z",
-          "valid_from": "2026-10-05T20:14:00.466359Z",
+          "updated_at": "2026-10-05T20:29:44.108118Z",
+          "valid_from": "2026-10-05T20:29:44.108118Z",
           "valid_to": null
         }
       },
@@ -23325,7 +23325,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Veeam",
+              "service_definition": "DHCP Server",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -25990,7 +25990,7 @@
           "site_id": {
             "type": "string",
             "format": "uuid",
-            "description": "The site this entity belongs to. Historical runs stored before the site rename hold this\nas `network_id` inside `discovery.run_type`."
+            "description": "The site this entity belongs to."
           },
           "started_at": {
             "type": [
@@ -29784,19 +29784,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T20:14:00.464822Z",
+                  "created_at": "2026-10-05T20:29:44.106554Z",
                   "first_discovery_id": null,
-                  "id": "1f5899e4-8f97-45ae-8f0b-c61348949865",
+                  "id": "d59fd331-379a-46a9-b0ea-cd6dee36d9ef",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T20:14:00.464822Z",
+                  "last_seen_at": "2026-10-05T20:29:44.106554Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-05T20:14:00.464822Z",
-                  "valid_from": "2026-10-05T20:14:00.464822Z",
+                  "updated_at": "2026-10-05T20:29:44.106554Z",
+                  "valid_from": "2026-10-05T20:29:44.106554Z",
                   "valid_to": null
                 }
               ],
@@ -29809,7 +29809,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Veeam",
+              "service_definition": "DHCP Server",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -30612,7 +30612,7 @@
           {
             "type": "object",
             "title": "Site",
-            "description": "All hosts on the site, as a broadcast default credential. Rows written before the\nsite rename hold `\"scope\":\"Network\"`; daemons older than\n`minimum_site_wire` are sent that spelling.",
+            "description": "All hosts on the site, as a broadcast default credential. Daemons at or below\n`last_network_wire` call this scope `\"Network\"`; the wire rewrite in\n`server/shared/legacy.rs` translates it both ways.",
             "required": [
               "credential_id",
               "scope"
@@ -33534,19 +33534,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-05T20:14:00.450136Z",
+                        "created_at": "2026-10-05T20:29:44.090236Z",
                         "first_discovery_id": null,
-                        "id": "12484368-42d6-4de2-b615-8269379e966a",
+                        "id": "c9fdb3e1-90e4-4a33-b99a-0ff7e05201f5",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-05T20:14:00.450136Z",
+                        "last_seen_at": "2026-10-05T20:29:44.090236Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-05T20:14:00.450136Z",
-                        "valid_from": "2026-10-05T20:14:00.450136Z",
+                        "updated_at": "2026-10-05T20:29:44.090236Z",
+                        "valid_from": "2026-10-05T20:29:44.090236Z",
                         "valid_to": null
                       }
                     ],
@@ -33559,7 +33559,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Veeam",
+                    "service_definition": "DHCP Server",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -33705,19 +33705,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-05T20:14:00.486134Z",
+                    "created_at": "2026-10-05T20:29:44.125720Z",
                     "first_discovery_id": null,
-                    "id": "a8e331e7-8215-4cbc-90c4-085265c9a92b",
+                    "id": "207a5886-9ac7-42d9-90e2-0047f5dd82c4",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-05T20:14:00.486134Z",
+                    "last_seen_at": "2026-10-05T20:29:44.125720Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-05T20:14:00.486134Z",
-                    "valid_from": "2026-10-05T20:14:00.486134Z",
+                    "updated_at": "2026-10-05T20:29:44.125720Z",
+                    "valid_from": "2026-10-05T20:29:44.125720Z",
                     "valid_to": null
                   }
                 ],
@@ -33730,7 +33730,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Veeam",
+                "service_definition": "DHCP Server",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -35970,19 +35970,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-05T20:14:00.466106Z",
+              "created_at": "2026-10-05T20:29:44.107901Z",
               "first_discovery_id": null,
-              "id": "4f61ca09-b8e8-4b5b-b96b-8c693d63bfa0",
+              "id": "a6a4c8af-8090-4e9a-9e27-f18ea7ce0d2d",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T20:14:00.466106Z",
+              "last_seen_at": "2026-10-05T20:29:44.107901Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-05T20:14:00.466106Z",
-              "valid_from": "2026-10-05T20:14:00.466106Z",
+              "updated_at": "2026-10-05T20:29:44.107901Z",
+              "valid_from": "2026-10-05T20:29:44.107901Z",
               "valid_to": null
             }
           ],
@@ -35995,7 +35995,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Veeam",
+          "service_definition": "DHCP Server",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -37615,7 +37615,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "9a6a08c7-a233-45cb-901d-bf80b1fcb5e0",
+                  "id": "d2a30bd4-7e62-478b-8440-e3cc109a429c",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -37625,23 +37625,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "3876ce20-b68f-4161-82f1-20f1ba2c3069",
+                  "id": "b2f16220-7fe1-4bd7-8c39-e8605ab047ae",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "ab58ffe5-2a61-4ba1-b67d-4c654d224854",
+                  "id": "e94452a4-d664-4f29-a02a-6915a11abfa4",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "7710b9ab-8a95-4845-b393-53318ab76e5b",
+                  "id": "bc1f2dbd-04ef-4555-921e-036da4834a11",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "3876ce20-b68f-4161-82f1-20f1ba2c3069",
+                  "id": "b2f16220-7fe1-4bd7-8c39-e8605ab047ae",
                   "rule": "ByHost"
                 }
               ]
@@ -37671,19 +37671,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "af49caef-0615-4b48-b7fd-c1de1600a551",
+                "id": "68c9873b-580c-4926-ac99-d2d91940d433",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "af7dc9ef-3551-413c-9a6e-35e7d7a42c4b",
+                "id": "d696e352-b9fd-4b64-8d32-dab6fec232b5",
                 "rule": "ByVLAN"
               },
               {
-                "id": "8c6970e9-32cf-4161-9b8b-1d7d8fb4c87b",
+                "id": "89b7e0eb-8e3a-4eea-8471-527f8543e2c3",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "fc008b36-fa44-4d82-bd77-9d100897ed70",
+                "id": "1079e1fb-8d8e-49e4-964b-1455c8616735",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -37702,7 +37702,7 @@
                 }
               },
               {
-                "id": "c516c465-738f-4b39-88a1-d4929c9c5986",
+                "id": "995d9c65-583f-4d2f-9052-063aebbc7d73",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -37711,15 +37711,15 @@
                 }
               },
               {
-                "id": "4e39a4f1-7665-42d7-ba3b-25e15e5e7f53",
+                "id": "fc7a0373-c7fd-41ce-9709-20bb0f3bff0c",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "b186409f-1a05-462f-a50c-c7f5bd66e198",
+                "id": "0b34164e-2f26-4521-b3dd-dbb11bcf7d67",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "f597419d-2a84-4157-b4d5-91eb99f09752",
+                "id": "cfb00b1a-d053-44f3-b690-33b50c53cdbd",
                 "rule": "ByStack"
               }
             ]

@@ -40,7 +40,7 @@ r#"                            <ul style="margin: 0 0 20px 0; padding-left: 20px
                                 <li><strong>Self-report:</strong> The daemon host's own services and IP addresses are mapped automatically.</li>
                                 <li><strong>Site scan:</strong> Scanopy scans your local subnets for other hosts, ports, and services.</li>
                                 <li><strong>Topology:</strong> Once discovery finishes, your interactive topology map will be ready.</li>
-                                <li><strong>Docker discovery:</strong> If your daemon has access to the Docker socket, it'll also discover all your containers — images, ports, sites, and labels — automatically.</li>
+                                <li><strong>Docker discovery:</strong> If your daemon has access to the Docker socket, it'll also discover all your containers — images, ports, networks, and labels — automatically.</li>
                             </ul>
 "#,
                     ),
