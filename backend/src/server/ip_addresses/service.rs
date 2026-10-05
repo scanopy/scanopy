@@ -95,6 +95,25 @@ impl IPAddressService {
         self.storage.get_all(filter).await
     }
 
+    /// How many distinct addresses each subnet on these sites holds, live or as of `at`.
+    ///
+    /// Distinct by address rather than by row: an HA virtual IP sits on both peers as two rows
+    /// and occupies one address. Subnets holding none are absent from the map.
+    pub async fn used_by_subnet(
+        &self,
+        site_ids: &[Uuid],
+        at: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> Result<HashMap<Uuid, u64>> {
+        let filter = StorableFilter::<IPAddress>::new_from_site_ids(site_ids).live_or_as_of(at);
+        let counts = self
+            .count_distinct_by_group(filter, "ip_addresses.subnet_id", "ip_addresses.ip_address")
+            .await?;
+        Ok(counts
+            .into_iter()
+            .filter_map(|g| Some((g.value?.parse::<Uuid>().ok()?, g.count)))
+            .collect())
+    }
+
     // =========================================================================
     // Position management helpers (for direct API operations)
     // =========================================================================

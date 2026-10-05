@@ -67,7 +67,7 @@
 	let isLoading = $derived(vlansQuery.isPending);
 
 	function getSubnets(vlan: Vlan): Subnet[] {
-		return (vlan.subnet_ids ?? []).map((id) => subnetsById.get(id)).filter((s): s is Subnet => !!s);
+		return (vlan.subnet_ids ?? []).map((id) => subnetsById.get(id)).filter((s) => s !== undefined);
 	}
 
 	function getSubnetNames(vlan: Vlan): string[] {

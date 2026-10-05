@@ -6,7 +6,7 @@ import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-qu
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
 import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
-import type { Subnet } from './types/base';
+import type { Subnet, SubnetResponse } from './types/base';
 
 /**
  * Query hook for fetching all subnets
@@ -19,7 +19,8 @@ import type { Subnet } from './types/base';
  */
 export function useSubnetsQuery(
 	atGetter?: () => string | undefined,
-	staleGetter?: () => boolean | undefined
+	staleGetter?: () => boolean | undefined,
+	enabledGetter?: () => boolean
 ) {
 	return createQuery(() => {
 		const at = atGetter?.();
@@ -27,6 +28,7 @@ export function useSubnetsQuery(
 		const baseKey = at ? [...queryKeys.subnets.all, 'asOf', at] : queryKeys.subnets.all;
 		return {
 			queryKey: stale === undefined ? baseKey : [...baseKey, 'stale', stale],
+			enabled: enabledGetter?.() ?? true,
 			queryFn: async () => {
 				return unwrapData(
 					await apiClient.GET('/api/v1/subnets', {
@@ -48,11 +50,9 @@ export function useCreateSubnetMutation() {
 		mutationFn: async (subnet: Subnet) => {
 			return unwrapData(await apiClient.POST('/api/v1/subnets', { body: subnet }));
 		},
-		onSuccess: (newSubnet: Subnet) => {
-			queryClient.setQueryData<Subnet[]>(queryKeys.subnets.all, (old) =>
-				old ? [...old, newSubnet] : [newSubnet]
-			);
-		}
+		// A new range changes the nesting and utilization of the ranges around it, which only the
+		// server derives, so the list is refetched rather than patched.
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.subnets.all })
 	}));
 }
 
@@ -97,10 +97,13 @@ export function useUpdateSubnetMutation() {
 			);
 		},
 		onSuccess: (updatedSubnet: Subnet) => {
-			queryClient.setQueryData<Subnet[]>(
+			// The edited fields land at once; the derived ones (a corrected CIDR moves the nesting)
+			// follow from the refetch.
+			queryClient.setQueryData<SubnetResponse[]>(
 				queryKeys.subnets.all,
-				(old) => old?.map((s) => (s.id === updatedSubnet.id ? updatedSubnet : s)) ?? []
+				(old) => old?.map((s) => (s.id === updatedSubnet.id ? { ...s, ...updatedSubnet } : s)) ?? []
 			);
+			queryClient.invalidateQueries({ queryKey: queryKeys.subnets.all });
 		}
 	}));
 }
@@ -121,10 +124,12 @@ export function useDeleteSubnetMutation() {
 			return id;
 		},
 		onSuccess: (id: string) => {
-			queryClient.setQueryData<Subnet[]>(
+			queryClient.setQueryData<SubnetResponse[]>(
 				queryKeys.subnets.all,
 				(old) => old?.filter((s) => s.id !== id) ?? []
 			);
+			// The ranges that contained it lose its addresses.
+			queryClient.invalidateQueries({ queryKey: queryKeys.subnets.all });
 		}
 	}));
 }
@@ -141,10 +146,11 @@ export function useBulkDeleteSubnetsMutation() {
 			return ids;
 		},
 		onSuccess: (ids: string[]) => {
-			queryClient.setQueryData<Subnet[]>(
+			queryClient.setQueryData<SubnetResponse[]>(
 				queryKeys.subnets.all,
 				(old) => old?.filter((s) => !ids.includes(s.id)) ?? []
 			);
+			queryClient.invalidateQueries({ queryKey: queryKeys.subnets.all });
 		}
 	}));
 }

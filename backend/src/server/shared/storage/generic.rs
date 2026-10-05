@@ -732,6 +732,38 @@ where
         Ok(total_count as u64)
     }
 
+    async fn count_distinct_by_group(
+        &self,
+        filter: StorableFilter<T>,
+        group_sql: &str,
+        distinct_sql: &str,
+    ) -> Result<Vec<(Option<String>, u64)>, anyhow::Error> {
+        let query_str = format!(
+            "SELECT ({expr})::text, COUNT(DISTINCT {distinct}) FROM {table} {joins} {filter} \
+             GROUP BY {expr} ORDER BY {expr} ASC",
+            expr = group_sql,
+            distinct = distinct_sql,
+            table = T::table_name(),
+            joins = filter.to_join_clause(),
+            filter = filter.to_where_clause(),
+        );
+
+        let mut query = sqlx::query(&query_str);
+        for value in filter.values() {
+            query = Self::bind_value(query, value)?;
+        }
+
+        let rows = query.fetch_all(&self.pool).await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| {
+                let value: Option<String> = sqlx::Row::get(&row, 0);
+                let count: i64 = sqlx::Row::get(&row, 1);
+                (value, count as u64)
+            })
+            .collect())
+    }
+
     async fn count_by_group(
         &self,
         filter: StorableFilter<T>,

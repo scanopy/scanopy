@@ -178,6 +178,15 @@ pub trait Storage<T: Storable>: Send + Sync {
         filter: StorableFilter<T>,
         group_sql: &str,
     ) -> Result<Vec<(Option<String>, u64)>, anyhow::Error>;
+    /// [`Self::count_by_group`], counting distinct values of `distinct_sql` per group instead of
+    /// rows. For tallies where two rows can stand for one thing, such as an address two hosts both
+    /// hold.
+    async fn count_distinct_by_group(
+        &self,
+        filter: StorableFilter<T>,
+        group_sql: &str,
+        distinct_sql: &str,
+    ) -> Result<Vec<(Option<String>, u64)>, anyhow::Error>;
     async fn update(&self, entity: &mut T) -> Result<T, anyhow::Error>;
     async fn delete(&self, id: &Uuid) -> Result<(), anyhow::Error>;
     async fn create_many(&self, entities: &[T]) -> Result<Vec<T>, anyhow::Error>;

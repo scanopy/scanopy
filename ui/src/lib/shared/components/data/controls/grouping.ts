@@ -1,4 +1,4 @@
-import { getFieldKey, type FieldConfig, type GroupPosition } from '../types';
+import { getFieldKey, type FieldConfig, type GroupPosition, type TreeConfig } from '../types';
 import { getFieldValue, type FieldValue } from './fieldValues';
 
 /**
@@ -64,6 +64,76 @@ export function groupItems<T>(
 	if (preserveOrder) return groups;
 
 	return new Map([...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])));
+}
+
+/** A group's rows in tree order, and each row's depth keyed by its `tree.key`. */
+export interface TreeLayout<T> {
+	items: T[];
+	depths: Map<string, number>;
+}
+
+/**
+ * One group's rows arranged as the tree `tree` describes.
+ *
+ * With `serverPaginated` the rows are left in the order they arrived, which the server already
+ * made parent-first across every page, and depth comes from `tree.depth`.
+ *
+ * Otherwise every row is in hand, so both are derived: roots are the rows with no parent in this
+ * group (a parent filtered out of the list makes its children roots), each followed by its
+ * descendants. Siblings keep the order they arrived in unless `compare` is given.
+ */
+export function arrangeTree<T>(
+	items: T[],
+	tree: TreeConfig<T>,
+	serverPaginated: boolean,
+	compare?: (a: T, b: T) => number
+): TreeLayout<T> {
+	if (serverPaginated) {
+		return {
+			items,
+			depths: new Map(items.map((item) => [tree.key(item), tree.depth?.(item) ?? 0]))
+		};
+	}
+
+	const present = new Set(items.map((item) => tree.key(item)));
+	const children = new Map<string | null, T[]>();
+	for (const item of items) {
+		const parent = tree.parentKey(item);
+		const slot = parent !== null && present.has(parent) ? parent : null;
+		if (!children.has(slot)) children.set(slot, []);
+		children.get(slot)!.push(item);
+	}
+	if (compare) {
+		for (const siblings of children.values()) siblings.sort(compare);
+	}
+
+	const ordered: T[] = [];
+	const depths = new Map<string, number>();
+	const visit = (parent: string | null, depth: number) => {
+		for (const item of children.get(parent) ?? []) {
+			const key = tree.key(item);
+			// A key seen twice would be a cycle; stop rather than recurse forever.
+			if (depths.has(key)) continue;
+			depths.set(key, depth);
+			ordered.push(item);
+			visit(key, depth + 1);
+		}
+	};
+	visit(null, 0);
+
+	return { items: ordered, depths };
+}
+
+/**
+ * Tree fields a server-paginated list cannot draw: without `depth` the client would have to
+ * derive depth from the loaded page, which misses any parent on another page.
+ */
+export function treeDepthViolations<T>(
+	fields: FieldConfig<T>[],
+	serverPaginated: boolean
+): string[] {
+	if (!serverPaginated) return [];
+	return fields.filter((field) => field.tree && !field.tree.depth).map(getFieldKey);
 }
 
 function groupLabel<T>(value: FieldValue, field: FieldConfig<T>, labels: GroupLabels): string {

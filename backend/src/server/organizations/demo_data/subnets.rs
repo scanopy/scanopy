@@ -21,7 +21,7 @@ pub(super) fn generate_subnets(
         .map(|t| t.id);
 
     vec![
-        // ===== Headquarters subnets (8) =====
+        // ===== Headquarters subnets (9) =====
         Subnet {
             valid_from: now,
             valid_to: None,
@@ -234,6 +234,34 @@ pub(super) fn generate_subnets(
                 subnet_type: SubnetType::Lan,
                 virtualization_service_id: None,
                 source: EntitySource::Inferred,
+                tags: vec![],
+            },
+        },
+        // The block HQ was allocated, recorded by hand above the segments discovery read. Holds no
+        // addresses itself; every HQ /24 in 10.0.0.0/16 nests under it.
+        Subnet {
+            valid_from: now,
+            valid_to: None,
+            lineage_id: None,
+            last_seen_at: now,
+            last_discovery_id: None,
+            first_discovery_id: None,
+            id: Uuid::new_v4(),
+            created_at: now,
+            updated_at: now,
+            base: SubnetBase {
+                cidr: SubnetCidr::new(
+                    SubnetCidrValue(IpCidr::V4(
+                        Ipv4Cidr::new(Ipv4Addr::new(10, 0, 0, 0), 16).unwrap(),
+                    )),
+                    AttributeSource::Manual,
+                ),
+                site_id: hq.id,
+                name: "HQ Address Space".to_string(),
+                description: Some("Block allocated to headquarters".to_string()),
+                subnet_type: SubnetType::Lan,
+                virtualization_service_id: None,
+                source: EntitySource::Manual,
                 tags: vec![],
             },
         },

@@ -9,16 +9,19 @@ use crate::server::shared::handlers::query::{
 };
 use crate::server::shared::handlers::traits::{CrudHandlers, update_handler};
 use crate::server::shared::services::traits::CrudService;
+use crate::server::shared::services::traits::EventBusService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable};
 use crate::server::shared::types::api::{
     ApiError, ApiErrorResponse, ApiJson, ApiResponse, ApiResult, PaginatedApiResponse,
 };
 use crate::server::shared::types::entities::EntitySource;
+use crate::server::shared::validation::validate_read_access;
 use crate::server::sites::r#impl::Site;
 use crate::server::{
     config::AppState,
     subnets::r#impl::base::{Subnet, SubnetCidr},
+    subnets::r#impl::nesting::SubnetResponse,
 };
 use axum::extract::{Path, State};
 use axum::response::Json;
@@ -134,7 +137,6 @@ impl FilterQueryExtractor for SubnetFilterQuery {
 // Generated handlers for most CRUD operations
 mod generated {
     use super::*;
-    crate::crud_get_by_id_handler!(Subnet);
     crate::crud_delete_handler!(Subnet);
     crate::crud_bulk_delete_handler!(Subnet);
     crate::crud_export_csv_handler!(Subnet);
@@ -143,14 +145,59 @@ mod generated {
 pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
     OpenApiRouter::new()
         .routes(routes!(get_all_subnets, create_subnet))
-        .routes(routes!(
-            generated::get_by_id,
-            update_subnet,
-            generated::delete
-        ))
+        .routes(routes!(get_subnet_by_id, update_subnet, generated::delete))
         .routes(routes!(merge_subnet))
         .routes(routes!(generated::bulk_delete))
         .routes(routes!(generated::export_csv))
+}
+
+/// Get subnet by ID
+///
+/// Returns the subnet with its utilization and the range it sits inside, if any.
+#[utoipa::path(
+    get,
+    path = "/{id}",
+    tag = Subnet::ENTITY_NAME_PLURAL,
+    operation_id = "get_subnet_by_id",
+    summary = "Get subnet by ID",
+    params(("id" = Uuid, Path, description = "Subnet ID")),
+    responses(
+        (status = 200, description = "Subnet found", body = ApiResponse<SubnetResponse>),
+        (status = 404, description = "Subnet not found", body = ApiErrorResponse),
+    ),
+    security(("user_api_key" = []), ("session" = []))
+)]
+async fn get_subnet_by_id(
+    state: State<Arc<AppState>>,
+    auth: Authorized<Viewer>,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<ApiResponse<SubnetResponse>>> {
+    let site_ids = auth.site_ids();
+    let organization_id = auth
+        .organization_id()
+        .ok_or_else(ApiError::organization_required)?;
+
+    let service = &state.services.subnet_service;
+    let subnet = service
+        .get_by_id(&id)
+        .await?
+        // SCD2: closed historical copies are not addressable here, as in `get_by_id_handler`.
+        .filter(|s| s.is_live_row())
+        .ok_or_else(|| ApiError::entity_not_found::<Subnet>(id))?;
+
+    validate_read_access(
+        service.get_site_id(&subnet),
+        service.get_organization_id(&subnet),
+        &site_ids,
+        organization_id,
+    )?;
+
+    let response = service
+        .with_usage(vec![subnet], None)
+        .await?
+        .pop()
+        .ok_or_else(|| ApiError::entity_not_found::<Subnet>(id))?;
+    Ok(Json(ApiResponse::success(response)))
 }
 
 /// Get all subnets
@@ -167,7 +214,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
     summary = "List all subnets",
     params(SubnetFilterQuery),
     responses(
-        (status = 200, description = "List of subnets", body = PaginatedApiResponse<Subnet>),
+        (status = 200, description = "List of subnets", body = PaginatedApiResponse<SubnetResponse>),
     ),
     security( ("user_api_key" = []),("session" = []), ("daemon_api_key" = []))
 )]
@@ -175,7 +222,7 @@ async fn get_all_subnets(
     state: State<Arc<AppState>>,
     auth: Authorized<Or<Viewer, IsDaemon>>,
     query: Query<SubnetFilterQuery>,
-) -> ApiResult<Json<PaginatedApiResponse<Subnet>>> {
+) -> ApiResult<Json<PaginatedApiResponse<SubnetResponse>>> {
     let site_ids = auth.site_ids();
     let organization_id = auth.organization_id();
     let entity = auth.into_entity();
@@ -196,6 +243,7 @@ async fn get_all_subnets(
                 ApiError::internal_error(&e.to_string())
             })?;
             let total_count = result.len() as u64;
+            let result = service.with_usage(result, None).await?;
             Ok(Json(PaginatedApiResponse::success(
                 result,
                 total_count,
@@ -234,10 +282,16 @@ async fn get_all_subnets(
                 .get_paginated_ordered(filter, &order_by)
                 .await?;
 
+            let items = state
+                .services
+                .subnet_service
+                .with_usage(result.items, query.at)
+                .await?;
+
             let limit = pagination.effective_limit().unwrap_or(0);
             let offset = pagination.effective_offset();
             Ok(Json(PaginatedApiResponse::success(
-                result.items,
+                items,
                 result.total_count,
                 limit,
                 offset,

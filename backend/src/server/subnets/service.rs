@@ -19,6 +19,7 @@ use crate::server::{
         base::{Subnet, SubnetBase},
         correction_events::{SubnetCorrection, SubnetCorrectionScope},
         inference::{infer_range_for, overlaps, placeable_subnet},
+        nesting::{self, SubnetResponse},
         types::SubnetType,
     },
     tags::entity_tags::EntityTagService,
@@ -109,6 +110,33 @@ impl SubnetService {
                     "Could not report a corrected subnet range"
                 );
             });
+    }
+
+    /// `subnets` with their nesting and utilization, live or as of `at`.
+    ///
+    /// Both depend on every subnet on the sites involved, not just the ones asked for: a page of a
+    /// list can hold a child whose parent is on the next page. So the whole of each site is read
+    /// once, alongside one grouped address count.
+    pub async fn with_usage(
+        &self,
+        subnets: Vec<Subnet>,
+        at: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> Result<Vec<SubnetResponse>> {
+        let mut site_ids: Vec<Uuid> = subnets.iter().map(|s| s.base.site_id).collect();
+        site_ids.sort();
+        site_ids.dedup();
+        if site_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let filter = StorableFilter::<Subnet>::new_from_site_ids(&site_ids).live_or_as_of(at);
+        let site_subnets = self.storage.get_all(filter).await?;
+        let own_used = self
+            .ip_address_service
+            .used_by_subnet(&site_ids, at)
+            .await?;
+
+        Ok(nesting::responses(subnets, &site_subnets, &own_used))
     }
 
     /// Fold `source` into `target`, moving its addresses and removing the row.
