@@ -140,6 +140,7 @@ async fn test_cannot_create_host_on_other_site(
         sys_contact: None,
         management_url: None,
         chassis_id: None,
+        asset_tag: None,
         credential_assignments: vec![],
         ip_addresses: vec![],
         ports: vec![],

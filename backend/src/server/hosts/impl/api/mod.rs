@@ -21,7 +21,7 @@ use crate::server::{
     credentials::r#impl::types::CredentialAssignment,
     hosts::r#impl::{
         attributes::{
-            HostChassisIdValue, HostFirmwareRevisionValue, HostHostnameValue,
+            HostAssetTagValue, HostChassisIdValue, HostFirmwareRevisionValue, HostHostnameValue,
             HostManagementUrlValue, HostManufacturerValue, HostModelValue, HostOsValue,
             HostSerialNumberValue, HostSoftwareRevisionValue, HostSysContactValue,
             HostSysDescrValue, HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
@@ -755,6 +755,11 @@ pub struct CreateHostRequest {
     /// LLDP chassis identifier, used to match the host to its neighbours.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub chassis_id: Option<String>,
+    /// The organization's asset tag for the device. Outranks the value discovery reads from
+    /// ENTITY-MIB entPhysicalAssetID.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[validate(length(max = 100, message = "Asset tag must be 100 characters or less"))]
+    pub asset_tag: Option<String>,
     /// Credentials to scan this host with.
     #[serde(default)]
     pub credential_assignments: Vec<CredentialAssignment>,
@@ -789,6 +794,12 @@ pub struct UpdateHostRequest {
     pub name: String,
     /// Hostname as resolved or reported by the host.
     pub hostname: Option<String>,
+    /// The organization's asset tag for the device. Omit it to keep the current one, send an
+    /// empty string to clear it. A changed value outranks what discovery reads from ENTITY-MIB
+    /// entPhysicalAssetID.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[validate(length(max = 100, message = "Asset tag must be 100 characters or less"))]
+    pub asset_tag: Option<String>,
     /// Free-text notes about the host.
     #[validate(length(max = 500, message = "Description must be 500 characters or less"))]
     pub description: Option<String>,
@@ -1005,6 +1016,15 @@ pub struct HostResponse {
     #[serde(default)]
     #[schema(read_only)]
     pub serial_number_source: AttributeSource,
+    /// The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person.
+    /// Set it through `asset_tag` on create and update; a typed value outranks what discovery reads.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schema(read_only)]
+    pub asset_tag: Option<String>,
+    /// What produced the asset tag. Read-only: `Manual` when a person typed it.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub asset_tag_source: AttributeSource,
     /// ENTITY-MIB entPhysicalFirmwareRev — firmware revision of the device. Read-only, as above.
     #[schema(required, read_only)]
     pub firmware_revision: Option<String>,

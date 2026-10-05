@@ -109,6 +109,8 @@ export interface HostFormData extends Partial<
 	manufacturer?: string;
 	model?: string;
 	serial_number?: string;
+	// The organization's asset tag: read from ENTITY-MIB, or typed in the host form.
+	asset_tag?: string;
 	firmware_revision?: string;
 	software_revision?: string;
 	// The OS, from whichever source read or matched it (read-only in UI).

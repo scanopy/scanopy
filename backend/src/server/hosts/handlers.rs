@@ -196,8 +196,9 @@ pub struct HostFilterQuery {
     /// Filter by tag IDs (returns hosts that have ANY of the specified tags)
     pub tag_ids: Option<Vec<Uuid>>,
     /// Free-text search. Case-insensitive substring match against the host's
-    /// name, hostname, sysName, chassis id and description, and against its IP
-    /// addresses and the names of services running on it.
+    /// name, hostname, sysName, chassis id, serial number, asset tag and
+    /// description, and against its IP addresses and the names of services
+    /// running on it.
     ///
     /// sysName and chassis id are in there because they are rungs of the title
     /// ladder: a host with no name of its own is *shown* under one of them, and

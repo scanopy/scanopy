@@ -249,6 +249,8 @@ impl DaemonResponse for HostResponse {
             model_source: _,
             serial_number: _,
             serial_number_source: _,
+            asset_tag: _,
+            asset_tag_source: _,
             firmware_revision: _,
             firmware_revision_source: _,
             software_revision: _,

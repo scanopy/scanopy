@@ -39,6 +39,7 @@ fn update_request(id: Uuid, interfaces: Option<Vec<InterfaceInput>>) -> UpdateHo
         id,
         name: HostName::unnamed().value().as_str().to_string(),
         hostname: None,
+        asset_tag: None,
         description: None,
         virtualization_metadata: None,
         virtualization_service_id: None,

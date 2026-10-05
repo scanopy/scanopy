@@ -29,9 +29,10 @@ use crate::server::{
     },
     hosts::r#impl::{
         attributes::{
-            HostChassisIdValue, HostFirmwareRevisionValue, HostManufacturerValue, HostModelValue,
-            HostOsValue, HostSerialNumberValue, HostSoftwareRevisionValue, HostSysContactValue,
-            HostSysDescrValue, HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
+            HostAssetTagValue, HostChassisIdValue, HostFirmwareRevisionValue,
+            HostManufacturerValue, HostModelValue, HostOsValue, HostSerialNumberValue,
+            HostSoftwareRevisionValue, HostSysContactValue, HostSysDescrValue,
+            HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
         },
         base::{Host, HostBase},
         name::{HostName, HostNameSources},
@@ -389,6 +390,7 @@ fn create_host(
             manufacturer: None,
             model: None,
             serial_number: None,
+            asset_tag: None,
             firmware_revision: None,
             software_revision: None,
             os: None,
@@ -434,6 +436,18 @@ fn with_snmp(
     host.base.model = model.map(|v| Attributed::new(HostModelValue(v.into()), probe));
     host.base.serial_number =
         serial_number.map(|v| Attributed::new(HostSerialNumberValue(v.into()), probe));
+    (host, ip_address)
+}
+
+/// Wraps a `create_host()` result to set the organization's asset tag, as a person typed it into
+/// Scanopy (`Manual`) or a scan read it from ENTITY-MIB `entPhysicalAssetID`. Most devices leave
+/// that object empty, so the demo, like a real network, has typed tags on most of its servers.
+fn with_asset_tag(
+    (mut host, ip_address): (Host, IPAddress),
+    asset_tag: &str,
+    source: AttributeSource,
+) -> (Host, IPAddress) {
+    host.base.asset_tag = Some(Attributed::new(HostAssetTagValue(asset_tag.into()), source));
     (host, ip_address)
 }
 

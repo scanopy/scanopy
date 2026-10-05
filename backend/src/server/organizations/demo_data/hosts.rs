@@ -230,6 +230,8 @@ pub(super) fn generate_hosts_and_services(
             Some("SG-3100"),
             Some("NG61003370A1F4"),
         );
+        let (host, ip_address) =
+            with_asset_tag((host, ip_address), "IT-00301", AttributeSource::Manual);
         let ip_addresses = vec![ip_address];
         let mut ports = Vec::new();
         let mut services = Vec::new();
@@ -532,6 +534,8 @@ pub(super) fn generate_hosts_and_services(
             Some("PowerEdge R740"),
             Some("DL7QX2B1PVE1"),
         );
+        let (host, ip_address) =
+            with_asset_tag((host, ip_address), "IT-00412", AttributeSource::Manual);
         // Proxmox VE 8 is Debian 12, and its OpenSSH package says so in the banner.
         let (host, ip_address) = with_ssh_banner((host, ip_address), PROXMOX_SSH_BANNER);
         let ip_addresses = vec![ip_address];
@@ -605,6 +609,8 @@ pub(super) fn generate_hosts_and_services(
             Some("AS-2124BT-HNTR"),
             Some("SMC2124B2PVE2"),
         );
+        let (host, ip_address) =
+            with_asset_tag((host, ip_address), "IT-00413", AttributeSource::Manual);
         let (host, ip_address) = with_ssh_banner((host, ip_address), PROXMOX_SSH_BANNER);
         let ip_addresses = vec![ip_address];
         let mut ports = Vec::new();
@@ -836,6 +842,7 @@ pub(super) fn generate_hosts_and_services(
                 manufacturer: None,
                 model: None,
                 serial_number: None,
+                asset_tag: None,
                 firmware_revision: None,
                 software_revision: None,
                 os: docker_engine_host_os(),
@@ -1048,6 +1055,10 @@ pub(super) fn generate_hosts_and_services(
         ),
         ("SSH", "SSH", Some(PortType::Ssh), vec![]),
     );
+    jenkins.host.base.asset_tag = Some(Attributed::new(
+        HostAssetTagValue("IT-00488".to_string()),
+        AttributeSource::Manual,
+    ));
     jenkins.host.base.credential_assignments = linux_inventory_cred
         .into_iter()
         .map(|id| CredentialAssignment {
@@ -1702,6 +1713,7 @@ pub(super) fn generate_hosts_and_services(
                 manufacturer: None,
                 model: None,
                 serial_number: None,
+                asset_tag: None,
                 firmware_revision: None,
                 software_revision: None,
                 os: None,
@@ -1802,6 +1814,11 @@ pub(super) fn generate_hosts_and_services(
         ("Switch", "Switch", None, vec![]),
     );
     let dc_switch_revision_source = AttributeSource::Probe(ClientProbe::Snmp);
+    // The one demo device whose administrator set entPhysicalAssetID, so the scan reads it.
+    dc_switch.host.base.asset_tag = Some(Attributed::new(
+        HostAssetTagValue("DC-NET-0031".to_string()),
+        dc_switch_revision_source,
+    ));
     dc_switch.host.base.firmware_revision = Some(Attributed::new(
         HostFirmwareRevisionValue("Aboot-4.0.1".to_string()),
         dc_switch_revision_source,
@@ -2007,6 +2024,8 @@ pub(super) fn generate_hosts_and_services(
             Some("PowerEdge R640"),
             Some("DL9RT4DC07PVE"),
         );
+        let (host, ip_address) =
+            with_asset_tag((host, ip_address), "DC-SRV-0107", AttributeSource::Manual);
         let ip_addresses = vec![ip_address];
         let mut ports = Vec::new();
         let mut services = Vec::new();
@@ -2249,6 +2268,7 @@ pub(super) fn generate_hosts_and_services(
                 manufacturer: None,
                 model: None,
                 serial_number: None,
+                asset_tag: None,
                 firmware_revision: None,
                 software_revision: None,
                 os: docker_engine_host_os(),

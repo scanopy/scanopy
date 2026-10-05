@@ -122,6 +122,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			hidden: server('hidden'),
 			description: TEXT,
 			serial_number: none('Identifier, unique per device; search finds one'),
+			asset_tag: none('Identifier, unique per device; search finds one'),
 			chassis_id: none('Identifier, unique per device; search finds one'),
 			sys_name: none('Identifier, unique per device; search finds one'),
 			management_url: none('Identifier, unique per device; search finds one'),
