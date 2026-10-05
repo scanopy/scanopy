@@ -14068,19 +14068,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-05T01:12:31.671822Z",
+              "created_at": "2026-10-05T01:43:16.085729Z",
               "first_discovery_id": null,
-              "id": "09a5e97c-5837-4ee0-8652-602440788a1e",
+              "id": "1c61e615-106d-4cbd-9c8c-aded636d67d5",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T01:12:31.671822Z",
+              "last_seen_at": "2026-10-05T01:43:16.085729Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-05T01:12:31.671822Z",
-              "valid_from": "2026-10-05T01:12:31.671822Z",
+              "updated_at": "2026-10-05T01:43:16.085729Z",
+              "valid_from": "2026-10-05T01:43:16.085729Z",
               "valid_to": null
             }
           },
@@ -15705,19 +15705,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-05T01:12:31.656650Z",
+                      "created_at": "2026-10-05T01:43:16.070454Z",
                       "first_discovery_id": null,
-                      "id": "134644e8-73c2-4913-942f-f0a54c4c1445",
+                      "id": "a352331a-9c94-49c2-aaf1-d1f72fb4cfda",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-05T01:12:31.656650Z",
+                      "last_seen_at": "2026-10-05T01:43:16.070454Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-05T01:12:31.656650Z",
-                      "valid_from": "2026-10-05T01:12:31.656650Z",
+                      "updated_at": "2026-10-05T01:43:16.070454Z",
+                      "valid_from": "2026-10-05T01:43:16.070454Z",
                       "valid_to": null
                     }
                   ],
@@ -15731,7 +15731,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Sonarr",
+                  "service_definition": "CheckMK Agent",
                   "source": {
                     "type": "Manual"
                   },
@@ -17130,19 +17130,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T01:12:31.668215Z",
+                  "created_at": "2026-10-05T01:43:16.082076Z",
                   "first_discovery_id": null,
-                  "id": "10bd8599-a2f4-41ac-aee5-e7c436d9eaff",
+                  "id": "33207511-4396-495c-ae4d-7561d2ea6cf5",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T01:12:31.668215Z",
+                  "last_seen_at": "2026-10-05T01:43:16.082076Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-05T01:12:31.668215Z",
-                  "valid_from": "2026-10-05T01:12:31.668215Z",
+                  "updated_at": "2026-10-05T01:43:16.082076Z",
+                  "valid_from": "2026-10-05T01:43:16.082076Z",
                   "valid_to": null
                 }
               ],
@@ -17156,7 +17156,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Sonarr",
+              "service_definition": "CheckMK Agent",
               "source": {
                 "type": "Manual"
               },
@@ -19648,19 +19648,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-05T01:12:31.657064Z",
+          "created_at": "2026-10-05T01:43:16.070876Z",
           "first_discovery_id": null,
-          "id": "1a2880b5-00ef-4900-8208-aeaf8bafd078",
+          "id": "eee32cbd-50df-49ef-b41a-fd2297c51b11",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-05T01:12:31.657064Z",
+          "last_seen_at": "2026-10-05T01:43:16.070876Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-05T01:12:31.657064Z",
-          "valid_from": "2026-10-05T01:12:31.657064Z",
+          "updated_at": "2026-10-05T01:43:16.070876Z",
+          "valid_from": "2026-10-05T01:43:16.070876Z",
           "valid_to": null
         }
       },
@@ -20427,7 +20427,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Sonarr",
+              "service_definition": "CheckMK Agent",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -26886,19 +26886,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T01:12:31.656188Z",
+                  "created_at": "2026-10-05T01:43:16.069987Z",
                   "first_discovery_id": null,
-                  "id": "00d09f26-78ca-4535-9711-cff85756db29",
+                  "id": "6f7bd12d-d216-4a34-9942-64ccc5d628a5",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T01:12:31.656188Z",
+                  "last_seen_at": "2026-10-05T01:43:16.069987Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-05T01:12:31.656188Z",
-                  "valid_from": "2026-10-05T01:12:31.656188Z",
+                  "updated_at": "2026-10-05T01:43:16.069987Z",
+                  "valid_from": "2026-10-05T01:43:16.069987Z",
                   "valid_to": null
                 }
               ],
@@ -26912,7 +26912,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Sonarr",
+              "service_definition": "CheckMK Agent",
               "source": {
                 "type": "Manual"
               },
@@ -30793,19 +30793,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-05T01:12:31.649431Z",
+                        "created_at": "2026-10-05T01:43:16.063253Z",
                         "first_discovery_id": null,
-                        "id": "9555bf5a-cf99-470f-9523-f94bc2c360a6",
+                        "id": "398aac62-4222-413c-81ec-9278177829d7",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-05T01:12:31.649431Z",
+                        "last_seen_at": "2026-10-05T01:43:16.063253Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-05T01:12:31.649431Z",
-                        "valid_from": "2026-10-05T01:12:31.649431Z",
+                        "updated_at": "2026-10-05T01:43:16.063253Z",
+                        "valid_from": "2026-10-05T01:43:16.063253Z",
                         "valid_to": null
                       }
                     ],
@@ -30819,7 +30819,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Sonarr",
+                    "service_definition": "CheckMK Agent",
                     "source": {
                       "type": "Manual"
                     },
@@ -30963,19 +30963,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-05T01:12:31.667562Z",
+                    "created_at": "2026-10-05T01:43:16.081412Z",
                     "first_discovery_id": null,
-                    "id": "6d5dea38-99c6-40d5-8a78-74dba33d880f",
+                    "id": "9a746311-519c-4f99-b16b-361f167ed122",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-05T01:12:31.667562Z",
+                    "last_seen_at": "2026-10-05T01:43:16.081412Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-05T01:12:31.667562Z",
-                    "valid_from": "2026-10-05T01:12:31.667562Z",
+                    "updated_at": "2026-10-05T01:43:16.081412Z",
+                    "valid_from": "2026-10-05T01:43:16.081412Z",
                     "valid_to": null
                   }
                 ],
@@ -30989,7 +30989,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Sonarr",
+                "service_definition": "CheckMK Agent",
                 "source": {
                   "type": "Manual"
                 },
@@ -32923,6 +32923,14 @@
             },
             "description": "Service bindings touched by this discovery."
           },
+          "found_subnet_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Subnets this discovery found without sweeping: ranges riding in a host request, ranges the\nserver inferred or placed addresses into, and ranges holding an address the scan saw.\n\nFilled by the server, never by a daemon. Kept apart from `subnet_ids` because the digest\nreads that list as the ranges the scan *swept*, and counting a range it only found evidence\nin would report every unobserved host there as stale. The discovery FKs take both."
+          },
           "host_ids": {
             "type": "array",
             "items": {
@@ -33220,19 +33228,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-05T01:12:31.656939Z",
+              "created_at": "2026-10-05T01:43:16.070753Z",
               "first_discovery_id": null,
-              "id": "623513d6-338c-4107-b6e0-b2317ebb44e4",
+              "id": "95ca0b05-5692-48c3-b40d-b2a9aafdc03f",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T01:12:31.656939Z",
+              "last_seen_at": "2026-10-05T01:43:16.070753Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-05T01:12:31.656939Z",
-              "valid_from": "2026-10-05T01:12:31.656939Z",
+              "updated_at": "2026-10-05T01:43:16.070753Z",
+              "valid_from": "2026-10-05T01:43:16.070753Z",
               "valid_to": null
             }
           ],
@@ -33246,7 +33254,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Sonarr",
+          "service_definition": "CheckMK Agent",
           "source": {
             "type": "Manual"
           },
@@ -34708,7 +34716,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "f1ca60ed-cbfb-4b87-b75c-32041a1b8ed9",
+                  "id": "d85fe3d2-36d5-4804-a5fd-8edc471226d7",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34718,23 +34726,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "b5744707-adae-4960-b359-3526f45a5793",
+                  "id": "92238fef-8d6c-4350-bbcf-1d1030eea8e0",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "d1524e3d-8e91-46e8-9fbb-74db54e9ae5f",
+                  "id": "305dcd11-1d61-405b-bb67-e6cd751325a0",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "643bc813-db61-428d-a13c-5f0b9e89c507",
+                  "id": "d9cdef87-42b5-4f93-a1bd-ff8502f1d85b",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "b5744707-adae-4960-b359-3526f45a5793",
+                  "id": "92238fef-8d6c-4350-bbcf-1d1030eea8e0",
                   "rule": "ByHost"
                 }
               ]
@@ -34764,19 +34772,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "984a0f40-bafc-4de0-8aa3-af0bc9802570",
+                "id": "caf5a9f3-1f0d-4c9b-9ab1-5a8d48cede38",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "a828f811-3a01-4df1-8374-82419fdb1a62",
+                "id": "51632554-8f9f-4664-a476-1eb645ffb224",
                 "rule": "ByVLAN"
               },
               {
-                "id": "c38bdc36-3b97-485b-aaed-05e0e7d49f97",
+                "id": "2900f069-0329-453b-9f2a-5a036a0879ed",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "a6c53c5a-17fd-447b-9e3a-e57a2829f22a",
+                "id": "c7e02374-3ed5-4344-bc13-ebf8f3f2ef86",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34795,7 +34803,7 @@
                 }
               },
               {
-                "id": "efaa53fc-081c-4b29-a558-5cee5702cfc2",
+                "id": "f57d6fc6-12e0-4275-a4be-eac60042ff2a",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34804,15 +34812,15 @@
                 }
               },
               {
-                "id": "782af1dd-ff17-4dc0-8fb7-b7232176effa",
+                "id": "3c3d9bcf-0b86-4603-a8c0-559006f50b7b",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "bef12109-5969-47ec-81ba-c3a03b1eea17",
+                "id": "33061cbb-9cf0-459c-86b1-7f46ecc08c4b",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "32cbca79-12d4-46a5-9664-8a72ae1266bb",
+                "id": "54ddbb40-095a-4ed8-b14c-8c2ee51ac9cc",
                 "rule": "ByStack"
               }
             ]
