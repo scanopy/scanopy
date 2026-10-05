@@ -227,21 +227,25 @@ pub fn pre_interface_to_ip_address_rename(version: Option<&str>) -> bool {
         .is_none_or(|v| v < Version::new(0, 16, 0))
 }
 
-/// First version that ships with the corrected Docker Compose daemon-config
-/// volume mount (`/root/.config/scanopy/daemon`). Releases before this shipped
-/// with `/root/.config/daemon`, which silently registered a new daemon on
-/// upgrade because the volume mount didn't match the daemon's actual config
-/// directory.
-pub fn minimum_correct_docker_volume_mount() -> Version {
-    Version::new(0, 16, 1)
+/// The last release whose daemon image writes `config.json` outside the `daemon-config` volume
+/// (GH #760). Those images keep config at `/root/.config/daemon` while the composes since v0.16.1
+/// mount the volume at [`DOCKER_CONFIG_DIR`], so the config lives in the container layer and the
+/// upgrade's own recreate erases it. Later images symlink `/root/.config/daemon` onto the volume.
+///
+/// A ceiling rather than a floor, for the reason [`last_legacy_neighbor_wire`] gives. Until the
+/// version is bumped, a build of this branch calls itself this version, so its daemons still get
+/// the pre-upgrade copy step, which is harmless.
+///
+/// [`DOCKER_CONFIG_DIR`]: crate::daemon::shared::config::DOCKER_CONFIG_DIR
+pub fn last_unpersisted_docker_config() -> Version {
+    Version::new(0, 17, 21)
 }
 
-/// Returns true if the daemon version is >= the first release that shipped
-/// with the corrected docker-compose.yml volume mount. Used as a proxy for
-/// "this user probably has the fixed compose file" — imperfect (a user could
-/// be on the latest daemon with a stale compose) but catches the common case.
-pub fn has_correct_docker_volume_mount(version: Option<&Version>) -> bool {
-    version.is_some_and(|v| v >= &minimum_correct_docker_volume_mount())
+/// Whether a Docker daemon at this version keeps its config on the `daemon-config` volume. When it
+/// does not, the upgrade modal has the user copy the config onto the volume before recreating. A
+/// daemon without a recorded version is assumed not to.
+pub fn persists_docker_config(version: Option<&Version>) -> bool {
+    version.is_some_and(|v| v > &last_unpersisted_docker_config())
 }
 
 /// The last release whose daemon submits the pre-#701 scalar LLDP/CDP shape — twelve fields flat
@@ -315,10 +319,6 @@ fn capability_floors() -> Vec<(String, Version)> {
             minimum_server_provisioned_identity(),
         ),
         (
-            "minimum_correct_docker_volume_mount".to_string(),
-            minimum_correct_docker_volume_mount(),
-        ),
-        (
             "minimum_targeted_rescan".to_string(),
             minimum_targeted_rescan(),
         ),
@@ -390,7 +390,7 @@ impl DaemonVersionPolicy {
 
     pub fn evaluate(&self, version: Option<&Version>) -> DaemonVersionStatus {
         let supports_unified = supports_unified_discovery(version);
-        let has_correct_mount = has_correct_docker_volume_mount(version);
+        let persists_config = persists_docker_config(version);
         let supports_rescan = supports_targeted_rescan(version);
         let reports_os = supports_os_reporting(version);
 
@@ -402,7 +402,7 @@ impl DaemonVersionPolicy {
             warnings,
             sunset_date,
             supports_unified_discovery: supports_unified,
-            has_correct_docker_volume_mount: has_correct_mount,
+            persists_docker_config: persists_config,
             supports_targeted_rescan: supports_rescan,
             supports_os_reporting: reports_os,
         }
@@ -551,9 +551,10 @@ pub struct DaemonVersionStatus {
     /// Whether the daemon can run a combined discovery pass.
     #[serde(default)]
     pub supports_unified_discovery: bool,
-    /// Whether a containerized daemon is mounted so it can read the Docker socket.
+    /// Whether a Docker daemon at this version keeps its config on the `daemon-config` volume.
+    /// When false, the upgrade modal has the user copy the config onto the volume first.
     #[serde(default)]
-    pub has_correct_docker_volume_mount: bool,
+    pub persists_docker_config: bool,
     /// Whether this daemon can run a single-host rescan. Server-computed so the
     /// frontend never has to hardcode a version floor.
     #[serde(default)]
@@ -759,6 +760,19 @@ mod tests {
         let mid = policy.evaluate(Some(&Version::new(1, 0, 0)));
         assert_eq!(mid.status, VersionHealthStatus::Deprecated);
         assert_eq!(mid.sunset_date.as_deref(), Some("2027-08-01"));
+    }
+
+    /// The upgrade modal's pre-upgrade copy step shows for the last unpersisted release and for a
+    /// daemon with no recorded version, and stops at the first release that persists.
+    #[test]
+    fn docker_config_copy_step_stops_at_first_persisting_release() {
+        let policy = policy_at(dt(2026, 10, 5));
+        let last = last_unpersisted_docker_config();
+        let first_fixed = Version::new(last.major, last.minor, last.patch + 1);
+
+        assert!(!policy.evaluate(Some(&last)).persists_docker_config);
+        assert!(!policy.evaluate(None).persists_docker_config);
+        assert!(policy.evaluate(Some(&first_fixed)).persists_docker_config);
     }
 
     // --- Rot guards -----------------------------------------------------------

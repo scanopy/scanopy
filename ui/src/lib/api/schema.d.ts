@@ -7623,8 +7623,11 @@ export interface components {
         };
         /** @description Daemon version status including health and any warnings */
         DaemonVersionStatus: {
-            /** @description Whether a containerized daemon is mounted so it can read the Docker socket. */
-            has_correct_docker_volume_mount?: boolean;
+            /**
+             * @description Whether a Docker daemon at this version keeps its config on the `daemon-config` volume.
+             *     When false, the upgrade modal has the user copy the config onto the volume first.
+             */
+            persists_docker_config?: boolean;
             /** @description Whether that version is current, ageing, or out of support. */
             status: components["schemas"]["VersionHealthStatus"];
             /**

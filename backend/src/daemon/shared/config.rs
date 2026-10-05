@@ -544,6 +544,13 @@ fn render_mode(mode: Option<&DaemonMode>) -> Option<String> {
 /// agree without either side having to remember the literal.
 pub const DEFAULT_DAEMON_NAME: &str = "scanopy-daemon";
 
+/// Where the daemon image keeps `config.json`: the mount target of the `daemon-config` volume in
+/// every compose file. `Dockerfile.daemon` symlinks the daemon's default per-user dir
+/// (`/root/.config/daemon`) onto it, so the default path and pre-v0.16.1 composes that mount
+/// `/root/.config/daemon` both land on the volume. A guard test in the server's install artifacts
+/// holds the compose files and Dockerfiles to this path.
+pub const DOCKER_CONFIG_DIR: &str = "/root/.config/scanopy/daemon";
+
 /// Unified configuration struct that handles both startup and runtime config
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AppConfig {

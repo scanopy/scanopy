@@ -667,3 +667,97 @@ fn install_command_omits_name() {
     );
     assert!(!a.linux.contains("--name"));
 }
+
+/// Every `/root/.config…` path a file names, cut at the first character a path can't hold.
+fn root_config_paths(text: &str) -> Vec<&str> {
+    text.match_indices("/root/.config")
+        .map(|(start, _)| {
+            let rest = &text[start..];
+            let end = rest
+                .find(|c: char| !(c.is_ascii_alphanumeric() || matches!(c, '/' | '.' | '-' | '_')))
+                .unwrap_or(rest.len());
+            rest[..end].trim_end_matches('.')
+        })
+        .collect()
+}
+
+/// The daemon image only persists config if every compose mounts the volume where the image
+/// keeps it. GH #760: the composes and the image disagreed for six releases and every container
+/// recreate started the daemon blank, with nothing failing. Each shipped compose, the generated
+/// one, and both Dockerfiles must name [`DOCKER_CONFIG_DIR`] and no other config path.
+#[test]
+fn docker_config_dir_matches_every_compose_and_dockerfile() {
+    let generated = build_install_artifacts(
+        "https://app.scanopy.net",
+        &daemon(DaemonMode::DaemonPoll, ""),
+        None,
+        &[],
+        InstallCommandType::Install,
+    )
+    .docker
+    .compose
+    .expect("an install yields a docker compose");
+
+    let composes = [
+        (
+            "docker-compose.yml",
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../docker-compose.yml"
+            )),
+        ),
+        (
+            "docker-compose.commercial.yml",
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../docker-compose.commercial.yml"
+            )),
+        ),
+        (
+            "docker-compose.test.yml",
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../docker-compose.test.yml"
+            )),
+        ),
+        ("generated compose", generated.as_str()),
+    ];
+    for (name, text) in composes {
+        let paths = root_config_paths(text);
+        assert!(!paths.is_empty(), "{name} mounts no daemon config volume");
+        for path in paths {
+            assert_eq!(
+                path, DOCKER_CONFIG_DIR,
+                "{name} mounts daemon config at {path}, but the daemon image keeps it at \
+                 {DOCKER_CONFIG_DIR}"
+            );
+        }
+    }
+
+    // The daemon's default per-user config dir on Linux as root (`ProjectDirs` for
+    // com.scanopy.daemon). Not derivable here: the test may run on macOS or Windows.
+    const DEFAULT_CONFIG_DIR: &str = "/root/.config/daemon";
+    let dockerfiles = [
+        (
+            "Dockerfile.daemon",
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/Dockerfile.daemon")),
+        ),
+        (
+            "Dockerfile.dev",
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/Dockerfile.dev")),
+        ),
+    ];
+    for (name, text) in dockerfiles {
+        assert!(
+            text.contains(&format!("ln -s {DOCKER_CONFIG_DIR} {DEFAULT_CONFIG_DIR}")),
+            "{name} must symlink {DEFAULT_CONFIG_DIR} onto {DOCKER_CONFIG_DIR}"
+        );
+        for path in root_config_paths(text) {
+            assert!(
+                path == DOCKER_CONFIG_DIR || path == DEFAULT_CONFIG_DIR,
+                "{name} names config path {path}, which is neither {DOCKER_CONFIG_DIR} nor the \
+                 symlinked default {DEFAULT_CONFIG_DIR}"
+            );
+        }
+    }
+}

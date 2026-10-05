@@ -22143,9 +22143,9 @@
           "status"
         ],
         "properties": {
-          "has_correct_docker_volume_mount": {
+          "persists_docker_config": {
             "type": "boolean",
-            "description": "Whether a containerized daemon is mounted so it can read the Docker socket."
+            "description": "Whether a Docker daemon at this version keeps its config on the `daemon-config` volume.\nWhen false, the upgrade modal has the user copy the config onto the volume first."
           },
           "status": {
             "$ref": "#/components/schemas/VersionHealthStatus",

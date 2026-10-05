@@ -21,6 +21,11 @@ RUN apt-get update && apt-get install -y \
     tcpdump \
     && rm -rf /var/lib/apt/lists/*
 
+# Same daemon config layout as Dockerfile.daemon, so dev/test daemons persist config the way the
+# shipped image does.
+RUN mkdir -p /root/.config/scanopy/daemon \
+    && ln -s /root/.config/scanopy/daemon /root/.config/daemon
+
 WORKDIR /app
 
 EXPOSE 60072 60073

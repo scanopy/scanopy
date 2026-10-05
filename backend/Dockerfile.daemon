@@ -17,6 +17,14 @@ RUN apt-get update && apt-get install -y \
 COPY scanopy-daemon-linux-${TARGETARCH} /usr/local/bin/scanopy-daemon
 RUN chmod +x /usr/local/bin/scanopy-daemon
 
+# The daemon's default config dir (`ProjectDirs` → /root/.config/daemon) is a symlink onto the
+# directory the `daemon-config` volume mounts, so config.json lands on the volume. Composes from
+# before v0.16.1 mount the volume at /root/.config/daemon itself; Docker resolves that mount
+# target through the symlink, so both mounts reach the same directory. The path must match
+# `DOCKER_CONFIG_DIR` (backend/src/daemon/shared/config.rs).
+RUN mkdir -p /root/.config/scanopy/daemon \
+    && ln -s /root/.config/scanopy/daemon /root/.config/daemon
+
 # Notice for third-party data compiled into the binary (Rapid7 Recog, BSD-2-Clause).
 COPY assets/recog/LICENSE /usr/share/doc/scanopy/recog/LICENSE
 

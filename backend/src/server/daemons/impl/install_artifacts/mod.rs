@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use super::base::{Daemon, DaemonMode};
-use crate::daemon::shared::config::DaemonArgs;
+use crate::daemon::shared::config::{DOCKER_CONFIG_DIR, DaemonArgs};
 use crate::server::credentials::r#impl::mapping::IntegrationTarget;
 
 /// The `install.sh` one-liner that fetches + runs the Unix installer bootstrap.
@@ -379,9 +379,9 @@ fn docker_compose(env_lines: &[String], daemon: &Daemon) -> String {
     }
 
     let volumes = [
-        "daemon-config:/root/.config/scanopy/daemon",
-        "/var/run/docker.sock:/var/run/docker.sock:ro",
-        "/var/log/scanopy:/var/log/scanopy",
+        format!("daemon-config:{DOCKER_CONFIG_DIR}"),
+        "/var/run/docker.sock:/var/run/docker.sock:ro".to_string(),
+        "/var/log/scanopy:/var/log/scanopy".to_string(),
     ];
 
     let mut lines = vec![
