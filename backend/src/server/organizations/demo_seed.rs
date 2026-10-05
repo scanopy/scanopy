@@ -28,7 +28,7 @@ use uuid::Uuid;
 
 use super::handlers::DEMO_USER_ID;
 
-/// A demo dataset that cannot be written in a single-layer hoist.
+/// A demo dataset whose virtualization owners cannot be ordered.
 ///
 /// Both variants mean `demo_data.rs` and this module have drifted apart, not that a user did
 /// anything wrong — hence `internal_error`.
@@ -36,9 +36,9 @@ use super::handlers::DEMO_USER_ID;
 pub(crate) enum DemoSeedError {
     /// A row names a virtualizing service the dataset never defines.
     UnresolvableOwner { owner: Uuid },
-    /// A row that has to be hoisted is itself virtualized by something not yet written, so one
-    /// hoisted layer is not enough to order the batch.
-    NestedOwner { hoisted: Uuid, names: Uuid },
+    /// Owner services wait on each other in a cycle, so no order writes each one after the
+    /// service its own row (or its host's row) names.
+    CyclicOwners { stuck: Uuid, names: Uuid },
 }
 
 impl std::fmt::Display for DemoSeedError {
@@ -49,11 +49,10 @@ impl std::fmt::Display for DemoSeedError {
                 "demo data declares virtualization_service_id {owner}, which matches no service \
                  in the dataset"
             ),
-            Self::NestedOwner { hoisted, names } => write!(
+            Self::CyclicOwners { stuck, names } => write!(
                 f,
-                "demo data entity {hoisted} must be written early because something is \
-                 virtualized by it, but it is itself virtualized by {names}. The hoist below is \
-                 single-layer; extend it to order these before adding such a case."
+                "demo data owner service {stuck} waits on {names}, which waits on it in turn; \
+                 virtualization owners must form chains, not cycles"
             ),
         }
     }
@@ -65,14 +64,23 @@ impl From<DemoSeedError> for ApiError {
     }
 }
 
+/// One write step of the hoist: hosts first, then the owner services that run on them.
+#[derive(Debug, Default)]
+pub(crate) struct HoistLayer {
+    /// Hosts that own a service in this layer — written first, because `services.host_id` FKs
+    /// to them.
+    pub hosts: Vec<Host>,
+    /// The virtualizing services themselves.
+    pub services: Vec<Service>,
+}
+
 /// A batch split so that no row is written before the service its `virtualization_service_id`
 /// names.
 #[derive(Debug)]
 pub(crate) struct VirtualizationHoist {
-    /// Hosts that own a hoisted service — written first, because `services.host_id` FKs to them.
-    pub owner_hosts: Vec<Host>,
-    /// The virtualizing services themselves.
-    pub owner_services: Vec<Service>,
+    /// Owner rows in write order. A later layer may name a service from an earlier one: a
+    /// hypervisor's VM that runs a container engine is hoisted one layer after the hypervisor.
+    pub owner_layers: Vec<HoistLayer>,
     pub deferred_hosts: Vec<Host>,
     pub deferred_services: Vec<Service>,
 }
@@ -84,8 +92,12 @@ pub(crate) struct VirtualizationHoist {
 /// names its runtime — all now real foreign keys into `services`. Discovery hit the same problem
 /// and broke the cycle by materialising the owner's row early (`hosts/service/create.rs:537`);
 /// this is that idea for a bulk batch. It is not a true cycle: `services` FKs only to `hosts` and
-/// `networks` — bindings live in their own table — so an owner service can be written as soon as
+/// `sites` — bindings live in their own table — so an owner service can be written as soon as
 /// its host row exists.
+///
+/// Owners can nest: a VM under a hypervisor can itself run a container engine. Each owner service
+/// goes in the first layer where both it and its host name only services already written, so a
+/// chain of any depth orders itself; only a cycle fails.
 ///
 /// **Where this deliberately differs from discovery.** `resolve_owner_service_id`
 /// (`hosts/service/create.rs:36`) degrades an id it cannot resolve to `None`, which is right
@@ -117,52 +129,104 @@ pub(crate) fn hoist_virtualization_owners(
         .collect();
 
     let services_by_id: HashMap<Uuid, &Service> = services.iter().map(|s| (s.id, s)).collect();
+    let hosts_by_id: HashMap<Uuid, &Host> = hosts.iter().map(|h| (h.id, h)).collect();
 
-    let mut owner_host_ids: HashSet<Uuid> = HashSet::new();
+    // Resolve every owner up front, so an undefined one is reported as such rather than as a
+    // cycle the loop below cannot break.
+    let mut pending: Vec<&Service> = Vec::with_capacity(owner_ids.len());
     for owner in &owner_ids {
-        let service = services_by_id
-            .get(owner)
-            .ok_or(DemoSeedError::UnresolvableOwner { owner: *owner })?;
-        // A service to be hoisted cannot itself be waiting on an unwritten owner.
-        if let Some(names) = service.base.virtualization_service_id
-            && !already_written.contains(&names)
-        {
-            return Err(DemoSeedError::NestedOwner {
-                hoisted: service.id,
-                names,
+        pending.push(
+            services_by_id
+                .get(owner)
+                .copied()
+                .ok_or(DemoSeedError::UnresolvableOwner { owner: *owner })?,
+        );
+    }
+    // Deterministic layers regardless of HashSet iteration order.
+    pending.sort_by_key(|s| s.id);
+
+    let mut written: HashSet<Uuid> = already_written.clone();
+    let mut hoisted_host_ids: HashSet<Uuid> = HashSet::new();
+    let mut owner_layers: Vec<HoistLayer> = Vec::new();
+
+    while !pending.is_empty() {
+        // The first service this owner's row, or its host's row, names that is not yet written.
+        let blocker = |service: &Service| {
+            let host_owner = hosts_by_id
+                .get(&service.base.host_id)
+                .and_then(|h| h.base.virtualization_service_id);
+            [service.base.virtualization_service_id, host_owner]
+                .into_iter()
+                .flatten()
+                .find(|id| !written.contains(id))
+        };
+        let (ready, waiting): (Vec<&Service>, Vec<&Service>) =
+            pending.into_iter().partition(|s| blocker(s).is_none());
+
+        if ready.is_empty() {
+            let stuck = waiting[0];
+            return Err(DemoSeedError::CyclicOwners {
+                stuck: stuck.id,
+                names: blocker(stuck).unwrap_or(stuck.id),
             });
         }
-        owner_host_ids.insert(service.base.host_id);
-    }
 
-    let (owner_hosts, deferred_hosts): (Vec<Host>, Vec<Host>) = hosts
-        .iter()
-        .cloned()
-        .partition(|h| owner_host_ids.contains(&h.id));
-
-    // Nor can a host that has to be hoisted carry one.
-    for host in &owner_hosts {
-        if let Some(names) = host.base.virtualization_service_id
-            && !already_written.contains(&names)
-        {
-            return Err(DemoSeedError::NestedOwner {
-                hoisted: host.id,
-                names,
-            });
+        let mut layer = HoistLayer::default();
+        for service in ready {
+            if hoisted_host_ids.insert(service.base.host_id)
+                && let Some(host) = hosts_by_id.get(&service.base.host_id)
+            {
+                layer.hosts.push((*host).clone());
+            }
+            written.insert(service.id);
+            layer.services.push(service.clone());
         }
+        owner_layers.push(layer);
+        pending = waiting;
     }
 
-    let (owner_services, deferred_services): (Vec<Service>, Vec<Service>) = services
+    let deferred_hosts = hosts
         .iter()
+        .filter(|h| !hoisted_host_ids.contains(&h.id))
         .cloned()
-        .partition(|s| owner_ids.contains(&s.id));
+        .collect();
+    let deferred_services = services
+        .iter()
+        .filter(|s| !owner_ids.contains(&s.id))
+        .cloned()
+        .collect();
 
     Ok(VirtualizationHoist {
-        owner_hosts,
-        owner_services,
+        owner_layers,
         deferred_hosts,
         deferred_services,
     })
+}
+
+/// Write a hoist's owner layers in order, returning every host and service it created.
+async fn write_owner_layers(
+    services: &ServiceFactory,
+    hoist: &VirtualizationHoist,
+    entity: &AuthenticatedEntity,
+    entity_tags: &mut Vec<EntityTag>,
+) -> ApiResult<(Vec<Host>, Vec<Service>)> {
+    let mut created_hosts = Vec::new();
+    let mut created_services = Vec::new();
+    for layer in &hoist.owner_layers {
+        let hosts = services
+            .host_service
+            .create_many(&layer.hosts, entity.clone())
+            .await?;
+        collect_entity_tags(&hosts, entity_tags);
+        created_hosts.extend(hosts);
+        let layer_services = services
+            .service_service
+            .create_many(&layer.services, entity.clone())
+            .await?;
+        collect_entity_tags(&layer_services, entity_tags);
+        created_services.extend(layer_services);
+    }
+    Ok((created_hosts, created_services))
 }
 
 /// Collect EntityTag records from tagged entities into the accumulator.
@@ -287,16 +351,8 @@ pub(crate) async fn insert_demo_data(
         &all_services,
         &HashSet::new(),
     )?;
-    let created_owner_hosts = services
-        .host_service
-        .create_many(&hoist.owner_hosts, entity.clone())
-        .await?;
-    collect_entity_tags(&created_owner_hosts, &mut all_entity_tags);
-    let created_owner_services = services
-        .service_service
-        .create_many(&hoist.owner_services, entity.clone())
-        .await?;
-    collect_entity_tags(&created_owner_services, &mut all_entity_tags);
+    let (_, created_owner_services) =
+        write_owner_layers(services, &hoist, &entity, &mut all_entity_tags).await?;
 
     // 4. Subnets (depends on sites, and on the owner services written above)
     let created_subnets = services
@@ -678,16 +734,8 @@ pub(crate) async fn insert_demo_data(
             hoist_virtualization_owners(&[], &recent_hosts, &recent_services, &already_written)?;
 
         let mut recent_entity_tags: Vec<EntityTag> = Vec::new();
-        let created_recent_owner_hosts = services
-            .host_service
-            .create_many(&recent_hoist.owner_hosts, entity.clone())
-            .await?;
-        collect_entity_tags(&created_recent_owner_hosts, &mut recent_entity_tags);
-        let created_recent_owner_services = services
-            .service_service
-            .create_many(&recent_hoist.owner_services, entity.clone())
-            .await?;
-        collect_entity_tags(&created_recent_owner_services, &mut recent_entity_tags);
+        let (_, created_recent_owner_services) =
+            write_owner_layers(services, &recent_hoist, &entity, &mut recent_entity_tags).await?;
 
         let created_recent_hosts = services
             .host_service
@@ -776,6 +824,15 @@ mod tests {
         )
     }
 
+    /// Owner service ids per layer, in write order.
+    fn layer_service_ids(hoist: &VirtualizationHoist) -> Vec<Vec<Uuid>> {
+        hoist
+            .owner_layers
+            .iter()
+            .map(|l| l.services.iter().map(|s| s.id).collect())
+            .collect()
+    }
+
     #[test]
     fn the_owner_and_its_host_are_written_before_everything_that_names_them() {
         let (subnets, hosts, services) = dataset();
@@ -785,16 +842,13 @@ mod tests {
         let hoist =
             hoist_virtualization_owners(&subnets, &hosts, &services, &HashSet::new()).unwrap();
 
+        assert_eq!(layer_service_ids(&hoist), vec![vec![runtime_service_id]]);
         assert_eq!(
-            hoist
-                .owner_services
+            hoist.owner_layers[0]
+                .hosts
                 .iter()
-                .map(|s| s.id)
+                .map(|h| h.id)
                 .collect::<Vec<_>>(),
-            vec![runtime_service_id]
-        );
-        assert_eq!(
-            hoist.owner_hosts.iter().map(|h| h.id).collect::<Vec<_>>(),
             vec![runtime_host_id]
         );
         // The guest half waits, and nothing is dropped on the floor.
@@ -817,8 +871,7 @@ mod tests {
         let hoist =
             hoist_virtualization_owners(&subnets, &hosts, &services, &already_written).unwrap();
 
-        assert!(hoist.owner_services.is_empty());
-        assert!(hoist.owner_hosts.is_empty());
+        assert!(hoist.owner_layers.is_empty());
         assert_eq!(hoist.deferred_hosts.len(), 2);
         assert_eq!(hoist.deferred_services.len(), 2);
     }
@@ -834,17 +887,54 @@ mod tests {
         assert!(matches!(err, DemoSeedError::UnresolvableOwner { .. }));
     }
 
+    /// Hypervisor → VM running a container engine → container: the engine service sits on a host
+    /// the hypervisor service virtualizes, so it can only be written one layer later.
     #[test]
-    fn a_second_layer_of_virtualization_is_rejected_rather_than_mis_ordered() {
+    fn a_nested_owner_is_written_one_layer_after_the_owner_it_names() {
+        let site_id = Uuid::new_v4();
+        let hypervisor_host = host(&site_id);
+        let hypervisor = service(&site_id, &hypervisor_host.id);
+        let mut vm_host = host(&site_id);
+        vm_host.base.virtualization_service_id = Some(hypervisor.id);
+        let engine = service(&site_id, &vm_host.id);
+        let mut container_host = host(&site_id);
+        container_host.base.virtualization_service_id = Some(engine.id);
+
+        let hosts = vec![
+            container_host.clone(),
+            vm_host.clone(),
+            hypervisor_host.clone(),
+        ];
+        let services = vec![engine.clone(), hypervisor.clone()];
+        let hoist = hoist_virtualization_owners(&[], &hosts, &services, &HashSet::new()).unwrap();
+
+        assert_eq!(
+            layer_service_ids(&hoist),
+            vec![vec![hypervisor.id], vec![engine.id]]
+        );
+        assert_eq!(hoist.owner_layers[0].hosts[0].id, hypervisor_host.id);
+        assert_eq!(hoist.owner_layers[1].hosts[0].id, vm_host.id);
+        assert_eq!(
+            hoist
+                .deferred_hosts
+                .iter()
+                .map(|h| h.id)
+                .collect::<Vec<_>>(),
+            vec![container_host.id]
+        );
+    }
+
+    #[test]
+    fn owners_that_wait_on_each_other_are_rejected_rather_than_mis_ordered() {
         let (subnets, hosts, mut services) = dataset();
-        // The runtime service is now itself virtualized by the guest service — one hoisted layer
-        // can no longer order this batch.
+        // The runtime service is now itself virtualized by the guest service, which the runtime
+        // virtualizes: no write order satisfies both.
         let guest_service_id = services[1].id;
         services[0].base.virtualization_service_id = Some(guest_service_id);
 
         let err = hoist_virtualization_owners(&subnets, &hosts, &services, &HashSet::new())
-            .expect_err("a nested owner must fail loudly, not reach Postgres");
+            .expect_err("a cycle must fail loudly, not reach Postgres");
 
-        assert!(matches!(err, DemoSeedError::NestedOwner { .. }));
+        assert!(matches!(err, DemoSeedError::CyclicOwners { .. }));
     }
 }
