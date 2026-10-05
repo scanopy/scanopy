@@ -1,4 +1,4 @@
-<!-- Stands in for the tags a row had no room for ("+2 tags"). Hovering, clicking or pressing Enter
+<!-- An (i) icon standing in for the tags a row had no room for. Hovering, clicking or pressing Enter
      opens a popover with the tags themselves: their colours, tooltips and entity popovers. Once the
      pointer is inside, it stays open until a click outside, Escape or a scroll, so a tag's own
      popover can be reached from it. Static contexts get the tag names as a plain tooltip. -->
@@ -8,9 +8,11 @@
 	import { tooltip } from '$lib/shared/actions/tooltip';
 	import { common_moreTags, common_oneMoreTag } from '$lib/paraglide/messages';
 	import DisplayTag from './DisplayTag.svelte';
+	import { Info } from 'lucide-svelte';
 
 	let { tags, interactive }: { tags: TagProps[]; interactive: boolean } = $props();
 
+	// The count reads to assistive tech and in the static tooltip; the icon itself carries none.
 	let label = $derived(
 		tags.length === 1 ? common_oneMoreTag() : common_moreTags({ count: tags.length })
 	);
@@ -76,13 +78,14 @@
 		tabindex="0"
 		aria-haspopup="dialog"
 		aria-expanded={isOpen}
-		class="text-tertiary hover:text-secondary cursor-pointer whitespace-nowrap text-xs transition-colors"
+		aria-label={label}
+		class="text-tertiary hover:text-secondary inline-flex shrink-0 cursor-pointer items-center p-0.5 transition-colors"
 		onmouseenter={handleMouseEnter}
 		onmouseleave={handleMouseLeave}
 		onclick={toggle}
 		onkeydown={(e) => {
 			if (e.key === 'Enter' || e.key === ' ') toggle(e);
-		}}>{label}</span
+		}}><Info class="h-3.5 w-3.5" /></span
 	>
 	<Popover
 		triggerElement={triggerEl}
@@ -102,7 +105,10 @@
 		</div>
 	</Popover>
 {:else}
-	<span use:tooltip data-tooltip={names || null} class="text-tertiary whitespace-nowrap text-xs"
-		>{label}</span
+	<span
+		use:tooltip
+		data-tooltip={names || label}
+		aria-label={label}
+		class="text-tertiary inline-flex shrink-0 items-center p-0.5"><Info class="h-3.5 w-3.5" /></span
 	>
 {/if}

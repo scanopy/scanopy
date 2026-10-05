@@ -4,6 +4,7 @@
 	// ChevronDown / ChevronRight replaced by the CSS `.caret` below — see the note on that rule.
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import HiddenTagsChip from '$lib/shared/components/forms/selection/HiddenTagsChip.svelte';
+	import { HIDDEN_TAGS_CHIP_WIDTH } from '$lib/shared/components/forms/selection/display-tags';
 	import type { ColorStyle, Color } from '$lib/shared/utils/styling';
 	import type { IconComponent } from '$lib/shared/utils/types';
 	import type { TagProps } from '$lib/shared/components/data/types';
@@ -77,9 +78,9 @@
 	let subgroupTotal = $derived(subgroupSummaries.reduce((sum, s) => sum + s.childCount, 0));
 	let ungroupedCount = $derived(childCount - subgroupTotal);
 
-	// Tag truncation for inline variant: measure available space, show "+X more" for overflow
+	// Tag truncation for inline variant: measure available space, show the (i) icon for overflow
 	const TAG_GAP = 4;
-	const MORE_WIDTH = 50;
+	const MORE_WIDTH = HIDDEN_TAGS_CHIP_WIDTH;
 	let inlineContainerEl: HTMLDivElement | undefined = $state(undefined);
 	let inlineMeasureEl: HTMLDivElement | undefined = $state(undefined);
 	// Derived from the label count by default; `calculateVisibleLabels`

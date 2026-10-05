@@ -6,7 +6,7 @@
 	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
 	import InlineDescription from '$lib/features/topology/components/panel/inspectors/InlineDescription.svelte';
 	import type { EntityDisplayComponent } from './types';
-	import { displayTags, fitTags } from './display-tags';
+	import { displayTags, fitTags, HIDDEN_TAGS_CHIP_WIDTH } from './display-tags';
 	import DisplayTag from './DisplayTag.svelte';
 	import HiddenTagsChip from './HiddenTagsChip.svelte';
 
@@ -14,6 +14,8 @@
 	export let displayComponent: EntityDisplayComponent<T, C>;
 	export let context: C;
 	export let staticTags: boolean = false;
+	/** Show every tag instead of fitting them to the row (a hover popover, which can widen to fit). */
+	export let showAllTags: boolean = false;
 
 	const staticTagsContext = getContext<boolean>('staticTags') ?? false;
 
@@ -58,12 +60,12 @@
 	const SPACING = {
 		gap: 8, // gap-2 = 0.5rem = 8px
 		tagGap: 4, // gap-1 = 0.25rem = 4px
-		moreWidth: 50 // approximate width for "+N tags"
+		moreWidth: HIDDEN_TAGS_CHIP_WIDTH
 	};
 
 	// The label keeps its full width and tags take what's left (see `fitTags`). The tag group never
 	// shrinks, so when the label alone is wider than the row, it is the label that gives way to the
-	// "+N tags" chip, wrapping onto a second line rather than hiding part of the value. Its one-line
+	// hidden-tags (i) icon, wrapping onto a second line rather than hiding part of the value. Its one-line
 	// width comes from the hidden copy: the wrapped label's own width is the row's, not its text's.
 	function calculateVisibleTags() {
 		if (!containerEl || !measureEl || !labelMeasureEl || tags.length === 0) return;
@@ -94,8 +96,8 @@
 		requestAnimationFrame(() => calculateVisibleTags());
 	}
 
-	$: visibleTags = tags.slice(0, visibleTagCount);
-	$: hiddenTags = tags.slice(visibleTagCount);
+	$: visibleTags = showAllTags ? tags : tags.slice(0, visibleTagCount);
+	$: hiddenTags = showAllTags ? [] : tags.slice(visibleTagCount);
 </script>
 
 <div class="flex min-w-0 items-center gap-3" class:list-select-item-container={showTagPicker}>

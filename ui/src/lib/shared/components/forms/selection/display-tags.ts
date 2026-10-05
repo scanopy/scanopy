@@ -25,14 +25,17 @@ export interface TagFitSpacing {
 	gap: number;
 	/** Between two tags, and before the "+N tags" chip. */
 	tagGap: number;
-	/** Width of the "+N tags" chip. */
+	/** Width of the hidden-tags (i) icon. */
 	moreWidth: number;
 }
+
+/** Width of the (i) icon `HiddenTagsChip` draws for hidden tags: a 14px icon plus its padding. */
+export const HIDDEN_TAGS_CHIP_WIDTH = 18;
 
 /**
  * How many tags fit beside a label at its full width. The label is the row's key value, so tags
  * take only the space it leaves, and the count can be 0. When some tags don't fit, room is kept
- * for the "+N tags" chip that stands in for them.
+ * for the (i) icon that stands in for them.
  */
 export function fitTags(
 	containerWidth: number,

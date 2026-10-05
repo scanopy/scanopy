@@ -128,7 +128,14 @@
 		}}
 		onMouseEnter={handlePopoverEnter}
 		onMouseLeave={handlePopoverLeave}
+		maxWidth="calc(100vw - 16px)"
 	>
-		<ListSelectItem item={entityRef.data} context={entityRef.context ?? {}} {displayComponent} />
+		<!-- Shown only while hovered, so it widens to show every tag rather than hiding any. -->
+		<ListSelectItem
+			item={entityRef.data}
+			context={entityRef.context ?? {}}
+			{displayComponent}
+			showAllTags
+		/>
 	</Popover>
 {/if}
