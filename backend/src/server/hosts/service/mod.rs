@@ -238,6 +238,19 @@ pub struct LldpResolutionStats {
     pub host_no_strategy: usize,
 }
 
+/// A host as discovery stored it, plus the subnets that submission touched.
+///
+/// Server-side only, never on the wire. The daemon reports the entities it learns ids for, but
+/// the subnets riding in a host request (container bridges, whose owner only resolves inside that
+/// request) and the ranges the server places addresses into are stored here, out of its sight. The
+/// caller latches these ids against the daemon so the scan's terminal update can stamp them with
+/// the run's discovery FKs like every other entity it touched.
+pub struct DiscoveredHost {
+    pub host: HostResponse,
+    /// Stored ids of the subnets this submission created, matched or placed addresses into.
+    pub subnet_ids: Vec<Uuid>,
+}
+
 /// What one LLDP/CDP resolution pass produced.
 ///
 /// The stats go to the summary log line; the warnings go onto the scan record the operator reads,
@@ -252,6 +265,8 @@ pub struct LldpResolutionOutcome {
     /// The caller folds these into the session's scanned set before the scan record is written, so
     /// they pick up the discovery FKs and the digest entry every other entity of that scan gets.
     pub minted_host_ids: Vec<Uuid>,
+    /// Ranges this pass inferred from far-end addresses, folded in the same way.
+    pub minted_subnet_ids: Vec<Uuid>,
 }
 
 impl LldpResolutionStats {

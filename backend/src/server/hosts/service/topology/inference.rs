@@ -49,6 +49,8 @@ impl HostService {
         // Which subnet each far end's address landed in, keyed the way minting dedups. Far ends
         // that published no address never appear here and are minted without one.
         let mut placements: HashMap<String, Uuid> = HashMap::new();
+        // The ranges this pass created or matched, handed to the session like the minted hosts.
+        let mut minted_subnet_ids = Vec::new();
         for range in infer_ranges(&far_ends, &live) {
             let mut subnet = Subnet::new(SubnetBase {
                 // The whole point: a range nothing read, only inferred, so the row asks to be
@@ -96,6 +98,7 @@ impl HostService {
                 "Inferred a subnet from far-end addresses"
             );
 
+            minted_subnet_ids.push(created.id);
             for addressed in &range.far_ends {
                 placements.insert(addressed.far_end.chassis_id.clone(), created.id);
             }
@@ -134,6 +137,7 @@ impl HostService {
         );
         Ok(InferenceOutcome {
             minted_host_ids,
+            minted_subnet_ids,
             warnings,
         })
     }
@@ -188,6 +192,10 @@ pub(super) struct InferenceOutcome {
     /// reported in its digest like anything else. Without the ids it was neither: attribution and
     /// the digest both read the session's scanned set, and nothing put it there.
     pub minted_host_ids: Vec<Uuid>,
+    /// The ranges this step created, or matched to an existing row, for the same reason: the scan
+    /// found them, so they carry its discovery FKs. The daemon never sees these ids, so nothing
+    /// else reports them.
+    pub minted_subnet_ids: Vec<Uuid>,
     /// Every range on the network still waiting to be confirmed, not only the ones created here.
     pub warnings: Vec<DiscoveryWarning>,
 }
@@ -384,7 +392,7 @@ impl HostService {
                 // The server-assigned id, not the one this loop generated: `create_with_children`
                 // matches an existing host before it creates, so what comes back may be a host this
                 // network already held. Recording that id is still right — the scan did touch it.
-                Ok(response) => minted.push(response.id),
+                Ok(created) => minted.push(created.host.id),
                 Err(e) => tracing::warn!(
                     network_id = %network_id,
                     chassis_id = %far_end.chassis_id,

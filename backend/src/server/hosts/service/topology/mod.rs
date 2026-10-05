@@ -651,6 +651,7 @@ impl HostService {
             stats: last.stats,
             warnings,
             minted_host_ids: inferred.minted_host_ids,
+            minted_subnet_ids: inferred.minted_subnet_ids,
         })
     }
 

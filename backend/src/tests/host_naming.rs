@@ -157,6 +157,7 @@ async fn submit(services: &ServiceFactory, s: Submission) -> HostResponse {
         )
         .await
         .expect("a discovery submission must persist")
+        .host
 }
 
 /// Rename the host the way the edit modal does: the whole object, every field present.

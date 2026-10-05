@@ -16,6 +16,8 @@ impl HostResponse {
             created_at,
             updated_at,
             last_seen_at,
+            first_discovery_id,
+            last_discovery_id,
             name,
             // Derived from the fields below on the way out; nothing to carry back in.
             display_name: _,
@@ -77,8 +79,8 @@ impl HostResponse {
             valid_to: None,
             lineage_id: None,
             last_seen_at: *last_seen_at,
-            last_discovery_id: None,
-            first_discovery_id: None,
+            last_discovery_id: *last_discovery_id,
+            first_discovery_id: *first_discovery_id,
             base: HostBase {
                 name: host_name_from_parts(name.clone(), *name_source),
                 network_id: *network_id,
@@ -176,16 +178,15 @@ impl HostResponse {
             id,
             created_at,
             updated_at,
-            // `last_seen_at` IS part of the response shape: it drives the
-            // "Last seen" column and the stale badge. The remaining SCD2/audit
-            // fields stay internal — an audit-trail UX can surface those later
-            // via the historical Discovery row + lineage queries.
+            // `last_seen_at` and the discovery runs that first and last found the host are part
+            // of the response shape: they drive the "Last seen", "First found by" and "Last found
+            // by" columns. The version-history fields stay internal.
             last_seen_at,
             valid_from: _,
             valid_to: _,
             lineage_id: _,
-            last_discovery_id: _,
-            first_discovery_id: _,
+            last_discovery_id,
+            first_discovery_id,
             base,
         } = host;
 
@@ -223,6 +224,8 @@ impl HostResponse {
             created_at,
             updated_at,
             last_seen_at,
+            first_discovery_id,
+            last_discovery_id,
             display_name,
             display_name_rung,
             name_ladder: name_ladder.to_vec(),

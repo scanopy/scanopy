@@ -14068,19 +14068,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-05T00:35:44.090981Z",
+              "created_at": "2026-10-05T01:08:45.222362Z",
               "first_discovery_id": null,
-              "id": "b2e0b7db-9e36-4189-8192-5d83c1942cc4",
+              "id": "d498d549-f1e3-47a5-abd2-1fb4d1af9afa",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T00:35:44.090981Z",
+              "last_seen_at": "2026-10-05T01:08:45.222362Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-05T00:35:44.090981Z",
-              "valid_from": "2026-10-05T00:35:44.090981Z",
+              "updated_at": "2026-10-05T01:08:45.222362Z",
+              "valid_from": "2026-10-05T01:08:45.222362Z",
               "valid_to": null
             }
           },
@@ -15315,6 +15315,15 @@
                 "$ref": "#/components/schemas/AttributeSource",
                 "description": "What produced the firmware revision. Read-only: decided by whichever source read it."
               },
+              "first_discovery_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The discovery run that first observed this host. Drives the \"First found by\" column.",
+                "readOnly": true
+              },
               "hidden": {
                 "type": "boolean",
                 "description": "Whether the host is hidden from topology views."
@@ -15349,10 +15358,19 @@
                 },
                 "description": "IP addresses on this host."
               },
+              "last_discovery_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The discovery run that last observed this host. Drives the \"Last found by\" column.",
+                "readOnly": true
+              },
               "last_seen_at": {
                 "type": "string",
                 "format": "date-time",
-                "description": "Last time discovery observed this host. User-facing (drives the \"Last\nseen\" column and the stale badge), which is why it is carried here while\nthe rest of the SCD2/audit columns are not."
+                "description": "Last time discovery observed this host. User-facing (drives the \"Last\nseen\" column and the stale badge), which is why it is carried here while\nthe version-history columns are not."
               },
               "management_url": {
                 "type": [
@@ -15572,6 +15590,7 @@
               "display_name_rung": "Name",
               "firmware_revision": null,
               "firmware_revision_source": "Unspecified",
+              "first_discovery_id": null,
               "hidden": false,
               "hostname": "web-server-01.local",
               "hostname_source": "Manual",
@@ -15626,6 +15645,7 @@
                   "valid_to": null
                 }
               ],
+              "last_discovery_id": null,
               "last_seen_at": "2026-01-15T10:30:00Z",
               "management_url_source": "Unspecified",
               "manufacturer_source": "Unspecified",
@@ -15685,19 +15705,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-05T00:35:44.075634Z",
+                      "created_at": "2026-10-05T01:08:45.207076Z",
                       "first_discovery_id": null,
-                      "id": "ac664e11-6e78-459a-8291-54695da73c0e",
+                      "id": "fe87a8f7-3c79-4350-8ad0-6dafe5c2cb95",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-05T00:35:44.075634Z",
+                      "last_seen_at": "2026-10-05T01:08:45.207076Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-05T00:35:44.075634Z",
-                      "valid_from": "2026-10-05T00:35:44.075634Z",
+                      "updated_at": "2026-10-05T01:08:45.207076Z",
+                      "valid_from": "2026-10-05T01:08:45.207076Z",
                       "valid_to": null
                     }
                   ],
@@ -15711,7 +15731,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Wiz",
+                  "service_definition": "Asterisk",
                   "source": {
                     "type": "Manual"
                   },
@@ -17110,19 +17130,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T00:35:44.087345Z",
+                  "created_at": "2026-10-05T01:08:45.218742Z",
                   "first_discovery_id": null,
-                  "id": "bd08daa6-895c-4e09-8b4a-0ba782485154",
+                  "id": "aa41219a-f805-4f84-8243-537f53eda2be",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T00:35:44.087345Z",
+                  "last_seen_at": "2026-10-05T01:08:45.218742Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-05T00:35:44.087345Z",
-                  "valid_from": "2026-10-05T00:35:44.087345Z",
+                  "updated_at": "2026-10-05T01:08:45.218742Z",
+                  "valid_from": "2026-10-05T01:08:45.218742Z",
                   "valid_to": null
                 }
               ],
@@ -17136,7 +17156,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Wiz",
+              "service_definition": "Asterisk",
               "source": {
                 "type": "Manual"
               },
@@ -19628,19 +19648,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-05T00:35:44.076051Z",
+          "created_at": "2026-10-05T01:08:45.207492Z",
           "first_discovery_id": null,
-          "id": "5264ab29-cc39-4a32-86e4-e0549dcde155",
+          "id": "8756bf90-632d-429e-872e-d7a5e5c7d208",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-05T00:35:44.076051Z",
+          "last_seen_at": "2026-10-05T01:08:45.207492Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-05T00:35:44.076051Z",
-          "valid_from": "2026-10-05T00:35:44.076051Z",
+          "updated_at": "2026-10-05T01:08:45.207492Z",
+          "valid_from": "2026-10-05T01:08:45.207492Z",
           "valid_to": null
         }
       },
@@ -20407,7 +20427,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Wiz",
+              "service_definition": "Asterisk",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -26476,6 +26496,15 @@
             "$ref": "#/components/schemas/AttributeSource",
             "description": "What produced the firmware revision. Read-only: decided by whichever source read it."
           },
+          "first_discovery_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The discovery run that first observed this host. Drives the \"First found by\" column.",
+            "readOnly": true
+          },
           "hidden": {
             "type": "boolean",
             "description": "Whether the host is hidden from topology views."
@@ -26510,10 +26539,19 @@
             },
             "description": "IP addresses on this host."
           },
+          "last_discovery_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The discovery run that last observed this host. Drives the \"Last found by\" column.",
+            "readOnly": true
+          },
           "last_seen_at": {
             "type": "string",
             "format": "date-time",
-            "description": "Last time discovery observed this host. User-facing (drives the \"Last\nseen\" column and the stale badge), which is why it is carried here while\nthe rest of the SCD2/audit columns are not."
+            "description": "Last time discovery observed this host. User-facing (drives the \"Last\nseen\" column and the stale badge), which is why it is carried here while\nthe version-history columns are not."
           },
           "management_url": {
             "type": [
@@ -26733,6 +26771,7 @@
           "display_name_rung": "Name",
           "firmware_revision": null,
           "firmware_revision_source": "Unspecified",
+          "first_discovery_id": null,
           "hidden": false,
           "hostname": "web-server-01.local",
           "hostname_source": "Manual",
@@ -26787,6 +26826,7 @@
               "valid_to": null
             }
           ],
+          "last_discovery_id": null,
           "last_seen_at": "2026-01-15T10:30:00Z",
           "management_url_source": "Unspecified",
           "manufacturer_source": "Unspecified",
@@ -26846,19 +26886,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T00:35:44.075168Z",
+                  "created_at": "2026-10-05T01:08:45.206609Z",
                   "first_discovery_id": null,
-                  "id": "db652a18-05ad-402e-b67e-e8e1a4d14226",
+                  "id": "ffb55591-9ef6-482c-b0fe-9a448d59991b",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T00:35:44.075168Z",
+                  "last_seen_at": "2026-10-05T01:08:45.206609Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-05T00:35:44.075168Z",
-                  "valid_from": "2026-10-05T00:35:44.075168Z",
+                  "updated_at": "2026-10-05T01:08:45.206609Z",
+                  "valid_from": "2026-10-05T01:08:45.206609Z",
                   "valid_to": null
                 }
               ],
@@ -26872,7 +26912,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Wiz",
+              "service_definition": "Asterisk",
               "source": {
                 "type": "Manual"
               },
@@ -30355,6 +30395,15 @@
                   "$ref": "#/components/schemas/AttributeSource",
                   "description": "What produced the firmware revision. Read-only: decided by whichever source read it."
                 },
+                "first_discovery_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid",
+                  "description": "The discovery run that first observed this host. Drives the \"First found by\" column.",
+                  "readOnly": true
+                },
                 "hidden": {
                   "type": "boolean",
                   "description": "Whether the host is hidden from topology views."
@@ -30389,10 +30438,19 @@
                   },
                   "description": "IP addresses on this host."
                 },
+                "last_discovery_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid",
+                  "description": "The discovery run that last observed this host. Drives the \"Last found by\" column.",
+                  "readOnly": true
+                },
                 "last_seen_at": {
                   "type": "string",
                   "format": "date-time",
-                  "description": "Last time discovery observed this host. User-facing (drives the \"Last\nseen\" column and the stale badge), which is why it is carried here while\nthe rest of the SCD2/audit columns are not."
+                  "description": "Last time discovery observed this host. User-facing (drives the \"Last\nseen\" column and the stale badge), which is why it is carried here while\nthe version-history columns are not."
                 },
                 "management_url": {
                   "type": [
@@ -30612,6 +30670,7 @@
                 "display_name_rung": "Name",
                 "firmware_revision": null,
                 "firmware_revision_source": "Unspecified",
+                "first_discovery_id": null,
                 "hidden": false,
                 "hostname": "web-server-01.local",
                 "hostname_source": "Manual",
@@ -30666,6 +30725,7 @@
                     "valid_to": null
                   }
                 ],
+                "last_discovery_id": null,
                 "last_seen_at": "2026-01-15T10:30:00Z",
                 "management_url_source": "Unspecified",
                 "manufacturer_source": "Unspecified",
@@ -30725,19 +30785,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-05T00:35:44.068376Z",
+                        "created_at": "2026-10-05T01:08:45.199739Z",
                         "first_discovery_id": null,
-                        "id": "beeba3e0-04ea-4bc5-968d-f8c603861026",
+                        "id": "dc3fa5c6-31aa-4aaa-9183-86bca666d71f",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-05T00:35:44.068376Z",
+                        "last_seen_at": "2026-10-05T01:08:45.199739Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-05T00:35:44.068376Z",
-                        "valid_from": "2026-10-05T00:35:44.068376Z",
+                        "updated_at": "2026-10-05T01:08:45.199739Z",
+                        "valid_from": "2026-10-05T01:08:45.199739Z",
                         "valid_to": null
                       }
                     ],
@@ -30751,7 +30811,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Wiz",
+                    "service_definition": "Asterisk",
                     "source": {
                       "type": "Manual"
                     },
@@ -30895,19 +30955,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-05T00:35:44.086686Z",
+                    "created_at": "2026-10-05T01:08:45.218076Z",
                     "first_discovery_id": null,
-                    "id": "f0cfdd15-0403-4277-b119-e487d32d0343",
+                    "id": "780b8913-a5e6-4de2-b630-bdd35ddbbaa5",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-05T00:35:44.086686Z",
+                    "last_seen_at": "2026-10-05T01:08:45.218076Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-05T00:35:44.086686Z",
-                    "valid_from": "2026-10-05T00:35:44.086686Z",
+                    "updated_at": "2026-10-05T01:08:45.218076Z",
+                    "valid_from": "2026-10-05T01:08:45.218076Z",
                     "valid_to": null
                   }
                 ],
@@ -30921,7 +30981,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Wiz",
+                "service_definition": "Asterisk",
                 "source": {
                   "type": "Manual"
                 },
@@ -33152,19 +33212,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-05T00:35:44.075926Z",
+              "created_at": "2026-10-05T01:08:45.207369Z",
               "first_discovery_id": null,
-              "id": "99c248a0-2dc5-4533-8f3b-4256c3bfc576",
+              "id": "1afd48ed-52af-447c-a732-7a17eee4ee30",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T00:35:44.075926Z",
+              "last_seen_at": "2026-10-05T01:08:45.207369Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-05T00:35:44.075926Z",
-              "valid_from": "2026-10-05T00:35:44.075926Z",
+              "updated_at": "2026-10-05T01:08:45.207369Z",
+              "valid_from": "2026-10-05T01:08:45.207369Z",
               "valid_to": null
             }
           ],
@@ -33178,7 +33238,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Wiz",
+          "service_definition": "Asterisk",
           "source": {
             "type": "Manual"
           },
@@ -34640,7 +34700,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "10f6a2ad-adc1-430f-bc67-46cc1930d797",
+                  "id": "9299c020-0ccb-4d83-ac25-8160ad05cfd3",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34650,23 +34710,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "7a75b6ca-a529-47ce-8439-753ee9888c86",
+                  "id": "6e183707-b79f-4b0c-bac8-c58ccabe53f8",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "3a22f09d-2a9f-4e7e-a7de-14be1919d8fd",
+                  "id": "0b71527a-ab6b-421b-a006-b03f63669c27",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "804efb44-d064-41e1-a109-2ab28c194c1c",
+                  "id": "f5b324aa-eaeb-4c7f-9819-b3bd9601735f",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "7a75b6ca-a529-47ce-8439-753ee9888c86",
+                  "id": "6e183707-b79f-4b0c-bac8-c58ccabe53f8",
                   "rule": "ByHost"
                 }
               ]
@@ -34696,19 +34756,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "274282ec-d736-40d6-bcf8-af209eab5d4a",
+                "id": "bd355bb4-6349-424e-83ca-454a48e2d7ab",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "bdc2e425-cc4f-4f5d-9b3e-7c6cda274989",
+                "id": "092604e3-373a-40df-b0b1-c7c831694f25",
                 "rule": "ByVLAN"
               },
               {
-                "id": "a3e888d7-068d-4aba-b72f-63bec66d2f41",
+                "id": "99fb37a9-d036-4ac1-bd13-80565ee204b1",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "4b957891-9075-403e-9584-d3c5306adcfc",
+                "id": "0d0d8f47-72ca-472b-a255-74284ad7ef2b",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34727,7 +34787,7 @@
                 }
               },
               {
-                "id": "308adc52-84ef-4633-83eb-aae92e8f8e26",
+                "id": "b1bf43a4-45c4-4ba8-82d1-1f4999d53a6f",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34736,15 +34796,15 @@
                 }
               },
               {
-                "id": "35533e0e-584d-4723-bf4e-5f431059ab46",
+                "id": "c860207e-9f95-4bf6-aec1-ea96d0aa7204",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "635d3c5a-912b-4e45-be71-afbd2b725982",
+                "id": "7b45ece2-3d6f-483b-a455-26637a124ae8",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "22f15ac1-7c32-4fe0-bc44-9c4901222bd6",
+                "id": "187ddf20-1836-453e-bd47-c26d5d23973a",
                 "rule": "ByStack"
               }
             ]

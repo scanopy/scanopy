@@ -491,7 +491,8 @@ impl DaemonService {
                 auth.clone(),
                 None,
             )
-            .await?;
+            .await?
+            .host;
 
         // Seed the daemon host's loopback so a daemon-host socket/proxy credential is probed on the
         // very first scan (the credential mapping is snapshotted before the daemon self-reports).
@@ -643,10 +644,34 @@ impl DaemonService {
 
         if update.phase.is_terminal() {
             self.report_superseded_wire_shape(&mut update).await;
+            self.report_touched_subnets(&mut update).await;
         }
 
         self.discovery_service.update_session(update).await?;
         Ok(())
+    }
+
+    /// Fold the subnets this daemon's host requests stored into the terminal payload's scanned
+    /// set, so they carry the run's discovery FKs.
+    ///
+    /// Container bridges ride inside the host request because their owner is the runtime service
+    /// the same request creates, and placed ranges are created by the server; neither id reaches
+    /// the daemon, so its own scanned set never names them. Into `update` before
+    /// `update_session`, like the warning below.
+    async fn report_touched_subnets(&self, update: &mut DiscoveryUpdatePayload) {
+        let touched = self
+            .discovery_service
+            .take_touched_subnets(&update.daemon_id)
+            .await;
+        if touched.is_empty() {
+            return;
+        }
+        let scanned = update.scanned.get_or_insert_with(Default::default);
+        for id in touched {
+            if !scanned.subnet_ids.contains(&id) {
+                scanned.subnet_ids.push(id);
+            }
+        }
     }
 
     /// Fold a latched "this daemon submitted an outdated format" observation into the terminal
@@ -714,12 +739,10 @@ impl DaemonService {
 
         match outcome {
             Ok(Ok(outcome)) => {
-                if !outcome.minted_host_ids.is_empty() {
-                    update
-                        .scanned
-                        .get_or_insert_with(Default::default)
-                        .host_ids
-                        .extend(outcome.minted_host_ids);
+                if !outcome.minted_host_ids.is_empty() || !outcome.minted_subnet_ids.is_empty() {
+                    let scanned = update.scanned.get_or_insert_with(Default::default);
+                    scanned.host_ids.extend(outcome.minted_host_ids);
+                    scanned.subnet_ids.extend(outcome.minted_subnet_ids);
                 }
                 // Into the row as it is written, rather than appended to it afterwards. The append
                 // existed only because this ran after the row; with the order reversed there is
@@ -904,13 +927,20 @@ impl DaemonService {
                 )
                 .await
             {
-                Ok(host_response) => {
+                Ok(discovered) => {
+                    // The subnets this host request stored, latched for the scan record: the
+                    // daemon never learns their ids, so it cannot report them itself.
+                    if let Some(daemon_id) = auth.daemon_id() {
+                        self.discovery_service
+                            .note_touched_subnets(daemon_id, discovered.subnet_ids)
+                            .await;
+                    }
                     // Credential assignments are persisted inside discover_host()
                     // after remapping daemon interface UUIDs to server-assigned UUIDs.
                     // (Loopback credential scoping is handled at registration via
                     // seed_loopback + explicit integration_targets IP overrides; the
                     // old target_ips-based scoping was removed with target_ips.)
-                    created_hosts.push((pending_id, host_response));
+                    created_hosts.push((pending_id, discovered.host));
                 }
                 Err(e) => {
                     host_failures += 1;
