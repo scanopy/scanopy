@@ -67,7 +67,7 @@ mod tests {
     #[test]
     fn writes_are_blocked_by_a_lock() {
         assert!(!always_allowed(&Method::POST, "/api/hosts"));
-        assert!(!always_allowed(&Method::DELETE, "/api/networks/some-id"));
+        assert!(!always_allowed(&Method::DELETE, "/api/sites/some-id"));
     }
 
     #[test]

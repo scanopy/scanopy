@@ -10,7 +10,7 @@ use crate::server::{
     config::AppState,
     shared::{
         entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants},
-        handlers::{query::NetworkFilterQuery, traits::CrudHandlers},
+        handlers::{query::SiteFilterQuery, traits::CrudHandlers},
     },
     snapshots::service::SnapshotService,
 };
@@ -19,8 +19,8 @@ use crate::server::{
     Debug, Clone, Serialize, Deserialize, Validate, PartialEq, Eq, Hash, Default, ToSchema,
 )]
 pub struct SnapshotBase {
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// The point in time this snapshot captures.
     pub taken_at: DateTime<Utc>,
     /// User who took the snapshot.
@@ -29,13 +29,9 @@ pub struct SnapshotBase {
 }
 
 impl SnapshotBase {
-    pub fn new(
-        network_id: Uuid,
-        taken_at: DateTime<Utc>,
-        created_by_user_id: Option<Uuid>,
-    ) -> Self {
+    pub fn new(site_id: Uuid, taken_at: DateTime<Utc>, created_by_user_id: Option<Uuid>) -> Self {
         Self {
-            network_id,
+            site_id,
             taken_at,
             created_by_user_id,
         }
@@ -64,17 +60,13 @@ pub struct Snapshot {
 }
 
 impl Snapshot {
-    pub fn new(
-        network_id: Uuid,
-        taken_at: DateTime<Utc>,
-        created_by_user_id: Option<Uuid>,
-    ) -> Self {
+    pub fn new(site_id: Uuid, taken_at: DateTime<Utc>, created_by_user_id: Option<Uuid>) -> Self {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,
             updated_at: now,
-            base: SnapshotBase::new(network_id, taken_at, created_by_user_id),
+            base: SnapshotBase::new(site_id, taken_at, created_by_user_id),
         }
     }
 }
@@ -87,7 +79,7 @@ impl Display for Snapshot {
 
 impl CrudHandlers for Snapshot {
     type Service = SnapshotService;
-    type FilterQuery = NetworkFilterQuery;
+    type FilterQuery = SiteFilterQuery;
     type OrderField = crate::server::shared::handlers::ordering::NoOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {

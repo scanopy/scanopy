@@ -22,11 +22,11 @@
 		useTopologyDataQuery,
 		markTopologyViewed,
 		selectedTopologyId,
-		selectedNetworkId,
+		selectedSiteId,
 		selectedSnapshotId,
 		selectedNodes,
-		consumePreferredNetwork,
-		loadSelectedNetworkFromStorage,
+		consumePreferredSite,
+		loadSelectedSiteFromStorage,
 		activeView,
 		topologyReadOnly,
 		topologyOptions,
@@ -45,8 +45,8 @@
 		type Snapshot
 	} from '$lib/features/snapshots/queries';
 	import { SnapshotDisplay } from '$lib/shared/components/forms/selection/display/SnapshotDisplay.svelte';
-	import { NetworkDisplay } from '$lib/shared/components/forms/selection/display/NetworkDisplay.svelte';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { SiteDisplay } from '$lib/shared/components/forms/selection/display/SiteDisplay.svelte';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import { makeGraphRule } from '../types/grouping';
@@ -112,7 +112,7 @@
 	// Snapshot selection drives as-of-T entity reads. When a snapshot is
 	// selected, entity queries read SCD2 state as of its `taken_at` instead of
 	// live, so the inspector shows the host/service/etc. as they were captured.
-	const snapshotsQuery = useSnapshotsQuery(() => $selectedNetworkId ?? undefined);
+	const snapshotsQuery = useSnapshotsQuery(() => $selectedSiteId ?? undefined);
 	let snapshotsData = $derived(snapshotsQuery.data ?? []);
 	let selectedSnapshot = $derived(
 		$selectedSnapshotId ? snapshotsData.find((s) => s.id === $selectedSnapshotId) : null
@@ -121,7 +121,7 @@
 	const tagsQuery = useTagsQuery();
 	useUsersQuery({ enabled: () => canViewUsers });
 	const topologiesQuery = useTopologiesQuery();
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	const organizationQuery = useOrganizationQuery();
 	const activeSessionsQuery = useActiveSessionsQuery();
 	const configQuery = useConfigQuery();
@@ -134,14 +134,14 @@
 	// bundle — and the discovery SSE stream's throttled refetch of it — off pages
 	// that are not showing a graph.
 	const topologyDataQuery = useTopologyDataQuery(
-		() => $selectedNetworkId ?? undefined,
+		() => $selectedSiteId ?? undefined,
 		() => $selectedSnapshotId ?? undefined,
 		() => isActive
 	);
 
 	// Derived data
 	let topologiesData = $derived(topologiesQuery.data ?? []);
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
 	let isLoading = $derived(topologiesQuery.isPending || topologyDataQuery.isPending);
 
 	let hasEmail = $derived(configQuery.data?.has_email_service ?? false);
@@ -199,25 +199,25 @@
 	const takeSnapshotMutation = useTakeSnapshotMutation();
 	const deleteSnapshotMutation = useDeleteSnapshotMutation();
 
-	// There is exactly one topology row per network (it holds only grouping
+	// There is exactly one topology row per site (it holds only grouping
 	// `options`). Both live and snapshot views use it — the snapshot-ness lives
 	// in the entity/graph bundle, which is built on request from the snapshot's
 	// closed copies when one is selected.
 	let currentTopologyRow = $derived.by(() => {
-		const networkId = $selectedNetworkId;
-		if (!networkId) return null;
-		return topologiesData.find((t) => t.network_id === networkId) ?? null;
+		const siteId = $selectedSiteId;
+		if (!siteId) return null;
+		return topologiesData.find((t) => t.site_id === siteId) ?? null;
 	});
 
-	// Display name for the currently selected topology — network name for
+	// Display name for the currently selected topology — site name for
 	// live, formatted snapshot timestamp otherwise.
 	let currentTopologyName = $derived.by(() => {
 		if (!currentTopologyRow) return '';
 		if (selectedSnapshot) {
 			return formatTimestamp(selectedSnapshot.taken_at);
 		}
-		const network = networksData.find((n) => n.id === currentTopologyRow.network_id);
-		return network?.name ?? '';
+		const site = sitesData.find((n) => n.id === currentTopologyRow.site_id);
+		return site?.name ?? '';
 	});
 
 	// Enriched topology: graph row + entity bundle for the selected view.
@@ -268,7 +268,7 @@
 					)[$activeView],
 					(($topologyOptions.request.hide_entities ?? {}) as Record<string, string[]>)[$activeView],
 					$topologyOptions.local.tag_filter,
-					networksData.find((n) => n.id === currentTopology?.network_id)
+					sitesData.find((n) => n.id === currentTopology?.site_id)
 				)
 			: []
 	);
@@ -303,14 +303,14 @@
 			$activeView,
 			hideMetadata[$activeView],
 			hideEntities[$activeView] ?? [],
-			networksData.find((n) => n.id === currentTopology?.network_id)
+			sitesData.find((n) => n.id === currentTopology?.site_id)
 		);
 	});
 
-	// Find active discovery session for current topology's network
+	// Find active discovery session for current topology's site
 	let activeSession = $derived(
 		currentTopology
-			? (activeSessionsQuery.data ?? []).find((s) => s.network_id === currentTopology.network_id)
+			? (activeSessionsQuery.data ?? []).find((s) => s.site_id === currentTopology.site_id)
 			: null
 	);
 	let discoveryColor = $derived(entities.getColorHelper('Discovery'));
@@ -366,16 +366,16 @@
 		const hasHosts = (topologyDataQuery.data?.hosts.length ?? 0) > 0;
 		if (
 			isActive &&
-			$selectedNetworkId &&
+			$selectedSiteId &&
 			hasHosts &&
 			onboarding.includes('FirstDiscoveryCompleted') &&
 			!firstTopologyMilestoneTracked &&
 			!onboarding.includes('FirstTopologyRebuild')
 		) {
 			firstTopologyMilestoneTracked = true;
-			const networkId = $selectedNetworkId;
+			const siteId = $selectedSiteId;
 			void (async () => {
-				await markTopologyViewed(networkId);
+				await markTopologyViewed(siteId);
 				void waitForOrgUpdate((o) => o.onboarding.includes('FirstTopologyRebuild'));
 			})();
 		}
@@ -385,37 +385,37 @@
 	const urlParams = getTopologyParamsFromUrl();
 	let urlViewConsumed = false;
 
-	// Initialize/validate the selected network against the accessible list.
-	// Runs whenever networksData changes so a stale persisted id (deleted network,
+	// Initialize/validate the selected site against the accessible list.
+	// Runs whenever sitesData changes so a stale persisted id (deleted site,
 	// changed org, revoked perms) is replaced instead of fetched — which would 404
 	// and fire a toast on every reload.
 	$effect(() => {
-		// No networks: leave selection null so useTopologyDataQuery stays disabled.
-		if (networksData.length === 0) return;
+		// No sites: leave selection null so useTopologyDataQuery stays disabled.
+		if (sitesData.length === 0) return;
 		// Current selection is still accessible — nothing to do.
-		if ($selectedNetworkId && networksData.some((n) => n.id === $selectedNetworkId)) return;
+		if ($selectedSiteId && sitesData.some((n) => n.id === $selectedSiteId)) return;
 
 		// Persisted selection, if still accessible.
-		const persisted = loadSelectedNetworkFromStorage();
-		if (persisted && networksData.some((n) => n.id === persisted)) {
-			selectedNetworkId.set(persisted);
+		const persisted = loadSelectedSiteFromStorage();
+		if (persisted && sitesData.some((n) => n.id === persisted)) {
+			selectedSiteId.set(persisted);
 			return;
 		}
-		// Preferred (e.g. just-onboarded network), if accessible.
-		const preferredNetworkId = consumePreferredNetwork();
-		if (preferredNetworkId && networksData.some((n) => n.id === preferredNetworkId)) {
-			selectedNetworkId.set(preferredNetworkId);
+		// Preferred (e.g. just-onboarded site), if accessible.
+		const preferredSiteId = consumePreferredSite();
+		if (preferredSiteId && sitesData.some((n) => n.id === preferredSiteId)) {
+			selectedSiteId.set(preferredSiteId);
 			return;
 		}
-		// Fall back to the first available network; the store subscription persists
+		// Fall back to the first available site; the store subscription persists
 		// it, overwriting any stale value in localStorage.
-		selectedNetworkId.set(networksData[0].id);
+		selectedSiteId.set(sitesData[0].id);
 	});
 
-	// Reset snapshot selection when network changes (live view by default)
+	// Reset snapshot selection when site changes (live view by default)
 	$effect(() => {
-		// Touch the store so the effect re-runs on network change.
-		void $selectedNetworkId;
+		// Touch the store so the effect re-runs on site change.
+		void $selectedSiteId;
 		selectedSnapshotId.set(null);
 	});
 
@@ -472,7 +472,7 @@
 		if (topologyViewTracked.has(currentTopology.id)) return;
 		topologyViewTracked.add(currentTopology.id);
 		trackEvent('topology_viewed', {
-			network_id: currentTopology.network_id,
+			site_id: currentTopology.site_id,
 			node_count: currentTopology.nodes.length,
 			view_type: 'app'
 		});
@@ -482,13 +482,13 @@
 		selectedNodes.set([]);
 	}
 
-	// Handle network selection
-	function handleNetworkChange(value: string) {
-		selectedNetworkId.set(value);
-		// Reset to live view synchronously here (not just via the network-change
+	// Handle site selection
+	function handleSiteChange(value: string) {
+		selectedSiteId.set(value);
+		// Reset to live view synchronously here (not just via the site-change
 		// $effect) so the snapshot is cleared before the data query recomputes —
-		// otherwise it briefly fires with the new network + old snapshot id and
-		// the backend 403s ("Snapshot belongs to a different network").
+		// otherwise it briefly fires with the new site + old snapshot id and
+		// the backend 403s ("Snapshot belongs to a different site").
 		selectedSnapshotId.set(null);
 		clearSelection();
 	}
@@ -498,7 +498,7 @@
 	let snapshotOptions = $derived<Snapshot[]>([
 		{
 			id: CURRENT_VIEW_SENTINEL,
-			network_id: $selectedNetworkId ?? '',
+			site_id: $selectedSiteId ?? '',
 			taken_at: new Date(0).toISOString(),
 			created_by_user_id: null,
 			created_at: new Date(0).toISOString(),
@@ -585,8 +585,8 @@
 	});
 
 	async function handleTakeSnapshot() {
-		const networkId = $selectedNetworkId;
-		if (!networkId) return;
+		const siteId = $selectedSiteId;
+		if (!siteId) return;
 
 		if (!snapshotsEnabled) {
 			triggerUpgrade({
@@ -598,13 +598,13 @@
 			return;
 		}
 
-		await takeSnapshotMutation.mutateAsync({ network_id: networkId });
+		await takeSnapshotMutation.mutateAsync({ site_id: siteId });
 	}
 
 	async function handleDeleteSnapshot() {
-		const networkId = $selectedNetworkId;
+		const siteId = $selectedSiteId;
 		const snapshotId = $selectedSnapshotId;
-		if (!networkId || !snapshotId) return;
+		if (!siteId || !snapshotId) return;
 		if (!confirm(topology_snapshotDeleteConfirm())) return;
 		// Return to live view BEFORE deleting: the mutation's onSuccess invalidates
 		// the topology queries, which would otherwise refetch the just-deleted
@@ -612,7 +612,7 @@
 		selectedSnapshotId.set(null);
 		await deleteSnapshotMutation.mutateAsync({
 			snapshot_id: snapshotId,
-			network_id: networkId
+			site_id: siteId
 		});
 	}
 
@@ -734,13 +734,13 @@
 					{/if}
 				{/if}
 
-				{#if networksData.length > 0}
+				{#if sitesData.length > 0}
 					<RichSelect
 						label=""
-						selectedValue={$selectedNetworkId ?? ''}
-						displayComponent={NetworkDisplay}
-						onSelect={handleNetworkChange}
-						options={networksData}
+						selectedValue={$selectedSiteId ?? ''}
+						displayComponent={SiteDisplay}
+						onSelect={handleSiteChange}
+						options={sitesData}
 					/>
 
 					<div class="card-divider-v self-stretch"></div>
@@ -758,7 +758,7 @@
 						<button
 							class="btn-secondary"
 							onclick={handleTakeSnapshot}
-							disabled={takeSnapshotMutation.isPending || !$selectedNetworkId}
+							disabled={takeSnapshotMutation.isPending || !$selectedSiteId}
 							aria-label={topology_takeSnapshot()}
 							data-tooltip={topology_takeSnapshot()}
 							use:tooltip
@@ -840,7 +840,7 @@
 					{#if showAppWizard}
 						<ApplicationSetupWizard
 							{appTags}
-							networkId={currentTopology.network_id}
+							siteId={currentTopology.site_id}
 							onComplete={handleWizardComplete}
 						/>
 					{/if}
@@ -875,7 +875,7 @@
 		topologyDisplayName={currentTopology.name}
 		isOpen={isShareModalOpen}
 		topologyId={currentTopology.id}
-		networkId={currentTopology.network_id}
+		siteId={currentTopology.site_id}
 		isSnapshotView={$selectedSnapshotId != null}
 		onClose={() => (isShareModalOpen = false)}
 	/>

@@ -220,8 +220,8 @@ interface BaseFieldConfig<T> {
 	filterOptions?: string[];
 	/**
 	 * The raw value the server groups this item under, when it differs from
-	 * what `getValue` renders (e.g. `network_id` is a UUID in the database but
-	 * a network name in the UI). Only needed on groupable fields of
+	 * what `getValue` renders (e.g. `site_id` is a UUID in the database but
+	 * a site name in the UI). Only needed on groupable fields of
 	 * server-paginated lists: it's the key that matches a group to its total in
 	 * the response's `group_counts`. Defaults to the displayed value.
 	 */

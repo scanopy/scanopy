@@ -58,7 +58,7 @@ impl NetworkScan {
     pub async fn scan_and_process_hosts(
         &self,
         subnets: Vec<Subnet>,
-        network_subnets: Vec<Subnet>,
+        site_subnets: Vec<Subnet>,
         target_ips: Option<HashSet<IpAddr>>,
         cancel: CancellationToken,
         ops: &DiscoveryOps,
@@ -68,7 +68,7 @@ impl NetworkScan {
 
         let interface_filter = ops.config_store.get_interfaces().await?;
         let (own_addresses, _, subnet_cidr_to_mac) = utils
-            .get_own_interfaces(session.info.network_id, &interface_filter)
+            .get_own_interfaces(session.info.site_id, &interface_filter)
             .await?;
 
         // Filter out loopback subnets — they are not scannable
@@ -860,13 +860,13 @@ impl NetworkScan {
                                     // Unnamed: the address is an identifier, and the display ladder
                                     // titles the host by it without a copy in `name`.
                                     let host = Host::new(HostBase {
-                                        network_id: early_subnet.base.network_id,
+                                        site_id: early_subnet.base.site_id,
                                         source: EntitySource::Discovery,
                                         ..Default::default()
                                     });
                                     let host_id = host.id;
                                     let ip_address = IPAddress::new(IPAddressBase {
-                                        network_id: early_subnet.base.network_id,
+                                        site_id: early_subnet.base.site_id,
                                         host_id: Uuid::nil(),
                                         name: None,
                                         subnet_id: early_subnet.id,
@@ -933,7 +933,7 @@ impl NetworkScan {
                                 }
                                 let probe_raw_socket_ports = self.scan_settings.probe_raw_socket_ports;
                                 let light_scan_ports = self.light_scan_ports.clone();
-                                let network_subnets_ref = network_subnets.clone();
+                                let site_subnets_ref = site_subnets.clone();
 
                                 let mdns_hosts_ref = mdns_hosts.clone();
                                 let early_host_handle = early_reported_hosts.remove(&ip);
@@ -968,7 +968,7 @@ impl NetworkScan {
 
                                             mdns_hosts: mdns_hosts_ref,
                                             credential_mappings: &self.credential_mappings,
-                                            known_subnets: network_subnets_ref,
+                                            known_subnets: site_subnets_ref,
                                         }, ops, utils)
                                         .await;
 
@@ -1048,7 +1048,7 @@ impl NetworkScan {
                         let scan_controller = scan_controller.clone();
                         let probe_raw_socket_ports = self.scan_settings.probe_raw_socket_ports;
                         let light_scan_ports = self.light_scan_ports.clone();
-                        let network_subnets_ref = network_subnets.clone();
+                        let site_subnets_ref = site_subnets.clone();
 
                         let mdns_hosts_ref = mdns_hosts.clone();
                         let early_host_handle = early_reported_hosts.remove(&ip);
@@ -1084,7 +1084,7 @@ impl NetworkScan {
 
                                     mdns_hosts: mdns_hosts_ref,
                                     credential_mappings: &self.credential_mappings,
-                                    known_subnets: network_subnets_ref,
+                                    known_subnets: site_subnets_ref,
                                 }, ops, utils)
                                 .await;
 
@@ -1339,7 +1339,7 @@ impl NetworkScan {
             Ok(Ok(found)) => {
                 let dcp_count = found.len();
                 for response in found {
-                    self.submit_dcp_host(session.info.network_id, response, ops, &cancel)
+                    self.submit_dcp_host(session.info.site_id, response, ops, &cancel)
                         .await;
                 }
                 if dcp_count > 0 {
@@ -1381,7 +1381,7 @@ impl NetworkScan {
     /// addresses (even if the device reported one — DCP's whole marginal value is the no-IP
     /// case; a configured device is already reachable via ARP/ICMP's normal flow), and one
     /// interface carrying the MAC that answered. `create_with_children` matches this against any
-    /// host this network already holds carrying that MAC, or mints one if it does not, gated on
+    /// host this site already holds carrying that MAC, or mints one if it does not, gated on
     /// `AttributeSource::ProfinetDcp` being a `Native`-tier source — this call never needs to
     /// weaken that gate itself.
     ///
@@ -1390,13 +1390,13 @@ impl NetworkScan {
     /// SNMP-discovered interfaces already on file for a host this MAC resolves onto.
     async fn submit_dcp_host(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         response: dcp::DcpIdentifyResponse,
         ops: &DiscoveryOps,
         cancel: &CancellationToken,
     ) {
         let mut host = Host::new(HostBase {
-            network_id,
+            site_id,
             source: EntitySource::Discovery,
             ..Default::default()
         });
@@ -1407,7 +1407,7 @@ impl NetworkScan {
 
         let interface = Interface::new(InterfaceBase {
             host_id: Uuid::nil(), // Server assigns.
-            network_id,
+            site_id,
             // No real value exists — DCP Identify carries no per-port description, and `if_descr`
             // stays `Option` for exactly this producer. Not fabricated text.
             if_descr: None,
@@ -1770,7 +1770,7 @@ impl NetworkScan {
         };
         // MAC enrichment from SNMP ipAddrTable now handled by SnmpIntegration.execute()
         let ip_address = IPAddress::new(IPAddressBase {
-            network_id: subnet.base.network_id,
+            site_id: subnet.base.site_id,
             host_id: Uuid::nil(), // Placeholder - server will set correct host_id
             name: None,
             subnet_id: subnet.id,
@@ -1974,7 +1974,7 @@ pub(crate) fn count_scan_ips(subnets: &[Subnet], target_ips: Option<&HashSet<IpA
 
 /// Credentials pinned to an address that this scan will never visit.
 ///
-/// Only `ip_overrides` are considered: a default credential is network-wide and has no target
+/// Only `ip_overrides` are considered: a default credential is site-wide and has no target
 /// to be unreachable. Loopback overrides are excluded because they are how a daemon-host
 /// credential (a Docker or Podman socket) addresses the daemon's own machine — that address is
 /// deliberately absent from the scannable subnets and reporting it would be a false alarm on
@@ -2260,7 +2260,7 @@ mod tests {
                 SubnetCidrValue(cidr::IpCidr::from_str(cidr).unwrap()),
                 AttributeSource::DaemonSelfReport,
             ),
-            network_id: uuid::Uuid::new_v4(),
+            site_id: uuid::Uuid::new_v4(),
             name: cidr.to_string(),
             description: None,
             subnet_type: SubnetType::Lan,
@@ -2420,10 +2420,10 @@ mod tests {
         );
     }
 
-    /// A network default has no target, so it can never be unreachable — only pinned
+    /// A site default has no target, so it can never be unreachable — only pinned
     /// `ip_overrides` can.
     #[test]
-    fn a_network_default_is_not_reported() {
+    fn a_site_default_is_not_reported() {
         let subnets = [subnet("10.0.5.0/24")];
         let mappings = [CredentialMapping {
             default_credential: Some(CredentialQueryPayload::default()),

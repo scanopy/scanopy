@@ -16,7 +16,7 @@ use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::ApiResponse;
 use crate::server::shared::types::api::ApiResult;
 use crate::server::shared::types::api::{ApiError, ApiErrorResponse, EmptyApiResponse};
-use crate::server::shared::validation::validate_network_ids_access;
+use crate::server::shared::validation::validate_site_ids_access;
 use crate::server::users::r#impl::base::User;
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
 use anyhow::Error;
@@ -57,7 +57,7 @@ async fn create_invite(
     RequireFeature { plan, .. }: RequireFeature<InviteUsersFeature>,
     ApiJson(request): ApiJson<CreateInviteRequest>,
 ) -> ApiResult<Json<ApiResponse<Invite>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
@@ -87,7 +87,7 @@ async fn create_invite(
         ));
     }
 
-    validate_network_ids_access(&request.network_ids, &network_ids)?;
+    validate_site_ids_access(&request.site_ids, &site_ids)?;
     // Seat limit check
     if let Some(max_seats) = plan.config().included_seats
         && plan.config().seat_cents.is_none()
@@ -162,7 +162,7 @@ async fn create_invite(
         user_id,
         expiration_hours,
         request.permissions,
-        request.network_ids,
+        request.site_ids,
         send_to.clone(),
     );
 
@@ -417,10 +417,10 @@ async fn accept_invite_link(
     };
 
     if let Err(e) = session
-        .insert("pending_network_ids", invite.base.network_ids.clone())
+        .insert("pending_site_ids", invite.base.site_ids.clone())
         .await
     {
-        tracing::error!("Failed to save invite network_ids to session: {}", e);
+        tracing::error!("Failed to save invite site_ids to session: {}", e);
         return Err(Redirect::to(&format!(
             "/?error={}",
             urlencoding::encode("Failed to process invite. Please try again.")
@@ -449,7 +449,7 @@ async fn accept_invite_link(
         }
 
         // User is logged in but not in an org - add them to the organization immediately
-        if let Some((org_id, permissions, network_ids)) = process_pending_invite(&state, &session)
+        if let Some((org_id, permissions, site_ids)) = process_pending_invite(&state, &session)
             .await
             .map_err(|e| {
                 tracing::error!("Failed to process invite for logged-in user: {}", e);
@@ -482,7 +482,7 @@ async fn accept_invite_link(
 
             user.base.organization_id = org_id;
             user.base.permissions = permissions;
-            user.base.network_ids = network_ids;
+            user.base.site_ids = site_ids;
             // Update user's organization
             state
                 .services
@@ -534,9 +534,13 @@ pub async fn process_pending_invite(
         _ => return Ok(None), // No permissions stored
     };
 
-    let network_ids = match session.get::<Vec<Uuid>>("pending_network_ids").await {
-        Ok(Some(network_ids)) => network_ids,
-        _ => return Ok(None), // No network ids
+    // Sessions opened before the site rename hold the ids under `pending_network_ids`.
+    let site_ids = match session.get::<Vec<Uuid>>("pending_site_ids").await {
+        Ok(Some(site_ids)) => site_ids,
+        _ => match session.get::<Vec<Uuid>>("pending_network_ids").await {
+            Ok(Some(site_ids)) => site_ids,
+            _ => return Ok(None), // No site ids
+        },
     };
 
     // Mark invite as used
@@ -575,7 +579,8 @@ pub async fn process_pending_invite(
     let _ = session.remove::<Uuid>("pending_org_invite").await;
     let _ = session.remove::<String>("pending_invite_id").await;
     let _ = session.remove::<String>("pending_invite_permissions").await;
+    let _ = session.remove::<String>("pending_site_ids").await;
     let _ = session.remove::<String>("pending_network_ids").await;
 
-    Ok(Some((pending_org_id, permissions, network_ids)))
+    Ok(Some((pending_org_id, permissions, site_ids)))
 }

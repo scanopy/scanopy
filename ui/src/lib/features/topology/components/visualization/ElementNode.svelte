@@ -10,9 +10,9 @@
 	} from '../../queries';
 	import { useTopology, selectedTopologyId } from '../../context';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	import type { TopologyNode, ElementRenderData, RenderableTopology } from '../../types/base';
 	import { cardEntityForFilter, resolveElementNode } from '../../resolvers';
 	import { buildElementRender } from '../../element-render-data';
@@ -107,10 +107,10 @@
 
 	let resolved = $derived(topology ? resolveElementNode(id, data as TopologyNode, topology) : null);
 
-	// Networks are still needed locally for the metadata-filter extractors below.
-	let networksData = $derived(networksQuery.data ?? []);
-	const networkFor = (entity: { network_id?: string } | undefined | null) =>
-		networksData.find((n) => n.id === entity?.network_id);
+	// Sites are still needed locally for the metadata-filter extractors below.
+	let sitesData = $derived(sitesQuery.data ?? []);
+	const siteFor = (entity: { site_id?: string } | undefined | null) =>
+		sitesData.find((n) => n.id === entity?.site_id);
 
 	let effectiveWidth = $derived(width ? width : 0);
 
@@ -131,7 +131,7 @@
 					options: $topologyOptions,
 					hiddenEntityIds: hiddenEntities,
 					expandedInlineGroups: expandedInlineGroupKeys,
-					networks: networksData
+					sites: sitesData
 				})
 			: null
 	);
@@ -236,7 +236,7 @@
 		inlineHostsMatching(
 			nodeRenderData?.inlineGroups ?? [],
 			currentHoveredMetadata,
-			networkFor,
+			siteFor,
 			topology
 		)
 	);
@@ -269,7 +269,7 @@
 				const cardEntity = cardEntityForFilter(resolved, entityType);
 				if (
 					cardEntity &&
-					matchesHoveredMetadata(cardEntity, entityType, hovered, networkFor(cardEntity), topology)
+					matchesHoveredMetadata(cardEntity, entityType, hovered, siteFor(cardEntity), topology)
 				) {
 					return { mode: 'element', color };
 				}
@@ -278,7 +278,7 @@
 			if (matchingInlineHosts.size > 0) return { mode: 'inline', color };
 
 			for (const service of nodeRenderData?.services ?? []) {
-				if (matchesHoveredMetadata(service, 'Service', hovered, networkFor(service), topology))
+				if (matchesHoveredMetadata(service, 'Service', hovered, siteFor(service), topology))
 					return { mode: 'inline', color };
 			}
 			return null;
@@ -468,7 +468,7 @@
 									service,
 									'Service',
 									currentHoveredMetadata,
-									networkFor(service),
+									siteFor(service),
 									topology
 								)
 							)

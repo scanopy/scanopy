@@ -7,7 +7,7 @@ import type { Credential } from './types/base';
  *
  * The colour is the Credential entity's, not the credential type's. Colouring
  * by type made the same credential render differently depending on the list it
- * appeared in — a network's SSH credential and a host's SNMP credential looked
+ * appeared in — a site's SSH credential and a host's SNMP credential looked
  * like unrelated types of thing, when what the chip says is "this is a
  * credential, here it is". Type is a column on the credentials tab, which is
  * where the type colours belong.

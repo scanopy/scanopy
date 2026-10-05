@@ -121,7 +121,7 @@ impl ContainerRuntime {
     /// `None` for drivers that own no routable L3 network (`host`, `none`, `null`).
     pub fn subnet_from_network(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         cidr: IpCidr,
         name: String,
         driver: &str,
@@ -156,7 +156,7 @@ impl ContainerRuntime {
             ),
             description: None,
             tags: Vec::new(),
-            network_id,
+            site_id,
             name,
             subnet_type,
             virtualization_service_id,

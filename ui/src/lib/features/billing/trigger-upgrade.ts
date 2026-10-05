@@ -28,7 +28,7 @@ export type PaywallSurface =
 	| 'sidebar'
 	| 'billing_tab'
 	| 'home_plan_usage'
-	| 'networks_tab'
+	| 'sites_tab'
 	| 'users_tab'
 	| 'hosts_tab'
 	| 'api_keys_tab'

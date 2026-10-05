@@ -47,8 +47,8 @@ pub struct HostBase {
     #[schema(value_type = HostName)]
     #[validate(custom(function = "validate_host_name"))]
     pub name: HostName,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// The host's hostname, with the source that produced it.
     ///
     /// An identifier rather than a name, so it is never copied into `name`: see the placement rule
@@ -173,7 +173,7 @@ impl Default for HostBase {
     fn default() -> Self {
         Self {
             name: HostName::unnamed(),
-            network_id: Uuid::nil(),
+            site_id: Uuid::nil(),
             hostname: None,
             description: None,
             source: EntitySource::Unknown,
@@ -301,7 +301,7 @@ impl HostBase {
             // Not attributes: owned by the naming ladder, by the user, or by the row itself.
             // Virtualization has its own fill-when-empty entry point below.
             name: _,
-            network_id: _,
+            site_id: _,
             description: _,
             source: _,
             virtualization_metadata: _,
@@ -500,7 +500,7 @@ pub struct Host {
     pub updated_at: DateTime<Utc>,
     /// SCD2: when this row version became live. Equal to `created_at` for
     /// rows that have never ridden a snapshot; advanced to the snapshot's
-    /// `taken_at` for live rows after a network snapshot fires.
+    /// `taken_at` for live rows after a site snapshot fires.
     #[serde(default)]
     #[schema(read_only)]
     pub valid_from: DateTime<Utc>,

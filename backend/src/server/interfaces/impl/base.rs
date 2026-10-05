@@ -329,8 +329,8 @@ impl TypeMetadataProvider for IfOperStatus {
 pub struct InterfaceBase {
     /// The host this entity belongs to.
     pub host_id: Uuid,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// SNMP ifIndex — stable identifier within device, where one was read.
     ///
     /// `None` for a port learned from a neighbour's LLDP/CDP advertisement rather than from the
@@ -432,7 +432,7 @@ impl Default for InterfaceBase {
     fn default() -> Self {
         Self {
             host_id: Uuid::nil(),
-            network_id: Uuid::nil(),
+            site_id: Uuid::nil(),
             if_index: None,
             if_descr: None,
             if_name: None,

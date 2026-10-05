@@ -3,7 +3,7 @@
 use super::*;
 
 pub(super) fn generate_vlans(
-    networks: &[Network],
+    sites: &[Site],
     organization_id: Uuid,
     now: DateTime<Utc>,
 ) -> Vec<Vlan> {
@@ -17,7 +17,7 @@ pub(super) fn generate_vlans(
         (100, "Guest"),
     ];
 
-    for network in networks {
+    for site in sites {
         for &(vlan_number, name) in &vlan_defs {
             vlans.push(Vlan {
                 id: Uuid::new_v4(),
@@ -33,7 +33,7 @@ pub(super) fn generate_vlans(
                     vlan_number,
                     name: name.to_string(),
                     description: None,
-                    network_id: network.id,
+                    site_id: site.id,
                     organization_id,
                     source: EntitySource::Discovery,
                     subnet_ids: Vec::new(),

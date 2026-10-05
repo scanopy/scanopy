@@ -12,13 +12,13 @@ use crate::server::{
         storage::generic::GenericPostgresStorage,
     },
     tags::entity_tags::EntityTagService,
-    user_api_keys::r#impl::{base::UserApiKey, network_access::UserApiKeyNetworkAccessStorage},
+    user_api_keys::r#impl::{base::UserApiKey, site_access::UserApiKeySiteAccessStorage},
     users::r#impl::permissions::UserOrgPermissions,
 };
 
 pub struct UserApiKeyService {
     storage: Arc<GenericPostgresStorage<UserApiKey>>,
-    network_access_storage: Arc<UserApiKeyNetworkAccessStorage>,
+    site_access_storage: Arc<UserApiKeySiteAccessStorage>,
     event_bus: Arc<EventBus>,
     entity_tag_service: Arc<EntityTagService>,
 }
@@ -28,8 +28,8 @@ impl EventBusService<UserApiKey> for UserApiKeyService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, _entity: &UserApiKey) -> Option<Uuid> {
-        // User API keys use junction table, not a single network_id
+    fn get_site_id(&self, _entity: &UserApiKey) -> Option<Uuid> {
+        // User API keys use junction table, not a single site_id
         None
     }
 
@@ -59,21 +59,21 @@ impl CrudService<UserApiKey> for UserApiKeyService {
 impl UserApiKeyService {
     pub fn new(
         storage: Arc<GenericPostgresStorage<UserApiKey>>,
-        network_access_storage: Arc<UserApiKeyNetworkAccessStorage>,
+        site_access_storage: Arc<UserApiKeySiteAccessStorage>,
         event_bus: Arc<EventBus>,
         entity_tag_service: Arc<EntityTagService>,
     ) -> Self {
         Self {
             storage,
-            network_access_storage,
+            site_access_storage,
             event_bus,
             entity_tag_service,
         }
     }
 
-    /// Get the network access storage for junction table operations
-    pub fn network_access_storage(&self) -> &Arc<UserApiKeyNetworkAccessStorage> {
-        &self.network_access_storage
+    /// Get the site access storage for junction table operations
+    pub fn site_access_storage(&self) -> &Arc<UserApiKeySiteAccessStorage> {
+        &self.site_access_storage
     }
 
     /// Get a user API key by its hashed key value
@@ -82,27 +82,27 @@ impl UserApiKeyService {
 
         let filter = StorableFilter::<UserApiKey>::new_from_api_key(hashed_key.to_string());
         if let Some(mut key) = self.storage.get_unique(filter).await?.at_most_one()? {
-            // Hydrate network_ids from junction table
-            key.base.network_ids = self.network_access_storage.get_for_key(&key.id).await?;
+            // Hydrate site_ids from junction table
+            key.base.site_ids = self.site_access_storage.get_for_key(&key.id).await?;
             self.hydrate_tags(&mut key).await?;
             return Ok(Some(key));
         }
         Ok(None)
     }
 
-    /// Get all API keys for a specific user, with network_ids hydrated
+    /// Get all API keys for a specific user, with site_ids hydrated
     pub async fn get_for_user(&self, user_id: &Uuid) -> Result<Vec<UserApiKey>> {
         use crate::server::shared::storage::{filter::StorableFilter, traits::Storage};
 
         let filter = StorableFilter::<UserApiKey>::new_from_user_id(user_id);
         let mut keys = self.storage.get_all(filter).await?;
 
-        // Batch hydrate network_ids
+        // Batch hydrate site_ids
         let key_ids: Vec<Uuid> = keys.iter().map(|k| k.id).collect();
-        let network_map = self.network_access_storage.get_for_keys(&key_ids).await?;
+        let site_map = self.site_access_storage.get_for_keys(&key_ids).await?;
 
         for key in &mut keys {
-            key.base.network_ids = network_map.get(&key.id).cloned().unwrap_or_default();
+            key.base.site_ids = site_map.get(&key.id).cloned().unwrap_or_default();
         }
 
         self.bulk_hydrate_tags(&mut keys, None).await?;
@@ -124,42 +124,38 @@ impl UserApiKeyService {
         Ok(())
     }
 
-    /// Get network IDs for an API key from the junction table
-    pub async fn get_network_ids(&self, api_key_id: &Uuid) -> Result<Vec<Uuid>> {
-        self.network_access_storage.get_for_key(api_key_id).await
+    /// Get site IDs for an API key from the junction table
+    pub async fn get_site_ids(&self, api_key_id: &Uuid) -> Result<Vec<Uuid>> {
+        self.site_access_storage.get_for_key(api_key_id).await
     }
 
-    /// Create a new user API key with network access
-    pub async fn create_with_networks(
+    /// Create a new user API key with site access
+    pub async fn create_with_sites(
         &self,
         api_key: UserApiKey,
-        network_ids: Vec<Uuid>,
+        site_ids: Vec<Uuid>,
         authentication: AuthenticatedEntity,
     ) -> Result<UserApiKey> {
         // Create the key first
         let created = self.create(api_key.clone(), authentication).await?;
 
-        // Then save network access
-        if !network_ids.is_empty() {
-            self.network_access_storage
-                .save_for_key(&created.id, &network_ids)
+        // Then save site access
+        if !site_ids.is_empty() {
+            self.site_access_storage
+                .save_for_key(&created.id, &site_ids)
                 .await?;
         }
 
-        // Return with hydrated network_ids
+        // Return with hydrated site_ids
         let mut result = created;
-        result.base.network_ids = network_ids;
+        result.base.site_ids = site_ids;
         Ok(result)
     }
 
-    /// Update network access for an existing key
-    pub async fn update_network_access(
-        &self,
-        api_key_id: &Uuid,
-        network_ids: &[Uuid],
-    ) -> Result<()> {
-        self.network_access_storage
-            .save_for_key(api_key_id, network_ids)
+    /// Update site access for an existing key
+    pub async fn update_site_access(&self, api_key_id: &Uuid, site_ids: &[Uuid]) -> Result<()> {
+        self.site_access_storage
+            .save_for_key(api_key_id, site_ids)
             .await
     }
 }

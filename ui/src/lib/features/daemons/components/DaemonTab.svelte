@@ -17,7 +17,7 @@
 	import { defineFields, type CardAction } from '$lib/shared/components/data/types';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
 	import { tagNames } from '$lib/features/tags/columns';
-	import { networkItems } from '$lib/features/networks/columns';
+	import { siteItems } from '$lib/features/sites/columns';
 	import { entityRef } from '$lib/shared/components/data/types';
 	import { entities } from '$lib/shared/stores/metadata';
 	import { isUserManagedSubnet, useSubnetsQuery } from '$lib/features/subnets/queries';
@@ -30,7 +30,7 @@
 		useBulkDeleteDaemonsMutation,
 		useRetryDaemonConnectionMutation
 	} from '$lib/features/daemons/queries';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import { useUsersByIds } from '$lib/features/users/queries';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
@@ -57,12 +57,12 @@
 		common_host,
 		common_maintainer,
 		common_name,
-		common_network,
+		common_site,
 		common_status,
 		common_tags,
 		common_noEntityYet,
 		common_unknownEntity,
-		common_unknownNetwork,
+		common_unknownSite,
 		common_update,
 		common_updated,
 		common_url,
@@ -86,7 +86,7 @@
 	// Queries
 	const tagsQuery = useTagsQuery();
 	const daemonsQuery = useDaemonsQuery();
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	// Shared subnets cache, to resolve each daemon's interfaced subnet ids.
 	const subnetsQuery = useSubnetsQuery();
 
@@ -127,9 +127,9 @@
 		if (!iso) return null;
 		return formatLongDate(iso, 'UTC');
 	});
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
 	let subnetsData = $derived((subnetsQuery.data ?? []).filter(isUserManagedSubnet));
-	let isLoading = $derived(daemonsQuery.isPending || networksQuery.isPending);
+	let isLoading = $derived(daemonsQuery.isPending || sitesQuery.isPending);
 
 	let showCreateDaemonModal = $state(false);
 	let showDaemonEditor = $state(false);
@@ -311,15 +311,15 @@
 					groupable: false,
 					display: { order: 0, primary: true, width: 220 }
 				},
-				network_id: {
-					label: common_network(),
+				site_id: {
+					label: common_site(),
 					type: 'string',
 					searchable: true,
 					filterable: true,
 					groupable: true,
 					getValue: (item) =>
-						networksData.find((n) => n.id == item.network_id)?.name || common_unknownNetwork(),
-					display: { order: 3, getItems: (item) => networkItems(item.network_id, networksData) }
+						sitesData.find((n) => n.id == item.site_id)?.name || common_unknownSite(),
+					display: { order: 3, getItems: (item) => siteItems(item.site_id, sitesData) }
 				},
 				last_seen: {
 					label: daemons_lastSeen(),

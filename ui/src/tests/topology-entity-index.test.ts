@@ -13,13 +13,13 @@ import { resolveInlineServiceIds } from '$lib/features/topology/resolvers';
  * element node must not also be counted as inlined.
  */
 
-const NETWORK_ID = 'net-1';
+const SITE_ID = 'net-1';
 
 function service(id: string, hostId: string, bindingIpIds: (string | null)[]) {
 	return {
 		id,
 		host_id: hostId,
-		network_id: NETWORK_ID,
+		site_id: SITE_ID,
 		tags: [],
 		bindings: bindingIpIds.map((ip) => ({ ip_address_id: ip }))
 	};
@@ -33,16 +33,16 @@ function service(id: string, hostId: string, bindingIpIds: (string | null)[]) {
 function buildTopology(): RenderableTopology {
 	return {
 		id: 'topo-1',
-		network_id: NETWORK_ID,
+		site_id: SITE_ID,
 		hosts: [
-			{ id: 'host-a', network_id: NETWORK_ID, tags: [] },
-			{ id: 'host-b', network_id: NETWORK_ID, tags: [] }
+			{ id: 'host-a', site_id: SITE_ID, tags: [] },
+			{ id: 'host-b', site_id: SITE_ID, tags: [] }
 		],
-		subnets: [{ id: 'subnet-1', network_id: NETWORK_ID, cidr: '10.0.0.0/24', tags: [] }],
+		subnets: [{ id: 'subnet-1', site_id: SITE_ID, cidr: '10.0.0.0/24', tags: [] }],
 		ip_addresses: [
-			{ id: 'ip-a1', network_id: NETWORK_ID, subnet_id: 'subnet-1' },
-			{ id: 'ip-a2', network_id: NETWORK_ID, subnet_id: 'subnet-1' },
-			{ id: 'ip-b1', network_id: NETWORK_ID, subnet_id: 'subnet-1' }
+			{ id: 'ip-a1', site_id: SITE_ID, subnet_id: 'subnet-1' },
+			{ id: 'ip-a2', site_id: SITE_ID, subnet_id: 'subnet-1' },
+			{ id: 'ip-b1', site_id: SITE_ID, subnet_id: 'subnet-1' }
 		],
 		services: [
 			// Bound to one specific IP on host-a.

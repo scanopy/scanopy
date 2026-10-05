@@ -36,7 +36,7 @@
 			(s) =>
 				(formData.discovery_type.type === 'Network' ||
 					formData.discovery_type.type === 'Unified') &&
-				s.network_id == formData.network_id &&
+				s.site_id == formData.site_id &&
 				!formData.discovery_type.subnet_ids?.includes(s.id) &&
 				subnetTypes.getMetadata(s.subnet_type).network_scan_discovery_eligible
 		)

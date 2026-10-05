@@ -99,7 +99,7 @@ impl HasFilterValues for TopologyHost {
 /// Loaded by [`crate::server::topology::service::main::TopologyService::get_topology_data`]
 /// for either the live view (`snapshot_id = None`) or a point-in-time snapshot
 /// (`snapshot_id = Some(id)`). The per-view `nodes`/`edges` are built on request
-/// from these entities + the network's grouping options
+/// from these entities + the site's grouping options
 /// (`build_all_view_graphs`) — they are not persisted. The frontend selects the
 /// active view's slice client-side.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, ToSchema)]
@@ -148,7 +148,7 @@ pub struct TopologyData {
     ///
     /// Server-filtered entities never reach the browser, so this is the only way the frontend can
     /// say "171 interfaces hidden by By link" rather than presenting an empty view as an empty
-    /// network. Keyed by entity and filter only, with no view: the hide-set is per view but a drop
+    /// site. Keyed by entity and filter only, with no view: the hide-set is per view but a drop
     /// is not — an entity is removed from the one shared bundle only when *every* view that could
     /// render it hides it (see `metadata_filter`).
     ///

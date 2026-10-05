@@ -22,29 +22,29 @@ use super::NetworkScan;
 pub struct ResolvedScanTargets {
     pub subnets: Vec<Subnet>,
     pub target_ips: Option<HashSet<IpAddr>>,
-    /// Every subnet the server holds for this network, whether or not this run sweeps it.
+    /// Every subnet the server holds for this site, whether or not this run sweeps it.
     ///
     /// Distinct from `subnets`, and the two must not be conflated. `subnets` is scan *scope*:
     /// what gets swept, and what "this credential targets an address we never contacted" is
-    /// judged against. This is the network's *address space*, which an integration needs to
+    /// judged against. This is the site's *address space*, which an integration needs to
     /// place a device it learned about from somewhere other than the sweep — a UniFi
     /// controller reports switches on subnets a rescan of the controller never touches, and
     /// host identity is IP-based, so a device that cannot be placed in a subnet cannot be
     /// deduplicated and is dropped.
-    pub network_subnets: Vec<Subnet>,
+    pub site_subnets: Vec<Subnet>,
 }
 
 impl NetworkScan {
     /// Network-phase target resolution: either the subnets to sweep, or the
     /// specific addresses a rescan is verifying.
-    /// The network's subnets, as sent with the run, or asked for when the server was too old to
+    /// The site's subnets, as sent with the run, or asked for when the server was too old to
     /// send them.
     ///
     /// Only a scan that names subnets by id needs these: a sweep reads the daemon's own
     /// interfaces, and creates what it finds. Asking is a DaemonPoll-only fallback, since a
     /// ServerPoll daemon has no server URL to ask with; there, an empty list is as far as this
     /// run gets, and the error says so rather than reporting a connection it never tried.
-    async fn network_subnets(&self, ops: &DiscoveryOps) -> Result<Vec<Subnet>, Error> {
+    async fn site_subnets(&self, ops: &DiscoveryOps) -> Result<Vec<Subnet>, Error> {
         if !self.known_subnets.is_empty() {
             return Ok(self.known_subnets.clone());
         }
@@ -66,28 +66,28 @@ impl NetworkScan {
         utils: &PlatformDaemonUtils,
         cancel: &CancellationToken,
     ) -> Result<ResolvedScanTargets, Error> {
-        let network_id = ops
+        let site_id = ops
             .config_store
-            .get_network_id()
+            .get_site_id()
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Network ID not set"))?;
+            .ok_or_else(|| anyhow::anyhow!("Site ID not set"))?;
 
         // A rescan names its targets, so resolve each to the subnet that holds it.
         if let Some(target_ips) = &self.target_ips {
             return self
-                .resolve_rescan_targets(target_ips, ops, utils, network_id)
+                .resolve_rescan_targets(target_ips, ops, utils, site_id)
                 .await;
         }
 
         // A scan that names subnets cannot run without them. A sweep only uses them to place
         // what integrations report, so it carries on with what it has.
-        let network_subnets = match self.network_subnets(ops).await {
+        let site_subnets = match self.site_subnets(ops).await {
             Ok(subnets) => subnets,
             Err(e) if self.subnet_ids.is_some() => return Err(e),
             Err(e) => {
                 tracing::warn!(
                     error = %e,
-                    "Scanning without the network's subnet list; integrations will place what \
+                    "Scanning without the site's subnet list; integrations will place what \
                      they find by the subnets this scan creates"
                 );
                 Vec::new()
@@ -96,7 +96,7 @@ impl NetworkScan {
 
         // Target specific subnets if provided in discovery type
         let subnets = if let Some(subnet_ids) = &self.subnet_ids {
-            network_subnets
+            site_subnets
                 .iter()
                 .filter(|s| subnet_ids.contains(&s.id))
                 .cloned()
@@ -105,9 +105,7 @@ impl NetworkScan {
         // Target all interfaced subnets if not
         } else {
             let interface_filter = ops.config_store.get_interfaces().await?;
-            let (_, subnets, _) = utils
-                .get_own_interfaces(network_id, &interface_filter)
-                .await?;
+            let (_, subnets, _) = utils.get_own_interfaces(site_id, &interface_filter).await?;
 
             // Filter out docker bridge subnets (handled in docker discovery).
             // Size filtering for non-interfaced subnets is done later in
@@ -132,7 +130,7 @@ impl NetworkScan {
         Ok(ResolvedScanTargets {
             subnets,
             target_ips: None,
-            network_subnets,
+            site_subnets,
         })
     }
 
@@ -147,14 +145,13 @@ impl NetworkScan {
         target_ips: &HashSet<IpAddr>,
         ops: &DiscoveryOps,
         utils: &PlatformDaemonUtils,
-        network_id: uuid::Uuid,
+        site_id: uuid::Uuid,
     ) -> Result<ResolvedScanTargets, Error> {
         let interface_filter = ops.config_store.get_interfaces().await?;
-        let (_, _, subnet_cidr_to_mac) = utils
-            .get_own_interfaces(network_id, &interface_filter)
-            .await?;
+        let (_, _, subnet_cidr_to_mac) =
+            utils.get_own_interfaces(site_id, &interface_filter).await?;
 
-        let all_subnets = self.network_subnets(ops).await?;
+        let all_subnets = self.site_subnets(ops).await?;
 
         let resolution = resolve_rescan_subnets(target_ips, &subnet_cidr_to_mac, &all_subnets);
 
@@ -185,7 +182,7 @@ impl NetworkScan {
         Ok(ResolvedScanTargets {
             subnets: resolution.subnets,
             target_ips: Some(resolution.resolved),
-            network_subnets: all_subnets,
+            site_subnets: all_subnets,
         })
     }
 }

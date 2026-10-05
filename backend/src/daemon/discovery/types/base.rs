@@ -34,9 +34,9 @@ use crate::server::shared::types::{Color, Icon};
     Deserialize
 ))]
 pub enum DiscoveryPhase {
-    /// Blocked: a network snapshot is in progress on this network. The session
+    /// Blocked: a site snapshot is in progress on this site. The session
     /// can't enter the normal Queued/Pending decision until
-    /// `release_network_for_snapshot` clears the block. Daemons polling for
+    /// `release_site_for_snapshot` clears the block. Daemons polling for
     /// work do NOT see AwaitingSnapshot sessions.
     AwaitingSnapshot,
     Queued,   // Waiting in daemon queue behind another session
@@ -322,7 +322,7 @@ impl TypeMetadataProvider for DiscoveryTerminalReason {
 #[derive(Debug, Clone)]
 pub struct DiscoverySessionInfo {
     pub session_id: Uuid,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub daemon_id: Uuid,
     pub started_at: Option<DateTime<Utc>>,
     pub discovery_type: DiscoveryType,
@@ -365,7 +365,7 @@ impl std::fmt::Display for DiscoveryPhase {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             DiscoveryPhase::AwaitingSnapshot => {
-                write!(f, "Waiting for network snapshot to complete")
+                write!(f, "Waiting for site snapshot to complete")
             }
             DiscoveryPhase::Queued => write!(f, "Waiting in queue behind another session"),
             DiscoveryPhase::Pending => {

@@ -40,7 +40,7 @@ pub struct NetworkIdentity {
     pub interface: Option<String>,
     /// Canonical lowercase-colon MAC.
     pub mac: String,
-    /// Its addresses on subnets the network holds, in the order the guest reported them.
+    /// Its addresses on subnets the site holds, in the order the guest reported them.
     pub addresses: Vec<IpAddr>,
 }
 
@@ -48,7 +48,7 @@ pub struct NetworkIdentity {
 ///
 /// An interface counts when it has a MAC, that MAC is not one the guest's config gives a `netN`
 /// NIC (those are the guest's own addresses, see [`super::mapping::select_addresses`]), and at
-/// least one of its addresses sits on a subnet the network holds that is not a container bridge
+/// least one of its addresses sits on a subnet the site holds that is not a container bridge
 /// or loopback. That leaves out a Docker host's `docker0` and `br-*` (container bridge subnets, or
 /// none at all), a `wg0` tunnel (no MAC), and loopback. Only the addresses on such subnets are
 /// kept: the rest are the guest's internals.
@@ -103,7 +103,7 @@ pub fn guest_services(guest: &Host, identities: &[NetworkIdentity]) -> Vec<Servi
     }
     vec![Service::new(ServiceBase {
         host_id: guest.id,
-        network_id: guest.base.network_id,
+        site_id: guest.base.site_id,
         name: ServiceDefinition::name(&NetworkIdentities).to_string(),
         service_definition: Box::new(NetworkIdentities),
         bindings: vec![],
@@ -134,10 +134,10 @@ fn identity_mac(identity: &NetworkIdentity) -> Option<MacEvidence> {
 /// The guest's own interface an identity sits on, carried in the guest's submission so the
 /// identity can name it by its stored id ([`presenting_interface_id`]). No address: the
 /// identity's addresses are its own host's.
-pub fn identity_interface(identity: &NetworkIdentity, network_id: Uuid) -> Interface {
+pub fn identity_interface(identity: &NetworkIdentity, site_id: Uuid) -> Interface {
     Interface::new(InterfaceBase {
         host_id: Uuid::nil(), // Server assigns.
-        network_id,
+        site_id,
         if_name: identity.interface.clone(),
         mac_address: identity_mac(identity),
         ..Default::default()
@@ -163,10 +163,10 @@ pub fn identity_host(
     owner: Uuid,
     presenting_interface: Option<Uuid>,
     subnets: &[Subnet],
-    network_id: Uuid,
+    site_id: Uuid,
 ) -> (Host, Vec<IPAddress>) {
     let host = Host::new(HostBase {
-        network_id,
+        site_id,
         source: EntitySource::Discovery,
         virtualization_metadata: Some(HostVirtualization::NetworkIdentity(
             NetworkIdentityVirtualization {},
@@ -182,7 +182,7 @@ pub fn identity_host(
         .enumerate()
         .filter_map(|(position, ip)| {
             IPAddress::discovered(
-                network_id,
+                site_id,
                 subnets,
                 *ip,
                 mac.clone(),
@@ -355,11 +355,11 @@ mod tests {
     fn an_identity_host_links_its_owner_and_presenting_interface_with_a_weak_mac() {
         let (nics, reported) = docker_host_with_macvlan();
         let subnets = subnets();
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let identity = &network_identities(&nics, &reported, &subnets)[0];
         let owner = Uuid::new_v4();
 
-        let submitted = identity_interface(identity, network_id);
+        let submitted = identity_interface(identity, site_id);
         assert_eq!(submitted.base.if_name.as_deref(), Some("mv-snmp4"));
         // As stored: a server id, beside another of the guest's interfaces sharing the MAC.
         let stored = Interface::new(submitted.base.clone());
@@ -370,7 +370,7 @@ mod tests {
         let presenting = presenting_interface_id(identity, &[same_mac_other_name, stored.clone()]);
         assert_eq!(presenting, Some(stored.id));
 
-        let (host, ip_addresses) = identity_host(identity, owner, presenting, &subnets, network_id);
+        let (host, ip_addresses) = identity_host(identity, owner, presenting, &subnets, site_id);
         assert_eq!(
             undeclared_virtualization(CredentialIntegration::Proxmox, &host),
             None

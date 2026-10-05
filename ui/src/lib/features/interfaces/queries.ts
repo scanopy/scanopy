@@ -32,7 +32,7 @@ export function useInterfacesByIds(idsGetter: () => string[]) {
 			queryKey: [...queryKeys.interfaces.all, 'byIds', ids],
 			queryFn: async (): Promise<Interface[]> =>
 				unwrapData(
-					await apiClient.GET('/api/v1/if-entries', { params: { query: { ids, limit: 0 } } })
+					await apiClient.GET('/api/v1/interfaces', { params: { query: { ids, limit: 0 } } })
 				),
 			enabled: ids.length > 0
 		};

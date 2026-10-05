@@ -133,7 +133,7 @@ impl BillingService {
                             OrgScope { organization_id },
                             BillingOperation::CheckoutCompleted {
                                 plan,
-                                included_networks: plan.config().included_networks,
+                                included_sites: plan.config().included_sites,
                                 included_seats: plan.config().included_seats,
                                 mrr_amount_cents: mrr_from_subscription(&subscription),
                                 is_trialing: false,

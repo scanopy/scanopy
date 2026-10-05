@@ -36,7 +36,7 @@ use crate::server::{
     shared::storage::{filter::StorableFilter, traits::Storage},
 };
 
-use super::{host, network, organization, subnet, test_services};
+use super::{host, organization, site, subnet, test_services};
 use crate::server::hosts::r#impl::attributes::{HostChassisIdValue, HostSysNameValue};
 use crate::server::ip_addresses::r#impl::base::{MacEvidence, MacEvidenceValue, mac_of};
 use crate::server::services::r#impl::patterns::ClientProbe;
@@ -46,7 +46,7 @@ use crate::server::shared::attribution::{AttributeSource, Attributed};
 /// a fixture cannot accidentally assert a provenance no real scan produces.
 const SNMP_READ: AttributeSource = AttributeSource::Probe(ClientProbe::Snmp);
 
-/// A network holding simulated devices as scanned hosts, and a resolver pointed at the same
+/// A site holding simulated devices as scanned hosts, and a resolver pointed at the same
 /// database.
 struct Lab {
     resolver: LldpResolverImpl,
@@ -54,7 +54,7 @@ struct Lab {
     interfaces: std::sync::Arc<crate::server::interfaces::service::InterfaceService>,
     neighbours: std::sync::Arc<InterfaceNeighborService>,
     storage: crate::server::shared::storage::factory::StorageFactory,
-    network_id: Uuid,
+    site_id: Uuid,
     _subnet_id: Uuid,
     _container: testcontainers::ContainerAsync<testcontainers::GenericImage>,
 }
@@ -65,9 +65,9 @@ impl Lab {
 
         let org = organization();
         storage.organizations.create(&org).await.unwrap();
-        let network = network(&org.id);
-        storage.networks.create(&network).await.unwrap();
-        let subnet = subnet(&network.id);
+        let site = site(&org.id);
+        storage.sites.create(&site).await.unwrap();
+        let subnet = subnet(&site.id);
         storage.subnets.create(&subnet).await.unwrap();
 
         let resolver = LldpResolverImpl::new(
@@ -81,7 +81,7 @@ impl Lab {
             host_service: services.host_service.clone(),
             interfaces: services.interface_service.clone(),
             neighbours: services.interface_neighbor_service.clone(),
-            network_id: network.id,
+            site_id: site.id,
             _subnet_id: subnet.id,
             storage,
             _container,
@@ -106,7 +106,7 @@ impl Lab {
             LldpChassisId::from_snmp(subtype, &value).map(|id| id.identifier())
         });
 
-        let mut record = host(&self.network_id);
+        let mut record = host(&self.site_id);
         record.base.name = HostName::manual(name.to_string());
         record.base.chassis_id =
             chassis_id.map(|v| Attributed::new(HostChassisIdValue(v), SNMP_READ));
@@ -152,14 +152,14 @@ impl Lab {
     /// reports. `Lab::scan` cannot be used for one: it reads the device's LLDP local identity, and
     /// serving none is the whole point.
     async fn mute_host(&self, name: &str, address: IpAddr, sys_name: Option<&str>) -> Host {
-        let mut record = host(&self.network_id);
+        let mut record = host(&self.site_id);
         record.base.name = HostName::manual(name.to_string());
         record.base.chassis_id = None;
         record.base.sys_name =
             sys_name.map(|v| Attributed::new(HostSysNameValue(v.into()), SNMP_READ));
         self.storage.hosts.create(&record).await.unwrap();
 
-        let mut ip = super::ip_address(&self.network_id, &self._subnet_id);
+        let mut ip = super::ip_address(&self.site_id, &self._subnet_id);
         ip.base.host_id = record.id;
         ip.base.ip_address = address;
         self.storage.ip_addresses.create(&ip).await.unwrap();
@@ -176,7 +176,7 @@ impl Lab {
         collected: &Collected,
         groups: InterfaceDataComplete,
     ) -> (Host, HashMap<i32, Uuid>) {
-        let mut record = host(&self.network_id);
+        let mut record = host(&self.site_id);
         record.base.name = HostName::manual(name.to_string());
         self.storage.hosts.create(&record).await.unwrap();
 
@@ -185,7 +185,7 @@ impl Lab {
         for entry in &collected.if_table.entries {
             let submitted = convert_snmp_if_entry(
                 entry,
-                self.network_id,
+                self.site_id,
                 &collected.neighbours.records,
                 &collected.cdp.records,
                 &[],
@@ -224,7 +224,7 @@ impl Lab {
     ) -> Interface {
         let interface = Interface::new(InterfaceBase {
             host_id,
-            network_id: self.network_id,
+            site_id: self.site_id,
             if_index: Some(entry.if_index),
             if_descr: entry.if_descr.clone(),
             if_name: entry.if_name.clone(),
@@ -336,7 +336,7 @@ async fn a_chassis_id_on_no_port_still_finds_its_device() {
     // The precondition: nothing but `hosts.chassis_id` can answer this.
     assert_eq!(
         lab.resolver
-            .find_host_by_mac(&advertised.identifier(), lab.network_id)
+            .find_host_by_mac(&advertised.identifier(), lab.site_id)
             .await,
         IdentityResolution::NotFound,
         "the chassis MAC must be on no interface, or this test proves the wrong tier"
@@ -344,7 +344,7 @@ async fn a_chassis_id_on_no_port_still_finds_its_device() {
 
     assert_eq!(
         advertised
-            .resolve_host_id(&lab.resolver, lab.network_id, AdvertisedIdentity::default())
+            .resolve_host_id(&lab.resolver, lab.site_id, AdvertisedIdentity::default())
             .await,
         IdentityResolution::Resolved(netgear.host.id),
         "the far end is findable only through the chassis id it recorded about itself"
@@ -356,7 +356,7 @@ async fn a_chassis_id_on_no_port_still_finds_its_device() {
 /// Such a device carries no interface row to hold the chassis MAC its neighbours advertise and no
 /// `chassis_id` of its own, so the MAC tier and the chassis tier are structurally dead for it — and
 /// with no `sysName` recorded either, the ladder had nothing left. The address it publishes in
-/// `lldpRemManAddr` is the one identifier that survives, and this network already holds it.
+/// `lldpRemManAddr` is the one identifier that survives, and this site already holds it.
 ///
 /// Against the database because that is where it has to hold: the tier resolves through
 /// `ip_addresses`, and the fake-inventory tests re-implement that lookup rather than running it.
@@ -374,14 +374,14 @@ async fn a_far_end_with_no_tables_is_found_by_the_address_it_publishes() {
     // The preconditions. Without these the test could pass through a tier it is not about.
     assert_eq!(
         lab.resolver
-            .find_host_by_mac(&advertised.identifier(), lab.network_id)
+            .find_host_by_mac(&advertised.identifier(), lab.site_id)
             .await,
         IdentityResolution::NotFound,
         "the chassis MAC must be on no interface and no address"
     );
     assert_eq!(
         lab.resolver
-            .find_host_by_chassis_id(&advertised.identifier(), lab.network_id)
+            .find_host_by_chassis_id(&advertised.identifier(), lab.site_id)
             .await,
         IdentityResolution::NotFound,
         "and on no host's own chassis id"
@@ -391,7 +391,7 @@ async fn a_far_end_with_no_tables_is_found_by_the_address_it_publishes() {
         advertised
             .resolve_host_id(
                 &lab.resolver,
-                lab.network_id,
+                lab.site_id,
                 AdvertisedIdentity {
                     sys_name: None,
                     address: Some(management_address),
@@ -434,21 +434,21 @@ async fn the_mute_far_end_is_placed_only_by_the_address_its_neighbour_publishes(
     // Every tier above the address, shown failing rather than assumed to.
     assert_eq!(
         lab.resolver
-            .find_host_by_mac(&advertised.identifier(), lab.network_id)
+            .find_host_by_mac(&advertised.identifier(), lab.site_id)
             .await,
         IdentityResolution::NotFound,
         "the chassis MAC is on no interface, because the device serves no ifTable"
     );
     assert_eq!(
         lab.resolver
-            .find_host_by_chassis_id(&advertised.identifier(), lab.network_id)
+            .find_host_by_chassis_id(&advertised.identifier(), lab.site_id)
             .await,
         IdentityResolution::NotFound,
         "and on no host's own chassis id, because it publishes no LLDP local identity"
     );
     assert_eq!(
         lab.resolver
-            .find_host_by_sys_name("Switch1", lab.network_id)
+            .find_host_by_sys_name("Switch1", lab.site_id)
             .await,
         IdentityResolution::NotFound,
         "and the name it is advertised under is not the one it answers to"
@@ -458,7 +458,7 @@ async fn the_mute_far_end_is_placed_only_by_the_address_its_neighbour_publishes(
         advertised
             .resolve_host_id(
                 &lab.resolver,
-                lab.network_id,
+                lab.site_id,
                 AdvertisedIdentity {
                     sys_name: neighbour.remote_sys_name.as_deref(),
                     address: neighbour.remote_mgmt_addr,
@@ -527,7 +527,7 @@ async fn far_ends_named_on_several_ports_hold_each_of_them() {
     };
 
     lab.host_service
-        .resolve_lldp_links(lab.network_id, chrono::Utc::now(), &Default::default())
+        .resolve_lldp_links(lab.site_id, chrono::Utc::now(), &Default::default())
         .await
         .unwrap();
 
@@ -551,7 +551,7 @@ async fn far_ends_named_on_several_ports_hold_each_of_them() {
     assert_eq!(branch_ports, HashSet::from([gi6.id, gi8.id]));
 
     lab.host_service
-        .resolve_lldp_links(lab.network_id, chrono::Utc::now(), &Default::default())
+        .resolve_lldp_links(lab.site_id, chrono::Utc::now(), &Default::default())
         .await
         .unwrap();
     assert_eq!(port_ids(mute.id).await, mute_ports);
@@ -561,7 +561,7 @@ async fn far_ends_named_on_several_ports_hold_each_of_them() {
 /// An address nothing holds stays `NotFound` — the tier must not invent a match, and this is the
 /// population the subnet inference then runs on.
 #[tokio::test]
-async fn a_published_address_this_network_does_not_hold_resolves_to_nothing() {
+async fn a_published_address_this_site_does_not_hold_resolves_to_nothing() {
     let lab = Lab::new().await;
     lab.host_with_only_an_address("switch-mute-01", "192.168.1.248".parse().unwrap())
         .await;
@@ -571,7 +571,7 @@ async fn a_published_address_this_network_does_not_hold_resolves_to_nothing() {
         advertised
             .resolve_host_id(
                 &lab.resolver,
-                lab.network_id,
+                lab.site_id,
                 AdvertisedIdentity {
                     sys_name: None,
                     address: Some("10.20.30.11".parse().unwrap()),
@@ -613,7 +613,7 @@ async fn locally_assigned_port_ids_reach_a_port_by_name_and_by_index() {
     assert!(
         matches!(
             by_descr
-                .resolve_if_entry_id(&lab.resolver, aruba.host.id)
+                .resolve_interface_id(&lab.resolver, aruba.host.id)
                 .await,
             IdentityResolution::Resolved(_)
         ),
@@ -622,7 +622,7 @@ async fn locally_assigned_port_ids_reach_a_port_by_name_and_by_index() {
     assert!(
         matches!(
             by_index
-                .resolve_if_entry_id(&lab.resolver, aruba.host.id)
+                .resolve_interface_id(&lab.resolver, aruba.host.id)
                 .await,
             IdentityResolution::Resolved(_)
         ),
@@ -657,13 +657,13 @@ async fn a_mac_on_every_port_of_the_far_end_resolves_to_no_port() {
     // The host resolves; only the port must not.
     assert_eq!(
         Scanned::advertised_chassis(ambiguous)
-            .resolve_host_id(&lab.resolver, lab.network_id, AdvertisedIdentity::default())
+            .resolve_host_id(&lab.resolver, lab.site_id, AdvertisedIdentity::default())
             .await,
         IdentityResolution::Resolved(dlink.host.id)
     );
     assert_eq!(
         port_id
-            .resolve_if_entry_id(&lab.resolver, dlink.host.id)
+            .resolve_interface_id(&lab.resolver, dlink.host.id)
             .await,
         IdentityResolution::Ambiguous,
         "an address on three ports must be declined, not resolved to whichever row came back first"
@@ -692,7 +692,7 @@ async fn a_mac_that_identifies_exactly_one_port_still_resolves() {
     let port_id = Scanned::advertised_port(neighbour);
 
     let resolved = port_id
-        .resolve_if_entry_id(&lab.resolver, macport.host.id)
+        .resolve_interface_id(&lab.resolver, macport.host.id)
         .await;
     let IdentityResolution::Resolved(interface_id) = resolved else {
         panic!("a unique per-port address must resolve, got {resolved:?}");
@@ -740,12 +740,14 @@ async fn the_ip_configured_nic_resolves_among_its_own_filter_pseudo_interfaces()
     // chassis id, matching the real PC-069's `has_lldp_local=false`.
     assert_eq!(
         Scanned::advertised_chassis(neighbour)
-            .resolve_host_id(&lab.resolver, lab.network_id, AdvertisedIdentity::default())
+            .resolve_host_id(&lab.resolver, lab.site_id, AdvertisedIdentity::default())
             .await,
         IdentityResolution::Resolved(pc.host.id)
     );
 
-    let resolved = port_id.resolve_if_entry_id(&lab.resolver, pc.host.id).await;
+    let resolved = port_id
+        .resolve_interface_id(&lab.resolver, pc.host.id)
+        .await;
     let IdentityResolution::Resolved(interface_id) = resolved else {
         panic!("the ipAddrTable-bound NIC must resolve the tie, got {resolved:?}");
     };
@@ -789,14 +791,14 @@ async fn the_mac_tier_runs_and_declines_rather_than_being_skipped() {
     // A port address does find the device...
     assert_eq!(
         lab.resolver
-            .find_host_by_mac(&port_mac.to_string().to_lowercase(), lab.network_id)
+            .find_host_by_mac(&port_mac.to_string().to_lowercase(), lab.site_id)
             .await,
         IdentityResolution::Resolved(netgear.host.id)
     );
     // ...while the chassis address, which is on no port, does not.
     assert_eq!(
         lab.resolver
-            .find_host_by_mac("00:1a:2b:3c:4d:63", lab.network_id)
+            .find_host_by_mac("00:1a:2b:3c:4d:63", lab.site_id)
             .await,
         IdentityResolution::NotFound
     );
@@ -824,7 +826,7 @@ async fn a_far_end_nobody_scanned_resolves_to_nothing() {
     let resolved = Scanned::advertised_chassis(stranger)
         .resolve_host_id(
             &lab.resolver,
-            lab.network_id,
+            lab.site_id,
             AdvertisedIdentity {
                 sys_name: stranger.remote_sys_name.as_deref(),
                 address: stranger.remote_mgmt_addr,
@@ -861,7 +863,7 @@ async fn the_quietcol_neighbours_reach_the_ports_they_name() {
         });
 
         let host = Scanned::advertised_chassis(neighbour)
-            .resolve_host_id(&lab.resolver, lab.network_id, AdvertisedIdentity::default())
+            .resolve_host_id(&lab.resolver, lab.site_id, AdvertisedIdentity::default())
             .await;
         assert_eq!(
             host,
@@ -872,7 +874,7 @@ async fn the_quietcol_neighbours_reach_the_ports_they_name() {
         assert!(
             matches!(
                 Scanned::advertised_port(neighbour)
-                    .resolve_if_entry_id(&lab.resolver, expected)
+                    .resolve_interface_id(&lab.resolver, expected)
                     .await,
                 IdentityResolution::Resolved(_)
             ),
@@ -892,7 +894,7 @@ async fn the_seeded_far_ends_carry_the_identifiers_they_are_named_by() {
 
     assert_eq!(
         lab.resolver
-            .find_host_by_chassis_id("00:1a:2b:00:10:00", lab.network_id)
+            .find_host_by_chassis_id("00:1a:2b:00:10:00", lab.site_id)
             .await,
         IdentityResolution::Resolved(core.host.id)
     );

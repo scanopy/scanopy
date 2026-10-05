@@ -107,7 +107,7 @@ const DISCOVERY = {
 	daemon_id: 'daemon_id',
 	discovery_type: 'discovery_type',
 	name: 'name',
-	network_id: 'network_id',
+	site_id: 'site_id',
 	updated_at: 'updated_at',
 	id: ID,
 	// Decided with Maya, 2026-10-04.
@@ -129,7 +129,7 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				description: 'description',
 				last_seen_at: 'last_seen_at',
 				name: 'name',
-				network_id: 'network_id',
+				site_id: 'site_id',
 				source: 'source',
 				subnet_ids: 'subnet_ids',
 				updated_at: 'updated_at',
@@ -151,7 +151,7 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				last_seen: 'last_seen',
 				mode: 'mode',
 				name: 'name',
-				network_id: 'network_id',
+				site_id: 'site_id',
 				os: 'os',
 				tags: 'tags',
 				updated_at: 'updated_at',
@@ -213,7 +213,7 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				is_enabled: 'is_enabled',
 				last_used: 'last_used',
 				name: 'name',
-				network_id: 'network_id',
+				site_id: 'site_id',
 				tags: 'tags',
 				updated_at: 'updated_at',
 				id: ID,
@@ -240,9 +240,9 @@ export const COVERAGE: Record<string, TabCoverage> = {
 			})
 		]
 	},
-	'networks/components/NetworksTab.svelte': {
+	'sites/components/SitesTab.svelte': {
 		schemas: [
-			decide('Network', {
+			decide('Site', {
 				created_at: 'created_at',
 				credential_ids: 'credentials',
 				effective_stale_after_hours: 'effective_stale_after_hours',
@@ -262,7 +262,7 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				created_at: 'created_at',
 				email: 'email',
 				email_verified: 'email_verified',
-				network_ids: 'network_ids',
+				site_ids: 'site_ids',
 				oidc_linked_at: 'oidc_linked_at',
 				oidc_provider: 'oidc_provider',
 				permissions: 'permissions',
@@ -280,7 +280,7 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				created_at: 'created_at',
 				created_by: 'invited_by',
 				expires_at: 'expires_at',
-				network_ids: 'network_ids',
+				site_ids: 'site_ids',
 				permissions: 'permissions',
 				send_to: 'email',
 				updated_at: 'updated_at',
@@ -298,7 +298,7 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				is_enabled: 'is_enabled',
 				last_used: 'last_used',
 				name: 'name',
-				network_ids: 'network_ids',
+				site_ids: 'site_ids',
 				permissions: 'permissions',
 				tags: 'tags',
 				updated_at: 'updated_at',
@@ -327,7 +327,7 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				manufacturer: 'manufacturer',
 				model: 'model',
 				name: 'name',
-				network_id: 'network_id',
+				site_id: 'site_id',
 				os: 'os_family',
 				serial_number: 'serial_number',
 				software_revision: 'software_revision',
@@ -386,7 +386,7 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				description: 'description',
 				last_seen_at: 'last_seen_at',
 				name: 'name',
-				network_id: 'network_id',
+				site_id: 'site_id',
 				source: 'source',
 				subnet_type: 'subnet_type',
 				tags: 'tags',
@@ -409,7 +409,7 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				host_id: 'host',
 				last_seen_at: 'last_seen_at',
 				name: 'name',
-				network_id: 'network_id',
+				site_id: 'site_id',
 				position: 'position',
 				service_definition: 'service_definition',
 				source: 'source',
@@ -430,7 +430,7 @@ export const COVERAGE: Record<string, TabCoverage> = {
 		orderField: 'CredentialOrderField',
 		schemas: [
 			decide('Credential', {
-				assigned_network_ids: 'assigned_networks',
+				assigned_site_ids: 'assigned_sites',
 				created_at: 'created_at',
 				credential_type: 'credential_type',
 				daemon_os: 'daemon_os',

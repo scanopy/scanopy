@@ -12,7 +12,7 @@ use crate::server::{
         services::traits::CrudService,
         storage::{filter::StorableFilter, traits::Entity},
         types::api::{ApiError, ApiErrorResponse, ApiResponse, ApiResult, EmptyApiResponse},
-        validation::validate_network_access,
+        validation::validate_site_access,
     },
 };
 use axum::{
@@ -61,7 +61,7 @@ pub async fn create_daemon_api_key(
     auth: Authorized<Member>,
     ApiJson(mut api_key): ApiJson<DaemonApiKey>,
 ) -> ApiResult<Json<ApiResponse<DaemonApiKeyResponse>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let _ = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
@@ -69,12 +69,12 @@ pub async fn create_daemon_api_key(
 
     tracing::debug!(
         api_key_name = %api_key.base.name,
-        network_id = %api_key.base.network_id,
+        site_id = %api_key.base.site_id,
         user_id = ?user_id,
         "Daemon API key create request received"
     );
 
-    validate_network_access(Some(api_key.base.network_id), &network_ids, "create")?;
+    validate_site_access(Some(api_key.base.site_id), &site_ids, "create")?;
 
     let (plaintext, hashed) = generate_api_key_for_storage(ApiKeyType::Daemon);
 
@@ -115,7 +115,7 @@ pub async fn update_daemon_api_key(
     Path(id): Path<Uuid>,
     ApiJson(mut request): ApiJson<DaemonApiKey>,
 ) -> ApiResult<Json<ApiResponse<DaemonApiKey>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
 
     // Fetch existing to preserve immutable fields
     let existing = DaemonApiKey::get_service(&state)
@@ -123,8 +123,8 @@ pub async fn update_daemon_api_key(
         .await?
         .ok_or_else(|| ApiError::entity_not_found::<DaemonApiKey>(id))?;
 
-    // Validate user has access to this key's network
-    validate_network_access(Some(existing.base.network_id), &network_ids, "update")?;
+    // Validate user has access to this key's site
+    validate_site_access(Some(existing.base.site_id), &site_ids, "update")?;
 
     // Preserve the key hash - don't allow it to be changed via update
     request.preserve_immutable_fields(&existing);

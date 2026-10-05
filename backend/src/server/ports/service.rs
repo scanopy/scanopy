@@ -22,8 +22,8 @@ impl EventBusService<Port> for PortService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, entity: &Port) -> Option<Uuid> {
-        Some(entity.base.network_id)
+    fn get_site_id(&self, entity: &Port) -> Option<Uuid> {
+        Some(entity.base.site_id)
     }
 
     fn get_organization_id(&self, _entity: &Port) -> Option<Uuid> {

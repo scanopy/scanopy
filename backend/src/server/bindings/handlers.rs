@@ -15,7 +15,7 @@ use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::Entity;
 use crate::server::shared::types::api::{ApiError, ApiErrorResponse, ApiResponse, ApiResult};
-use crate::server::shared::validation::validate_network_access;
+use crate::server::shared::validation::validate_site_access;
 impl CrudHandlers for Binding {
     type Service = BindingService;
     type FilterQuery = BindingQuery;
@@ -47,7 +47,7 @@ async fn validate_no_binding_type_conflict(
 ) -> Result<(), ApiError> {
     let service_id = binding.service_id();
 
-    let filter = StorableFilter::<Binding>::new_from_network_ids(&[binding.base.network_id])
+    let filter = StorableFilter::<Binding>::new_from_site_ids(&[binding.base.site_id])
         .service_id(&service_id);
     let existing = state.services.binding_service.get_all(filter).await?;
 
@@ -156,9 +156,9 @@ async fn create_binding(
     ApiJson(binding): ApiJson<Binding>,
 ) -> ApiResult<Json<ApiResponse<Binding>>> {
     // Guard tenancy before the supersede-delete below runs against a
-    // caller-supplied network_id (create_handler only validates access at the
+    // caller-supplied site_id (create_handler only validates access at the
     // end, after the destructive deletes would already have fired).
-    validate_network_access(Some(binding.network_id()), &auth.network_ids(), "access")?;
+    validate_site_access(Some(binding.site_id()), &auth.site_ids(), "access")?;
 
     validate_no_binding_type_conflict(&state, &binding, None).await?;
 
@@ -170,7 +170,7 @@ async fn create_binding(
     } = &binding.base.binding_type
     {
         let service_id = binding.service_id();
-        let filter = StorableFilter::<Binding>::new_from_network_ids(&[binding.network_id()])
+        let filter = StorableFilter::<Binding>::new_from_site_ids(&[binding.site_id()])
             .service_id(&service_id);
         let existing = state.services.binding_service.get_all(filter).await?;
 
@@ -227,8 +227,8 @@ async fn update_binding(
     ApiJson(binding): ApiJson<Binding>,
 ) -> ApiResult<Json<ApiResponse<Binding>>> {
     // Guard tenancy before the conflict scan reads by the caller-supplied
-    // network_id (update_handler validates access afterward).
-    validate_network_access(Some(binding.network_id()), &auth.network_ids(), "access")?;
+    // site_id (update_handler validates access afterward).
+    validate_site_access(Some(binding.site_id()), &auth.site_ids(), "access")?;
 
     validate_no_binding_type_conflict(&state, &binding, Some(*path)).await?;
     update_handler::<Binding>(State(state), auth, path, ApiJson(binding)).await

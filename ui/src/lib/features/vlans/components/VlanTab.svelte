@@ -6,11 +6,11 @@
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
 	import { defineFields, entityRef } from '$lib/shared/components/data/types';
-	import { networkItems } from '$lib/features/networks/columns';
+	import { siteItems } from '$lib/features/sites/columns';
 	import { entities, entitySources } from '$lib/shared/stores/metadata';
 	import { entitySourceItems } from '$lib/shared/utils/entity-source';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { isUserManagedSubnet, useSubnetsQuery } from '$lib/features/subnets/queries';
 	import type { Subnet } from '$lib/features/subnets/types/base';
 	import { useVlansQuery } from '../queries';
@@ -26,11 +26,11 @@
 		common_lastFoundBy,
 		common_lastSeen,
 		common_name,
-		common_network,
+		common_site,
 		common_noEntityYet,
 		common_source,
 		common_subnets,
-		common_unknownNetwork,
+		common_unknownSite,
 		common_updated,
 		common_vlans,
 		daemons_installPromptVlans,
@@ -51,7 +51,7 @@
 
 	// Queries
 	const vlansQuery = useVlansQuery();
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	// Shared full-list subnets cache — used to resolve the hydrated `subnet_ids`
 	// on each VLAN into names.
 	const subnetsQuery = useSubnetsQuery();
@@ -59,7 +59,7 @@
 
 	// Derived data
 	let vlansData = $derived(vlansQuery.data ?? []);
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
 	let discoveryRunsData = $derived(discoveryRunsQuery.data ?? []);
 	let subnetsById = $derived(
 		new Map((subnetsQuery.data ?? []).filter(isUserManagedSubnet).map((s) => [s.id, s]))
@@ -119,16 +119,16 @@
 					}
 				},
 				{
-					key: 'network_id',
-					label: common_network(),
+					key: 'site_id',
+					label: common_site(),
 					type: 'string',
 					searchable: true,
 					filterable: true,
 					groupable: true,
 					sortable: true,
 					getValue: (item) =>
-						networksData.find((n) => n.id == item.network_id)?.name || common_unknownNetwork(),
-					display: { getItems: (item) => networkItems(item.network_id, networksData) }
+						sitesData.find((n) => n.id == item.site_id)?.name || common_unknownSite(),
+					display: { getItems: (item) => siteItems(item.site_id, sitesData) }
 				},
 				{
 					key: 'subnet_ids',
@@ -153,7 +153,7 @@
 					label: common_lastSeen(),
 					type: 'date',
 					sortable: true,
-					display: { recency: true, getItems: lastSeenItems(() => networksData, 'Vlan') }
+					display: { recency: true, getItems: lastSeenItems(() => sitesData, 'Vlan') }
 				},
 				{
 					key: 'first_found_by',

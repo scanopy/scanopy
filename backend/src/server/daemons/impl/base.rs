@@ -22,8 +22,8 @@ use crate::server::shared::types::{
 pub struct DaemonBase {
     /// The host this entity belongs to.
     pub host_id: Uuid,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// Address the *server* dials for a ServerPoll daemon. Editable (a daemon can move);
     /// unused and not editable for DaemonPoll, which dials out instead.
     #[serde(default)]
@@ -267,7 +267,7 @@ impl Daemon {
     pub fn suppress_logs(&self, other: &Self) -> bool {
         self.base.mode == other.base.mode
             && self.base.url == other.base.url
-            && self.base.network_id == other.base.network_id
+            && self.base.site_id == other.base.site_id
             && self.base.host_id == other.base.host_id
     }
 

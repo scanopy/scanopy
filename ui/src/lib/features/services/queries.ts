@@ -27,8 +27,8 @@ export type { Service };
 export interface ServicesQueryParams {
 	limit?: number;
 	offset?: number;
-	/** Filter by network ID. Several narrows to the union of them. */
-	network_ids?: string[];
+	/** Filter by site ID. Several narrows to the union of them. */
+	site_ids?: string[];
 	/** Filter by host ID. Several narrows to the union of them. */
 	host_ids?: string[];
 	/** Only services with one of these definitions (raw definition ids). */
@@ -46,7 +46,7 @@ export interface ServicesQueryParams {
 	/** Filter by tag IDs (returns services that have ANY of the specified tags). */
 	tag_ids?: string[];
 	/** `true` returns only services discovery hasn't observed within their
-	 * network's staleness window; omit for no staleness constraint. */
+	 * site's staleness window; omit for no staleness constraint. */
 	stale?: boolean;
 	/** Free-text search across service name, service definition, and the name
 	 * of the host the service runs on. */
@@ -92,7 +92,7 @@ export function useServicesQuery(
 		const {
 			limit,
 			offset,
-			network_ids,
+			site_ids,
 			host_ids,
 			service_definitions,
 			virtualization_service_names,
@@ -116,7 +116,7 @@ export function useServicesQuery(
 				{
 					limit,
 					offset,
-					network_ids,
+					site_ids,
 					host_ids,
 					service_definitions,
 					virtualization_service_names,
@@ -140,7 +140,7 @@ export function useServicesQuery(
 							query: {
 								limit,
 								offset,
-								network_ids,
+								site_ids,
 								host_ids,
 								service_definitions,
 								virtualization_service_names,
@@ -326,13 +326,13 @@ export function useBulkDeleteServicesMutation() {
 export function createDefaultService(
 	serviceType: string,
 	host_id: string,
-	host_network_id: string
+	host_site_id: string
 ): Service {
 	return {
 		id: uuidv4(), // Generate real UUID for client-provided ID
 		created_at: utcTimeZoneSentinel,
 		updated_at: utcTimeZoneSentinel,
-		network_id: host_network_id,
+		site_id: host_site_id,
 		host_id,
 		tags: [],
 		service_definition: serviceType,

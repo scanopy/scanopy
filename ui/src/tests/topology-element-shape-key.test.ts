@@ -74,7 +74,7 @@ describe('elementShapeKey', () => {
 		const group = (hosts: string[]) => ({
 			groupId: 'identities',
 			collapsed: false,
-			header: service('identities', 'Network Identities'),
+			header: service('identities', 'Site Identities'),
 			services: [],
 			hosts: hosts.map(member)
 		});
@@ -87,7 +87,7 @@ describe('elementShapeKey', () => {
 		const box = (collapsed: boolean, hosts: number) => ({
 			groupId: 'identities',
 			collapsed,
-			header: service('identities', 'Network Identities'),
+			header: service('identities', 'Site Identities'),
 			services: [],
 			hosts: Array.from({ length: hosts }, (_, i) => ({
 				host: { id: `mv-${i}`, display_name: `mv-${i}` },

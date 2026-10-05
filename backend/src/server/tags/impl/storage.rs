@@ -201,7 +201,7 @@ impl Entity for Tag {
         EntityCategory::Metadata
     }
 
-    fn network_id(&self) -> Option<Uuid> {
+    fn site_id(&self) -> Option<Uuid> {
         None
     }
 

@@ -13,7 +13,7 @@ import type { Interface } from './types/base';
  * absent fields, one of three separate reimplementations that all disagreed with each other and
  * with the backend).
  *
- * Set on every interface the server reads from storage, nested under a host or from `/if-entries`.
+ * Set on every interface the server reads from storage, nested under a host or from `/interfaces`.
  * The fallback below covers an interface built on the client, the same way `hostDisplayName` does
  * for a host.
  */

@@ -388,7 +388,7 @@ pub enum DiscoveryWarning {
     },
 
     // ---- Server-side LLDP/CDP resolution ---------------------------------
-    /// The advertised identifier matches no host on this network.
+    /// The advertised identifier matches no host on this site.
     LldpNeighbourNotFound(UnmatchedNeighbour),
     /// The advertised identifier matches several hosts, so none can be picked.
     LldpNeighbourAmbiguous(UnmatchedNeighbour),
@@ -529,7 +529,7 @@ pub struct UnmatchedNeighbour {
     /// id, or `cdpCacheAddress` — where it sent a usable one.
     ///
     /// Carried because it is the difference between two reports that otherwise read identically:
-    /// "the far end told us where it lives and this network holds no such address" is a device
+    /// "the far end told us where it lives and this site holds no such address" is a device
     /// nobody has scanned, while "it told us nothing" is a device that cannot be placed no matter
     /// how much of the network is scanned. Without it, deciding which of the two a fleet is
     /// looking at costs another round trip to the operator (GH #668).
@@ -944,7 +944,7 @@ mod tests {
         let payload: DiscoveryUpdatePayload = serde_json::from_value(serde_json::json!({
             "session_id": "00000000-0000-0000-0000-000000000001",
             "daemon_id": "00000000-0000-0000-0000-000000000002",
-            "network_id": "00000000-0000-0000-0000-000000000003",
+            "site_id": "00000000-0000-0000-0000-000000000003",
             "phase": "Complete",
             "discovery_type": { "type": "Network", "subnet_ids": null },
             "progress": 100,

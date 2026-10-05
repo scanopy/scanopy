@@ -200,7 +200,7 @@ impl DiscoveryIntegration for ProxmoxIntegration {
         }
         ctx.ops.report_progress(30).await.ok();
 
-        let network_id = ctx.ops.network_id().await?;
+        let site_id = ctx.ops.site_id().await?;
         let total = guests.len();
         let mut created = 0usize;
         let mut unidentifiable: Vec<String> = vec![];
@@ -214,14 +214,14 @@ impl DiscoveryIntegration for ProxmoxIntegration {
                 &reading,
                 owners.get(&guest.node).copied(),
                 &subnets,
-                network_id,
+                site_id,
             ) else {
                 unidentifiable.push(guest_label(guest));
                 continue;
             };
             let identities =
                 identities::network_identities(&reading.nics, &reading.reported, &subnets);
-            match create_guest_host(ctx, &subnets, guest, record, &identities, network_id).await {
+            match create_guest_host(ctx, &subnets, guest, record, &identities, site_id).await {
                 Ok(_) => created += 1,
                 Err(e) => {
                     tracing::warn!(guest = %guest_label(guest), error = %e, "Failed to record Proxmox VE guest")
@@ -275,7 +275,7 @@ async fn create_guest_host(
     guest: &GuestSummary,
     record: GuestRecord,
     identities: &[NetworkIdentity],
-    network_id: Uuid,
+    site_id: Uuid,
 ) -> Result<(), Error> {
     let services = identities::guest_services(&record.host, identities);
     // The interfaces its identities sit on, so each identity can name its interface by stored id.
@@ -283,7 +283,7 @@ async fn create_guest_host(
     interfaces.extend(
         identities
             .iter()
-            .map(|i| identities::identity_interface(i, network_id)),
+            .map(|i| identities::identity_interface(i, site_id)),
     );
     let response = ctx
         .ops
@@ -334,7 +334,7 @@ async fn create_guest_host(
             );
         }
         let (host, ip_addresses) =
-            identities::identity_host(identity, owner, presenting, subnets, network_id);
+            identities::identity_host(identity, owner, presenting, subnets, site_id);
         if let Err(e) = ctx
             .ops
             .create_integration_host(
@@ -471,7 +471,7 @@ async fn read_node(client: &ProxmoxClient, node: &NodeSpec) -> NodeReading {
 
 /// Record a node's host with its Proxmox VE service, returning that service's stored id.
 ///
-/// `None` when the node has no known address, or the address sits in no subnet this network
+/// `None` when the node has no known address, or the address sits in no subnet this site
 /// holds (the matcher needs one to evaluate against). Stricter than the submission rule
 /// ([`IPAddress::discovered`]) for that reason; the node's other addresses follow the rule.
 async fn create_node_host(
@@ -489,8 +489,8 @@ async fn create_node_host(
         return Ok(None);
     };
 
-    let network_id = ctx.ops.network_id().await?;
-    let (host, ip_addresses) = mapping::node_host(node, ip, reading, subnets, network_id);
+    let site_id = ctx.ops.site_id().await?;
+    let (host, ip_addresses) = mapping::node_host(node, ip, reading, subnets, site_id);
     // The address it is reached at, which `node_host` puts first.
     let ip_address = &ip_addresses[0];
 
@@ -514,7 +514,7 @@ async fn create_node_host(
         },
         &[],
         &daemon_id,
-        &host.base.network_id,
+        &host.base.site_id,
     )?;
 
     let response = ctx

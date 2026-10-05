@@ -1,7 +1,6 @@
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::middleware::permissions::{Authorized, IsDaemon, Member, Or, Viewer};
 use crate::server::ip_addresses::r#impl::base::IPAddress;
-use crate::server::networks::r#impl::Network;
 use crate::server::shared::attribution::AttributeSource;
 use crate::server::shared::extractors::Query;
 use crate::server::shared::handlers::ordering::OrderField;
@@ -16,6 +15,7 @@ use crate::server::shared::types::api::{
     ApiError, ApiErrorResponse, ApiJson, ApiResponse, ApiResult, PaginatedApiResponse,
 };
 use crate::server::shared::types::entities::EntitySource;
+use crate::server::sites::r#impl::Site;
 use crate::server::{
     config::AppState,
     subnets::r#impl::base::{Subnet, SubnetCidr},
@@ -44,7 +44,7 @@ pub enum SubnetOrderField {
     Cidr,
     SubnetType,
     UpdatedAt,
-    NetworkId,
+    SiteId,
     /// Sort by when discovery last observed the subnet. Surfaces stale assets.
     LastSeenAt,
 }
@@ -57,7 +57,7 @@ impl OrderField for SubnetOrderField {
             Self::Cidr => "subnets.cidr",
             Self::SubnetType => "subnets.subnet_type",
             Self::UpdatedAt => "subnets.updated_at",
-            Self::NetworkId => "subnets.network_id",
+            Self::SiteId => "subnets.site_id",
             Self::LastSeenAt => "subnets.last_seen_at",
         }
     }
@@ -70,8 +70,8 @@ impl OrderField for SubnetOrderField {
 /// Query parameters for filtering and ordering subnets.
 #[derive(Deserialize, Default, Debug, Clone, IntoParams)]
 pub struct SubnetFilterQuery {
-    /// Filter by network ID
-    pub network_id: Option<Uuid>,
+    /// Filter by site ID
+    pub site_id: Option<Uuid>,
     /// Primary ordering field (used for grouping). Always sorts ASC to keep groups together.
     pub group_by: Option<SubnetOrderField>,
     /// Secondary ordering field (sorting within groups or standalone sort).
@@ -88,8 +88,8 @@ pub struct SubnetFilterQuery {
     /// instant (snapshot view) instead of live state.
     pub at: Option<chrono::DateTime<chrono::Utc>>,
     /// `true` returns only subnets discovery hasn't observed within their
-    /// network's staleness window; `false` returns only those it has. Omit for
-    /// both. Evaluated per row against the subnet's own network's window.
+    /// site's staleness window; `false` returns only those it has. Omit for
+    /// both. Evaluated per row against the subnet's own site's window.
     pub stale: Option<bool>,
 }
 
@@ -113,13 +113,13 @@ impl FilterQueryExtractor for SubnetFilterQuery {
     fn apply_to_filter<T: Storable>(
         &self,
         filter: StorableFilter<T>,
-        user_network_ids: &[Uuid],
+        user_site_ids: &[Uuid],
         _user_organization_id: Uuid,
     ) -> StorableFilter<T> {
-        match self.network_id {
-            Some(id) if user_network_ids.contains(&id) => filter.network_ids(&[id]),
-            Some(_) => filter.network_ids(&[]), // User doesn't have access - return empty
-            None => filter.network_ids(user_network_ids),
+        match self.site_id {
+            Some(id) if user_site_ids.contains(&id) => filter.site_ids(&[id]),
+            Some(_) => filter.site_ids(&[]), // User doesn't have access - return empty
+            None => filter.site_ids(user_site_ids),
         }
     }
 
@@ -156,7 +156,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 /// Get all subnets
 ///
 /// Returns all subnets accessible to the authenticated user or daemon.
-/// Daemons can only access subnets within their assigned network.
+/// Daemons can only access subnets within their assigned site.
 /// Supports pagination via `limit` and `offset` query parameters,
 /// and ordering via `group_by`, `order_by`, and `order_direction`.
 #[utoipa::path(
@@ -176,21 +176,21 @@ async fn get_all_subnets(
     auth: Authorized<Or<Viewer, IsDaemon>>,
     query: Query<SubnetFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<Subnet>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth.organization_id();
     let entity = auth.into_entity();
 
     match entity {
-        AuthenticatedEntity::Daemon { network_id, .. } => {
-            // Daemons can only access subnets in their network
+        AuthenticatedEntity::Daemon { site_id, .. } => {
+            // Daemons can only access subnets in their site
             // Return all results (no pagination applied). SCD2: live rows only —
             // daemons operate on current state and must never see closed copies.
-            let filter = StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live();
+            let filter = StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live();
             let service = Subnet::get_service(&state);
             let result = service.get_all(filter).await.map_err(|e| {
                 tracing::error!(
                     error = %e,
-                    network_id = %network_id,
+                    site_id = %site_id,
                     "Failed to fetch subnets for daemon"
                 );
                 ApiError::internal_error(&e.to_string())
@@ -206,21 +206,17 @@ async fn get_all_subnets(
         _ => {
             // Users/API keys - use standard filter with query params
             let org_id = organization_id.ok_or_else(ApiError::organization_required)?;
-            let base_filter = StorableFilter::<Subnet>::new_from_network_ids(&network_ids);
+            let base_filter = StorableFilter::<Subnet>::new_from_site_ids(&site_ids);
             let filter = query
-                .apply_to_filter(base_filter, &network_ids, org_id)
+                .apply_to_filter(base_filter, &site_ids, org_id)
                 .live_or_as_of(query.at);
 
-            // Staleness is per-network, so resolve each accessible network's
+            // Staleness is per-site, so resolve each accessible site's
             // cutoff and let the filter compare every row against its own.
             let filter = match query.stale {
                 Some(stale) => {
-                    let cutoffs = state
-                        .services
-                        .network_service
-                        .stale_cutoffs(&network_ids)
-                        .await?;
-                    filter.stale_by_network(&cutoffs, stale)
+                    let cutoffs = state.services.site_service.stale_cutoffs(&site_ids).await?;
+                    filter.stale_by_site(&cutoffs, stale)
                 }
                 None => filter,
             };
@@ -267,13 +263,13 @@ async fn create_subnet(
     auth: Authorized<Or<Member, IsDaemon>>,
     ApiJson(mut request): ApiJson<Subnet>,
 ) -> ApiResult<Json<ApiResponse<Subnet>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let entity = auth.into_entity();
 
     tracing::debug!(
         subnet_name = %request.base.name,
         subnet_cidr = %request.base.cidr,
-        network_id = %request.base.network_id,
+        site_id = %request.base.site_id,
         entity_id = %entity.entity_id().unwrap_or_default(),
         "Subnet create request received"
     );
@@ -293,8 +289,8 @@ async fn create_subnet(
     }
 
     let created = match &entity {
-        AuthenticatedEntity::Daemon { network_id, .. } => {
-            if *network_id == request.base.network_id {
+        AuthenticatedEntity::Daemon { site_id, .. } => {
+            if *site_id == request.base.site_id {
                 let service = Subnet::get_service(&state);
                 let created = service.create(request, entity).await.map_err(|e| {
                     tracing::error!(
@@ -305,15 +301,13 @@ async fn create_subnet(
                 })?;
                 Json(ApiResponse::success(created))
             } else {
-                return Err(ApiError::entity_network_mismatch::<Subnet>());
+                return Err(ApiError::entity_site_mismatch::<Subnet>());
             }
         }
         _ => {
-            // User/API key - validate network access and create
-            if !network_ids.contains(&request.base.network_id) {
-                return Err(ApiError::entity_access_denied::<Network>(
-                    request.base.network_id,
-                ));
+            // User/API key - validate site access and create
+            if !site_ids.contains(&request.base.site_id) {
+                return Err(ApiError::entity_access_denied::<Site>(request.base.site_id));
             }
             // A range a person typed is an assertion, not a reading: `set_source` settles the
             // confidence ladder along with the source, so nothing a later scan reads displaces it.

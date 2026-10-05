@@ -92,7 +92,7 @@ fn unmatched_neighbour_warning(
 ///
 /// Derived at exactly the sites that warn, so what an operator is told and what is minted can never
 /// be two different populations. `Ambiguous` is excluded on purpose: it means the identifier names
-/// several hosts this network already holds, so the problem is duplicate records, not a missing
+/// several hosts this site already holds, so the problem is duplicate records, not a missing
 /// device.
 ///
 /// An address is *not* required. Most far ends publish none — a chassis id and nothing else is the
@@ -163,14 +163,14 @@ fn unresolved_port_warning(
     }
 }
 
-/// Who names whom across a network's LLDP/CDP adjacencies, and the port pairs that follow from it.
+/// Who names whom across a site's LLDP/CDP adjacencies, and the port pairs that follow from it.
 ///
-/// Built once per resolution pass from *every* candidate in the network — not just the unresolved
+/// Built once per resolution pass from *every* candidate in the site — not just the unresolved
 /// ones. The count of ports joining two devices is the whole basis of the reciprocal tier, and
 /// counting only the unresolved half would pair one leg of a LAG whose other leg happened to
 /// resolve, which is exactly the arbitrary-port outcome the shared-MAC guard exists to prevent.
 struct NeighborAdjacency {
-    /// Every interface in the network with at least one live candidate, in whatever resolution
+    /// Every interface in the site with at least one live candidate, in whatever resolution
     /// state.
     interfaces: Vec<Interface>,
     /// Each interface's own candidates, loaded once here and reused by the resolution pass so it
@@ -230,7 +230,7 @@ impl HostService {
     // LLDP link resolution
     // =========================================================================
 
-    /// Resolve LLDP links for all interfaces in a network.
+    /// Resolve LLDP links for all interfaces in a site.
     ///
     /// Called by DiscoveryService when a discovery session completes successfully.
     /// This resolves LLDP neighbor data (chassis ID, port ID) to actual database
@@ -254,22 +254,22 @@ impl HostService {
     /// `reconcile_interface_neighbors` call, rather than one `interface.base.neighbor` field write.
     async fn resolve_neighbours_once(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         scan_time: DateTime<Utc>,
         run_interface_ids: &HashSet<Uuid>,
     ) -> Result<NeighbourPass> {
-        let resolver = self.lldp_inventory_snapshot(network_id).await?;
+        let resolver = self.lldp_inventory_snapshot(site_id).await?;
 
-        // The instant before which neighbour evidence counts as stale, from the network's own
+        // The instant before which neighbour evidence counts as stale, from the site's own
         // window — the same helper the `?stale=` list filter uses, so a link and a host cannot
-        // disagree about what stale means. A network that no longer exists yields no cutoff, and
+        // disagree about what stale means. A site that no longer exists yields no cutoff, and
         // the fallback makes every row read current: an orphaned FK must never tear bindings down.
         let evidence_cutoff = self
-            .network_service
-            .stale_cutoffs(&[network_id])
+            .site_service
+            .stale_cutoffs(&[site_id])
             .await?
             .into_iter()
-            .find(|(id, _)| *id == network_id)
+            .find(|(id, _)| *id == site_id)
             .map(|(_, cutoff)| cutoff)
             .unwrap_or(DateTime::<Utc>::MIN_UTC);
 
@@ -277,7 +277,7 @@ impl HostService {
         // before anything is written, because it is the authority both for the reciprocal tier
         // below and for deciding whether an existing MAC-matched binding still stands.
         let adjacency = self
-            .build_neighbor_adjacency(network_id, &resolver, evidence_cutoff)
+            .build_neighbor_adjacency(site_id, &resolver, evidence_cutoff)
             .await?;
         let reciprocal = adjacency.reciprocal;
         let host_of = adjacency.host_of;
@@ -312,7 +312,7 @@ impl HostService {
         let mut stats = LldpResolutionStats::default();
         let mut warnings: Vec<DiscoveryWarning> = Vec::new();
         // Far ends that told us where they live and still matched nothing. Pooled across the whole
-        // network rather than per device: two switches naming far ends in one range must produce
+        // site rather than per device: two switches naming far ends in one range must produce
         // one subnet, and only the server sees both.
         let mut unplaced: Vec<UnplacedFarEnd> = Vec::new();
         // (host, advertised port name, advertised port MAC) for far ends resolved to a device but
@@ -430,7 +430,7 @@ impl HostService {
                         Some(host_id) => {
                             let port = match evidence.lldp_port_id {
                                 Some(ref port_id) => {
-                                    port_id.resolve_if_entry_id(&resolver, host_id).await
+                                    port_id.resolve_interface_id(&resolver, host_id).await
                                 }
                                 None => IdentityResolution::NoStrategy,
                             };
@@ -441,7 +441,7 @@ impl HostService {
                                 }
                                 unresolved => match evidence.lldp_port_desc.as_deref() {
                                     Some(desc) if !desc.trim().is_empty() => {
-                                        match resolver.find_if_entry_by_name(desc, host_id).await {
+                                        match resolver.find_interface_by_name(desc, host_id).await {
                                             Some(id) => IdentityResolution::Resolved(id),
                                             None => unresolved,
                                         }
@@ -493,7 +493,7 @@ impl HostService {
                         Some(host_id) => {
                             let port = match evidence.cdp_port_id {
                                 Some(ref port_id) => IdentityResolution::found(
-                                    resolver.find_if_entry_by_name(port_id, host_id).await,
+                                    resolver.find_interface_by_name(port_id, host_id).await,
                                 ),
                                 None => IdentityResolution::NoStrategy,
                             };
@@ -593,7 +593,7 @@ impl HostService {
                 desired.into_values().collect();
             self.interface_neighbor_service
                 .reconcile_interface_neighbors(
-                    network_id,
+                    site_id,
                     interface.id,
                     &final_desired,
                     scan_time,
@@ -603,13 +603,13 @@ impl HostService {
         }
 
         let (recorded_port_ids, re_advertised_ports) = self
-            .record_advertised_far_end_ports(network_id, advertised_ports, scan_time)
+            .record_advertised_far_end_ports(site_id, advertised_ports, scan_time)
             .await;
         re_observed_ports.extend(re_advertised_ports);
         self.record_advertised_far_end_os(advertised_os).await;
 
         tracing::info!(
-            network_id = %network_id,
+            site_id = %site_id,
             total = stats.total,
             hosts_resolved = stats.hosts_resolved,
             ports_resolved = stats.ports_resolved,
@@ -636,7 +636,7 @@ impl HostService {
         })
     }
 
-    /// Resolve LLDP links for all interfaces in a network, inferring what is missing.
+    /// Resolve LLDP links for all interfaces in a site, inferring what is missing.
     ///
     /// Three passes at most. The first resolves what it can and collects the far ends that told us
     /// where they live and still matched nothing; those become subnets and hosts. A pass runs again
@@ -651,7 +651,7 @@ impl HostService {
     /// would tell an operator that the same devices are missing and were just added.
     pub async fn resolve_lldp_links(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         scan_time: DateTime<Utc>,
         run: &ScannedEntityIds,
     ) -> Result<LldpResolutionOutcome> {
@@ -661,18 +661,18 @@ impl HostService {
 
         let run_interface_ids: HashSet<Uuid> = run.interface_ids.iter().copied().collect();
         let mut first = self
-            .resolve_neighbours_once(network_id, scan_time, &run_interface_ids)
+            .resolve_neighbours_once(site_id, scan_time, &run_interface_ids)
             .await?;
 
         // The plan's host limit, built the way the daemon batch path builds it
         // (`DaemonService::process_discovery_entities`). Minting runs outside both existing gates,
         // so without this it would quietly outrun the limit while still counting towards the number
         // a customer is shown on their dashboard and in their usage email.
-        let limit_ctx = self.host_limit_context(network_id).await;
+        let limit_ctx = self.host_limit_context(site_id).await;
 
         let unplaced = std::mem::take(&mut first.unplaced);
         let inferred = self
-            .infer_far_end_subnets(network_id, unplaced, limit_ctx.as_ref(), scan_time)
+            .infer_far_end_subnets(site_id, unplaced, limit_ctx.as_ref(), scan_time)
             .await?;
 
         let mut observed = inferred.observed;
@@ -693,7 +693,7 @@ impl HostService {
                 break;
             }
             last = self
-                .resolve_neighbours_once(network_id, scan_time, &run_interface_ids)
+                .resolve_neighbours_once(site_id, scan_time, &run_interface_ids)
                 .await?;
             rerun = !last.recorded_port_ids.is_empty();
             resolved_far_ends.extend(std::mem::take(&mut last.resolved_far_ends));
@@ -728,7 +728,7 @@ impl HostService {
         if !re_advertised_addresses.is_empty() {
             let live = self
                 .subnet_service
-                .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())
+                .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live())
                 .await?;
             let ranges: Vec<Uuid> = re_advertised_addresses
                 .into_iter()
@@ -903,7 +903,7 @@ impl HostService {
     /// ones mean another pass has something new to bind.
     async fn record_advertised_far_end_ports(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         advertised: Vec<(Uuid, Option<String>, Option<String>, bool)>,
         scan_time: DateTime<Utc>,
     ) -> (Vec<Uuid>, Vec<Uuid>) {
@@ -981,7 +981,7 @@ impl HostService {
                 }
 
                 let mut interface = Interface::new(InterfaceBase {
-                    network_id,
+                    site_id,
                     host_id,
                     if_descr: Some(descr),
                     if_name: name,
@@ -1055,7 +1055,7 @@ impl HostService {
         }
     }
 
-    /// Read this network's identity columns once, for the pass to resolve against.
+    /// Read this site's identity columns once, for the pass to resolve against.
     ///
     /// The pass asks the same few questions per neighbour-bearing interface, and answering each
     /// with its own query made it scale with round-trips: ~330 ms on 145 interfaces, and the
@@ -1064,32 +1064,32 @@ impl HostService {
     /// Safe to hold across the whole pass because every lookup keys on an identity column, and
     /// resolution now writes to `interface_neighbor_interfaces`/`interface_neighbor_hosts` rather
     /// than to any column this snapshot reads.
-    async fn lldp_inventory_snapshot(&self, network_id: Uuid) -> Result<LldpInventorySnapshot> {
-        let network = [network_id];
+    async fn lldp_inventory_snapshot(&self, site_id: Uuid) -> Result<LldpInventorySnapshot> {
+        let site = [site_id];
         let hosts = self
-            .get_all(StorableFilter::<Host>::new_from_network_ids(&network).live())
+            .get_all(StorableFilter::<Host>::new_from_site_ids(&site).live())
             .await?;
         let interfaces = self
             .interface_service
-            .get_all(StorableFilter::<Interface>::new_from_network_ids(&network).live())
+            .get_all(StorableFilter::<Interface>::new_from_site_ids(&site).live())
             .await?;
         let addresses = self
             .ip_address_service
-            .get_all(StorableFilter::<IPAddress>::new_from_network_ids(&network).live())
+            .get_all(StorableFilter::<IPAddress>::new_from_site_ids(&site).live())
             .await?;
 
         Ok(LldpInventorySnapshot::new(&hosts, &interfaces, &addresses))
     }
 
-    /// How many interfaces on this network advertise a neighbour.
+    /// How many interfaces on this site advertise a neighbour.
     ///
     /// Only for the warning raised when resolution is cut short, which is why it costs a query
     /// rather than being threaded out of the pass: on every other completion the pass returns
     /// normally and nothing asks. Best-effort — a warning that cannot say "how many" is still
     /// worth raising, so a failure here reports zero rather than suppressing the warning.
-    pub async fn neighbour_bearing_interface_count(&self, network_id: Uuid) -> u32 {
+    pub async fn neighbour_bearing_interface_count(&self, site_id: Uuid) -> u32 {
         self.interface_neighbor_service
-            .candidates_for_network(network_id)
+            .candidates_for_site(site_id)
             .await
             .map(|candidates| {
                 candidates
@@ -1104,10 +1104,12 @@ impl HostService {
     /// Interfaces with an unresolved single-MAC FDB entry — cheaper than `resolve_fdb_links`
     /// itself since it never fetches or hydrates a row. Only for the warning raised when
     /// resolution is cut short, the same reasoning as `neighbour_bearing_interface_count` above.
-    pub async fn unresolved_fdb_interface_count(&self, network_id: Uuid) -> u32 {
+    pub async fn unresolved_fdb_interface_count(&self, site_id: Uuid) -> u32 {
         self.interface_service
             .storage()
-            .count(StorableFilter::<Interface>::new_for_unresolved_fdb_in_network(network_id))
+            .count(StorableFilter::<Interface>::new_for_unresolved_fdb_in_site(
+                site_id,
+            ))
             .await
             .unwrap_or(0) as u32
     }
@@ -1115,18 +1117,14 @@ impl HostService {
     /// Resolve FDB (bridge forwarding database) single-MAC ports to neighbor links.
     /// Called after resolve_lldp_links — only processes ports without LLDP/CDP data
     /// that have exactly one learned MAC address (direct physical connection).
-    pub async fn resolve_fdb_links(
-        &self,
-        network_id: Uuid,
-        scan_time: DateTime<Utc>,
-    ) -> Result<u32> {
+    pub async fn resolve_fdb_links(&self, site_id: Uuid, scan_time: DateTime<Utc>) -> Result<u32> {
         let resolver = LldpResolverImpl::new(
             self.interface_service.clone(),
             self.ip_address_service.clone(),
             self.storage.clone(),
         );
 
-        let filter = StorableFilter::<Interface>::new_for_unresolved_fdb_in_network(network_id);
+        let filter = StorableFilter::<Interface>::new_for_unresolved_fdb_in_site(site_id);
         let unresolved = self.interface_service.get_all(filter).await?;
 
         let mut resolved_count: u32 = 0;
@@ -1143,7 +1141,7 @@ impl HostService {
             // Try to find host by MAC. A MAC on more than one device names none of them, so an
             // ambiguous verdict leaves the row unresolved rather than picking a side.
             let IdentityResolution::Resolved(host_id) =
-                resolver.find_host_by_mac(mac, network_id).await
+                resolver.find_host_by_mac(mac, site_id).await
             else {
                 continue;
             };
@@ -1151,14 +1149,14 @@ impl HostService {
             // Try full resolution (specific port). A far end that repeats one MAC across its ports
             // names no single port, so the link stays at device level rather than being attached to
             // whichever port the database returned first.
-            let neighbor = match resolver.find_if_entry_by_mac(mac, host_id).await {
+            let neighbor = match resolver.find_interface_by_mac(mac, host_id).await {
                 IdentityResolution::Resolved(interface_id) => Neighbor::Interface(interface_id),
                 _ => Neighbor::Host(host_id),
             };
 
             self.interface_neighbor_service
                 .reconcile_interface_neighbors(
-                    network_id,
+                    site_id,
                     interface.id,
                     &[(neighbor, Some(scan_time))],
                     scan_time,
@@ -1170,7 +1168,7 @@ impl HostService {
 
         if resolved_count > 0 {
             tracing::debug!(
-                network_id = %network_id,
+                site_id = %site_id,
                 resolved = resolved_count,
                 "FDB link resolution complete"
             );

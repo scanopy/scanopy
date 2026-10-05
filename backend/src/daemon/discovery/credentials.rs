@@ -15,7 +15,7 @@ use crate::server::hosts::r#impl::base::Host;
 /// One credential to try at an address, and where it came from.
 ///
 /// `user_assigned` is deliberately its own field rather than `credential_id.is_some()`. It used to
-/// be derivable that way only because a network default arrived with no id at all; now that it
+/// be derivable that way only because a site default arrived with no id at all; now that it
 /// carries one, the two questions have come apart. Conflating them would start reporting every
 /// broadcast default that failed to answer — one finding per unresponsive host on a /24 sweep —
 /// which is exactly what [`issue_for_attempt`] exists to suppress.
@@ -25,7 +25,7 @@ pub struct ApplicableCredential<'a> {
     pub credential: &'a CredentialQueryPayload,
     /// The stored credential row this came from, where there is one.
     pub credential_id: Option<Uuid>,
-    /// Whether the user pinned this credential to this address, as opposed to it being a network
+    /// Whether the user pinned this credential to this address, as opposed to it being a site
     /// broadcast default. This is what decides whether a failure is a finding.
     pub user_assigned: bool,
 }
@@ -33,7 +33,7 @@ pub struct ApplicableCredential<'a> {
 /// Resolve applicable credentials for a target IP from credential mappings.
 ///
 /// Returns credentials in specificity order: every matching IP override first
-/// (in `ip_overrides` declaration order), then the network default as fallback.
+/// (in `ip_overrides` declaration order), then the site default as fallback.
 /// Each entry includes the credential, its optional server-side ID (for
 /// auto-assignment tracking and for naming the record in a warning), and whether
 /// the user pinned it here. The caller is expected to try them in order and
@@ -57,7 +57,7 @@ pub fn resolve_credentials_for_ip(
         });
     }
 
-    // Network default as fallback — always tried after overrides when present.
+    // Site default as fallback — always tried after overrides when present.
     // The probe loop breaks on first success, so a working override short-circuits
     // the default automatically; the default only actually runs when every
     // override failed (wrong community, auth error, timeout, etc.).
@@ -84,7 +84,7 @@ pub fn resolve_credentials_for_ip(
 ///
 /// Driven by the mappings themselves (not discovered-host assignments): each mapping's
 /// `ip_overrides` cover daemon-host (127.0.0.1) and per-host targets, and `default_credential`
-/// covers network broadcast. `hosts` is used only to annotate an override IP with a discovered
+/// covers site broadcast. `hosts` is used only to annotate an override IP with a discovered
 /// host name when one matches.
 pub fn summarize_credential_assignments(
     hosts: &[(IpAddr, Host)],
@@ -110,14 +110,14 @@ pub fn summarize_credential_assignments(
                 .or_default()
                 .push(format!("{} → {}", o.credential_id, target));
         }
-        // Network-broadcast default credential (applies to all hosts on the network).
+        // Site-broadcast default credential (applies to all hosts on the site).
         if let Some(default) = &mapping.default_credential {
             let label: String =
                 Into::<CredentialQueryPayloadDiscriminants>::into(default).to_string();
             by_type
                 .entry(label)
                 .or_default()
-                .push("network default".to_string());
+                .push("site default".to_string());
         }
     }
 
@@ -291,7 +291,7 @@ mod tests {
     fn resolve_credentials_for_ip_multiple_overrides_then_default() {
         // Same IP, two host-scoped overrides (e.g., two SNMP creds assigned to
         // the same host via host_credentials) — every one should be tried in
-        // declaration order, then fall back to the network default.
+        // declaration order, then fall back to the site default.
         let id_a = Uuid::new_v4();
         let id_b = Uuid::new_v4();
         let mapping = CredentialMapping {

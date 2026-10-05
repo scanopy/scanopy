@@ -385,7 +385,7 @@ async fn billing_middleware_makes_a_lapsed_cloud_org_read_only() {
         user_id: Uuid::new_v4(),
         organization_id: org.id,
         permissions: UserOrgPermissions::Owner,
-        network_ids: vec![],
+        site_ids: vec![],
         email: EmailAddress::new_unchecked("owner@example.com"),
         email_verified: true,
     };
@@ -442,7 +442,7 @@ async fn billing_middleware_locks_main_app_routes_for_self_hosted_plans() {
         user_id: Uuid::new_v4(),
         organization_id: org.id,
         permissions: UserOrgPermissions::Owner,
-        network_ids: vec![],
+        site_ids: vec![],
         email: EmailAddress::new_unchecked("owner@example.com"),
         email_verified: true,
     };
@@ -683,7 +683,7 @@ async fn a_stranded_air_gapped_organization_heals_on_read() {
         user_id: Uuid::new_v4(),
         organization_id: org.id,
         permissions: UserOrgPermissions::Owner,
-        network_ids: vec![],
+        site_ids: vec![],
         email: EmailAddress::new_unchecked("owner@example.com"),
         email_verified: true,
     };

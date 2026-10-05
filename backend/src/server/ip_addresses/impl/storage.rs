@@ -31,7 +31,7 @@ pub struct IPAddressCsvRow {
     pub name: Option<String>,
     pub host_id: Uuid,
     pub subnet_id: Uuid,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub position: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -84,7 +84,7 @@ impl Storable for IPAddress {
             first_discovery_id,
             base:
                 Self::BaseData {
-                    network_id,
+                    site_id,
                     host_id,
                     subnet_id,
                     ip_address,
@@ -99,7 +99,7 @@ impl Storable for IPAddress {
         Ok((
             vec![
                 "id",
-                "network_id",
+                "site_id",
                 "host_id",
                 "subnet_id",
                 "ip_address",
@@ -118,7 +118,7 @@ impl Storable for IPAddress {
             ],
             vec![
                 SqlValue::Uuid(id),
-                SqlValue::Uuid(network_id),
+                SqlValue::Uuid(site_id),
                 SqlValue::Uuid(host_id),
                 SqlValue::Uuid(subnet_id),
                 SqlValue::IpAddr(ip_address),
@@ -159,7 +159,7 @@ impl Storable for IPAddress {
             last_discovery_id: row.get("last_discovery_id"),
             first_discovery_id: row.get("first_discovery_id"),
             base: IPAddressBase {
-                network_id: row.get("network_id"),
+                site_id: row.get("site_id"),
                 host_id: row.get("host_id"),
                 subnet_id: row.get("subnet_id"),
                 ip_address,
@@ -198,7 +198,7 @@ impl Entity for IPAddress {
             name: self.base.name.clone(),
             host_id: self.base.host_id,
             subnet_id: self.base.subnet_id,
-            network_id: self.base.network_id,
+            site_id: self.base.site_id,
             position: self.base.position,
             created_at: self.created_at,
             updated_at: self.updated_at,
@@ -217,8 +217,8 @@ impl Entity for IPAddress {
         EntityCategory::NetworkInfrastructure
     }
 
-    fn network_id(&self) -> Option<Uuid> {
-        Some(self.base.network_id)
+    fn site_id(&self) -> Option<Uuid> {
+        Some(self.base.site_id)
     }
 
     fn organization_id(&self) -> Option<Uuid> {

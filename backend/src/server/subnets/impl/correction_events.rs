@@ -52,7 +52,7 @@ pub enum SubnetCorrection {
 /// versioned — so if this line does not carry the old range, nothing does.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct SubnetCorrectionScope {
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub subnet_id: Uuid,
     pub from_cidr: String,
     pub to_cidr: String,

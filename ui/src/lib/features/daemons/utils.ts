@@ -90,7 +90,7 @@ export function hasSunsetWarning(daemon: Daemon): boolean {
 /// label where an OS identifier was expected.
 export type DaemonOS = components['schemas']['DaemonOs'];
 
-export function slugifyNetworkName(name: string): string {
+export function slugifySiteName(name: string): string {
 	return name
 		.toLowerCase()
 		.replace(/[^a-z0-9-]/g, '-')

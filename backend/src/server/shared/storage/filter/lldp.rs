@@ -139,7 +139,7 @@ impl<T: Storable> StorableFilter<T> {
         self
     }
 
-    /// Filter interfaces with unresolved single-MAC FDB data in a network.
+    /// Filter interfaces with unresolved single-MAC FDB data in a site.
     ///
     /// Matches entries that have exactly 1 learned MAC, no candidate row (raw LLDP/CDP evidence —
     /// FDB is lower-priority than protocol-based discovery), and no existing resolved row of
@@ -150,14 +150,14 @@ impl<T: Storable> StorableFilter<T> {
     /// `interface_neighbor_candidates` — the four `IS NULL` scalar-column checks this filter used
     /// became three `NOT EXISTS` subqueries against those tables (candidates cover both LLDP and
     /// CDP in one check, since a row's evidence type no longer has its own column here).
-    pub fn unresolved_fdb_in_network(mut self, network_id: Uuid) -> Self {
-        let network_col = self.qualify_column("network_id");
+    pub fn unresolved_fdb_in_site(mut self, site_id: Uuid) -> Self {
+        let site_col = self.qualify_column("site_id");
         let fdb_col = self.qualify_column("fdb_macs");
         let id_col = self.qualify_column("id");
 
         self.conditions
-            .push(format!("{} = ${}", network_col, self.values.len() + 1));
-        self.values.push(SqlValue::Uuid(network_id));
+            .push(format!("{} = ${}", site_col, self.values.len() + 1));
+        self.values.push(SqlValue::Uuid(site_id));
 
         // Has single-MAC FDB data.
         self.conditions.push(format!(

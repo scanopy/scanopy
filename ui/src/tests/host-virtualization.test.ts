@@ -34,7 +34,7 @@ describe('virtualizationSummary', () => {
 		expect(virtualizationSummary(vm, 'pve-01')).not.toEqual(virtualizationSummary(lxc, 'pve-01'));
 	});
 
-	it('names the interface of a network identity only when it has one', () => {
+	it('names the interface of a site identity only when it has one', () => {
 		const identity: HostVirtualization = { type: 'NetworkIdentity', details: {} };
 		expect(virtualizationSummary(identity, 'switch-01', 'mv-snmp4')).toContain('mv-snmp4');
 		expect(virtualizationSummary(identity, 'switch-01', null)).not.toMatch(/null|undefined/);

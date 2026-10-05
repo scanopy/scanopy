@@ -3,15 +3,15 @@
 use email_address::EmailAddress;
 use reqwest::StatusCode;
 use scanopy::server::auth::r#impl::api::{
-    LoginRequest, NetworkSetup, RegisterRequest, SetupRequest, SetupResponse,
+    LoginRequest, RegisterRequest, SetupRequest, SetupResponse, SiteSetup,
 };
 use scanopy::server::daemons::r#impl::api::ProvisionDaemonResponse;
 use scanopy::server::daemons::r#impl::base::Daemon;
-use scanopy::server::networks::r#impl::Network;
 use scanopy::server::organizations::r#impl::base::Organization;
 use scanopy::server::shared::storage::generic::GenericPostgresStorage;
 use scanopy::server::shared::storage::traits::{Storable, Storage};
 use scanopy::server::shared::types::api::ApiResponse;
+use scanopy::server::sites::r#impl::Site;
 use scanopy::server::users::r#impl::base::User;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -394,7 +394,7 @@ impl TestClient {
 
 pub struct TestContext {
     pub client: TestClient,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub organization_id: Uuid,
     pub db_pool: PgPool,
 }
@@ -474,14 +474,14 @@ pub async fn setup_authenticated_user(client: &TestClient) -> Result<User, Strin
 
     let setup_request = SetupRequest {
         organization_name: "My Organization".to_string(),
-        network: Some(NetworkSetup {
-            name: "My Network".to_string(),
+        site: Some(SiteSetup {
+            name: "My Site".to_string(),
         }),
     };
 
     match client.setup(&setup_request).await {
         Ok(response) => {
-            println!("✅ Setup completed, network_id: {:?}", response.network_id);
+            println!("✅ Setup completed, site_id: {:?}", response.site_id);
         }
         Err(e) => {
             println!("⚠️  Setup failed (may already be registered): {}", e);
@@ -509,13 +509,13 @@ pub async fn wait_for_organization(client: &TestClient) -> Result<Organization, 
     .await
 }
 
-pub async fn wait_for_network(client: &TestClient) -> Result<Network, String> {
-    retry("wait for network to be created", 15, 2, || async {
-        let networks: Vec<Network> = client.get("/api/v1/networks").await?;
-        networks
+pub async fn wait_for_network(client: &TestClient) -> Result<Site, String> {
+    retry("wait for site to be created", 15, 2, || async {
+        let sites: Vec<Site> = client.get("/api/v1/sites").await?;
+        sites
             .first()
             .cloned()
-            .ok_or_else(|| "No networks found yet".to_string())
+            .ok_or_else(|| "No sites found yet".to_string())
     })
     .await
 }
@@ -642,7 +642,7 @@ pub async fn wait_for_home_assistant() -> Result<(), String> {
 /// Returns the provisioned daemon response (includes daemon record and API key).
 pub async fn provision_serverpoll_daemon(
     client: &TestClient,
-    network_id: Uuid,
+    site_id: Uuid,
 ) -> Result<ProvisionDaemonResponse, String> {
     println!("\n=== Provisioning ServerPoll Daemon ===");
 
@@ -653,7 +653,7 @@ pub async fn provision_serverpoll_daemon(
             "/api/v1/daemons/provision",
             &serde_json::json!({
                 "name": "scanopy-daemon-serverpoll",
-                "network_id": network_id,
+                "site_id": site_id,
                 // Must be explicit: provisioning covers both modes and defaults to DaemonPoll,
                 // so omitting this provisions a DaemonPoll record that the server's ServerPoll
                 // poller never picks up — the daemon then sits idle and discovery stalls.
@@ -668,7 +668,7 @@ pub async fn provision_serverpoll_daemon(
         provision_response.daemon.id
     );
 
-    // Step 2: Initialize daemon with network_id and API key
+    // Step 2: Initialize daemon with site_id and API key
     println!("  Initializing ServerPoll daemon with credentials...");
 
     let http_client = reqwest::Client::builder()
@@ -679,7 +679,7 @@ pub async fn provision_serverpoll_daemon(
     let response = http_client
         .post(format!("{}/api/initialize", SERVERPOLL_DAEMON_URL))
         .json(&serde_json::json!({
-            "network_id": network_id,
+            "site_id": site_id,
             "api_key": provision_response.daemon_api_key
         }))
         .send()

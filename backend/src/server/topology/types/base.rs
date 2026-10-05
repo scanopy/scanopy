@@ -67,8 +67,8 @@ impl Topology {
 
 #[derive(Debug, Clone, Validate, Serialize, Deserialize, Eq, PartialEq, Default, ToSchema)]
 pub struct TopologyBase {
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// Saved layout and view settings for this topology.
     pub options: TopologyOptions,
     // The per-view node/edge graph is no longer persisted — it's a pure
@@ -79,9 +79,9 @@ pub struct TopologyBase {
 }
 
 impl TopologyBase {
-    pub fn new(network_id: Uuid) -> Self {
+    pub fn new(site_id: Uuid) -> Self {
         Self {
-            network_id,
+            site_id,
             options: TopologyOptions::default(),
         }
     }
@@ -306,8 +306,8 @@ impl Default for TopologyRequestOptions {
 /// Fixes HTTP 413 errors on drag operations.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct TopologyNodePositionUpdate {
-    /// Network ID for authorization
-    pub network_id: Uuid,
+    /// Site ID for authorization
+    pub site_id: Uuid,
     /// View whose node/edge slice this update targets
     pub view: TopologyView,
     /// ID of the node to update
@@ -323,8 +323,8 @@ pub struct TopologyNodePositionUpdate {
 /// Fixes HTTP 413 errors on edge reconnect operations.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct TopologyEdgeHandleUpdate {
-    /// Network ID for authorization
-    pub network_id: Uuid,
+    /// Site ID for authorization
+    pub site_id: Uuid,
     /// View whose node/edge slice this update targets
     pub view: TopologyView,
     /// ID of the edge to update
@@ -342,8 +342,8 @@ pub struct TopologyEdgeHandleUpdate {
 /// Fixes HTTP 413 errors on resize operations.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct TopologyNodeResizeUpdate {
-    /// Network ID for authorization
-    pub network_id: Uuid,
+    /// Site ID for authorization
+    pub site_id: Uuid,
     /// View whose node/edge slice this update targets
     pub view: TopologyView,
     /// ID of the node to update

@@ -77,7 +77,7 @@ pub struct TopologyViewSupport {
     /// L2Physical requires interface-level neighbor discovery (LLDP/CDP).
     pub l2_physical: bool,
     /// Application requires at least one application-flagged tag to be
-    /// assigned to an entity in the topology's network.
+    /// assigned to an entity in the topology's site.
     pub application: bool,
 }
 
@@ -315,8 +315,8 @@ pub enum MetadataFilterType {
     LinkState,
     /// How recently discovery observed the entity. Unlike the others, this
     /// value is not intrinsic to the entity — it depends on the entity's
-    /// network staleness window and the current time — so the frontend
-    /// extractor for it takes the network as context.
+    /// site staleness window and the current time — so the frontend
+    /// extractor for it takes the site as context.
     Staleness,
     /// A port's ifOperStatus. Declared on Interface in L2, where it is what the card's status dot
     /// and zoomed-out fill show.
@@ -430,7 +430,7 @@ where
 
 /// Cross-entity state a filter value may depend on.
 ///
-/// Deliberately carries topology-build state only — no network and no clock. A filter that needs
+/// Deliberately carries topology-build state only — no site and no clock. A filter that needs
 /// either is a filter that cannot run on the server (see `FilterApplication`), so admitting them
 /// here would only make it easy to build something that returns different answers over time.
 #[derive(Debug, Default)]
@@ -496,7 +496,7 @@ pub enum DependencyMemberType {
 )]
 pub enum InspectorSection {
     Identity,
-    IfEntryData,
+    InterfaceData,
     Services,
     Dependencies,
     HostDetail,
@@ -521,7 +521,7 @@ impl EntityMetadataProvider for InspectorSection {
     fn color(&self) -> Color {
         match self {
             InspectorSection::Identity | InspectorSection::ElementSummary => Color::Gray,
-            InspectorSection::IfEntryData => EntityDiscriminants::Interface.color(),
+            InspectorSection::InterfaceData => EntityDiscriminants::Interface.color(),
             InspectorSection::Services => EntityDiscriminants::Service.color(),
             InspectorSection::Dependencies | InspectorSection::DependencySummary => {
                 EntityDiscriminants::Dependency.color()
@@ -539,7 +539,7 @@ impl EntityMetadataProvider for InspectorSection {
         match self {
             InspectorSection::Identity => Icon::Crosshair,
             InspectorSection::ElementSummary => Icon::PackageOpen,
-            InspectorSection::IfEntryData => EntityDiscriminants::Interface.icon(),
+            InspectorSection::InterfaceData => EntityDiscriminants::Interface.icon(),
             InspectorSection::Services => EntityDiscriminants::Service.icon(),
             InspectorSection::Dependencies | InspectorSection::DependencySummary => {
                 EntityDiscriminants::Dependency.icon()
@@ -558,7 +558,7 @@ impl TypeMetadataProvider for InspectorSection {
     fn name(&self) -> &'static str {
         match self {
             InspectorSection::Identity => "Selected",
-            InspectorSection::IfEntryData => "Interface data",
+            InspectorSection::InterfaceData => "Interface data",
             InspectorSection::Services => "Services",
             InspectorSection::Dependencies => "Dependencies",
             InspectorSection::HostDetail => "Host",
@@ -576,7 +576,9 @@ impl TypeMetadataProvider for InspectorSection {
     fn description(&self) -> &'static str {
         match self {
             InspectorSection::Identity => "The entity you selected",
-            InspectorSection::IfEntryData => "Status and counters the device reports for this port",
+            InspectorSection::InterfaceData => {
+                "Status and counters the device reports for this port"
+            }
             InspectorSection::Services => {
                 "Services on this host, and on the hosts it presents or runs"
             }
@@ -963,7 +965,7 @@ impl TopologyView {
                 element_sections: vec![
                     InspectorSection::Identity,
                     InspectorSection::HostDetail,
-                    InspectorSection::IfEntryData,
+                    InspectorSection::InterfaceData,
                     InspectorSection::Services,
                     InspectorSection::OtherInterfaces,
                 ],
@@ -1004,7 +1006,7 @@ impl TopologyView {
                 show_application_picker: false,
             },
             Self::L2Physical => ViewInspectorConfig {
-                element_sections: vec![InspectorSection::Identity, InspectorSection::IfEntryData],
+                element_sections: vec![InspectorSection::Identity, InspectorSection::InterfaceData],
                 container_sections: vec![
                     InspectorSection::Identity,
                     InspectorSection::ElementSummary,

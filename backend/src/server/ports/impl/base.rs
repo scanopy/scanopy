@@ -40,8 +40,8 @@ pub enum TransportProtocol {
 pub struct PortBase {
     /// The host this entity belongs to.
     pub host_id: Uuid,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// Port number, transport protocol, and the well-known service they identify.
     #[serde(flatten)]
     #[schema(required)]
@@ -49,19 +49,19 @@ pub struct PortBase {
 }
 
 impl PortBase {
-    pub fn new(host_id: Uuid, network_id: Uuid, port_type: PortType) -> Self {
+    pub fn new(host_id: Uuid, site_id: Uuid, port_type: PortType) -> Self {
         Self {
             host_id,
-            network_id,
+            site_id,
             port_type,
         }
     }
 
-    /// Create a PortBase without host/network (will be set by server)
+    /// Create a PortBase without host/site (will be set by server)
     pub fn new_hostless(port_type: PortType) -> Self {
         Self {
             host_id: Uuid::nil(),
-            network_id: Uuid::nil(),
+            site_id: Uuid::nil(),
             port_type,
         }
     }
@@ -183,7 +183,7 @@ impl Port {
         }
     }
 
-    /// Create a Port with just a PortType (host_id/network_id set to nil).
+    /// Create a Port with just a PortType (host_id/site_id set to nil).
     /// Use this for ports created during discovery before host assignment.
     pub fn new_hostless(port_type: PortType) -> Self {
         Self::new(PortBase::new_hostless(port_type))
@@ -194,18 +194,18 @@ impl Port {
         self.base.host_id
     }
 
-    pub fn network_id(&self) -> Uuid {
-        self.base.network_id
+    pub fn site_id(&self) -> Uuid {
+        self.base.site_id
     }
 
     pub fn port_type(&self) -> PortType {
         self.base.port_type
     }
 
-    /// Set the host_id and network_id (for hostless ports that get resolved later)
-    pub fn with_host(mut self, host_id: Uuid, network_id: Uuid) -> Self {
+    /// Set the host_id and site_id (for hostless ports that get resolved later)
+    pub fn with_host(mut self, host_id: Uuid, site_id: Uuid) -> Self {
         self.base.host_id = host_id;
-        self.base.network_id = network_id;
+        self.base.site_id = site_id;
         self
     }
 }

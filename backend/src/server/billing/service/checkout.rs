@@ -152,7 +152,7 @@ impl BillingService {
                 OrgScope { organization_id },
                 BillingOperation::CheckoutCompleted {
                     plan,
-                    included_networks: plan_config.included_networks,
+                    included_sites: plan_config.included_sites,
                     included_seats: plan_config.included_seats,
                     mrr_amount_cents: 0,
                     is_trialing: false,
@@ -317,12 +317,12 @@ impl BillingService {
     pub async fn update_addon_prices(
         &self,
         organization: Organization,
-        network_count: u64,
+        site_count: u64,
         seat_count: u64,
     ) -> Result<(), Error> {
         tracing::info!(
             organization_id = %organization.id,
-            network_count = %network_count,
+            site_count = %site_count,
             seat_count = %seat_count,
             "Updating addon prices"
         );
@@ -346,8 +346,8 @@ impl BillingService {
                 )
             })?;
 
-        let extra_networks = if let Some(included_networks) = plan.config().included_networks {
-            network_count.saturating_sub(included_networks)
+        let extra_sites = if let Some(included_sites) = plan.config().included_sites {
+            site_count.saturating_sub(included_sites)
         } else {
             0
         };
@@ -381,7 +381,7 @@ impl BillingService {
 
         // Track what we found
         let mut found_seat_item = false;
-        let mut found_network_item = false;
+        let mut found_site_item = false;
 
         // Find existing subscription items by price lookup key
         for item in &subscription.items.data {
@@ -403,21 +403,17 @@ impl BillingService {
                 continue;
             }
 
-            // Check if this is a network addon item
-            if let Some(network_lookup) = plan.stripe_network_addon_price_lookup_key()
-                && let Some(network_price) = self.get_price_from_lookup_key(network_lookup).await?
-                && price_id == &network_price.id
+            // Check if this is a site addon item
+            if let Some(site_lookup) = plan.stripe_site_addon_price_lookup_key()
+                && let Some(site_price) = self.get_price_from_lookup_key(site_lookup).await?
+                && price_id == &site_price.id
             {
-                found_network_item = true;
+                found_site_item = true;
                 items_to_update.push(UpdateSubscriptionItems {
                     id: Some(item.id.to_string()),
                     price: Some(price_id.to_string()),
-                    quantity: Some(extra_networks),
-                    deleted: if extra_networks == 0 {
-                        Some(true)
-                    } else {
-                        None
-                    },
+                    quantity: Some(extra_sites),
+                    deleted: if extra_sites == 0 { Some(true) } else { None },
                     ..Default::default()
                 });
                 continue;
@@ -437,15 +433,15 @@ impl BillingService {
             });
         }
 
-        // Add new network item if needed
-        if !found_network_item
-            && extra_networks > 0
-            && let Some(network_lookup) = plan.stripe_network_addon_price_lookup_key()
-            && let Some(network_price) = self.get_price_from_lookup_key(network_lookup).await?
+        // Add new site item if needed
+        if !found_site_item
+            && extra_sites > 0
+            && let Some(site_lookup) = plan.stripe_site_addon_price_lookup_key()
+            && let Some(site_price) = self.get_price_from_lookup_key(site_lookup).await?
         {
             items_to_update.push(UpdateSubscriptionItems {
-                price: Some(network_price.id.to_string()),
-                quantity: Some(extra_networks),
+                price: Some(site_price.id.to_string()),
+                quantity: Some(extra_sites),
                 ..Default::default()
             });
         }
@@ -462,7 +458,7 @@ impl BillingService {
                 organization_id = %organization.id,
                 subscription_id = %subscription.id,
                 extra_seats = ?extra_seats,
-                extra_networks = ?extra_networks,
+                extra_sites = ?extra_sites,
                 "Updated subscription addon quantities"
             );
         }

@@ -432,7 +432,7 @@ mod tests {
             updated_at: Utc::now(),
             base: BindingBase {
                 service_id,
-                network_id: Uuid::new_v4(),
+                site_id: Uuid::new_v4(),
                 binding_type: BindingType::IPAddress {
                     ip_address_id: Uuid::new_v4(),
                 },

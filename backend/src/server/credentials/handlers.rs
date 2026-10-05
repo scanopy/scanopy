@@ -20,7 +20,7 @@ use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::{
     ApiError, ApiErrorResponse, EmptyApiResponse, PaginatedApiResponse,
 };
-use crate::server::shared::validation::validate_network_ids_access;
+use crate::server::shared::validation::validate_site_ids_access;
 use crate::server::{
     config::AppState,
     shared::types::api::{ApiResponse, ApiResult},
@@ -112,7 +112,7 @@ impl FilterQueryExtractor for CredentialFilterQuery {
     fn apply_to_filter<T: Storable>(
         &self,
         mut filter: StorableFilter<T>,
-        _user_network_ids: &[Uuid],
+        _user_site_ids: &[Uuid],
         _user_organization_id: Uuid,
     ) -> StorableFilter<T> {
         if let Some(cred_type) = self.credential_type {
@@ -150,7 +150,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         .routes(routes!(bulk_create_credentials))
 }
 
-/// Hydrate `assigned_network_ids` + `host_assignments` onto credentials from the
+/// Hydrate `assigned_site_ids` + `host_assignments` onto credentials from the
 /// junction tables (batch).
 async fn hydrate_assignments(
     state: &AppState,
@@ -160,10 +160,10 @@ async fn hydrate_assignments(
         return Ok(());
     }
     let ids: Vec<Uuid> = credentials.iter().map(|c| c.id).collect();
-    let network_map = state
+    let site_map = state
         .services
         .credential_service
-        .get_network_ids_for_credentials(&ids)
+        .get_site_ids_for_credentials(&ids)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     let host_map = state
@@ -173,8 +173,8 @@ async fn hydrate_assignments(
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     for credential in credentials.iter_mut() {
-        if let Some(network_ids) = network_map.get(&credential.id) {
-            credential.base.assigned_network_ids = network_ids.clone();
+        if let Some(site_ids) = site_map.get(&credential.id) {
+            credential.base.assigned_site_ids = site_ids.clone();
         }
         if let Some(assignments) = host_map.get(&credential.id) {
             credential.base.host_assignments = assignments.clone();
@@ -186,7 +186,7 @@ async fn hydrate_assignments(
 /// Persist a credential's assignments to the junction tables and reflect them on
 /// the response entity.
 /// Reject a create/update that would give a single-endpoint integration (e.g.
-/// Docker) two credentials targeting the same host/network/IP. Call before
+/// Docker) two credentials targeting the same host/site/IP. Call before
 /// persisting; `credential` must carry its intended assignments in `base`.
 async fn enforce_single_endpoint(
     state: &AppState,
@@ -202,7 +202,7 @@ async fn enforce_single_endpoint(
         let integration =
             ServiceDefinition::name(&*credential.base.credential_type.associated_service());
         return Err(ApiError::bad_request(&format!(
-            "{integration} allows only one credential per host, but \"{existing}\" already targets an overlapping host, network, or IP. Remove or retarget it first."
+            "{integration} allows only one credential per host, but \"{existing}\" already targets an overlapping host, site, or IP. Remove or retarget it first."
         )));
     }
     Ok(())
@@ -211,7 +211,7 @@ async fn enforce_single_endpoint(
 /// Reject a create/update whose assignments contradict the credential type's `targets()`.
 ///
 /// `targets()` is the single source of truth for where a type may apply, and it is load-bearing:
-/// a controller type deliberately excludes `Network` because a network assignment is dispatched
+/// a controller type deliberately excludes `Site` because a site assignment is dispatched
 /// as the default credential for every IP in the subnet, spraying that controller's secret at
 /// unrelated hosts. Only the per-daemon `integration_targets` path was checked (and there only by
 /// skipping, at scan time) — the junction assignments written here reached dispatch unchecked, so
@@ -223,15 +223,15 @@ async fn enforce_single_endpoint(
 async fn enforce_supported_targets(
     state: &AppState,
     credential: &Credential,
-    user_network_ids: &[Uuid],
+    user_site_ids: &[Uuid],
 ) -> Result<(), ApiError> {
     let permitted = credential.base.credential_type.targets();
     let integration =
         ServiceDefinition::name(&*credential.base.credential_type.associated_service());
 
-    if !credential.base.assigned_network_ids.is_empty() && !permitted.contains(&Target::Network) {
+    if !credential.base.assigned_site_ids.is_empty() && !permitted.contains(&Target::Site) {
         return Err(ApiError::bad_request(&format!(
-            "{integration} credentials cannot be assigned to a network — a network assignment is offered to every host on the subnet. Assign it to specific hosts instead."
+            "{integration} credentials cannot be assigned to a site — a site assignment is offered to every host on the subnet. Assign it to specific hosts instead."
         )));
     }
 
@@ -247,9 +247,9 @@ async fn enforce_supported_targets(
         }
 
         // Daemon-host-only: every assignment must name a host that runs a daemon. Read through
-        // the daemon service (never its storage), scoped to the caller's networks so this can't
+        // the daemon service (never its storage), scoped to the caller's sites so this can't
         // be used to probe for daemons in another tenant.
-        let daemon_filter = StorableFilter::<Daemon>::new_from_network_ids(user_network_ids);
+        let daemon_filter = StorableFilter::<Daemon>::new_from_site_ids(user_site_ids);
         let daemon_host_ids: Vec<Uuid> = state
             .services
             .daemon_service
@@ -278,26 +278,26 @@ async fn enforce_supported_targets(
 async fn save_assignments(
     state: &AppState,
     credential: &mut Credential,
-    assigned_network_ids: Vec<Uuid>,
+    assigned_site_ids: Vec<Uuid>,
     host_assignments: Vec<crate::server::credentials::r#impl::types::CredentialHostAssignment>,
-    user_network_ids: &[Uuid],
+    user_site_ids: &[Uuid],
 ) -> Result<(), ApiError> {
     // Validate caller-supplied references before writing the assignment
-    // junction rows: a credential must not be assignable to a network or host
+    // junction rows: a credential must not be assignable to a site or host
     // outside the caller's tenant (else a foreign daemon would receive this
     // credential's endpoint/secret during discovery).
-    validate_network_ids_access(&assigned_network_ids, user_network_ids)?;
+    validate_site_ids_access(&assigned_site_ids, user_site_ids)?;
     let host_ids: Vec<Uuid> = host_assignments.iter().map(|a| a.host_id).collect();
     state
         .services
         .host_service
-        .validate_ids_in_networks(&host_ids, user_network_ids)
+        .validate_ids_in_sites(&host_ids, user_site_ids)
         .await?;
 
     state
         .services
         .credential_service
-        .set_credential_networks(&credential.id, &assigned_network_ids)
+        .set_credential_sites(&credential.id, &assigned_site_ids)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     state
@@ -306,7 +306,7 @@ async fn save_assignments(
         .set_credential_host_assignments(&credential.id, &host_assignments)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
-    credential.base.assigned_network_ids = assigned_network_ids;
+    credential.base.assigned_site_ids = assigned_site_ids;
     credential.base.host_assignments = host_assignments;
     Ok(())
 }
@@ -366,11 +366,11 @@ async fn update_credential(
         .map_err(|e| ApiError::bad_request(&e.to_string()))?;
     entity.base.clear_unused_daemon_os();
 
-    let assigned_network_ids = entity.base.assigned_network_ids.clone();
+    let assigned_site_ids = entity.base.assigned_site_ids.clone();
     let host_assignments = entity.base.host_assignments.clone();
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
 
-    enforce_supported_targets(&state, &entity, &network_ids).await?;
+    enforce_supported_targets(&state, &entity, &site_ids).await?;
     enforce_single_endpoint(&state, &entity).await?;
 
     let mut response = update_handler::<Credential>(
@@ -385,9 +385,9 @@ async fn update_credential(
         save_assignments(
             &state,
             credential,
-            assigned_network_ids,
+            assigned_site_ids,
             host_assignments,
-            &network_ids,
+            &site_ids,
         )
         .await?;
     }
@@ -476,7 +476,7 @@ async fn get_all_credentials(
 
     let pagination = query.pagination();
     let filter = pagination.apply_to_filter(base_filter);
-    let filter = query.apply_to_filter(filter, &auth.network_ids(), organization_id);
+    let filter = query.apply_to_filter(filter, &auth.site_ids(), organization_id);
     let (filter, order_by) = query.apply_ordering(filter);
 
     let mut result = state
@@ -517,11 +517,11 @@ pub async fn create_credential(
     auth: Authorized<Admin>,
     ApiJson(credential): ApiJson<Credential>,
 ) -> ApiResult<Json<ApiResponse<Credential>>> {
-    let assigned_network_ids = credential.base.assigned_network_ids.clone();
+    let assigned_site_ids = credential.base.assigned_site_ids.clone();
     let host_assignments = credential.base.host_assignments.clone();
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
 
-    enforce_supported_targets(&state, &credential, &network_ids).await?;
+    enforce_supported_targets(&state, &credential, &site_ids).await?;
     enforce_single_endpoint(&state, &credential).await?;
 
     let mut response = create_handler::<Credential>(
@@ -535,9 +535,9 @@ pub async fn create_credential(
         save_assignments(
             &state,
             created,
-            assigned_network_ids,
+            assigned_site_ids,
             host_assignments,
-            &network_ids,
+            &site_ids,
         )
         .await?;
     }
@@ -589,7 +589,7 @@ async fn bulk_create_credentials(
     // each credential's org to the caller's rather than trusting the body, and
     // validate assignment references (inside save_assignments).
     let org_id = auth.require_organization_id()?;
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
 
     // Validate all credential types and their assignments up front, so a batch containing one
     // contradicting credential creates none of them.
@@ -598,14 +598,14 @@ async fn bulk_create_credentials(
             .base
             .validate_settings()
             .map_err(|e| ApiError::bad_request(&e.to_string()))?;
-        enforce_supported_targets(&state, credential, &network_ids).await?;
+        enforce_supported_targets(&state, credential, &site_ids).await?;
     }
 
     let auth_entity = auth.into_entity();
     let mut created = Vec::with_capacity(credentials.len());
     for mut credential in credentials {
         credential.base.organization_id = org_id;
-        let assigned_network_ids = credential.base.assigned_network_ids.clone();
+        let assigned_site_ids = credential.base.assigned_site_ids.clone();
         let host_assignments = credential.base.host_assignments.clone();
         // Checked sequentially, so each credential also sees earlier batch members
         // (already persisted) — catching intra-batch conflicts too.
@@ -618,9 +618,9 @@ async fn bulk_create_credentials(
         save_assignments(
             &state,
             &mut result,
-            assigned_network_ids,
+            assigned_site_ids,
             host_assignments,
-            &network_ids,
+            &site_ids,
         )
         .await?;
         created.push(result);

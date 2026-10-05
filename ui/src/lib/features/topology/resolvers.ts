@@ -706,7 +706,7 @@ export function resolveContainerNode(
 }
 
 /** An entity a topology node stands for, as the filter extractors and freshness helpers read it. */
-export type NodeEntity = FreshnessSubject & { id: string; network_id?: string };
+export type NodeEntity = FreshnessSubject & { id: string; site_id?: string };
 
 /**
  * The entity an element card depicts: its service, address or interface, and otherwise its host.

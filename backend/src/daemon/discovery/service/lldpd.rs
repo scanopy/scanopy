@@ -462,7 +462,7 @@ mod tests {
     fn nic_row(name: &str) -> Interface {
         Interface::new(InterfaceBase {
             host_id: Uuid::new_v4(),
-            network_id: Uuid::new_v4(),
+            site_id: Uuid::new_v4(),
             if_index: Some(1),
             if_descr: Some(name.to_string()),
             if_name: Some(name.to_string()),

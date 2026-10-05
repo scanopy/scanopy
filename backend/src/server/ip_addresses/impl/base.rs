@@ -88,8 +88,8 @@ pub fn mac_of(evidence: &Option<MacEvidence>) -> Option<MacAddress> {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash, ToSchema, Validate)]
 pub struct IPAddressBase {
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// The host this entity belongs to.
     pub host_id: Uuid,
     /// The subnet this entity belongs to.
@@ -112,7 +112,7 @@ pub struct IPAddressBase {
 impl Default for IPAddressBase {
     fn default() -> Self {
         Self {
-            network_id: Uuid::nil(),
+            site_id: Uuid::nil(),
             host_id: Uuid::nil(),
             subnet_id: Uuid::nil(),
             ip_address: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
@@ -138,7 +138,7 @@ impl IPAddressBase {
         let ip_address = IpAddr::V4(Ipv4Addr::new(203, 0, 113, rand::rng().random_range(1..255)));
 
         Self {
-            network_id: subnet.base.network_id,
+            site_id: subnet.base.site_id,
             host_id,
             subnet_id: subnet.id,
             ip_address,
@@ -237,7 +237,7 @@ impl IPAddress {
     /// not be submitted. Every integration builds its submitted addresses through this, so the
     /// rule for an address no subnet holds lives in one place.
     pub fn discovered(
-        network_id: Uuid,
+        site_id: Uuid,
         subnets: &[Subnet],
         ip_address: IpAddr,
         mac_address: Option<MacEvidence>,
@@ -249,7 +249,7 @@ impl IPAddress {
             SubmittedPlacement::ServerInfers => Uuid::nil(),
         };
         Some(Self::new(IPAddressBase {
-            network_id,
+            site_id,
             host_id: Uuid::nil(), // Server assigns.
             subnet_id,
             ip_address,

@@ -37,8 +37,8 @@ impl EventBusService<Dependency> for DependencyService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, entity: &Dependency) -> Option<Uuid> {
-        Some(entity.base.network_id)
+    fn get_site_id(&self, entity: &Dependency) -> Option<Uuid> {
+        Some(entity.base.site_id)
     }
     fn get_organization_id(&self, _entity: &Dependency) -> Option<Uuid> {
         None
@@ -179,7 +179,7 @@ impl CrudService<Dependency> for DependencyService {
         if let Some(scope) = EntityScope::from_ids(
             created.id,
             created.clone().into(),
-            self.get_network_id(&created),
+            self.get_site_id(&created),
             self.get_organization_id(&created),
         ) {
             self.event_bus()
@@ -236,7 +236,7 @@ impl CrudService<Dependency> for DependencyService {
         if let Some(scope) = EntityScope::from_ids(
             updated.id,
             updated.clone().into(),
-            self.get_network_id(&updated),
+            self.get_site_id(&updated),
             self.get_organization_id(&updated),
         ) {
             self.event_bus()

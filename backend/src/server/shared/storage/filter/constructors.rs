@@ -49,8 +49,8 @@ impl<T: Storable> StorableFilter<T> {
         Self::new()
     }
 
-    pub fn new_from_network_ids(network_ids: &[Uuid]) -> Self {
-        Self::new().network_ids(network_ids)
+    pub fn new_from_site_ids(site_ids: &[Uuid]) -> Self {
+        Self::new().site_ids(site_ids)
     }
 
     pub fn new_from_entity_id(entity_id: &Uuid) -> Self {
@@ -129,8 +129,8 @@ impl<T: Storable> StorableFilter<T> {
         Self::new().historical_session(session_id)
     }
 
-    pub fn new_for_unresolved_fdb_in_network(network_id: Uuid) -> Self {
-        Self::new().unresolved_fdb_in_network(network_id)
+    pub fn new_for_unresolved_fdb_in_site(site_id: Uuid) -> Self {
+        Self::new().unresolved_fdb_in_site(site_id)
     }
 
     pub fn new_without_brevo_company_id() -> Self {

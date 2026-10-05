@@ -161,7 +161,7 @@
 			onSelect={(value) => {
 				const selectedDaemon = daemons.find((d) => d.id === value);
 				if (selectedDaemon) {
-					formData = { ...formData, daemon_id: value, network_id: selectedDaemon.network_id };
+					formData = { ...formData, daemon_id: value, site_id: selectedDaemon.site_id };
 				}
 			}}
 		/>

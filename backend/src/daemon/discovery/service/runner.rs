@@ -133,19 +133,17 @@ impl DiscoveryRunner {
         ops: &DiscoveryOps,
         cancel: &CancellationToken,
     ) -> Result<Vec<Subnet>, Error> {
-        let network_id = self
+        let site_id = self
             .service
             .config_store
-            .get_network_id()
+            .get_site_id()
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Network ID not set"))?;
+            .ok_or_else(|| anyhow::anyhow!("Site ID not set"))?;
 
         let utils = &self.service.utils;
 
         let interface_filter = self.service.config_store.get_interfaces().await?;
-        let (_, subnets, _) = utils
-            .get_own_interfaces(network_id, &interface_filter)
-            .await?;
+        let (_, subnets, _) = utils.get_own_interfaces(site_id, &interface_filter).await?;
 
         // Get docker subnets for merging
         let (docker_proxy, docker_proxy_ssl_info, _ssl_temp_handles, _, _) =
@@ -168,7 +166,7 @@ impl DiscoveryRunner {
             self.service
                 .utils
                 .get_subnets_from_docker_networks(
-                    network_id,
+                    site_id,
                     &docker_client,
                     ContainerRuntime::Docker,
                     Uuid::nil(),
@@ -384,7 +382,7 @@ impl DiscoveryRunner {
         };
 
         let ip_address = IPAddress::new(crate::server::ip_addresses::r#impl::base::IPAddressBase {
-            network_id: subnet.base.network_id,
+            site_id: subnet.base.site_id,
             host_id: Uuid::nil(),
             name: None,
             subnet_id: subnet.id,
@@ -505,7 +503,7 @@ impl DiscoveryRunner {
         let network_result = network_discovery
             .scan_and_process_hosts(
                 resolved.subnets,
-                resolved.network_subnets,
+                resolved.site_subnets,
                 resolved.target_ips,
                 cancel.clone(),
                 &ops,

@@ -194,7 +194,7 @@ pub trait ApiKeyService: CrudService<Self::Key> + EventBusService<Self::Key> {
     fn api_key_event_bus(&self) -> &Arc<EventBus>;
 
     /// Validate that the user has access to perform operations on this key.
-    /// - For daemon keys: user must have access to the key's network
+    /// - For daemon keys: user must have access to the key's site
     /// - For user keys: user must own the key
     fn validate_access(&self, key: &Self::Key, entity: &AuthenticatedEntity) -> Result<()>;
 

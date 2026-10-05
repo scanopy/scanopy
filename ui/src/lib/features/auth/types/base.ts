@@ -2,30 +2,30 @@ import type { components } from '$lib/api/schema';
 import {
 	common_entityName,
 	common_internalIt,
+	common_home,
 	common_homelab,
-	common_network,
+	common_site,
 	common_organization,
 	common_other,
 	onboarding_internalItDescription,
-	onboarding_internalItNetworkHelp,
-	onboarding_internalItNetworkLabel,
-	onboarding_internalItNetworkPlaceholder,
+	onboarding_internalItSiteHelp,
+	onboarding_internalItSiteLabel,
+	onboarding_internalItSitePlaceholder,
 	onboarding_internalItOrgPlaceholder,
 	onboarding_homelabDescription,
-	onboarding_homelabNetworkHelp,
-	onboarding_homelabNetworkPlaceholder,
+	onboarding_homelabSiteHelp,
 	onboarding_homelabOrgLabel,
 	onboarding_homelabOrgPlaceholder,
 	onboarding_mspDescription,
 	onboarding_mspLabel,
-	onboarding_mspNetworkHelp,
-	onboarding_mspNetworkLabel,
-	onboarding_mspNetworkPlaceholder,
+	onboarding_mspSiteHelp,
+	onboarding_mspSiteLabel,
+	onboarding_mspSitePlaceholder,
 	onboarding_mspOrgLabel,
 	onboarding_mspOrgPlaceholder,
 	onboarding_orgHelp,
 	onboarding_otherDescription,
-	onboarding_otherNetworkPlaceholder,
+	onboarding_otherSitePlaceholder,
 	onboarding_otherOrgPlaceholder
 } from '$lib/paraglide/messages';
 
@@ -39,8 +39,8 @@ export type ResetPasswordRequest = components['schemas']['ResetPasswordRequest']
 export type VerifyEmailRequest = components['schemas']['VerifyEmailRequest'];
 export type ResendVerificationRequest = components['schemas']['ResendVerificationRequest'];
 
-// NetworkSetup extended with optional id (assigned after setup API returns network_ids)
-export type NetworkSetup = components['schemas']['NetworkSetup'] & {
+// SiteSetup extended with optional id (assigned after setup API returns site_ids)
+export type SiteSetup = components['schemas']['SiteSetup'] & {
 	id?: string;
 };
 
@@ -61,9 +61,9 @@ export interface UseCaseConfig {
 	orgLabel: string;
 	orgPlaceholder: string;
 	orgHelp: string;
-	networkLabel: string;
-	networkPlaceholder: string;
-	networkHelp: string;
+	siteLabel: string;
+	sitePlaceholder: string;
+	siteHelp: string;
 	colors: {
 		ring: string;
 		bg: string;
@@ -79,9 +79,9 @@ export function getUseCases(): Record<UseCase, UseCaseConfig> {
 			orgLabel: common_entityName({ entity: common_organization() }),
 			orgPlaceholder: onboarding_internalItOrgPlaceholder(),
 			orgHelp: onboarding_orgHelp(),
-			networkLabel: onboarding_internalItNetworkLabel(),
-			networkPlaceholder: onboarding_internalItNetworkPlaceholder(),
-			networkHelp: onboarding_internalItNetworkHelp(),
+			siteLabel: onboarding_internalItSiteLabel(),
+			sitePlaceholder: onboarding_internalItSitePlaceholder(),
+			siteHelp: onboarding_internalItSiteHelp(),
 			colors: {
 				ring: 'ring-blue-500',
 				bg: 'bg-blue-500/20',
@@ -94,9 +94,9 @@ export function getUseCases(): Record<UseCase, UseCaseConfig> {
 			orgLabel: onboarding_homelabOrgLabel(),
 			orgPlaceholder: onboarding_homelabOrgPlaceholder(),
 			orgHelp: onboarding_orgHelp(),
-			networkLabel: common_entityName({ entity: common_network() }),
-			networkPlaceholder: onboarding_homelabNetworkPlaceholder(),
-			networkHelp: onboarding_homelabNetworkHelp(),
+			siteLabel: common_entityName({ entity: common_site() }),
+			sitePlaceholder: common_home(),
+			siteHelp: onboarding_homelabSiteHelp(),
 			colors: {
 				ring: 'ring-emerald-500',
 				bg: 'bg-emerald-500/20',
@@ -109,9 +109,9 @@ export function getUseCases(): Record<UseCase, UseCaseConfig> {
 			orgLabel: onboarding_mspOrgLabel(),
 			orgPlaceholder: onboarding_mspOrgPlaceholder(),
 			orgHelp: onboarding_orgHelp(),
-			networkLabel: onboarding_mspNetworkLabel(),
-			networkPlaceholder: onboarding_mspNetworkPlaceholder(),
-			networkHelp: onboarding_mspNetworkHelp(),
+			siteLabel: onboarding_mspSiteLabel(),
+			sitePlaceholder: onboarding_mspSitePlaceholder(),
+			siteHelp: onboarding_mspSiteHelp(),
 			colors: {
 				ring: 'ring-violet-500',
 				bg: 'bg-violet-500/20',
@@ -124,9 +124,9 @@ export function getUseCases(): Record<UseCase, UseCaseConfig> {
 			orgLabel: common_entityName({ entity: common_organization() }),
 			orgPlaceholder: onboarding_otherOrgPlaceholder(),
 			orgHelp: onboarding_orgHelp(),
-			networkLabel: common_entityName({ entity: common_network() }),
-			networkPlaceholder: onboarding_otherNetworkPlaceholder(),
-			networkHelp: onboarding_homelabNetworkHelp(),
+			siteLabel: common_entityName({ entity: common_site() }),
+			sitePlaceholder: onboarding_otherSitePlaceholder(),
+			siteHelp: onboarding_homelabSiteHelp(),
 			colors: {
 				ring: 'ring-amber-500',
 				bg: 'bg-amber-500/20',

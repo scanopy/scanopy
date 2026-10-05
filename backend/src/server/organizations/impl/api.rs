@@ -10,8 +10,8 @@ pub struct CreateInviteRequest {
     pub expiration_hours: Option<i64>,
     /// Role the invited user gets on acceptance.
     pub permissions: UserOrgPermissions,
-    /// The networks this entity applies to.
-    pub network_ids: Vec<Uuid>,
+    /// The sites this entity applies to.
+    pub site_ids: Vec<Uuid>,
     /// Address to email the invite to. Omit to create a link without sending.
     #[schema(value_type = Option<String>)]
     pub send_to: Option<EmailAddress>,

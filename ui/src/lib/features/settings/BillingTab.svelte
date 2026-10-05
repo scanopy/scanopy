@@ -36,7 +36,7 @@
 		common_close,
 		common_hosts,
 		common_included,
-		common_networks,
+		common_sites,
 		common_seats,
 		common_tryAgainLater,
 		common_usage,
@@ -111,8 +111,8 @@
 	// dashboard route is locked for them server-side.
 	let isLicensedPlan = $derived(org != null && hasLicensedPlan(org));
 
-	// Dashboard summary aggregates host/network/seat counts into one query —
-	// reuse it here instead of re-counting users/networks/hosts independently.
+	// Dashboard summary aggregates host/site/seat counts into one query —
+	// reuse it here instead of re-counting users/sites/hosts independently.
 	const dashboardQuery = useDashboardQuery({ enabled: () => org != null && !isLicensedPlan });
 	let planUsage = $derived(dashboardQuery.data?.plan_usage);
 
@@ -216,7 +216,7 @@
 	let showCancelModal = $state(false);
 
 	let seatCount = $derived(planUsage?.seat_count ?? 0);
-	let networkCount = $derived(planUsage?.network_count ?? 0);
+	let siteCount = $derived(planUsage?.site_count ?? 0);
 	let hostCount = $derived(planUsage?.host_count ?? 0);
 
 	// Status badge color + icon come from PlanStatus metadata (backend
@@ -445,7 +445,7 @@
 	let hasAnyUsageRow = $derived(
 		!!org?.plan &&
 			(org.plan.included_seats !== null ||
-				org.plan.included_networks !== null ||
+				org.plan.included_sites !== null ||
 				org.plan.included_hosts !== null)
 	);
 
@@ -772,12 +772,12 @@
 									org.plan.seat_cents ?? null
 								)}
 							{/if}
-							{#if org.plan.included_networks !== null}
+							{#if org.plan.included_sites !== null}
 								{@render usageRow(
-									common_networks(),
-									networkCount,
-									org.plan.included_networks ?? 0,
-									org.plan.network_cents ?? null
+									common_sites(),
+									siteCount,
+									org.plan.included_sites ?? 0,
+									org.plan.site_cents ?? null
 								)}
 							{/if}
 							{#if org.plan.included_hosts !== null}

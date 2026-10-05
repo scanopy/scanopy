@@ -3,8 +3,8 @@
 	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import type { Network } from '../types';
-	import NetworkEditModal from './NetworkEditModal.svelte';
+	import type { Site } from '../types';
+	import SiteEditModal from './SiteEditModal.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
 	import type { FieldConfig } from '$lib/shared/components/data/types';
 	import { tagNames } from '$lib/features/tags/columns';
@@ -32,23 +32,23 @@
 		common_subnets,
 		common_vlans,
 		common_name,
-		common_networks,
+		common_sites,
 		common_noEntityYet,
 		common_tags,
 		common_hoursCount,
 		common_updated,
-		networks_confirmDelete,
-		networks_staleAfter,
-		networks_staleAfterDefault
+		sites_confirmDelete,
+		sites_staleAfter,
+		sites_staleAfterDefault
 	} from '$lib/paraglide/messages';
 
 	let { isReadOnly = false }: TabProps = $props();
 	import {
-		useNetworksQuery,
-		useCreateNetworkMutation,
-		useUpdateNetworkMutation,
-		useDeleteNetworkMutation,
-		useBulkDeleteNetworksMutation
+		useSitesQuery,
+		useCreateSiteMutation,
+		useUpdateSiteMutation,
+		useDeleteSiteMutation,
+		useBulkDeleteSitesMutation
 	} from '../queries';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
@@ -65,14 +65,12 @@
 
 	const organizationQuery = useOrganizationQuery();
 	let org = $derived(organizationQuery.data);
-	let networkLimit = $derived(org?.plan?.included_networks ?? null);
-	let canBuyMore = $derived(
-		org?.plan?.network_cents !== undefined && org?.plan?.network_cents !== null
-	);
+	let siteLimit = $derived(org?.plan?.included_sites ?? null);
+	let canBuyMore = $derived(org?.plan?.site_cents !== undefined && org?.plan?.site_cents !== null);
 
 	const tagsQuery = useTagsQuery();
-	const networksQuery = useNetworksQuery();
-	// What each network contains, resolved here so card and table share it.
+	const sitesQuery = useSitesQuery();
+	// What each site contains, resolved here so card and table share it.
 	const daemonsQuery = useDaemonsQuery();
 	const subnetsQuery = useSubnetsQuery();
 	const vlansQuery = useVlansQuery();
@@ -89,46 +87,41 @@
 	let daemonHosts = $derived(daemonHostsQuery.data ?? []);
 
 	// Mutations
-	const createNetworkMutation = useCreateNetworkMutation();
-	const updateNetworkMutation = useUpdateNetworkMutation();
-	const deleteNetworkMutation = useDeleteNetworkMutation();
-	const bulkDeleteNetworksMutation = useBulkDeleteNetworksMutation();
+	const createSiteMutation = useCreateSiteMutation();
+	const updateSiteMutation = useUpdateSiteMutation();
+	const deleteSiteMutation = useDeleteSiteMutation();
+	const bulkDeleteSitesMutation = useBulkDeleteSitesMutation();
 
 	// Derived data
 	let tagsData = $derived(tagsQuery.data ?? []);
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
 	let daemonsData = $derived(daemonsQuery.data ?? []);
-	// Narrowed once, here: both the per-network subnet column and the daemon chips
+	// Narrowed once, here: both the per-site subnet column and the daemon chips
 	// below must show the same list the Subnets and Daemons tabs do.
 	let subnetsData = $derived((subnetsQuery.data ?? []).filter(isUserManagedSubnet));
 	let vlansData = $derived(vlansQuery.data ?? []);
 	let credentialsData = $derived(credentialsQuery.data ?? []);
-	let isLoading = $derived(networksQuery.isPending);
-	let isAtNetworkLimit = $derived(
-		networkLimit !== null && networksData.length >= networkLimit && !canBuyMore
-	);
-	let isNearNetworkLimit = $derived(
-		networkLimit !== null &&
-			networksData.length >= networkLimit - 2 &&
-			!isAtNetworkLimit &&
-			!canBuyMore
+	let isLoading = $derived(sitesQuery.isPending);
+	let isAtSiteLimit = $derived(siteLimit !== null && sitesData.length >= siteLimit && !canBuyMore);
+	let isNearSiteLimit = $derived(
+		siteLimit !== null && sitesData.length >= siteLimit - 2 && !isAtSiteLimit && !canBuyMore
 	);
 
-	let showCreateNetworkModal = $state(false);
-	let editingNetwork = $state<Network | null>(null);
+	let showCreateSiteModal = $state(false);
+	let editingSite = $state<Site | null>(null);
 
-	// Deep-link: open network editor from URL (handles both fresh open and entity switch)
+	// Deep-link: open site editor from URL (handles both fresh open and entity switch)
 	$effect(() => {
 		const result = resolveModalDeepLink(
 			$modalState,
-			'network-editor',
-			networksData,
-			showCreateNetworkModal,
-			editingNetwork?.id
+			'site-editor',
+			sitesData,
+			showCreateSiteModal,
+			editingSite?.id
 		);
 		if (result !== undefined) {
-			editingNetwork = result;
-			showCreateNetworkModal = true;
+			editingSite = result;
+			showCreateSiteModal = true;
 		}
 	});
 
@@ -138,107 +131,107 @@
 			: false
 	);
 
-	let canManageNetworks = $derived(
+	let canManageSites = $derived(
 		!isReadOnly &&
 			currentUser &&
 			permissions.getMetadata(currentUser.permissions).manage_org_entities
 	);
 
 	/** Row actions for table mode, matching what the card offers. */
-	function networkActions(network: Network): CardAction[] {
+	function siteActions(site: Site): CardAction[] {
 		if (!allowBulkDelete) return [];
 
 		return [
-			{ label: common_edit(), icon: Edit, onClick: () => handleEditNetwork(network) },
+			{ label: common_edit(), icon: Edit, onClick: () => handleEditSite(site) },
 			{
 				label: common_delete(),
 				icon: Trash2,
 				class: 'btn-icon-danger',
-				onClick: () => handleDeleteNetwork(network)
+				onClick: () => handleDeleteSite(site)
 			}
 		];
 	}
 
-	function handleDeleteNetwork(network: Network) {
-		if (confirm(networks_confirmDelete({ name: network.name }))) {
-			deleteNetworkMutation.mutate(network.id);
+	function handleDeleteSite(site: Site) {
+		if (confirm(sites_confirmDelete({ name: site.name }))) {
+			deleteSiteMutation.mutate(site.id);
 		}
 	}
 
-	function handleCreateNetwork() {
-		editingNetwork = null;
-		showCreateNetworkModal = true;
+	function handleCreateSite() {
+		editingSite = null;
+		showCreateSiteModal = true;
 	}
 
-	function handleEditNetwork(network: Network) {
-		editingNetwork = network;
-		showCreateNetworkModal = true;
+	function handleEditSite(site: Site) {
+		editingSite = site;
+		showCreateSiteModal = true;
 	}
 
 	async function handleBulkDelete(ids: string[]) {
-		if (confirm(common_confirmBulkDelete({ count: ids.length, entity: common_networks() }))) {
-			await bulkDeleteNetworksMutation.mutateAsync(ids);
+		if (confirm(common_confirmBulkDelete({ count: ids.length, entity: common_sites() }))) {
+			await bulkDeleteSitesMutation.mutateAsync(ids);
 		}
 	}
 
-	function getNetworkTags(network: Network): string[] {
-		return network.tags;
+	function getSiteTags(site: Site): string[] {
+		return site.tags;
 	}
 
-	async function handleNetworkCreate(data: Network) {
+	async function handleSiteCreate(data: Site) {
 		try {
-			await createNetworkMutation.mutateAsync(data);
-			showCreateNetworkModal = false;
-			editingNetwork = null;
+			await createSiteMutation.mutateAsync(data);
+			showCreateSiteModal = false;
+			editingSite = null;
 		} catch {
 			// Error handled by mutation
 		}
 	}
 
-	async function handleNetworkUpdate(id: string, data: Network) {
+	async function handleSiteUpdate(id: string, data: Site) {
 		try {
-			await updateNetworkMutation.mutateAsync(data);
-			showCreateNetworkModal = false;
-			editingNetwork = null;
+			await updateSiteMutation.mutateAsync(data);
+			showCreateSiteModal = false;
+			editingSite = null;
 		} catch {
 			// Error handled by mutation
 		}
 	}
 
-	function handleCloseNetworkEditor() {
-		showCreateNetworkModal = false;
-		editingNetwork = null;
+	function handleCloseSiteEditor() {
+		showCreateSiteModal = false;
+		editingSite = null;
 	}
 
 	// CSV export handler
 	async function handleCsvExport() {
-		await downloadCsv('Network', {});
+		await downloadCsv('Site', {});
 	}
 
-	// What a network contains. These were computed inside the card, so the table
+	// What a site contains. These were computed inside the card, so the table
 	// had no way to show them; resolving here is what gives both views the same
 	// columns.
-	function networkDaemons(network: Network): Daemon[] {
-		return daemonsData.filter((daemon) => daemon.network_id === network.id);
+	function siteDaemons(site: Site): Daemon[] {
+		return daemonsData.filter((daemon) => daemon.site_id === site.id);
 	}
 
-	function networkSubnets(network: Network): Subnet[] {
-		return subnetsData.filter((subnet) => subnet.network_id === network.id);
+	function siteSubnets(site: Site): Subnet[] {
+		return subnetsData.filter((subnet) => subnet.site_id === site.id);
 	}
 
-	function networkVlans(network: Network): Vlan[] {
-		return vlansData.filter((vlan) => vlan.network_id === network.id);
+	function siteVlans(site: Site): Vlan[] {
+		return vlansData.filter((vlan) => vlan.site_id === site.id);
 	}
 
-	function networkCredentials(network: Network): Credential[] {
-		return (network.credential_ids ?? [])
+	function siteCredentials(site: Site): Credential[] {
+		return (site.credential_ids ?? [])
 			.map((id) => credentialsData.find((c) => c.id === id))
 			.filter((c): c is Credential => Boolean(c));
 	}
 
 	// Derived, not a plain const: it closes over `tagsData` and references the
 	// `tagsCell` snippet, neither of which exists yet when the script body runs.
-	let networkFields = $derived<FieldConfig<Network>[]>([
+	let siteFields = $derived<FieldConfig<Site>[]>([
 		{
 			key: 'name',
 			label: common_name(),
@@ -252,11 +245,11 @@
 			label: common_vlans(),
 			type: 'array',
 			searchable: true,
-			getValue: (network) => networkVlans(network).map((v) => v.name),
+			getValue: (site) => siteVlans(site).map((v) => v.name),
 			display: {
 				order: 1,
-				getItems: (network) =>
-					networkVlans(network).map((vlan) => ({
+				getItems: (site) =>
+					siteVlans(site).map((vlan) => ({
 						id: vlan.id,
 						label: vlan.name,
 						color: entities.getColorHelper('Vlan').color,
@@ -277,11 +270,11 @@
 			label: common_daemons(),
 			type: 'array',
 			searchable: true,
-			getValue: (network) => networkDaemons(network).map((d) => d.name),
+			getValue: (site) => siteDaemons(site).map((d) => d.name),
 			display: {
 				order: 3,
-				getItems: (network) =>
-					networkDaemons(network).map((daemon) => ({
+				getItems: (site) =>
+					siteDaemons(site).map((daemon) => ({
 						id: daemon.id,
 						label: daemon.name,
 						color: entities.getColorHelper('Daemon').color,
@@ -297,13 +290,13 @@
 			label: common_credentials(),
 			type: 'array',
 			searchable: true,
-			// Credentials are shared across networks, so this filters. The other arrays here hold
-			// members of one network each, which search already finds.
+			// Credentials are shared across sites, so this filters. The other arrays here hold
+			// members of one site each, which search already finds.
 			filterable: true,
-			getValue: (network) => networkCredentials(network).map((c) => c.name),
+			getValue: (site) => siteCredentials(site).map((c) => c.name),
 			display: {
 				order: 4,
-				getItems: (network) => credentialItems(networkCredentials(network))
+				getItems: (site) => credentialItems(siteCredentials(site))
 			}
 		},
 		{
@@ -311,11 +304,11 @@
 			label: common_subnets(),
 			type: 'array',
 			searchable: true,
-			getValue: (network) => networkSubnets(network).map((s) => s.name),
+			getValue: (site) => siteSubnets(site).map((s) => s.name),
 			display: {
 				order: 2,
-				getItems: (network) =>
-					networkSubnets(network).map((subnet) => ({
+				getItems: (site) =>
+					siteSubnets(site).map((subnet) => ({
 						id: subnet.id,
 						label: subnet.name,
 						color: entities.getColorHelper('Subnet').color,
@@ -338,20 +331,20 @@
 			display: { hiddenByDefault: true }
 		},
 		{
-			// The effective window, with the server default applied, so a network that
+			// The effective window, with the server default applied, so a site that
 			// never set its own still shows the number staleness is judged by.
 			key: 'effective_stale_after_hours',
-			label: networks_staleAfter(),
+			label: sites_staleAfter(),
 			type: 'string',
-			// A handful of values across networks; numeric collation orders 24 before 168.
+			// A handful of values across sites; numeric collation orders 24 before 168.
 			sortable: true,
 			groupable: true,
 			filterable: true,
 			// Marked when no override is set, so an override equal to the default still reads as one.
-			getValue: (network) => {
-				if (network.effective_stale_after_hours == null) return null;
-				const hours = common_hoursCount({ hours: network.effective_stale_after_hours });
-				return network.stale_after_hours == null ? networks_staleAfterDefault({ hours }) : hours;
+			getValue: (site) => {
+				if (site.effective_stale_after_hours == null) return null;
+				const hours = common_hoursCount({ hours: site.effective_stale_after_hours });
+				return site.stale_after_hours == null ? sites_staleAfterDefault({ hours }) : hours;
 			},
 			display: { hiddenByDefault: true }
 		}
@@ -360,28 +353,28 @@
 
 <div class="space-y-6">
 	<!-- Header -->
-	<TabHeader title={common_networks()}>
+	<TabHeader title={common_sites()}>
 		<svelte:fragment slot="actions">
 			<div class="flex items-center gap-3">
-				{#if networkLimit !== null && !canBuyMore}
+				{#if siteLimit !== null && !canBuyMore}
 					<span
-						class="text-sm {isAtNetworkLimit
+						class="text-sm {isAtSiteLimit
 							? 'text-amber-400'
-							: isNearNetworkLimit
+							: isNearSiteLimit
 								? 'text-yellow-400'
 								: 'text-tertiary'}"
 					>
-						{networksData.length} / {networkLimit}
+						{sitesData.length} / {siteLimit}
 					</span>
 				{/if}
-				{#if canManageNetworks}
-					{#if isAtNetworkLimit}
-						<UpgradeButton feature="networks" surface="networks_tab" gate_type="limit_hit" />
+				{#if canManageSites}
+					{#if isAtSiteLimit}
+						<UpgradeButton feature="sites" surface="sites_tab" gate_type="limit_hit" />
 					{:else}
-						{#if isNearNetworkLimit}
-							<UpgradeButton feature="networks" surface="networks_tab" gate_type="limit_hit" />
+						{#if isNearSiteLimit}
+							<UpgradeButton feature="sites" surface="sites_tab" gate_type="limit_hit" />
 						{/if}
-						<button class="btn-primary flex items-center" onclick={handleCreateNetwork}
+						<button class="btn-primary flex items-center" onclick={handleCreateSite}
 							><Plus class="h-5 w-5" />{common_create()}</button
 						>
 					{/if}
@@ -393,46 +386,46 @@
 	<!-- Loading state -->
 	{#if isLoading}
 		<Loading />
-	{:else if networksData.length === 0}
+	{:else if sitesData.length === 0}
 		<!-- Empty state -->
 		<EmptyState
-			title={common_noEntityYet({ entity: common_networks() })}
+			title={common_noEntityYet({ entity: common_sites() })}
 			subtitle=""
-			onClick={handleCreateNetwork}
+			onClick={handleCreateSite}
 			cta={common_create()}
 		/>
 	{:else}
 		<DataControls
-			items={networksData}
-			fields={networkFields}
+			items={sitesData}
+			fields={siteFields}
 			onBulkDelete={handleBulkDelete}
-			entityType={allowBulkDelete ? 'Network' : undefined}
-			getItemTags={getNetworkTags}
+			entityType={allowBulkDelete ? 'Site' : undefined}
+			getItemTags={getSiteTags}
 			{allowBulkDelete}
-			storageKey="scanopy-networks-table-state"
+			storageKey="scanopy-sites-table-state"
 			getItemId={(item) => item.id}
 			getIcon={() => ({
-				icon: entities.getIconComponent('Network'),
-				color: entities.getColorHelper('Network').icon
+				icon: entities.getIconComponent('Site'),
+				color: entities.getColorHelper('Site').icon
 			})}
 			onCsvExport={handleCsvExport}
-			getActions={networkActions}
-			entityLabel={common_networks()}
+			getActions={siteActions}
+			entityLabel={common_sites()}
 		></DataControls>
 	{/if}
 </div>
 
-<NetworkEditModal
-	name="network-editor"
-	isOpen={showCreateNetworkModal}
-	network={editingNetwork}
-	onCreate={handleNetworkCreate}
-	onUpdate={handleNetworkUpdate}
-	onClose={handleCloseNetworkEditor}
-	onDelete={editingNetwork
+<SiteEditModal
+	name="site-editor"
+	isOpen={showCreateSiteModal}
+	site={editingSite}
+	onCreate={handleSiteCreate}
+	onUpdate={handleSiteUpdate}
+	onClose={handleCloseSiteEditor}
+	onDelete={editingSite
 		? () => {
-				handleDeleteNetwork(editingNetwork!);
-				handleCloseNetworkEditor();
+				handleDeleteSite(editingSite!);
+				handleCloseSiteEditor();
 			}
 		: null}
 />

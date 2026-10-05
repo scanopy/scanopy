@@ -12,7 +12,7 @@
 		useRotateApiKeyMutation
 	} from '../queries';
 	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import ApiKeyFormFields from './ApiKeyFormFields.svelte';
 	import {
 		common_close,
@@ -22,7 +22,7 @@
 		common_save,
 		common_saving,
 		daemonApiKeys_createApiKey,
-		daemonApiKeys_noNetworkAvailable
+		daemonApiKeys_noSiteAvailable
 	} from '$lib/paraglide/messages';
 
 	interface Props {
@@ -44,12 +44,12 @@
 	}: Props = $props();
 
 	// TanStack Query hooks
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	const createApiKeyMutation = useCreateApiKeyMutation();
 	const rotateApiKeyMutation = useRotateApiKeyMutation();
 
-	let networksData = $derived(networksQuery.data ?? []);
-	let defaultNetworkId = $derived(networksData[0]?.id ?? '');
+	let sitesData = $derived(sitesQuery.data ?? []);
+	let defaultSiteId = $derived(sitesData[0]?.id ?? '');
 
 	let loading = $state(false);
 	let deleting = $state(false);
@@ -61,7 +61,7 @@
 	);
 
 	function getDefaultValues(): ApiKey {
-		return apiKey ? { ...apiKey } : createEmptyApiKeyFormData(defaultNetworkId);
+		return apiKey ? { ...apiKey } : createEmptyApiKeyFormData(defaultSiteId);
 	}
 
 	const form = createApiKeyForm(async (value) => {
@@ -81,9 +81,9 @@
 		form.reset(defaults);
 		generatedKey = null;
 
-		// If network_id is empty but we have a default, set it
-		if (!defaults.network_id && defaultNetworkId) {
-			form.setFieldValue('network_id', defaultNetworkId);
+		// If site_id is empty but we have a default, set it
+		if (!defaults.site_id && defaultSiteId) {
+			form.setFieldValue('site_id', defaultSiteId);
 		}
 	}
 
@@ -95,12 +95,12 @@
 	async function handleGenerateKey() {
 		const formData = form.state.values as ApiKey;
 
-		// Ensure network_id is set
-		if (!formData.network_id) {
-			if (defaultNetworkId) {
-				formData.network_id = defaultNetworkId;
+		// Ensure site_id is set
+		if (!formData.site_id) {
+			if (defaultSiteId) {
+				formData.site_id = defaultSiteId;
 			} else {
-				pushError(daemonApiKeys_noNetworkAvailable());
+				pushError(daemonApiKeys_noSiteAvailable());
 				return;
 			}
 		}

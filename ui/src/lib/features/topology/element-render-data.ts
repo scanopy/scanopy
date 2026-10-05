@@ -34,7 +34,7 @@ import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 import { getTopologyIndex } from './entity-index';
 import { entities, serviceDefinitions, views } from '$lib/shared/stores/metadata';
 import { getFreshnessTag } from '$lib/shared/utils/freshness';
-import type { Network } from '$lib/features/networks/types';
+import type { Site } from '$lib/features/sites/types';
 import { get } from 'svelte/store';
 import { activeView, topologyOptions } from './queries';
 import { hiddenEntityIds } from './interactions';
@@ -80,8 +80,8 @@ export interface ElementRenderInputs {
 	hiddenEntityIds: Set<string>;
 	/** Manager boxes that are open, keyed by `inlineGroupKey`; every other box is collapsed. */
 	expandedInlineGroups: Set<string>;
-	/** Networks, for resolving each entity's staleness window. */
-	networks: Network[];
+	/** Sites, for resolving each entity's staleness window. */
+	sites: Site[];
 }
 
 type ViewElementConfig = {
@@ -139,13 +139,13 @@ export function elementInlineFlags(
  */
 function resolveStaleTag(
 	resolved: ReturnType<typeof resolveElementNode>,
-	networks: Network[]
+	sites: Site[]
 ): ReturnType<typeof getFreshnessTag> {
 	const subject = elementEntity(resolved);
 	if (!subject) return null;
 	return getFreshnessTag(
 		subject,
-		networks.find((n) => n.id === subject.network_id),
+		sites.find((n) => n.id === subject.site_id),
 		{ entityTypeLabel: entities.getName(resolved.elementType ?? 'Host') || undefined }
 	);
 }
@@ -154,7 +154,7 @@ export function buildElementRender(inputs: ElementRenderInputs): ElementRenderRe
 	const resolved = resolveElementNode(inputs.nodeId, inputs.node, inputs.topology);
 	return {
 		...buildElementContent(inputs, resolved),
-		marks: elementMarks(inputs.activeView, resolved, inputs.networks, inputs.topology)
+		marks: elementMarks(inputs.activeView, resolved, inputs.sites, inputs.topology)
 	};
 }
 
@@ -168,7 +168,7 @@ function buildElementContent(
 
 	const elementType = resolved.elementType ?? 'Interface';
 	const host = resolved.host;
-	const staleTag = resolveStaleTag(resolved, inputs.networks);
+	const staleTag = resolveStaleTag(resolved, inputs.sites);
 	const ipAddress = resolved.ipAddress ?? null;
 	const servicesForHost = resolved.services ?? [];
 
@@ -539,6 +539,6 @@ export function currentElementRenderContext(): Omit<
 		options: get(topologyOptions),
 		hiddenEntityIds: get(hiddenEntityIds),
 		expandedInlineGroups: get(expandedInlineGroups),
-		networks: queryClient.getQueryData<Network[]>(queryKeys.networks.all) ?? []
+		sites: queryClient.getQueryData<Site[]>(queryKeys.sites.all) ?? []
 	};
 }

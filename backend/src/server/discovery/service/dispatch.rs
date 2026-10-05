@@ -35,9 +35,9 @@ impl DiscoveryService {
             .map(|(did, _)| *did)
     }
 
-    /// When the most recent historical discovery on `network_id` that finished
+    /// When the most recent historical discovery on `site_id` that finished
     /// strictly before `before` completed. `None` when there was none — a
-    /// network's first-ever scan.
+    /// site's first-ever scan.
     ///
     /// For historical rows `updated_at` is the session's finished-at timestamp.
     /// Filtering on `before` rather than skipping the first row keeps this
@@ -49,10 +49,10 @@ impl DiscoveryService {
     /// that just went stale from one that has been stale for weeks.
     pub async fn previous_historical_finished_at(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         before: chrono::DateTime<Utc>,
     ) -> Result<Option<chrono::DateTime<Utc>>, anyhow::Error> {
-        let filter = StorableFilter::<Discovery>::new_from_network_ids(&[network_id])
+        let filter = StorableFilter::<Discovery>::new_from_site_ids(&[site_id])
             .historical_discovery()
             // A rescan touches one host, so letting it anchor "the previous scan"
             // would make the next scheduled digest under-report everything that
@@ -69,19 +69,19 @@ impl DiscoveryService {
 
     /// Build a DaemonDiscoveryRequest with all credential mappings resolved.
     /// Called by both DaemonPoll and ServerPoll dispatch points.
-    /// `subnets` are the network's subnets as the server holds them, which a ServerPoll daemon
+    /// `subnets` are the site's subnets as the server holds them, which a ServerPoll daemon
     /// cannot fetch for itself. See `DaemonDiscoveryRequest::subnets`.
     pub async fn build_daemon_request(
         &self,
         session: &DiscoveryUpdatePayload,
-        network_id: Uuid,
+        site_id: Uuid,
         integration_targets: &[IntegrationTarget],
         daemon_version: Option<&semver::Version>,
         subnets: Vec<Subnet>,
     ) -> Result<DaemonDiscoveryRequest, anyhow::Error> {
         let credential_mappings = if session.discovery_type.runs_network_scan() {
             self.credential_service
-                .build_all_credential_mappings(network_id, integration_targets, daemon_version)
+                .build_all_credential_mappings(site_id, integration_targets, daemon_version)
                 .await
                 .unwrap_or_default()
         } else {
@@ -140,7 +140,7 @@ impl DiscoveryService {
                 host_naming_fallback,
                 snmp_credentials: self
                     .credential_service
-                    .build_snmp_credentials_for_discovery(discovery.base.network_id)
+                    .build_snmp_credentials_for_discovery(discovery.base.site_id)
                     .await
                     .map_err(|e| ApiError::internal_error(&e.to_string()))?,
             }
@@ -151,7 +151,7 @@ impl DiscoveryService {
         let mut session_payload = DiscoveryUpdatePayload::new(
             session_id,
             discovery.base.daemon_id,
-            discovery.base.network_id,
+            discovery.base.site_id,
             discovery_type,
             Some(discovery.id),
         );
@@ -175,13 +175,13 @@ impl DiscoveryService {
         }
 
         // Hold running_snapshots.read across the session insertion. This
-        // serializes against try_acquire_network_for_snapshot (which takes
+        // serializes against try_acquire_site_for_snapshot (which takes
         // running_snapshots.write before reading sessions): the snapshot
         // either sees this session and returns false, or this session sees
         // the running_snapshots entry and starts in AwaitingSnapshot. Lock
         // order: running_snapshots → sessions → daemon_sessions.
         let snapshot_lock = self.running_snapshots.read().await;
-        let snapshot_blocked = snapshot_lock.contains(&discovery.base.network_id);
+        let snapshot_blocked = snapshot_lock.contains(&discovery.base.site_id);
 
         // Check if daemon has any sessions running
         let daemon_is_running_discovery = if let Some(daemon_sessions) = self
@@ -196,8 +196,8 @@ impl DiscoveryService {
         };
 
         // Phase decision:
-        //   - snapshot in progress on this network → AwaitingSnapshot.
-        //     Daemon's queue is irrelevant; release_network_for_snapshot
+        //   - snapshot in progress on this site → AwaitingSnapshot.
+        //     Daemon's queue is irrelevant; release_site_for_snapshot
         //     will run the Queued/Pending decision when the snapshot finishes.
         //   - daemon idle → Pending (front of queue, dispatch event published below).
         //   - daemon busy → Queued (default; promoted later).
@@ -236,13 +236,13 @@ impl DiscoveryService {
             .push(session_id);
 
         // Drop the running_snapshots guard before any awaits that may take
-        // running_snapshots.write (e.g. release_network_for_snapshot fired
+        // running_snapshots.write (e.g. release_site_for_snapshot fired
         // by another task observing our session via the published event).
         drop(snapshot_lock);
 
         // Publish event only if the session is dispatchable now: not blocked
         // by a snapshot, and the daemon is otherwise idle. AwaitingSnapshot
-        // and Queued sessions are published later by release_network_for_snapshot
+        // and Queued sessions are published later by release_site_for_snapshot
         // or the existing terminal-completion promotion path.
         if !snapshot_blocked && !daemon_is_running_discovery {
             self.event_bus()
@@ -266,9 +266,9 @@ impl DiscoveryService {
     /// finalizations serialize instead of losing increments — and so the prune
     /// can't race a concurrent finalization that already dispatched the targets.
     ///
-    /// `Network`-scope targets are migrated into the `network_credentials`
+    /// `Site`-scope targets are migrated into the `site_credentials`
     /// junction first, because they are the one scope discovery never promotes
-    /// on its own (see `Discovery::take_network_scope_credential_ids`). If that
+    /// on its own (see `Discovery::take_site_scope_credential_ids`). If that
     /// migration fails they are written back onto the row *after* the prune,
     /// rather than dropping a working broadcast credential — the next successful
     /// scan retries the migration.
@@ -278,10 +278,10 @@ impl DiscoveryService {
             return Ok(());
         };
 
-        let network_id = parent_discovery.base.network_id;
-        let network_scope_ids = parent_discovery.take_network_scope_credential_ids();
+        let site_id = parent_discovery.base.site_id;
+        let site_scope_ids = parent_discovery.take_site_scope_credential_ids();
         let (promotable, unpromotable) = self
-            .partition_network_promotable(&network_scope_ids, network_id)
+            .partition_site_promotable(&site_scope_ids, site_id)
             .await;
 
         for credential_id in unpromotable {
@@ -289,23 +289,23 @@ impl DiscoveryService {
                 discovery_id = %discovery_id,
                 %credential_id,
                 "Dropping broadcast integration target for a credential type that cannot be \
-                 assigned to a network; it was never dispatched"
+                 assigned to a site; it was never dispatched"
             );
         }
 
         let migration_failed = !promotable.is_empty()
             && match self
                 .credential_service
-                .merge_network_credentials(&network_id, &promotable)
+                .merge_site_credentials(&site_id, &promotable)
                 .await
             {
                 Ok(()) => false,
                 Err(e) => {
                     tracing::error!(
                         discovery_id = %discovery_id,
-                        network_id = %network_id,
+                        site_id = %site_id,
                         error = ?e,
-                        "Failed to migrate broadcast integration targets to network credentials; \
+                        "Failed to migrate broadcast integration targets to site credentials; \
                          keeping them on the discovery so the credentials stay in effect"
                     );
                     true
@@ -317,7 +317,7 @@ impl DiscoveryService {
         if migration_failed {
             parent_discovery.integration_targets = promotable
                 .into_iter()
-                .map(|credential_id| IntegrationTarget::Network { credential_id })
+                .map(|credential_id| IntegrationTarget::Site { credential_id })
                 .collect();
         }
         parent_discovery.updated_at = Utc::now();
@@ -327,19 +327,19 @@ impl DiscoveryService {
     }
 
     /// Split broadcast target credentials into those that may be assigned to a
-    /// network and those that may not.
+    /// site and those that may not.
     ///
     /// The discovery update handler validates a target's credential type against
-    /// the daemon version but not against the scope, so a `Network` target can
+    /// the daemon version but not against the scope, so a `Site` target can
     /// exist for a type whose `targets()` excludes it (`apply_integration_target`
     /// warn-drops those at dispatch, so it was never sent to a daemon). Writing
     /// one into the junction would create exactly the assignment
     /// `POST /credentials` refuses. An unresolvable credential is treated as
     /// unpromotable — it no longer exists to assign.
-    async fn partition_network_promotable(
+    async fn partition_site_promotable(
         &self,
         credential_ids: &[Uuid],
-        network_id: Uuid,
+        site_id: Uuid,
     ) -> (Vec<Uuid>, Vec<Uuid>) {
         let mut promotable = Vec::new();
         let mut unpromotable = Vec::new();
@@ -350,7 +350,7 @@ impl DiscoveryService {
                         .base
                         .credential_type
                         .targets()
-                        .contains(&Target::Network) =>
+                        .contains(&Target::Site) =>
                 {
                     promotable.push(*credential_id)
                 }
@@ -358,7 +358,7 @@ impl DiscoveryService {
                 Err(e) => {
                     tracing::warn!(
                         %credential_id,
-                        %network_id,
+                        %site_id,
                         error = ?e,
                         "Failed to resolve broadcast integration target credential; not migrating it"
                     );
@@ -401,7 +401,7 @@ impl DiscoveryService {
         tracing::warn!(
             session_id = %session_id,
             daemon_id = %update.daemon_id,
-            network_id = %update.network_id,
+            site_id = %update.site_id,
             phase = ?update.phase,
             reason = ?reason,
             error = %error,
@@ -516,7 +516,7 @@ impl DiscoveryService {
         } = effects;
         let session_id = session.session_id;
         let daemon_id = session.daemon_id;
-        let network_id = session.network_id;
+        let site_id = session.site_id;
         record_session_duration(&session);
 
         {
@@ -529,10 +529,10 @@ impl DiscoveryService {
                     session.discovery_type,
                     DiscoveryType::Network { .. } | DiscoveryType::Unified { .. }
                 )
-                && let Ok(Some(network)) = self.network_service.get_by_id(&network_id).await
+                && let Ok(Some(site)) = self.site_service.get_by_id(&site_id).await
                 && let Ok(Some(org)) = self
                     .organization_service
-                    .get_by_id(&network.base.organization_id)
+                    .get_by_id(&site.base.organization_id)
                     .await
                 && org.not_onboarded(&OnboardingOperationDiscriminants::FirstDiscoveryCompleted)
             {
@@ -558,7 +558,7 @@ impl DiscoveryService {
             // already returned above, so the counters cannot be double-incremented by a ServerPoll
             // re-delivery.
             self.publish_warning_events(
-                session.network_id,
+                session.site_id,
                 session.session_id,
                 session.daemon_id,
                 &session.warnings,
@@ -566,9 +566,9 @@ impl DiscoveryService {
             .await;
 
             // Create historical discovery record
-            let network_name = match self.network_service.get_by_id(&session.network_id).await {
-                Ok(Some(network)) => network.base.name,
-                _ => "Unknown Network".to_string(),
+            let site_name = match self.site_service.get_by_id(&session.site_id).await {
+                Ok(Some(site)) => site.base.name,
+                _ => "Unknown Site".to_string(),
             };
 
             // Inherit the transient parent's name for a rescan — it was minted as
@@ -593,13 +593,13 @@ impl DiscoveryService {
                 updated_at: Utc::now(),
                 base: DiscoveryBase {
                     daemon_id: session.daemon_id,
-                    network_id: session.network_id,
+                    site_id: session.site_id,
                     name: if let Some(name) = rescan_name {
                         name
                     } else if matches!(session.discovery_type, DiscoveryType::Unified { .. }) {
                         "Discovery".to_string()
                     } else {
-                        format!("{} \u{2014} {}", session.discovery_type, network_name)
+                        format!("{} \u{2014} {}", session.discovery_type, site_name)
                     },
                     tags: Vec::new(),
                     discovery_type: session.discovery_type.clone(),
@@ -644,7 +644,7 @@ impl DiscoveryService {
             } else if let Some(scope) = EntityScope::from_ids(
                 historical_discovery.id(),
                 historical_discovery.clone().into(),
-                self.get_network_id(&historical_discovery),
+                self.get_site_id(&historical_discovery),
                 self.get_organization_id(&historical_discovery),
             ) && let Err(e) = self
                 .event_bus()
@@ -701,7 +701,7 @@ impl DiscoveryService {
             // Publish event which will trigger notifying any daemons in ServerPoll to start session
             // If daemon is daemon_poll mode, it will request next session on its next poll
             if let Some(promoted) = promoted {
-                self.publish_promoted(daemon_id, network_id, promoted).await;
+                self.publish_promoted(daemon_id, site_id, promoted).await;
             }
         }
 
@@ -718,13 +718,13 @@ impl DiscoveryService {
     pub(super) async fn publish_promoted(
         &self,
         daemon_id: Uuid,
-        network_id: Uuid,
+        site_id: Uuid,
         promoted: PromotedSession,
     ) {
         let mut started_payload = DiscoveryUpdatePayload::new(
             promoted.session_id,
             daemon_id,
-            network_id,
+            site_id,
             promoted.discovery_type,
             promoted.discovery_id,
         );
@@ -763,7 +763,7 @@ impl DiscoveryService {
             }
         };
 
-        let network_id = session.network_id;
+        let site_id = session.site_id;
         let daemon_id = session.daemon_id;
         let phase = session.phase;
         let discovery_id = self.lookup_discovery_id(&session_id).await;
@@ -772,7 +772,7 @@ impl DiscoveryService {
 
         let cancelled_update = DiscoveryUpdatePayload {
             session_id,
-            network_id,
+            site_id,
             daemon_id,
             phase: DiscoveryPhase::Cancelled,
             progress: 0,
@@ -820,7 +820,7 @@ impl DiscoveryService {
                     )
                 };
                 if let Some(promoted) = promoted {
-                    self.publish_promoted(daemon_id, network_id, promoted).await;
+                    self.publish_promoted(daemon_id, site_id, promoted).await;
                 }
 
                 // Broadcast cancellation update so frontend knows

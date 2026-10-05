@@ -4,7 +4,7 @@ use super::{Body, Content, Email, EmailCategory, EmailPreference, PausableCatego
 /// copy and CTA based on whether the org is on the Free plan.
 pub struct DiscoveryGuide<'a> {
     pub daemon_name: &'a str,
-    pub network_name: &'a str,
+    pub site_name: &'a str,
 }
 
 impl Email for DiscoveryGuide<'_> {
@@ -32,15 +32,15 @@ impl Email for DiscoveryGuide<'_> {
                     .paragraph("Hi there,")
                     .paragraph(&format!(
                         "Great news — your daemon <strong>{}</strong> just registered on <strong>{}</strong>. Scanopy is now running an initial discovery to map out your network.",
-                        self.daemon_name, self.network_name
+                        self.daemon_name, self.site_name
                     ))
                     .paragraph("Here's what happens next:")
                     .raw(
 r#"                            <ul style="margin: 0 0 20px 0; padding-left: 20px; font-size: 16px; line-height: 28px; color: #4a4a4a;">
                                 <li><strong>Self-report:</strong> The daemon host's own services and IP addresses are mapped automatically.</li>
-                                <li><strong>Network scan:</strong> Scanopy scans your local subnets for other hosts, ports, and services.</li>
+                                <li><strong>Site scan:</strong> Scanopy scans your local subnets for other hosts, ports, and services.</li>
                                 <li><strong>Topology:</strong> Once discovery finishes, your interactive topology map will be ready.</li>
-                                <li><strong>Docker discovery:</strong> If your daemon has access to the Docker socket, it'll also discover all your containers — images, ports, networks, and labels — automatically.</li>
+                                <li><strong>Docker discovery:</strong> If your daemon has access to the Docker socket, it'll also discover all your containers — images, ports, sites, and labels — automatically.</li>
                             </ul>
 "#,
                     ),

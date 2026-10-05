@@ -1,7 +1,7 @@
 /**
  * TanStack Query hooks for Snapshots
  *
- * Snapshots capture point-in-time topology state for a network. Live view
+ * Snapshots capture point-in-time topology state for a site. Live view
  * is the topology row with `snapshot_id IS NULL`; each past snapshot has
  * its own topology row whose `snapshot_id` matches a row in this list.
  */
@@ -18,33 +18,33 @@ import type { components } from '$lib/api/schema';
 export type Snapshot = components['schemas']['Snapshot'];
 
 /**
- * Query hook: list snapshots for a network, sorted by `taken_at DESC`.
+ * Query hook: list snapshots for a site, sorted by `taken_at DESC`.
  *
- * Pass a getter so the query refetches when the network selection changes.
+ * Pass a getter so the query refetches when the site selection changes.
  */
-export function useSnapshotsQuery(networkId: () => string | undefined) {
+export function useSnapshotsQuery(siteId: () => string | undefined) {
 	return createQuery(() => ({
-		queryKey: queryKeys.snapshots.byNetwork(networkId() ?? ''),
+		queryKey: queryKeys.snapshots.bySite(siteId() ?? ''),
 		queryFn: async () => {
-			const id = networkId();
+			const id = siteId();
 			if (!id) return [] as Snapshot[];
 			const snapshots = unwrapData(
 				await apiClient.GET('/api/v1/snapshots', {
-					params: { query: { network_id: id, limit: 0 } }
+					params: { query: { site_id: id, limit: 0 } }
 				})
 			);
 			return [...snapshots].sort(
 				(a, b) => new Date(b.taken_at).getTime() - new Date(a.taken_at).getTime()
 			);
 		},
-		enabled: () => !!networkId()
+		enabled: () => !!siteId()
 	}));
 }
 
 /**
- * Mutation hook: capture a new snapshot for the given network.
+ * Mutation hook: capture a new snapshot for the given site.
  *
- * On success: invalidates the per-network snapshots list and the topology
+ * On success: invalidates the per-site snapshots list and the topology
  * list (the backend's snapshot subscriber inserts a topology row for the
  * new snapshot — clients refetch to pick it up).
  *
@@ -55,16 +55,16 @@ export function useTakeSnapshotMutation() {
 	const queryClient = useQueryClient();
 
 	return createMutation(() => ({
-		mutationFn: async ({ network_id }: { network_id: string }) => {
+		mutationFn: async ({ site_id }: { site_id: string }) => {
 			return unwrapData(
 				await apiClient.POST('/api/v1/snapshots', {
-					body: { network_id }
+					body: { site_id }
 				})
 			);
 		},
 		onSuccess: (snapshot: Snapshot) => {
 			queryClient.invalidateQueries({
-				queryKey: queryKeys.snapshots.byNetwork(snapshot.network_id)
+				queryKey: queryKeys.snapshots.bySite(snapshot.site_id)
 			});
 			queryClient.invalidateQueries({ queryKey: queryKeys.topology.all });
 			pushSuccess(topology_snapshotCreated({ time: formatTimestamp(snapshot.taken_at) }));
@@ -80,7 +80,7 @@ export function useDeleteSnapshotMutation() {
 	const queryClient = useQueryClient();
 
 	return createMutation(() => ({
-		mutationFn: async ({ snapshot_id }: { snapshot_id: string; network_id: string }) => {
+		mutationFn: async ({ snapshot_id }: { snapshot_id: string; site_id: string }) => {
 			requireSuccess(
 				await apiClient.DELETE('/api/v1/snapshots/{id}', {
 					params: { path: { id: snapshot_id } }
@@ -90,7 +90,7 @@ export function useDeleteSnapshotMutation() {
 		},
 		onSuccess: (_id, variables) => {
 			queryClient.invalidateQueries({
-				queryKey: queryKeys.snapshots.byNetwork(variables.network_id)
+				queryKey: queryKeys.snapshots.bySite(variables.site_id)
 			});
 			queryClient.invalidateQueries({ queryKey: queryKeys.topology.all });
 		}

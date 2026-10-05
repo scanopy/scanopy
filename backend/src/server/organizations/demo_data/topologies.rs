@@ -3,7 +3,7 @@
 use super::*;
 
 pub(super) fn generate_topologies(
-    networks: &[Network],
+    sites: &[Site],
     tags: &[Tag],
     now: DateTime<Utc>,
 ) -> Vec<Topology> {
@@ -12,10 +12,10 @@ pub(super) fn generate_topologies(
         .find(|t| t.base.name == "Critical")
         .map(|t| t.id);
 
-    networks
+    sites
         .iter()
-        .map(|network| {
-            let mut base = TopologyBase::new(network.id);
+        .map(|site| {
+            let mut base = TopologyBase::new(site.id);
             // Add Critical tag to the default ByTag element rule
             if let Some(tag_id) = critical_tag_id {
                 let mut request = TopologyRequestOptions::default();

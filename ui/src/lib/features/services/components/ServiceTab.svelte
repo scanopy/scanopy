@@ -18,7 +18,7 @@
 	import { lastSeenItems } from '$lib/shared/utils/freshness';
 	import type { IPAddress, Port } from '$lib/features/hosts/types/base';
 	import { tagNames } from '$lib/features/tags/columns';
-	import { networkItems } from '$lib/features/networks/columns';
+	import { siteItems } from '$lib/features/sites/columns';
 	import { entities, entitySources, matchConfidences } from '$lib/shared/stores/metadata';
 	import { entitySourceItems } from '$lib/shared/utils/entity-source';
 	import { Trash2, Edit } from 'lucide-svelte';
@@ -37,7 +37,7 @@
 	import { discoveryRunIds, discoveryRunItems } from '$lib/features/discovery/columns';
 	import { useHostsByIds, useHostSummariesQuery } from '$lib/features/hosts/queries';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import type { TabProps } from '$lib/shared/types';
 	import type { components } from '$lib/api/schema';
@@ -57,7 +57,7 @@
 		common_lastSeen,
 		common_category,
 		common_name,
-		common_network,
+		common_site,
 		common_noEntityYet,
 		common_position,
 		common_services,
@@ -69,7 +69,7 @@
 		common_ipAddressBindings,
 		common_unknown,
 		common_unknownEntity,
-		common_unknownNetwork,
+		common_unknownSite,
 		common_updated,
 		daemons_installPromptServices,
 		services_matchConfidence,
@@ -151,7 +151,7 @@
 	// holds one page of services, so filtering here would narrow that page while
 	// the total count kept describing every match.
 	let filterHostIds = $state<string[]>([]);
-	let filterNetworkIds = $state<string[]>([]);
+	let filterSiteIds = $state<string[]>([]);
 	let filterServiceDefinitions = $state<string[]>([]);
 	let filterVirtualizationServiceNames = $state<string[]>([]);
 	let filterIncludeUncontainerized = $state(false);
@@ -176,7 +176,7 @@
 				? (excludeCategories as components['schemas']['ServiceCategory'][])
 				: undefined,
 		host_ids: filterHostIds.length > 0 ? filterHostIds : undefined,
-		network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
+		site_ids: filterSiteIds.length > 0 ? filterSiteIds : undefined,
 		service_definitions: filterServiceDefinitions.length > 0 ? filterServiceDefinitions : undefined,
 		virtualization_service_names:
 			filterVirtualizationServiceNames.length > 0 ? filterVirtualizationServiceNames : undefined,
@@ -184,7 +184,7 @@
 		sources: filterSources.length > 0 ? filterSources : undefined,
 		match_confidences: filterMatchConfidences.length > 0 ? filterMatchConfidences : undefined
 	}));
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	const portsQuery = usePortsQuery();
 	// Option sources for the server-side filters. The lists below are the tab's
 	// display data, scoped to the loaded page — filter options have to come from
@@ -194,7 +194,7 @@
 	// None of these takes the tab's active filters, so the options do not shrink as the user
 	// filters.
 	const hostValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'host');
-	const networkValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'network_id');
+	const siteValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'site_id');
 	const definitionValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'service_definition');
 	const containerizedByValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'containerized_by');
 	const matchConfidenceValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'match_confidence');
@@ -243,7 +243,7 @@
 	let discoveryRunsData = $derived(discoveryRunsQuery.data ?? []);
 	let servicesPagination = $derived(servicesQuery.data?.pagination ?? null);
 	let hostsData = $derived(hostsQuery.data ?? []);
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
 	let portsData = $derived(portsQuery.data ?? []);
 	let ipAddressesData = $derived(ipAddressesQuery.data ?? []);
 	let subnetsData = $derived(subnetsQuery.data ?? []);
@@ -335,7 +335,7 @@
 	/**
 	 * Server-side field filter handler.
 	 *
-	 * The panel offers what the user reads — a host's title, a network's name —
+	 * The panel offers what the user reads — a host's title, a site's name —
 	 * while the API filters on ids, so each case resolves the labels back
 	 * through the same data the options were built from. Every key here must
 	 * match a field marked `serverFiltered`; an unhandled one would filter
@@ -356,11 +356,9 @@
 					.map((host) => host.id);
 				break;
 			}
-			case 'network_id': {
+			case 'site_id': {
 				const wanted = new Set(values);
-				filterNetworkIds = networksData
-					.filter((network) => wanted.has(network.name))
-					.map((network) => network.id);
+				filterSiteIds = sitesData.filter((site) => wanted.has(site.name)).map((site) => site.id);
 				break;
 			}
 			case 'service_definition': {
@@ -577,23 +575,23 @@
 						}
 					}
 				},
-				network_id: {
-					label: common_network(),
+				site_id: {
+					label: common_site(),
 					type: 'string',
 					searchable: true,
 					filterable: true,
 					serverFiltered: true,
-					// The networks some service is on, by name.
+					// The sites some service is on, by name.
 					filterOptions: labelledFieldValueOptions(
-						networkValuesQuery.data,
-						(id) => networksData.find((n) => n.id === id)?.name
+						siteValuesQuery.data,
+						(id) => sitesData.find((n) => n.id === id)?.name
 					),
 					groupable: true,
 					// Displayed as a name, but grouped by id on the server.
-					getGroupValue: (item) => item.network_id,
+					getGroupValue: (item) => item.site_id,
 					getValue: (item) =>
-						networksData.find((n) => n.id == item.network_id)?.name || common_unknownNetwork(),
-					display: { order: 2, getItems: (item) => networkItems(item.network_id, networksData) }
+						sitesData.find((n) => n.id == item.site_id)?.name || common_unknownSite(),
+					display: { order: 2, getItems: (item) => siteItems(item.site_id, sitesData) }
 				},
 				// Per-service ordinal, so grouping by it is one header per service.
 				position: {
@@ -632,7 +630,7 @@
 				updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } },
 				// Staleness rides on the date rather than a Status column of its own: a
 				// service has no status, and `getFreshnessTag` returns a tag only when
-				// the row is past its network's window — so the column was empty on
+				// the row is past its site's window — so the column was empty on
 				// every healthy service. `getItems` returning undefined falls back to
 				// the date.
 				last_seen_at: {
@@ -642,7 +640,7 @@
 					display: {
 						recency: true,
 						order: 1,
-						getItems: lastSeenItems(() => networksData, 'Service')
+						getItems: lastSeenItems(() => sitesData, 'Service')
 					}
 				},
 				containerized_by: {

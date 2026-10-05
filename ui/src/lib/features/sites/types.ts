@@ -1,4 +1,4 @@
 import type { components } from '$lib/api/schema';
 
 // Re-export generated types
-export type Network = components['schemas']['Network'];
+export type Site = components['schemas']['Site'];

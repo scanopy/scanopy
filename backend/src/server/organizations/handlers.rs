@@ -1,7 +1,6 @@
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::middleware::permissions::{Authorized, IsUser, Member, Owner};
 use crate::server::config::AppState;
-use crate::server::networks::r#impl::Network;
 use crate::server::openapi::tags as api_tags;
 use crate::server::organizations::demo_seed::seed_demo_data;
 use crate::server::organizations::demo_status::DemoPopulateStatus;
@@ -17,6 +16,7 @@ use crate::server::shared::types::api::ApiResponse;
 use crate::server::shared::types::api::ApiResult;
 use crate::server::shared::types::api::{ApiError, ApiErrorResponse, EmptyApiResponse};
 use crate::server::shared::types::error_codes::ErrorCode;
+use crate::server::sites::r#impl::Site;
 use crate::server::users::r#impl::base::User;
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
 use anyhow::anyhow;
@@ -329,13 +329,13 @@ pub async fn reset(
 
     reset_organization_data(&state, &org.id, entity.clone()).await?;
 
-    // Recreate the default network, its subnets and topology so the org always has one
+    // Recreate the default site, its subnets and topology so the org always has one
     state
         .services
         .topology_service
         .ensure_cloud_setup(org.id, None, entity)
         .await
-        .map_err(|e| ApiError::internal_error(&format!("Failed to set up network: {}", e)))?;
+        .map_err(|e| ApiError::internal_error(&format!("Failed to set up site: {}", e)))?;
 
     Ok(Json(ApiResponse::success(())))
 }
@@ -616,7 +616,7 @@ async fn reset_organization_data(
 
     // Deletes run sequentially: several of these cascades overlap on shared
     // junction rows (e.g. networks and user_api_keys both cascade
-    // user_api_key_network_access; tags cascade entity_tags), so running them
+    // user_api_key_site_access; tags cascade entity_tags), so running them
     // concurrently risks lock-ordering deadlocks for negligible gain — the
     // reset is a handful of deletes and was never the slow part.
 
@@ -628,17 +628,17 @@ async fn reset_organization_data(
         .delete_by_filter(StorableFilter::<Tag>::new_from_org_id(organization_id))
         .await?;
 
-    // 2. Delete networks — CASCADE handles all network-scoped entities
+    // 2. Delete sites — CASCADE handles all site-scoped entities
     //    (hosts, services, subnets, topologies, shares, daemons, discoveries,
     //    ports, bindings, interfaces, IP addresses, daemon API keys, etc.)
     state
         .services
-        .network_service
+        .site_service
         .storage()
-        .delete_by_filter(StorableFilter::<Network>::new_from_org_id(organization_id))
+        .delete_by_filter(StorableFilter::<Site>::new_from_org_id(organization_id))
         .await?;
 
-    // 3. Delete org-scoped entities not tied to networks
+    // 3. Delete org-scoped entities not tied to sites
     state
         .services
         .user_api_key_service

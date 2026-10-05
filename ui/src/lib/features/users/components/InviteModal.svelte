@@ -39,7 +39,7 @@
 		users_inviteLink,
 		users_inviteSentSuccess,
 		users_inviteUser,
-		users_networkAccessHelp,
+		users_siteAccessHelp,
 		users_permissionsLevel,
 		users_permissionsLevelHelp,
 		users_sendInviteLink,
@@ -49,7 +49,7 @@
 
 	// Shared components
 	import PermissionSelect from '$lib/shared/components/api-keys/PermissionSelect.svelte';
-	import NetworkAccessSelect from '$lib/shared/components/api-keys/NetworkAccessSelect.svelte';
+	import SiteAccessSelect from '$lib/shared/components/api-keys/SiteAccessSelect.svelte';
 
 	let {
 		isOpen = $bindable(false),
@@ -75,8 +75,8 @@
 	let generatingInvite = $derived(createInviteMutation.isPending);
 	let invite = $state<OrganizationInvite | null>(null);
 
-	// Track selected network IDs for the invite
-	let selectedNetworkIds = $state<string[]>([]);
+	// Track selected site IDs for the invite
+	let selectedSiteIds = $state<string[]>([]);
 
 	// Create form
 	const form = createForm(() => ({
@@ -98,15 +98,15 @@
 	let ctaLoadingText = $derived(usingEmail ? common_sending() : common_generating());
 	let CtaIcon = $derived(usingEmail ? Send : RotateCcw);
 
-	// Handle network selection changes
-	function handleNetworkChange(networkIds: string[]) {
-		selectedNetworkIds = networkIds;
+	// Handle site selection changes
+	function handleSiteChange(siteIds: string[]) {
+		selectedSiteIds = siteIds;
 	}
 
 	// Reset form when modal opens
 	function handleOpen() {
 		form.reset({ permissions: 'Viewer', email: '' });
-		selectedNetworkIds = [];
+		selectedSiteIds = [];
 		invite = null;
 	}
 
@@ -123,7 +123,7 @@
 
 			const result = await createInviteMutation.mutateAsync({
 				permissions: currentPermissions,
-				network_ids: selectedNetworkIds,
+				site_ids: selectedSiteIds,
 				email: currentEmail
 			});
 			invite = result;
@@ -201,11 +201,11 @@
 					{/snippet}
 				</form.Field>
 
-				<NetworkAccessSelect
-					{selectedNetworkIds}
-					onChange={handleNetworkChange}
+				<SiteAccessSelect
+					{selectedSiteIds}
+					onChange={handleSiteChange}
 					permissionLevel={permissionsValue}
-					helpText={users_networkAccessHelp()}
+					helpText={users_siteAccessHelp()}
 				/>
 
 				{#if enableEmail}

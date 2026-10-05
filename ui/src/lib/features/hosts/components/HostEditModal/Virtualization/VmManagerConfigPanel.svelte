@@ -33,9 +33,9 @@
 
 	let vmIds = $derived(managedVms.map((h) => h.id));
 
-	// The add-dropdown pages through the manager's network on the server. The parent host is left
+	// The add-dropdown pages through the manager's site on the server. The parent host is left
 	// out; a host already managed here is shown disabled, so a page never silently shrinks.
-	const hostPicker = useHostPicker(() => ({ networkId: service.network_id }));
+	const hostPicker = useHostPicker(() => ({ siteId: service.site_id }));
 	let selectableVms = $derived(hostPicker.options.filter((host) => host.id !== service.host_id));
 	const ipAddressesQuery = useIPAddressesQuery();
 

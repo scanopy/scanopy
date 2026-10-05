@@ -61,10 +61,10 @@ pub struct UserBase {
     /// When the account was linked to the identity provider.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub oidc_linked_at: Option<DateTime<Utc>>,
-    /// The networks this entity applies to.
+    /// The sites this entity applies to.
     #[serde(default)]
     #[schema(required)]
-    pub network_ids: Vec<Uuid>,
+    pub site_ids: Vec<Uuid>,
     /// When the user accepted the terms of service.
     #[serde(default)]
     #[schema(read_only)]
@@ -112,7 +112,7 @@ impl Default for UserBase {
             oidc_linked_at: None,
             oidc_provider: None,
             oidc_subject: None,
-            network_ids: vec![],
+            site_ids: vec![],
             terms_accepted_at: None,
             email_verified: false,
             email_verification_token: None,
@@ -134,7 +134,7 @@ impl UserBase {
         oidc_provider: Option<String>,
         organization_id: Uuid,
         permissions: UserOrgPermissions,
-        network_ids: Vec<Uuid>,
+        site_ids: Vec<Uuid>,
         terms_accepted_at: Option<DateTime<Utc>>,
     ) -> Self {
         Self {
@@ -146,7 +146,7 @@ impl UserBase {
             organization_id,
             oidc_provider,
             oidc_subject: Some(oidc_subject),
-            network_ids,
+            site_ids,
             terms_accepted_at,
             // OIDC users are already verified by the identity provider
             email_verified: true,
@@ -167,7 +167,7 @@ impl UserBase {
         password_hash: String,
         organization_id: Uuid,
         permissions: UserOrgPermissions,
-        network_ids: Vec<Uuid>,
+        site_ids: Vec<Uuid>,
         terms_accepted_at: Option<DateTime<Utc>>,
     ) -> Self {
         Self {
@@ -179,7 +179,7 @@ impl UserBase {
             oidc_linked_at: None,
             oidc_provider: None,
             oidc_subject: None,
-            network_ids,
+            site_ids,
             terms_accepted_at,
             email_verified,
             email_verification_token: None,
@@ -286,7 +286,7 @@ impl Storable for User {
                 },
         } = self.clone();
 
-        // Note: network_ids is stored in user_network_access junction table, not here
+        // Note: site_ids is stored in user_site_access junction table, not here
         Ok((
             vec![
                 "id",
@@ -351,7 +351,7 @@ impl Storable for User {
         let password_hash: Option<String> = row.get("password_hash");
         let has_password = password_hash.is_some();
 
-        // Note: network_ids is populated separately from user_network_access junction table
+        // Note: site_ids is populated separately from user_site_access junction table
         Ok(User {
             id: row.get("id"),
             created_at: row.get("created_at"),
@@ -365,7 +365,7 @@ impl Storable for User {
                 oidc_linked_at: row.get("oidc_linked_at"),
                 oidc_provider: row.get("oidc_provider"),
                 oidc_subject: row.get("oidc_subject"),
-                network_ids: vec![],
+                site_ids: vec![],
                 terms_accepted_at: row.get("terms_accepted_at"),
                 email_verified: row.get("email_verified"),
                 email_verification_token: row.get("email_verification_token"),
@@ -435,7 +435,7 @@ impl Entity for User {
         EntityCategory::OrganizationsAndUsers
     }
 
-    fn network_id(&self) -> Option<Uuid> {
+    fn site_id(&self) -> Option<Uuid> {
         None
     }
 

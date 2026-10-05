@@ -62,7 +62,7 @@ pub struct LegacyHost {
 
     // Host fields
     pub name: String,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     #[serde(default)]
     pub hostname: Option<String>,
     #[serde(default)]
@@ -94,7 +94,7 @@ pub struct LegacyHost {
     pub virtualization: Option<serde_json::Value>,
 }
 
-/// Legacy interface format from old daemons (missing network_id, host_id, position).
+/// Legacy interface format from old daemons (missing site_id, host_id, position).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LegacyIPAddress {
     pub id: Uuid,
@@ -112,7 +112,7 @@ pub struct LegacyIPAddress {
 
 impl LegacyIPAddress {
     /// Convert to new IPAddress format, filling in missing fields.
-    pub fn into_ip_address(self, network_id: Uuid, host_id: Uuid) -> IPAddress {
+    pub fn into_ip_address(self, site_id: Uuid, host_id: Uuid) -> IPAddress {
         let created = self.created_at.unwrap_or_else(Utc::now);
         let updated = self.updated_at.unwrap_or_else(Utc::now);
         IPAddress {
@@ -126,7 +126,7 @@ impl LegacyIPAddress {
             last_discovery_id: None,
             first_discovery_id: None,
             base: IPAddressBase {
-                network_id,
+                site_id,
                 host_id,
                 subnet_id: self.subnet_id,
                 ip_address: self.ip_address,
@@ -158,7 +158,7 @@ pub struct LegacyPort {
 
 impl LegacyPort {
     /// Convert to new Port format, filling in missing fields.
-    pub fn into_port(self, network_id: Uuid, host_id: Uuid) -> Port {
+    pub fn into_port(self, site_id: Uuid, host_id: Uuid) -> Port {
         let protocol = self.protocol.as_deref().unwrap_or("Tcp");
         let port_type = if protocol.eq_ignore_ascii_case("udp") {
             PortType::new_udp(self.number)
@@ -179,7 +179,7 @@ impl LegacyPort {
             last_discovery_id: None,
             first_discovery_id: None,
             base: PortBase {
-                network_id,
+                site_id,
                 host_id,
                 port_type,
             },
@@ -218,7 +218,7 @@ impl LegacyBindingType {
     }
 }
 
-/// Legacy binding format from old daemons (missing service_id, network_id).
+/// Legacy binding format from old daemons (missing service_id, site_id).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LegacyBinding {
     pub id: Uuid,
@@ -231,8 +231,8 @@ pub struct LegacyBinding {
 }
 
 impl LegacyBinding {
-    /// Convert to new Binding format, filling in service_id and network_id.
-    pub fn into_binding(self, service_id: Uuid, network_id: Uuid) -> Binding {
+    /// Convert to new Binding format, filling in service_id and site_id.
+    pub fn into_binding(self, service_id: Uuid, site_id: Uuid) -> Binding {
         let created = self.created_at.unwrap_or_else(Utc::now);
         let updated = self.updated_at.unwrap_or_else(Utc::now);
         Binding {
@@ -247,7 +247,7 @@ impl LegacyBinding {
             first_discovery_id: None,
             base: BindingBase {
                 service_id,
-                network_id,
+                site_id,
                 binding_type: self.binding_type.into_binding_type(),
             },
         }
@@ -263,7 +263,7 @@ pub struct LegacyService {
     #[serde(default)]
     pub updated_at: Option<DateTime<Utc>>,
     pub host_id: Uuid,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     /// Old daemons send service_definition as string ID
     pub service_definition: String,
     pub name: String,
@@ -281,13 +281,13 @@ impl LegacyService {
     /// Convert to new Service format.
     pub fn into_service(self) -> Service {
         let service_id = self.id;
-        let network_id = self.network_id;
+        let site_id = self.site_id;
 
-        // Convert legacy bindings, filling in service_id and network_id
+        // Convert legacy bindings, filling in service_id and site_id
         let bindings: Vec<Binding> = self
             .bindings
             .into_iter()
-            .map(|b| b.into_binding(service_id, network_id))
+            .map(|b| b.into_binding(service_id, site_id))
             .collect();
 
         // Look up service definition by ID
@@ -308,7 +308,7 @@ impl LegacyService {
             first_discovery_id: None,
             base: ServiceBase {
                 host_id: self.host_id,
-                network_id: self.network_id,
+                site_id: self.site_id,
                 service_definition,
                 name: self.name,
                 bindings,
@@ -333,21 +333,21 @@ impl LegacyHostWithServicesRequest {
     pub fn into_discovery_request(self) -> DiscoveryHostRequest {
         let LegacyHostWithServicesRequest { host, services } = self;
 
-        let network_id = host.network_id;
+        let site_id = host.site_id;
         let host_id = host.id;
 
         // Convert legacy ip_addresses to new format
         let ip_addresses: Vec<IPAddress> = host
             .ip_addresses
             .into_iter()
-            .map(|i| i.into_ip_address(network_id, host_id))
+            .map(|i| i.into_ip_address(site_id, host_id))
             .collect();
 
         // Convert legacy ports to new format
         let ports: Vec<Port> = host
             .ports
             .into_iter()
-            .map(|p| p.into_port(network_id, host_id))
+            .map(|p| p.into_port(site_id, host_id))
             .collect();
 
         // Convert legacy services to new format
@@ -368,7 +368,7 @@ impl LegacyHostWithServicesRequest {
                 // A legacy daemon says nothing about where the name came from, so it enters
                 // at the bottom of the ladder and cannot displace a better-attributed one.
                 name: crate::server::hosts::r#impl::name::HostName::unattributed(host.name),
-                network_id: host.network_id,
+                site_id: host.site_id,
                 // Unattributed for the same reason as the name.
                 hostname: host.hostname.map(|h| {
                     crate::server::shared::attribution::Attributed::new(
@@ -435,7 +435,7 @@ pub struct LegacyHostResponse {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub name: String,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub hostname: Option<String>,
     pub description: Option<String>,
     pub hidden: bool,
@@ -473,7 +473,7 @@ impl LegacyHostWithServicesResponse {
                 created_at: response.created_at,
                 updated_at: response.updated_at,
                 name: response.name,
-                network_id: response.network_id,
+                site_id: response.site_id,
                 hostname: response.hostname,
                 description: response.description,
                 hidden: response.hidden,

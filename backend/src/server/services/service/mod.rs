@@ -47,8 +47,8 @@ impl EventBusService<Service> for ServiceService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, entity: &Service) -> Option<Uuid> {
-        Some(entity.base.network_id)
+    fn get_site_id(&self, entity: &Service) -> Option<Uuid> {
+        Some(entity.base.site_id)
     }
     fn get_organization_id(&self, _entity: &Service) -> Option<Uuid> {
         None
@@ -231,13 +231,13 @@ impl CrudService<Service> for ServiceService {
                 service.originate_scan_timestamps(service.last_seen_at);
                 let mut created = self.storage.create(&service).await?;
 
-                // Save bindings to separate table with correct service_id and network_id
+                // Save bindings to separate table with correct service_id and site_id
                 let bindings_with_ids: Vec<Binding> = service
                     .base
                     .bindings
                     .iter()
                     .cloned()
-                    .map(|b| b.with_service(created.id, created.base.network_id))
+                    .map(|b| b.with_service(created.id, created.base.site_id))
                     .collect();
                 let saved_bindings = self
                     .binding_service
@@ -267,7 +267,7 @@ impl CrudService<Service> for ServiceService {
                 if let Some(scope) = EntityScope::from_ids(
                     created.id,
                     created.clone().into(),
-                    self.get_network_id(&created),
+                    self.get_site_id(&created),
                     self.get_organization_id(&created),
                 ) {
                     self.event_bus()
@@ -331,13 +331,13 @@ impl CrudService<Service> for ServiceService {
 
         let mut updated = self.storage.update(service).await?;
 
-        // Save bindings to separate table with correct service_id and network_id
+        // Save bindings to separate table with correct service_id and site_id
         let bindings_with_ids: Vec<Binding> = service
             .base
             .bindings
             .iter()
             .cloned()
-            .map(|b| b.with_service(updated.id, updated.base.network_id))
+            .map(|b| b.with_service(updated.id, updated.base.site_id))
             .collect();
         let saved_bindings = self
             .binding_service
@@ -367,7 +367,7 @@ impl CrudService<Service> for ServiceService {
         if let Some(scope) = EntityScope::from_ids(
             updated.id,
             updated.clone().into(),
-            self.get_network_id(&updated),
+            self.get_site_id(&updated),
             self.get_organization_id(&updated),
         ) {
             self.event_bus()
@@ -414,7 +414,7 @@ impl CrudService<Service> for ServiceService {
         if let Some(scope) = EntityScope::from_ids(
             service.id,
             service.clone().into(),
-            self.get_network_id(&service),
+            self.get_site_id(&service),
             self.get_organization_id(&service),
         ) {
             self.event_bus()

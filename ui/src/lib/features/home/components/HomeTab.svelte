@@ -7,7 +7,7 @@
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
 	import GettingStartedChecklist from './GettingStartedChecklist.svelte';
 	import ActiveDiscoveries from './ActiveDiscoveries.svelte';
-	import NetworkMetrics from './NetworkMetrics.svelte';
+	import SiteMetrics from './SiteMetrics.svelte';
 	import DaemonHealthPanel from './DaemonHealthPanel.svelte';
 	import RecentDiscoveries from './RecentDiscoveries.svelte';
 	import FeatureNudges from './FeatureNudges.svelte';
@@ -192,7 +192,7 @@
 			<RecentDiscoveries
 				discoveries={dashboard.recent_discoveries}
 				daemons={dashboard.daemons}
-				networks={dashboard.networks}
+				sites={dashboard.sites}
 				onNavigate={(discovery) => {
 					openModal('discovery-history-detail', { id: discovery.id });
 					navigateTo('discovery-history');
@@ -205,9 +205,9 @@
 			<PlanUsage planUsage={dashboard.plan_usage} plan={organization.plan} {isOwner} />
 		{/if}
 
-		<!-- Network Metrics — hidden pre-daemon since no meaningful data yet -->
-		{#if has('FirstDaemonRegistered') && dashboard.networks.length > 0}
-			<NetworkMetrics networks={dashboard.networks} />
+		<!-- Site Metrics — hidden pre-daemon since no meaningful data yet -->
+		{#if has('FirstDaemonRegistered') && dashboard.sites.length > 0}
+			<SiteMetrics sites={dashboard.sites} />
 		{/if}
 	{/if}
 </div>

@@ -6,12 +6,12 @@ import {
 	resolveElementNode
 } from '$lib/features/topology/resolvers';
 import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
-import type { Network } from '$lib/features/networks/types';
+import type { Site } from '$lib/features/sites/types';
 
 const HOUR_MS = 60 * 60 * 1000;
 const NOW = new Date('2026-07-22T12:00:00Z').getTime();
-const NETWORK_ID = 'net-1';
-const network = { id: NETWORK_ID, effective_stale_after_hours: 24 * 28 } as Network;
+const SITE_ID = 'net-1';
+const site = { id: SITE_ID, effective_stale_after_hours: 24 * 28 } as Site;
 const discovery = { type: 'Discovery' };
 
 const seenHoursAgo = (h: number) => new Date(NOW - h * HOUR_MS).toISOString();
@@ -31,18 +31,18 @@ function hover(
 function buildTopology(): RenderableTopology {
 	return {
 		id: 'topo-1',
-		network_id: NETWORK_ID,
+		site_id: SITE_ID,
 		hosts: [
 			{
 				id: 'stale-host',
-				network_id: NETWORK_ID,
+				site_id: SITE_ID,
 				last_seen_at: seenHoursAgo(24 * 45),
 				source: discovery,
 				tags: []
 			},
 			{
 				id: 'fresh-host',
-				network_id: NETWORK_ID,
+				site_id: SITE_ID,
 				last_seen_at: seenHoursAgo(1),
 				source: discovery,
 				tags: []
@@ -51,7 +51,7 @@ function buildTopology(): RenderableTopology {
 		subnets: [
 			{
 				id: 'subnet-1',
-				network_id: NETWORK_ID,
+				site_id: SITE_ID,
 				last_seen_at: seenHoursAgo(1),
 				source: discovery,
 				tags: []
@@ -61,12 +61,12 @@ function buildTopology(): RenderableTopology {
 			{
 				id: 'ip-stale',
 				host_id: 'stale-host',
-				network_id: NETWORK_ID,
+				site_id: SITE_ID,
 				last_seen_at: seenHoursAgo(24 * 45)
 			}
 		],
 		interfaces: [
-			{ id: 'if-1', host_id: 'fresh-host', network_id: NETWORK_ID, last_seen_at: seenHoursAgo(1) }
+			{ id: 'if-1', host_id: 'fresh-host', site_id: SITE_ID, last_seen_at: seenHoursAgo(1) }
 		],
 		neighbours: [
 			{ id: 'row-1', interface_id: 'if-2', neighbor: { type: 'Interface', id: 'if-1' } }
@@ -143,8 +143,8 @@ describe('filter-value hover matching', () => {
 		const stale = hover('Host', 'Staleness', 'stale');
 		const staleBox = containerEntity(node(topo, 'c-stale-host'), topo);
 		const freshBox = containerEntity(node(topo, 'c-fresh-host'), topo);
-		expect(matchesHoveredMetadata(staleBox, 'Host', stale, network, topo)).toBe(true);
-		expect(matchesHoveredMetadata(freshBox, 'Host', stale, network, topo)).toBe(false);
+		expect(matchesHoveredMetadata(staleBox, 'Host', stale, site, topo)).toBe(true);
+		expect(matchesHoveredMetadata(freshBox, 'Host', stale, site, topo)).toBe(false);
 	});
 
 	it('matches an IP card on its own staleness', () => {
@@ -155,7 +155,7 @@ describe('filter-value hover matching', () => {
 				ipCard,
 				'IPAddress',
 				hover('IPAddress', 'Staleness', 'stale'),
-				network,
+				site,
 				topo
 			)
 		).toBe(true);
@@ -166,15 +166,15 @@ describe('filter-value hover matching', () => {
 		const topo = buildTopology();
 		const port = elementEntity(resolveElementNode('n-if', node(topo, 'n-if'), topo));
 		const linked = hover('Interface', 'LinkState', 'Linked');
-		expect(matchesHoveredMetadata(port, 'Interface', linked, network, topo)).toBe(true);
-		expect(matchesHoveredMetadata(port, 'Interface', linked, network, undefined)).toBe(false);
+		expect(matchesHoveredMetadata(port, 'Interface', linked, site, topo)).toBe(true);
+		expect(matchesHoveredMetadata(port, 'Interface', linked, site, undefined)).toBe(false);
 	});
 
 	it('matches nothing for a grouping box', () => {
 		const topo = buildTopology();
 		const grouping = containerEntity(node(topo, 'c-category'), topo);
 		expect(
-			matchesHoveredMetadata(grouping, 'Host', hover('Host', 'Staleness', 'stale'), network, topo)
+			matchesHoveredMetadata(grouping, 'Host', hover('Host', 'Staleness', 'stale'), site, topo)
 		).toBe(false);
 	});
 });

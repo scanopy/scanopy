@@ -4,7 +4,7 @@ import { sysContactEmail } from '$lib/features/hosts/sys-contact';
 describe('sysContactEmail', () => {
 	it('finds the address in the forms sysContact takes', () => {
 		expect(sysContactEmail('ops@example.com')).toBe('ops@example.com');
-		expect(sysContactEmail('Network Ops <ops@example.com>')).toBe('ops@example.com');
+		expect(sysContactEmail('Site Ops <ops@example.com>')).toBe('ops@example.com');
 		expect(sysContactEmail('mailto:ops@example.com')).toBe('ops@example.com');
 		expect(sysContactEmail('Jane (jane@example.com), ext. 12')).toBe('jane@example.com');
 	});

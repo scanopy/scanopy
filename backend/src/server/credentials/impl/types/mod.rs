@@ -571,16 +571,16 @@ impl CredentialType {
     }
 
     /// Where this credential type can be applied: the daemon's own host, specific
-    /// hosts, and/or a whole network (broadcast).
+    /// hosts, and/or a whole site (broadcast).
     pub fn targets(&self) -> Vec<Target> {
         match self {
             // SNMP can target the daemon's own host too (a 127.0.0.1 IP-override),
-            // specific hosts, or a whole network.
+            // specific hosts, or a whole site.
             Self::SnmpV1 { .. } | Self::SnmpV2c { .. } | Self::SnmpV3 { .. } => {
-                vec![Target::DaemonHost, Target::Hosts, Target::Network]
+                vec![Target::DaemonHost, Target::Hosts, Target::Site]
             }
             // gNMI behaves like SNMP: broadcastable, and a device credential.
-            Self::Gnmi { .. } => vec![Target::DaemonHost, Target::Hosts, Target::Network],
+            Self::Gnmi { .. } => vec![Target::DaemonHost, Target::Hosts, Target::Site],
             // Docker/Podman proxy: on the daemon host (localhost proxy) or remote hosts.
             Self::DockerProxy { .. } | Self::PodmanProxy { .. } => {
                 vec![Target::DaemonHost, Target::Hosts]
@@ -588,7 +588,7 @@ impl CredentialType {
             // Local socket: only the daemon's own host.
             Self::DockerSocket { .. } | Self::PodmanSocket { .. } => vec![Target::DaemonHost],
             // A controller is one specific endpoint: the daemon's own host (self-hosted
-            // controller) or a named host. Deliberately NOT `Network` — a network target is
+            // controller) or a named host. Deliberately NOT `Site` — a site target is
             // broadcast as the default credential for every IP in the subnet, which would
             // spray controller credentials at unrelated hosts.
             Self::UnifiApiKey { .. } | Self::UnifiLocalAdmin { .. } => {
@@ -598,18 +598,18 @@ impl CredentialType {
             // it to the switch it reports on: an IP binding names what a credential produces data
             // about, and this credential says nothing about the machine running the daemon, so
             // `DaemonHost` is wrong here even though it is right for a self-hosted controller.
-            // Not `Network` either, for the same reason as UniFi.
+            // Not `Site` either, for the same reason as UniFi.
             Self::InstantOnAccount { .. } => vec![Target::Hosts],
-            // A login, like SNMP: the same account and script can serve a fleet, so a network
+            // A login, like SNMP: the same account and script can serve a fleet, so a site
             // assignment is a reasonable way to apply it.
             Self::SshPassword { .. } | Self::SshKey { .. } => {
-                vec![Target::Hosts, Target::Network]
+                vec![Target::Hosts, Target::Site]
             }
-            // Named hosts only. A network assignment would wake every device on the subnet the
+            // Named hosts only. A site assignment would wake every device on the subnet the
             // server holds a MAC for, which nobody asking to wake a NAS intends.
             Self::WakeOnLan { .. } => vec![Target::Hosts],
             // One API endpoint per node, like a controller: a daemon running on a node, or a
-            // named node. Not `Network`, for the same reason as UniFi.
+            // named node. Not `Site`, for the same reason as UniFi.
             Self::ProxmoxApiToken { .. } => vec![Target::DaemonHost, Target::Hosts],
         }
     }
@@ -647,10 +647,10 @@ impl CredentialType {
             | Self::ProxmoxApiToken { .. } => true,
             Self::SnmpV1 { .. } | Self::SnmpV2c { .. } | Self::SnmpV3 { .. } => false,
             // Try-many like SNMP: two gNMI credentials (Arista on 6030, ArcOS on 9339) must be
-            // broadcastable on one network, which `true` would forbid.
+            // broadcastable on one site, which `true` would forbid.
             Self::Gnmi { .. } => false,
             // Try-many: two SSH credentials (different accounts, different scripts) on one host
-            // are both meaningful, and network-wide SSH must stay broadcastable.
+            // are both meaningful, and site-wide SSH must stay broadcastable.
             Self::SshPassword { .. } | Self::SshKey { .. } => false,
             // Two WoL credentials on one host only send two packets; nothing to forbid.
             Self::WakeOnLan { .. } => false,
@@ -1886,7 +1886,7 @@ mod tests {
 
     /// Binding is what says *which host a credential produces data about*. Instant On describes
     /// the switch it reports on — never the daemon's own machine, which runs nothing Instant On,
-    /// and never a whole network, which would spray portal credentials at unrelated hosts.
+    /// and never a whole site, which would spray portal credentials at unrelated hosts.
     #[test]
     fn instant_on_targets_hosts_only() {
         let cred = CredentialTypeDiscriminants::InstantOnAccount.to_credential_type();

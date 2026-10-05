@@ -1,7 +1,7 @@
 //! Generic typed event types.
 //!
 //! `Event<Op>` is parameterized over an `Operation` impl. Each operation type
-//! carries per-domain `Scope` (identity dimensions: org_id / network_id / etc.),
+//! carries per-domain `Scope` (identity dimensions: org_id / site_id / etc.),
 //! `Flags` (cross-cutting emission hints like `suppress_logs`), and `Filter`
 //! (the shape of selection predicates a subscriber declares).
 
@@ -37,7 +37,7 @@ use crate::server::{
 /// on.
 ///
 /// Each operation type carries:
-/// - `Scope`: identity dimensions (org_id / network_id / entity / etc.)
+/// - `Scope`: identity dimensions (org_id / site_id / entity / etc.)
 /// - `Flags`: cross-cutting emission hints (`suppress_logs`, etc.)
 /// - `Filter`: the filter shape a `Subscriber<Self>` declares
 ///
@@ -97,11 +97,11 @@ pub struct OrgScope {
     pub organization_id: Uuid,
 }
 
-/// Identity scope for network-only events: `DiscoveryPhase`. Discovery sessions
-/// are network-keyed; org is derivable via the network.
+/// Identity scope for site-only events: `DiscoveryPhase`. Discovery sessions
+/// are site-keyed; org is derivable via the site.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub struct NetworkScope {
-    pub network_id: Uuid,
+pub struct SiteScope {
+    pub site_id: Uuid,
 }
 
 /// Identity scope for auth events. Both `user_id` and `organization_id` are
@@ -115,7 +115,7 @@ pub struct AuthScope {
 }
 
 /// Identity scope for entity events. Entities are either org-scoped (User,
-/// Invite, ApiKey, Organization) or network-scoped (Host, Subnet, Service,
+/// Invite, ApiKey, Organization) or site-scoped (Host, Subnet, Service,
 /// Daemon, Tag, etc.) — never both.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum EntityScope {
@@ -124,8 +124,8 @@ pub enum EntityScope {
         entity_id: Uuid,
         entity_type: Entity,
     },
-    Network {
-        network_id: Uuid,
+    Site {
+        site_id: Uuid,
         entity_id: Uuid,
         entity_type: Entity,
     },
@@ -134,12 +134,12 @@ pub enum EntityScope {
 impl EntityScope {
     /// Build a scope from the entity-event source fields: prefers
     /// `organization_id` when present (org-scoped entity), otherwise uses
-    /// `network_id`. At least one must be `Some` — otherwise this returns
+    /// `site_id`. At least one must be `Some` — otherwise this returns
     /// `None`.
     pub fn from_ids(
         entity_id: Uuid,
         entity_type: Entity,
-        network_id: Option<Uuid>,
+        site_id: Option<Uuid>,
         organization_id: Option<Uuid>,
     ) -> Option<Self> {
         if let Some(organization_id) = organization_id {
@@ -149,8 +149,8 @@ impl EntityScope {
                 entity_type,
             })
         } else {
-            network_id.map(|network_id| EntityScope::Network {
-                network_id,
+            site_id.map(|site_id| EntityScope::Site {
+                site_id,
                 entity_id,
                 entity_type,
             })
@@ -159,15 +159,13 @@ impl EntityScope {
 
     pub fn entity_id(&self) -> Uuid {
         match self {
-            EntityScope::Org { entity_id, .. } | EntityScope::Network { entity_id, .. } => {
-                *entity_id
-            }
+            EntityScope::Org { entity_id, .. } | EntityScope::Site { entity_id, .. } => *entity_id,
         }
     }
 
     pub fn entity_type(&self) -> &Entity {
         match self {
-            EntityScope::Org { entity_type, .. } | EntityScope::Network { entity_type, .. } => {
+            EntityScope::Org { entity_type, .. } | EntityScope::Site { entity_type, .. } => {
                 entity_type
             }
         }
@@ -182,14 +180,14 @@ impl EntityScope {
             EntityScope::Org {
                 organization_id, ..
             } => Some(*organization_id),
-            EntityScope::Network { .. } => None,
+            EntityScope::Site { .. } => None,
         }
     }
 
-    pub fn network_id(&self) -> Option<Uuid> {
+    pub fn site_id(&self) -> Option<Uuid> {
         match self {
             EntityScope::Org { .. } => None,
-            EntityScope::Network { network_id, .. } => Some(*network_id),
+            EntityScope::Site { site_id, .. } => Some(*site_id),
         }
     }
 }
@@ -201,7 +199,7 @@ impl EntityScope {
 /// user cancel.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct DiscoveryScope {
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub session_id: Uuid,
     pub daemon_id: Uuid,
     pub discovery_type: DiscoveryType,

@@ -1,14 +1,14 @@
-//! Placing an address against a network's real subnet list.
+//! Placing an address against a site's real subnet list.
 //!
 //! Against a database rather than a hand-built list, because the list is the whole point. Every
-//! network is seeded with an `Internet` and a `Remote Network` subnet, both `0.0.0.0/0`, by
-//! `NetworkService::create_organizational_subnets` — and a guard tested against a list somebody
+//! site is seeded with an `Internet` and a `Remote Network` subnet, both `0.0.0.0/0`, by
+//! `SiteService::create_organizational_subnets` — and a guard tested against a list somebody
 //! assembled by hand never sees them. That is exactly how `place_address` shipped returning
 //! `Unplaceable` for every address in no real subnet: `0.0.0.0/0` contains everything, so the
 //! "is this already held?" check answered yes for every address on earth and no range was ever
 //! inferred.
 //!
-//! These seed the organizational subnets the way a real network gets them, so the list under test
+//! These seed the organizational subnets the way a real site gets them, so the list under test
 //! is the list production has.
 
 use uuid::Uuid;
@@ -27,11 +27,11 @@ use crate::server::{
     },
 };
 
-use super::{network, organization, test_services};
+use super::{organization, site, test_services};
 
-/// Seed a network with the two organizational catch-alls a real one is created with, plus whatever
+/// Seed a site with the two organizational catch-alls a real one is created with, plus whatever
 /// else the test wants it to hold.
-async fn network_holding(
+async fn site_holding(
     cidrs: &[&str],
 ) -> (
     ServiceFactory,
@@ -42,11 +42,11 @@ async fn network_holding(
 
     let org = organization();
     storage.organizations.create(&org).await.unwrap();
-    let net = network(&org.id);
-    storage.networks.create(&net).await.unwrap();
+    let net = site(&org.id);
+    storage.sites.create(&net).await.unwrap();
 
     services
-        .network_service
+        .site_service
         .create_organizational_subnets(net.id, AuthenticatedEntity::System)
         .await
         .unwrap();
@@ -70,8 +70,8 @@ async fn network_holding(
 
 /// Record a range the way discovery does — a daemon's own interface, or a device's own netmask.
 /// Both reach the server through `Subnet::from_discovery`, which stamps `Observed`.
-async fn observe(services: &ServiceFactory, network_id: Uuid, cidr: &str) {
-    let mut subnet = super::subnet(&network_id);
+async fn observe(services: &ServiceFactory, site_id: Uuid, cidr: &str) {
+    let mut subnet = super::subnet(&site_id);
     subnet.base.cidr = SubnetCidr::new(
         SubnetCidrValue(cidr.parse().expect("valid test CIDR")),
         // What `Subnet::from_discovery` stamps: a daemon reading its own interface.
@@ -95,9 +95,9 @@ async fn live_subnet(services: &ServiceFactory, id: Uuid) -> Subnet {
         .expect("the subnet is live")
 }
 
-/// Every range the network holds, catch-alls excluded.
-async fn held_ranges(services: &ServiceFactory, network_id: Uuid) -> Vec<String> {
-    all_live(services, network_id)
+/// Every range the site holds, catch-alls excluded.
+async fn held_ranges(services: &ServiceFactory, site_id: Uuid) -> Vec<String> {
+    all_live(services, site_id)
         .await
         .into_iter()
         .filter(|s| !s.is_organizational_subnet())
@@ -105,21 +105,21 @@ async fn held_ranges(services: &ServiceFactory, network_id: Uuid) -> Vec<String>
         .collect()
 }
 
-async fn inferred_ranges(services: &ServiceFactory, network_id: Uuid) -> Vec<Subnet> {
-    all_live(services, network_id)
+async fn inferred_ranges(services: &ServiceFactory, site_id: Uuid) -> Vec<Subnet> {
+    all_live(services, site_id)
         .await
         .into_iter()
         .filter(|s| s.base.cidr.source() == AttributeSource::LldpNeighbourAddress)
         .collect()
 }
 
-async fn all_live(services: &ServiceFactory, network_id: Uuid) -> Vec<Subnet> {
+async fn all_live(services: &ServiceFactory, site_id: Uuid) -> Vec<Subnet> {
     services
         .subnet_service
         .get_all(
-            crate::server::shared::storage::filter::StorableFilter::<Subnet>::new_from_network_ids(
-                &[network_id],
-            )
+            crate::server::shared::storage::filter::StorableFilter::<Subnet>::new_from_site_ids(&[
+                site_id,
+            ])
             .live(),
         )
         .await
@@ -127,23 +127,18 @@ async fn all_live(services: &ServiceFactory, network_id: Uuid) -> Vec<Subnet> {
 }
 
 /// An address filed on a subnet, so a correction has something to displace.
-async fn ip_on(
-    services: &ServiceFactory,
-    network_id: Uuid,
-    subnet_id: Uuid,
-    address: &str,
-) -> Uuid {
+async fn ip_on(services: &ServiceFactory, site_id: Uuid, subnet_id: Uuid, address: &str) -> Uuid {
     use crate::server::ip_addresses::r#impl::base::{IPAddress, IPAddressBase};
 
     // The address needs a host to hang off; the FK is not optional.
     let host = services
         .host_service
-        .create(super::host(&network_id), AuthenticatedEntity::System)
+        .create(super::host(&site_id), AuthenticatedEntity::System)
         .await
         .expect("the host is stored");
 
     let ip = IPAddress::new(IPAddressBase {
-        network_id,
+        site_id,
         host_id: host.id,
         subnet_id,
         ip_address: address.parse().expect("valid test address"),
@@ -175,11 +170,11 @@ async fn live_ip(
 /// unplaceable because two `0.0.0.0/0` rows technically contain it.
 #[tokio::test]
 async fn an_address_in_no_held_range_infers_one_despite_the_catch_alls() {
-    let (services, network_id, _container) = network_holding(&["192.168.4.0/22"]).await;
+    let (services, site_id, _container) = site_holding(&["192.168.4.0/22"]).await;
 
     let placement = services
         .subnet_service
-        .place_address(network_id, "10.20.30.24".parse().unwrap())
+        .place_address(site_id, "10.20.30.24".parse().unwrap())
         .await
         .unwrap();
 
@@ -203,11 +198,11 @@ async fn an_address_in_no_held_range_infers_one_despite_the_catch_alls() {
 /// A real subnet still wins, and is never displaced by a catch-all that also contains the address.
 #[tokio::test]
 async fn an_address_a_real_subnet_holds_is_placed_there() {
-    let (services, network_id, _container) = network_holding(&["192.168.4.0/22"]).await;
+    let (services, site_id, _container) = site_holding(&["192.168.4.0/22"]).await;
 
     let placement = services
         .subnet_service
-        .place_address(network_id, "192.168.7.252".parse().unwrap())
+        .place_address(site_id, "192.168.7.252".parse().unwrap())
         .await
         .unwrap();
 
@@ -228,16 +223,16 @@ async fn an_address_a_real_subnet_holds_is_placed_there() {
 /// property that makes placing one address at a time equivalent to the pooled pass.
 #[tokio::test]
 async fn two_addresses_in_one_unknown_range_converge_on_one_subnet() {
-    let (services, network_id, _container) = network_holding(&[]).await;
+    let (services, site_id, _container) = site_holding(&[]).await;
 
     let first = services
         .subnet_service
-        .place_address(network_id, "10.20.30.11".parse().unwrap())
+        .place_address(site_id, "10.20.30.11".parse().unwrap())
         .await
         .unwrap();
     let second = services
         .subnet_service
-        .place_address(network_id, "10.20.30.240".parse().unwrap())
+        .place_address(site_id, "10.20.30.240".parse().unwrap())
         .await
         .unwrap();
 
@@ -253,9 +248,9 @@ async fn two_addresses_in_one_unknown_range_converge_on_one_subnet() {
     let inferred: Vec<Subnet> = services
         .subnet_service
         .get_all(
-            crate::server::shared::storage::filter::StorableFilter::<Subnet>::new_from_network_ids(
-                &[network_id],
-            )
+            crate::server::shared::storage::filter::StorableFilter::<Subnet>::new_from_site_ids(&[
+                site_id,
+            ])
             .live(),
         )
         .await
@@ -266,14 +261,14 @@ async fn two_addresses_in_one_unknown_range_converge_on_one_subnet() {
     assert_eq!(inferred.len(), 1, "one range, not one per address");
 }
 
-/// A public address is not a segment of this network to invent, whatever the catch-alls say.
+/// A public address is not a segment of this site to invent, whatever the catch-alls say.
 #[tokio::test]
 async fn a_public_address_is_unplaceable_rather_than_invented() {
-    let (services, network_id, _container) = network_holding(&["192.168.4.0/22"]).await;
+    let (services, site_id, _container) = site_holding(&["192.168.4.0/22"]).await;
 
     let placement = services
         .subnet_service
-        .place_address(network_id, "8.8.8.8".parse().unwrap())
+        .place_address(site_id, "8.8.8.8".parse().unwrap())
         .await
         .unwrap();
 
@@ -291,18 +286,18 @@ async fn a_public_address_is_unplaceable_rather_than_invented() {
 /// `Inferred` could only ever be cleared by hand.
 #[tokio::test]
 async fn a_reading_of_the_same_range_settles_it() {
-    let (services, network_id, _container) = network_holding(&[]).await;
+    let (services, site_id, _container) = site_holding(&[]).await;
 
     let Placement::Inferred(subnet_id) = services
         .subnet_service
-        .place_address(network_id, "10.20.30.24".parse().unwrap())
+        .place_address(site_id, "10.20.30.24".parse().unwrap())
         .await
         .unwrap()
     else {
         panic!("expected a range to be inferred");
     };
 
-    observe(&services, network_id, "10.20.30.0/24").await;
+    observe(&services, site_id, "10.20.30.0/24").await;
 
     let settled = live_subnet(&services, subnet_id).await;
     assert_eq!(settled.base.cidr.to_string(), "10.20.30.0/24");
@@ -311,7 +306,7 @@ async fn a_reading_of_the_same_range_settles_it() {
         AttributeSource::DaemonSelfReport
     );
     assert_eq!(
-        inferred_ranges(&services, network_id).await.len(),
+        inferred_ranges(&services, site_id).await.len(),
         0,
         "nothing is still assumed"
     );
@@ -321,18 +316,18 @@ async fn a_reading_of_the_same_range_settles_it() {
 /// overlapping subnet appearing beside it.
 #[tokio::test]
 async fn a_reading_that_covers_the_guess_widens_it_in_place() {
-    let (services, network_id, _container) = network_holding(&[]).await;
+    let (services, site_id, _container) = site_holding(&[]).await;
 
     let Placement::Inferred(subnet_id) = services
         .subnet_service
-        .place_address(network_id, "10.20.30.24".parse().unwrap())
+        .place_address(site_id, "10.20.30.24".parse().unwrap())
         .await
         .unwrap()
     else {
         panic!("expected a range to be inferred");
     };
 
-    observe(&services, network_id, "10.20.30.0/23").await;
+    observe(&services, site_id, "10.20.30.0/23").await;
 
     let widened = live_subnet(&services, subnet_id).await;
     assert_eq!(widened.base.cidr.to_string(), "10.20.30.0/23");
@@ -341,7 +336,7 @@ async fn a_reading_that_covers_the_guess_widens_it_in_place() {
         AttributeSource::DaemonSelfReport
     );
     assert_eq!(
-        held_ranges(&services, network_id).await,
+        held_ranges(&services, site_id).await,
         vec!["10.20.30.0/23".to_string()],
         "one row, corrected — not two overlapping ones"
     );
@@ -351,22 +346,22 @@ async fn a_reading_that_covers_the_guess_widens_it_in_place() {
 /// longer covers are re-filed rather than left pointing at a range without them.
 #[tokio::test]
 async fn a_reading_inside_the_guess_narrows_it_and_refiles_the_rest() {
-    let (services, network_id, _container) = network_holding(&[]).await;
+    let (services, site_id, _container) = site_holding(&[]).await;
 
     // Two addresses a /24 apart, so the range that holds both has to be wider than either.
     let Placement::Inferred(subnet_id) = services
         .subnet_service
-        .place_address(network_id, "10.20.30.24".parse().unwrap())
+        .place_address(site_id, "10.20.30.24".parse().unwrap())
         .await
         .unwrap()
     else {
         panic!("expected a range to be inferred");
     };
-    let inside = ip_on(&services, network_id, subnet_id, "10.20.30.24").await;
-    let outside = ip_on(&services, network_id, subnet_id, "10.20.31.9").await;
+    let inside = ip_on(&services, site_id, subnet_id, "10.20.30.24").await;
+    let outside = ip_on(&services, site_id, subnet_id, "10.20.31.9").await;
 
     // A netmask for the lower half only.
-    observe(&services, network_id, "10.20.30.0/25").await;
+    observe(&services, site_id, "10.20.30.0/25").await;
 
     let narrowed = live_subnet(&services, subnet_id).await;
     assert_eq!(narrowed.base.cidr.to_string(), "10.20.30.0/25");
@@ -396,12 +391,12 @@ async fn a_reading_inside_the_guess_narrows_it_and_refiles_the_rest() {
 /// deleting rows — so discovery declines and leaves them for a person.
 #[tokio::test]
 async fn a_reading_covering_two_guesses_corrects_neither() {
-    let (services, network_id, _container) = network_holding(&[]).await;
+    let (services, site_id, _container) = site_holding(&[]).await;
 
     for address in ["10.20.30.24", "10.20.31.9"] {
         let Placement::Inferred(_) = services
             .subnet_service
-            .place_address(network_id, address.parse().unwrap())
+            .place_address(site_id, address.parse().unwrap())
             .await
             .unwrap()
         else {
@@ -409,9 +404,9 @@ async fn a_reading_covering_two_guesses_corrects_neither() {
         };
     }
 
-    observe(&services, network_id, "10.20.30.0/23").await;
+    observe(&services, site_id, "10.20.30.0/23").await;
 
-    let mut held = held_ranges(&services, network_id).await;
+    let mut held = held_ranges(&services, site_id).await;
     held.sort();
     assert_eq!(
         held,
@@ -423,7 +418,7 @@ async fn a_reading_covering_two_guesses_corrects_neither() {
         "the reading is recorded beside the guesses rather than swallowing one of them"
     );
     assert_eq!(
-        inferred_ranges(&services, network_id).await.len(),
+        inferred_ranges(&services, site_id).await.len(),
         2,
         "both stay assumed, and both stay badged for a person to merge"
     );
@@ -435,7 +430,7 @@ async fn a_reading_covering_two_guesses_corrects_neither() {
 /// nothing is orphaned.
 #[tokio::test]
 async fn merging_a_guess_into_the_range_that_covers_it_moves_its_addresses() {
-    let (services, network_id, _container) = network_holding(&[]).await;
+    let (services, site_id, _container) = site_holding(&[]).await;
 
     // Two guesses, so the reading below covers both and discovery declines to correct either —
     // which is the only state this merge exists to resolve. With one guess it would have been
@@ -443,23 +438,23 @@ async fn merging_a_guess_into_the_range_that_covers_it_moves_its_addresses() {
     for address in ["10.20.30.24", "10.20.31.9"] {
         let Placement::Inferred(_) = services
             .subnet_service
-            .place_address(network_id, address.parse().unwrap())
+            .place_address(site_id, address.parse().unwrap())
             .await
             .unwrap()
         else {
             panic!("expected a range to be inferred for {address}");
         };
     }
-    let guess = all_live(&services, network_id)
+    let guess = all_live(&services, site_id)
         .await
         .into_iter()
         .find(|s| s.base.cidr.to_string() == "10.20.31.0/24")
         .expect("the second guess")
         .id;
-    let address = ip_on(&services, network_id, guess, "10.20.31.9").await;
+    let address = ip_on(&services, site_id, guess, "10.20.31.9").await;
 
-    observe(&services, network_id, "10.20.30.0/23").await;
-    let covering = all_live(&services, network_id)
+    observe(&services, site_id, "10.20.30.0/23").await;
+    let covering = all_live(&services, site_id)
         .await
         .into_iter()
         .find(|s| s.base.cidr.to_string() == "10.20.30.0/23")
@@ -476,7 +471,7 @@ async fn merging_a_guess_into_the_range_that_covers_it_moves_its_addresses() {
         covering.id,
         "the address moved to the covering range"
     );
-    let mut held = held_ranges(&services, network_id).await;
+    let mut held = held_ranges(&services, site_id).await;
     held.sort();
     assert_eq!(
         held,
@@ -489,19 +484,19 @@ async fn merging_a_guess_into_the_range_that_covers_it_moves_its_addresses() {
 /// addresses that do not fit should go.
 #[tokio::test]
 async fn a_range_cannot_be_merged_into_one_that_does_not_contain_it() {
-    let (services, network_id, _container) = network_holding(&[]).await;
+    let (services, site_id, _container) = site_holding(&[]).await;
 
     let Placement::Inferred(guess) = services
         .subnet_service
-        .place_address(network_id, "10.20.30.24".parse().unwrap())
+        .place_address(site_id, "10.20.30.24".parse().unwrap())
         .await
         .unwrap()
     else {
         panic!("expected a range to be inferred");
     };
 
-    observe(&services, network_id, "192.168.4.0/22").await;
-    let elsewhere = all_live(&services, network_id)
+    observe(&services, site_id, "192.168.4.0/22").await;
+    let elsewhere = all_live(&services, site_id)
         .await
         .into_iter()
         .find(|s| s.base.cidr.to_string() == "192.168.4.0/22")
@@ -516,7 +511,7 @@ async fn a_range_cannot_be_merged_into_one_that_does_not_contain_it() {
     );
 
     // And never into a catch-all, which contains everything by construction.
-    let internet = all_live(&services, network_id)
+    let internet = all_live(&services, site_id)
         .await
         .into_iter()
         .find(|s| s.is_organizational_subnet())
@@ -541,21 +536,21 @@ async fn a_range_cannot_be_merged_into_one_that_does_not_contain_it() {
 /// the guess stays assumed and still resolvable, and no address names a subnet without it.
 #[tokio::test]
 async fn a_narrowing_that_would_strand_an_address_is_declined() {
-    let (services, network_id, _container) = network_holding(&[]).await;
+    let (services, site_id, _container) = site_holding(&[]).await;
 
     let Placement::Inferred(guess) = services
         .subnet_service
-        .place_address(network_id, "10.20.30.11".parse().unwrap())
+        .place_address(site_id, "10.20.30.11".parse().unwrap())
         .await
         .unwrap()
     else {
         panic!("expected a range to be inferred");
     };
-    let low = ip_on(&services, network_id, guess, "10.20.30.11").await;
-    let high = ip_on(&services, network_id, guess, "10.20.30.24").await;
+    let low = ip_on(&services, site_id, guess, "10.20.30.11").await;
+    let high = ip_on(&services, site_id, guess, "10.20.30.24").await;
 
     // Covers .11 but not .24, whose only home would be a /24 overlapping this very range.
-    observe(&services, network_id, "10.20.30.0/28").await;
+    observe(&services, site_id, "10.20.30.0/28").await;
 
     let untouched = live_subnet(&services, guess).await;
     assert_eq!(
@@ -568,7 +563,7 @@ async fn a_narrowing_that_would_strand_an_address_is_declined() {
         AttributeSource::LldpNeighbourAddress
     );
 
-    let mut held = held_ranges(&services, network_id).await;
+    let mut held = held_ranges(&services, site_id).await;
     held.sort();
     assert_eq!(
         held,

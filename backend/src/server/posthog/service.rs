@@ -1,4 +1,4 @@
-use crate::server::{networks::service::NetworkService, shared::services::traits::CrudService};
+use crate::server::{shared::services::traits::CrudService, sites::service::SiteService};
 use backon::{ExponentialBuilder, Retryable};
 use posthog_rs::{ClientOptions, Event};
 use std::{sync::Arc, time::Duration};
@@ -6,20 +6,16 @@ use uuid::Uuid;
 
 pub struct PosthogService {
     client: posthog_rs::Client,
-    network_service: Arc<NetworkService>,
+    site_service: Arc<SiteService>,
 }
 
 impl PosthogService {
-    pub async fn new(
-        api_key: String,
-        api_host: String,
-        network_service: Arc<NetworkService>,
-    ) -> Self {
+    pub async fn new(api_key: String, api_host: String, site_service: Arc<SiteService>) -> Self {
         let options = ClientOptions::from((api_key.as_str(), api_host.as_str()));
         let client = posthog_rs::client(options).await;
         Self {
             client,
-            network_service,
+            site_service,
         }
     }
 
@@ -131,9 +127,9 @@ impl PosthogService {
         })
     }
 
-    pub async fn get_org_id_from_network(&self, network_id: &Uuid) -> Option<Uuid> {
-        if let Ok(Some(network)) = self.network_service.get_by_id(network_id).await {
-            Some(network.base.organization_id)
+    pub async fn get_org_id_from_site(&self, site_id: &Uuid) -> Option<Uuid> {
+        if let Ok(Some(site)) = self.site_service.get_by_id(site_id).await {
+            Some(site.base.organization_id)
         } else {
             None
         }

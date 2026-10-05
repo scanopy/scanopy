@@ -136,7 +136,7 @@ const entityTypeToQueryKeyName: Record<EntityDiscriminants, keyof typeof queryKe
 	Service: 'services',
 	Subnet: 'subnets',
 	Dependency: 'dependencies',
-	Network: 'networks',
+	Site: 'sites',
 	Discovery: 'discovery',
 	Daemon: 'daemons',
 	DaemonApiKey: 'apiKeys',

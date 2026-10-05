@@ -25,7 +25,7 @@ use crate::server::{
     shared::storage::traits::Storage,
 };
 
-use super::{host, network, organization, subnet, test_services};
+use super::{host, organization, site, subnet, test_services};
 use crate::server::hosts::r#impl::attributes::{HostChassisIdValue, HostSysNameValue};
 use crate::server::services::r#impl::patterns::ClientProbe;
 
@@ -33,12 +33,12 @@ use crate::server::services::r#impl::patterns::ClientProbe;
 /// a fixture cannot accidentally assert a provenance no real scan produces.
 const SNMP_READ: AttributeSource = AttributeSource::Probe(ClientProbe::Snmp);
 
-/// Everything a resolution test needs: a network with hosts and interfaces in it, and a resolver
+/// Everything a resolution test needs: a site with hosts and interfaces in it, and a resolver
 /// pointed at the same database.
 struct Lab {
     resolver: LldpResolverImpl,
     storage: crate::server::shared::storage::factory::StorageFactory,
-    network_id: Uuid,
+    site_id: Uuid,
     subnet_id: Uuid,
     _container: testcontainers::ContainerAsync<testcontainers::GenericImage>,
 }
@@ -49,9 +49,9 @@ impl Lab {
 
         let org = organization();
         storage.organizations.create(&org).await.unwrap();
-        let network = network(&org.id);
-        storage.networks.create(&network).await.unwrap();
-        let subnet = subnet(&network.id);
+        let site = site(&org.id);
+        storage.sites.create(&site).await.unwrap();
+        let subnet = subnet(&site.id);
         storage.subnets.create(&subnet).await.unwrap();
 
         let resolver = LldpResolverImpl::new(
@@ -62,7 +62,7 @@ impl Lab {
 
         Self {
             resolver,
-            network_id: network.id,
+            site_id: site.id,
             subnet_id: subnet.id,
             storage,
             _container,
@@ -70,7 +70,7 @@ impl Lab {
     }
 
     async fn host(&self, name: &str) -> Host {
-        let mut h = host(&self.network_id);
+        let mut h = host(&self.site_id);
         h.base.name = HostName::manual(name.to_string());
         self.storage.hosts.create(&h).await.unwrap();
         h
@@ -82,7 +82,7 @@ impl Lab {
         chassis_id: Option<&str>,
         sys_name: Option<&str>,
     ) -> Host {
-        let mut h = host(&self.network_id);
+        let mut h = host(&self.site_id);
         h.base.name = HostName::manual(name.to_string());
         h.base.chassis_id =
             chassis_id.map(|v| Attributed::new(HostChassisIdValue(v.into()), SNMP_READ));
@@ -105,7 +105,7 @@ impl Lab {
     ) -> Interface {
         let entry = Interface::new(InterfaceBase {
             host_id,
-            network_id: self.network_id,
+            site_id: self.site_id,
             if_index: Some(if_index),
             if_descr: Some(if_descr.to_string()),
             if_name: if_name.map(str::to_string),
@@ -146,7 +146,7 @@ impl Lab {
     }
 
     /// A physical ethernet port the device's own SNMP `ipAddrTable` binds an address to — the
-    /// tie-break `find_if_entry_by_mac` falls back to among several MAC-sharing physical rows
+    /// tie-break `find_interface_by_mac` falls back to among several MAC-sharing physical rows
     /// (GH #668, a Windows NIC and its NDIS filter/LWF pseudo-interfaces).
     async fn ip_configured_port(
         &self,
@@ -157,7 +157,7 @@ impl Lab {
     ) -> Interface {
         let entry = Interface::new(InterfaceBase {
             host_id,
-            network_id: self.network_id,
+            site_id: self.site_id,
             if_index: Some(if_index),
             if_descr: Some(descr.to_string()),
             if_type: Some(if_type::ETHERNET_CSMA_CD),
@@ -178,7 +178,7 @@ impl Lab {
 
     async fn ip(&self, host_id: Uuid, addr: Ipv4Addr, mac: Option<&str>) -> IPAddress {
         let ip = IPAddress::new(IPAddressBase {
-            network_id: self.network_id,
+            site_id: self.site_id,
             subnet_id: self.subnet_id,
             ip_address: IpAddr::V4(addr),
             mac_address: mac.map(|m| {
@@ -202,7 +202,7 @@ impl Lab {
     async fn profinet_dcp_port(&self, host_id: Uuid, mac: &str) -> Interface {
         let entry = Interface::new(InterfaceBase {
             host_id,
-            network_id: self.network_id,
+            site_id: self.site_id,
             if_descr: None,
             mac_address: Some(MacEvidence::new(
                 MacEvidenceValue(mac.parse().unwrap()),
@@ -232,7 +232,7 @@ async fn a_host_resolves_by_the_mac_on_one_of_its_addresses() {
 
     assert_eq!(
         lab.resolver
-            .find_host_by_mac("00:1a:2b:00:10:01", lab.network_id)
+            .find_host_by_mac("00:1a:2b:00:10:01", lab.site_id)
             .await,
         IdentityResolution::Resolved(switch.id)
     );
@@ -253,7 +253,7 @@ async fn a_no_ip_dcp_discovered_device_resolves_through_the_mac_tier_like_any_ot
 
     assert_eq!(
         lab.resolver
-            .find_host_by_mac("00:1a:2b:dc:90:01", lab.network_id)
+            .find_host_by_mac("00:1a:2b:dc:90:01", lab.site_id)
             .await,
         IdentityResolution::Resolved(device.id),
         "a DCP-attributed MAC must resolve exactly like an SNMP- or ARP-attributed one"
@@ -280,7 +280,7 @@ async fn many_ports_sharing_one_mac_still_resolve_to_their_single_host() {
 
     assert_eq!(
         lab.resolver
-            .find_host_by_mac("00:ad:24:af:4e:00", lab.network_id)
+            .find_host_by_mac("00:ad:24:af:4e:00", lab.site_id)
             .await,
         IdentityResolution::Resolved(switch.id),
         "one MAC on many ports of one switch is still that switch"
@@ -295,7 +295,7 @@ async fn many_ports_sharing_one_mac_still_resolve_to_their_single_host() {
 /// a chassis MAC that need not belong to any NIC on a scanned subnet.
 ///
 /// Both halves are load-bearing and neither is obvious. If `find_host_by_mac` ever grew an
-/// `if_type` filter the way `find_if_entry_by_mac` has one, typing these rows `propVirtual` would
+/// `if_type` filter the way `find_interface_by_mac` has one, typing these rows `propVirtual` would
 /// silently stop the daemon host resolving, and the only symptom would be a switch's neighbour
 /// record going quietly unmatched again.
 #[tokio::test]
@@ -317,7 +317,7 @@ async fn a_virtually_typed_nic_with_no_address_still_resolves_its_host() {
 
     assert_eq!(
         lab.resolver
-            .find_host_by_mac("c2:2c:ad:55:9f:ee", lab.network_id)
+            .find_host_by_mac("c2:2c:ad:55:9f:ee", lab.site_id)
             .await,
         IdentityResolution::Resolved(server.id),
         "a chassis MAC on a propVirtual NIC must still name the host it belongs to"
@@ -336,7 +336,7 @@ async fn one_mac_across_two_hosts_resolves_to_neither() {
 
     assert_eq!(
         lab.resolver
-            .find_host_by_mac("00:ad:24:af:4e:00", lab.network_id)
+            .find_host_by_mac("00:ad:24:af:4e:00", lab.site_id)
             .await,
         IdentityResolution::Ambiguous,
         "one MAC on two devices names neither, and says so"
@@ -352,13 +352,13 @@ async fn a_host_resolves_by_its_ip_and_an_unknown_ip_resolves_to_nothing() {
 
     let found = lab
         .resolver
-        .find_host_by_ip(&IpAddr::V4(Ipv4Addr::new(192, 168, 1, 20)), lab.network_id)
+        .find_host_by_ip(&IpAddr::V4(Ipv4Addr::new(192, 168, 1, 20)), lab.site_id)
         .await;
     assert_eq!(found, IdentityResolution::Resolved(switch.id));
 
     let missing = lab
         .resolver
-        .find_host_by_ip(&IpAddr::V4(Ipv4Addr::new(192, 168, 1, 99)), lab.network_id)
+        .find_host_by_ip(&IpAddr::V4(Ipv4Addr::new(192, 168, 1, 99)), lab.site_id)
         .await;
     assert_eq!(missing, IdentityResolution::NotFound);
 }
@@ -371,7 +371,7 @@ async fn a_host_resolves_by_an_interface_description() {
 
     assert_eq!(
         lab.resolver
-            .find_host_by_if_name("GigabitEthernet0/1", lab.network_id)
+            .find_host_by_if_name("GigabitEthernet0/1", lab.site_id)
             .await,
         IdentityResolution::Resolved(switch.id)
     );
@@ -388,7 +388,7 @@ async fn a_chassis_id_resolves_only_when_it_names_one_host() {
 
     assert_eq!(
         lab.resolver
-            .find_host_by_chassis_id("00:1a:2b:00:11:00", lab.network_id)
+            .find_host_by_chassis_id("00:1a:2b:00:11:00", lab.site_id)
             .await,
         IdentityResolution::Resolved(netgear.id)
     );
@@ -397,7 +397,7 @@ async fn a_chassis_id_resolves_only_when_it_names_one_host() {
         .await;
     assert_eq!(
         lab.resolver
-            .find_host_by_chassis_id("00:1a:2b:00:11:00", lab.network_id)
+            .find_host_by_chassis_id("00:1a:2b:00:11:00", lab.site_id)
             .await,
         IdentityResolution::Ambiguous,
         "a chassis id on two hosts identifies neither, and reports why"
@@ -412,7 +412,7 @@ async fn a_sys_name_resolves_only_when_it_names_one_host() {
 
     assert_eq!(
         lab.resolver
-            .find_host_by_sys_name("core-switch", lab.network_id)
+            .find_host_by_sys_name("core-switch", lab.site_id)
             .await,
         IdentityResolution::Resolved(sw.id)
     );
@@ -420,16 +420,16 @@ async fn a_sys_name_resolves_only_when_it_names_one_host() {
     lab.host_with("sw-2", None, Some("core-switch")).await;
     assert_eq!(
         lab.resolver
-            .find_host_by_sys_name("core-switch", lab.network_id)
+            .find_host_by_sys_name("core-switch", lab.site_id)
             .await,
         IdentityResolution::Ambiguous
     );
 }
 
-/// Every host lookup is network-scoped. A neighbour on one customer's network must never resolve
+/// Every host lookup is site-scoped. A neighbour on one customer's site must never resolve
 /// to an identically-addressed device on another.
 #[tokio::test]
-async fn host_lookups_do_not_cross_a_network_boundary() {
+async fn host_lookups_do_not_cross_a_site_boundary() {
     let lab = Lab::new().await;
     let switch = lab.host("switch").await;
     lab.ip(
@@ -439,16 +439,16 @@ async fn host_lookups_do_not_cross_a_network_boundary() {
     )
     .await;
 
-    let other_network = Uuid::new_v4();
+    let other_site = Uuid::new_v4();
     assert_eq!(
         lab.resolver
-            .find_host_by_mac("00:1a:2b:00:10:05", other_network)
+            .find_host_by_mac("00:1a:2b:00:10:05", other_site)
             .await,
         IdentityResolution::NotFound
     );
     assert_eq!(
         lab.resolver
-            .find_host_by_ip(&IpAddr::V4(Ipv4Addr::new(192, 168, 1, 30)), other_network)
+            .find_host_by_ip(&IpAddr::V4(Ipv4Addr::new(192, 168, 1, 30)), other_site)
             .await,
         IdentityResolution::NotFound
     );
@@ -478,7 +478,7 @@ async fn a_mac_on_several_ports_of_one_device_is_ambiguous_not_arbitrary() {
 
     assert_eq!(
         lab.resolver
-            .find_if_entry_by_mac("00:ad:24:af:4e:00", switch.id)
+            .find_interface_by_mac("00:ad:24:af:4e:00", switch.id)
             .await,
         IdentityResolution::Ambiguous
     );
@@ -496,7 +496,7 @@ async fn a_mac_on_exactly_one_port_resolves_to_it() {
 
     assert_eq!(
         lab.resolver
-            .find_if_entry_by_mac("00:07:7c:20:01:e3", switch.id)
+            .find_interface_by_mac("00:07:7c:20:01:e3", switch.id)
             .await,
         IdentityResolution::Resolved(eth3.id)
     );
@@ -528,7 +528,7 @@ async fn virtual_interfaces_sharing_a_mac_do_not_make_a_physical_port_ambiguous(
 
     assert_eq!(
         lab.resolver
-            .find_if_entry_by_mac("00:07:7c:20:01:e0", westermo.id)
+            .find_interface_by_mac("00:07:7c:20:01:e0", westermo.id)
             .await,
         IdentityResolution::Resolved(eth1.id),
         "only physical rows contest a port lookup"
@@ -566,7 +566,7 @@ async fn the_ip_configured_physical_port_resolves_among_mac_sharing_siblings() {
 
     assert_eq!(
         lab.resolver
-            .find_if_entry_by_mac("50:eb:f6:26:54:79", pc.id)
+            .find_interface_by_mac("50:eb:f6:26:54:79", pc.id)
             .await,
         IdentityResolution::Resolved(nic.id),
         "the ipAddrTable-bound interface is the physical NIC, not one of its filter siblings"
@@ -593,7 +593,7 @@ async fn mac_sharing_ports_with_no_ip_configured_candidate_stay_ambiguous() {
 
     assert_eq!(
         lab.resolver
-            .find_if_entry_by_mac("00:ad:24:af:4e:00", switch.id)
+            .find_interface_by_mac("00:ad:24:af:4e:00", switch.id)
             .await,
         IdentityResolution::Ambiguous
     );
@@ -613,7 +613,7 @@ async fn two_ip_configured_candidates_sharing_a_mac_stay_ambiguous() {
 
     assert_eq!(
         lab.resolver
-            .find_if_entry_by_mac("00:1a:2b:00:10:00", host.id)
+            .find_interface_by_mac("00:1a:2b:00:10:00", host.id)
             .await,
         IdentityResolution::Ambiguous,
         "two equally-plausible candidates must not be resolved arbitrarily"
@@ -629,7 +629,7 @@ async fn an_unparseable_or_unknown_mac_is_not_found_rather_than_ambiguous() {
 
     for mac in ["not-a-mac", "00:00:00:00:00:99"] {
         assert_eq!(
-            lab.resolver.find_if_entry_by_mac(mac, switch.id).await,
+            lab.resolver.find_interface_by_mac(mac, switch.id).await,
             IdentityResolution::NotFound,
             "{mac}"
         );
@@ -674,7 +674,7 @@ async fn a_port_name_resolves_through_descr_then_name_then_alias() {
         ("uplink-to-core", by_alias.id),
     ] {
         assert_eq!(
-            lab.resolver.find_if_entry_by_name(name, switch.id).await,
+            lab.resolver.find_interface_by_name(name, switch.id).await,
             Some(expected),
             "{name}"
         );
@@ -691,7 +691,7 @@ async fn a_bridge_qualified_port_name_resolves_on_its_suffix() {
 
     assert_eq!(
         lab.resolver
-            .find_if_entry_by_name("bridge-LAN/ether4-Center", router.id)
+            .find_interface_by_name("bridge-LAN/ether4-Center", router.id)
             .await,
         Some(ether4.id)
     );
@@ -708,7 +708,7 @@ async fn a_port_name_naming_two_interfaces_resolves_to_neither() {
 
     assert_eq!(
         lab.resolver
-            .find_if_entry_by_name("Ethernet1", switch.id)
+            .find_interface_by_name("Ethernet1", switch.id)
             .await,
         None,
         "a description naming two ports names neither"
@@ -724,11 +724,14 @@ async fn a_port_resolves_by_if_index_within_its_own_host() {
     lab.port(b.id, 7, "Gi0/7", None).await;
 
     assert_eq!(
-        lab.resolver.find_if_entry_by_if_index(7, a.id).await,
+        lab.resolver.find_interface_by_if_index(7, a.id).await,
         Some(a_port.id),
         "the same ifIndex on another host must not win"
     );
-    assert_eq!(lab.resolver.find_if_entry_by_if_index(99, a.id).await, None);
+    assert_eq!(
+        lab.resolver.find_interface_by_if_index(99, a.id).await,
+        None
+    );
 }
 
 #[tokio::test]
@@ -741,7 +744,7 @@ async fn a_port_resolves_by_the_ip_bound_to_it() {
 
     let entry = Interface::new(InterfaceBase {
         host_id: switch.id,
-        network_id: lab.network_id,
+        site_id: lab.site_id,
         if_index: Some(1),
         if_descr: Some("Vlan10".to_string()),
         if_type: Some(if_type::ETHERNET_CSMA_CD),
@@ -754,7 +757,7 @@ async fn a_port_resolves_by_the_ip_bound_to_it() {
 
     assert_eq!(
         lab.resolver
-            .find_if_entry_by_ip(&IpAddr::V4(Ipv4Addr::new(192, 168, 1, 40)), switch.id)
+            .find_interface_by_ip(&IpAddr::V4(Ipv4Addr::new(192, 168, 1, 40)), switch.id)
             .await,
         Some(entry.id)
     );
@@ -793,25 +796,25 @@ async fn a_closed_snapshot_copy_does_not_contest_its_own_live_row() {
 
     assert_eq!(
         lab.resolver
-            .find_if_entry_by_name("GigabitEthernet0/1", switch.id)
+            .find_interface_by_name("GigabitEthernet0/1", switch.id)
             .await,
         Some(live.id),
         "a name lookup must reach the live port, not its snapshot"
     );
     assert_eq!(
         lab.resolver
-            .find_if_entry_by_mac("00:1a:2b:00:10:01", switch.id)
+            .find_interface_by_mac("00:1a:2b:00:10:01", switch.id)
             .await,
         IdentityResolution::Resolved(live.id),
         "a snapshot sharing the MAC must not make the live port ambiguous"
     );
     assert_eq!(
-        lab.resolver.find_if_entry_by_if_index(1, switch.id).await,
+        lab.resolver.find_interface_by_if_index(1, switch.id).await,
         Some(live.id)
     );
     assert_eq!(
         lab.resolver
-            .find_host_by_if_name("GigabitEthernet0/1", lab.network_id)
+            .find_host_by_if_name("GigabitEthernet0/1", lab.site_id)
             .await,
         IdentityResolution::Resolved(switch.id)
     );
@@ -826,10 +829,13 @@ async fn interface_lookups_do_not_cross_a_host_boundary() {
     let b = lab.host("switch-b").await;
     lab.port(a.id, 1, "eth0", Some("00:1a:2b:00:10:01")).await;
 
-    assert_eq!(lab.resolver.find_if_entry_by_name("eth0", b.id).await, None);
+    assert_eq!(
+        lab.resolver.find_interface_by_name("eth0", b.id).await,
+        None
+    );
     assert_eq!(
         lab.resolver
-            .find_if_entry_by_mac("00:1a:2b:00:10:01", b.id)
+            .find_interface_by_mac("00:1a:2b:00:10:01", b.id)
             .await,
         IdentityResolution::NotFound
     );
@@ -839,7 +845,7 @@ async fn interface_lookups_do_not_cross_a_host_boundary() {
 // The snapshot resolver must answer exactly as the queries do
 // ---------------------------------------------------------------------------
 
-/// `LldpInventorySnapshot` serves the same lookups from a preloaded network instead of a query
+/// `LldpInventorySnapshot` serves the same lookups from a preloaded site instead of a query
 /// apiece, so that the resolution pass stops scaling with round-trips. That is only safe if it is
 /// *indistinguishable* from the queries, and every interesting case here is one where the honest
 /// answer is "this identifies nothing": a name two ports share, a MAC two hosts carry, a virtual
@@ -868,7 +874,7 @@ async fn the_snapshot_resolver_answers_exactly_as_the_queries_do() {
     )
     .await;
     // A virtual row carrying the chassis MAC: excluded from the physical-only port lookup, but it
-    // still contributes its host to the network-wide MAC tier.
+    // still contributes its host to the site-wide MAC tier.
     lab.interface(
         switch.id,
         2,
@@ -921,7 +927,7 @@ async fn the_snapshot_resolver_answers_exactly_as_the_queries_do() {
             .unwrap(),
     );
 
-    let net = lab.network_id;
+    let net = lab.site_id;
     for chassis in ["00:11:22:33:44:00", "does-not-exist"] {
         assert_eq!(
             snapshot.find_host_by_chassis_id(chassis, net).await,
@@ -973,9 +979,9 @@ async fn the_snapshot_resolver_answers_exactly_as_the_queries_do() {
         (pc.id, "50:eb:f6:26:54:79"), // two physical ports, one ip_configured
     ] {
         assert_eq!(
-            snapshot.find_if_entry_by_mac(mac, host_id).await,
-            lab.resolver.find_if_entry_by_mac(mac, host_id).await,
-            "find_if_entry_by_mac({mac})"
+            snapshot.find_interface_by_mac(mac, host_id).await,
+            lab.resolver.find_interface_by_mac(mac, host_id).await,
+            "find_interface_by_mac({mac})"
         );
     }
     for (host_id, name) in [
@@ -987,26 +993,26 @@ async fn the_snapshot_resolver_answers_exactly_as_the_queries_do() {
         (switch.id, "no-such-port"),
     ] {
         assert_eq!(
-            snapshot.find_if_entry_by_name(name, host_id).await,
-            lab.resolver.find_if_entry_by_name(name, host_id).await,
-            "find_if_entry_by_name({name})"
+            snapshot.find_interface_by_name(name, host_id).await,
+            lab.resolver.find_interface_by_name(name, host_id).await,
+            "find_interface_by_name({name})"
         );
     }
     for (host_id, if_index) in [(switch.id, 1), (switch.id, 99)] {
         assert_eq!(
-            snapshot.find_if_entry_by_if_index(if_index, host_id).await,
+            snapshot.find_interface_by_if_index(if_index, host_id).await,
             lab.resolver
-                .find_if_entry_by_if_index(if_index, host_id)
+                .find_interface_by_if_index(if_index, host_id)
                 .await,
-            "find_if_entry_by_if_index({if_index})"
+            "find_interface_by_if_index({if_index})"
         );
     }
     for addr in [Ipv4Addr::new(10, 9, 0, 1), Ipv4Addr::new(10, 9, 0, 254)] {
         let ip = IpAddr::V4(addr);
         assert_eq!(
-            snapshot.find_if_entry_by_ip(&ip, switch.id).await,
-            lab.resolver.find_if_entry_by_ip(&ip, switch.id).await,
-            "find_if_entry_by_ip({ip})"
+            snapshot.find_interface_by_ip(&ip, switch.id).await,
+            lab.resolver.find_interface_by_ip(&ip, switch.id).await,
+            "find_interface_by_ip({ip})"
         );
     }
 }

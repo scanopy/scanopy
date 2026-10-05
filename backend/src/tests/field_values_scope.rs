@@ -1,5 +1,5 @@
-//! The field-values endpoint counts only rows the caller could list: a network outside their
-//! `network_ids` contributes no values, whether or not the request names it, and a list that
+//! The field-values endpoint counts only rows the caller could list: a site outside their
+//! `site_ids` contributes no values, whether or not the request names it, and a list that
 //! always carries a scope (the run history's `historical`) counts only rows inside it.
 
 use chrono::Utc;
@@ -22,21 +22,21 @@ use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::Storage;
 
-use super::{daemon, host, network, organization, service, test_services, user};
+use super::{daemon, host, organization, service, site, test_services, user};
 
 #[tokio::test]
-async fn field_values_exclude_networks_outside_the_callers_access() {
+async fn field_values_exclude_sites_outside_the_callers_access() {
     let (storage, services, _container) = test_services().await;
 
     let org = organization();
     storage.organizations.create(&org).await.unwrap();
-    let visible = network(&org.id);
-    storage.networks.create(&visible).await.unwrap();
-    let hidden = network(&org.id);
-    storage.networks.create(&hidden).await.unwrap();
+    let visible = site(&org.id);
+    storage.sites.create(&visible).await.unwrap();
+    let hidden = site(&org.id);
+    storage.sites.create(&hidden).await.unwrap();
 
-    for (network_id, manufacturer) in [(visible.id, "Cisco"), (hidden.id, "Juniper")] {
-        let mut h = host(&network_id);
+    for (site_id, manufacturer) in [(visible.id, "Cisco"), (hidden.id, "Juniper")] {
+        let mut h = host(&site_id);
         h.base.manufacturer = Some(Attributed::new(
             HostManufacturerValue(manufacturer.to_string()),
             AttributeSource::ReverseDns,
@@ -63,34 +63,34 @@ async fn field_values_exclude_networks_outside_the_callers_access() {
     assert_eq!(
         values(HostFilterQuery::default()).await,
         vec![Some("Cisco".to_string())],
-        "an unscoped request must only count the caller's networks"
+        "an unscoped request must only count the caller's sites"
     );
 
     let asks_for_hidden = HostFilterQuery {
-        network_ids: Some(vec![hidden.id]),
+        site_ids: Some(vec![hidden.id]),
         ..Default::default()
     };
     assert!(
         values(asks_for_hidden).await.is_empty(),
-        "naming an inaccessible network must narrow to nothing, never widen"
+        "naming an inaccessible site must narrow to nothing, never widen"
     );
 }
 
 #[tokio::test]
-async fn service_field_values_exclude_networks_outside_the_callers_access() {
+async fn service_field_values_exclude_sites_outside_the_callers_access() {
     let (storage, services, _container) = test_services().await;
 
     let org = organization();
     storage.organizations.create(&org).await.unwrap();
-    let visible = network(&org.id);
-    storage.networks.create(&visible).await.unwrap();
-    let hidden = network(&org.id);
-    storage.networks.create(&hidden).await.unwrap();
+    let visible = site(&org.id);
+    storage.sites.create(&visible).await.unwrap();
+    let hidden = site(&org.id);
+    storage.sites.create(&hidden).await.unwrap();
 
-    for (network_id, name) in [(visible.id, "Visible DNS"), (hidden.id, "Hidden DNS")] {
-        let h = host(&network_id);
+    for (site_id, name) in [(visible.id, "Visible DNS"), (hidden.id, "Hidden DNS")] {
+        let h = host(&site_id);
         storage.hosts.create(&h).await.unwrap();
-        let mut s = service(&network_id, &h.id);
+        let mut s = service(&site_id, &h.id);
         s.base.name = name.to_string();
         storage.services.create(&s).await.unwrap();
     }
@@ -114,29 +114,29 @@ async fn service_field_values_exclude_networks_outside_the_callers_access() {
     assert_eq!(
         values(ServiceFilterQuery::default()).await,
         vec![Some("Visible DNS".to_string())],
-        "an unscoped request must only count the caller's networks"
+        "an unscoped request must only count the caller's sites"
     );
     assert!(
         values(ServiceFilterQuery {
-            network_ids: Some(vec![hidden.id]),
+            site_ids: Some(vec![hidden.id]),
             ..Default::default()
         })
         .await
         .is_empty(),
-        "naming an inaccessible network must narrow to nothing, never widen"
+        "naming an inaccessible site must narrow to nothing, never widen"
     );
 }
 
 /// The run history's options come from history rows only: a scheduled configuration on the same
-/// network must not add its name, nor a phase-less group.
+/// site must not add its name, nor a phase-less group.
 #[tokio::test]
 async fn discovery_field_values_with_historical_count_only_history_rows() {
     let (storage, services, _container) = test_services().await;
 
     let org = organization();
     storage.organizations.create(&org).await.unwrap();
-    let net = network(&org.id);
-    storage.networks.create(&net).await.unwrap();
+    let net = site(&org.id);
+    storage.sites.create(&net).await.unwrap();
     let daemon_host = host(&net.id);
     storage.hosts.create(&daemon_host).await.unwrap();
     let owner = user(&org.id);
@@ -156,7 +156,7 @@ async fn discovery_field_values_with_historical_count_only_history_rows() {
                 run_type,
                 name: name.to_string(),
                 daemon_id: d.id,
-                network_id: net.id,
+                site_id: net.id,
                 tags: Vec::new(),
             },
             ..Default::default()
@@ -184,7 +184,7 @@ async fn discovery_field_values_with_historical_count_only_history_rows() {
                 results: Box::new(DiscoveryUpdatePayload {
                     session_id: Uuid::new_v4(),
                     daemon_id: d.id,
-                    network_id: net.id,
+                    site_id: net.id,
                     phase: DiscoveryPhase::Complete,
                     discovery_type: DiscoveryType::default(),
                     progress: 100,
@@ -252,8 +252,8 @@ async fn virtualized_by_name_filter_matches_the_counted_name() {
 
     let org = organization();
     storage.organizations.create(&org).await.unwrap();
-    let net = network(&org.id);
-    storage.networks.create(&net).await.unwrap();
+    let net = site(&org.id);
+    storage.sites.create(&net).await.unwrap();
 
     let hypervisor = host(&net.id);
     storage.hosts.create(&hypervisor).await.unwrap();
@@ -283,7 +283,7 @@ async fn virtualized_by_name_filter_matches_the_counted_name() {
 
     let selected =
         |names: &[String], include_null: bool| {
-            let filter = StorableFilter::<Host>::new_from_network_ids(&[net.id])
+            let filter = StorableFilter::<Host>::new_from_site_ids(&[net.id])
                 .virtualization_parent(&[], names, include_null);
             let services = &services;
             async move {

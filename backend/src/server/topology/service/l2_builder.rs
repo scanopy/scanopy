@@ -233,7 +233,7 @@ impl ViewBuilder for L2Builder {
         }
 
         // 5. Apply element rules (ByTag already has L2Physical in applicable_views)
-        let if_entry_lookup: std::collections::HashMap<
+        let interface_lookup: std::collections::HashMap<
             Uuid,
             &crate::server::interfaces::r#impl::base::Interface,
         > = ctx.interfaces.iter().map(|e| (e.id, e)).collect();
@@ -252,7 +252,7 @@ impl ViewBuilder for L2Builder {
                         *host_id,
                         &tag_lookups,
                     );
-                    let interface = if_entry_lookup.get(&node.id);
+                    let interface = interface_lookup.get(&node.id);
                     let native_vlan_id = interface.and_then(|e| e.base.native_vlan_id);
                     let resolved_vlan = native_vlan_id.and_then(|vid| ctx.get_vlan_by_id(vid));
                     Some(ElementMatchData {
@@ -504,7 +504,7 @@ mod tests {
         ];
 
         let address = IPAddress::new(IPAddressBase {
-            network_id: Uuid::nil(),
+            site_id: Uuid::nil(),
             host_id: by_address.id,
             subnet_id: Uuid::new_v4(),
             ip_address: "10.0.0.7".parse().unwrap(),
@@ -974,7 +974,7 @@ mod tests {
     }
 
     /// The neighbour may name a device that this topology does not contain — a host on another
-    /// network, or one filtered out. Drawing to it would leave an edge with no node.
+    /// site, or one filtered out. Drawing to it would leave an edge with no node.
     #[test]
     fn a_neighbor_host_outside_the_topology_draws_no_edge() {
         let h1 = make_host("switch-1");

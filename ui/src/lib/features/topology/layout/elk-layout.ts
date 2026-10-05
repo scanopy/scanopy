@@ -123,10 +123,10 @@ const ROOT_LAYOUT_OPTIONS: Record<string, string> = {
 	'elk.layered.spacing.edgeEdgeBetweenLayers': '25',
 	'elk.spacing.componentComponent': '75',
 	'elk.spacing.nodeNode': '75',
-	'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+	'elk.layered.nodePlacement.strategy': 'SITE_SIMPLEX',
 	'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
 	'elk.hierarchyHandling': 'SEPARATE_CHILDREN',
-	'elk.layered.layering.strategy': 'NETWORK_SIMPLEX',
+	'elk.layered.layering.strategy': 'SITE_SIMPLEX',
 	'elk.layered.compaction.postCompaction.strategy': 'LEFT_RIGHT_CONSTRAINT_LOCKING',
 	'elk.layered.compaction.connectedComponents': 'true',
 	'elk.aspectRatio': '1.6',
@@ -812,9 +812,9 @@ function buildElkGraph(
 			container.layoutOptions['elk.algorithm'] = 'layered';
 			container.layoutOptions['elk.direction'] = useLayeredChildren ? 'RIGHT' : 'DOWN';
 			container.layoutOptions['elk.hierarchyHandling'] = 'SEPARATE_CHILDREN';
-			container.layoutOptions['elk.layered.nodePlacement.strategy'] = 'NETWORK_SIMPLEX';
+			container.layoutOptions['elk.layered.nodePlacement.strategy'] = 'SITE_SIMPLEX';
 			container.layoutOptions['elk.layered.crossingMinimization.strategy'] = 'LAYER_SWEEP';
-			container.layoutOptions['elk.layered.layering.strategy'] = 'NETWORK_SIMPLEX';
+			container.layoutOptions['elk.layered.layering.strategy'] = 'SITE_SIMPLEX';
 			container.layoutOptions['elk.spacing.nodeNode'] = '15';
 			container.layoutOptions['elk.layered.spacing.nodeNodeBetweenLayers'] = '10';
 			container.layoutOptions['elk.layered.spacing.edgeNodeBetweenLayers'] = '5';

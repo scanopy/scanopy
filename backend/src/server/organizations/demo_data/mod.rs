@@ -1,7 +1,7 @@
 //! Demo data for populating demo organizations with realistic network infrastructure.
 //!
 //! This module provides a complete dataset representing "Acme Technologies", a mid-size
-//! company with MSP operations. The data includes multiple networks, subnets, hosts,
+//! company with MSP operations. The data includes multiple sites, subnets, hosts,
 //! services, daemons, API keys, tags, and dependencies.
 
 use crate::daemon::discovery::types::base::DiscoveryPhase;
@@ -43,7 +43,6 @@ use crate::server::{
     },
     interfaces::r#impl::base::{IfAdminStatus, IfOperStatus, Interface, InterfaceBase},
     ip_addresses::r#impl::base::{IPAddress, IPAddressBase},
-    networks::r#impl::{Network, NetworkBase},
     ports::r#impl::base::{Port, PortType},
     services::r#impl::patterns::{ClientProbe, MatchConfidence, MatchDetails, MatchReason},
     services::{
@@ -59,6 +58,7 @@ use crate::server::{
         types::{Color, entities::EntitySource},
     },
     shares::r#impl::base::{Share, ShareBase, ShareOptions},
+    sites::r#impl::{Site, SiteBase},
     subnets::r#impl::base::{SubnetCidr, SubnetCidrValue},
     subnets::r#impl::{
         base::{Subnet, SubnetBase},
@@ -107,9 +107,9 @@ pub struct NeighborUpdate {
     pub target_if_index: i32,
 }
 
-/// Network-to-credential association for junction table seeding
-pub struct NetworkCredentialAssignment {
-    pub network_id: Uuid,
+/// Site-to-credential association for junction table seeding
+pub struct SiteCredentialAssignment {
+    pub site_id: Uuid,
     pub credential_ids: Vec<Uuid>,
 }
 
@@ -147,11 +147,11 @@ struct DependencyServiceIds {
 pub struct DemoData {
     pub tags: Vec<Tag>,
     pub credentials: Vec<Credential>,
-    pub network_credential_assignments: Vec<NetworkCredentialAssignment>,
-    pub networks: Vec<Network>,
+    pub site_credential_assignments: Vec<SiteCredentialAssignment>,
+    pub sites: Vec<Site>,
     pub subnets: Vec<Subnet>,
     pub hosts_with_services: Vec<HostWithServices>,
-    /// "Recently discovered" hosts created AFTER the per-network snapshot, so
+    /// "Recently discovered" hosts created AFTER the per-site snapshot, so
     /// the snapshot captures an earlier state than the live view. See
     /// [`generate_recent_hosts`].
     pub recent_hosts_with_services: Vec<HostWithServices>,
@@ -204,30 +204,24 @@ impl DemoData {
         // Generate all entities in dependency order
         let tags = generate_tags(organization_id, now);
         let credentials = generate_credentials(organization_id, now);
-        let networks = generate_networks(organization_id, &tags, &credentials, now);
+        let sites = generate_sites(organization_id, &tags, &credentials, now);
         let subnets = generate_subnets(
-            &networks,
+            &sites,
             &tags,
             dep_svc_ids.docker_hq,
             dep_svc_ids.docker_dc,
             now,
         );
-        let network_credential_assignments =
-            generate_network_credential_assignments(&networks, &credentials);
-        let mut hosts_with_services = generate_hosts_and_services(
-            &networks,
-            &subnets,
-            &tags,
-            &credentials,
-            &dep_svc_ids,
-            now,
-        );
+        let site_credential_assignments =
+            generate_site_credential_assignments(&sites, &credentials);
+        let mut hosts_with_services =
+            generate_hosts_and_services(&sites, &subnets, &tags, &credentials, &dep_svc_ids, now);
         // The server matches an OS in what SNMP reported when a host is ingested, after the daemon
         // has offered its own readings (an SSH banner, say), so the demo matches last too.
         for host in &mut hosts_with_services {
             host.host.base.match_os_from_system_strings();
         }
-        let recent_hosts_with_services = generate_recent_hosts(&networks, &subnets, now);
+        let recent_hosts_with_services = generate_recent_hosts(&sites, &subnets, now);
 
         // Collect hosts for daemon generation and interface generation
         let hosts: Vec<&Host> = hosts_with_services.iter().map(|h| &h.host).collect();
@@ -236,27 +230,27 @@ impl DemoData {
             .flat_map(|h| h.ip_addresses.iter())
             .collect();
 
-        let vlans = generate_vlans(&networks, organization_id, now);
+        let vlans = generate_vlans(&sites, organization_id, now);
         let (interfaces, neighbor_updates) =
-            generate_interfaces(&networks, &hosts, &ip_addresses, &vlans, now);
+            generate_interfaces(&sites, &hosts, &ip_addresses, &vlans, now);
         let subnet_vlan_records =
             generate_subnet_vlan_records(&interfaces, &hosts_with_services, now);
-        let daemons = generate_daemons(&networks, &hosts, now, user_id);
+        let daemons = generate_daemons(&sites, &hosts, now, user_id);
         let daemon_interfaced_subnets = generate_daemon_interfaced_subnets(&daemons, &ip_addresses);
-        let api_keys = generate_api_keys(&networks, now);
-        let topologies = generate_topologies(&networks, &tags, now);
+        let api_keys = generate_api_keys(&sites, now);
+        let topologies = generate_topologies(&sites, &tags, now);
         let discoveries =
-            generate_discoveries(&networks, &subnets, &daemons, &hosts, &credentials, now);
-        let shares = generate_shares(&topologies, &networks, user_id, now);
-        let user_api_keys = generate_user_api_keys(&networks, organization_id, now);
+            generate_discoveries(&sites, &subnets, &daemons, &hosts, &credentials, now);
+        let shares = generate_shares(&topologies, &sites, user_id, now);
+        let user_api_keys = generate_user_api_keys(&sites, organization_id, now);
 
-        let dependencies = generate_dependencies(&networks, &tags, &dep_svc_ids);
+        let dependencies = generate_dependencies(&sites, &tags, &dep_svc_ids);
 
         Self {
             tags,
             credentials,
-            network_credential_assignments,
-            networks,
+            site_credential_assignments,
+            sites,
             subnets,
             vlans,
             subnet_vlan_records,
@@ -287,22 +281,22 @@ mod dependencies;
 mod discoveries;
 mod hosts;
 mod interfaces;
-mod networks;
 mod shares;
+mod sites;
 mod subnets;
 mod tags;
 mod topologies;
 mod vlans;
 
 use api_keys::{generate_api_keys, generate_user_api_keys};
-use credentials::{generate_credentials, generate_network_credential_assignments};
+use credentials::{generate_credentials, generate_site_credential_assignments};
 use daemons::{generate_daemon_interfaced_subnets, generate_daemons};
 use dependencies::generate_dependencies;
 use discoveries::generate_discoveries;
 use hosts::{generate_hosts_and_services, generate_recent_hosts};
 use interfaces::generate_interfaces;
-use networks::generate_networks;
 use shares::generate_shares;
+use sites::generate_sites;
 use subnets::generate_subnets;
 use tags::generate_tags;
 use topologies::generate_topologies;
@@ -324,7 +318,7 @@ fn create_host(
     name: &str,
     hostname: Option<&str>,
     description: Option<&str>,
-    network: &Network,
+    site: &Site,
     subnet: &Subnet,
     ip: Ipv4Addr,
     tags: Vec<Uuid>,
@@ -348,7 +342,7 @@ fn create_host(
         created_at: now,
         updated_at: now,
         base: IPAddressBase {
-            network_id: network.id,
+            site_id: site.id,
             host_id,
             subnet_id: subnet.id,
             ip_address: IpAddr::V4(ip),
@@ -369,7 +363,7 @@ fn create_host(
         updated_at: now,
         base: HostBase {
             name: HostName::manual(name.to_string()),
-            network_id: network.id,
+            site_id: site.id,
             // The demo stands in for scans, as `with_snmp` does, so its hostnames carry what a
             // scan's PTR lookup would record.
             hostname: hostname.map(|h| {
@@ -528,7 +522,7 @@ fn with_credentials(
 /// Turns a host into a discovered device that has since dropped off the network: first seen at
 /// `first_seen`, last answered a scan at `last_seen`. Its addresses, ports, services and bindings
 /// carry the same dates, so the whole host reads as stale. `last_seen` must fall outside the demo
-/// networks' staleness window.
+/// sites' staleness window.
 fn gone_quiet(
     mut hws: HostWithServices,
     first_seen: DateTime<Utc>,
@@ -634,7 +628,7 @@ fn create_service(
             updated_at: now,
             base: ServiceBase {
                 host_id: host.id,
-                network_id: host.base.network_id,
+                site_id: host.base.site_id,
                 service_definition,
                 name: name.to_string(),
                 bindings,
@@ -687,7 +681,7 @@ fn create_service_with_id(
             updated_at: now,
             base: ServiceBase {
                 host_id: host.id,
-                network_id: host.base.network_id,
+                site_id: host.base.site_id,
                 service_definition,
                 name: name.to_string(),
                 bindings,
@@ -741,7 +735,7 @@ fn create_container_service(
             updated_at: now,
             base: ServiceBase {
                 host_id: host.id,
-                network_id: host.base.network_id,
+                site_id: host.base.site_id,
                 service_definition,
                 name: name.to_string(),
                 bindings,

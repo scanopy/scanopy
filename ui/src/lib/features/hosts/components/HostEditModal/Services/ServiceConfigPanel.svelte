@@ -226,7 +226,7 @@
 			type: 'Port',
 			id: uuidv4(),
 			service_id: service.id,
-			network_id: service.network_id,
+			site_id: service.site_id,
 			port_id: firstAvailable.port.id,
 			ip_address_id: firstAvailable.iface.id,
 			created_at: new Date().toISOString(),
@@ -295,7 +295,7 @@
 			type: 'IPAddress',
 			id: uuidv4(),
 			service_id: service.id,
-			network_id: service.network_id,
+			site_id: service.site_id,
 			ip_address_id: firstAvailable.id,
 			created_at: new Date().toISOString(),
 			updated_at: new Date().toISOString()

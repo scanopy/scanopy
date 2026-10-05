@@ -22,7 +22,6 @@ use crate::server::{
     hosts::{r#impl::base::Host, service::HostService},
     interfaces::{r#impl::base::Interface, service::InterfaceService},
     ip_addresses::{r#impl::base::IPAddress, service::IPAddressService},
-    networks::{r#impl::Network, service::NetworkService},
     ports::{r#impl::base::Port, service::PortService},
     services::{r#impl::base::Service as NetworkServiceEntity, service::ServiceService},
     shared::{
@@ -30,12 +29,13 @@ use crate::server::{
         services::traits::{CrudService, EventBusService},
         storage::{filter::StorableFilter, traits::Storage},
     },
+    sites::{r#impl::Site, service::SiteService},
     subnets::{r#impl::base::Subnet, service::SubnetService},
     users::service::UserService,
     vlans::{r#impl::base::Vlan, service::VlanService},
 };
 
-/// Read-only aggregator that answers "what changed in this network during
+/// Read-only aggregator that answers "what changed in this site during
 /// session [T_start, T_end]" by composing SCD2 timestamp filters across the
 /// per-entity-tracked tables. Mirrors `TopologyService`'s shape: holds Arcs
 /// to the entity services it queries, no storage-layer deps.
@@ -49,7 +49,7 @@ pub struct DiscoveryDigestService {
     pub subnet_service: Arc<SubnetService>,
     pub vlan_service: Arc<VlanService>,
     pub user_service: Arc<UserService>,
-    pub network_service: Arc<NetworkService>,
+    pub site_service: Arc<SiteService>,
     pub discovery_service: Arc<DiscoveryService>,
     pub event_bus: Arc<EventBus>,
 }
@@ -66,7 +66,7 @@ impl DiscoveryDigestService {
         subnet_service: Arc<SubnetService>,
         vlan_service: Arc<VlanService>,
         user_service: Arc<UserService>,
-        network_service: Arc<NetworkService>,
+        site_service: Arc<SiteService>,
         discovery_service: Arc<DiscoveryService>,
         event_bus: Arc<EventBus>,
     ) -> Self {
@@ -80,7 +80,7 @@ impl DiscoveryDigestService {
             subnet_service,
             vlan_service,
             user_service,
-            network_service,
+            site_service,
             discovery_service,
             event_bus,
         }
@@ -103,24 +103,24 @@ impl DiscoveryDigestService {
             return Ok(());
         };
 
-        let network = match self.network_service.get_by_id(&payload.network_id).await? {
+        let site = match self.site_service.get_by_id(&payload.site_id).await? {
             Some(n) => n,
             None => {
                 tracing::warn!(
-                    network_id = %payload.network_id,
-                    "Network missing for digest computation; skipping",
+                    site_id = %payload.site_id,
+                    "Site missing for digest computation; skipping",
                 );
                 return Ok(());
             }
         };
 
         let digest = self
-            .compute(payload, scanned, t_start, t_end, &network)
+            .compute(payload, scanned, t_start, t_end, &site)
             .await?;
 
         let scope = DiscoveryDigestScope {
-            organization_id: network.base.organization_id,
-            network_id: payload.network_id,
+            organization_id: site.base.organization_id,
+            site_id: payload.site_id,
         };
         let event = Event::new(
             scope,
@@ -140,11 +140,11 @@ impl DiscoveryDigestService {
         scanned: &ScannedEntityIds,
         t_start: DateTime<Utc>,
         t_end: DateTime<Utc>,
-        network: &Network,
+        site: &Site,
     ) -> Result<DiscoveryDigestPayload> {
-        let network_id = payload.network_id;
-        let network_name = network.base.name.as_str();
-        let organization_id = network.base.organization_id;
+        let site_id = payload.site_id;
+        let site_name = site.base.name.as_str();
+        let organization_id = site.base.organization_id;
 
         // Subnets scanned: prefer the discovery config's explicit subnet
         // list when set (the user targeted a specific subset). Fall back
@@ -175,41 +175,41 @@ impl DiscoveryDigestService {
                 .collect()
         };
 
-        // Staleness is time-based and anchored on this network's configured
+        // Staleness is time-based and anchored on this site's configured
         // window, identical to what the inventory and topology render. The
         // previous session's finish gives the "was it stale then?" anchor used
         // to spot the transition.
         let prev_finished_at = self
             .discovery_service
-            .previous_historical_finished_at(network_id, t_end)
+            .previous_historical_finished_at(site_id, t_end)
             .await?;
         let window = DigestWindow {
             t_start,
             t_end,
-            cutoff: network.stale_cutoff(t_end),
-            prev_cutoff: prev_finished_at.map(|t| network.stale_cutoff(t)),
+            cutoff: site.stale_cutoff(t_end),
+            prev_cutoff: prev_finished_at.map(|t| site.stale_cutoff(t)),
         };
 
         // What this session could actually see. Entities outside it are dropped
         // from the digest entirely — their absence carries no information.
         let coverage = ScanCoverage::for_session(&payload.discovery_type, scanned);
 
-        // One query for all live hosts on the network — the generic helper
+        // One query for all live hosts on the site — the generic helper
         // buckets them by status. Per-entity-type queries for children are
         // batched the same way inside fetch_current_children.
         let all_hosts: Vec<Host> = self
             .host_service
-            .get_all(StorableFilter::<Host>::new_from_network_ids(&[network_id]).live())
+            .get_all(StorableFilter::<Host>::new_from_site_ids(&[site_id]).live())
             .await?;
         let scanned_host_ids: HashSet<Uuid> = scanned.host_ids.iter().copied().collect();
 
-        // Live IPs for the whole network, once: they place each host in its
+        // Live IPs for the whole site, once: they place each host in its
         // subnets (for the coverage gate) and are re-filtered for the affected
         // hosts' child rows below, so this replaces the old per-affected-host
         // IP query rather than adding to it.
         let all_ips: Vec<IPAddress> = self
             .ip_address_service
-            .get_all(StorableFilter::<IPAddress>::new_from_network_ids(&[network_id]).live())
+            .get_all(StorableFilter::<IPAddress>::new_from_site_ids(&[site_id]).live())
             .await?;
         let mut host_subnets: HashMap<Uuid, HashSet<Uuid>> = HashMap::new();
         for ip in &all_ips {
@@ -299,11 +299,11 @@ impl DiscoveryDigestService {
         hosts_changed.sort_by(|a, b| a.host.label.cmp(&b.host.label));
 
         // VLANs added / removed mirror the host added/vanished logic but on
-        // the network scope.
+        // the site scope.
         let vlans_added_records: Vec<Vlan> = self
             .vlan_service
             .get_all(
-                StorableFilter::<Vlan>::new_from_network_ids(&[network_id])
+                StorableFilter::<Vlan>::new_from_site_ids(&[site_id])
                     .live()
                     .created_between(t_start, t_end),
             )
@@ -311,14 +311,14 @@ impl DiscoveryDigestService {
         let vlans_added: Vec<VlanSummary> = vlans_added_records.iter().map(vlan_summary).collect();
         let scanned_vlan_ids: HashSet<Uuid> = scanned.vlan_ids.iter().copied().collect();
 
-        // VLANs are network-scoped, so only a run that actually swept subnets
+        // VLANs are site-scoped, so only a run that actually swept subnets
         // can say anything about them — a Docker or self-report run observes no
         // VLANs and must not conclude they all went stale.
         let vlans_stale: Vec<VlanSummary> = if coverage.swept_subnets() {
             let live_vlans: Vec<Vlan> = self
                 .vlan_service
                 .get_all(
-                    StorableFilter::<Vlan>::new_from_network_ids(&[network_id])
+                    StorableFilter::<Vlan>::new_from_site_ids(&[site_id])
                         .live()
                         .created_before(t_start),
                 )
@@ -335,15 +335,15 @@ impl DiscoveryDigestService {
             Vec::new()
         };
 
-        let recipients = self.resolve_recipients(network_id, organization_id).await?;
+        let recipients = self.resolve_recipients(site_id, organization_id).await?;
 
         Ok(DiscoveryDigestPayload {
             session_id: payload.session_id,
-            network_id,
-            network_name: network_name.to_string(),
+            site_id,
+            site_name: site_name.to_string(),
             started_at: t_start,
             finished_at: t_end,
-            stale_after_hours: network.stale_after().num_hours(),
+            stale_after_hours: site.stale_after().num_hours(),
             subnets_scanned,
             hosts_added,
             hosts_stale,
@@ -391,7 +391,7 @@ impl DiscoveryDigestService {
                     .uuids_column("host_id", host_ids),
             )
             .await?;
-        // Reuse the network-wide live IP set already loaded for the coverage
+        // Reuse the site-wide live IP set already loaded for the coverage
         // gate rather than re-querying by host.
         let ips: Vec<IPAddress> = all_ips
             .iter()
@@ -475,12 +475,12 @@ impl DiscoveryDigestService {
 
     async fn resolve_recipients(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         organization_id: Uuid,
     ) -> Result<Vec<DigestRecipient>> {
         let users = self
             .user_service
-            .get_users_with_network_access(&network_id, &organization_id)
+            .get_users_with_site_access(&site_id, &organization_id)
             .await?;
         Ok(users
             .into_iter()
@@ -498,7 +498,7 @@ impl EventBusService<Host> for DiscoveryDigestService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, _entity: &Host) -> Option<Uuid> {
+    fn get_site_id(&self, _entity: &Host) -> Option<Uuid> {
         None
     }
 
@@ -512,14 +512,14 @@ struct DigestWindow {
     t_start: DateTime<Utc>,
     t_end: DateTime<Utc>,
     /// Instant before which a `last_seen_at` counts as stale, from this
-    /// network's configured window (`Network::stale_cutoff`) anchored at
+    /// site's configured window (`Site::stale_cutoff`) anchored at
     /// `t_end`. The same rule the inventory and topology apply, so a host
     /// reported stale here is the host badged stale in the app.
     cutoff: DateTime<Utc>,
     /// The same cutoff anchored at the *previous* session's finish. An entity
     /// that is stale now but was not stale then crossed the line during this
     /// session — that transition is what makes a card worth emailing.
-    /// `None` on a network's first-ever scan, where no transition is claimable.
+    /// `None` on a site's first-ever scan, where no transition is claimable.
     prev_cutoff: Option<DateTime<Utc>>,
 }
 
@@ -568,7 +568,7 @@ fn compute_digest_status<T: DiscoveryTracked>(
 ///
 /// Absence of detection is only meaningful for an entity the session could have
 /// reached. Without this gate a targeted-subnet scan, a second daemon covering
-/// disjoint subnets, or a Docker/self-report run reports the rest of the network
+/// disjoint subnets, or a Docker/self-report run reports the rest of the site
 /// as stale.
 enum ScanCoverage {
     /// Swept these subnets. A host is covered iff it holds a live IP in one.
@@ -632,7 +632,7 @@ impl ScanCoverage {
         }
     }
 
-    /// Whether this session swept subnets at all. Network-scoped conclusions
+    /// Whether this session swept subnets at all. Site-scoped conclusions
     /// (VLANs) are only drawn from a run that did.
     fn swept_subnets(&self) -> bool {
         matches!(self, Self::Subnets(s) if !s.is_empty())
@@ -793,9 +793,9 @@ fn vlan_summary(v: &Vlan) -> VlanSummary {
 mod tests {
     use super::*;
     use crate::server::hosts::r#impl::base::HostBase;
-    use crate::server::networks::r#impl::{DEFAULT_STALE_AFTER_HOURS, Network, NetworkBase};
     use crate::server::services::r#impl::base::{Service as Svc, ServiceBase};
     use crate::server::shared::types::entities::EntitySource;
+    use crate::server::sites::r#impl::{DEFAULT_STALE_AFTER_HOURS, Site, SiteBase};
 
     const HOUR: i64 = 3600;
 
@@ -804,12 +804,12 @@ mod tests {
         DateTime::from_timestamp(1_800_000_000 - secs_ago, 0).unwrap()
     }
 
-    fn network(stale_after_hours: Option<i64>) -> Network {
-        Network {
+    fn site(stale_after_hours: Option<i64>) -> Site {
+        Site {
             id: Uuid::new_v4(),
-            base: NetworkBase {
+            base: SiteBase {
                 stale_after_hours,
-                ..NetworkBase::new(Uuid::new_v4())
+                ..SiteBase::new(Uuid::new_v4())
             },
             ..Default::default()
         }
@@ -840,10 +840,10 @@ mod tests {
         }
     }
 
-    /// Window anchored at the reference instant, for a network with the given
+    /// Window anchored at the reference instant, for a site with the given
     /// threshold, with the previous session `prev_secs_ago` before it.
     fn window(stale_after_hours: i64, prev_secs_ago: Option<i64>) -> DigestWindow {
-        let net = network(Some(stale_after_hours));
+        let net = site(Some(stale_after_hours));
         let t_end = t(0);
         DigestWindow {
             t_start: t(600),
@@ -997,7 +997,7 @@ mod tests {
     fn verdict_depends_on_elapsed_time_not_on_how_many_scans_were_missed() {
         let w = window(24 * 7, Some(HOUR));
 
-        // Fast-cadence network: missing many scans, but only 45 minutes.
+        // Fast-cadence site: missing many scans, but only 45 minutes.
         let missed_three_quarter_hourly_scans = host(45 * 60);
         assert_eq!(
             compute_digest_status(&missed_three_quarter_hourly_scans, &none_scanned(), &w).0,
@@ -1005,7 +1005,7 @@ mod tests {
             "45 minutes is not stale under a 7-day window, however many scans it spans"
         );
 
-        // Slow-cadence network: missed a single scan, but a month has passed.
+        // Slow-cadence site: missed a single scan, but a month has passed.
         let missed_one_monthly_scan = host(30 * 24 * HOUR);
         assert_eq!(
             compute_digest_status(&missed_one_monthly_scan, &none_scanned(), &w).0,
@@ -1015,16 +1015,16 @@ mod tests {
     }
 
     #[test]
-    fn a_network_with_no_configured_window_falls_back_to_the_default() {
-        let default_net = network(None);
-        let explicit_net = network(Some(DEFAULT_STALE_AFTER_HOURS));
+    fn a_site_with_no_configured_window_falls_back_to_the_default() {
+        let default_net = site(None);
+        let explicit_net = site(Some(DEFAULT_STALE_AFTER_HOURS));
         assert_eq!(
             default_net.stale_cutoff(t(0)),
             explicit_net.stale_cutoff(t(0))
         );
 
         // And a tighter window genuinely bites sooner.
-        let strict = network(Some(1));
+        let strict = site(Some(1));
         assert!(strict.stale_cutoff(t(0)) > default_net.stale_cutoff(t(0)));
     }
 
@@ -1081,7 +1081,7 @@ mod tests {
     }
 
     #[test]
-    fn no_transition_is_claimed_on_a_networks_first_scan() {
+    fn no_transition_is_claimed_on_a_sites_first_scan() {
         let w = window(24 * 7, None);
         let (status, is_fresh) = compute_digest_status(&host(30 * 24 * HOUR), &none_scanned(), &w);
         assert_eq!(status, EntityFreshness::Stale);
@@ -1202,7 +1202,7 @@ mod tests {
             );
             assert!(
                 !coverage.swept_subnets(),
-                "network-wide conclusions (VLANs) must not be drawn from it"
+                "site-wide conclusions (VLANs) must not be drawn from it"
             );
         }
     }

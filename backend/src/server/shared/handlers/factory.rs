@@ -4,6 +4,7 @@ use crate::server::config::{__path_get_public_config, get_public_config};
 use crate::server::daemons::handlers::{__path_get_windows_msi, get_windows_msi};
 use crate::server::github::handlers::{__path_get_stars, get_stars};
 use crate::server::openapi::tags as api_tags;
+use crate::server::shared::legacy::network_wire_middleware;
 use crate::server::shared::types::api::ApiResponse;
 use crate::server::{
     auth::handlers as auth_handlers, billing::handlers as billing_handlers,
@@ -12,11 +13,11 @@ use crate::server::{
     daemon_api_keys::handlers as daemon_api_key_handlers, daemons::handlers as daemon_handlers,
     dashboard::handlers as dashboard_handlers, dependencies::handlers as dependency_handlers,
     discovery::handlers as discovery_handlers, hosts::handlers as host_handlers,
-    interfaces::handlers as if_entry_handlers, invites::handlers as invite_handlers,
-    ip_addresses::handlers as interface_handlers, license::handlers as license_handlers,
-    metrics::handlers as metrics_handlers, networks::handlers as network_handlers,
-    organizations::handlers as organization_handlers, ports::handlers as port_handlers,
-    services::handlers as service_handlers, shares::handlers as share_handlers,
+    interfaces::handlers as interface_handlers, invites::handlers as invite_handlers,
+    ip_addresses::handlers as ip_address_handlers, license::handlers as license_handlers,
+    metrics::handlers as metrics_handlers, organizations::handlers as organization_handlers,
+    ports::handlers as port_handlers, services::handlers as service_handlers,
+    shares::handlers as share_handlers, sites::handlers as site_handlers,
     snapshots::handlers as snapshot_handlers, subnets::handlers as subnet_handlers,
     tags::handlers as tag_handlers, topology::handlers as topology_handlers,
     user_api_keys::handlers as user_api_key_handlers, users::handlers as user_handlers,
@@ -71,9 +72,9 @@ pub async fn get_version() -> Json<ApiResponse<VersionInfo>> {
 fn create_billed_openapi_routes() -> OpenApiRouter<Arc<AppState>> {
     OpenApiRouter::new()
         .nest("/api/v1/hosts", host_handlers::create_router())
-        .nest("/api/v1/ip-addresses", interface_handlers::create_router())
+        .nest("/api/v1/ip-addresses", ip_address_handlers::create_router())
         .nest("/api/v1/subnets", subnet_handlers::create_router())
-        .nest("/api/v1/networks", network_handlers::create_router())
+        .nest("/api/v1/sites", site_handlers::create_router())
         .nest("/api/v1/dependencies", dependency_handlers::create_router())
         .nest("/api/v1/daemons", daemon_handlers::create_router())
         .nest("/api/v1/dashboard", dashboard_handlers::create_router())
@@ -96,7 +97,7 @@ fn create_billed_openapi_routes() -> OpenApiRouter<Arc<AppState>> {
         )
         // Credential routes
         .nest("/api/v1/credentials", credential_handlers::create_router())
-        .nest("/api/v1/if-entries", if_entry_handlers::create_router())
+        .nest("/api/v1/interfaces", interface_handlers::create_router())
         .nest("/api/v1/vlans", vlan_handlers::create_router())
         // Topology endpoints (tagged as internal - hidden from public docs)
         .nest("/api/v1/topology", topology_handlers::create_router())
@@ -192,6 +193,8 @@ pub fn create_router(state: Arc<AppState>) -> (Router<Arc<AppState>>, OpenApi) {
         .merge(exempt_router)
         .merge(legacy_entity_router)
         .merge(cacheable_routes)
+        // Old daemons read `network_id`; inside the capture layer so fixtures record the wire.
+        .layer(middleware::from_fn(network_wire_middleware))
         // Fixture capture middleware (no-op unless capture-fixtures feature is enabled)
         .layer(middleware::from_fn(capture_fixtures_middleware));
 

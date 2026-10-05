@@ -23,7 +23,7 @@ pub struct DiscoveryDigest<'a> {
 
 impl Email for DiscoveryDigest<'_> {
     fn subject(&self) -> String {
-        format!("{}: {}", TITLE, self.payload.network_name)
+        format!("{}: {}", TITLE, self.payload.site_name)
     }
 
     fn category(&self) -> EmailCategory {
@@ -65,7 +65,7 @@ impl Email for DiscoveryDigest<'_> {
         let vlans_added_section = render_vlan_list_section("VLANs detected", &payload.vlans_added);
         let vlans_stale_section = render_vlan_list_section("Stale VLANs", &payload.vlans_stale);
 
-        BODY.replace("{network_name}", &html_escape(&payload.network_name))
+        BODY.replace("{site_name}", &html_escape(&payload.site_name))
             .replace("{started_at}", &started)
             .replace("{finished_at}", &finished)
             .replace("{settings_url}", settings_url)
@@ -86,7 +86,7 @@ const BODY: &str = r#"                    <!-- Main Content -->
                     <tr>
                         <td style="padding: 0 40px 20px 40px;">
                             <h1 style="margin: 0 0 20px 0; font-size: 24px; font-weight: 600; color: #1a1a1a; text-align: center;">Discovery scan summary</h1>
-                            <p style="margin: 0 0 8px 0; font-size: 16px; line-height: 24px; color: #4a4a4a;">Network: <strong>{network_name}</strong></p>
+                            <p style="margin: 0 0 8px 0; font-size: 16px; line-height: 24px; color: #4a4a4a;">Site: <strong>{site_name}</strong></p>
                             <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 20px; color: #6b7280;">Scan ran {started_at} → {finished_at}.</p>
                             {summary_section}
                             {legend_section}
@@ -102,7 +102,7 @@ const BODY: &str = r#"                    <!-- Main Content -->
                     <!-- Settings Link -->
                     <tr>
                         <td style="padding: 0 40px 30px 40px; border-top: 1px solid #e5e7eb;">
-                            <p style="margin: 20px 0 0 0; font-size: 13px; line-height: 18px; color: #9ca3af;">You're receiving this because you have access to {network_name} on Scanopy. <a href="{settings_url}" style="color: #2563eb;">Manage email preferences</a>.</p>
+                            <p style="margin: 20px 0 0 0; font-size: 13px; line-height: 18px; color: #9ca3af;">You're receiving this because you have access to {site_name} on Scanopy. <a href="{settings_url}" style="color: #2563eb;">Manage email preferences</a>.</p>
                         </td>
                     </tr>
 "#;
@@ -132,7 +132,7 @@ struct TagItem {
 fn render_tag(tag: &TagItem) -> String {
     let (bg, fg) = tag.color.email_tag_hex();
     // No strikethrough for stale: it reads as "removed", and the only claim we
-    // make is "not observed within this network's window". Italic carries the
+    // make is "not observed within this site's window". Italic carries the
     // softer meaning and survives every mail client.
     let (prefix, label_style) = match tag.status {
         EntityFreshness::New => ("+ ", ""),
@@ -221,13 +221,13 @@ fn render_section(heading: &str, body_html: &str) -> String {
 /// stays bound to the entity type. Placed at the top of the body just
 /// below the summary banner.
 ///
-/// The staleness window is per-network, so the legend states this network's
+/// The staleness window is per-site, so the legend states this site's
 /// effective value rather than a fixed rule. Wording matches the app's badge
 /// ("Stale") so the same entity reads the same way in both places.
 fn render_legend(stale_after_hours: i64) -> String {
     let window = humanize_hours(stale_after_hours);
     format!(
-        r#"<div style="margin: 0 0 16px 0; padding: 10px 14px; background-color: #f9fafb; border-radius: 6px; font-size: 12px; color: #4b5563; line-height: 1.5;"><div style="margin: 0 0 6px 0;"><span style="margin-right: 14px;">(<strong>+</strong> new)</span><span style="margin-right: 14px;">(current)</span><span>(<strong>◷</strong> <em>stale</em>)</span></div><div style="font-size: 12px; color: #6b7280;"><strong>◷</strong> means discovery hasn't observed this entity for {window}, this network's staleness window. It doesn't mean the entity was removed — it may simply be powered off or out of reach. Entities this scan didn't cover aren't listed at all.</div></div>"#,
+        r#"<div style="margin: 0 0 16px 0; padding: 10px 14px; background-color: #f9fafb; border-radius: 6px; font-size: 12px; color: #4b5563; line-height: 1.5;"><div style="margin: 0 0 6px 0;"><span style="margin-right: 14px;">(<strong>+</strong> new)</span><span style="margin-right: 14px;">(current)</span><span>(<strong>◷</strong> <em>stale</em>)</span></div><div style="font-size: 12px; color: #6b7280;"><strong>◷</strong> means discovery hasn't observed this entity for {window}, this site's staleness window. It doesn't mean the entity was removed — it may simply be powered off or out of reach. Entities this scan didn't cover aren't listed at all.</div></div>"#,
     )
 }
 

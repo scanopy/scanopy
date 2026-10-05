@@ -7,7 +7,6 @@ use scanopy::server::hosts::r#impl::base::Host;
 use scanopy::server::interfaces::r#impl::base::Interface;
 use scanopy::server::invites::r#impl::base::Invite;
 use scanopy::server::ip_addresses::r#impl::base::IPAddress;
-use scanopy::server::networks::r#impl::Network;
 use scanopy::server::organizations::r#impl::base::Organization;
 use scanopy::server::ports::r#impl::base::Port;
 use scanopy::server::services::definitions::ServiceDefinitionRegistry;
@@ -18,6 +17,7 @@ use scanopy::server::shared::fixtures::generate_ui_data_fixtures;
 use scanopy::server::shared::storage::traits::{Entity, Storable};
 use scanopy::server::shared::types::metadata::EntityMetadataProvider;
 use scanopy::server::shares::r#impl::base::Share;
+use scanopy::server::sites::r#impl::Site;
 use scanopy::server::subnets::r#impl::base::Subnet;
 use scanopy::server::tags::r#impl::base::Tag;
 use scanopy::server::topology::types::base::Topology;
@@ -352,7 +352,7 @@ async fn generate_entity_metadata_json() -> Result<(), Box<dyn std::error::Error
         EntityMetadataEntry::new::<Invite>("invite"),
         EntityMetadataEntry::new::<UserApiKey>("user_api_key"),
         // Network Infrastructure
-        EntityMetadataEntry::new::<Network>("network"),
+        EntityMetadataEntry::new::<Site>("site"),
         EntityMetadataEntry::new::<Host>("host"),
         EntityMetadataEntry::new::<Subnet>("subnet"),
         EntityMetadataEntry::new::<IPAddress>("ip_address"),

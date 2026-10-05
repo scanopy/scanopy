@@ -28,7 +28,6 @@ use crate::server::{
         service::IPAddressService,
     },
     lldp::{IdentityResolution, LldpInventorySnapshot, LldpResolver, resolver::LldpResolverImpl},
-    networks::service::NetworkService,
     organizations::service::OrganizationService,
     ports::{r#impl::base::Port, service::PortService},
     services::{
@@ -52,6 +51,7 @@ use crate::server::{
             entities::{EntitySource, EntitySourceDiscriminants},
         },
     },
+    sites::service::SiteService,
     subnets::{r#impl::base::Subnet, service::SubnetService},
     tags::entity_tags::EntityTagService,
     vlans::service::VlanService,
@@ -71,7 +71,7 @@ use uuid::Uuid;
 pub struct HostLimitContext {
     pub limit: u64,
     pub org_id: Uuid,
-    pub org_network_ids: Vec<Uuid>,
+    pub org_site_ids: Vec<Uuid>,
     pub plan: crate::server::billing::types::base::BillingPlan,
 }
 
@@ -86,10 +86,10 @@ pub struct HostService {
     credential_service: Arc<CredentialService>,
     subnet_service: Arc<SubnetService>,
     vlan_service: Arc<VlanService>,
-    /// Reads the network's staleness window, which is what decides whether a link's neighbour
+    /// Reads the site's staleness window, which is what decides whether a link's neighbour
     /// evidence still counts. Via the service, never the storage layer.
-    network_service: Arc<NetworkService>,
-    /// Reads the plan a network's organization is on, so minting a host for an unplaceable far end
+    site_service: Arc<SiteService>,
+    /// Reads the plan a site's organization is on, so minting a host for an unplaceable far end
     /// is gated by the same limit every other creation path is. Via the service, never storage.
     organization_service: Arc<OrganizationService>,
     event_bus: Arc<EventBus>,
@@ -101,8 +101,8 @@ impl EventBusService<Host> for HostService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, entity: &Host) -> Option<Uuid> {
-        Some(entity.base.network_id)
+    fn get_site_id(&self, entity: &Host) -> Option<Uuid> {
+        Some(entity.base.site_id)
     }
     fn get_organization_id(&self, _entity: &Host) -> Option<Uuid> {
         None
@@ -130,8 +130,8 @@ impl CrudService<Host> for HostService {
     /// - Both hosts are from discovery (merges discovery metadata)
     /// - OR the IDs already match (handles re-discovery of known hosts)
     async fn create(&self, host: Host, authentication: AuthenticatedEntity) -> Result<Host> {
-        // DB-level lock, scoped to the network: serializes the dedup in
-        // `create_unlocked` across all backend instances. Keyed by network
+        // DB-level lock, scoped to the site: serializes the dedup in
+        // `create_unlocked` across all backend instances. Keyed by site
         // (not host id) because two concurrent submissions of the same NEW
         // device carry distinct fresh UUIDs. Error paths release via Drop.
         //
@@ -144,7 +144,7 @@ impl CrudService<Host> for HostService {
             .storage()
             .session_lock(
                 LockKey::HostDedup {
-                    network_id: host.base.network_id,
+                    site_id: host.base.site_id,
                 },
                 DEFAULT_LOCK_TIMEOUT,
             )
@@ -175,7 +175,7 @@ impl CrudService<Host> for HostService {
         if let Some(scope) = EntityScope::from_ids(
             updated.id(),
             updated.clone().into(),
-            self.get_network_id(&updated),
+            self.get_site_id(&updated),
             self.get_organization_id(&updated),
         ) {
             self.event_bus()
@@ -885,7 +885,7 @@ mod tests {
     /// A device that changed address between scans, or one minted from a neighbour's report into
     /// a range later scanned under a different subnet id. Every address tier fails — the IP is new
     /// and the subnet id differs — and without the chassis tier the scan creates a second host for
-    /// a device this network already holds.
+    /// a device this site already holds.
     #[test]
     fn a_device_that_changed_address_still_matches_on_its_chassis_id() {
         let known = Uuid::new_v4();

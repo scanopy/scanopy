@@ -10,7 +10,7 @@ import { getInfrastructureRuleIdForTopology } from '$lib/features/topology/queri
  * and one infrastructure service read "3 workloads".
  */
 
-const NETWORK_ID = 'net-1';
+const SITE_ID = 'net-1';
 const INFRA_RULE_ID = 'infra-rule-id';
 
 function serviceElement(id: string, containerId: string) {
@@ -26,7 +26,7 @@ function serviceElement(id: string, containerId: string) {
 function buildTopology(): RenderableTopology {
 	return {
 		id: 'topo-1',
-		network_id: NETWORK_ID,
+		site_id: SITE_ID,
 		name: 'test',
 		options: {
 			request: {
@@ -42,8 +42,8 @@ function buildTopology(): RenderableTopology {
 			}
 		},
 		hosts: [
-			{ id: 'host-1', network_id: NETWORK_ID, tags: [] },
-			{ id: 'vm-host', network_id: NETWORK_ID, tags: [] }
+			{ id: 'host-1', site_id: SITE_ID, tags: [] },
+			{ id: 'vm-host', site_id: SITE_ID, tags: [] }
 		],
 		subnets: [],
 		ip_addresses: [],

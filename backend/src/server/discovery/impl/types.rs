@@ -43,7 +43,7 @@ pub enum DiscoveryType {
     },
     #[schema(title = "Network")]
     Network {
-        /// Subnets to sweep. `null` sweeps every subnet on the network.
+        /// Subnets to sweep. `null` sweeps every subnet on the site.
         #[schema(required)]
         subnet_ids: Option<Vec<Uuid>>,
         /// What to name a host by when reverse DNS gives nothing.

@@ -2,9 +2,9 @@
 	import { entities } from '$lib/shared/stores/metadata';
 	import type { components } from '$lib/api/schema';
 
-	type NetworkSummary = components['schemas']['NetworkSummary'];
+	type SiteSummary = components['schemas']['SiteSummary'];
 
-	let { network }: { network: NetworkSummary } = $props();
+	let { site }: { site: SiteSummary } = $props();
 
 	const HostIcon = entities.getIconComponent('Host');
 	const ServiceIcon = entities.getIconComponent('Service');
@@ -18,23 +18,23 @@
 </script>
 
 <div class="card card-static">
-	<h4 class="text-primary mb-3 truncate text-sm font-semibold">{network.name}</h4>
+	<h4 class="text-primary mb-3 truncate text-sm font-semibold">{site.name}</h4>
 	<div class="grid grid-cols-2 gap-3">
 		<div class="flex items-center gap-2">
 			<HostIcon class="h-4 w-4 flex-shrink-0 {hostColor}" />
-			<span class="text-secondary text-sm">{network.host_count} hosts</span>
+			<span class="text-secondary text-sm">{site.host_count} hosts</span>
 		</div>
 		<div class="flex items-center gap-2">
 			<ServiceIcon class="h-4 w-4 flex-shrink-0 {serviceColor}" />
-			<span class="text-secondary text-sm">{network.service_count} services</span>
+			<span class="text-secondary text-sm">{site.service_count} services</span>
 		</div>
 		<div class="flex items-center gap-2">
 			<SubnetIcon class="h-4 w-4 flex-shrink-0 {subnetColor}" />
-			<span class="text-secondary text-sm">{network.subnet_count} subnets</span>
+			<span class="text-secondary text-sm">{site.subnet_count} subnets</span>
 		</div>
 		<div class="flex items-center gap-2">
 			<DaemonIcon class="h-4 w-4 flex-shrink-0 {daemonColor}" />
-			<span class="text-secondary text-sm">{network.daemon_count} daemons</span>
+			<span class="text-secondary text-sm">{site.daemon_count} daemons</span>
 		</div>
 	</div>
 </div>

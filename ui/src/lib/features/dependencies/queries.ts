@@ -165,7 +165,7 @@ import type { Color } from '$lib/shared/utils/styling';
 /**
  * Create empty form data for creating a new dependency
  */
-export function createEmptyDependencyFormData(defaultNetworkId?: string): Dependency {
+export function createEmptyDependencyFormData(defaultSiteId?: string): Dependency {
 	return {
 		id: uuidv4Sentinel,
 		name: '',
@@ -177,7 +177,7 @@ export function createEmptyDependencyFormData(defaultNetworkId?: string): Depend
 		source: {
 			type: 'Manual'
 		},
-		network_id: defaultNetworkId ?? '',
+		site_id: defaultSiteId ?? '',
 		color: entities.getColorHelper('Dependency').color as Color,
 		edge_style: 'Straight',
 		tags: []

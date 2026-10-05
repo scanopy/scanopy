@@ -253,14 +253,14 @@ impl BillingService {
         organization_id: Uuid,
         target_plan: BillingPlan,
     ) -> Result<ChangePlanPreview, Error> {
-        let org_filter = StorableFilter::<Network>::new_from_org_id(&organization_id);
-        let networks = self.network_service.get_all(org_filter.clone()).await?;
-        let network_ids: Vec<Uuid> = networks.iter().map(|n| n.id).collect();
+        let org_filter = StorableFilter::<Site>::new_from_org_id(&organization_id);
+        let sites = self.site_service.get_all(org_filter.clone()).await?;
+        let site_ids: Vec<Uuid> = sites.iter().map(|n| n.id).collect();
 
-        // count_for_networks/count_for_org narrow to live rows, so snapshot
+        // count_for_sites/count_for_org narrow to live rows, so snapshot
         // closed-copies don't inflate the billable host/seat counts against
         // plan limits.
-        let host_count = self.host_service.count_for_networks(&network_ids).await?;
+        let host_count = self.host_service.count_for_sites(&site_ids).await?;
         let seat_count = self.user_service.count_for_org(&organization_id).await?;
 
         let target_config = target_plan.config();
@@ -270,9 +270,9 @@ impl BillingService {
             .map(|limit| host_count.saturating_sub(limit))
             .unwrap_or(0);
 
-        let excess_networks = target_config
-            .included_networks
-            .map(|limit| (networks.len() as u64).saturating_sub(limit))
+        let excess_sites = target_config
+            .included_sites
+            .map(|limit| (sites.len() as u64).saturating_sub(limit))
             .unwrap_or(0);
 
         let excess_seats = target_config
@@ -282,7 +282,7 @@ impl BillingService {
 
         Ok(ChangePlanPreview {
             excess_hosts,
-            excess_networks,
+            excess_sites,
             excess_seats,
         })
     }
@@ -370,12 +370,12 @@ impl BillingService {
                 ..Default::default()
             }];
             // A plan with no add-on prices (the self-hosted tiers, Starter)
-            // also drops any seat/network add-on items. They are priced for
+            // also drops any seat/site add-on items. They are priced for
             // the old plan, and Stripe rejects a subscription whose items
             // bill on different intervals, such as a monthly add-on beside a
             // yearly self-hosted base.
             let target_config = target_plan.config();
-            if target_config.seat_cents.is_none() && target_config.network_cents.is_none() {
+            if target_config.seat_cents.is_none() && target_config.site_cents.is_none() {
                 items.extend(
                     sub.items
                         .data

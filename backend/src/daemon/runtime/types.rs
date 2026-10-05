@@ -10,7 +10,7 @@ use crate::daemon::{
 
 #[derive(Serialize, Deserialize)]
 pub struct InitializeDaemonRequest {
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub api_key: String,
 }
 

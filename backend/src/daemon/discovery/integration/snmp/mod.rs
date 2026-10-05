@@ -310,7 +310,7 @@ impl DiscoveryIntegration for SnmpIntegration {
         // claiming otherwise makes the server clear the very columns this checkpoint exists to
         // protect. Pruning acts on the interface *set*, so `set_complete` is what gates it — not
         // whether every attribute column also finished (#649).
-        let network_id = host_data.host.base.network_id;
+        let site_id = host_data.host.base.site_id;
         let no_vlan_uuids = std::collections::HashMap::new();
         host_data.contribute_interfaces(
             ctx.interface_source,
@@ -322,7 +322,7 @@ impl DiscoveryIntegration for SnmpIntegration {
                     // authoritative interface set is written later in this same poll.
                     convert_snmp_if_entry(
                         entry,
-                        network_id,
+                        site_id,
                         &[],
                         &[],
                         &[],
@@ -673,7 +673,7 @@ impl DiscoveryIntegration for SnmpIntegration {
                 vlans = ?vlan_table.iter().map(|v| format!("{}={}", v.vlan_id, v.name)).collect::<Vec<_>>(),
                 "VLAN table entries collected"
             );
-            match ctx.ops.upsert_vlans(&vlan_table, network_id).await {
+            match ctx.ops.upsert_vlans(&vlan_table, site_id).await {
                 Ok(mapping) => mapping,
                 Err(e) => {
                     tracing::warn!(ip = %ip, error = %e, "Failed to upsert VLANs, VLAN IDs will not be resolved");
@@ -811,7 +811,7 @@ impl DiscoveryIntegration for SnmpIntegration {
                 .map(|entry| {
                     convert_snmp_if_entry(
                         entry,
-                        network_id,
+                        site_id,
                         &lldp_neighbors,
                         &cdp_neighbors,
                         &bridge_fdb,
@@ -999,7 +999,7 @@ impl DiscoveryIntegration for SnmpIntegration {
             let Some(new_subnet) = Subnet::from_discovery(
                 if_name,
                 &ip_network,
-                network_id,
+                site_id,
                 AttributeSource::Probe(ClientProbe::Snmp),
             ) else {
                 continue;
@@ -1013,7 +1013,7 @@ impl DiscoveryIntegration for SnmpIntegration {
                         address = %entry_ip,
                         reported = %new_subnet.base.cidr,
                         subnet = %held.base.cidr,
-                        "ipAddrTable entry falls on a subnet this network holds"
+                        "ipAddrTable entry falls on a subnet this site holds"
                     );
                     held.clone()
                 }
@@ -1064,7 +1064,7 @@ impl DiscoveryIntegration for SnmpIntegration {
                     .and_then(|e| e.if_phys_address);
 
                 host_data.add_ip_address(IPAddress::new(IPAddressBase {
-                    network_id,
+                    site_id,
                     host_id: Uuid::nil(),
                     name: None,
                     subnet_id: subnet.id,
@@ -1099,11 +1099,11 @@ impl DiscoveryIntegration for SnmpIntegration {
                 &ipnetwork::IpNetwork::V4(
                     ipnetwork::Ipv4Network::new(std::net::Ipv4Addr::new(127, 0, 0, 1), 8).unwrap(),
                 ),
-                network_id,
+                site_id,
                 AttributeSource::Probe(ClientProbe::Snmp),
             );
             if let Some(loopback_subnet) = loopback_subnet {
-                // Every network is seeded with a loopback subnet, so this reuses that row's id
+                // Every site is seeded with a loopback subnet, so this reuses that row's id
                 // rather than asking the server to dedup a fresh one onto it.
                 let loopback_subnet_id = match place_reported_range(
                     &loopback_subnet.base.cidr,
@@ -1127,7 +1127,7 @@ impl DiscoveryIntegration for SnmpIntegration {
                 };
                 if let Some(subnet_id) = loopback_subnet_id {
                     host_data.add_ip_address(IPAddress::new(IPAddressBase {
-                        network_id,
+                        site_id,
                         host_id: Uuid::nil(),
                         name: Some("lo".to_string()),
                         subnet_id,
@@ -1156,7 +1156,7 @@ impl DiscoveryIntegration for SnmpIntegration {
 
             if let Some(remote_subnet) = matching_subnet {
                 let arp_interface = IPAddress::new(IPAddressBase {
-                    network_id,
+                    site_id,
                     host_id: Uuid::nil(),
                     name: None,
                     subnet_id: remote_subnet.id,
@@ -1173,7 +1173,7 @@ impl DiscoveryIntegration for SnmpIntegration {
                 // An ARP entry carries an address and nothing else. The host stays unnamed: the
                 // display ladder titles it by that address without a copy in `name`.
                 let arp_host = Host::new(HostBase {
-                    network_id,
+                    site_id,
                     source: EntitySource::Discovery,
                     ..Default::default()
                 });
@@ -1222,7 +1222,7 @@ impl DiscoveryIntegration for SnmpIntegration {
 /// Where an address a device reports in its ipAddrTable belongs.
 #[derive(Debug)]
 enum ReportedRange<'a> {
-    /// No held subnet overlaps the reported range, so it is a segment this network does not hold
+    /// No held subnet overlaps the reported range, so it is a segment this site does not hold
     /// yet: a router interface on another VLAN.
     New,
     /// The address goes on this held subnet. Either the reported range is that subnet, or the
@@ -1237,10 +1237,10 @@ enum ReportedRange<'a> {
 /// A device's netmask describes how that device is configured, not how the segment is built. A
 /// host on a `/22` with a `/24` mask still answers ARP across the whole `/22`, and creating its
 /// `/24` splits the segment: every address in that `/24` then lands on a subnet nothing else
-/// agrees exists. So a reported range becomes a subnet only when it overlaps nothing the network
+/// agrees exists. So a reported range becomes a subnet only when it overlaps nothing the site
 /// already holds. Otherwise the address goes on the held subnet that contains it.
 ///
-/// `held` is the network's live subnets minus the organizational `0.0.0.0/0` rows and container
+/// `held` is the site's live subnets minus the organizational `0.0.0.0/0` rows and container
 /// bridges, which overlap real ranges without describing the same segment, and minus inferred
 /// ranges, which a device's reading corrects server-side.
 fn place_reported_range<'a>(

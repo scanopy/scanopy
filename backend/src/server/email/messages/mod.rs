@@ -344,7 +344,7 @@ pub const FOOTER_LEGAL_SELF_HOSTED: &str = r#"                            <p sty
 mod tests {
     use super::*;
     use crate::server::digest::payload::DiscoveryDigestPayload;
-    use crate::server::networks::r#impl::DEFAULT_STALE_AFTER_HOURS;
+    use crate::server::sites::r#impl::DEFAULT_STALE_AFTER_HOURS;
     use uuid::Uuid;
 
     /// True if `s` still contains a `{snake_case}` placeholder — i.e. an
@@ -445,7 +445,7 @@ mod tests {
             "discovery_guide",
             &DiscoveryGuide {
                 daemon_name: "daemon-1",
-                network_name: "Home",
+                site_name: "Home",
             },
         );
         f(
@@ -459,14 +459,14 @@ mod tests {
             "daemon_standby",
             &DaemonStandby {
                 daemon_name: "daemon-1",
-                network_name: "Home",
+                site_name: "Home",
             },
         );
         f(
             "daemon_unreachable",
             &DaemonUnreachable {
                 daemon_name: "daemon-1",
-                network_name: "Home",
+                site_name: "Home",
             },
         );
         f(
@@ -492,7 +492,7 @@ mod tests {
                 plan_name: "Pro",
                 billing_period: "Monthly",
                 hosts_count: 12,
-                networks_count: 3,
+                sites_count: 3,
                 daemons_count: 2,
                 services_count: 20,
                 days_into_trial: 11,
@@ -505,7 +505,7 @@ mod tests {
                 plan_name: "Pro",
                 billing_period: "Monthly",
                 hosts_count: 12,
-                networks_count: 3,
+                sites_count: 3,
                 daemons_count: 2,
                 services_count: 20,
                 days_into_trial: 11,
@@ -843,8 +843,8 @@ mod tests {
 
         let payload = DiscoveryDigestPayload {
             session_id: Uuid::nil(),
-            network_id: Uuid::nil(),
-            network_name: "Home".to_string(),
+            site_id: Uuid::nil(),
+            site_name: "Home".to_string(),
             started_at: chrono::Utc::now(),
             finished_at: chrono::Utc::now(),
             stale_after_hours: DEFAULT_STALE_AFTER_HOURS,

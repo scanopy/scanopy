@@ -105,18 +105,18 @@ export const queryKeys = {
 		byService: (serviceId: string) => [...queryKeys.bindings.all, 'service', serviceId] as const,
 		detail: (id: string) => [...queryKeys.bindings.all, 'detail', id] as const
 	},
-	networks: {
-		all: ['networks'] as const,
-		detail: (id: string) => [...queryKeys.networks.all, 'detail', id] as const
+	sites: {
+		all: ['sites'] as const,
+		detail: (id: string) => [...queryKeys.sites.all, 'detail', id] as const
 	},
 	subnets: {
 		all: ['subnets'] as const,
-		byNetwork: (networkId: string) => [...queryKeys.subnets.all, 'network', networkId] as const,
+		bySite: (siteId: string) => [...queryKeys.subnets.all, 'site', siteId] as const,
 		detail: (id: string) => [...queryKeys.subnets.all, 'detail', id] as const
 	},
 	vlans: {
 		all: ['vlans'] as const,
-		byNetwork: (networkId: string) => [...queryKeys.vlans.all, 'network', networkId] as const,
+		bySite: (siteId: string) => [...queryKeys.vlans.all, 'site', siteId] as const,
 		detail: (id: string) => [...queryKeys.vlans.all, 'detail', id] as const
 	},
 	dependencies: {
@@ -165,12 +165,12 @@ export const queryKeys = {
 	topology: {
 		all: ['topology'] as const,
 		detail: (id: string) => [...queryKeys.topology.all, 'detail', id] as const,
-		data: (networkId: string, snapshotId: string | undefined) =>
-			[...queryKeys.topology.all, 'data', networkId, snapshotId ?? null] as const
+		data: (siteId: string, snapshotId: string | undefined) =>
+			[...queryKeys.topology.all, 'data', siteId, snapshotId ?? null] as const
 	},
 	snapshots: {
 		all: ['snapshots'] as const,
-		byNetwork: (networkId: string) => [...queryKeys.snapshots.all, 'network', networkId] as const,
+		bySite: (siteId: string) => [...queryKeys.snapshots.all, 'site', siteId] as const,
 		detail: (id: string) => [...queryKeys.snapshots.all, 'detail', id] as const
 	},
 	billing: {

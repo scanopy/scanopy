@@ -20,7 +20,7 @@ pub async fn trigger_discovery(
     client: &TestClient,
     daemon_id: Uuid,
     host_id: Uuid,
-    network_id: Uuid,
+    site_id: Uuid,
 ) -> Result<Uuid, String> {
     println!("\n=== Creating Discovery for ServerPoll Daemon ===");
 
@@ -39,7 +39,7 @@ pub async fn trigger_discovery(
             run_type: RunType::AdHoc { last_run: None },
             name: "ServerPoll Integration Test Discovery".to_string(),
             daemon_id,
-            network_id,
+            site_id,
             tags: vec![],
         },
         scan_count: 0,
@@ -160,14 +160,11 @@ pub async fn verify_home_assistant_discovered(client: &TestClient) -> Result<Ser
     .await
 }
 
-pub async fn create_dependency(
-    client: &TestClient,
-    network_id: Uuid,
-) -> Result<Dependency, String> {
+pub async fn create_dependency(client: &TestClient, site_id: Uuid) -> Result<Dependency, String> {
     println!("\n=== Creating Dependency ===");
 
     let mut dependency = Dependency::new(DependencyBase::default());
-    dependency.base.network_id = network_id;
+    dependency.base.site_id = site_id;
 
     retry("create Dependency", 10, 3, || async {
         let created_dependency: Dependency =

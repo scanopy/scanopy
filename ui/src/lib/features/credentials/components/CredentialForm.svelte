@@ -169,8 +169,8 @@
 	let fieldValues = $state<Record<string, string>>({});
 
 	// Where the credential applies: 'per_host' (Hosts — the daemon's own host
-	// and/or remote hosts by IP) or 'broadcast' (Networks — all hosts on the
-	// network). The available modes and per-host buttons are gated by `targets()`.
+	// and/or remote hosts by IP) or 'broadcast' (Sites — all hosts on the
+	// site). The available modes and per-host buttons are gated by `targets()`.
 	let targetMode = $state<'per_host' | 'broadcast'>('per_host');
 
 	function isDaemonHostValue(value: string): boolean {
@@ -181,7 +181,7 @@
 	let supportedTargets = $derived(
 		(credentialTypes.getMetadata(selectedTypeId)?.targets ?? []) as string[]
 	);
-	let supportsNetworks = $derived(supportedTargets.includes('Network'));
+	let supportsSites = $derived(supportedTargets.includes('Site'));
 	let supportsDaemonHost = $derived(supportedTargets.includes('DaemonHost'));
 	let supportsRemoteHosts = $derived(supportedTargets.includes('Hosts'));
 	let supportsHosts = $derived(supportsDaemonHost || supportsRemoteHosts);
@@ -193,8 +193,8 @@
 	// Guide for the selected type's integration. Comes from the credential metadata rather than a
 	// branch per type, so every credential type links its guide instead of the two that had one.
 	let integrationDocsPath = $derived(credentialTypes.getMetadata(selectedTypeId)?.docs_path ?? '');
-	// Show the Hosts | Networks toggle only when both modes are available.
-	let showTargetModeToggle = $derived(supportsHosts && supportsNetworks);
+	// Show the Hosts | Sites toggle only when both modes are available.
+	let showTargetModeToggle = $derived(supportsHosts && supportsSites);
 
 	// Get field definitions for the currently selected type (labels/placeholders/
 	// help text resolved via meta_* i18n keys with fixture-string fallback)
@@ -398,13 +398,13 @@
 	 *
 	 * Reads `targets` inline rather than through the `supportedTargets` derived, which is
 	 * still stale at this point in the update (same reason `reset()` computes it inline).
-	 * Without this a broadcast mode chosen for a Network-capable type would survive a switch
-	 * to one that excludes Network: the toggle hides, but the mode — and the scope it emits —
+	 * Without this a broadcast mode chosen for a Site-capable type would survive a switch
+	 * to one that excludes Site: the toggle hides, but the mode — and the scope it emits —
 	 * stays broadcast, producing a target the server discards.
 	 */
 	function applyDefaultTargetForType(typeId: string) {
 		const supported = (credentialTypes.getMetadata(typeId)?.targets ?? []) as string[];
-		targetMode = supported.includes('Network') ? 'broadcast' : 'per_host';
+		targetMode = supported.includes('Site') ? 'broadcast' : 'per_host';
 		// When the daemon host is the only per-host target, preselect it (the disabled
 		// 127.0.0.1 row) so there's nothing for the user to add.
 		targetIpValues =
@@ -716,7 +716,7 @@
 	// `validateTarget()`. This avoids a stale empty row (e.g. added then removed)
 	// failing field validation. Only the IP format of non-empty rows is checked.
 	// Broadcast credentials always pass (stale targetIps fields left after toggling
-	// Hosts -> Networks can't block submission). Reads the live, reactive `targetMode`.
+	// Hosts -> Sites can't block submission). Reads the live, reactive `targetMode`.
 	// `value` can be undefined: TanStack keeps a field registered after its row is removed,
 	// and `validateAllFields` on submit then runs it against an index the array no longer
 	// has. An absent value is an empty row, which is valid here.
@@ -822,7 +822,7 @@
 
 		{#if !hideTargets}
 			<!-- Hosts this credential already reaches through the host/credential junction.
-			     Informational, like the network-wide credential line in the wizard — these are
+			     Informational, like the site-wide credential line in the wizard — these are
 			     owned elsewhere, so they are listed rather than offered as editable rows.
 			     Shown in both modes: it is a fact about the credential, not about the choice
 			     being made here. -->

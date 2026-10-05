@@ -36,8 +36,8 @@ impl EventBusService<Interface> for InterfaceService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, entity: &Interface) -> Option<Uuid> {
-        Some(entity.base.network_id)
+    fn get_site_id(&self, entity: &Interface) -> Option<Uuid> {
+        Some(entity.base.site_id)
     }
 
     fn get_organization_id(&self, _entity: &Interface) -> Option<Uuid> {
@@ -133,9 +133,9 @@ impl InterfaceService {
             }
 
             // Validate MAC address consistency if both have MAC addresses
-            if let (Some(if_entry_mac), Some(ip_address_mac)) =
+            if let (Some(interface_mac), Some(ip_address_mac)) =
                 (&entry.base.mac_address, &ip_address.base.mac_address)
-                && if_entry_mac != ip_address_mac
+                && interface_mac != ip_address_mac
             {
                 return Err(ValidationError::new(
                     "ip_address_id references an Interface with a different MAC address",
@@ -221,7 +221,7 @@ impl InterfaceService {
         // `preserve_uncollected_data` above honors it for `fdb_macs`/VLAN membership.
         self.interface_neighbor_service
             .replace_candidates_from_discovery(
-                persisted.base.network_id,
+                persisted.base.site_id,
                 persisted.id,
                 submitted_candidates,
                 collected,

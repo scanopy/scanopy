@@ -167,34 +167,34 @@ mod tests {
     // condition" would silently return every host as stale — the failure mode
     // that turns a filter bug into a wrong answer rather than an error.
     #[test]
-    fn stale_by_network_with_no_cutoffs_matches_nothing() {
+    fn stale_by_site_with_no_cutoffs_matches_nothing() {
         for stale in [true, false] {
-            let filter = StorableFilter::<Host>::new_unfiltered().stale_by_network(&[], stale);
+            let filter = StorableFilter::<Host>::new_unfiltered().stale_by_site(&[], stale);
             assert_eq!(filter.to_where_clause().trim(), "WHERE FALSE");
             assert!(filter.values().is_empty());
         }
     }
 
-    // Each network contributes its own id + cutoff pair, so a host is compared
-    // against its own network's window rather than a single global one.
+    // Each site contributes its own id + cutoff pair, so a host is compared
+    // against its own site's window rather than a single global one.
     #[test]
-    fn stale_by_network_binds_a_cutoff_per_network() {
+    fn stale_by_site_binds_a_cutoff_per_site() {
         let cutoffs = vec![
             (uuid::Uuid::new_v4(), ts(0)),
             (uuid::Uuid::new_v4(), ts(1)),
             (uuid::Uuid::new_v4(), ts(2)),
         ];
-        let filter = StorableFilter::<Host>::new_unfiltered().stale_by_network(&cutoffs, true);
+        let filter = StorableFilter::<Host>::new_unfiltered().stale_by_site(&cutoffs, true);
         assert_eq!(
             filter.values().len(),
             cutoffs.len() * 2,
-            "one network id and one cutoff bound per network"
+            "one site id and one cutoff bound per site"
         );
         let where_clause = filter.to_where_clause();
         assert_eq!(
             where_clause.matches("hosts.last_seen_at").count(),
             cutoffs.len(),
-            "every network gets its own comparison: {where_clause}"
+            "every site gets its own comparison: {where_clause}"
         );
     }
 
@@ -205,11 +205,11 @@ mod tests {
     // and DiscoveryWithMatch only, so an inferred host never went stale here
     // while the digest reported it stale.
     #[test]
-    fn stale_by_network_excludes_entities_discovery_never_refreshes() {
+    fn stale_by_site_excludes_entities_discovery_never_refreshes() {
         let cutoffs = vec![(uuid::Uuid::new_v4(), ts(0))];
         for stale in [true, false] {
             let where_clause = StorableFilter::<Host>::new_unfiltered()
-                .stale_by_network(&cutoffs, stale)
+                .stale_by_site(&cutoffs, stale)
                 .to_where_clause();
             assert!(
                 where_clause.contains("hosts.source->>'type'"),
@@ -362,16 +362,16 @@ mod tests {
     // bound, so its placeholder index has to follow the existing values.
     #[test]
     fn text_search_placeholder_follows_earlier_values() {
-        let network = Uuid::new_v4();
+        let site = Uuid::new_v4();
         let filter = StorableFilter::<Host>::new()
-            .network_ids(&[network])
+            .site_ids(&[site])
             .text_search("web");
 
         assert_eq!(filter.values().len(), 2);
         let search_condition = filter.conditions.last().unwrap();
         assert!(
             search_condition.contains("$2") && !search_condition.contains("$1"),
-            "search should bind $2 after the network filter: {search_condition}"
+            "search should bind $2 after the site filter: {search_condition}"
         );
     }
 
@@ -423,7 +423,7 @@ mod tests {
         assert_eq!(f.conditions, vec!["FALSE".to_string()]);
         assert_eq!(f.values.len(), 0);
     }
-    /// `find_if_entry_by_mac` narrows to physical ports with this filter, and the ports it exists
+    /// `find_interface_by_mac` narrows to physical ports with this filter, and the ports it exists
     /// to find are the ones with no `if_type` at all — a port learned from a neighbour's
     /// advertisement, or a device known only at the link layer, never had an ifTable walked.
     ///

@@ -13,7 +13,10 @@ use crate::{
             api::{FirstContactRequest, LegacyCapabilities},
             base::DaemonMode,
         },
-        shared::types::api::{ApiJson, ApiResponse, ApiResult},
+        shared::{
+            legacy::site_wire_request_middleware,
+            types::api::{ApiJson, ApiResponse, ApiResult},
+        },
     },
 };
 use axum::{
@@ -40,7 +43,7 @@ pub fn create_router(state: Arc<DaemonAppState>, mode: DaemonMode) -> Router<Arc
     // the server only ever dials daemons in ServerPoll mode. A DaemonPoll daemon reaches out
     // for its work instead, so it serves none of them.
     if mode == DaemonMode::DaemonPoll {
-        return public_routes;
+        return public_routes.layer(middleware::from_fn(site_wire_request_middleware));
     }
 
     // Authenticated routes (ServerPoll mode - server must provide valid API key)
@@ -66,7 +69,10 @@ pub fn create_router(state: Arc<DaemonAppState>, mode: DaemonMode) -> Router<Arc
             server_auth_middleware,
         ));
 
-    public_routes.merge(authenticated_routes)
+    // A server that predates the site rename sends `network_id`.
+    public_routes
+        .merge(authenticated_routes)
+        .layer(middleware::from_fn(site_wire_request_middleware))
 }
 
 async fn get_health() -> ApiResult<Json<ApiResponse<String>>> {
@@ -82,14 +88,14 @@ async fn initialize(
     ApiJson(request): ApiJson<InitializeDaemonRequest>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     // Check if daemon is already initialized (once-only guard)
-    // Prevents re-initialization attacks - if both network_id and api_key are set,
+    // Prevents re-initialization attacks - if both site_id and api_key are set,
     // return success without modifying the configuration
-    let existing_network_id = state.config.get_network_id().await.ok().flatten();
+    let existing_site_id = state.config.get_site_id().await.ok().flatten();
     let existing_api_key = state.config.get_api_key().await.ok().flatten();
 
-    if existing_network_id.is_some() && existing_api_key.is_some() {
+    if existing_site_id.is_some() && existing_api_key.is_some() {
         tracing::warn!(
-            network_id = %request.network_id,
+            site_id = %request.site_id,
             "Received initialization request but daemon is already initialized - ignoring"
         );
         return Ok(Json(ApiResponse::success(
@@ -98,7 +104,7 @@ async fn initialize(
     }
 
     tracing::info!(
-        network_id = %request.network_id,
+        site_id = %request.site_id,
         api_key = %request.api_key,
         "Received initialization signal",
     );
@@ -106,7 +112,7 @@ async fn initialize(
     state
         .services
         .runtime_service
-        .initialize_services(request.network_id, request.api_key)
+        .initialize_services(request.site_id, request.api_key)
         .await?;
 
     Ok(Json(ApiResponse::success(
@@ -155,13 +161,13 @@ async fn handle_first_contact(
     }
 
     // Cache the server-provisioned identity (additive; older servers omit these).
-    if let Some(network_id) = request.network_id
-        && let Err(e) = state.config.set_network_id(network_id).await
+    if let Some(site_id) = request.site_id
+        && let Err(e) = state.config.set_site_id(site_id).await
     {
         tracing::error!(
             target: LOG_TARGET,
             error = %e,
-            "Failed to store assigned network ID"
+            "Failed to store assigned site ID"
         );
     }
     if let Some(name) = request.name.clone()

@@ -43,14 +43,12 @@ impl DiscoveryRunner {
     /// for this host unresolvable. Every NIC has to be present for that MAC to be findable.
     async fn own_addresses_and_interfaces(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         created_subnets: &[Subnet],
     ) -> Result<(Vec<IPAddress>, Vec<Interface>), Error> {
         let utils = &self.service.utils;
         let interface_filter = self.service.config_store.get_interfaces().await?;
-        let (ip_addresses, _, _) = utils
-            .get_own_interfaces(network_id, &interface_filter)
-            .await?;
+        let (ip_addresses, _, _) = utils.get_own_interfaces(site_id, &interface_filter).await?;
 
         let ip_addresses: Vec<IPAddress> = ip_addresses
             .into_iter()
@@ -66,7 +64,7 @@ impl DiscoveryRunner {
             })
             .collect();
 
-        let interfaces = utils.own_nics_as_interfaces(network_id, self.host_id, &interface_filter);
+        let interfaces = utils.own_nics_as_interfaces(site_id, self.host_id, &interface_filter);
 
         Ok((ip_addresses, interfaces))
     }
@@ -90,15 +88,15 @@ impl DiscoveryRunner {
             return Err(anyhow::anyhow!("Discovery cancelled"));
         }
 
-        let network_id = self
+        let site_id = self
             .service
             .config_store
-            .get_network_id()
+            .get_site_id()
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Network ID not set"))?;
+            .ok_or_else(|| anyhow::anyhow!("Site ID not set"))?;
 
         let (ip_addresses, mut interfaces) = self
-            .own_addresses_and_interfaces(network_id, created_subnets)
+            .own_addresses_and_interfaces(site_id, created_subnets)
             .await?;
 
         if interfaces.is_empty() {
@@ -108,7 +106,7 @@ impl DiscoveryRunner {
 
         let lldp_collected = self.apply_lldpd_neighbours(&mut interfaces).await;
 
-        let mut host = Host::new(self.own_host_base(network_id));
+        let mut host = Host::new(self.own_host_base(site_id));
         host.id = self.host_id;
 
         ops.create_host(
@@ -185,7 +183,7 @@ impl DiscoveryRunner {
     ///
     /// Unnamed: the OS hostname and the address are identifiers, and the display ladder titles the
     /// host by them. The hostname outranks a provisioning placeholder the server may hold.
-    fn own_host_base(&self, network_id: Uuid) -> HostBase {
+    fn own_host_base(&self, site_id: Uuid) -> HostBase {
         let utils = &self.service.utils;
         let hostname = utils.get_own_hostname();
 
@@ -193,7 +191,7 @@ impl DiscoveryRunner {
             name: HostName::unnamed(),
             hostname: hostname
                 .map(|h| Attributed::new(HostHostnameValue(h), AttributeSource::DaemonSelfReport)),
-            network_id,
+            site_id,
             description: Some("Scanopy daemon".to_string()),
             tags: Vec::new(),
             source: EntitySource::Discovery,
@@ -233,12 +231,12 @@ impl DiscoveryRunner {
             return Err(anyhow::anyhow!("Discovery cancelled"));
         }
 
-        let network_id = self
+        let site_id = self
             .service
             .config_store
-            .get_network_id()
+            .get_site_id()
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Network ID not set"))?;
+            .ok_or_else(|| anyhow::anyhow!("Site ID not set"))?;
 
         let host_id = self.host_id;
 
@@ -246,7 +244,7 @@ impl DiscoveryRunner {
         let binding_ip = IpAddr::V4(binding_address.parse::<Ipv4Addr>()?);
 
         let (ip_addresses, mut interfaces) = self
-            .own_addresses_and_interfaces(network_id, created_subnets)
+            .own_addresses_and_interfaces(site_id, created_subnets)
             .await?;
 
         if cancel.is_cancelled() {
@@ -273,7 +271,7 @@ impl DiscoveryRunner {
         ));
         let own_port_id = own_port.id;
 
-        let mut host = Host::new(self.own_host_base(network_id));
+        let mut host = Host::new(self.own_host_base(site_id));
         host.id = host_id;
 
         let daemon_service_definition = ScanopyDaemon;
@@ -286,7 +284,7 @@ impl DiscoveryRunner {
             name: ServiceDefinition::name(&daemon_service_definition).to_string(),
             service_definition: Box::new(daemon_service_definition),
             tags: Vec::new(),
-            network_id,
+            site_id,
             bindings: daemon_service_bound_interfaces
                 .iter()
                 .map(|i| Binding::new_port_serviceless(own_port_id, Some(i.id)))

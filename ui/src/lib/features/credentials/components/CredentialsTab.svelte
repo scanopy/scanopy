@@ -19,7 +19,7 @@
 		type CardAction,
 		type CardFieldItem
 	} from '$lib/shared/components/data/types';
-	import type { Network } from '$lib/features/networks/types';
+	import type { Site } from '$lib/features/sites/types';
 	import { Plus, Trash2, Edit } from 'lucide-svelte';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
@@ -38,7 +38,7 @@
 	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 	import type { TabProps } from '$lib/shared/types';
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import type { Host } from '$lib/features/hosts/types/base';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
@@ -63,7 +63,7 @@
 		credentials_unofficialApi,
 		common_credentials,
 		common_hosts,
-		common_networks,
+		common_sites,
 		common_notApplicable,
 		common_noEntityYet,
 		common_tags,
@@ -108,9 +108,9 @@
 	const tagsQuery = useTagsQuery();
 	let tagsData = $derived(tagsQuery.data ?? []);
 
-	// Networks for delete impact preview
-	const networksQuery = useNetworksQuery();
-	let networksData = $derived(networksQuery.data ?? []);
+	// Sites for delete impact preview
+	const sitesQuery = useSitesQuery();
+	let sitesData = $derived(sitesQuery.data ?? []);
 
 	// Derived state
 	let credentials = $derived(credentialsQuery.data ?? []);
@@ -137,8 +137,8 @@
 		return assignedHostsData.filter((h) => ids.has(h.id));
 	}
 
-	function networksForCredential(credential: Credential): Network[] {
-		return networksData.filter((n) => (n.credential_ids ?? []).includes(credential.id));
+	function sitesForCredential(credential: Credential): Site[] {
+		return sitesData.filter((n) => (n.credential_ids ?? []).includes(credential.id));
 	}
 
 	/** The scopes a credential's type can target at all. */
@@ -155,8 +155,8 @@
 	/**
 	 * "Not applicable" is not the same as "none assigned".
 	 *
-	 * A Docker socket credential cannot target networks at all, which is a
-	 * different statement from a SNMP credential that targets networks and
+	 * A Docker socket credential cannot target sites at all, which is a
+	 * different statement from a SNMP credential that targets sites and
 	 * happens to have none. The card drew that distinction and the table should
 	 * too, so an out-of-scope assignment column says so rather than sitting empty.
 	 */
@@ -211,16 +211,14 @@
 	}
 
 	async function handleDeleteCredential(credential: Credential) {
-		const affectedNetworks = networksData.filter((n) =>
-			(n.credential_ids ?? []).includes(credential.id)
-		);
+		const affectedSites = sitesData.filter((n) => (n.credential_ids ?? []).includes(credential.id));
 		const affectedHostCount = (credential.host_assignments ?? []).length;
 		let message: string = common_confirmDeleteName({ name: credential.name });
-		if (affectedNetworks.length > 0 || affectedHostCount > 0) {
+		if (affectedSites.length > 0 || affectedHostCount > 0) {
 			message +=
 				'\n\n' +
 				credentials_deleteImpact({
-					networkCount: affectedNetworks.length,
+					siteCount: affectedSites.length,
 					hostCount: affectedHostCount
 				});
 		}
@@ -247,7 +245,7 @@
 	}
 
 	async function handleBulkDelete(ids: string[]) {
-		const affectedNetworks = networksData.filter((n) =>
+		const affectedSites = sitesData.filter((n) =>
 			(n.credential_ids ?? []).some((id) => ids.includes(id))
 		);
 		// Distinct hosts across the selected credentials — a host assigned two of
@@ -258,11 +256,11 @@
 				.flatMap((c) => (c.host_assignments ?? []).map((a) => a.host_id))
 		).size;
 		let message: string = credentials_bulkDeleteConfirm({ count: ids.length });
-		if (affectedNetworks.length > 0 || affectedHostCount > 0) {
+		if (affectedSites.length > 0 || affectedHostCount > 0) {
 			message +=
 				'\n\n' +
 				credentials_bulkDeleteImpact({
-					networkCount: affectedNetworks.length,
+					siteCount: affectedSites.length,
 					hostCount: affectedHostCount
 				});
 		}
@@ -378,23 +376,23 @@
 			{
 				// Assignments were card-only, so the credentials table could not show
 				// what a credential actually applies to.
-				key: 'assigned_networks',
-				label: common_networks(),
+				key: 'assigned_sites',
+				label: common_sites(),
 				type: 'array',
 				searchable: true,
-				// Credentials share networks, so this filters. Hosts are near-unique per credential,
+				// Credentials share sites, so this filters. Hosts are near-unique per credential,
 				// so search covers those.
 				filterable: true,
-				getValue: (item: Credential) => networksForCredential(item).map((n) => n.name),
+				getValue: (item: Credential) => sitesForCredential(item).map((n) => n.name),
 				display: {
 					getItems: (item: Credential) =>
 						assignmentItems(
-							targetsFor(item).includes('Network'),
-							networksForCredential(item).map((network) => ({
-								id: network.id,
-								label: network.name,
-								color: entities.getColorHelper('Network').color,
-								entityRef: entityRef('Network', network.id, network)
+							targetsFor(item).includes('Site'),
+							sitesForCredential(item).map((site) => ({
+								id: site.id,
+								label: site.name,
+								color: entities.getColorHelper('Site').color,
+								entityRef: entityRef('Site', site.id, site)
 							}))
 						)
 				}

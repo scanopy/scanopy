@@ -5,20 +5,20 @@ use uuid::Uuid;
 use crate::server::daemons::r#impl::api::DaemonResponse;
 use crate::server::discovery::r#impl::base::Discovery;
 
-/// Per-network summary of entity counts
+/// Per-site summary of entity counts
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct NetworkSummary {
+pub struct SiteSummary {
     /// Server-assigned unique identifier.
     pub id: Uuid,
-    /// Name of the network.
+    /// Name of the site.
     pub name: String,
-    /// Hosts currently discovered on this network.
+    /// Hosts currently discovered on this site.
     pub host_count: u64,
-    /// Services currently discovered on this network.
+    /// Services currently discovered on this site.
     pub service_count: u64,
-    /// Subnets currently known on this network.
+    /// Subnets currently known on this site.
     pub subnet_count: u64,
-    /// Daemons assigned to this network.
+    /// Daemons assigned to this site.
     pub daemon_count: u64,
 }
 
@@ -29,10 +29,10 @@ pub struct PlanUsage {
     pub host_limit: Option<u64>,
     /// Hosts currently counted against the plan.
     pub host_count: u64,
-    /// Networks included in the current plan. `null` when unlimited.
-    pub network_limit: Option<u64>,
-    /// Networks currently counted against the plan.
-    pub network_count: u64,
+    /// Sites included in the current plan. `null` when unlimited.
+    pub site_limit: Option<u64>,
+    /// Sites currently counted against the plan.
+    pub site_count: u64,
     /// Seats included in the current plan. `null` when unlimited.
     pub seat_limit: Option<u64>,
     /// Seats currently in use.
@@ -42,8 +42,8 @@ pub struct PlanUsage {
 /// Dashboard summary response
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct DashboardSummary {
-    /// Per-network counts for every network the caller can see.
-    pub networks: Vec<NetworkSummary>,
+    /// Per-site counts for every site the caller can see.
+    pub sites: Vec<SiteSummary>,
     /// Daemons the caller can see, with their current status.
     pub daemons: Vec<DaemonResponse>,
     /// The most recent discovery runs, newest first.

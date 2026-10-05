@@ -11,7 +11,6 @@ use crate::server::{
     credentials::r#impl::types::CredentialTypeDiscriminants,
     daemons::r#impl::{api::DiscoveryUpdatePayload, version::supports_unified_discovery},
     discovery::r#impl::{base::Discovery, types::DiscoveryType},
-    networks::r#impl::Network,
     shared::{
         extractors::Query,
         handlers::{
@@ -32,6 +31,7 @@ use crate::server::{
             error_codes::ErrorCode,
         },
     },
+    sites::r#impl::Site,
 };
 use axum::http::StatusCode;
 use axum::{
@@ -68,7 +68,7 @@ pub enum DiscoveryOrderField {
     Name,
     UpdatedAt,
     DaemonId,
-    NetworkId,
+    SiteId,
     /// `discovery_type` is JSONB, so this reads its tag the way `json_field_eq` does.
     DiscoveryType,
     /// A completed run's outcome: the terminal phase recorded in `run_type.results`. Rows that
@@ -97,7 +97,7 @@ impl OrderField for DiscoveryOrderField {
             Self::Name => "discovery.name",
             Self::UpdatedAt => "discovery.updated_at",
             Self::DaemonId => "discovery.daemon_id",
-            Self::NetworkId => "discovery.network_id",
+            Self::SiteId => "discovery.site_id",
             Self::DiscoveryType => "discovery.discovery_type->>'type'",
             Self::Phase => "discovery.run_type->'results'->>'phase'",
             Self::StartedAt => RUN_STARTED_AT_SQL,
@@ -124,9 +124,9 @@ impl OrderField for DiscoveryOrderField {
 /// Query parameters for filtering and ordering discoveries.
 #[derive(Deserialize, Default, Debug, Clone, IntoParams)]
 pub struct DiscoveryFilterQuery {
-    /// Filter by network ID. Repeat the parameter to pass several.
-    #[serde(alias = "network_id")]
-    pub network_ids: Option<Vec<Uuid>>,
+    /// Filter by site ID. Repeat the parameter to pass several.
+    #[serde(alias = "site_id")]
+    pub site_ids: Option<Vec<Uuid>>,
     /// Filter by daemon ID. Repeat the parameter to pass several.
     #[serde(alias = "daemon_id")]
     pub daemon_ids: Option<Vec<Uuid>>,
@@ -177,21 +177,21 @@ impl FilterQueryExtractor for DiscoveryFilterQuery {
     fn apply_to_filter<T: Storable>(
         &self,
         filter: StorableFilter<T>,
-        user_network_ids: &[Uuid],
+        user_site_ids: &[Uuid],
         _user_organization_id: Uuid,
     ) -> StorableFilter<T> {
-        // Intersect with what the caller can see — a requested network they
+        // Intersect with what the caller can see — a requested site they
         // have no access to must narrow the result to nothing, never widen it.
-        let mut filter = match &self.network_ids {
+        let mut filter = match &self.site_ids {
             Some(requested) => {
                 let accessible: Vec<Uuid> = requested
                     .iter()
                     .copied()
-                    .filter(|id| user_network_ids.contains(id))
+                    .filter(|id| user_site_ids.contains(id))
                     .collect();
-                filter.network_ids(&accessible)
+                filter.site_ids(&accessible)
             }
-            None => filter.network_ids(user_network_ids),
+            None => filter.site_ids(user_site_ids),
         };
         filter = match &self.daemon_ids {
             Some(ids) => filter.daemon_ids(ids),
@@ -251,13 +251,13 @@ async fn get_all_discoveries(
     auth: Authorized<Viewer>,
     Query(query): Query<DiscoveryFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<Discovery>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
 
-    let base_filter = StorableFilter::<Discovery>::new_from_network_ids(&network_ids);
-    let filter = query.apply_to_filter(base_filter, &network_ids, organization_id);
+    let base_filter = StorableFilter::<Discovery>::new_from_site_ids(&site_ids);
+    let filter = query.apply_to_filter(base_filter, &site_ids, organization_id);
 
     // Server-side because the list is paginated: a client-side search would
     // only ever match the page already loaded.
@@ -410,7 +410,7 @@ async fn bulk_delete_discoveries(
     request_body = Discovery,
     responses(
         (status = 200, description = "Discovery created successfully", body = ApiResponse<Discovery>),
-        (status = 400, description = "Invalid subnet network", body = ApiErrorResponse),
+        (status = 400, description = "Invalid subnet site", body = ApiErrorResponse),
         (status = 400, description = "Can't create historical discovery", body = ApiErrorResponse),
     ),
      security(("user_api_key" = []), ("session" = []))
@@ -471,7 +471,7 @@ pub async fn create_discovery(
         }
     }
 
-    // Validate subnet network membership for Network and Unified types
+    // Validate subnet site membership for Network and Unified types
     let subnet_ids_to_check = match &discovery.base.discovery_type {
         DiscoveryType::Network { subnet_ids, .. } | DiscoveryType::Unified { subnet_ids, .. } => {
             subnet_ids.clone()
@@ -481,11 +481,9 @@ pub async fn create_discovery(
     if let Some(ids) = subnet_ids_to_check {
         for subnet_id in &ids {
             if let Some(subnet) = state.services.subnet_service.get_by_id(subnet_id).await?
-                && subnet.base.network_id != discovery.base.network_id
+                && subnet.base.site_id != discovery.base.site_id
             {
-                return Err(ApiError::discovery_subnet_network_mismatch(
-                    &subnet.base.name,
-                ));
+                return Err(ApiError::discovery_subnet_site_mismatch(&subnet.base.name));
             }
         }
     }
@@ -503,7 +501,7 @@ pub async fn create_discovery(
     request_body = Discovery,
     responses(
         (status = 200, description = "Discovery updated successfully", body = ApiResponse<Discovery>),
-        (status = 400, description = "Invalid subnet network", body = ApiErrorResponse),
+        (status = 400, description = "Invalid subnet site", body = ApiErrorResponse),
         (status = 400, description = "Can't update historical discovery", body = ApiErrorResponse),
     ),
      security(("user_api_key" = []), ("session" = []))
@@ -627,15 +625,15 @@ async fn receive_discovery_update(
     Path(_session_id): Path<Uuid>,
     ApiJson(update): ApiJson<DiscoveryUpdatePayload>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
-    // IsDaemon guarantees exactly one network_id and a daemon_id
-    let daemon_network_id = auth.network_ids()[0];
+    // IsDaemon guarantees exactly one site_id and a daemon_id
+    let daemon_site_id = auth.site_ids()[0];
     let daemon_id = auth
         .daemon_id()
         .ok_or_else(|| anyhow::anyhow!("Could not get daemon ID from authentication"))?;
 
-    // Validate daemon can only send updates for their own network
-    if update.network_id != daemon_network_id {
-        return Err(ApiError::daemon_network_mismatch());
+    // Validate daemon can only send updates for their own site
+    if update.site_id != daemon_site_id {
+        return Err(ApiError::daemon_site_mismatch());
     }
 
     // Validate daemon can only send updates as themselves
@@ -672,7 +670,7 @@ async fn start_session(
     auth: Authorized<Member>,
     ApiJson(discovery_id): ApiJson<Uuid>,
 ) -> ApiResult<Json<ApiResponse<DiscoveryUpdatePayload>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let entity = auth.into_entity();
 
     let discovery = state
@@ -682,10 +680,10 @@ async fn start_session(
         .await?
         .ok_or_else(|| ApiError::entity_not_found::<Discovery>(discovery_id))?;
 
-    // Validate user has access to this discovery's network
-    if !network_ids.contains(&discovery.base.network_id) {
-        return Err(ApiError::entity_access_denied::<Network>(
-            discovery.base.network_id,
+    // Validate user has access to this discovery's site
+    if !site_ids.contains(&discovery.base.site_id) {
+        return Err(ApiError::entity_access_denied::<Site>(
+            discovery.base.site_id,
         ));
     }
 
@@ -726,14 +724,14 @@ async fn discovery_stream(
     auth: Authorized<Viewer>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let mut rx = state.services.discovery_service.subscribe();
-    let allowed_networks = auth.network_ids();
+    let allowed_sites = auth.site_ids();
 
     let stream = async_stream::stream! {
         loop {
             match rx.recv().await {
                 Ok(update) => {
-                    // Only emit if user has access to this discovery's network
-                    if allowed_networks.contains(&update.network_id) {
+                    // Only emit if user has access to this discovery's site
+                    if allowed_sites.contains(&update.site_id) {
                         let json = serde_json::to_string(&update).unwrap_or_default();
                         yield Ok(Event::default().data(json));
                     }
@@ -764,11 +762,11 @@ async fn get_active_sessions(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Viewer>,
 ) -> ApiResult<Json<ApiResponse<Vec<DiscoveryUpdatePayload>>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let sessions = state
         .services
         .discovery_service
-        .get_all_sessions(&network_ids)
+        .get_all_sessions(&site_ids)
         .await;
 
     Ok(Json(ApiResponse::success(sessions)))
@@ -790,7 +788,7 @@ async fn cancel_discovery(
     auth: Authorized<Member>,
     Path(session_id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
-    // Get session and validate user has access to this session's network
+    // Get session and validate user has access to this session's site
     let session = state
         .services
         .discovery_service
@@ -798,10 +796,8 @@ async fn cancel_discovery(
         .await
         .ok_or_else(|| ApiError::discovery_session_not_found(session_id))?;
 
-    if !auth.network_ids().contains(&session.network_id) {
-        return Err(ApiError::entity_access_denied::<Network>(
-            session.network_id,
-        ));
+    if !auth.site_ids().contains(&session.site_id) {
+        return Err(ApiError::entity_access_denied::<Site>(session.site_id));
     }
 
     state

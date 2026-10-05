@@ -18,7 +18,7 @@
  */
 
 import type { components } from '$lib/api/schema';
-import type { Network } from '$lib/features/networks/types';
+import type { Site } from '$lib/features/sites/types';
 import { createColorHelper, type Color } from '$lib/shared/utils/styling';
 import { FILTER_VALUE_EXTRACTORS } from './interactions';
 import { cardEntityForFilter, type ElementRenderContext } from './resolvers';
@@ -50,7 +50,7 @@ export function markColor(config: ViewElementConfig, mark: ElementMark): Color |
 export function elementMarks(
 	view: string,
 	resolved: ElementRenderContext,
-	networks: Network[],
+	sites: Site[],
 	topology: RenderableTopology
 ): ElementMarks {
 	const config = viewElementConfig(view);
@@ -61,8 +61,8 @@ export function elementMarks(
 		const entity = cardEntityForFilter(resolved, mark.entity);
 		const extract = FILTER_VALUE_EXTRACTORS[mark.entity]?.[mark.filter_type];
 		if (!entity || !extract) continue;
-		const network = networks.find((n) => n.id === (entity as { network_id?: string }).network_id);
-		if (extract(entity, { network, topology }) !== mark.value) continue;
+		const site = sites.find((n) => n.id === (entity as { site_id?: string }).site_id);
+		if (extract(entity, { site, topology }) !== mark.value) continue;
 		const color = markColor(config, mark);
 		if (color) marks[mark.channel] = color;
 	}

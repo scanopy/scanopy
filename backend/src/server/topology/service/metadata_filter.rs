@@ -249,7 +249,7 @@ mod tests {
         );
 
         // Attributed to the filter that did it, not just counted: this is what lets an emptied
-        // view name the control responsible instead of reporting the network as empty.
+        // view name the control responsible instead of reporting the site as empty.
         assert_eq!(
             dropped,
             BTreeMap::from([(MetadataFilterType::LinkState, 1)])

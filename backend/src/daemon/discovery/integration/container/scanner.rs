@@ -114,12 +114,12 @@ impl<'a> ContainerScanner<'a> {
     /// that put a container on the LAN. Returned locally for use in container interface
     /// resolution; the caller decides which reach the server.
     pub async fn create_network_subnets(&self) -> Result<Vec<Subnet>, Error> {
-        let network_id = self.ops.network_id().await?;
+        let site_id = self.ops.site_id().await?;
 
         let subnets = self
             .utils
             .get_subnets_from_docker_networks(
-                network_id,
+                site_id,
                 self.client,
                 self.runtime,
                 self.runtime_service_id,

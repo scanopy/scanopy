@@ -505,7 +505,7 @@ pub fn node_host(
     ip: IpAddr,
     reading: &NodeReading,
     subnets: &[Subnet],
-    network_id: Uuid,
+    site_id: Uuid,
 ) -> (Host, Vec<IPAddress>) {
     let identity = crate::daemon::discovery::integration::controller::ControllerIdentity {
         probe: ClientProbe::Proxmox,
@@ -517,7 +517,7 @@ pub fn node_host(
         serial_number: None,
         firmware_revision: None,
     };
-    let mut host = identity.into_host(network_id);
+    let mut host = identity.into_host(site_id);
     host.base.os = reading
         .os
         .clone()
@@ -541,7 +541,7 @@ pub fn node_host(
         .filter(|a| seen.insert(*a))
         .enumerate()
         .filter_map(|(position, a)| {
-            IPAddress::discovered(network_id, subnets, a, None, iface_of(a), position as i32)
+            IPAddress::discovered(site_id, subnets, a, None, iface_of(a), position as i32)
         })
         .collect();
     renumber_positions(&mut ip_addresses);
@@ -583,7 +583,7 @@ pub fn guest_host(
     reading: &GuestReading,
     owner: Option<Uuid>,
     subnets: &[Subnet],
-    network_id: Uuid,
+    site_id: Uuid,
 ) -> Option<GuestRecord> {
     let GuestReading {
         nics,
@@ -598,7 +598,7 @@ pub fn guest_host(
     }
 
     let mut host = Host::new(HostBase {
-        network_id,
+        site_id,
         source: EntitySource::Discovery,
         virtualization_metadata: Some(HostVirtualization::Proxmox(ProxmoxVirtualization {
             vm_name: guest.name.clone(),
@@ -625,7 +625,7 @@ pub fn guest_host(
         .enumerate()
         .filter_map(|(position, a)| {
             IPAddress::discovered(
-                network_id,
+                site_id,
                 subnets,
                 a.ip,
                 mac_evidence(a.mac.as_deref()),
@@ -642,7 +642,7 @@ pub fn guest_host(
             .map(|nic| {
                 Interface::new(InterfaceBase {
                     host_id: Uuid::nil(), // Server assigns.
-                    network_id,
+                    site_id,
                     // LXC names the NIC (`eth0`); a QEMU config does not, and no name is invented.
                     if_name: nic.name.clone(),
                     mac_address: mac_evidence(nic.mac.as_deref()),
@@ -880,7 +880,7 @@ mod tests {
         let config: GuestConfig = data(QEMU_110_CONFIG);
         let guest = &guests(&resources)[0];
         let owner = Uuid::new_v4();
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
 
         let nics = config_nics(&config);
         let GuestRecord {
@@ -896,7 +896,7 @@ mod tests {
             },
             Some(owner),
             &[],
-            network_id,
+            site_id,
         )
         .expect("a guest with an address is recorded");
 

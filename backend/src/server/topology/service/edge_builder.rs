@@ -888,7 +888,7 @@ mod tests {
         }
     }
 
-    fn subnet(network_id: Uuid, name: &str, third_octet: u8, subnet_type: SubnetType) -> Subnet {
+    fn subnet(site_id: Uuid, name: &str, third_octet: u8, subnet_type: SubnetType) -> Subnet {
         Subnet {
             id: Uuid::new_v4(),
             base: SubnetBase {
@@ -898,7 +898,7 @@ mod tests {
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id,
+                site_id,
                 name: name.to_string(),
                 subnet_type,
                 ..Default::default()
@@ -907,11 +907,11 @@ mod tests {
         }
     }
 
-    fn ip(network_id: Uuid, host_id: Uuid, subnet_id: Uuid, addr: Ipv4Addr) -> IPAddress {
+    fn ip(site_id: Uuid, host_id: Uuid, subnet_id: Uuid, addr: Ipv4Addr) -> IPAddress {
         IPAddress {
             id: Uuid::new_v4(),
             base: IPAddressBase {
-                network_id,
+                site_id,
                 host_id,
                 subnet_id,
                 ip_address: std::net::IpAddr::V4(addr),
@@ -926,27 +926,22 @@ mod tests {
     /// members but no link to their host — the box looked orphaned in the L3 view.
     #[test]
     fn runtime_edges_reach_every_bridge_subnet_a_container_sits_in() {
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let host_id = Uuid::new_v4();
 
-        let lan = subnet(network_id, "lan", 30, SubnetType::Lan);
-        let db_net = subnet(network_id, "db-net", 20, SubnetType::DockerBridge);
-        let mgmt_net = subnet(network_id, "mgmt-net", 21, SubnetType::DockerBridge);
+        let lan = subnet(site_id, "lan", 30, SubnetType::Lan);
+        let db_net = subnet(site_id, "db-net", 20, SubnetType::DockerBridge);
+        let mgmt_net = subnet(site_id, "mgmt-net", 21, SubnetType::DockerBridge);
 
-        let host_ip = ip(network_id, host_id, lan.id, Ipv4Addr::new(172, 30, 0, 5));
-        let db_ip = ip(network_id, host_id, db_net.id, Ipv4Addr::new(172, 20, 0, 2));
-        let mgmt_ip = ip(
-            network_id,
-            host_id,
-            mgmt_net.id,
-            Ipv4Addr::new(172, 21, 0, 2),
-        );
+        let host_ip = ip(site_id, host_id, lan.id, Ipv4Addr::new(172, 30, 0, 5));
+        let db_ip = ip(site_id, host_id, db_net.id, Ipv4Addr::new(172, 20, 0, 2));
+        let mgmt_ip = ip(site_id, host_id, mgmt_net.id, Ipv4Addr::new(172, 21, 0, 2));
 
         let host = Host {
             id: host_id,
             base: HostBase {
                 name: HostName::manual("docker-host".to_string()),
-                network_id,
+                site_id,
                 ..Default::default()
             },
             ..Default::default()
@@ -956,7 +951,7 @@ mod tests {
             id: Uuid::new_v4(),
             base: ServiceBase {
                 host_id,
-                network_id,
+                site_id,
                 name: "Docker".to_string(),
                 ..Default::default()
             },
@@ -968,7 +963,7 @@ mod tests {
             id: Uuid::new_v4(),
             base: ServiceBase {
                 host_id,
-                network_id,
+                site_id,
                 name: "multi-attached".to_string(),
                 virtualization_metadata: Some(ServiceVirtualization::Docker(
                     DockerVirtualization {
@@ -1042,36 +1037,26 @@ mod tests {
     /// the lowest — N-1 edges, not a mesh — so the same container reads as one thing across boxes.
     #[test]
     fn same_container_ties_a_containers_addresses_together() {
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let host_id = Uuid::new_v4();
 
-        let lan = subnet(network_id, "lan", 30, SubnetType::Lan);
-        let db_net = subnet(network_id, "db-net", 20, SubnetType::DockerBridge);
-        let mgmt_net = subnet(network_id, "mgmt-net", 21, SubnetType::DockerBridge);
-        let proxy_net = subnet(network_id, "proxy-net", 19, SubnetType::DockerBridge);
+        let lan = subnet(site_id, "lan", 30, SubnetType::Lan);
+        let db_net = subnet(site_id, "db-net", 20, SubnetType::DockerBridge);
+        let mgmt_net = subnet(site_id, "mgmt-net", 21, SubnetType::DockerBridge);
+        let proxy_net = subnet(site_id, "proxy-net", 19, SubnetType::DockerBridge);
 
         // Lowest address is on proxy-net (172.19.x), so that is the anchor.
-        let proxy_ip = ip(
-            network_id,
-            host_id,
-            proxy_net.id,
-            Ipv4Addr::new(172, 19, 0, 3),
-        );
-        let db_ip = ip(network_id, host_id, db_net.id, Ipv4Addr::new(172, 20, 0, 3));
-        let mgmt_ip = ip(
-            network_id,
-            host_id,
-            mgmt_net.id,
-            Ipv4Addr::new(172, 21, 0, 2),
-        );
+        let proxy_ip = ip(site_id, host_id, proxy_net.id, Ipv4Addr::new(172, 19, 0, 3));
+        let db_ip = ip(site_id, host_id, db_net.id, Ipv4Addr::new(172, 20, 0, 3));
+        let mgmt_ip = ip(site_id, host_id, mgmt_net.id, Ipv4Addr::new(172, 21, 0, 2));
         // A non-bridge address on the same host must not be tied in.
-        let host_ip = ip(network_id, host_id, lan.id, Ipv4Addr::new(172, 30, 0, 5));
+        let host_ip = ip(site_id, host_id, lan.id, Ipv4Addr::new(172, 30, 0, 5));
 
         let host = Host {
             id: host_id,
             base: HostBase {
                 name: HostName::manual("docker-host".to_string()),
-                network_id,
+                site_id,
                 ..Default::default()
             },
             ..Default::default()
@@ -1081,7 +1066,7 @@ mod tests {
             id: Uuid::new_v4(),
             base: ServiceBase {
                 host_id,
-                network_id,
+                site_id,
                 name: "multi-attached".to_string(),
                 virtualization_metadata: Some(ServiceVirtualization::Docker(
                     DockerVirtualization {
@@ -1150,17 +1135,17 @@ mod tests {
     /// A container on a single bridge subnet has nothing to tie together.
     #[test]
     fn same_container_needs_more_than_one_subnet() {
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let host_id = Uuid::new_v4();
 
-        let only = subnet(network_id, "only", 20, SubnetType::DockerBridge);
-        let only_ip = ip(network_id, host_id, only.id, Ipv4Addr::new(172, 20, 0, 2));
+        let only = subnet(site_id, "only", 20, SubnetType::DockerBridge);
+        let only_ip = ip(site_id, host_id, only.id, Ipv4Addr::new(172, 20, 0, 2));
 
         let host = Host {
             id: host_id,
             base: HostBase {
                 name: HostName::manual("docker-host".to_string()),
-                network_id,
+                site_id,
                 ..Default::default()
             },
             ..Default::default()
@@ -1169,7 +1154,7 @@ mod tests {
             id: Uuid::new_v4(),
             base: ServiceBase {
                 host_id,
-                network_id,
+                site_id,
                 name: "single".to_string(),
                 virtualization_metadata: Some(ServiceVirtualization::Docker(
                     DockerVirtualization {
@@ -1213,21 +1198,21 @@ mod tests {
     /// subnets on the host rather than containers on it.
     #[test]
     fn containers_sharing_a_subnet_produce_one_edge() {
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let host_id = Uuid::new_v4();
 
-        let lan = subnet(network_id, "lan", 30, SubnetType::Lan);
-        let shared = subnet(network_id, "shared", 20, SubnetType::DockerBridge);
+        let lan = subnet(site_id, "lan", 30, SubnetType::Lan);
+        let shared = subnet(site_id, "shared", 20, SubnetType::DockerBridge);
 
-        let host_ip = ip(network_id, host_id, lan.id, Ipv4Addr::new(172, 30, 0, 5));
-        let first = ip(network_id, host_id, shared.id, Ipv4Addr::new(172, 20, 0, 2));
-        let second = ip(network_id, host_id, shared.id, Ipv4Addr::new(172, 20, 0, 3));
+        let host_ip = ip(site_id, host_id, lan.id, Ipv4Addr::new(172, 30, 0, 5));
+        let first = ip(site_id, host_id, shared.id, Ipv4Addr::new(172, 20, 0, 2));
+        let second = ip(site_id, host_id, shared.id, Ipv4Addr::new(172, 20, 0, 3));
 
         let host = Host {
             id: host_id,
             base: HostBase {
                 name: HostName::manual("docker-host".to_string()),
-                network_id,
+                site_id,
                 ..Default::default()
             },
             ..Default::default()
@@ -1236,7 +1221,7 @@ mod tests {
             id: Uuid::new_v4(),
             base: ServiceBase {
                 host_id,
-                network_id,
+                site_id,
                 name: "Docker".to_string(),
                 ..Default::default()
             },
@@ -1247,7 +1232,7 @@ mod tests {
             id: Uuid::new_v4(),
             base: ServiceBase {
                 host_id,
-                network_id,
+                site_id,
                 name: name.to_string(),
                 virtualization_metadata: Some(ServiceVirtualization::Docker(
                     DockerVirtualization {
@@ -1306,23 +1291,23 @@ mod tests {
     /// is itself a box every member elevates onto.
     #[test]
     fn every_container_gets_an_edge_where_subnets_are_not_containers() {
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let host_id = Uuid::new_v4();
         let runtime_id = Uuid::new_v4();
 
-        let lan = subnet(network_id, "lan", 30, SubnetType::Lan);
-        let shared = subnet(network_id, "bridge", 17, SubnetType::DockerBridge);
+        let lan = subnet(site_id, "lan", 30, SubnetType::Lan);
+        let shared = subnet(site_id, "bridge", 17, SubnetType::DockerBridge);
 
-        let host_ip = ip(network_id, host_id, lan.id, Ipv4Addr::new(172, 30, 0, 1));
+        let host_ip = ip(site_id, host_id, lan.id, Ipv4Addr::new(172, 30, 0, 1));
         // Deliberately in the order the reported data had them: the lower address is the one
         // that used to win, and the higher one is the container that vanished.
-        let lower = ip(network_id, host_id, shared.id, Ipv4Addr::new(172, 17, 0, 2));
-        let higher = ip(network_id, host_id, shared.id, Ipv4Addr::new(172, 17, 0, 3));
+        let lower = ip(site_id, host_id, shared.id, Ipv4Addr::new(172, 17, 0, 2));
+        let higher = ip(site_id, host_id, shared.id, Ipv4Addr::new(172, 17, 0, 3));
 
         let host = Host {
             id: host_id,
             base: HostBase {
-                network_id,
+                site_id,
                 name: HostName::manual("docker-host".to_string()),
                 ..Default::default()
             },
@@ -1332,7 +1317,7 @@ mod tests {
         let runtime = Service {
             id: runtime_id,
             base: ServiceBase {
-                network_id,
+                site_id,
                 host_id,
                 name: "Docker".to_string(),
                 ..Default::default()
@@ -1343,7 +1328,7 @@ mod tests {
         let containerized = |name: &str, ip_id: Uuid| Service {
             id: Uuid::new_v4(),
             base: ServiceBase {
-                network_id,
+                site_id,
                 host_id,
                 name: name.to_string(),
                 virtualization_metadata: Some(ServiceVirtualization::Docker(
@@ -1407,29 +1392,24 @@ mod tests {
     /// containers, so a box holding one container claimed to hold all of them.
     #[test]
     fn each_edge_names_only_the_containers_on_its_own_subnet() {
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let host_id = Uuid::new_v4();
 
-        let lan = subnet(network_id, "lan", 30, SubnetType::Lan);
-        let db_net = subnet(network_id, "db-net", 20, SubnetType::DockerBridge);
-        let web_net = subnet(network_id, "web-net", 21, SubnetType::DockerBridge);
+        let lan = subnet(site_id, "lan", 30, SubnetType::Lan);
+        let db_net = subnet(site_id, "db-net", 20, SubnetType::DockerBridge);
+        let web_net = subnet(site_id, "web-net", 21, SubnetType::DockerBridge);
         let db_net_id = db_net.id;
         let web_net_id = web_net.id;
 
-        let host_ip = ip(network_id, host_id, lan.id, Ipv4Addr::new(172, 30, 0, 5));
-        let db_ip = ip(network_id, host_id, db_net.id, Ipv4Addr::new(172, 20, 0, 2));
-        let web_ip = ip(
-            network_id,
-            host_id,
-            web_net.id,
-            Ipv4Addr::new(172, 21, 0, 2),
-        );
+        let host_ip = ip(site_id, host_id, lan.id, Ipv4Addr::new(172, 30, 0, 5));
+        let db_ip = ip(site_id, host_id, db_net.id, Ipv4Addr::new(172, 20, 0, 2));
+        let web_ip = ip(site_id, host_id, web_net.id, Ipv4Addr::new(172, 21, 0, 2));
 
         let host = Host {
             id: host_id,
             base: HostBase {
                 name: HostName::manual("docker-host".to_string()),
-                network_id,
+                site_id,
                 ..Default::default()
             },
             ..Default::default()
@@ -1438,7 +1418,7 @@ mod tests {
             id: Uuid::new_v4(),
             base: ServiceBase {
                 host_id,
-                network_id,
+                site_id,
                 name: "Docker".to_string(),
                 ..Default::default()
             },
@@ -1449,7 +1429,7 @@ mod tests {
             id: Uuid::new_v4(),
             base: ServiceBase {
                 host_id,
-                network_id,
+                site_id,
                 name: name.to_string(),
                 virtualization_metadata: Some(ServiceVirtualization::Docker(
                     DockerVirtualization {
@@ -1533,13 +1513,13 @@ mod tests {
         };
         use crate::server::services::definitions::ServiceDefinitionRegistry;
 
-        let network_id = Uuid::new_v4();
-        let lan = subnet(network_id, "lan", 30, SubnetType::Lan);
+        let site_id = Uuid::new_v4();
+        let lan = subnet(site_id, "lan", 30, SubnetType::Lan);
         let host = |name: &str| Host {
             id: Uuid::new_v4(),
             base: HostBase {
                 name: HostName::manual(name.to_string()),
-                network_id,
+                site_id,
                 ..Default::default()
             },
             ..Default::default()
@@ -1548,7 +1528,7 @@ mod tests {
             id: Uuid::new_v4(),
             base: ServiceBase {
                 host_id,
-                network_id,
+                site_id,
                 name: definition.to_string(),
                 service_definition: ServiceDefinitionRegistry::find_by_id(definition)
                     .expect("registered"),
@@ -1559,11 +1539,11 @@ mod tests {
         };
 
         let node = host("pve");
-        let node_ip = ip(network_id, node.id, lan.id, Ipv4Addr::new(172, 30, 0, 2));
+        let node_ip = ip(site_id, node.id, lan.id, Ipv4Addr::new(172, 30, 0, 2));
         let proxmox = manager(node.id, "Proxmox VE", node_ip.id);
         let docker_host = host("docker-prod01");
         let docker_host_ip = ip(
-            network_id,
+            site_id,
             docker_host.id,
             lan.id,
             Ipv4Addr::new(172, 30, 0, 3),
@@ -1578,7 +1558,7 @@ mod tests {
                 vm_id: Some("100".to_string()),
                 guest_type: Some(ProxmoxGuestType::Qemu),
             }));
-        let vm_ip = ip(network_id, vm.id, lan.id, Ipv4Addr::new(172, 30, 0, 10));
+        let vm_ip = ip(site_id, vm.id, lan.id, Ipv4Addr::new(172, 30, 0, 10));
 
         let mut pihole = host("pihole");
         pihole.base.virtualization_service_id = Some(docker.id);
@@ -1589,7 +1569,7 @@ mod tests {
                 compose_project: None,
                 network_type: ContainerNetworkType::MacVlan,
             }));
-        let pihole_ip = ip(network_id, pihole.id, lan.id, Ipv4Addr::new(172, 30, 0, 11));
+        let pihole_ip = ip(site_id, pihole.id, lan.id, Ipv4Addr::new(172, 30, 0, 11));
 
         let (vm_id, pihole_id) = (vm.id, pihole.id);
         let (proxmox_id, docker_id, docker_host_id) = (proxmox.id, docker.id, docker_host.id);
@@ -1649,26 +1629,26 @@ mod tests {
         };
         use crate::server::services::definitions::network_identities::NetworkIdentities;
 
-        let network_id = Uuid::new_v4();
-        let lan = subnet(network_id, "lan", 30, SubnetType::Lan);
-        let other = subnet(network_id, "other", 40, SubnetType::Lan);
+        let site_id = Uuid::new_v4();
+        let lan = subnet(site_id, "lan", 30, SubnetType::Lan);
+        let other = subnet(site_id, "other", 40, SubnetType::Lan);
         let host = |name: &str| Host {
             id: Uuid::new_v4(),
             base: HostBase {
                 name: HostName::manual(name.to_string()),
-                network_id,
+                site_id,
                 ..Default::default()
             },
             ..Default::default()
         };
 
         let guest = host("snmp-lab");
-        let guest_ip = ip(network_id, guest.id, lan.id, Ipv4Addr::new(172, 30, 0, 10));
+        let guest_ip = ip(site_id, guest.id, lan.id, Ipv4Addr::new(172, 30, 0, 10));
         let identities = Service {
             id: Uuid::new_v4(),
             base: ServiceBase {
                 host_id: guest.id,
-                network_id,
+                site_id,
                 name: "Network Identities".to_string(),
                 service_definition: Box::new(NetworkIdentities),
                 ..Default::default()
@@ -1684,10 +1664,10 @@ mod tests {
             h
         };
         let on_lan = identity("mv-snmp1");
-        let on_lan_ip = ip(network_id, on_lan.id, lan.id, Ipv4Addr::new(172, 30, 0, 21));
+        let on_lan_ip = ip(site_id, on_lan.id, lan.id, Ipv4Addr::new(172, 30, 0, 21));
         let elsewhere = identity("mv-snmp2");
         let elsewhere_ip = ip(
-            network_id,
+            site_id,
             elsewhere.id,
             other.id,
             Ipv4Addr::new(172, 40, 0, 22),
@@ -1736,14 +1716,14 @@ mod tests {
         };
         use crate::server::services::definitions::network_identities::NetworkIdentities;
 
-        let network_id = Uuid::new_v4();
-        let lan = subnet(network_id, "lan", 30, SubnetType::Lan);
-        let mgmt = subnet(network_id, "mgmt", 40, SubnetType::Lan);
+        let site_id = Uuid::new_v4();
+        let lan = subnet(site_id, "lan", 30, SubnetType::Lan);
+        let mgmt = subnet(site_id, "mgmt", 40, SubnetType::Lan);
         let host = |name: &str| Host {
             id: Uuid::new_v4(),
             base: HostBase {
                 name: HostName::manual(name.to_string()),
-                network_id,
+                site_id,
                 ..Default::default()
             },
             ..Default::default()
@@ -1754,7 +1734,7 @@ mod tests {
             id: Uuid::new_v4(),
             base: ServiceBase {
                 host_id: guest.id,
-                network_id,
+                site_id,
                 name: "Network Identities".to_string(),
                 service_definition: Box::new(NetworkIdentities),
                 ..Default::default()
@@ -1762,8 +1742,8 @@ mod tests {
             ..Default::default()
         };
         let mut ip_addresses = vec![
-            ip(network_id, guest.id, lan.id, Ipv4Addr::new(172, 30, 0, 10)),
-            ip(network_id, guest.id, mgmt.id, Ipv4Addr::new(172, 40, 0, 10)),
+            ip(site_id, guest.id, lan.id, Ipv4Addr::new(172, 30, 0, 10)),
+            ip(site_id, guest.id, mgmt.id, Ipv4Addr::new(172, 40, 0, 10)),
         ];
         let mut hosts = vec![guest.clone()];
         for n in 1..=3u8 {
@@ -1772,14 +1752,9 @@ mod tests {
             h.base.virtualization_metadata = Some(HostVirtualization::NetworkIdentity(
                 NetworkIdentityVirtualization {},
             ));
+            ip_addresses.push(ip(site_id, h.id, lan.id, Ipv4Addr::new(172, 30, 0, 20 + n)));
             ip_addresses.push(ip(
-                network_id,
-                h.id,
-                lan.id,
-                Ipv4Addr::new(172, 30, 0, 20 + n),
-            ));
-            ip_addresses.push(ip(
-                network_id,
+                site_id,
                 h.id,
                 mgmt.id,
                 Ipv4Addr::new(172, 40, 0, 20 + n),

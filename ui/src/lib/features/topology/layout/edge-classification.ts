@@ -13,7 +13,7 @@ import type { TagProps } from '$lib/shared/components/data/types';
 type EdgeTypeDiscriminants = components['schemas']['EdgeTypeDiscriminants'];
 type Interface = components['schemas']['Interface'];
 type InterfaceNeighborRow = components['schemas']['InterfaceNeighborRow'];
-type Network = components['schemas']['Network'];
+type Site = components['schemas']['Site'];
 type EdgeViewConfig = components['schemas']['EdgeViewConfig'];
 type TopologyView = components['schemas']['TopologyView'];
 
@@ -140,7 +140,7 @@ export function getDefaultHiddenEdgeTypes(view: TopologyView): EdgeTypeDiscrimin
  *
  * `interfaces`/`neighbours` must come from the rendered topology, not from
  * `queryKeys.interfaces.all` — that cache is written only by the hosts query, so on the topology
- * route it is empty and every link silently read as current. Networks still come from the query
+ * route it is empty and every link silently read as current. Sites still come from the query
  * cache, which is where `currentElementRenderContext` reads them for the node pills.
  */
 export function getLinkEvidenceTag(
@@ -150,7 +150,7 @@ export function getLinkEvidenceTag(
 ): TagProps | null {
 	if (edge.edge_type !== 'PhysicalLink') return null;
 
-	const networks = queryClient.getQueryData<Network[]>(queryKeys.networks.all) ?? [];
+	const sites = queryClient.getQueryData<Site[]>(queryKeys.sites.all) ?? [];
 	const sourceId = edge.source_entity_id;
 	const targetId = edge.target_entity_id;
 
@@ -165,14 +165,14 @@ export function getLinkEvidenceTag(
 			(n.interface_id === targetId && n.neighbor.type === 'Interface' && n.neighbor.id === sourceId)
 	);
 
-	const networkFor = (row: InterfaceNeighborRow) =>
-		networks.find((n) => n.id === interfaces.find((i) => i.id === row.interface_id)?.network_id);
+	const siteFor = (row: InterfaceNeighborRow) =>
+		sites.find((n) => n.id === interfaces.find((i) => i.id === row.interface_id)?.site_id);
 
-	const stale = rows.filter((row) => neighborEvidenceFreshness(row, networkFor(row)) === 'stale');
+	const stale = rows.filter((row) => neighborEvidenceFreshness(row, siteFor(row)) === 'stale');
 	if (stale.length === 0) return null;
 
 	const oldest = stale.reduce((a, b) =>
 		(a.neighbor_seen_at ?? '') <= (b.neighbor_seen_at ?? '') ? a : b
 	);
-	return neighborEvidenceTag(oldest, networkFor(oldest));
+	return neighborEvidenceTag(oldest, siteFor(oldest));
 }

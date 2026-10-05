@@ -52,7 +52,7 @@ pub fn container_host_record(
     bridge_subnets: &[Subnet],
     placement_subnets: &[Subnet],
     runtime_service_id: Uuid,
-    network_id: Uuid,
+    site_id: Uuid,
 ) -> Option<ContainerHostRecord> {
     let addresses = container_host_addresses(
         runtime,
@@ -60,7 +60,7 @@ pub fn container_host_record(
         lan_subnets,
         bridge_subnets,
         placement_subnets,
-        network_id,
+        site_id,
     );
     // Bridge addresses sort after the LAN ones, so a LAN address leads whenever there is one.
     let leads_with_lan = addresses
@@ -77,7 +77,7 @@ pub fn container_host_record(
         .filter(|n| !n.is_empty());
 
     let mut host = Host::new(HostBase {
-        network_id,
+        site_id,
         source: EntitySource::Discovery,
         virtualization_metadata: Some(runtime.host_virtualization(ContainerHostVirtualization {
             container_name: container_name.clone(),
@@ -250,7 +250,7 @@ impl ContainerScanner<'_> {
         runtime_service_id: Uuid,
         deadline: tokio::time::Instant,
     ) -> Result<ContainerHostsOutcome, Error> {
-        let network_id = self.ops.network_id().await?;
+        let site_id = self.ops.site_id().await?;
         let daemon_id = self.ops.daemon_id().await?;
         let mut outcome = ContainerHostsOutcome::default();
         // Daemon-minted bridge subnet id → the id the server holds it under, or `None` when the
@@ -283,7 +283,7 @@ impl ContainerScanner<'_> {
                 bridge_subnets,
                 placement_subnets,
                 runtime_service_id,
-                network_id,
+                site_id,
             ) else {
                 tracing::debug!(
                     container = ?container.name,
@@ -453,7 +453,7 @@ impl ContainerScanner<'_> {
             },
             &[],
             daemon_id,
-            &host.base.network_id,
+            &host.base.site_id,
         )?;
 
         let address_ids: Vec<Uuid> = addresses.iter().map(|(a, _)| a.id).collect();

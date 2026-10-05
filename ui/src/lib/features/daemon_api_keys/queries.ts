@@ -144,9 +144,9 @@ export function useRotateApiKeyMutation() {
 
 /**
  * Create empty form data for a new API key
- * @param defaultNetworkId - The network ID to use for the new key
+ * @param defaultSiteId - The site ID to use for the new key
  */
-export function createEmptyApiKeyFormData(defaultNetworkId: string): ApiKey {
+export function createEmptyApiKeyFormData(defaultSiteId: string): ApiKey {
 	return {
 		id: uuidv4Sentinel,
 		name: '',
@@ -154,7 +154,7 @@ export function createEmptyApiKeyFormData(defaultNetworkId: string): ApiKey {
 		updated_at: utcTimeZoneSentinel,
 		expires_at: null,
 		last_used: null,
-		network_id: defaultNetworkId,
+		site_id: defaultSiteId,
 		key: '',
 		is_enabled: true,
 		tags: []

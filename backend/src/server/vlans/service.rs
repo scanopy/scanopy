@@ -27,8 +27,8 @@ impl EventBusService<Vlan> for VlanService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, entity: &Vlan) -> Option<Uuid> {
-        Some(entity.base.network_id)
+    fn get_site_id(&self, entity: &Vlan) -> Option<Uuid> {
+        Some(entity.base.site_id)
     }
 
     fn get_organization_id(&self, entity: &Vlan) -> Option<Uuid> {
@@ -141,7 +141,7 @@ impl VlanService {
     /// each new row (legacy callers + tests).
     pub async fn upsert_from_discovery(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         organization_id: Uuid,
         vlan_number: u16,
         name: String,
@@ -149,8 +149,8 @@ impl VlanService {
     ) -> Result<Vlan> {
         use crate::server::shared::storage::snapshot::DiscoveryTracked;
 
-        // SCD2: natural-key match (network_id + vlan_number) against live rows.
-        let filter = StorableFilter::<Vlan>::new_from_uuid_column("network_id", &network_id)
+        // SCD2: natural-key match (site_id + vlan_number) against live rows.
+        let filter = StorableFilter::<Vlan>::new_from_uuid_column("site_id", &site_id)
             .u16_column("vlan_number", vlan_number)
             .live();
 
@@ -174,7 +174,7 @@ impl VlanService {
             vlan_number,
             name,
             description: None,
-            network_id,
+            site_id,
             organization_id,
             source: EntitySource::Discovery,
             subnet_ids: Vec::new(),

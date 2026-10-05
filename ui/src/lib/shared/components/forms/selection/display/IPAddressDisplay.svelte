@@ -2,7 +2,7 @@
 	import { isContainerSubnet, getSubnetById } from '$lib/features/subnets/queries';
 	import type { Subnet } from '$lib/features/subnets/types/base';
 	import { entityRef, type TagProps } from '$lib/shared/components/data/types';
-	import type { Network } from '$lib/features/networks/types';
+	import type { Site } from '$lib/features/sites/types';
 	import { getFreshnessTag } from '$lib/shared/utils/freshness';
 	import { ipAddressKey } from '$lib/features/hosts/address-labels';
 	import { hosts_noMacAddress } from '$lib/paraglide/messages';
@@ -12,8 +12,8 @@
 	// Context for interface display - needs access to subnets for lookups
 	export interface IPAddressDisplayContext extends DisplayTagContext<IPAddressTagRole> {
 		subnets: Subnet[];
-		/** Networks to judge each address's staleness against. Without them, no Stale tag. */
-		networks?: Network[];
+		/** Sites to judge each address's staleness against. Without them, no Stale tag. */
+		sites?: Site[];
 		/** A non-null `disabledReason` renders the option disabled with that tooltip. */
 		disabledReason?: string | null;
 	}
@@ -53,7 +53,7 @@
 			// the address's status outranks its subnet.
 			const stale = getFreshnessTag(
 				iface,
-				context?.networks?.find((n) => n.id === iface.network_id),
+				context?.sites?.find((n) => n.id === iface.site_id),
 				{ entityTypeLabel: entities.getName('IPAddress') || undefined }
 			);
 			if (stale) tags.push({ ...stale, role: 'stale' satisfies IPAddressTagRole });

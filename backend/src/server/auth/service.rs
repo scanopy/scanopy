@@ -132,7 +132,7 @@ impl AuthService {
             permissions,
             ip,
             user_agent,
-            network_ids,
+            site_ids,
         } = params;
 
         request
@@ -172,7 +172,7 @@ impl AuthService {
                 email_verified: auto_verify,
                 provision_org,
                 permissions,
-                network_ids,
+                site_ids,
                 terms_accepted_at,
                 billing_enabled,
             })
@@ -227,7 +227,7 @@ impl AuthService {
             provision_org,
             email_verified,
             permissions,
-            network_ids,
+            site_ids,
             terms_accepted_at,
             billing_enabled,
         } = params;
@@ -331,7 +331,7 @@ impl AuthService {
                         hash,
                         organization_id,
                         permissions,
-                        network_ids,
+                        site_ids,
                         terms_accepted_at,
                     )),
                     AuthenticatedEntity::System,
@@ -347,7 +347,7 @@ impl AuthService {
                         oidc_provider,
                         organization_id,
                         permissions,
-                        network_ids,
+                        site_ids,
                         terms_accepted_at,
                     )),
                     AuthenticatedEntity::System,
@@ -360,7 +360,7 @@ impl AuthService {
         if let ProvisionOrg::New(PendingSetup {
             org_name,
             use_case,
-            network,
+            site,
         }) = provision_org
         {
             let authentication: AuthenticatedEntity = user.clone().into();
@@ -373,7 +373,7 @@ impl AuthService {
                         org_name,
                         plan,
                         use_case,
-                        network,
+                        site,
                     },
                     authentication,
                 ))

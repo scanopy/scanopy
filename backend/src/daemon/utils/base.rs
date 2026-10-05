@@ -138,7 +138,7 @@ pub(crate) fn filtered_own_nics(
 /// says it is cabled.
 fn nic_to_interface(
     nic: &pnet::datalink::NetworkInterface,
-    network_id: Uuid,
+    site_id: Uuid,
     host_id: Uuid,
 ) -> Interface {
     let if_type = if nic.is_loopback() {
@@ -151,7 +151,7 @@ fn nic_to_interface(
 
     Interface::new(InterfaceBase {
         host_id,
-        network_id,
+        site_id,
         if_index: Some(nic.index as i32),
         if_descr: Some(nic.name.clone()),
         if_name: Some(nic.name.clone()),
@@ -233,7 +233,7 @@ pub trait DaemonUtils {
 
     async fn get_own_interfaces(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         interface_filter: &[String],
     ) -> Result<
         (
@@ -303,7 +303,7 @@ pub trait DaemonUtils {
             if let Some(subnet) = Subnet::from_discovery(
                 interface_name,
                 &ip_network,
-                network_id,
+                site_id,
                 AttributeSource::DaemonSelfReport,
             ) {
                 subnet_map.entry(*subnet.base.cidr).or_insert(subnet);
@@ -332,7 +332,7 @@ pub trait DaemonUtils {
                     .or_insert(mac_of(&mac_address));
 
                 ip_addresses.push(IPAddress::new(IPAddressBase {
-                    network_id: subnet.base.network_id,
+                    site_id: subnet.base.site_id,
                     host_id: Uuid::nil(), // Placeholder - server will set correct host_id
                     name: Some(interface_name),
                     subnet_id: subnet.id,
@@ -362,13 +362,13 @@ pub trait DaemonUtils {
     /// See `nic_to_interface` for how a NIC is typed.
     fn own_nics_as_interfaces(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         host_id: Uuid,
         interface_filter: &[String],
     ) -> Vec<Interface> {
         filtered_own_nics(interface_filter)
             .into_iter()
-            .map(|nic| nic_to_interface(&nic, network_id, host_id))
+            .map(|nic| nic_to_interface(&nic, site_id, host_id))
             .collect()
     }
 
@@ -544,7 +544,7 @@ pub trait DaemonUtils {
 
     async fn get_subnets_from_docker_networks(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         client: &Docker,
         runtime: ContainerRuntime,
         runtime_service_id: Uuid,
@@ -565,7 +565,7 @@ pub trait DaemonUtils {
                     .filter_map(|c| {
                         let cidr = IpCidr::from_str(c.subnet.as_ref()?).ok()?;
                         runtime.subnet_from_network(
-                            network_id,
+                            site_id,
                             cidr,
                             network_name.clone(),
                             &driver,
@@ -743,7 +743,7 @@ mod tests {
                 SubnetCidrValue(IpCidr::from_str(cidr).unwrap()),
                 AttributeSource::DaemonSelfReport,
             ),
-            network_id: Uuid::nil(),
+            site_id: Uuid::nil(),
             name: String::new(),
             description: None,
             subnet_type,
@@ -839,7 +839,7 @@ mod tests {
     /// has a resolved neighbour whatever its type.
     #[test]
     fn no_nic_is_typed_as_a_physical_port() {
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let host_id = Uuid::new_v4();
 
         for (name, flags) in [
@@ -849,7 +849,7 @@ mod tests {
         ] {
             let entry = nic_to_interface(
                 &make_nic(name, 2, Some([0, 1, 2, 3, 4, 5]), flags),
-                network_id,
+                site_id,
                 host_id,
             );
             assert!(

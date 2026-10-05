@@ -51,11 +51,11 @@
 	function handleTransferPorts(transferToService: Service, transferFromService: Service) {
 		const bindingIdsToTransfer = new Set(selectedPortBindings.map((b) => b.id));
 
-		// Update bindings with new service_id and network_id for the target service
+		// Update bindings with new service_id and site_id for the target service
 		const transferredBindings = selectedPortBindings.map((b) => ({
 			...b,
 			service_id: transferToService.id,
-			network_id: transferToService.network_id
+			site_id: transferToService.site_id
 		}));
 
 		formData.services = formData.services.map((s) => {
@@ -81,11 +81,7 @@
 		const serviceMetadata = serviceDefinitions.getItems()?.find((s) => s.id === serviceTypeId);
 		if (!serviceMetadata) return;
 
-		const newService: Service = createDefaultService(
-			serviceTypeId,
-			formData.id,
-			formData.network_id
-		);
+		const newService: Service = createDefaultService(serviceTypeId, formData.id, formData.site_id);
 
 		formData.services = [...formData.services, newService];
 	}

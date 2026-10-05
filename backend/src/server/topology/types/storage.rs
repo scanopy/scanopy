@@ -17,7 +17,7 @@ use uuid::Uuid;
 #[derive(Serialize)]
 pub struct TopologyCsvRow {
     pub id: Uuid,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -50,20 +50,16 @@ impl Storable for Topology {
             id,
             created_at,
             updated_at,
-            base:
-                Self::BaseData {
-                    network_id,
-                    options,
-                },
+            base: Self::BaseData { site_id, options },
         } = self.clone();
 
         Ok((
-            vec!["id", "created_at", "updated_at", "network_id", "options"],
+            vec!["id", "created_at", "updated_at", "site_id", "options"],
             vec![
                 SqlValue::Uuid(id),
                 SqlValue::Timestamp(created_at),
                 SqlValue::Timestamp(updated_at),
-                SqlValue::Uuid(network_id),
+                SqlValue::Uuid(site_id),
                 SqlValue::TopologyOptions(options),
             ],
         ))
@@ -79,7 +75,7 @@ impl Storable for Topology {
             created_at: row.get("created_at"),
             updated_at: row.get("updated_at"),
             base: TopologyBase {
-                network_id: row.get("network_id"),
+                site_id: row.get("site_id"),
                 options,
             },
         })
@@ -108,7 +104,7 @@ impl Entity for Topology {
     fn to_csv_row(&self) -> Self::CsvRow {
         TopologyCsvRow {
             id: self.id,
-            network_id: self.base.network_id,
+            site_id: self.base.site_id,
             created_at: self.created_at,
             updated_at: self.updated_at,
         }
@@ -127,8 +123,8 @@ impl Entity for Topology {
         EntityCategory::Visualization
     }
 
-    fn network_id(&self) -> Option<Uuid> {
-        Some(self.base.network_id)
+    fn site_id(&self) -> Option<Uuid> {
+        Some(self.base.site_id)
     }
 
     fn organization_id(&self) -> Option<Uuid> {

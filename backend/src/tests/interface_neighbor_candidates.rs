@@ -24,15 +24,15 @@ use crate::server::{
     shared::storage::traits::Storage,
 };
 
-use super::{host, network, organization, subnet, test_services};
+use super::{host, organization, site, subnet, test_services};
 use crate::server::interface_neighbors::r#impl::base::InterfaceNeighborEvidence;
 
-/// Everything a candidate-replacement test needs: a network with a host and interfaces in it, and
+/// Everything a candidate-replacement test needs: a site with a host and interfaces in it, and
 /// the service under test.
 struct Lab {
     interface_neighbor_service: std::sync::Arc<InterfaceNeighborService>,
     storage: crate::server::shared::storage::factory::StorageFactory,
-    network_id: Uuid,
+    site_id: Uuid,
     _container: testcontainers::ContainerAsync<testcontainers::GenericImage>,
 }
 
@@ -42,21 +42,21 @@ impl Lab {
 
         let org = organization();
         storage.organizations.create(&org).await.unwrap();
-        let network = network(&org.id);
-        storage.networks.create(&network).await.unwrap();
-        let subnet = subnet(&network.id);
+        let site = site(&org.id);
+        storage.sites.create(&site).await.unwrap();
+        let subnet = subnet(&site.id);
         storage.subnets.create(&subnet).await.unwrap();
 
         Self {
             interface_neighbor_service: services.interface_neighbor_service.clone(),
-            network_id: network.id,
+            site_id: site.id,
             storage,
             _container,
         }
     }
 
     async fn host(&self, name: &str) -> Host {
-        let mut h = host(&self.network_id);
+        let mut h = host(&self.site_id);
         h.base.name = crate::server::hosts::r#impl::name::HostName::manual(name.to_string());
         self.storage.hosts.create(&h).await.unwrap();
         h
@@ -65,7 +65,7 @@ impl Lab {
     async fn port(&self, host_id: Uuid, if_index: i32, descr: &str) -> Interface {
         let entry = Interface::new(InterfaceBase {
             host_id,
-            network_id: self.network_id,
+            site_id: self.site_id,
             if_index: Some(if_index),
             if_descr: Some(descr.to_string()),
             if_type: Some(if_type::ETHERNET_CSMA_CD),
@@ -120,7 +120,7 @@ async fn a_well_formed_candidate_survives_a_malformed_sibling_on_the_same_walk()
 
     lab.interface_neighbor_service
         .replace_candidates_from_discovery(
-            lab.network_id,
+            lab.site_id,
             port.id,
             vec![lldp_evidence("00:1a:2b:00:10:00")],
             InterfaceDataComplete {
@@ -153,7 +153,7 @@ async fn a_walk_that_read_nothing_does_not_refresh_or_delete_existing_evidence()
 
     lab.interface_neighbor_service
         .replace_candidates_from_discovery(
-            lab.network_id,
+            lab.site_id,
             port.id,
             vec![lldp_evidence("00:1a:2b:00:10:00")],
             complete(),
@@ -167,7 +167,7 @@ async fn a_walk_that_read_nothing_does_not_refresh_or_delete_existing_evidence()
     // A later scan reads nothing at all for LLDP (timeout, revoked community string).
     lab.interface_neighbor_service
         .replace_candidates_from_discovery(
-            lab.network_id,
+            lab.site_id,
             port.id,
             vec![],
             InterfaceDataComplete {
@@ -201,7 +201,7 @@ async fn fresh_evidence_does_not_resurrect_stale_evidence_for_the_same_interface
 
     lab.interface_neighbor_service
         .replace_candidates_from_discovery(
-            lab.network_id,
+            lab.site_id,
             port.id,
             vec![lldp_evidence("00:1a:2b:00:10:00")],
             complete(),
@@ -213,7 +213,7 @@ async fn fresh_evidence_does_not_resurrect_stale_evidence_for_the_same_interface
     // *this* port reports a fresh, different neighbour.
     lab.interface_neighbor_service
         .replace_candidates_from_discovery(
-            lab.network_id,
+            lab.site_id,
             port.id,
             vec![lldp_evidence("00:1a:2b:00:20:00")],
             InterfaceDataComplete {
@@ -247,7 +247,7 @@ async fn the_same_guarantees_hold_for_cdp() {
 
     lab.interface_neighbor_service
         .replace_candidates_from_discovery(
-            lab.network_id,
+            lab.site_id,
             port.id,
             vec![cdp_evidence("core-switch-01")],
             InterfaceDataComplete {

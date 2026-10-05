@@ -2,19 +2,19 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { IPAddressDisplay } from '$lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
 import { displayTags } from '$lib/shared/components/forms/selection/display-tags';
 import type { IPAddress } from '$lib/features/hosts/types/base';
-import type { Network } from '$lib/features/networks/types';
+import type { Site } from '$lib/features/sites/types';
 import type { Subnet } from '$lib/features/subnets/types/base';
 import { common_stale } from '$lib/paraglide/messages';
 
 const HOUR_MS = 60 * 60 * 1000;
 const NOW = new Date('2026-10-04T12:00:00Z').getTime();
 
-const network = { id: 'n1', effective_stale_after_hours: 24 * 28 } as Network;
+const site = { id: 'n1', effective_stale_after_hours: 24 * 28 } as Site;
 
 function address(hoursAgo: number): IPAddress {
 	return {
 		id: 'a1',
-		network_id: 'n1',
+		site_id: 'n1',
 		subnet_id: 's1',
 		host_id: 'h1',
 		ip_address: '192.168.4.63',
@@ -23,7 +23,7 @@ function address(hoursAgo: number): IPAddress {
 }
 
 function staleTags(iface: IPAddress, compact = false) {
-	return displayTags(IPAddressDisplay, iface, { subnets: [], networks: [network], compact }).filter(
+	return displayTags(IPAddressDisplay, iface, { subnets: [], sites: [site], compact }).filter(
 		(t) => t.label === common_stale()
 	);
 }
@@ -36,7 +36,7 @@ afterEach(() => vi.useRealTimers());
  * that shows.
  */
 describe('IPAddressDisplay stale tag', () => {
-	it('flags an address past its network window and leaves a current one alone', () => {
+	it('flags an address past its site window and leaves a current one alone', () => {
 		vi.useFakeTimers();
 		vi.setSystemTime(NOW);
 		expect(staleTags(address(24 * 40))).toHaveLength(1);
@@ -59,7 +59,7 @@ describe('IPAddressDisplay stale tag', () => {
 		const subnet = { id: 's1', cidr: '192.168.4.0/22', subnet_type: 'Lan' } as Subnet;
 		const tags = displayTags(IPAddressDisplay, address(24 * 40), {
 			subnets: [subnet],
-			networks: [network]
+			sites: [site]
 		});
 		expect(tags.map((t) => t.label)).toEqual([common_stale(), subnet.cidr]);
 	});

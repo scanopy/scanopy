@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { SlidersHorizontal } from 'lucide-svelte';
 	import type { components } from '$lib/api/schema';
-	import type { Network } from '$lib/features/networks/types';
+	import type { Site } from '$lib/features/sites/types';
 	import type { HostWithAddresses, IPAddress } from '$lib/features/hosts/types/base';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { useHostSummariesQuery } from '$lib/features/hosts/queries';
 	import {
 		hostDisplayContext,
@@ -19,7 +19,7 @@
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
 	import { credentialTypes } from '$lib/shared/stores/metadata';
 	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import { NetworkDisplay } from '$lib/shared/components/forms/selection/display/NetworkDisplay.svelte';
+	import { SiteDisplay } from '$lib/shared/components/forms/selection/display/SiteDisplay.svelte';
 	import {
 		HostDisplay,
 		type HostDisplayContext
@@ -31,9 +31,9 @@
 	import {
 		common_alreadyAdded,
 		common_hosts,
-		common_networks,
-		credentials_assignNetworkEmpty,
-		credentials_assignNetworkPlaceholder,
+		common_sites,
+		credentials_assignSiteEmpty,
+		credentials_assignSitePlaceholder,
 		credentials_assignHostEmpty,
 		credentials_assignHostPlaceholder,
 		credentials_assignDaemonHostLabel,
@@ -48,26 +48,26 @@
 	interface Props {
 		credentialTypeId: string;
 		credentialId?: string;
-		assignedNetworkIds: string[];
+		assignedSiteIds: string[];
 		hostAssignments: CredentialHostAssignment[];
 	}
 
 	let {
 		credentialTypeId,
 		credentialId,
-		assignedNetworkIds = $bindable([]),
+		assignedSiteIds = $bindable([]),
 		hostAssignments = $bindable([])
 	}: Props = $props();
 
 	let targets = $derived(credentialTypes.getMetadata(credentialTypeId)?.targets ?? []);
-	let supportsBroadcast = $derived(targets.includes('Network'));
+	let supportsBroadcast = $derived(targets.includes('Site'));
 	let supportsPerHost = $derived(targets.includes('Hosts'));
 	// Daemon-host-only types (e.g. a Docker/Podman socket) are assigned to a daemon's
 	// own host. Show a host picker filtered to daemon hosts; proxies (which also support
 	// 'Hosts') use the regular host surface, where daemon hosts are already selectable.
 	let supportsDaemonHostOnly = $derived(targets.includes('DaemonHost') && !supportsPerHost);
 
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	// The add-dropdown pages through every host the user can see, searched on the server. The
 	// assigned hosts are fetched by id, and their addresses come with them, which is what the
 	// per-host IP-scoping rows read. This used to be `useHostsQuery({ limit: 0 })`, every host in
@@ -96,7 +96,7 @@
 		return hostBlockReason(hostId);
 	}
 
-	let allNetworks = $derived(networksQuery.data ?? []);
+	let allSites = $derived(sitesQuery.data ?? []);
 	let daemonHostIds = $derived((daemonsQuery.data ?? []).map((d) => d.host_id));
 	let subnets = $derived(subnetsQuery.data ?? []);
 
@@ -133,22 +133,22 @@
 		});
 	}
 
-	// --- Networks (Broadcast) ---
-	let selectedNetworks = $derived(
-		assignedNetworkIds
-			.map((id) => allNetworks.find((n) => n.id === id))
-			.filter((n): n is Network => n != null)
+	// --- Sites (Broadcast) ---
+	let selectedSites = $derived(
+		assignedSiteIds
+			.map((id) => allSites.find((n) => n.id === id))
+			.filter((n): n is Site => n != null)
 	);
 
-	function addNetwork(id: string) {
-		if (!assignedNetworkIds.includes(id)) {
-			assignedNetworkIds = [...assignedNetworkIds, id];
+	function addSite(id: string) {
+		if (!assignedSiteIds.includes(id)) {
+			assignedSiteIds = [...assignedSiteIds, id];
 		}
 	}
 
-	function removeNetwork(index: number) {
-		const target = selectedNetworks[index];
-		if (target) assignedNetworkIds = assignedNetworkIds.filter((id) => id !== target.id);
+	function removeSite(index: number) {
+		const target = selectedSites[index];
+		if (target) assignedSiteIds = assignedSiteIds.filter((id) => id !== target.id);
 	}
 
 	// --- Hosts (PerHost), with per-host IP scoping via row expansion ---
@@ -215,19 +215,19 @@
 	}
 </script>
 
-{#snippet networksSurface()}
+{#snippet sitesSurface()}
 	<div class="min-w-0 flex-1">
 		<ListManager
-			label={`${common_networks()} (${assignedNetworkIds.length})`}
-			placeholder={credentials_assignNetworkPlaceholder()}
-			emptyMessage={credentials_assignNetworkEmpty()}
+			label={`${common_sites()} (${assignedSiteIds.length})`}
+			placeholder={credentials_assignSitePlaceholder()}
+			emptyMessage={credentials_assignSiteEmpty()}
 			allowReorder={false}
-			options={allNetworks}
-			items={selectedNetworks}
-			optionDisplayComponent={NetworkDisplay}
-			itemDisplayComponent={NetworkDisplay}
-			onAdd={addNetwork}
-			onRemove={removeNetwork}
+			options={allSites}
+			items={selectedSites}
+			optionDisplayComponent={SiteDisplay}
+			itemDisplayComponent={SiteDisplay}
+			onAdd={addSite}
+			onRemove={removeSite}
 		/>
 	</div>
 {/snippet}
@@ -313,7 +313,7 @@
 
 <div class="flex min-h-[18rem] flex-1 gap-6">
 	{#if supportsBroadcast}
-		{@render networksSurface()}
+		{@render sitesSurface()}
 	{/if}
 	{#if supportsPerHost}
 		{@render hostsSurface()}

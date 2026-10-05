@@ -21,8 +21,8 @@ impl EventBusService<Binding> for BindingService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, entity: &Binding) -> Option<Uuid> {
-        Some(entity.network_id())
+    fn get_site_id(&self, entity: &Binding) -> Option<Uuid> {
+        Some(entity.site_id())
     }
 
     fn get_organization_id(&self, _entity: &Binding) -> Option<Uuid> {

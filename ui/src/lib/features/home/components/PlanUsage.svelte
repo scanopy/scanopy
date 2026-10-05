@@ -17,7 +17,7 @@
 	} = $props();
 
 	let hasLimits = $derived(
-		planUsage.host_limit != null || planUsage.network_limit != null || planUsage.seat_limit != null
+		planUsage.host_limit != null || planUsage.site_limit != null || planUsage.seat_limit != null
 	);
 
 	interface UsageRow {
@@ -40,14 +40,14 @@
 				hasOverage: plan?.host_cents != null
 			});
 		}
-		if (planUsage.network_limit != null) {
-			const pct = planUsage.network_count / planUsage.network_limit;
+		if (planUsage.site_limit != null) {
+			const pct = planUsage.site_count / planUsage.site_limit;
 			list.push({
-				label: 'Networks',
-				current: planUsage.network_count,
-				limit: planUsage.network_limit,
+				label: 'Sites',
+				current: planUsage.site_count,
+				limit: planUsage.site_limit,
 				pct,
-				hasOverage: plan?.network_cents != null
+				hasOverage: plan?.site_cents != null
 			});
 		}
 		if (planUsage.seat_limit != null) {

@@ -9,7 +9,7 @@ import {
 } from '$lib/features/topology/interactions';
 import { filterFor, hiddenValuesFor, withFilterValues } from '$lib/features/topology/view-filters';
 import type { RenderableTopology } from '$lib/features/topology/types/base';
-import type { Network } from '$lib/features/networks/types';
+import type { Site } from '$lib/features/sites/types';
 
 /**
  * Workloads' virtualization filter covers hosts and services: a macvlan container is drawn as a
@@ -17,14 +17,14 @@ import type { Network } from '$lib/features/networks/types';
  * filter is read from the views fixture, so these follow whatever entities the backend declares.
  */
 
-const NETWORK_ID = 'net-1';
-const network = { id: NETWORK_ID } as Network;
+const SITE_ID = 'net-1';
+const site = { id: SITE_ID } as Site;
 
 function buildTopology(): RenderableTopology {
-	const base = { network_id: NETWORK_ID, tags: [] };
+	const base = { site_id: SITE_ID, tags: [] };
 	return {
 		id: 'topo-1',
-		network_id: NETWORK_ID,
+		site_id: SITE_ID,
 		hosts: [
 			{ ...base, id: 'docker-host' },
 			{
@@ -93,14 +93,14 @@ describe('a filter covering hosts and services', () => {
 		};
 		const [, macvlan] = topo.hosts;
 		const [container, sshd] = topo.services;
-		expect(matchesHoveredMetadata(container, 'Service', hovered, network, topo)).toBe(true);
-		expect(matchesHoveredMetadata(macvlan, 'Host', hovered, network, topo)).toBe(true);
-		expect(matchesHoveredMetadata(sshd, 'Service', hovered, network, topo)).toBe(false);
+		expect(matchesHoveredMetadata(container, 'Service', hovered, site, topo)).toBe(true);
+		expect(matchesHoveredMetadata(macvlan, 'Host', hovered, site, topo)).toBe(true);
+		expect(matchesHoveredMetadata(sshd, 'Service', hovered, site, topo)).toBe(false);
 	});
 
 	it('hides both when Containerized is hidden through the chip', () => {
 		const hidden = withFilterValues(filter(), undefined, ['Containerized']);
-		updateTagFilter(buildTopology(), undefined, 'Workloads', hidden, [], network);
+		updateTagFilter(buildTopology(), undefined, 'Workloads', hidden, [], site);
 
 		const nodes = get(tagHiddenNodeIds);
 		expect(nodes.has('bridge-container')).toBe(true);
@@ -116,14 +116,7 @@ describe('a filter covering hosts and services', () => {
 
 	it('is named once as the cause of an emptied view', () => {
 		const hidden = withFilterValues(filter(), undefined, ['Containerized']);
-		const summaries = activeViewFilters(
-			'Workloads',
-			buildTopology(),
-			hidden,
-			[],
-			undefined,
-			network
-		);
+		const summaries = activeViewFilters('Workloads', buildTopology(), hidden, [], undefined, site);
 
 		expect(summaries).toHaveLength(1);
 		expect(summaries[0]).toMatchObject({ label: filter().label, count: 2 });

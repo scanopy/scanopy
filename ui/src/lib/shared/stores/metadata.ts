@@ -147,8 +147,7 @@ export type BillingPlanFeatures = (typeof billingPlansJson)[number]['metadata'][
 export type FeatureId = keyof BillingPlanFeatures;
 
 /** Feature IDs plus resource-based upgrade reasons */
-export type UpgradeFeature =
-	FeatureId | 'seats' | 'networks' | 'hosts' | 'plan_usage' | 'snapshots';
+export type UpgradeFeature = FeatureId | 'seats' | 'sites' | 'hosts' | 'plan_usage' | 'snapshots';
 
 export interface BillingPlanMetadata {
 	features: BillingPlanFeatures;

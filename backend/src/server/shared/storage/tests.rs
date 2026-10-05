@@ -12,12 +12,12 @@ use crate::server::{
     interfaces::r#impl::base::Interface,
     invites::r#impl::base::Invite,
     ip_addresses::r#impl::base::IPAddress,
-    networks::r#impl::Network,
     organizations::r#impl::base::Organization,
     ports::r#impl::base::Port,
     services::r#impl::base::Service,
     shared::storage::traits::Storable,
     shares::r#impl::base::Share,
+    sites::r#impl::Site,
     snapshots::types::base::Snapshot,
     subnets::r#impl::base::Subnet,
     tags::entity_tags::EntityTag,
@@ -35,7 +35,7 @@ use std::collections::HashMap;
 type DeserializeFn = Box<dyn Fn(&PgRow) -> Result<(), anyhow::Error> + Send + Sync>;
 
 #[allow(dead_code)]
-const TABLES_WITHOUT_ENTITIES: [&str; 2] = ["user_network_access", "user_api_key_network_access"];
+const TABLES_WITHOUT_ENTITIES: [&str; 2] = ["user_site_access", "user_api_key_site_access"];
 
 // Mapping from table name to deserialization function
 #[allow(dead_code)]
@@ -83,9 +83,9 @@ fn get_entity_deserializers() -> HashMap<&'static str, DeserializeFn> {
     );
 
     map.insert(
-        Network::table_name(),
+        Site::table_name(),
         Box::new(|row| {
-            Network::from_row(row)?;
+            Site::from_row(row)?;
             Ok(())
         }),
     );
@@ -224,7 +224,7 @@ fn get_entity_deserializers() -> HashMap<&'static str, DeserializeFn> {
     // Junction tables for multi-credential support — no entity struct, just verify readable
     map.insert("host_credentials", Box::new(|_row| Ok(())));
 
-    map.insert("network_credentials", Box::new(|_row| Ok(())));
+    map.insert("site_credentials", Box::new(|_row| Ok(())));
 
     // Daemon ↔ interfaced-subnet junction — no entity struct, just verify readable.
     map.insert("daemon_interfaced_subnets", Box::new(|_row| Ok(())));
@@ -592,7 +592,7 @@ pub async fn test_entity_columns_match_live_schema() {
     check_entity::<Discovery>(&pool, &mut failures).await;
     check_entity::<Dependency>(&pool, &mut failures).await;
     check_entity::<Host>(&pool, &mut failures).await;
-    check_entity::<Network>(&pool, &mut failures).await;
+    check_entity::<Site>(&pool, &mut failures).await;
     check_entity::<Organization>(&pool, &mut failures).await;
     check_entity::<Service>(&pool, &mut failures).await;
     check_entity::<Subnet>(&pool, &mut failures).await;

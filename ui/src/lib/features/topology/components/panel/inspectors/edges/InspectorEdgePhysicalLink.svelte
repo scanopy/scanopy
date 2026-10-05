@@ -9,7 +9,7 @@
 	import { discoveryProtocols, entities } from '$lib/shared/stores/metadata';
 	import type { components } from '$lib/api/schema';
 	import InspectorSection from '../shared/InspectorSection.svelte';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { neighborEvidenceTag } from '$lib/shared/utils/freshness';
 	import { formatRelativeTime } from '$lib/shared/utils/formatting';
 
@@ -53,7 +53,7 @@
 	// — a port can resolve to several neighbours now, so "the row for this edge" is the one naming
 	// the *other* endpoint specifically, not a generic per-interface value. Checked from both
 	// directions since a link is recorded on one side and either endpoint's row could be it.
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	let evidenceRow = $derived(
 		(topology?.neighbours ?? [])
 			.filter(
@@ -68,12 +68,10 @@
 	let evidenceInterface = $derived(
 		evidenceRow ? topology?.interfaces.find((i) => i.id === evidenceRow!.interface_id) : undefined
 	);
-	let evidenceNetwork = $derived(
-		(networksQuery.data ?? []).find((n) => n.id === evidenceInterface?.network_id)
+	let evidenceSite = $derived(
+		(sitesQuery.data ?? []).find((n) => n.id === evidenceInterface?.site_id)
 	);
-	let evidenceTag = $derived(
-		evidenceRow ? neighborEvidenceTag(evidenceRow, evidenceNetwork) : null
-	);
+	let evidenceTag = $derived(evidenceRow ? neighborEvidenceTag(evidenceRow, evidenceSite) : null);
 </script>
 
 <div class="space-y-4">

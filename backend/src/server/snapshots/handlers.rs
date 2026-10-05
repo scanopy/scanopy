@@ -7,7 +7,7 @@
 //! every Snapshotable entity row with `snapshot_id` + close them, and releases
 //! the lock on every path.
 //!
-//! `GET /snapshots?network_id=X` and `DELETE /snapshots/{id}` use the standard
+//! `GET /snapshots?site_id=X` and `DELETE /snapshots/{id}` use the standard
 //! generic CRUD handlers; the cascade FKs on closed entity rows + topology rows
 //! reap everything tied to the deleted snapshots automatically.
 
@@ -43,8 +43,8 @@ use crate::server::{
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct CreateSnapshotRequest {
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
 }
 
 // Generated handlers for generic CRUD operations. `create` is hand-rolled below
@@ -62,7 +62,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         .routes(routes!(generated::get_by_id, generated::delete))
 }
 
-/// Take a snapshot of the current live topology + entity state for a network.
+/// Take a snapshot of the current live topology + entity state for a site.
 /// Acquires the discovery snapshot lock, creates the snapshots row, runs
 /// close-and-clone to stamp every Snapshotable entity row with `snapshot_id`
 /// and close them. The topology subscriber inserts the snapshot's topology
@@ -75,7 +75,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
     responses(
         (status = 200, description = "Snapshot created", body = ApiResponse<Snapshot>),
         (status = 402, description = "Snapshots not available on plan", body = ApiErrorResponse),
-        (status = 409, description = "Network is busy with discovery; retry shortly", body = ApiErrorResponse),
+        (status = 409, description = "Site is busy with discovery; retry shortly", body = ApiErrorResponse),
     ),
     security(("user_api_key" = []), ("session" = []))
 )]
@@ -85,32 +85,32 @@ async fn create_snapshot(
     RequireFeature { .. }: RequireFeature<TakeSnapshotFeature>,
     ApiJson(req): ApiJson<CreateSnapshotRequest>,
 ) -> ApiResult<Json<ApiResponse<Snapshot>>> {
-    // Tenant isolation: require the network to be in the caller's set.
-    let network_ids = auth.network_ids();
-    if !network_ids.contains(&req.network_id) {
+    // Tenant isolation: require the site to be in the caller's set.
+    let site_ids = auth.site_ids();
+    if !site_ids.contains(&req.site_id) {
         return Err(ApiError::forbidden(
-            "Network not accessible to the current user",
+            "Site not accessible to the current user",
         ));
     }
 
-    // Discovery lock: blocks queueing of new discoveries on this network for
+    // Discovery lock: blocks queueing of new discoveries on this site for
     // the duration of close-and-clone, and rejects this request if a scan is
-    // currently in-flight. The reservation releases the network even if this
+    // currently in-flight. The reservation releases the site even if this
     // request is abandoned before the release below.
     let Some(reservation) = state
         .services
         .discovery_service
-        .try_reserve_network_for_snapshot(req.network_id)
+        .try_reserve_site_for_snapshot(req.site_id)
         .await
     else {
         return Err(ApiError::conflict(
-            "Network is busy with an in-flight discovery; retry shortly.",
+            "Site is busy with an in-flight discovery; retry shortly.",
         ));
     };
 
     let result = async {
         let snapshot = Snapshot {
-            base: SnapshotBase::new(req.network_id, Utc::now(), auth.user_id()),
+            base: SnapshotBase::new(req.site_id, Utc::now(), auth.user_id()),
             ..Default::default()
         };
 
@@ -129,7 +129,7 @@ async fn create_snapshot(
         if let Err(e) = state
             .services
             .snapshot_service
-            .run_close_and_clone(created.base.network_id, created.base.taken_at, created.id)
+            .run_close_and_clone(created.base.site_id, created.base.taken_at, created.id)
             .await
         {
             // The response carries the message, but a failure here rolls the
@@ -137,7 +137,7 @@ async fn create_snapshot(
             // — GH #687 was reported with no server-side record of it at all.
             tracing::error!(
                 snapshot_id = %created.id,
-                network_id = %created.base.network_id,
+                site_id = %created.base.site_id,
                 error = ?e,
                 "Snapshot close-and-clone failed; no rows were captured",
             );
@@ -145,7 +145,7 @@ async fn create_snapshot(
             // The snapshots row is INSERTed before close-and-clone and is not
             // part of its transaction, so a failed clone otherwise leaves a
             // snapshot that captured nothing — selectable in the picker and
-            // rendering an empty topology, which reads as "the network was
+            // rendering an empty topology, which reads as "the site was
             // empty at that time" rather than as the failure it was.
             if let Err(cleanup) = state
                 .services
@@ -173,8 +173,8 @@ async fn create_snapshot(
     let created = result?;
 
     // First-snapshot onboarding event. Best-effort: failures here don't fail
-    // the request — same fire-and-forget pattern as SecondNetworkCreated in
-    // networks/handlers.rs.
+    // the request — same fire-and-forget pattern as SecondSiteCreated in
+    // sites/handlers.rs.
     if let Some(organization_id) = auth.organization_id()
         && let Ok(Some(org)) = state
             .services
@@ -190,7 +190,7 @@ async fn create_snapshot(
                 OrgScope { organization_id },
                 OnboardingOperation::FirstSnapshotCreated {
                     snapshot_id: created.id,
-                    network_id: created.base.network_id,
+                    site_id: created.base.site_id,
                 },
                 auth.entity.clone(),
             ))

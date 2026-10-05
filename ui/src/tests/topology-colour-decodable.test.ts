@@ -3,7 +3,7 @@ import viewsJson from '$lib/data/views.json';
 import hostVirtualizationsJson from '$lib/data/host-virtualizations.json';
 import ifOperStatusesJson from '$lib/data/if-oper-statuses.json';
 import type { components } from '$lib/api/schema';
-import type { Network } from '$lib/features/networks/types';
+import type { Site } from '$lib/features/sites/types';
 import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
 import { buildElementRender } from '$lib/features/topology/element-render-data';
 import { type MarkChannel } from '$lib/features/topology/element-marks';
@@ -26,10 +26,10 @@ import { matchesHoveredMetadata } from '$lib/features/topology/interactions';
 type ViewElementConfig = components['schemas']['ViewElementConfig'];
 type Color = components['schemas']['Color'];
 
-const NETWORK: Network = {
+const SITE: Site = {
 	id: 'net',
 	effective_stale_after_hours: 24
-} as unknown as Network;
+} as unknown as Site;
 const NOW = new Date().toISOString();
 const LONG_AGO = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -52,7 +52,7 @@ function buildTopology(): RenderableTopology {
 	const ipAddresses: Record<string, unknown>[] = [];
 	const services: Record<string, unknown>[] = [];
 	const interfaces: Record<string, unknown>[] = [];
-	const base = { network_id: NETWORK.id, tags: [], source: { type: 'Discovery' } };
+	const base = { site_id: SITE.id, tags: [], source: { type: 'Discovery' } };
 
 	for (const [age, seen] of ages) {
 		for (const virt of virtualizations) {
@@ -97,7 +97,7 @@ function buildTopology(): RenderableTopology {
 
 	return {
 		id: 'topo',
-		network_id: NETWORK.id,
+		site_id: SITE.id,
 		options: { request: { element_rules: [] } },
 		hosts,
 		subnets: [],
@@ -163,7 +163,7 @@ function decodingChips(
 			};
 			for (const entityType of filter.entities) {
 				const entity = cardEntityForFilter(resolved, entityType);
-				if (entity && matchesHoveredMetadata(entity, entityType, hovered, NETWORK, topology)) {
+				if (entity && matchesHoveredMetadata(entity, entityType, hovered, SITE, topology)) {
 					chips.push(`${filter.entities.join('+')}/${filter.filter_type}/${value.id}`);
 				}
 			}
@@ -195,7 +195,7 @@ describe('topology card colours are decodable in their view', () => {
 						options: topology.options as never,
 						hiddenEntityIds: new Set(),
 						expandedInlineGroups: new Set(),
-						networks: [NETWORK]
+						sites: [SITE]
 					});
 					const resolved = resolveElementNode(node.id, node, topology);
 					for (const [channel, color] of Object.entries(result.marks) as [MarkChannel, Color][]) {
@@ -231,7 +231,7 @@ describe('topology card colours are decodable in their view', () => {
 			options: topology.options as never,
 			hiddenEntityIds: new Set(),
 			expandedInlineGroups: new Set(),
-			networks: [NETWORK]
+			sites: [SITE]
 		});
 		expect(result.marks.Title).toBeUndefined();
 	});

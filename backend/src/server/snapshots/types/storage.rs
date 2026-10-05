@@ -16,7 +16,7 @@ use crate::server::{
 #[derive(Serialize)]
 pub struct SnapshotCsvRow {
     pub id: Uuid,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub taken_at: DateTime<Utc>,
     pub created_by_user_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -52,7 +52,7 @@ impl Storable for Snapshot {
             updated_at,
             base:
                 Self::BaseData {
-                    network_id,
+                    site_id,
                     taken_at,
                     created_by_user_id,
                 },
@@ -61,7 +61,7 @@ impl Storable for Snapshot {
         Ok((
             vec![
                 "id",
-                "network_id",
+                "site_id",
                 "taken_at",
                 "created_by_user_id",
                 "created_at",
@@ -69,7 +69,7 @@ impl Storable for Snapshot {
             ],
             vec![
                 SqlValue::Uuid(id),
-                SqlValue::Uuid(network_id),
+                SqlValue::Uuid(site_id),
                 SqlValue::Timestamp(taken_at),
                 SqlValue::OptionalUuid(created_by_user_id),
                 SqlValue::Timestamp(created_at),
@@ -84,7 +84,7 @@ impl Storable for Snapshot {
             created_at: row.get("created_at"),
             updated_at: row.get("updated_at"),
             base: SnapshotBase {
-                network_id: row.get("network_id"),
+                site_id: row.get("site_id"),
                 taken_at: row.get("taken_at"),
                 created_by_user_id: row.get("created_by_user_id"),
             },
@@ -114,7 +114,7 @@ impl Entity for Snapshot {
     fn to_csv_row(&self) -> Self::CsvRow {
         SnapshotCsvRow {
             id: self.id,
-            network_id: self.base.network_id,
+            site_id: self.base.site_id,
             taken_at: self.base.taken_at,
             created_by_user_id: self.base.created_by_user_id,
             created_at: self.created_at,
@@ -128,14 +128,14 @@ impl Entity for Snapshot {
 
     const ENTITY_NAME_SINGULAR: &'static str = "Snapshot";
     const ENTITY_NAME_PLURAL: &'static str = "Snapshots";
-    const ENTITY_DESCRIPTION: &'static str = "Point-in-time capture of a network's topology and entities. Created manually via the topology tab; loadable from the snapshots dropdown.";
+    const ENTITY_DESCRIPTION: &'static str = "Point-in-time capture of a site's topology and entities. Created manually via the topology tab; loadable from the snapshots dropdown.";
 
     fn entity_category() -> EntityCategory {
         EntityCategory::Visualization
     }
 
-    fn network_id(&self) -> Option<Uuid> {
-        Some(self.base.network_id)
+    fn site_id(&self) -> Option<Uuid> {
+        Some(self.base.site_id)
     }
 
     fn organization_id(&self) -> Option<Uuid> {

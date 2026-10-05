@@ -161,6 +161,6 @@ export function createEmptyUserApiKeyFormData(): UserApiKey {
 		user_id: uuidv4Sentinel,
 		organization_id: uuidv4Sentinel,
 		permissions: 'Viewer',
-		network_ids: []
+		site_ids: []
 	};
 }

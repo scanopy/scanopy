@@ -143,11 +143,11 @@ impl<'a> Checkpoint<'a> {
     }
 }
 
-/// Union the three subnet sources by id, preserving order: network-wide first, then the subnet
+/// Union the three subnet sources by id, preserving order: site-wide first, then the subnet
 /// being swept, then anything this host's own collection turned up.
 ///
 /// Shared by every integration where one credential reports on devices it did not scan. The
-/// network's whole address space matters rather than the scan's scope: a controller reports every
+/// site's whole address space matters rather than the scan's scope: a controller reports every
 /// device it manages, and on a segmented network almost none of them sit in the subnet a rescan is
 /// sweeping — scoping to the sweep dropped all of them.
 pub fn merge_subnets(
@@ -393,7 +393,7 @@ pub struct IntegrationContext<'a> {
     pub endpoint_responses: &'a [EndpointResponse],
     pub host_id: Uuid,
     pub host_naming_fallback: HostNamingFallback,
-    /// Subnets an integration may place a discovered address in — the network's whole address
+    /// Subnets an integration may place a discovered address in — the site's whole address
     /// space during the network phase, and the just-created ones during the daemon-host phase.
     ///
     /// Deliberately *not* the scan's subnet list. An integration learns about addresses the

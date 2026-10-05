@@ -15,9 +15,9 @@
 
 use crate::server::{
     config::AppState,
-    networks::r#impl::Network,
     organizations::r#impl::base::Organization,
     shared::{services::traits::CrudService, types::api::ApiError},
+    sites::r#impl::Site,
     users::r#impl::base::User,
 };
 use axum::http::request::Parts;
@@ -93,36 +93,36 @@ impl CachedUser {
     }
 }
 
-/// Cached network lookup stored in request extensions.
+/// Cached site lookup stored in request extensions.
 #[derive(Clone)]
-pub struct CachedNetwork(pub Network);
+pub struct CachedSite(pub Site);
 
-impl CachedNetwork {
-    /// Get network from cache or load from DB and cache it.
+impl CachedSite {
+    /// Get site from cache or load from DB and cache it.
     pub async fn get_or_load(
         parts: &mut Parts,
         app_state: &AppState,
-        network_id: &Uuid,
-    ) -> Result<Network, ApiError> {
+        site_id: &Uuid,
+    ) -> Result<Site, ApiError> {
         // Check cache first
-        if let Some(cached) = parts.extensions.get::<CachedNetwork>()
-            && cached.0.id == *network_id
+        if let Some(cached) = parts.extensions.get::<CachedSite>()
+            && cached.0.id == *site_id
         {
             return Ok(cached.0.clone());
         }
 
         // Load from DB
-        let network = app_state
+        let site = app_state
             .services
-            .network_service
-            .get_by_id(network_id)
+            .site_service
+            .get_by_id(site_id)
             .await
-            .map_err(|_| ApiError::internal_error("Failed to load network"))?
-            .ok_or_else(|| ApiError::forbidden("Network not found"))?;
+            .map_err(|_| ApiError::internal_error("Failed to load site"))?
+            .ok_or_else(|| ApiError::forbidden("Site not found"))?;
 
         // Cache for subsequent extractors
-        parts.extensions.insert(CachedNetwork(network.clone()));
+        parts.extensions.insert(CachedSite(site.clone()));
 
-        Ok(network)
+        Ok(site)
     }
 }

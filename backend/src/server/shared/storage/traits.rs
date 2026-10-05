@@ -287,15 +287,15 @@ pub trait Entity: Storable {
         Self::ENTITY_NAME_PLURAL
     }
 
-    /// Tenant scoping - network context
-    fn network_id(&self) -> Option<Uuid>;
+    /// Tenant scoping - site context
+    fn site_id(&self) -> Option<Uuid>;
 
     /// Tenant scoping - organization context
     fn organization_id(&self) -> Option<Uuid>;
 
-    /// Whether entities of this type are scoped to a network
-    fn is_network_keyed() -> bool {
-        Self::default().network_id().is_some()
+    /// Whether entities of this type are scoped to a site
+    fn is_site_keyed() -> bool {
+        Self::default().site_id().is_some()
     }
 
     /// Whether entities of this type are scoped to an organization

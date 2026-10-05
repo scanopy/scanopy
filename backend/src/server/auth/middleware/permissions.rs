@@ -437,9 +437,9 @@ pub struct Authorized<P: PermissionRequirement> {
 }
 
 impl<P: PermissionRequirement> Authorized<P> {
-    /// Get the network IDs this entity has access to.
-    pub fn network_ids(&self) -> Vec<Uuid> {
-        self.entity.network_ids()
+    /// Get the site IDs this entity has access to.
+    pub fn site_ids(&self) -> Vec<Uuid> {
+        self.entity.site_ids()
     }
 
     /// Get the organization ID, if applicable.

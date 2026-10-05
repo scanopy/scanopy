@@ -10,7 +10,7 @@ impl DaemonService {
         discovery_service: Arc<DiscoveryService>,
         credential_service: Arc<CredentialService>,
         subnet_service: Arc<SubnetService>,
-        network_service: Arc<NetworkService>,
+        site_service: Arc<SiteService>,
         organization_service: Arc<OrganizationService>,
         user_service: Arc<UserService>,
         daemon_api_key_service: Arc<DaemonApiKeyService>,
@@ -33,7 +33,7 @@ impl DaemonService {
             discovery_service,
             credential_service,
             subnet_service,
-            network_service,
+            site_service,
             organization_service,
             user_service,
             daemon_api_key_service,
@@ -100,20 +100,20 @@ impl DaemonService {
             return Ok(());
         }
 
-        // Get networks for this org, then count daemons on those networks
-        let networks = self
-            .network_service
-            .get_all(StorableFilter::<Network>::new_from_org_id(&org_id))
+        // Get sites for this org, then count daemons on those sites
+        let sites = self
+            .site_service
+            .get_all(StorableFilter::<Site>::new_from_org_id(&org_id))
             .await
             .unwrap_or_default();
 
-        let network_ids: Vec<Uuid> = networks.iter().map(|n| n.id).collect();
-        if network_ids.is_empty() {
+        let site_ids: Vec<Uuid> = sites.iter().map(|n| n.id).collect();
+        if site_ids.is_empty() {
             return Ok(());
         }
 
         let all_daemons = self
-            .get_all(StorableFilter::<Daemon>::new_from_network_ids(&network_ids))
+            .get_all(StorableFilter::<Daemon>::new_from_site_ids(&site_ids))
             .await
             .unwrap_or_default();
 
@@ -140,7 +140,7 @@ impl DaemonService {
             tracing::warn!(
                 daemon_url = url,
                 "Daemon URL uses HTTP — credentials will be sent unencrypted. \
-                 Ensure the connection is secured through other means (e.g., VPN, private network)"
+                 Ensure the connection is secured through other means (e.g., VPN, private site)"
             );
         }
     }

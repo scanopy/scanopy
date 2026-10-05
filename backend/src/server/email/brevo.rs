@@ -115,7 +115,7 @@ mod tests {
             plan_name: "Pro",
             billing_period: "month",
             hosts_count: 0,
-            networks_count: 0,
+            sites_count: 0,
             daemons_count: 0,
             services_count: 0,
             days_into_trial: 11,

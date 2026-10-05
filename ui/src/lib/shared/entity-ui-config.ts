@@ -12,7 +12,7 @@ import { InterfaceDisplay } from '$lib/shared/components/forms/selection/display
 import { SubnetDisplay } from '$lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
 import { DaemonDisplay } from '$lib/shared/components/forms/selection/display/DaemonDisplay.svelte';
 import { DependencyDisplay } from '$lib/shared/components/forms/selection/display/DependencyDisplay.svelte';
-import { NetworkDisplay } from '$lib/shared/components/forms/selection/display/NetworkDisplay.svelte';
+import { SiteDisplay } from '$lib/shared/components/forms/selection/display/SiteDisplay.svelte';
 import { CredentialDisplay } from '$lib/shared/components/forms/selection/display/CredentialDisplay.svelte';
 import { TopologyDisplay } from '$lib/shared/components/forms/selection/display/TopologyDisplay.svelte';
 import { DaemonApiKeyDisplay } from '$lib/shared/components/forms/selection/display/DaemonApiKeyDisplay.svelte';
@@ -49,7 +49,7 @@ export const TAB_LABELS: Record<string, string> = {
 	'discovery-history': 'Historical',
 	daemons: 'Daemons',
 	'daemon-api-keys': 'API Keys',
-	networks: 'Networks',
+	sites: 'Sites',
 	subnets: 'Subnets',
 	vlans: 'VLANs',
 	hosts: 'Hosts',
@@ -105,7 +105,7 @@ export const entityUIConfig: Record<EntityDiscriminants, EntityUIConfig | null> 
 		modalName: 'dependency-editor',
 		displayComponent: DependencyDisplay
 	},
-	Network: { tabId: 'networks', modalName: 'network-editor', displayComponent: NetworkDisplay },
+	Site: { tabId: 'sites', modalName: 'site-editor', displayComponent: SiteDisplay },
 	Credential: {
 		tabId: 'credentials',
 		modalName: 'credential-editor',

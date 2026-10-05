@@ -72,9 +72,9 @@ pub struct EnterpriseInquiryRequest {
     /// How soon they want to move
     #[serde(default)]
     pub urgency: Option<InquiryTimeline>,
-    /// Number of networks/sites
+    /// Number of sites
     #[serde(default)]
-    pub network_count: Option<i64>,
+    pub site_count: Option<i64>,
     /// Plan the enquiry is about — the `type` tag of a `BillingPlan`
     /// (e.g. `Team`, `Business`, `Enterprise`).
     #[serde(default)]

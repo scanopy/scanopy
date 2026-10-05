@@ -136,7 +136,7 @@ impl DiscoveryIntegration for InstantOnIntegration {
             )));
         }
 
-        let network_id = host_data.host.base.network_id;
+        let site_id = host_data.host.base.site_id;
         let subnets = collect_subnets(ctx, host_data);
         let site_count = sites.len();
         let mut read = 0usize;
@@ -148,12 +148,12 @@ impl DiscoveryIntegration for InstantOnIntegration {
             if ctx.cancel.is_cancelled() {
                 return Err(IntegrationFailure::cancelled());
             }
-            let Some(site_id) = site.id.as_deref() else {
+            let Some(instant_on_site_id) = site.id.as_deref() else {
                 continue;
             };
 
             match self
-                .read_site(ctx, handle, site_id, &subnets, network_id)
+                .read_site(ctx, handle, instant_on_site_id, &subnets, site_id)
                 .await
             {
                 Ok((devices, clients)) => {
@@ -185,7 +185,7 @@ impl DiscoveryIntegration for InstantOnIntegration {
                 Err(e) => {
                     // One unreadable site must not discard the sites that did read. Report it and
                     // let `Completeness::Partial` carry the shortfall.
-                    tracing::warn!(site = %site_id, error = %e, "Could not read Instant On site");
+                    tracing::warn!(site = %instant_on_site_id, error = %e, "Could not read Instant On site");
                     ctx.ops
                         .record_attempt_failure(
                             ctx.credential.into(),
@@ -193,7 +193,7 @@ impl DiscoveryIntegration for InstantOnIntegration {
                             AttemptOutcome::CollectionFailed,
                             format!(
                                 "could not read Instant On site {}: {e}",
-                                site.name.as_deref().unwrap_or(site_id)
+                                site.name.as_deref().unwrap_or(instant_on_site_id)
                             ),
                             true,
                             ctx.credential_id,
@@ -289,25 +289,25 @@ impl InstantOnIntegration {
         &self,
         ctx: &IntegrationContext<'_>,
         handle: &InstantOnProbeHandle,
-        site_id: &str,
+        instant_on_site_id: &str,
         subnets: &[crate::server::subnets::r#impl::base::Subnet],
-        network_id: uuid::Uuid,
+        site_id: uuid::Uuid,
     ) -> Result<(Vec<mapping::MappedDevice>, Vec<MappedClient>)> {
         let devices: Vec<InstantOnDevice> = handle
             .client
-            .get_site::<InstantOnDevice>(site_id, "inventory")
+            .get_site::<InstantOnDevice>(instant_on_site_id, "inventory")
             .await?
             .elements;
 
         let clients: Vec<InstantOnClientRecord> = match handle
             .client
-            .get_site::<InstantOnClientRecord>(site_id, "clientSummary")
+            .get_site::<InstantOnClientRecord>(instant_on_site_id, "clientSummary")
             .await
         {
             Ok(envelope) => envelope.elements,
             Err(e) => {
                 tracing::warn!(
-                    site = %site_id,
+                    site = %instant_on_site_id,
                     error = %e,
                     "Could not read Instant On clients; continuing without port MAC attachment"
                 );
@@ -316,15 +316,15 @@ impl InstantOnIntegration {
         };
 
         tracing::info!(
-            site = %site_id,
+            site = %instant_on_site_id,
             devices = devices.len(),
             clients = clients.len(),
             "Fetched Instant On site inventory"
         );
 
-        let mapped = mapping::map_devices(&devices, &clients, network_id, subnets);
+        let mapped = mapping::map_devices(&devices, &clients, site_id, subnets);
         let device_ips: Vec<std::net::IpAddr> = mapped.iter().map(|d| d.ip).collect();
-        let mapped_clients = mapping::map_clients(&clients, network_id, &device_ips, subnets);
+        let mapped_clients = mapping::map_clients(&clients, site_id, &device_ips, subnets);
 
         if mapped.len() < devices.len() {
             // Silent truncation would read as "the site only contains these devices", and in the
@@ -332,7 +332,7 @@ impl InstantOnIntegration {
             // integration hit when a rescan scoped the subnet list too narrowly.
             let skipped = devices.len() - mapped.len();
             tracing::warn!(
-                site = %site_id,
+                site = %instant_on_site_id,
                 skipped,
                 total = devices.len(),
                 "Skipped Instant On devices with no IP in a known subnet — host identity is \
@@ -361,7 +361,7 @@ impl InstantOnIntegration {
 
 /// Subnets available to place each managed device's IP in.
 ///
-/// `known_subnets` is the network's whole address space, not the scan's scope — which is what
+/// `known_subnets` is the site's whole address space, not the scan's scope — which is what
 /// makes a rescan of the anchor useful. The site reports every device it manages, and on a
 /// segmented network almost none of them sit in the subnet the rescan is sweeping.
 fn collect_subnets(
@@ -407,8 +407,8 @@ async fn create_device_host(
         ip,
     } = device;
 
-    let network_id = ctx.ops.network_id().await?;
-    let host = identity.into_host(network_id);
+    let site_id = ctx.ops.site_id().await?;
+    let host = identity.into_host(site_id);
 
     // Run the real service matcher rather than stamping a service on. The portal's reported device
     // class enters as `ManagedDevice` evidence and `Pattern::ManagedDeviceType` consumes it, so
@@ -420,7 +420,7 @@ async fn create_device_host(
     // the list carries the `0.0.0.0/0` organizational rows, which contain every IPv4 address, so
     // `find` returned `Internet` for every device.
     let subnet = placeable_subnet(subnets, ip)
-        .ok_or_else(|| Error::msg("device IP is in no subnet this network holds"))?;
+        .ok_or_else(|| Error::msg("device IP is in no subnet this site holds"))?;
 
     let all_ports: Vec<PortType> = vec![];
     let endpoint_responses = vec![];
@@ -442,7 +442,7 @@ async fn create_device_host(
         },
         &[],
         &daemon_id,
-        &host.base.network_id,
+        &host.base.site_id,
     )?;
 
     ctx.ops

@@ -70,7 +70,7 @@ impl ControllerIdentity {
     ///
     /// The server deduplicates on IP and MAC, so this merges into the host another discovery
     /// path already found when there is one.
-    pub fn into_host(self, network_id: Uuid) -> Host {
+    pub fn into_host(self, site_id: Uuid) -> Host {
         let Self {
             probe,
             name,
@@ -87,7 +87,7 @@ impl ControllerIdentity {
         // into the controller — `apply_names` records that separately.
         let reported = AttributeSource::Probe(probe);
         let mut host = Host::new(HostBase {
-            network_id,
+            site_id,
             source: EntitySource::Discovery,
             // The controller's name is also what the device advertises as LLDP sysName, and
             // neighbour resolution matches `interfaces.lldp_sys_name` against this column.
@@ -201,7 +201,7 @@ impl MappedClient {
         identity: ControllerIdentity,
         ip: Option<&str>,
         mac: Option<&str>,
-        network_id: Uuid,
+        site_id: Uuid,
         subnets: &[Subnet],
     ) -> Option<Self> {
         let ip: IpAddr = ip?.trim().parse().ok()?;
@@ -213,7 +213,7 @@ impl MappedClient {
             .as_deref()
             .and_then(|m| m.parse().ok())
             .map(|m| MacEvidence::new(MacEvidenceValue(m), AttributeSource::Probe(probe)));
-        let ip_address = IPAddress::discovered(network_id, subnets, ip, mac_address, None, 0)?;
+        let ip_address = IPAddress::discovered(site_id, subnets, ip, mac_address, None, 0)?;
 
         Some(Self {
             identity,
@@ -232,7 +232,7 @@ pub async fn create_client_hosts(
     ctx: &IntegrationContext<'_>,
     clients: Vec<MappedClient>,
 ) -> usize {
-    let Ok(network_id) = ctx.ops.network_id().await else {
+    let Ok(site_id) = ctx.ops.site_id().await else {
         return 0;
     };
 
@@ -251,7 +251,7 @@ pub async fn create_client_hosts(
             .ops
             .create_integration_host(
                 ctx.integration,
-                identity.into_host(network_id),
+                identity.into_host(site_id),
                 vec![ip_address],
                 vec![],
                 vec![],

@@ -49,14 +49,13 @@ impl InterfaceNeighborService {
         self.candidates.get_for_parent(interface_id).await
     }
 
-    /// Every candidate in the network, in one query — for callers (topology's protocol-label
+    /// Every candidate in the site, in one query — for callers (topology's protocol-label
     /// derivation) that need the raw evidence rather than the resolved outcome.
-    pub async fn candidates_for_network(
+    pub async fn candidates_for_site(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
     ) -> Result<Vec<InterfaceNeighborCandidate>> {
-        let filter =
-            StorableFilter::<InterfaceNeighborCandidate>::new_from_network_ids(&[network_id]);
+        let filter = StorableFilter::<InterfaceNeighborCandidate>::new_from_site_ids(&[site_id]);
         self.candidates.inner().get_all(filter).await
     }
 
@@ -87,7 +86,7 @@ impl InterfaceNeighborService {
     /// duplicate, possibly conflicting neighbour beside the fresh one.
     pub async fn replace_candidates_from_discovery(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         interface_id: Uuid,
         incoming: Vec<InterfaceNeighborEvidence>,
         collected: InterfaceDataComplete,
@@ -100,7 +99,7 @@ impl InterfaceNeighborService {
             .into_iter()
             .map(|evidence| {
                 InterfaceNeighborCandidate::new(InterfaceNeighborCandidateBase::new(
-                    network_id,
+                    site_id,
                     interface_id,
                     evidence,
                 ))
@@ -194,20 +193,20 @@ impl InterfaceNeighborService {
         Ok(result)
     }
 
-    /// Every resolved adjacency in a network, pinned the same way `interfaces` is — for
-    /// `TopologyContext`, which needs the whole network's merged read model rather than one
+    /// Every resolved adjacency in a site, pinned the same way `interfaces` is — for
+    /// `TopologyContext`, which needs the whole site's merged read model rather than one
     /// interface's. `snapshot_id = None` reads live rows; `Some(id)` reads the closed copies
     /// stamped at that snapshot — the same `apply_snapshot` convention `TopologyService::
     /// get_topology_data` already uses for every other entity type.
-    pub async fn resolved_for_network(
+    pub async fn resolved_for_site(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         snapshot_id: Option<Uuid>,
     ) -> Result<Vec<InterfaceNeighborRow>> {
         let base_interfaces_filter =
-            StorableFilter::<InterfaceNeighborInterface>::new_from_network_ids(&[network_id]);
+            StorableFilter::<InterfaceNeighborInterface>::new_from_site_ids(&[site_id]);
         let base_hosts_filter =
-            StorableFilter::<InterfaceNeighborHost>::new_from_network_ids(&[network_id]);
+            StorableFilter::<InterfaceNeighborHost>::new_from_site_ids(&[site_id]);
         let (interfaces_filter, hosts_filter) = match snapshot_id {
             None => (base_interfaces_filter.live(), base_hosts_filter.live()),
             Some(id) => (
@@ -249,7 +248,7 @@ impl InterfaceNeighborService {
     /// which is what keeps a stable network from paying an SCD2-adjacent write per link per scan.
     pub async fn reconcile_interface_neighbors(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         interface_id: Uuid,
         desired: &[(Neighbor, Option<DateTime<Utc>>)],
         scan_time: DateTime<Utc>,
@@ -309,7 +308,7 @@ impl InterfaceNeighborService {
                         None => {
                             let mut created =
                                 InterfaceNeighborInterface::new(InterfaceNeighborInterfaceBase {
-                                    network_id,
+                                    site_id,
                                     interface_id,
                                     neighbor_interface_id: *neighbor_interface_id,
                                     neighbor_seen_at: *neighbor_seen_at,
@@ -340,7 +339,7 @@ impl InterfaceNeighborService {
                         None => {
                             let mut created =
                                 InterfaceNeighborHost::new(InterfaceNeighborHostBase {
-                                    network_id,
+                                    site_id,
                                     interface_id,
                                     neighbor_host_id: *neighbor_host_id,
                                     neighbor_seen_at: *neighbor_seen_at,
@@ -360,15 +359,14 @@ impl InterfaceNeighborService {
     }
 
     /// Every candidate row with no matching row in either resolved table — the multi-row
-    /// replacement for the old `unresolved_lldp_port_in_network` filter, which compared a single
+    /// replacement for the old `unresolved_lldp_port_in_site` filter, which compared a single
     /// scalar `neighbor_interface_id`/`neighbor_host_id` against `NULL`. Used by the admin/debug
     /// unresolved-evidence view.
-    pub async fn unresolved_candidates_for_network(
+    pub async fn unresolved_candidates_for_site(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
     ) -> Result<Vec<InterfaceNeighborCandidate>> {
-        let filter =
-            StorableFilter::<InterfaceNeighborCandidate>::new_from_network_ids(&[network_id]);
+        let filter = StorableFilter::<InterfaceNeighborCandidate>::new_from_site_ids(&[site_id]);
         let candidates = self.candidates.inner().get_all(filter).await?;
         if candidates.is_empty() {
             return Ok(Vec::new());
@@ -401,7 +399,7 @@ impl InterfaceNeighborService {
     /// For a host merge that maps one host's interface onto the other's matching one. A row the
     /// move would duplicate (the survivor already has that adjacency) or turn into a self-loop is
     /// deleted instead, since the natural keys are unique among live rows.
-    pub async fn repoint_interface(&self, network_id: Uuid, from: Uuid, to: Uuid) -> Result<()> {
+    pub async fn repoint_interface(&self, site_id: Uuid, from: Uuid, to: Uuid) -> Result<()> {
         let to_interfaces = self.resolved_interfaces.get_for_parent(&to).await?;
         for mut row in self.resolved_interfaces.get_for_parent(&from).await? {
             let neighbor = row.base.neighbor_interface_id;
@@ -421,7 +419,7 @@ impl InterfaceNeighborService {
             .resolved_interfaces
             .inner()
             .get_all(
-                StorableFilter::<InterfaceNeighborInterface>::new_from_network_ids(&[network_id])
+                StorableFilter::<InterfaceNeighborInterface>::new_from_site_ids(&[site_id])
                     .neighbor_interface_id(&from)
                     .live(),
             )
@@ -430,7 +428,7 @@ impl InterfaceNeighborService {
             .resolved_interfaces
             .inner()
             .get_all(
-                StorableFilter::<InterfaceNeighborInterface>::new_from_network_ids(&[network_id])
+                StorableFilter::<InterfaceNeighborInterface>::new_from_site_ids(&[site_id])
                     .neighbor_interface_id(&to)
                     .live(),
             )
@@ -465,13 +463,13 @@ impl InterfaceNeighborService {
     /// duplicate; both are deleted.
     pub async fn repoint_neighbor_host(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         from: Uuid,
         to: Uuid,
         to_interface_ids: &HashSet<Uuid>,
     ) -> Result<()> {
         let filter = |host: &Uuid| {
-            StorableFilter::<InterfaceNeighborHost>::new_from_network_ids(&[network_id])
+            StorableFilter::<InterfaceNeighborHost>::new_from_site_ids(&[site_id])
                 .neighbor_host_id(host)
                 .live()
         };

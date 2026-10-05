@@ -80,7 +80,7 @@ export interface HostFormData extends Partial<
 	created_at: string;
 	updated_at: string;
 	name: string;
-	network_id: string;
+	site_id: string;
 	// Optional rather than nullable, like the discovered attributes below: it travels with the
 	// source that produced it, and absence is the pair missing, not a `null` value.
 	hostname?: string;

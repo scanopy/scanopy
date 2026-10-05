@@ -20,7 +20,7 @@ use email_address::EmailAddress;
 use uuid::Uuid;
 
 use super::self_hosted_licensing::{create_org, reload, test_state_with_email_dir};
-use super::{daemon, network, user};
+use super::{daemon, site, user};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::billing::plans::{get_enterprise_plan, get_self_hosted_standard_plan};
 use crate::server::billing::types::base::{BillingPlan, PlanConfig};
@@ -77,7 +77,7 @@ fn email_service_for(
         services.user_service.clone(),
         services.organization_service.clone(),
         services.host_service.clone(),
-        services.network_service.clone(),
+        services.site_service.clone(),
         services.service_service.clone(),
         services.daemon_service.clone(),
         "https://app.example.test".to_string(),
@@ -243,11 +243,11 @@ async fn a_cancelled_license_sends_the_license_ended_email_not_the_cloud_one() {
     );
 }
 
-/// A self-hosted plan with two included networks, so two network rows are at
+/// A self-hosted plan with two included sites, so two site rows are at
 /// the limit. (`check_plan_limits` ignores limits of one or less.)
-fn self_hosted_plan_with_two_networks() -> BillingPlan {
+fn self_hosted_plan_with_two_sites() -> BillingPlan {
     BillingPlan::SelfHostedStandard(PlanConfig {
-        included_networks: Some(2),
+        included_sites: Some(2),
         ..get_self_hosted_standard_plan().config()
     })
 }
@@ -257,15 +257,15 @@ async fn plan_limit_emails_skip_the_cloud_license_org_and_reach_the_customers_ow
     let cloud_dir = tempfile::tempdir().unwrap();
     let own_server_dir = tempfile::tempdir().unwrap();
     let (state, _container) = test_state_with_email_dir(None).await;
-    let org = create_org(&state, self_hosted_plan_with_two_networks(), None).await;
+    let org = create_org(&state, self_hosted_plan_with_two_sites(), None).await;
     create_owner(&state, org.id).await;
     for name in ["Office", "Warehouse"] {
-        let mut network = network(&org.id);
-        network.base.name = name.to_string();
+        let mut site = site(&org.id);
+        site.base.name = name.to_string();
         state
             .services
-            .network_service
-            .create(network, AuthenticatedEntity::System)
+            .site_service
+            .create(site, AuthenticatedEntity::System)
             .await
             .unwrap();
     }
@@ -303,13 +303,13 @@ async fn daemon_alerts_skip_the_cloud_license_org_and_reach_the_customers_own_se
     let (state, _container) = test_state_with_email_dir(None).await;
     let org = create_org(&state, get_self_hosted_standard_plan(), None).await;
     create_owner(&state, org.id).await;
-    let network = state
+    let site = state
         .services
-        .network_service
-        .create(network(&org.id), AuthenticatedEntity::System)
+        .site_service
+        .create(site(&org.id), AuthenticatedEntity::System)
         .await
         .unwrap();
-    let daemon = daemon(&network.id, &Uuid::new_v4());
+    let daemon = daemon(&site.id, &Uuid::new_v4());
     let daemons = &state.services.daemon_service;
 
     daemons
@@ -394,7 +394,7 @@ fn user_entity(organization_id: Uuid, permissions: UserOrgPermissions) -> Authen
         user_id: Uuid::new_v4(),
         organization_id,
         permissions,
-        network_ids: vec![],
+        site_ids: vec![],
         email: EmailAddress::new_unchecked("user@example.test"),
         email_verified: true,
     }

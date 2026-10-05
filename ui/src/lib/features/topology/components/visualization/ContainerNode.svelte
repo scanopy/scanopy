@@ -27,7 +27,7 @@
 	import { useTopology, selectedTopologyId } from '../../context';
 	import type { RenderableTopology, TopologyNode } from '../../types/base';
 	import { containerEntity, resolveContainerNode } from '../../resolvers';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { getFreshnessTag } from '$lib/shared/utils/freshness';
 	import { entities } from '$lib/shared/stores/metadata';
 	import { queryClient, queryKeys } from '$lib/api/query-client';
@@ -133,15 +133,15 @@
 
 	// The entity this container stands for (a host box, a subnet box). Grouping containers
 	// (categories, tags, stacks) have none, so they get no stale pill and no filter-hover ring.
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	let entity = $derived(topology ? containerEntity(data as TopologyNode, topology) : undefined);
-	let entityNetwork = $derived((networksQuery.data ?? []).find((n) => n.id === entity?.network_id));
+	let entitySite = $derived((sitesQuery.data ?? []).find((n) => n.id === entity?.site_id));
 
 	// Staleness pill, judged on that entity alone with `getFreshnessTag`, the same helper element
 	// cards and inventory badges use.
 	let staleTag = $derived(
 		entity
-			? getFreshnessTag(entity, entityNetwork, {
+			? getFreshnessTag(entity, entitySite, {
 					entityTypeLabel: entities.getName(containerType) || undefined
 				})
 			: null
@@ -227,7 +227,7 @@
 	let elementRuleId = $derived(
 		(data as Record<string, unknown>)?.element_rule_id as string | undefined
 	);
-	// Reactive to $topologyOptions so a network switch (which re-hydrates the
+	// Reactive to $topologyOptions so a site switch (which re-hydrates the
 	// options store) re-derives the infra rule id, unlike a non-reactive get().
 	let infraRuleId = $derived(findInfraRuleId($topologyOptions.request.element_rules));
 	let isInfraRule = $derived(elementRuleId != null && elementRuleId === infraRuleId);
@@ -275,7 +275,7 @@
 		// the same ring element cards get.
 		if (
 			currentHoveredMetadata &&
-			matchesHoveredMetadata(entity, containerType, currentHoveredMetadata, entityNetwork, topology)
+			matchesHoveredMetadata(entity, containerType, currentHoveredMetadata, entitySite, topology)
 		) {
 			const ch = createColorHelper(
 				currentHoveredMetadata.color as Parameters<typeof createColorHelper>[0]
@@ -404,7 +404,7 @@
 			// DISABLED: no mechanism to persist container resize.
 			// await updateNodeResizeMutation.mutateAsync({
 			// 	topologyId: topology.id,
-			// 	networkId: topology.network_id,
+			// 	siteId: topology.site_id,
 			// 	view: $activeView,
 			// 	nodeId: node.id,
 			// 	size: { x: roundedWidth, y: roundedHeight },

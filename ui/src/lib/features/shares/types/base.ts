@@ -25,10 +25,10 @@ export const defaultShareOptions: ShareOptions = {
 	show_minimap: true
 };
 
-export function createEmptyShare(topology_id: string, network_id: string): Share {
+export function createEmptyShare(topology_id: string, site_id: string): Share {
 	return {
 		topology_id,
-		network_id,
+		site_id,
 		id: uuidv4Sentinel,
 		created_at: utcTimeZoneSentinel,
 		updated_at: utcTimeZoneSentinel,

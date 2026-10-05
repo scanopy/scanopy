@@ -150,10 +150,8 @@ pub(crate) async fn register(
     let user_agent = user_agent.map(|u| u.to_string());
 
     // Check for pending invite
-    let (org_id, permissions, network_ids) = match process_pending_invite(&state, &session).await {
-        Ok(Some((org_id, permissions, network_ids))) => {
-            (Some(org_id), Some(permissions), network_ids)
-        }
+    let (org_id, permissions, site_ids) = match process_pending_invite(&state, &session).await {
+        Ok(Some((org_id, permissions, site_ids))) => (Some(org_id), Some(permissions), site_ids),
         Ok(_) => (None, None, vec![]),
         Err(e) => {
             return Err(ApiError::internal_error(&format!(
@@ -193,7 +191,7 @@ pub(crate) async fn register(
                 permissions,
                 ip,
                 user_agent,
-                network_ids,
+                site_ids,
             },
             billing_enabled,
         )
@@ -209,7 +207,7 @@ pub(crate) async fn register(
         .map_err(|e| ApiError::internal_error(&format!("Failed to save session: {}", e)))?;
 
     // If this is a new org, provision the integrated daemon and mark the modal done.
-    // The network itself is created by the `OrgCreated` subscriber.
+    // The site itself is created by the `OrgCreated` subscriber.
     if let ProvisionOrg::New(setup) = provision_org {
         apply_pending_setup(&state, &user, setup).await?;
 
@@ -220,7 +218,7 @@ pub(crate) async fn register(
     Ok(Json(ApiResponse::success(user)))
 }
 
-/// Store pre-registration setup data (org name, first network) in session
+/// Store pre-registration setup data (org name, first site) in session
 #[utoipa::path(
     post,
     path = "/setup",
@@ -247,15 +245,15 @@ pub(crate) async fn setup(
     }
 
     let billing_enabled = state.config.stripe_secret.is_some();
-    let network = validate_setup_network(request.network.as_ref(), billing_enabled)?;
-    let network_id = network.as_ref().map(|n| n.network_id);
+    let site = validate_setup_site(request.site.as_ref(), billing_enabled)?;
+    let site_id = site.as_ref().map(|n| n.site_id);
 
     // Store setup data in session. `use_case` is read fresh from session at
     // register time (not snapshotted here) so that subsequent calls to
     // `/onboarding-step` can update it without `/setup` being re-called.
     let pending_setup = PendingSetup {
         org_name: request.organization_name.trim().to_string(),
-        network,
+        site,
         use_case: UseCase::Other,
     };
 
@@ -264,39 +262,39 @@ pub(crate) async fn setup(
         .await
         .map_err(|e| ApiError::internal_error(&format!("Failed to save setup data: {}", e)))?;
 
-    Ok(Json(ApiResponse::success(SetupResponse { network_id })))
+    Ok(Json(ApiResponse::success(SetupResponse { site_id })))
 }
 
-/// Validate the requested first network and assign its id.
+/// Validate the requested first site and assign its id.
 ///
-/// The network may be omitted only on cloud (`billing_enabled`), where a
+/// The site may be omitted only on cloud (`billing_enabled`), where a
 /// self-hosted license buyer gets one if the org later moves to a cloud plan. A
 /// self-hosted instance has no billing events to create it later, so it always
 /// needs one.
-fn validate_setup_network(
-    network: Option<&NetworkSetup>,
+fn validate_setup_site(
+    site: Option<&SiteSetup>,
     billing_enabled: bool,
-) -> Result<Option<PendingNetworkSetup>, ApiError> {
-    let Some(network) = network else {
+) -> Result<Option<PendingSiteSetup>, ApiError> {
+    let Some(site) = site else {
         if billing_enabled {
             return Ok(None);
         }
-        return Err(ApiError::bad_request("Network name cannot be empty"));
+        return Err(ApiError::bad_request("Site name cannot be empty"));
     };
 
-    let name = network.name.trim();
+    let name = site.name.trim();
     if name.is_empty() {
-        return Err(ApiError::bad_request("Network name cannot be empty"));
+        return Err(ApiError::bad_request("Site name cannot be empty"));
     }
     if name.len() > 100 {
         return Err(ApiError::bad_request(
-            "Network name must be 100 characters or less",
+            "Site name must be 100 characters or less",
         ));
     }
 
-    Ok(Some(PendingNetworkSetup {
+    Ok(Some(PendingSiteSetup {
         name: name.to_string(),
-        network_id: Uuid::new_v4(),
+        site_id: Uuid::new_v4(),
     }))
 }
 
@@ -354,18 +352,18 @@ pub(crate) async fn onboarding_state(
     let step: Option<String> = session.get("onboarding_step").await.ok().flatten();
     let use_case: Option<UseCase> = session.get("onboarding_use_case").await.ok().flatten();
 
-    let (org_name, network, network_id) = if let Some(pending_setup) = session
+    let (org_name, site, site_id) = if let Some(pending_setup) = session
         .get::<PendingSetup>("pending_setup")
         .await
         .ok()
         .flatten()
     {
-        let network_id = pending_setup.network.as_ref().map(|n| n.network_id);
-        let network = pending_setup.network.map(|n| OnboardingNetworkState {
-            id: Some(n.network_id),
+        let site_id = pending_setup.site.as_ref().map(|n| n.site_id);
+        let site = pending_setup.site.map(|n| OnboardingSiteState {
+            id: Some(n.site_id),
             name: n.name,
         });
-        (Some(pending_setup.org_name), network, network_id)
+        (Some(pending_setup.org_name), site, site_id)
     } else {
         (None, None, None)
     };
@@ -374,14 +372,14 @@ pub(crate) async fn onboarding_state(
         step,
         use_case,
         org_name,
-        network,
-        network_id,
+        site,
+        site_id,
     })))
 }
 
 /// Apply pending setup after user registration: provision the integrated daemon and
 /// record the onboarding modal as completed. The org, its plan and onboarding state
-/// are set in `provision_user`; the requested network, its subnets and topology are
+/// are set in `provision_user`; the requested site, its subnets and topology are
 /// created by the `OrgCreated` subscriber (`TopologyService::ensure_cloud_setup`).
 pub(crate) async fn apply_pending_setup(
     state: &Arc<AppState>,
@@ -393,16 +391,16 @@ pub(crate) async fn apply_pending_setup(
 
     // Handle integrated daemon if configured.
     //
-    // The integrated daemon is provisioned, not handed a shared network key: since 0.17.5 a
+    // The integrated daemon is provisioned, not handed a shared site key: since 0.17.5 a
     // daemon that reaches /register without resolving to an existing record is rejected
     // (`daemon_not_provisioned`), so a shared key would leave it permanently unregistered.
     // Provisioning creates its record + a 1:1 key up front; the daemon then learns its identity
     // from that key on first contact. Legacy (< 0.17.5) daemons still self-register with their
     // existing shared keys — those are untouched here.
-    if let (Some(integrated_daemon_url), Some(network)) =
-        (&state.config.integrated_daemon_url, &setup.network)
+    if let (Some(integrated_daemon_url), Some(site)) =
+        (&state.config.integrated_daemon_url, &setup.site)
     {
-        let network_id = network.network_id;
+        let site_id = site.site_id;
 
         let (_daemon, plaintext) = state
             .services
@@ -410,7 +408,7 @@ pub(crate) async fn apply_pending_setup(
             .provision(
                 &ProvisionDaemonRequest {
                     name: Some(DEFAULT_DAEMON_NAME.to_string()),
-                    network_id: Some(network_id),
+                    site_id: Some(site_id),
                     // The integrated daemon dials the server, so it needs no reachable url.
                     mode: DaemonMode::DaemonPoll,
                     url: None,
@@ -427,7 +425,7 @@ pub(crate) async fn apply_pending_setup(
         state
             .services
             .daemon_service
-            .initialize_local_daemon(integrated_daemon_url.clone(), network_id, plaintext)
+            .initialize_local_daemon(integrated_daemon_url.clone(), site_id, plaintext)
             .await
             .map_err(|e| {
                 ApiError::internal_error(&format!("Failed to initialize local daemon: {}", e))
@@ -454,21 +452,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn only_cloud_signups_may_skip_the_network() {
-        assert!(validate_setup_network(None, true).unwrap().is_none());
-        assert!(validate_setup_network(None, false).is_err());
+    fn only_cloud_signups_may_skip_the_site() {
+        assert!(validate_setup_site(None, true).unwrap().is_none());
+        assert!(validate_setup_site(None, false).is_err());
 
-        let blank = NetworkSetup {
+        let blank = SiteSetup {
             name: "  ".to_string(),
         };
-        assert!(validate_setup_network(Some(&blank), true).is_err());
+        assert!(validate_setup_site(Some(&blank), true).is_err());
 
-        let named = NetworkSetup {
+        let named = SiteSetup {
             name: " Lab ".to_string(),
         };
-        let network = validate_setup_network(Some(&named), false)
-            .unwrap()
-            .unwrap();
-        assert_eq!(network.name, "Lab");
+        let site = validate_setup_site(Some(&named), false).unwrap().unwrap();
+        assert_eq!(site.name, "Lab");
     }
 }

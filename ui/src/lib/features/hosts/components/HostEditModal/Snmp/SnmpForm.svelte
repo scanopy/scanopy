@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { HostFormData, IPAddress } from '$lib/features/hosts/types/base';
-	import type { Network } from '$lib/features/networks/types';
+	import type { Site } from '$lib/features/sites/types';
 	import type { Credential } from '$lib/features/credentials/types/base';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
@@ -40,15 +40,15 @@
 		hosts_credentialTargetSubtitle,
 		hosts_snmp_credentialOverride,
 		hosts_snmp_noOverrides,
-		daemons_credentialWizardNetworkCredentials
+		daemons_credentialWizardSiteCredentials
 	} from '$lib/paraglide/messages';
 
 	interface Props {
 		formData: HostFormData;
-		network?: Network | null;
+		site?: Site | null;
 	}
 
-	let { formData = $bindable(), network = null }: Props = $props();
+	let { formData = $bindable(), site = null }: Props = $props();
 
 	// TanStack Query for organization and current user (for demo mode check)
 	const organizationQuery = useOrganizationQuery();
@@ -103,9 +103,9 @@
 	// modal and credential modal via daemonHostBlocking.
 	let claimedHostIntegrations = $derived(claimedIntegrations(selectedCredentials));
 
-	// Resolve network default credentials to full objects for EntityTag display
-	let networkDefaultCredentials = $derived(
-		(network?.credential_ids ?? [])
+	// Resolve site default credentials to full objects for EntityTag display
+	let siteDefaultCredentials = $derived(
+		(site?.credential_ids ?? [])
 			.map((id: string) => allCredentials.find((c) => c.id === id))
 			.filter((c): c is Credential => c != null)
 	);
@@ -170,10 +170,10 @@
 		href="https://scanopy.net/docs/using-scanopy/credentials/#credential-resolution"
 		linkText={hosts_credentialOverrideHelpLinkText()}
 	/>
-	{#if networkDefaultCredentials.length > 0}
+	{#if siteDefaultCredentials.length > 0}
 		<p class="text-tertiary mt-1 flex flex-wrap items-center gap-1 text-xs">
-			<span>{daemons_credentialWizardNetworkCredentials()}</span>
-			{#each networkDefaultCredentials as cred (cred.id)}
+			<span>{daemons_credentialWizardSiteCredentials()}</span>
+			{#each siteDefaultCredentials as cred (cred.id)}
 				<EntityTag
 					entityRef={entityRef('Credential', cred.id, cred)}
 					label={cred.name}

@@ -25,7 +25,7 @@ export const entityToExportPath: Record<EntityDiscriminants, string | null> = {
 	Dependency: 'dependencies',
 	Tag: 'tags',
 	Daemon: 'daemons',
-	Network: 'networks',
+	Site: 'sites',
 	Share: 'shares',
 	Discovery: 'discoveries',
 	Topology: 'topologies',

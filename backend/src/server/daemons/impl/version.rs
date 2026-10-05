@@ -192,7 +192,7 @@ pub fn reports_ready_for_work(version: Option<&Version>) -> bool {
 /// installed against a pre-provisioned record bound to a 1:1 api key, learns its
 /// identity from the register / first-contact handshake, and no longer relies on
 /// the client-supplied X-Daemon-ID header. Below this, daemons self-register with
-/// a shared network key. Coexistence is enforced by key shape (1:1 vs NULL), not
+/// a shared site key. Coexistence is enforced by key shape (1:1 vs NULL), not
 /// by this floor — this documents the boundary and gates any version-specific UI.
 pub fn minimum_server_provisioned_identity() -> Version {
     Version::new(0, 17, 5)
@@ -277,6 +277,27 @@ pub fn last_os_unreporting() -> Version {
 /// version is assumed not to.
 pub fn supports_os_reporting(version: Option<&Version>) -> bool {
     version.is_some_and(|v| v > &last_os_unreporting())
+}
+
+/// The last release whose daemon names the site `network_id` on the wire (and its credential
+/// scope `"Network"`). Daemons at or below it are sent those names by
+/// [`rewrite_for_network_wire`](crate::server::shared::legacy::rewrite_for_network_wire); later
+/// daemons get `site_id`. Their requests need no gate: every daemon request is read with
+/// [`rewrite_from_network_wire`](crate::server::shared::legacy::rewrite_from_network_wire).
+///
+/// A ceiling rather than a floor, for the reason [`last_legacy_neighbor_wire`] gives. A build of
+/// this branch still calls itself this version until the bump, so its daemons are sent the old
+/// names too, which they read with the same rewrite.
+pub fn last_network_wire() -> Version {
+    Version::new(0, 17, 21)
+}
+
+/// Whether a daemon at this version reads `network_id` rather than `site_id`. A daemon without a
+/// recorded or parseable version is assumed to.
+pub fn speaks_network_wire(version: Option<&str>) -> bool {
+    version
+        .and_then(|v| Version::parse(v).ok())
+        .is_none_or(|v| v <= last_network_wire())
 }
 
 /// Every capability floor this build enforces, labelled so a failure names the
@@ -793,6 +814,22 @@ mod tests {
              Delete `DiscoveryInterface`'s `legacy_neighbor_evidence` field and its translation \
              (server/interfaces/impl/wire.rs), the `OutdatedDaemonFormat` warning if nothing \
              else raises it, `last_legacy_neighbor_wire`, and this test."
+        );
+    }
+
+    /// Same end-condition for the Network → Site wire rename: once no supported daemon reads
+    /// `network_id`, the rewrite has no reader left.
+    #[test]
+    fn network_wire_shim_still_needed() {
+        let floor = enforced_floor(Utc::now());
+        let last = last_network_wire();
+        assert!(
+            floor <= last,
+            "the enforced daemon floor is {floor}, above {last}: every supported daemon now \
+             speaks `site_id`. Delete the network-wire rewrites and middlewares in \
+             server/shared/legacy.rs and their callers (daemon api_client and router, \
+             daemons/service/http.rs), `last_network_wire`, and this test. Keep \
+             `DiscoveryUpdatePayload`'s `network_id` alias: stored run history uses it."
         );
     }
 }

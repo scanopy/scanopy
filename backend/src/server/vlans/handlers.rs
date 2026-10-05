@@ -66,8 +66,8 @@ pub struct VlanFilterQuery {
     /// Number of results to skip. Default: 0.
     #[param(minimum = 0)]
     pub offset: Option<u32>,
-    /// Filter by network ID
-    pub network_id: Option<Uuid>,
+    /// Filter by site ID
+    pub site_id: Option<Uuid>,
     /// As-of timestamp (ISO 8601). When set, returns SCD2 state as of this
     /// instant (snapshot view) instead of live state.
     pub at: Option<chrono::DateTime<chrono::Utc>>,
@@ -89,16 +89,16 @@ impl FilterQueryExtractor for VlanFilterQuery {
     fn apply_to_filter<T: Storable>(
         &self,
         mut filter: StorableFilter<T>,
-        user_network_ids: &[Uuid],
+        user_site_ids: &[Uuid],
         _user_organization_id: Uuid,
     ) -> StorableFilter<T> {
-        // If a specific network is requested, filter to it (must be in user's accessible networks)
-        if let Some(network_id) = self.network_id {
-            if user_network_ids.contains(&network_id) {
-                filter = filter.uuid_column("network_id", &network_id);
+        // If a specific site is requested, filter to it (must be in user's accessible sites)
+        if let Some(site_id) = self.site_id {
+            if user_site_ids.contains(&site_id) {
+                filter = filter.uuid_column("site_id", &site_id);
             } else {
-                // User doesn't have access to this network — return empty
-                filter = filter.uuid_column("network_id", &Uuid::nil());
+                // User doesn't have access to this site — return empty
+                filter = filter.uuid_column("site_id", &Uuid::nil());
             }
         }
         filter
@@ -137,7 +137,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 
 /// List all VLANs
 ///
-/// Returns VLANs accessible to the authenticated user, optionally filtered by network.
+/// Returns VLANs accessible to the authenticated user, optionally filtered by site.
 #[utoipa::path(
     get,
     path = "",
@@ -155,11 +155,11 @@ async fn get_all_vlans(
         VlanFilterQuery,
     >,
 ) -> ApiResult<Json<PaginatedApiResponse<Vlan>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
 
-    let base_filter = StorableFilter::<Vlan>::new_from_network_ids(&network_ids);
+    let base_filter = StorableFilter::<Vlan>::new_from_site_ids(&site_ids);
     let filter = query
-        .apply_to_filter(base_filter, &network_ids, Uuid::nil())
+        .apply_to_filter(base_filter, &site_ids, Uuid::nil())
         .live_or_as_of(query.at);
 
     let pagination = query.pagination();
@@ -188,7 +188,7 @@ async fn get_all_vlans(
 
 /// Create a new VLAN
 ///
-/// Creates a VLAN scoped to a network. VLAN numbers must be unique within a network.
+/// Creates a VLAN scoped to a site. VLAN numbers must be unique within a site.
 #[utoipa::path(
     post,
     path = "",
@@ -197,7 +197,7 @@ async fn get_all_vlans(
     responses(
         (status = 200, description = "VLAN created successfully", body = ApiResponse<Vlan>),
         (status = 400, description = "Validation error", body = ApiErrorResponse),
-        (status = 409, description = "VLAN number already exists in this network", body = ApiErrorResponse),
+        (status = 409, description = "VLAN number already exists in this site", body = ApiErrorResponse),
     ),
     security(("user_api_key" = []), ("session" = []))
 )]
@@ -206,21 +206,21 @@ pub async fn create_vlan(
     auth: Authorized<Member>,
     ApiJson(vlan): ApiJson<Vlan>,
 ) -> ApiResult<Json<ApiResponse<Vlan>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
 
-    // Verify user has access to the target network
-    if !network_ids.contains(&vlan.base.network_id) {
-        return Err(ApiError::forbidden("Access denied to this network"));
+    // Verify user has access to the target site
+    if !site_ids.contains(&vlan.base.site_id) {
+        return Err(ApiError::forbidden("Access denied to this site"));
     }
 
-    // Check uniqueness: (network_id, vlan_number)
+    // Check uniqueness: (site_id, vlan_number)
     let existing_filter =
-        StorableFilter::<Vlan>::new_from_uuid_column("network_id", &vlan.base.network_id)
+        StorableFilter::<Vlan>::new_from_uuid_column("site_id", &vlan.base.site_id)
             .u16_column("vlan_number", vlan.base.vlan_number);
 
     if state.services.vlan_service.exists(existing_filter).await? {
         return Err(ApiError::conflict(&format!(
-            "VLAN {} already exists in this network",
+            "VLAN {} already exists in this site",
             vlan.base.vlan_number
         )));
     }
@@ -235,8 +235,8 @@ pub async fn create_vlan(
 /// Request body for daemon VLAN discovery upsert
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct VlanDiscoveryRequest {
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// VLANs observed by the daemon.
     pub vlans: Vec<VlanDiscoveryItem>,
 }
@@ -302,20 +302,20 @@ pub async fn discovery_upsert_vlans(
 ) -> ApiResult<Json<ApiResponse<VlanDiscoveryResponse>>> {
     request.validate()?;
 
-    // Daemons don't carry org_id directly — resolve from the network
-    let network = state
+    // Daemons don't carry org_id directly — resolve from the site
+    let site = state
         .services
-        .network_service
-        .get_by_id(&request.network_id)
+        .site_service
+        .get_by_id(&request.site_id)
         .await?
-        .ok_or_else(|| ApiError::not_found("Network not found".to_string()))?;
-    let organization_id = network.base.organization_id;
+        .ok_or_else(|| ApiError::not_found("Site not found".to_string()))?;
+    let organization_id = site.base.organization_id;
 
-    // Verify daemon has access to this network
-    let daemon_network_ids = auth.network_ids();
-    if !daemon_network_ids.contains(&request.network_id) {
+    // Verify daemon has access to this site
+    let daemon_site_ids = auth.site_ids();
+    if !daemon_site_ids.contains(&request.site_id) {
         return Err(ApiError::forbidden(
-            "Daemon cannot create VLANs on networks it's not assigned to",
+            "Daemon cannot create VLANs on sites it's not assigned to",
         ));
     }
 
@@ -332,7 +332,7 @@ pub async fn discovery_upsert_vlans(
             .services
             .vlan_service
             .upsert_from_discovery(
-                request.network_id,
+                request.site_id,
                 organization_id,
                 item.vlan_number,
                 item.name,
@@ -359,7 +359,7 @@ mod tests {
 
     fn request_with(count: usize) -> VlanDiscoveryRequest {
         VlanDiscoveryRequest {
-            network_id: Uuid::new_v4(),
+            site_id: Uuid::new_v4(),
             vlans: (0..count)
                 .map(|i| VlanDiscoveryItem {
                     vlan_number: (i % MAX_VLANS_PER_DISCOVERY) as u16 + 1,

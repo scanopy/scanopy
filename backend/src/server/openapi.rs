@@ -34,7 +34,6 @@ use crate::server::hosts::r#impl::virtualization::HostVirtualizationState;
 use crate::server::interfaces::r#impl::base::Interface;
 use crate::server::invites::r#impl::base::Invite;
 use crate::server::ip_addresses::r#impl::base::IPAddress;
-use crate::server::networks::r#impl::Network;
 use crate::server::organizations::r#impl::base::Organization;
 use crate::server::ports::r#impl::base::Port;
 use crate::server::services::handlers::ServiceOrderField;
@@ -46,6 +45,7 @@ use crate::server::shared::types::field_definition::{
     FieldDefinition, FieldType, InlineFormat, SelectOption,
 };
 use crate::server::shares::r#impl::base::Share;
+use crate::server::sites::r#impl::Site;
 use crate::server::snapshots::types::base::Snapshot;
 use crate::server::subnets::handlers::SubnetOrderField;
 use crate::server::subnets::r#impl::base::Subnet;
@@ -109,7 +109,7 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
         DiscoveryOrderField,
         VlanOrderField,
         // Derived staleness status. Not a field on any entity (it's computed
-        // per-request against the network's window), so nothing else pulls it
+        // per-request against the site's window), so nothing else pulls it
         // into the schema — but the frontend must derive its union from here
         // rather than hand-maintaining one.
         EntityFreshness,
@@ -155,7 +155,7 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
         title = "Scanopy API",
         version = "1",
         description = r#"
-Network topology discovery and visualization API.
+Site topology discovery and visualization API.
 
 ## Authentication
 
@@ -250,12 +250,12 @@ Endpoints are prefixed with `/api/v1/`. The API version is an integer (`api_vers
 
 ## Multi-Tenancy
 
-Resources are scoped to your **organization** and **network(s)**:
+Resources are scoped to your **organization** and **site(s)**:
 
 - You can only access entities within your organization
-- Network-level entities (hosts, services, etc.) are filtered to networks you have access to
-- Use `?network_id=<UUID>` to filter list endpoints to a specific network
-- API keys can be scoped to a subset of your accessible networks
+- Site-level entities (hosts, services, etc.) are filtered to sites you have access to
+- Use `?site_id=<UUID>` to filter list endpoints to a specific site
+- API keys can be scoped to a subset of your accessible sites
 "#,
         license(name = "Dual (AGPL3.0, Commercial License Available)")
     ),
@@ -283,7 +283,7 @@ Resources are scoped to your **organization** and **network(s)**:
         (name = Interface::ENTITY_NAME_PLURAL, description = Interface::ENTITY_DESCRIPTION),
         (name = IPAddress::ENTITY_NAME_PLURAL, description = IPAddress::ENTITY_DESCRIPTION),
         (name = Invite::ENTITY_NAME_PLURAL, description = Invite::ENTITY_DESCRIPTION),
-        (name = Network::ENTITY_NAME_PLURAL, description = Network::ENTITY_DESCRIPTION),
+        (name = Site::ENTITY_NAME_PLURAL, description = Site::ENTITY_DESCRIPTION),
         (name = Organization::ENTITY_NAME_PLURAL, description = Organization::ENTITY_DESCRIPTION),
         (name = Port::ENTITY_NAME_PLURAL, description = Port::ENTITY_DESCRIPTION),
         (name = Service::ENTITY_NAME_PLURAL, description = Service::ENTITY_DESCRIPTION),

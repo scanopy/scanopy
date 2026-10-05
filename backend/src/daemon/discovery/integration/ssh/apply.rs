@@ -134,11 +134,11 @@ pub fn apply(
     }
 
     if let Some(interfaces) = interfaces {
-        let network_id = host_data.host.base.network_id;
+        let site_id = host_data.host.base.site_id;
         let rows: Vec<Interface> = interfaces
             .into_iter()
             .enumerate()
-            .map(|(i, iface)| interface_row(iface, i, host_id, network_id, &mut mark, &mut invalid))
+            .map(|(i, iface)| interface_row(iface, i, host_id, site_id, &mut mark, &mut invalid))
             .collect();
         if !rows.is_empty() {
             host_data.contribute_interfaces(
@@ -159,7 +159,7 @@ fn interface_row(
     iface: SshScriptInterface,
     index: usize,
     host_id: Uuid,
-    network_id: Uuid,
+    site_id: Uuid,
     mark: &mut impl FnMut(SshScriptField),
     invalid: &mut Vec<String>,
 ) -> Interface {
@@ -206,7 +206,7 @@ fn interface_row(
 
     Interface::new(InterfaceBase {
         host_id,
-        network_id,
+        site_id,
         if_descr: descr,
         if_name: name,
         if_alias: alias,

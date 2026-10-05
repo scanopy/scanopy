@@ -109,7 +109,7 @@
 			// DISABLED: no mechanism to persist position changes.
 			// await updateNodePositionMutation.mutateAsync({
 			// 	topologyId: topology.id,
-			// 	networkId: topology.network_id,
+			// 	siteId: topology.site_id,
 			// 	view: $activeView,
 			// 	nodeId: movedNode.id,
 			// 	position: { x, y }
@@ -136,7 +136,7 @@
 				// DISABLED: no mechanism to persist edge handle changes.
 				// await updateEdgeHandlesMutation.mutateAsync({
 				// 	topologyId: topology.id,
-				// 	networkId: topology.network_id,
+				// 	siteId: topology.site_id,
 				// 	view: $activeView,
 				// 	edgeId: topologyEdge.id,
 				// 	sourceHandle: newConnection.sourceHandle as 'Top' | 'Bottom' | 'Left' | 'Right',

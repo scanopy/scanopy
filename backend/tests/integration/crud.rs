@@ -41,7 +41,7 @@ pub async fn run_crud_tests(ctx: &TestContext) -> Result<(), String> {
     test_user_api_key_permission_escalation(ctx).await?;
     test_user_api_key_rotation(ctx).await?;
     test_user_api_key_expired_disabled(ctx).await?;
-    test_user_api_key_network_access(ctx).await?;
+    test_user_api_key_site_access(ctx).await?;
     test_user_api_key_owner_isolation(ctx).await?;
 
     println!("\n✅ All CRUD endpoint tests passed!");
@@ -54,7 +54,7 @@ async fn test_subnet_crud(ctx: &TestContext) -> Result<(), String> {
     let subnet = Subnet::new(SubnetBase {
         name: "Test Subnet".to_string(),
         description: Some("Test description".to_string()),
-        network_id: ctx.network_id,
+        site_id: ctx.site_id,
         cidr: SubnetCidr::new(
             SubnetCidrValue(IpCidr::V4(
                 Ipv4Cidr::new(Ipv4Addr::new(10, 0, 0, 0), 24).unwrap(),
@@ -117,7 +117,7 @@ async fn test_host_crud(ctx: &TestContext) -> Result<(), String> {
     let request = CreateHostRequest {
         name: "Test Host".to_string(),
         hostname: Some("test.local".to_string()),
-        network_id: ctx.network_id,
+        site_id: ctx.site_id,
         description: None,
         virtualization_metadata: None,
         virtualization_service_id: None,
@@ -193,7 +193,7 @@ async fn test_service_crud(ctx: &TestContext) -> Result<(), String> {
     let host_request = CreateHostRequest {
         name: "Service Test Host".to_string(),
         hostname: Some("service-test.local".to_string()),
-        network_id: ctx.network_id,
+        site_id: ctx.site_id,
         description: None,
         virtualization_metadata: None,
         virtualization_service_id: None,
@@ -222,7 +222,7 @@ async fn test_service_crud(ctx: &TestContext) -> Result<(), String> {
         name: "Test Service".to_string(),
         host_id: created_host.id,
         bindings: vec![],
-        network_id: ctx.network_id,
+        site_id: ctx.site_id,
         service_definition: service_def,
         virtualization_metadata: None,
         virtualization_service_id: None,
@@ -275,7 +275,7 @@ async fn test_dependency_crud(ctx: &TestContext) -> Result<(), String> {
     let dependency = Dependency::new(DependencyBase {
         name: "Test Dependency".to_string(),
         description: Some("Test description".to_string()),
-        network_id: ctx.network_id,
+        site_id: ctx.site_id,
         color: Color::Red,
         dependency_type: DependencyType::RequestPath,
         members: DependencyMembers::default(),
@@ -394,7 +394,7 @@ async fn test_discovery_crud(ctx: &TestContext) -> Result<(), String> {
             run_type: RunType::AdHoc { last_run: None },
             name: "CRUD Test Discovery".to_string(),
             daemon_id,
-            network_id: ctx.network_id,
+            site_id: ctx.site_id,
             tags: vec![],
         },
         scan_count: 0,
@@ -454,7 +454,7 @@ async fn test_api_key_crud(ctx: &TestContext) -> Result<(), String> {
         name: "Test Daemon API Key".to_string(),
         last_used: None,
         expires_at: None,
-        network_id: ctx.network_id,
+        site_id: ctx.site_id,
         is_enabled: true,
         tags: Vec::new(),
         daemon_id: None,
@@ -513,7 +513,7 @@ async fn test_user_api_key_crud(ctx: &TestContext) -> Result<(), String> {
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        network_ids: vec![ctx.network_id],
+        site_ids: vec![ctx.site_id],
     });
 
     // User API keys are at /api/v1/auth/keys
@@ -569,7 +569,7 @@ async fn test_user_api_key_authentication(ctx: &TestContext) -> Result<(), Strin
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        network_ids: vec![ctx.network_id],
+        site_ids: vec![ctx.site_id],
     });
 
     let created: UserApiKeyResponse = ctx.client.post("/api/v1/auth/keys", &api_key).await?;
@@ -599,7 +599,7 @@ async fn test_user_api_key_authentication(ctx: &TestContext) -> Result<(), Strin
     let test_subnet = Subnet::new(SubnetBase {
         name: "API Key Test Subnet".to_string(),
         description: None,
-        network_id: ctx.network_id,
+        site_id: ctx.site_id,
         cidr: SubnetCidr::new(
             SubnetCidrValue(IpCidr::V4(
                 Ipv4Cidr::new(Ipv4Addr::new(192, 168, 100, 0), 24).unwrap(),
@@ -672,7 +672,7 @@ async fn test_user_api_key_permission_escalation(ctx: &TestContext) -> Result<()
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        network_ids: vec![ctx.network_id],
+        site_ids: vec![ctx.site_id],
     });
 
     let result = ctx
@@ -701,7 +701,7 @@ async fn test_user_api_key_permission_escalation(ctx: &TestContext) -> Result<()
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        network_ids: vec![ctx.network_id],
+        site_ids: vec![ctx.site_id],
     });
 
     let created: UserApiKeyResponse = ctx.client.post("/api/v1/auth/keys", &api_key_admin).await?;
@@ -732,7 +732,7 @@ async fn test_user_api_key_rotation(ctx: &TestContext) -> Result<(), String> {
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        network_ids: vec![ctx.network_id],
+        site_ids: vec![ctx.site_id],
     });
 
     let created: UserApiKeyResponse = ctx.client.post("/api/v1/auth/keys", &api_key).await?;
@@ -813,7 +813,7 @@ async fn test_user_api_key_expired_disabled(ctx: &TestContext) -> Result<(), Str
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        network_ids: vec![ctx.network_id],
+        site_ids: vec![ctx.site_id],
     });
 
     let created: UserApiKeyResponse = ctx.client.post("/api/v1/auth/keys", &api_key).await?;
@@ -890,27 +890,27 @@ async fn test_user_api_key_expired_disabled(ctx: &TestContext) -> Result<(), Str
     Ok(())
 }
 
-/// Test that API keys only have access to assigned networks
-async fn test_user_api_key_network_access(ctx: &TestContext) -> Result<(), String> {
+/// Test that API keys only have access to assigned sites
+async fn test_user_api_key_site_access(ctx: &TestContext) -> Result<(), String> {
     use crate::infra::exec_sql;
-    use scanopy::server::networks::r#impl::{Network, NetworkBase};
+    use scanopy::server::sites::r#impl::{Site, SiteBase};
 
-    println!("Testing User API Key Network Access Enforcement...");
+    println!("Testing User API Key Site Access Enforcement...");
 
-    // Create a second network that we won't grant API key access to
-    let other_network = Network::new(NetworkBase {
-        name: "API Key Inaccessible Network".to_string(),
+    // Create a second site that we won't grant API key access to
+    let other_site = Site::new(SiteBase {
+        name: "API Key Inaccessible Site".to_string(),
         organization_id: ctx.organization_id,
         ..Default::default()
     });
-    let other_network = ctx.insert_entity(&other_network).await?;
-    println!("  Created second network: {}", other_network.id);
+    let other_site = ctx.insert_entity(&other_site).await?;
+    println!("  Created second site: {}", other_site.id);
 
-    // Create a subnet on the other network to query
+    // Create a subnet on the other site to query
     let other_subnet = Subnet::new(SubnetBase {
-        name: "Other Network Subnet".to_string(),
+        name: "Other Site Subnet".to_string(),
         description: None,
-        network_id: other_network.id,
+        site_id: other_site.id,
         cidr: SubnetCidr::new(
             SubnetCidrValue(IpCidr::V4(
                 Ipv4Cidr::new(Ipv4Addr::new(172, 16, 0, 0), 24).unwrap(),
@@ -923,12 +923,12 @@ async fn test_user_api_key_network_access(ctx: &TestContext) -> Result<(), Strin
         virtualization_service_id: None,
     });
     let other_subnet = ctx.insert_entity(&other_subnet).await?;
-    println!("  Created subnet on other network: {}", other_subnet.id);
+    println!("  Created subnet on other site: {}", other_subnet.id);
 
-    // Create API key with access ONLY to ctx.network_id (not other_network.id)
+    // Create API key with access ONLY to ctx.site_id (not other_site.id)
     let api_key = UserApiKey::new(UserApiKeyBase {
         key: String::new(),
-        name: "Limited Network Key".to_string(),
+        name: "Limited Site Key".to_string(),
         user_id: Uuid::nil(),
         organization_id: ctx.organization_id,
         permissions: UserOrgPermissions::Viewer,
@@ -936,17 +936,17 @@ async fn test_user_api_key_network_access(ctx: &TestContext) -> Result<(), Strin
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        network_ids: vec![ctx.network_id], // Only first network
+        site_ids: vec![ctx.site_id], // Only first site
     });
 
     let created: UserApiKeyResponse = ctx.client.post("/api/v1/auth/keys", &api_key).await?;
     let plaintext_key = created.key.clone();
     let key_id = created.api_key.id;
-    println!("  ✓ Created API key with limited network access");
+    println!("  ✓ Created API key with limited site access");
 
     let api_key_client = reqwest::Client::new();
 
-    // Verify key can access subnets on assigned network
+    // Verify key can access subnets on assigned site
     let response = api_key_client
         .get(format!("{}/api/v1/subnets", BASE_URL))
         .header("Authorization", format!("Bearer {}", plaintext_key))
@@ -959,7 +959,7 @@ async fn test_user_api_key_network_access(ctx: &TestContext) -> Result<(), Strin
     );
     println!("  ✓ API key can list subnets");
 
-    // Verify key cannot directly access the other network's subnet
+    // Verify key cannot directly access the other site's subnet
     let response = api_key_client
         .get(format!("{}/api/v1/subnets/{}", BASE_URL, other_subnet.id))
         .header("Authorization", format!("Bearer {}", plaintext_key))
@@ -967,20 +967,20 @@ async fn test_user_api_key_network_access(ctx: &TestContext) -> Result<(), Strin
         .await
         .map_err(|e| format!("Request failed: {}", e))?;
 
-    // Should be 403 Forbidden (network access denied) or 404 Not Found (filtered out)
+    // Should be 403 Forbidden (site access denied) or 404 Not Found (filtered out)
     assert!(
         response.status() == StatusCode::FORBIDDEN || response.status() == StatusCode::NOT_FOUND,
-        "API key should NOT access subnet on other network, got {}",
+        "API key should NOT access subnet on other site, got {}",
         response.status()
     );
-    println!("  ✓ API key cannot access subnet on non-assigned network");
+    println!("  ✓ API key cannot access subnet on non-assigned site");
 
-    // Verify attempting to create API key with access to network user doesn't own fails
-    // First, downgrade user to Member so they don't have auto-access to all networks
+    // Verify attempting to create API key with access to site user doesn't own fails
+    // First, downgrade user to Member so they don't have auto-access to all sites
     exec_sql("UPDATE users SET permissions = 'Member';")?;
 
-    // Remove user's access to the other network (Members don't auto-get all networks)
-    // The user only has access to ctx.network_id via the network_users table
+    // Remove user's access to the other site (Members don't auto-get all sites)
+    // The user only has access to ctx.site_id via the site_users table
     let restricted_key = UserApiKey::new(UserApiKeyBase {
         key: String::new(),
         name: "Overreach Key".to_string(),
@@ -991,7 +991,7 @@ async fn test_user_api_key_network_access(ctx: &TestContext) -> Result<(), Strin
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        network_ids: vec![ctx.network_id, other_network.id], // Includes network user shouldn't access
+        site_ids: vec![ctx.site_id, other_site.id], // Includes site user shouldn't access
     });
 
     let result = ctx
@@ -1004,19 +1004,19 @@ async fn test_user_api_key_network_access(ctx: &TestContext) -> Result<(), Strin
 
     assert!(
         result.is_ok(),
-        "Should reject API key with unauthorized network access: {:?}",
+        "Should reject API key with unauthorized site access: {:?}",
         result.err()
     );
-    println!("  ✓ Cannot create API key with access to networks user doesn't have access to");
+    println!("  ✓ Cannot create API key with access to sites user doesn't have access to");
 
     // Cleanup
     ctx.client
         .delete_no_content(&format!("/api/v1/auth/keys/{}", key_id))
         .await?;
     let _ = ctx.delete_entity::<Subnet>(&other_subnet.id).await;
-    let _ = ctx.delete_entity::<Network>(&other_network.id).await;
+    let _ = ctx.delete_entity::<Site>(&other_site.id).await;
 
-    println!("✅ User API Key Network Access Enforcement passed");
+    println!("✅ User API Key Site Access Enforcement passed");
     Ok(())
 }
 
@@ -1037,7 +1037,7 @@ async fn test_user_api_key_owner_isolation(ctx: &TestContext) -> Result<(), Stri
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        network_ids: vec![ctx.network_id],
+        site_ids: vec![ctx.site_id],
     });
 
     let created: UserApiKeyResponse = ctx.client.post("/api/v1/auth/keys", &api_key).await?;
@@ -1058,7 +1058,7 @@ async fn test_user_api_key_owner_isolation(ctx: &TestContext) -> Result<(), Stri
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        network_ids: vec![ctx.network_id],
+        site_ids: vec![ctx.site_id],
     });
     let other_key = ctx.insert_entity(&other_key).await?;
     println!(

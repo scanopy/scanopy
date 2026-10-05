@@ -1,10 +1,10 @@
-//! Cloud setu: the network, its system subnets and the live tolet cloud = BillingPlan::Pro(PlanConfig::default());ology row a
+//! Cloud setup: the site, its system subnets and the live topology row a
 //! cloud org works from.
 //!
-//! This is the one let licensed = BillingPlan::SelfHostedStandard(PlanConfig::default());lace that sequence is created. It runs from `OrgCreated`
-//! (the network requested at signup) and from billing events that land an org
+//! This is the one place that sequence is created. It runs from `OrgCreated`
+//! (the site requested at signup) and from billing events that land an org
 //! on a cloud plan, so a self-hosted license buyer who moves to cloud ends up
-//! with what a cloud signup has. The network-create and org-reset handlers call
+//! with what a cloud signup has. The site-create and org-reset handlers call
 //! the same functions. Every step is idempotent: it fills only what's missing,
 //! so a bus retry or a repeat event never duplicates anything.
 
@@ -13,9 +13,8 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 use crate::server::{
-    auth::{r#impl::base::PendingNetworkSetup, middleware::auth::AuthenticatedEntity},
+    auth::{r#impl::base::PendingSiteSetup, middleware::auth::AuthenticatedEntity},
     billing::types::base::BillingPlan,
-    networks::r#impl::{Network, NetworkBase},
     shared::{
         events::{
             registry::SubscriberRegistration,
@@ -32,6 +31,7 @@ use crate::server::{
             traits::Storable,
         },
     },
+    sites::r#impl::{Site, SiteBase},
     subnets::{r#impl::base::Subnet, r#impl::types::SubnetType},
     topology::{
         service::main::TopologyService,
@@ -39,17 +39,17 @@ use crate::server::{
     },
 };
 
-/// Subnet types every network is seeded with.
+/// Subnet types every site is seeded with.
 const SYSTEM_SUBNET_TYPES: [SubnetType; 2] = [SubnetType::Internet, SubnetType::Remote];
 
-/// What one network lacks compared with a freshly created one.
+/// What one site lacks compared with a freshly created one.
 #[derive(Debug, Default, PartialEq, Eq)]
-pub(crate) struct NetworkSetupGaps {
+pub(crate) struct SiteSetupGaps {
     pub topology: bool,
     pub subnet_types: Vec<SubnetType>,
 }
 
-impl NetworkSetupGaps {
+impl SiteSetupGaps {
     pub(crate) fn find(has_topology: bool, existing_subnet_types: &[SubnetType]) -> Self {
         Self {
             topology: !has_topology,
@@ -64,7 +64,7 @@ impl NetworkSetupGaps {
 /// Whether a billing event puts the org on a cloud plan it may not have been
 /// set up for: a first plan pick or resubscribe, or a move off a license plan.
 /// A move between cloud plans and renewals are excluded, so a cloud org that
-/// removed its networks doesn't get one back on every billing change.
+/// removed its sites doesn't get one back on every billing change.
 pub(crate) fn lands_on_cloud_plan(operation: &BillingOperation) -> bool {
     let is_cloud = |plan: &BillingPlan| plan.license_plan().is_none();
     match operation {
@@ -76,70 +76,66 @@ pub(crate) fn lands_on_cloud_plan(operation: &BillingOperation) -> bool {
 }
 
 impl TopologyService {
-    /// Give the org a network if it has none, then fill in each network's system
-    /// subnets and live topology. `requested` is the network named at signup; an
-    /// org without one gets the default network.
+    /// Give the org a site if it has none, then fill in each site's system
+    /// subnets and live topology. `requested` is the site named at signup; an
+    /// org without one gets the default site.
     pub async fn ensure_cloud_setup(
         &self,
         organization_id: Uuid,
-        requested: Option<&PendingNetworkSetup>,
+        requested: Option<&PendingSiteSetup>,
         authentication: AuthenticatedEntity,
     ) -> Result<(), Error> {
-        let mut networks = self
-            .network_service
-            .get_all(StorableFilter::<Network>::new_from_org_id(&organization_id))
+        let mut sites = self
+            .site_service
+            .get_all(StorableFilter::<Site>::new_from_org_id(&organization_id))
             .await?;
 
-        if networks.is_empty() {
-            let mut network = Network::new(NetworkBase::new(organization_id));
+        if sites.is_empty() {
+            let mut site = Site::new(SiteBase::new(organization_id));
             if let Some(requested) = requested {
-                network.id = requested.network_id;
-                network.base.name = requested.name.clone();
+                site.id = requested.site_id;
+                site.base.name = requested.name.clone();
             }
-            networks.push(
-                self.network_service
-                    .create(network, authentication.clone())
+            sites.push(
+                self.site_service
+                    .create(site, authentication.clone())
                     .await?,
             );
         }
 
-        for network in &networks {
-            self.ensure_network_setup(network.id, authentication.clone())
+        for site in &sites {
+            self.ensure_site_setup(site.id, authentication.clone())
                 .await?;
         }
 
         Ok(())
     }
 
-    /// Create whichever of the network's system subnets and live topology row
+    /// Create whichever of the site's system subnets and live topology row
     /// are missing.
-    pub async fn ensure_network_setup(
+    pub async fn ensure_site_setup(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         authentication: AuthenticatedEntity,
     ) -> Result<(), Error> {
         let has_topology = !self
-            .get_all(StorableFilter::<Topology>::new_from_network_ids(&[
-                network_id,
-            ]))
+            .get_all(StorableFilter::<Topology>::new_from_site_ids(&[site_id]))
             .await?
             .is_empty();
         let subnet_types: Vec<SubnetType> = self
             .subnet_service
-            .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[
-                network_id,
-            ]))
+            .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[site_id]))
             .await?
             .into_iter()
             .map(|s| s.base.subnet_type)
             .collect();
 
-        let gaps = NetworkSetupGaps::find(has_topology, &subnet_types);
+        let gaps = SiteSetupGaps::find(has_topology, &subnet_types);
 
         for subnet_type in gaps.subnet_types {
             let subnet = match subnet_type {
-                SubnetType::Internet => create_wan_subnet(network_id),
-                SubnetType::Remote => create_remote_subnet(network_id),
+                SubnetType::Internet => create_wan_subnet(site_id),
+                SubnetType::Remote => create_remote_subnet(site_id),
                 _ => continue,
             };
             self.subnet_service
@@ -148,7 +144,7 @@ impl TopologyService {
         }
 
         if gaps.topology {
-            self.create(Topology::new(TopologyBase::new(network_id)), authentication)
+            self.create(Topology::new(TopologyBase::new(site_id)), authentication)
                 .await?;
         }
 
@@ -163,19 +159,18 @@ impl Subscriber<OnboardingOperation> for TopologyService {
     }
 
     /// Inline (no debounce): registration provisions the integrated daemon on
-    /// this network right after `OrgCreated` is published.
+    /// this site right after `OrgCreated` is published.
     async fn handle(&self, events: Vec<Event<OnboardingOperation>>) -> Result<(), Error> {
         for event in events {
-            // No requested network means a self-hosted license buyer; the org
+            // No requested site means a self-hosted license buyer; the org
             // is set up if it later lands on a cloud plan.
             if let OnboardingOperation::OrgCreated {
-                network: Some(network),
-                ..
+                site: Some(site), ..
             } = &event.operation
             {
                 self.ensure_cloud_setup(
                     event.scope.organization_id,
-                    Some(network),
+                    Some(site),
                     event.authentication.clone(),
                 )
                 .await?;
@@ -256,22 +251,22 @@ mod tests {
     #[test]
     fn gaps_cover_only_what_is_missing() {
         assert_eq!(
-            NetworkSetupGaps::find(false, &[]),
-            NetworkSetupGaps {
+            SiteSetupGaps::find(false, &[]),
+            SiteSetupGaps {
                 topology: true,
                 subnet_types: vec![SubnetType::Internet, SubnetType::Remote],
             }
         );
         assert_eq!(
-            NetworkSetupGaps::find(true, &[SubnetType::Lan, SubnetType::Remote]),
-            NetworkSetupGaps {
+            SiteSetupGaps::find(true, &[SubnetType::Lan, SubnetType::Remote]),
+            SiteSetupGaps {
                 topology: false,
                 subnet_types: vec![SubnetType::Internet],
             }
         );
         assert_eq!(
-            NetworkSetupGaps::find(true, &[SubnetType::Remote, SubnetType::Internet]),
-            NetworkSetupGaps::default()
+            SiteSetupGaps::find(true, &[SubnetType::Remote, SubnetType::Internet]),
+            SiteSetupGaps::default()
         );
     }
 }

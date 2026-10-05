@@ -44,7 +44,7 @@ pub struct DiscoveryRunner {
     pub host_naming_fallback: HostNamingFallback,
     pub scan_settings: ScanSettings,
     pub credential_mappings: Vec<CredentialMapping<CredentialQueryPayload>>,
-    /// The network's subnets as the server sent them with this run. Empty from a server too old
+    /// The site's subnets as the server sent them with this run. Empty from a server too old
     /// to send them, which only a DaemonPoll daemon can be talking to: it falls back to asking.
     pub known_subnets: Vec<Subnet>,
 }
@@ -152,7 +152,7 @@ pub struct DiscoverySession {
     // An integration observing a problem and an operator being told about it are two different
     // jobs, and only the first belongs to the integration: it alone knows what its error means,
     // and it has no idea whether the credential was one the user pinned to this host or a
-    // network default broadcast at every address in the subnet — which is the difference between
+    // site default broadcast at every address in the subnet — which is the difference between
     // a finding and hundreds of lines of noise. When these were `pub`, the SNMP integration
     // reached in and pushed directly, so that judgement was simply skipped for its warnings.
     //
@@ -243,7 +243,7 @@ pub struct DaemonDiscoveryService {
     /// Shared gate that staggers the start of DaemonPoll host-create requests so
     /// a burst of near-simultaneous deep-scan completions doesn't hammer the
     /// server's host-create endpoint (where they'd otherwise queue on the
-    /// per-network `HostDedup` advisory lock). Holds the earliest instant the
+    /// per-site `HostDedup` advisory lock). Holds the earliest instant the
     /// next host submission may start; each submission reserves and advances it.
     pub host_submit_gate: Arc<tokio::sync::Mutex<tokio::time::Instant>>,
 }

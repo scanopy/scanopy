@@ -12,7 +12,7 @@
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
 	import { defineFields, entityRef, type CardAction } from '$lib/shared/components/data/types';
 	import { tagNames } from '$lib/features/tags/columns';
-	import { networkItems } from '$lib/features/networks/columns';
+	import { siteItems } from '$lib/features/sites/columns';
 	import { Plus, Trash2, Edit, CloudAlert } from 'lucide-svelte';
 	import { useTagsQuery } from '$lib/features/tags/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
@@ -25,7 +25,7 @@
 		useDeleteSubnetMutation,
 		useBulkDeleteSubnetsMutation
 	} from '../queries';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { useServicesByIds } from '$lib/features/services/queries';
 	import type { Service } from '$lib/features/services/types/base';
 	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
@@ -43,7 +43,7 @@
 		common_description,
 		common_lastSeen,
 		common_name,
-		common_network,
+		common_site,
 		common_noEntityYet,
 		common_delete,
 		common_source,
@@ -52,7 +52,7 @@
 		common_lastFoundBy,
 		common_subnets,
 		common_tags,
-		common_unknownNetwork,
+		common_unknownSite,
 		common_updated,
 		daemons_installPromptSubnets,
 		subnets_managedBy,
@@ -82,7 +82,7 @@
 	function handleStaleFilterChange(next: boolean | null) {
 		stale = next;
 	}
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	// The container runtimes that manage the bridge subnets, fetched by id.
 	const runtimesQuery = useServicesByIds(() => [
 		...new Set(
@@ -103,7 +103,7 @@
 	// Derived data
 	let tagsData = $derived(tagsQuery.data ?? []);
 	let subnetsData = $derived((subnetsQuery.data ?? []).filter(isUserManagedSubnet));
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
 	let runtimesData = $derived(runtimesQuery.data ?? []);
 	let discoveryRunsData = $derived(discoveryRunsQuery.data ?? []);
 
@@ -199,7 +199,7 @@
 	}
 
 	/**
-	 * A settled range that already covers the one being resolved, if the network holds one.
+	 * A settled range that already covers the one being resolved, if the site holds one.
 	 *
 	 * This is the state discovery deliberately leaves alone: where a reading covers *several*
 	 * assumed ranges it corrects none of them, because folding them into one means deleting rows.
@@ -207,7 +207,7 @@
 	 *
 	 * Searching `subnetsData` rather than the raw query is what keeps the `0.0.0.0/0` catch-alls
 	 * out: they are synthetic, so `isUserManagedSubnet` has already dropped them, and either would
-	 * otherwise "cover" every range on the network.
+	 * otherwise "cover" every range on the site.
 	 */
 	let coveringSubnet = $derived.by(() => {
 		if (!resolvingSubnet) return null;
@@ -216,7 +216,7 @@
 			subnetsData.find(
 				(candidate) =>
 					candidate.id !== target.id &&
-					candidate.network_id === target.network_id &&
+					candidate.site_id === target.site_id &&
 					!isProvisionalCidr(candidate) &&
 					cidrContains(candidate.cidr, target.cidr)
 			) ?? null
@@ -350,15 +350,15 @@
 						]
 					}
 				},
-				network_id: {
-					label: common_network(),
+				site_id: {
+					label: common_site(),
 					type: 'string',
 					searchable: true,
 					filterable: true,
 					groupable: true,
 					getValue: (item) =>
-						networksData.find((n) => n.id == item.network_id)?.name || common_unknownNetwork(),
-					display: { order: 2, getItems: (item) => networkItems(item.network_id, networksData) }
+						sitesData.find((n) => n.id == item.site_id)?.name || common_unknownSite(),
+					display: { order: 2, getItems: (item) => siteItems(item.site_id, sitesData) }
 				},
 				created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
 				updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } },
@@ -369,7 +369,7 @@
 					display: {
 						recency: true,
 						order: 1,
-						getItems: lastSeenItems(() => networksData, 'Subnet')
+						getItems: lastSeenItems(() => sitesData, 'Subnet')
 					}
 				}
 			},

@@ -8,7 +8,6 @@ use crate::server::daemons::r#impl::api::{DaemonDiscoveryRequest, DiscoveryUpdat
 use crate::server::daemons::service::DaemonService;
 use crate::server::discovery::r#impl::base::{Discovery, DiscoveryBase};
 use crate::server::discovery::r#impl::types::{DiscoveryType, RunType};
-use crate::server::networks::service::NetworkService;
 use crate::server::organizations::service::OrganizationService;
 use crate::server::shared::entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants};
 use crate::server::shared::events::bus::EventBus;
@@ -21,6 +20,7 @@ use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::generic::GenericPostgresStorage;
 use crate::server::shared::storage::traits::{Entity, Storable, Storage};
 use crate::server::shared::types::api::ApiError;
+use crate::server::sites::service::SiteService;
 use crate::server::subnets::r#impl::base::Subnet;
 use crate::server::tags::entity_tags::EntityTagService;
 use anyhow::anyhow;
@@ -50,9 +50,9 @@ pub struct DiscoveryService {
     daemon_sessions: RwLock<HashMap<Uuid, Vec<Uuid>>>,       // daemon_id -> session_id mapping
     discovery_sessions: RwLock<HashMap<Uuid, Uuid>>, // discovery_id -> session_id mapping (enforces one active session per discovery)
     daemon_pull_cancellations: RwLock<HashMap<Uuid, (bool, Uuid)>>, // daemon_id -> (boolean, session_id) mapping for pull mode cancellations of current session on daemon
-    /// Network IDs with an in-flight network snapshot. While a network is in
+    /// Site IDs with an in-flight site snapshot. While a site is in
     /// this set, new sessions on it start in `AwaitingSnapshot` and are not
-    /// dispatched until `release_network_for_snapshot` clears the entry.
+    /// dispatched until `release_site_for_snapshot` clears the entry.
     /// In-memory only — crash drops any in-flight manual-snapshot intent,
     /// which is acceptable since callers retry.
     running_snapshots: RwLock<HashSet<Uuid>>,
@@ -77,7 +77,7 @@ pub struct DiscoveryService {
     event_bus: Arc<EventBus>,
     entity_tag_service: Arc<EntityTagService>,
     credential_service: Arc<CredentialService>,
-    network_service: Arc<NetworkService>,
+    site_service: Arc<SiteService>,
     organization_service: Arc<OrganizationService>,
     // Lazy dependency (set after construction to break circular dependency)
     daemon_service: std::sync::OnceLock<Arc<DaemonService>>,
@@ -88,8 +88,8 @@ impl EventBusService<Discovery> for DiscoveryService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, entity: &Discovery) -> Option<Uuid> {
-        Some(entity.base.network_id)
+    fn get_site_id(&self, entity: &Discovery) -> Option<Uuid> {
+        Some(entity.base.site_id)
     }
     fn get_organization_id(&self, _entity: &Discovery) -> Option<Uuid> {
         None
@@ -202,7 +202,7 @@ impl CrudService<Discovery> for DiscoveryService {
         if let Some(scope) = EntityScope::from_ids(
             updated.id(),
             updated.clone().into(),
-            self.get_network_id(&updated),
+            self.get_site_id(&updated),
             self.get_organization_id(&updated),
         ) {
             self.event_bus()

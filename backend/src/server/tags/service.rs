@@ -30,7 +30,7 @@ impl EventBusService<Tag> for TagService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, _entity: &Tag) -> Option<Uuid> {
+    fn get_site_id(&self, _entity: &Tag) -> Option<Uuid> {
         None
     }
     fn get_organization_id(&self, entity: &Tag) -> Option<Uuid> {
@@ -74,7 +74,7 @@ impl CrudService<Tag> for TagService {
         if let Some(scope) = EntityScope::from_ids(
             updated.id(),
             updated.clone().into(),
-            self.get_network_id(&updated),
+            self.get_site_id(&updated),
             self.get_organization_id(&updated),
         ) {
             self.event_bus()
@@ -120,7 +120,7 @@ impl CrudService<Tag> for TagService {
         if let Some(scope) = EntityScope::from_ids(
             entity_for_event.id(),
             entity_for_event.into(),
-            self.get_network_id(&entity),
+            self.get_site_id(&entity),
             self.get_organization_id(&entity),
         ) {
             self.event_bus()

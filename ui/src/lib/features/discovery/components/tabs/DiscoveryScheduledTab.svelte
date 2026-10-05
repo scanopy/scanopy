@@ -34,7 +34,7 @@
 	import { SvelteMap } from 'svelte/reactivity';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import { isPreUnifiedDaemon } from '$lib/features/daemons/utils';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { isPlanLapsed } from '$lib/features/organizations/types';
@@ -95,7 +95,7 @@
 	// subscribers must be gated for the query to actually go inactive.
 	const discoveriesQuery = useDiscoveriesQuery(() => isActive);
 	const daemonsQuery = useDaemonsQuery();
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 
 	// Active sessions
 	const sessionsQuery = useActiveSessionsQuery();
@@ -112,7 +112,7 @@
 	let tagsData = $derived(tagsQuery.data ?? []);
 	let discoveriesData = $derived(discoveriesQuery.data ?? []);
 	let daemonsData = $derived(daemonsQuery.data ?? []);
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
 	let sessionsList = $derived(sessionsQuery.data ?? []);
 
 	// Only the hosts the daemons run on. This was an unpaginated org-wide hosts
@@ -320,7 +320,7 @@
 	const SHARED_FIELD_DISPLAY: Partial<Record<DiscoveryConfigOrderField, DisplayConfig<Discovery>>> =
 		{
 			name: { order: 0 },
-			network_id: { order: 2 },
+			site_id: { order: 2 },
 			daemon_id: { order: 3 },
 			discovery_type: { hiddenByDefault: true },
 			created_at: { hiddenByDefault: true },
@@ -343,7 +343,7 @@
 
 	let fields = $derived(
 		defineFields<Discovery, DiscoveryConfigOrderField>(
-			withSharedDisplay(discoveryFields(daemonsData, networksData)),
+			withSharedDisplay(discoveryFields(daemonsData, sitesData)),
 			[
 				{
 					key: 'scan_count',

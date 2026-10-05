@@ -84,7 +84,7 @@ export function findInfraRuleId(
  * by looking for the ByServiceCategory rule with is_infra_rule: true.
  *
  * Reads the global store, which is hydrated out-of-band from the topology bundle
- * that drives the layout pipeline — so on a network switch it can briefly lag.
+ * that drives the layout pipeline — so on a site switch it can briefly lag.
  * Layout/auto-collapse code must use {@link getInfrastructureRuleIdForTopology}
  * with the bundle it is rendering; this store-based variant is for UI surfaces
  * (e.g. the grouping-rule editor) that have no topology in hand.
@@ -96,7 +96,7 @@ export function getInfrastructureRuleId(): string | null {
 /**
  * Infrastructure rule ID derived from a specific topology bundle's options
  * rather than the global store. Always in sync with the nodes being laid out,
- * so it stays correct across a same-view network switch.
+ * so it stays correct across a same-view site switch.
  */
 export function getInfrastructureRuleIdForTopology(
 	topology: Topology | RenderableTopology
@@ -274,37 +274,37 @@ export function useTopologiesQuery(enabled?: () => boolean) {
  *
  * Single endpoint, single code path. The cache key includes the snapshot id
  * so live vs snapshot data don't collide. The SSE `live_topology_updates_stream`
- * consumer invalidates this query on live-view network updates.
+ * consumer invalidates this query on live-view site updates.
  *
  * `enabled` exists so the caller can hold the fetch while the topology tab is
  * off-screen. Every tab in the app is mounted at once (inactive ones are hidden
  * with CSS), so without it this bundle — every host, service, ip-address and port
- * on the network — loads on app boot and, because it is invalidated by the
+ * on the site — loads on app boot and, because it is invalidated by the
  * discovery SSE stream, refetches on a throttle for the whole of every scan, on
  * pages that are not showing a graph. A disabled query is skipped by
  * `invalidateQueries` (which refetches active queries only) and refetches when it
  * is re-enabled and stale.
  */
 export function useTopologyDataQuery(
-	networkId: () => string | undefined,
+	siteId: () => string | undefined,
 	snapshotId: () => string | undefined,
 	enabled?: () => boolean
 ) {
 	return createQuery(() => ({
-		queryKey: queryKeys.topology.data(networkId() ?? '', snapshotId()),
+		queryKey: queryKeys.topology.data(siteId() ?? '', snapshotId()),
 		queryFn: async () => {
-			const network_id = networkId();
-			if (!network_id) {
-				throw new Error('No network ID provided');
+			const site_id = siteId();
+			if (!site_id) {
+				throw new Error('No site ID provided');
 			}
 			const snapshot_id = snapshotId();
 			return unwrapData(
 				await apiClient.GET('/api/v1/topology/data', {
-					params: { query: { network_id, snapshot_id } }
+					params: { query: { site_id, snapshot_id } }
 				})
 			);
 		},
-		enabled: () => !!networkId() && (enabled?.() ?? true)
+		enabled: () => !!siteId() && (enabled?.() ?? true)
 	}));
 }
 
@@ -315,9 +315,9 @@ export function useTopologyDataQuery(
  * `useTopologyDataQuery` (which never sets the flag) so the milestone only fires from an
  * explicit on-tab view, never from background fetches on other tabs.
  */
-export async function markTopologyViewed(networkId: string): Promise<void> {
+export async function markTopologyViewed(siteId: string): Promise<void> {
 	await apiClient.GET('/api/v1/topology/data', {
-		params: { query: { network_id: networkId, mark_viewed: true } }
+		params: { query: { site_id: siteId, mark_viewed: true } }
 	});
 }
 
@@ -378,7 +378,7 @@ export function useUpdateNodePositionMutation() {
 	return createMutation(() => ({
 		mutationFn: async (params: {
 			topologyId: string;
-			networkId: string;
+			siteId: string;
 			view: TopologyView;
 			nodeId: string;
 			position: { x: number; y: number };
@@ -387,7 +387,7 @@ export function useUpdateNodePositionMutation() {
 				await apiClient.POST('/api/v1/topology/{id}/node-position', {
 					params: { path: { id: params.topologyId } },
 					body: {
-						network_id: params.networkId,
+						site_id: params.siteId,
 						view: params.view,
 						node_id: params.nodeId,
 						position: params.position
@@ -407,7 +407,7 @@ export function useUpdateNodeResizeMutation() {
 	return createMutation(() => ({
 		mutationFn: async (params: {
 			topologyId: string;
-			networkId: string;
+			siteId: string;
 			view: TopologyView;
 			nodeId: string;
 			size: { x: number; y: number };
@@ -417,7 +417,7 @@ export function useUpdateNodeResizeMutation() {
 				await apiClient.POST('/api/v1/topology/{id}/node-resize', {
 					params: { path: { id: params.topologyId } },
 					body: {
-						network_id: params.networkId,
+						site_id: params.siteId,
 						view: params.view,
 						node_id: params.nodeId,
 						size: params.size,
@@ -438,7 +438,7 @@ export function useUpdateEdgeHandlesMutation() {
 	return createMutation(() => ({
 		mutationFn: async (params: {
 			topologyId: string;
-			networkId: string;
+			siteId: string;
 			view: TopologyView;
 			edgeId: string;
 			sourceHandle: 'Top' | 'Bottom' | 'Left' | 'Right';
@@ -448,7 +448,7 @@ export function useUpdateEdgeHandlesMutation() {
 				await apiClient.POST('/api/v1/topology/{id}/edge-handles', {
 					params: { path: { id: params.topologyId } },
 					body: {
-						network_id: params.networkId,
+						site_id: params.siteId,
 						view: params.view,
 						edge_id: params.edgeId,
 						source_handle: params.sourceHandle,
@@ -469,14 +469,14 @@ import { browser } from '$app/environment';
 import { type Edge, type Node } from '@xyflow/svelte';
 
 const EXPANDED_STORAGE_KEY = 'scanopy_topology_options_expanded_state';
-const PREFERRED_NETWORK_KEY = 'scanopy_preferred_network_id';
-const SELECTED_NETWORK_KEY = 'scanopy_topology_selected_network_id';
+const PREFERRED_SITE_KEY = 'scanopy_preferred_site_id';
+const SELECTED_SITE_KEY = 'scanopy_topology_selected_site_id';
 
 // UI-only state
 export const selectedTopologyId = writable<string | null>(null);
-/** Currently selected network in the topology tab. The tab now owns the
- *  network choice (no global network selector exists yet). */
-export const selectedNetworkId = writable<string | null>(null);
+/** Currently selected site in the topology tab. The tab now owns the
+ *  site choice (no global site selector exists yet). */
+export const selectedSiteId = writable<string | null>(null);
 /** Currently selected snapshot id, or `null` for the live view. */
 export const selectedSnapshotId = writable<string | null>(null);
 export const selectedNode = writable<Node | null>(null);
@@ -788,23 +788,23 @@ export const MINIMAP_FITVIEW_LEFT_PX = MINIMAP_WIDTH_PX + MINIMAP_OFFSET_PX + 16
 export const aggregatedEdgeOriginals = writable<Map<string, TopologyEdge[]>>(new Map());
 
 /**
- * Set a preferred network to select when topology loads.
- * Used after onboarding to ensure the scanned network's topology is shown.
+ * Set a preferred site to select when topology loads.
+ * Used after onboarding to ensure the scanned site's topology is shown.
  */
-export function setPreferredNetwork(networkId: string): void {
+export function setPreferredSite(siteId: string): void {
 	if (browser) {
-		localStorage.setItem(PREFERRED_NETWORK_KEY, networkId);
+		localStorage.setItem(PREFERRED_SITE_KEY, siteId);
 	}
 }
 
 /**
- * Get and clear the preferred network (one-time use)
+ * Get and clear the preferred site (one-time use)
  */
-export function consumePreferredNetwork(): string | null {
+export function consumePreferredSite(): string | null {
 	if (!browser) return null;
-	const preferred = localStorage.getItem(PREFERRED_NETWORK_KEY);
+	const preferred = localStorage.getItem(PREFERRED_SITE_KEY);
 	if (preferred) {
-		localStorage.removeItem(PREFERRED_NETWORK_KEY);
+		localStorage.removeItem(PREFERRED_SITE_KEY);
 	}
 	return preferred;
 }
@@ -843,24 +843,24 @@ function saveExpandedToStorage(expanded: boolean): void {
 	}
 }
 
-/** Persist the topology tab's selected network id across reloads. */
-export function loadSelectedNetworkFromStorage(): string | null {
+/** Persist the topology tab's selected site id across reloads. */
+export function loadSelectedSiteFromStorage(): string | null {
 	if (!browser) return null;
 	try {
-		return localStorage.getItem(SELECTED_NETWORK_KEY);
+		return localStorage.getItem(SELECTED_SITE_KEY);
 	} catch (error) {
-		console.warn('Failed to load selected network from localStorage:', error);
+		console.warn('Failed to load selected site from localStorage:', error);
 		return null;
 	}
 }
 
-function saveSelectedNetworkToStorage(networkId: string | null): void {
+function saveSelectedSiteToStorage(siteId: string | null): void {
 	if (!browser) return;
 	try {
-		if (networkId) localStorage.setItem(SELECTED_NETWORK_KEY, networkId);
-		else localStorage.removeItem(SELECTED_NETWORK_KEY);
+		if (siteId) localStorage.setItem(SELECTED_SITE_KEY, siteId);
+		else localStorage.removeItem(SELECTED_SITE_KEY);
 	} catch (error) {
-		console.error('Failed to save selected network to localStorage:', error);
+		console.error('Failed to save selected site to localStorage:', error);
 	}
 }
 
@@ -897,7 +897,7 @@ function saveOptionsForCurrentTopology(): void {
 // Set up subscriptions for UI pref persistence + option-change auto-save
 let optionsInitialized = false;
 let expandedInitialized = false;
-let networkInitialized = false;
+let siteInitialized = false;
 
 if (browser) {
 	topologyOptionsStore.subscribe(() => {
@@ -914,15 +914,15 @@ if (browser) {
 		expandedInitialized = true;
 	});
 
-	selectedNetworkId.subscribe((id) => {
-		if (networkInitialized) {
-			saveSelectedNetworkToStorage(id);
+	selectedSiteId.subscribe((id) => {
+		if (siteInitialized) {
+			saveSelectedSiteToStorage(id);
 		}
-		networkInitialized = true;
+		siteInitialized = true;
 	});
 
-	// NOTE: the persisted network selection is NOT hydrated here. It is validated
-	// against the accessible networks list and applied by the init `$effect` in
+	// NOTE: the persisted site selection is NOT hydrated here. It is validated
+	// against the accessible sites list and applied by the init `$effect` in
 	// TopologyTab — hydrating a stale id here would fire a 404/403 topology fetch
 	// before validation could run.
 
@@ -951,27 +951,27 @@ if (browser) {
 // ============================================================================
 
 /**
- * Payload of the `live_topology_updates_stream` SSE: the network whose
+ * Payload of the `live_topology_updates_stream` SSE: the site whose
  * live entity set just changed. The frontend invalidates the topology +
- * snapshot lists for that network so TanStack Query refetches and xyflow
+ * snapshot lists for that site so TanStack Query refetches and xyflow
  * re-renders.
  */
 interface LiveTopologyUpdate {
-	network_id: string;
+	site_id: string;
 }
 
-// During discovery the server pings this stream ~5×/sec/network; each ping
+// During discovery the server pings this stream ~5×/sec/site; each ping
 // otherwise refetches the uncached, full-rebuild `/topology/data`. Coalesce a
 // burst of pings into at most one refetch per window (trailing edge, so the
 // final state is always fetched), while still reflecting new hosts within ~1s.
 const TOPOLOGY_INVALIDATION_THROTTLE_MS = 1000;
 
 class TopologySSEManager extends BaseSSEManager<LiveTopologyUpdate> {
-	/** Network ids pinged since the last flush; drained by `flushInvalidations`. */
-	private pendingNetworkIds = new Set<string>();
+	/** Site ids pinged since the last flush; drained by `flushInvalidations`. */
+	private pendingSiteIds = new Set<string>();
 
 	/**
-	 * Trailing throttle: coalesces the pings accumulated in `pendingNetworkIds`
+	 * Trailing throttle: coalesces the pings accumulated in `pendingSiteIds`
 	 * into a single invalidation pass per window. Trailing (not leading) so the
 	 * last ping of a burst is never dropped — the view always converges.
 	 */
@@ -985,29 +985,29 @@ class TopologySSEManager extends BaseSSEManager<LiveTopologyUpdate> {
 	);
 
 	private runInvalidations() {
-		if (this.pendingNetworkIds.size === 0) return;
-		const networkIds = this.pendingNetworkIds;
-		this.pendingNetworkIds = new Set<string>();
+		if (this.pendingSiteIds.size === 0) return;
+		const siteIds = this.pendingSiteIds;
+		this.pendingSiteIds = new Set<string>();
 
-		// Live data changed for these networks — invalidate the topology list
+		// Live data changed for these sites — invalidate the topology list
 		// (a live row's nodes/edges may have shifted) plus the LIVE entity
-		// bundle for each affected network. Snapshot bundles are immutable, so
+		// bundle for each affected site. Snapshot bundles are immutable, so
 		// the predicate leaves their cache entries intact.
 		queryClient.invalidateQueries({
 			predicate: (query) => {
 				const key = query.queryKey as readonly unknown[];
 				if (key[0] !== 'topology') return false;
 				if (key[1] === 'data') {
-					// key shape: ['topology', 'data', networkId, snapshotId | null]
-					return typeof key[2] === 'string' && networkIds.has(key[2]) && key[3] == null;
+					// key shape: ['topology', 'data', siteId, snapshotId | null]
+					return typeof key[2] === 'string' && siteIds.has(key[2]) && key[3] == null;
 				}
 				return true;
 			}
 		});
 
-		for (const networkId of networkIds) {
-			// Snapshots-for-network list (taking a snapshot would have added a row).
-			queryClient.invalidateQueries({ queryKey: queryKeys.snapshots.byNetwork(networkId) });
+		for (const siteId of siteIds) {
+			// Snapshots-for-site list (taking a snapshot would have added a row).
+			queryClient.invalidateQueries({ queryKey: queryKeys.snapshots.bySite(siteId) });
 		}
 
 		// Invalidate org cache until FirstTopologyRebuild milestone appears.
@@ -1021,7 +1021,7 @@ class TopologySSEManager extends BaseSSEManager<LiveTopologyUpdate> {
 		return {
 			url: '/api/v1/topology/stream',
 			onMessage: (update) => {
-				this.pendingNetworkIds.add(update.network_id);
+				this.pendingSiteIds.add(update.site_id);
 				this.flushInvalidations();
 			},
 			onError: (error) => {
@@ -1033,7 +1033,7 @@ class TopologySSEManager extends BaseSSEManager<LiveTopologyUpdate> {
 
 	override disconnect() {
 		this.flushInvalidations.cancel();
-		this.pendingNetworkIds.clear();
+		this.pendingSiteIds.clear();
 		super.disconnect();
 	}
 }

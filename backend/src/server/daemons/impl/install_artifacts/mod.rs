@@ -293,7 +293,7 @@ fn is_shell_safe(value: &str) -> bool {
 }
 
 /// The `install` flags for a resolved config. DaemonPoll dials the server (so it carries
-/// `--server-url`), ServerPoll is dialed by the server (so it does not). Name and network never
+/// `--server-url`), ServerPoll is dialed by the server (so it does not). Name and site never
 /// reach the CLI — the daemon learns its name via the handshake — so the command carries
 /// neither; everything else set on `args` is emitted, including the `--instance` selector that
 /// tells a multi-daemon host which install the command is for.
@@ -335,7 +335,7 @@ fn quote_yaml(value: &str) -> String {
 /// lines. This is the daemon's config expressed for compose.
 ///
 /// The set comes from the same [`DaemonArgs::install_config_pairs`] table as the CLI and MSI
-/// artifacts, so they cannot drift. Notably no network id, user id, name or mode: those are
+/// artifacts, so they cannot drift. Notably no site id, user id, name or mode: those are
 /// `#[serde(skip)]` on [`DaemonArgs`] precisely because a client must not assert them, and the
 /// binary install command dropped them for the same reason — identity comes from the 1:1
 /// api-key binding and the handshake. A compose that asserted them could disagree with the

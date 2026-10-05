@@ -3,13 +3,13 @@ use crate::server::{
     auth::{
         r#impl::{
             api::{
-                CheckEmailRequest, ForgotPasswordRequest, LoginRequest, NetworkSetup,
-                OidcAuthorizeParams, OidcCallbackParams, OnboardingNetworkState,
-                OnboardingStateResponse, OnboardingStepRequest, RegisterRequest,
-                RequestEmailChangeRequest, ResendVerificationRequest, ResetPasswordRequest,
-                SetupRequest, SetupResponse, UpdatePasswordRequest, VerifyEmailRequest,
+                CheckEmailRequest, ForgotPasswordRequest, LoginRequest, OidcAuthorizeParams,
+                OidcCallbackParams, OnboardingSiteState, OnboardingStateResponse,
+                OnboardingStepRequest, RegisterRequest, RequestEmailChangeRequest,
+                ResendVerificationRequest, ResetPasswordRequest, SetupRequest, SetupResponse,
+                SiteSetup, UpdatePasswordRequest, VerifyEmailRequest,
             },
-            base::{LoginRegisterParams, PendingNetworkSetup, PendingSetup, ProvisionOrg},
+            base::{LoginRegisterParams, PendingSetup, PendingSiteSetup, ProvisionOrg},
             oidc::{OidcFlow, OidcPendingAuth, OidcProviderMetadata, OidcRegisterParams},
         },
         middleware::{

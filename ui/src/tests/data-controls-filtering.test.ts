@@ -201,20 +201,20 @@ describe('serverFilterViolations', () => {
 		// onFilterChange, so they narrowed the loaded page while total_count kept
 		// describing every host — "62 of 1550", paging through the wrong rows.
 		const hostFields: FieldConfig<Row>[] = [
-			{ ...nameField, key: 'network_id', filterable: true },
+			{ ...nameField, key: 'site_id', filterable: true },
 			{ ...hiddenField, key: 'hidden' },
 			tagsField
 		];
 
 		expect(serverFilterViolations(hostFields, true, { tags: true, fields: false })).toEqual([
-			'network_id',
+			'site_id',
 			'hidden'
 		]);
 	});
 
 	it('clears once each field is handled by the side that produced the count', () => {
 		const fields: FieldConfig<Row>[] = [
-			{ ...nameField, key: 'network_id', filterable: true, serverFiltered: true },
+			{ ...nameField, key: 'site_id', filterable: true, serverFiltered: true },
 			{ ...hiddenField, key: 'hidden', serverFiltered: true },
 			tagsField
 		];
@@ -393,22 +393,22 @@ describe('filter state transitions', () => {
 describe('restoredServerFilters', () => {
 	const serverString: FieldConfig<Row> = {
 		...nameField,
-		key: 'network_id',
+		key: 'site_id',
 		filterable: true,
 		serverFiltered: true
 	};
 	const serverBoolean: FieldConfig<Row> = { ...hiddenField, serverFiltered: true };
 
 	it('replays a restored selection so the request matches the panel', () => {
-		const state: FilterState = { network_id: stringFilter(['alpha']) };
+		const state: FilterState = { site_id: stringFilter(['alpha']) };
 
 		expect(restoredServerFilters([serverString], state)).toEqual([
-			{ key: 'network_id', values: ['alpha'] }
+			{ key: 'site_id', values: ['alpha'] }
 		]);
 	});
 
 	it('says nothing about a filter that selects nothing', () => {
-		expect(restoredServerFilters([serverString], { network_id: stringFilter([]) })).toEqual([]);
+		expect(restoredServerFilters([serverString], { site_id: stringFilter([]) })).toEqual([]);
 	});
 
 	it('replays a boolean only while it constrains', () => {
@@ -428,10 +428,8 @@ describe('restoredServerFilters', () => {
 	});
 
 	it('ignores fields the parent does not handle server-side', () => {
-		const clientOnly: FieldConfig<Row> = { ...nameField, key: 'network_id', filterable: true };
+		const clientOnly: FieldConfig<Row> = { ...nameField, key: 'site_id', filterable: true };
 
-		expect(restoredServerFilters([clientOnly], { network_id: stringFilter(['alpha']) })).toEqual(
-			[]
-		);
+		expect(restoredServerFilters([clientOnly], { site_id: stringFilter(['alpha']) })).toEqual([]);
 	});
 });
