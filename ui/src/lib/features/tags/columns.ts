@@ -1,5 +1,5 @@
 import type { LabelledCardFieldItem } from '$lib/shared/components/data/types';
-import { concepts } from '$lib/shared/stores/metadata';
+import { tagIcon } from './sets';
 import type { Tag } from './types/base';
 
 /**
@@ -18,7 +18,7 @@ export function tagItems(tagIds: string[], tags: Tag[]): LabelledCardFieldItem[]
 			id: tag.id,
 			label: tag.name,
 			color: tag.color,
-			icon: tag.is_application ? concepts.getIconComponent('Application') : undefined
+			icon: tagIcon(tag) ?? undefined
 		}));
 }
 

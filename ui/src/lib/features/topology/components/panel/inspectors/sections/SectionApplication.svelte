@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isApplicationTag } from '$lib/features/tags/sets';
 	import type { Node } from '@xyflow/svelte';
 	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
@@ -52,7 +53,7 @@
 	});
 
 	// App tags
-	let appTags = $derived(entityTags.filter((t) => t.is_application));
+	let appTags = $derived(entityTags.filter((t) => isApplicationTag(t)));
 	let appTagIds = $derived(new Set(appTags.map((t) => t.id)));
 
 	// Selected app tags: direct first, then inherited from host

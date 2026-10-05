@@ -74,7 +74,7 @@ impl ViewBuilder for ApplicationBuilder {
         let app_tags: HashMap<Uuid, &Tag> = ctx
             .entity_tags
             .iter()
-            .filter(|t| t.base.is_application)
+            .filter(|t| t.is_application())
             .map(|t| (t.id, t))
             .collect();
 
@@ -779,7 +779,8 @@ mod tests {
                 description: None,
                 color: Color::Blue,
                 organization_id: Uuid::new_v4(),
-                is_application: true,
+                exclusive_set: Some(crate::server::tags::r#impl::base::ExclusiveSet::Application),
+                icon: None,
             },
             ..Default::default()
         };
@@ -792,7 +793,8 @@ mod tests {
                 description: None,
                 color: Color::Green,
                 organization_id: Uuid::new_v4(),
-                is_application: true,
+                exclusive_set: Some(crate::server::tags::r#impl::base::ExclusiveSet::Application),
+                icon: None,
             },
             ..Default::default()
         };
@@ -929,7 +931,8 @@ mod tests {
                 description: None,
                 color: Color::Blue,
                 organization_id: Uuid::new_v4(),
-                is_application: true,
+                exclusive_set: Some(crate::server::tags::r#impl::base::ExclusiveSet::Application),
+                icon: None,
             },
             ..Default::default()
         };
@@ -942,7 +945,8 @@ mod tests {
                 description: None,
                 color: Color::Green,
                 organization_id: Uuid::new_v4(),
-                is_application: true,
+                exclusive_set: Some(crate::server::tags::r#impl::base::ExclusiveSet::Application),
+                icon: None,
             },
             ..Default::default()
         };

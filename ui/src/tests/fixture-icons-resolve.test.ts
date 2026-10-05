@@ -23,7 +23,13 @@ describe('fixture icons', () => {
 	it('every icon the backend emits resolves to a lucide-svelte component', () => {
 		const icons: Array<[string, string]> = [];
 		for (const [file, data] of Object.entries(fixtures)) {
-			collectIcons(data, file.split('/').pop()!, icons);
+			const name = file.split('/').pop()!;
+			// The tag icon picker's list is bare icon names rather than objects with an `icon`.
+			if (name === 'tag-icons.json' && Array.isArray(data)) {
+				data.forEach((icon, i) => icons.push([`${name}[${i}]`, icon as string]));
+			} else {
+				collectIcons(data, name, icons);
+			}
 		}
 		expect(icons.length).toBeGreaterThan(0);
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isApplicationTag } from '$lib/features/tags/sets';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import { hasDaemon } from '$lib/shared/onboarding/checklist';
@@ -160,7 +161,7 @@
 	let snapshotsEnabled = $derived(snapshotRetentionDays > 0);
 
 	// Application wizard gate
-	let appTags = $derived((tagsQuery.data ?? []).filter((t) => t.is_application));
+	let appTags = $derived((tagsQuery.data ?? []).filter((t) => isApplicationTag(t)));
 	let wizardOpen = $state(false);
 
 	let currentInspectorConfig = $derived(getInspectorConfig($activeView));

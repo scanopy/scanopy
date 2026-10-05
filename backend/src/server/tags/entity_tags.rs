@@ -19,7 +19,8 @@ use crate::server::shared::storage::{
     snapshot::{FkMaps, Snapshotable},
     traits::{Entity, SqlValue, Storable, Storage},
 };
-use crate::server::shared::types::api::ApiError;
+use crate::server::shared::types::api::{ApiError, ValidationError};
+use crate::server::tags::r#impl::base::{ExclusiveSet, Tag};
 use crate::server::tags::service::TagService;
 
 /// Build the `entity_tags` lookup filter for a batch of entities.
@@ -262,6 +263,15 @@ impl EntityTagStorage {
         }
 
         Ok(result)
+    }
+
+    /// Every live assignment of any of `tag_ids`, across all entity types.
+    pub async fn get_live_for_tags(&self, tag_ids: &[Uuid]) -> Result<Vec<EntityTag>> {
+        if tag_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let filter = StorableFilter::<EntityTag>::new_from_uuids_column("tag_id", tag_ids).live();
+        self.storage.get_all(filter).await
     }
 
     /// Add a tag to an entity
@@ -564,11 +574,9 @@ impl EntityTagService {
         // Validate tag exists and belongs to organization
         let tag = self.validate_tag_full(tag_id, organization_id).await?;
 
-        // Check application group constraint
-        if tag.base.is_application {
-            self.validate_single_app_tag(entity_id, &entity_type, Some(tag_id))
-                .await?;
-        }
+        // A tag from an exclusive set replaces the one of that set the entity already holds.
+        self.remove_displaced(&tag, &[entity_id], entity_type)
+            .await?;
 
         // Add to junction table
         self.storage
@@ -608,19 +616,18 @@ impl EntityTagService {
             return Ok(());
         }
 
-        // Validate all tags and check application group constraint
-        let mut app_count = 0;
+        // Validate all tags, then refuse a list naming two tags of one exclusive set: which of
+        // them should win is the caller's call, not ours.
+        let mut tags = Vec::with_capacity(tag_ids.len());
         for tag_id in &tag_ids {
-            let tag = self.validate_tag_full(*tag_id, organization_id).await?;
-            if tag.base.is_application {
-                app_count += 1;
-            }
+            tags.push(self.validate_tag_full(*tag_id, organization_id).await?);
         }
-        if app_count > 1 {
-            return Err(anyhow!(
-                "Only one application tag allowed per {}. Services inherit their host's application unless overridden with their own.",
-                entity_type
-            ));
+        if let Some(set) = set_held_twice(&tags) {
+            return Err(ValidationError::new(format!(
+                "A {} can hold only one tag of the \"{}\" set",
+                entity_type, set
+            ))
+            .into());
         }
 
         // Replace tags
@@ -668,7 +675,15 @@ impl EntityTagService {
         }
 
         // Validate tag exists and belongs to organization
-        self.validate_tag_full(tag_id, organization_id).await?;
+        let tag = self
+            .validate_tag_full(tag_id, organization_id)
+            .await
+            .map_err(ApiError::from)?;
+
+        // A tag from an exclusive set replaces the one of that set each entity already holds.
+        self.remove_displaced(&tag, entity_ids, entity_type)
+            .await
+            .map_err(ApiError::from)?;
 
         // Bulk add
         let count = self
@@ -728,32 +743,92 @@ impl EntityTagService {
         }
     }
 
-    /// Validate that an entity doesn't already have a different application tag.
-    /// `exclude_tag_id` is the tag being added (don't count it against the limit).
-    async fn validate_single_app_tag(
+    /// Close each entity's tags that `incoming` displaces: the other tags of its exclusive set.
+    /// Nothing to do for a tag in no set.
+    async fn remove_displaced(
         &self,
-        entity_id: Uuid,
-        entity_type: &EntityDiscriminants,
-        exclude_tag_id: Option<Uuid>,
-    ) -> Result<(), Error> {
+        incoming: &Tag,
+        entity_ids: &[Uuid],
+        entity_type: EntityDiscriminants,
+    ) -> Result<()> {
         use crate::server::shared::services::traits::CrudService;
 
-        let existing_tag_ids = self.storage.get_for_entity(&entity_id, entity_type).await?;
-        for existing_id in &existing_tag_ids {
-            if exclude_tag_id == Some(*existing_id) {
-                continue;
-            }
-            if let Ok(Some(existing_tag)) = self.tag_service.get_by_id(existing_id).await
-                && existing_tag.base.is_application
-            {
-                return Err(anyhow!(
-                    "Only one application tag allowed per {}. Services inherit their host's application unless overridden with their own.",
-                    entity_type
-                ));
+        if incoming.base.exclusive_set.is_none() || entity_ids.is_empty() {
+            return Ok(());
+        }
+
+        let held = self
+            .storage
+            .get_for_entities(entity_ids, &entity_type, None)
+            .await?;
+        let mut held_tag_ids: Vec<Uuid> = held.values().flatten().copied().collect();
+        held_tag_ids.sort();
+        held_tag_ids.dedup();
+        if held_tag_ids.is_empty() {
+            return Ok(());
+        }
+
+        let held_tags = self
+            .tag_service
+            .get_all(StorableFilter::<Tag>::new_from_entity_ids(&held_tag_ids).live())
+            .await?;
+        let displaced: std::collections::HashSet<Uuid> =
+            displaced_by(incoming, &held_tags).into_iter().collect();
+        if displaced.is_empty() {
+            return Ok(());
+        }
+
+        for (entity_id, tag_ids) in &held {
+            for tag_id in tag_ids.iter().filter(|id| displaced.contains(id)) {
+                self.storage
+                    .remove(*entity_id, entity_type, *tag_id)
+                    .await?;
             }
         }
         Ok(())
     }
+}
+
+/// The tags among `held` that assigning `incoming` displaces: those in the same exclusive set,
+/// other than `incoming` itself.
+fn displaced_by(incoming: &Tag, held: &[Tag]) -> Vec<Uuid> {
+    let Some(set) = &incoming.base.exclusive_set else {
+        return Vec::new();
+    };
+    held.iter()
+        .filter(|tag| tag.id != incoming.id && tag.base.exclusive_set.as_ref() == Some(set))
+        .map(|tag| tag.id)
+        .collect()
+}
+
+/// The first exclusive set that two of `tags` belong to, if any.
+fn set_held_twice(tags: &[Tag]) -> Option<&ExclusiveSet> {
+    let mut seen: Vec<(&ExclusiveSet, Uuid)> = Vec::new();
+    for tag in tags {
+        let Some(set) = &tag.base.exclusive_set else {
+            continue;
+        };
+        if seen.iter().any(|(s, id)| *s == set && *id != tag.id) {
+            return Some(set);
+        }
+        seen.push((set, tag.id));
+    }
+    None
+}
+
+/// How many entities `rows` show holding more than one of `set_tag_ids`. Used to refuse moving a
+/// tag into a set that some entity already holds another tag of.
+pub(crate) fn entities_holding_several(rows: &[EntityTag], set_tag_ids: &[Uuid]) -> usize {
+    let mut counts: HashMap<(Uuid, EntityDiscriminants), usize> = HashMap::new();
+    for row in rows
+        .iter()
+        .filter(|row| set_tag_ids.contains(&row.base.tag_id))
+    {
+        *counts
+            .entry((row.base.entity_id, row.base.entity_type))
+            .or_default() += 1;
+    }
+    counts.values().filter(|count| **count > 1).count()
 }
 
 #[cfg(test)]
@@ -785,5 +860,97 @@ mod entity_tags_filter_tests {
             where_clause.contains("snapshot_id"),
             "snapshot filter must scope by snapshot_id: {where_clause}"
         );
+    }
+}
+
+#[cfg(test)]
+mod exclusive_set_tests {
+    use super::*;
+    use crate::server::tags::r#impl::base::TagBase;
+
+    fn tag(set: Option<ExclusiveSet>) -> Tag {
+        Tag {
+            id: Uuid::new_v4(),
+            base: TagBase {
+                exclusive_set: set,
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+
+    fn group(name: &str) -> Option<ExclusiveSet> {
+        Some(ExclusiveSet::Group {
+            name: name.to_string(),
+        })
+    }
+
+    #[test]
+    fn a_set_tag_displaces_only_the_held_tags_of_its_own_set() {
+        let planned = tag(group("Lifecycle"));
+        let staging = tag(group("Environment"));
+        let plain = tag(None);
+        let app = tag(Some(ExclusiveSet::Application));
+        let decommissioned = tag(group("Lifecycle"));
+
+        let held = [planned.clone(), staging, plain, app, decommissioned.clone()];
+        assert_eq!(displaced_by(&decommissioned, &held), vec![planned.id]);
+    }
+
+    #[test]
+    fn a_tag_in_no_set_displaces_nothing() {
+        let held = [tag(group("Lifecycle")), tag(None)];
+        assert!(displaced_by(&tag(None), &held).is_empty());
+    }
+
+    #[test]
+    fn application_tags_displace_each_other() {
+        let web = tag(Some(ExclusiveSet::Application));
+        let db = tag(Some(ExclusiveSet::Application));
+        assert_eq!(displaced_by(&db, std::slice::from_ref(&web)), vec![web.id]);
+    }
+
+    #[test]
+    fn a_list_with_two_tags_of_one_set_is_named_by_that_set() {
+        let tags = [
+            tag(group("Environment")),
+            tag(None),
+            tag(group("Lifecycle")),
+            tag(group("Lifecycle")),
+        ];
+        assert_eq!(set_held_twice(&tags), group("Lifecycle").as_ref());
+    }
+
+    #[test]
+    fn a_list_with_one_tag_per_set_passes() {
+        let tags = [
+            tag(group("Environment")),
+            tag(group("Lifecycle")),
+            tag(Some(ExclusiveSet::Application)),
+            tag(None),
+            tag(None),
+        ];
+        assert_eq!(set_held_twice(&tags), None);
+    }
+
+    #[test]
+    fn entities_holding_two_tags_of_a_set_are_counted_once_each() {
+        let (a, b) = (Uuid::new_v4(), Uuid::new_v4());
+        let other = Uuid::new_v4();
+        let (host_1, host_2, host_3) = (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4());
+        let row =
+            |entity, entity_type, tag| EntityTag::new(EntityTagBase::new(entity, entity_type, tag));
+        let rows = [
+            // Holds both: counted.
+            row(host_1, EntityDiscriminants::Host, a),
+            row(host_1, EntityDiscriminants::Host, b),
+            // Holds one of the set and one outside it: not counted.
+            row(host_2, EntityDiscriminants::Host, a),
+            row(host_2, EntityDiscriminants::Host, other),
+            // The same id under another entity type is another entity.
+            row(host_3, EntityDiscriminants::Host, a),
+            row(host_3, EntityDiscriminants::Service, b),
+        ];
+        assert_eq!(entities_holding_several(&rows, &[a, b]), 1);
     }
 }

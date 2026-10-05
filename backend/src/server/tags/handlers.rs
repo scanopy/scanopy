@@ -43,7 +43,8 @@ pub enum TagOrderField {
     Name,
     Color,
     UpdatedAt,
-    IsApplication,
+    /// The exclusive set: "Application" for application tags, the set name for a named set.
+    ExclusiveSet,
 }
 
 impl OrderField for TagOrderField {
@@ -53,7 +54,9 @@ impl OrderField for TagOrderField {
             Self::Name => "tags.name",
             Self::Color => "tags.color",
             Self::UpdatedAt => "tags.updated_at",
-            Self::IsApplication => "tags.is_application",
+            Self::ExclusiveSet => {
+                "CASE WHEN tags.is_application THEN 'Application' ELSE tags.exclusive_group END"
+            }
         }
     }
 }
@@ -263,7 +266,7 @@ pub async fn create_tag(
                     .await?;
             }
 
-            if created_tag.base.is_application
+            if created_tag.is_application()
                 && organization
                     .not_onboarded(&OnboardingOperationDiscriminants::FirstApplicationTagCreated)
             {

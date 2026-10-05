@@ -258,8 +258,8 @@ const DECISIONS: Record<string, TabDecisions> = {
 		columns: {
 			name: IDENTITY,
 			color: YES,
-			// An orderable boolean: the order field sorts it as a side effect of grouping.
-			is_application: YES,
+			// One set per tag: Application or a named set.
+			exclusive_set: YES,
 			created_at: DATE,
 			updated_at: DATE,
 			description: TEXT
