@@ -849,6 +849,65 @@ where
     }
 }
 
+/// Advance `last_seen_at` on rows a scan observed through evidence rather than a submission.
+///
+/// A daemon's submission refreshes what it names as it is written. The server-side neighbour
+/// pass finds more: far ends a switch re-advertised, the ports and addresses they carry, and the
+/// ranges those addresses sit in. Nothing writes those rows, so without this their Last seen stays
+/// at the scan that first created them and they drift stale while every scan still sees them.
+///
+/// Called before the run's session is written, never from the discovery-FK subscriber: the digest
+/// reads `last_seen_at` off the same event, and subscriber order is not guaranteed.
+#[async_trait]
+pub trait ObservationRefresher<E: DiscoveryTracked + Display> {
+    /// Load the live rows `filter` matches, move any older `last_seen_at` up to `scan_time`, and
+    /// return every matched row.
+    async fn refresh_observed(
+        &self,
+        filter: StorableFilter<E>,
+        scan_time: chrono::DateTime<chrono::Utc>,
+    ) -> Result<Vec<E>, Error>;
+}
+
+#[async_trait]
+impl<S, E> ObservationRefresher<E> for S
+where
+    S: CrudService<E> + Sync,
+    E: Entity
+        + Into<EntityEnum>
+        + Default
+        + Display
+        + ChangeTriggersTopologyStaleness<E>
+        + DiscoveryTracked
+        + Send
+        + Sync,
+{
+    async fn refresh_observed(
+        &self,
+        filter: StorableFilter<E>,
+        scan_time: chrono::DateTime<chrono::Utc>,
+    ) -> Result<Vec<E>, Error> {
+        let mut observed = self.storage().get_all(filter.live()).await?;
+        let mut stale: Vec<E> = observed
+            .iter()
+            .filter(|e| e.last_seen_at() < scan_time)
+            .cloned()
+            .collect();
+        if !stale.is_empty() {
+            for e in stale.iter_mut() {
+                e.set_last_seen_at(scan_time);
+            }
+            self.storage().update_many(&stale).await?;
+            for e in observed.iter_mut() {
+                if e.last_seen_at() < scan_time {
+                    e.set_last_seen_at(scan_time);
+                }
+            }
+        }
+        Ok(observed)
+    }
+}
+
 #[cfg(test)]
 mod ready_for_create_tests {
     use super::*;

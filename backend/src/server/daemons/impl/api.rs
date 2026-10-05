@@ -201,10 +201,51 @@ pub struct ScannedEntityIds {
     /// Service bindings touched by this discovery.
     #[serde(default)]
     pub binding_ids: Vec<Uuid>,
+    /// Subnets this discovery found without sweeping: ranges riding in a host request, ranges the
+    /// server inferred or placed addresses into, and ranges holding an address the scan saw.
+    ///
+    /// Filled by the server, never by a daemon. Kept apart from `subnet_ids` because the digest
+    /// reads that list as the ranges the scan *swept*, and counting a range it only found evidence
+    /// in would report every unobserved host there as stale. The discovery FKs take both.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub found_subnet_ids: Vec<Uuid>,
     // No `subnet_vlan_ids`: SubnetVlan is Snapshotable but not
     // DiscoveryTracked. Per-link discovery FKs aren't tracked; SCD2
     // `valid_from` / `valid_to` (soft-close on `unlink`) capture when the
     // link existed.
+}
+
+impl ScannedEntityIds {
+    /// Fold `other` in, keeping each list free of duplicates.
+    pub fn merge(&mut self, other: ScannedEntityIds) {
+        fn extend(into: &mut Vec<Uuid>, from: Vec<Uuid>) {
+            for id in from {
+                if !into.contains(&id) {
+                    into.push(id);
+                }
+            }
+        }
+        let ScannedEntityIds {
+            host_ids,
+            subnet_ids,
+            vlan_ids,
+            ip_address_ids,
+            port_ids,
+            service_ids,
+            interface_ids,
+            binding_ids,
+            found_subnet_ids,
+        } = other;
+        extend(&mut self.host_ids, host_ids);
+        extend(&mut self.subnet_ids, subnet_ids);
+        extend(&mut self.vlan_ids, vlan_ids);
+        extend(&mut self.ip_address_ids, ip_address_ids);
+        extend(&mut self.port_ids, port_ids);
+        extend(&mut self.service_ids, service_ids);
+        extend(&mut self.interface_ids, interface_ids);
+        extend(&mut self.binding_ids, binding_ids);
+        extend(&mut self.found_subnet_ids, found_subnet_ids);
+    }
 }
 
 /// Progress update from daemon to server during discovery
@@ -586,6 +627,30 @@ pub struct TestReachabilityResponse {
 mod scanned_payload_tests {
     use super::*;
     use crate::server::discovery::r#impl::types::{DiscoveryType, RunType};
+
+    /// A range the server found evidence in must not become one the scan swept: the digest reads
+    /// `subnet_ids` as coverage and would report every unobserved host in it as stale.
+    #[test]
+    fn merging_found_subnets_leaves_swept_coverage_alone() {
+        let swept = Uuid::new_v4();
+        let found = Uuid::new_v4();
+        let mut scanned = ScannedEntityIds {
+            subnet_ids: vec![swept],
+            ..Default::default()
+        };
+
+        scanned.merge(ScannedEntityIds {
+            found_subnet_ids: vec![found, found],
+            ..Default::default()
+        });
+        scanned.merge(ScannedEntityIds {
+            found_subnet_ids: vec![found],
+            ..Default::default()
+        });
+
+        assert_eq!(scanned.subnet_ids, vec![swept]);
+        assert_eq!(scanned.found_subnet_ids, vec![found]);
+    }
 
     fn payload_with_scanned(scanned: Option<ScannedEntityIds>) -> DiscoveryUpdatePayload {
         let mut p = DiscoveryUpdatePayload::new(

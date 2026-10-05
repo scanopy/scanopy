@@ -260,13 +260,13 @@ pub struct LldpResolutionOutcome {
     /// One coded warning per far end that could not be placed, carrying the evidence needed to
     /// triage it. Coded like the daemon's, so both producers reach the same metric.
     pub warnings: Vec<DiscoveryWarning>,
-    /// Hosts this pass minted for far ends nothing had scanned.
+    /// What this pass stored or re-observed for far ends nothing had scanned: minted hosts with
+    /// their ports and addresses, far ends neighbours re-advertised (Last seen already advanced),
+    /// the ports recorded from advertisements, and the ranges all of those sit in.
     ///
     /// The caller folds these into the session's scanned set before the scan record is written, so
     /// they pick up the discovery FKs and the digest entry every other entity of that scan gets.
-    pub minted_host_ids: Vec<Uuid>,
-    /// Ranges this pass inferred from far-end addresses, folded in the same way.
-    pub minted_subnet_ids: Vec<Uuid>,
+    pub observed: crate::server::daemons::r#impl::api::ScannedEntityIds,
 }
 
 impl LldpResolutionStats {

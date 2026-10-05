@@ -7,12 +7,13 @@
 //! for them.
 
 use crate::daemon::discovery::types::warnings::ProvisionalSubnet;
+use crate::server::daemons::r#impl::api::ScannedEntityIds;
 use crate::server::interfaces::r#impl::base::InterfaceBase;
 use crate::server::ip_addresses::r#impl::base::{IPAddressBase, MacEvidence, MacEvidenceValue};
 use crate::server::networks::r#impl::Network;
 use crate::server::subnets::r#impl::{
     base::{SubnetBase, SubnetCidr, SubnetCidrValue},
-    inference::{UnplacedFarEnd, infer_ranges},
+    inference::{UnplacedFarEnd, infer_ranges, placeable_subnet},
     types::SubnetType,
 };
 
@@ -49,8 +50,8 @@ impl HostService {
         // Which subnet each far end's address landed in, keyed the way minting dedups. Far ends
         // that published no address never appear here and are minted without one.
         let mut placements: HashMap<String, Uuid> = HashMap::new();
-        // The ranges this pass created or matched, handed to the session like the minted hosts.
-        let mut minted_subnet_ids = Vec::new();
+        // What this step stored or found, handed to the session as entities the scan touched.
+        let mut observed = ScannedEntityIds::default();
         for range in infer_ranges(&far_ends, &live) {
             let mut subnet = Subnet::new(SubnetBase {
                 // The whole point: a range nothing read, only inferred, so the row asks to be
@@ -98,7 +99,7 @@ impl HostService {
                 "Inferred a subnet from far-end addresses"
             );
 
-            minted_subnet_ids.push(created.id);
+            observed.found_subnet_ids.push(created.id);
             for addressed in &range.far_ends {
                 placements.insert(addressed.far_end.chassis_id.clone(), created.id);
             }
@@ -124,22 +125,39 @@ impl HostService {
             );
         }
 
+        // A far end whose address falls in a range that already exists: `infer_ranges` leaves it
+        // out, so without this it is minted with no address and the range it sits in is never
+        // reported. The live rows were read before this pass created any, so a range created above
+        // is never matched here.
+        for far_end in &far_ends {
+            if placements.contains_key(&far_end.chassis_id) {
+                continue;
+            }
+            let Some(range) = far_end
+                .address
+                .and_then(|address| placeable_subnet(&live, address))
+            else {
+                continue;
+            };
+            placements.insert(far_end.chassis_id.clone(), range.id);
+            if !observed.found_subnet_ids.contains(&range.id) {
+                observed.found_subnet_ids.push(range.id);
+            }
+        }
+
         // Every far end, not only those a range was created for. A device that published no address
         // is still one nothing has contacted, and minting it is what turns an unresolved neighbour
         // into a host the next pass can place and the topology can draw.
-        let minted_host_ids = self
-            .mint_far_end_hosts(network_id, &far_ends, &placements, limit_ctx, scan_time)
-            .await;
+        observed.merge(
+            self.mint_far_end_hosts(network_id, &far_ends, &placements, limit_ctx, scan_time)
+                .await,
+        );
 
         warnings.extend(
             self.provisional_subnet_warnings(network_id, evidence)
                 .await?,
         );
-        Ok(InferenceOutcome {
-            minted_host_ids,
-            minted_subnet_ids,
-            warnings,
-        })
+        Ok(InferenceOutcome { observed, warnings })
     }
 
     /// Report every range on this network still waiting to be confirmed, not only the ones this
@@ -184,18 +202,15 @@ impl HostService {
 
 /// What one inference step produced.
 pub(super) struct InferenceOutcome {
-    /// The hosts this step created, in the order it created them.
+    /// What this step stored or found: the hosts it minted with their ports and addresses, the
+    /// ranges it created, and the existing ranges far-end addresses fell in.
     ///
-    /// Ids rather than a count, because the caller has to hand them to the session as entities it
-    /// touched. A far end minted here is a device *this scan* found — through a neighbour rather
-    /// than by sweeping it, but found nonetheless — so it carries the scan's discovery FKs and is
-    /// reported in its digest like anything else. Without the ids it was neither: attribution and
-    /// the digest both read the session's scanned set, and nothing put it there.
-    pub minted_host_ids: Vec<Uuid>,
-    /// The ranges this step created, or matched to an existing row, for the same reason: the scan
-    /// found them, so they carry its discovery FKs. The daemon never sees these ids, so nothing
-    /// else reports them.
-    pub minted_subnet_ids: Vec<Uuid>,
+    /// Ids rather than counts, because the caller hands them to the session as entities it touched.
+    /// A far end minted here is a device *this scan* found, through a neighbour rather than by
+    /// sweeping it, but found nonetheless, so it carries the scan's discovery FKs and is reported in
+    /// its digest like anything else. Ranges go in `found_subnet_ids`, never `subnet_ids`: the scan
+    /// found evidence in them without sweeping them.
+    pub observed: ScannedEntityIds,
     /// Every range on the network still waiting to be confirmed, not only the ones created here.
     pub warnings: Vec<DiscoveryWarning>,
 }
@@ -258,13 +273,13 @@ impl HostService {
         placements: &HashMap<String, Uuid>,
         limit_ctx: Option<&HostLimitContext>,
         scan_time: DateTime<Utc>,
-    ) -> Vec<Uuid> {
+    ) -> ScannedEntityIds {
         // One host per chassis id, not per address: several ports naming the same far end is one
         // device, and minting per sighting would put a row on the map for every cable. The chassis
         // id rather than the address because every far end has one — it is the hard gate in
         // `unplaced_far_end` — and because it is what `select_matching_host` later merges on.
         let mut seen: HashSet<&str> = HashSet::new();
-        let mut minted: Vec<Uuid> = Vec::new();
+        let mut minted = ScannedEntityIds::default();
 
         for far_end in far_ends {
             if !seen.insert(far_end.chassis_id.as_str()) {
@@ -392,7 +407,13 @@ impl HostService {
                 // The server-assigned id, not the one this loop generated: `create_with_children`
                 // matches an existing host before it creates, so what comes back may be a host this
                 // network already held. Recording that id is still right — the scan did touch it.
-                Ok(created) => minted.push(created.host.id),
+                Ok(created) => minted.merge(ScannedEntityIds {
+                    host_ids: vec![created.host.id],
+                    interface_ids: created.host.interfaces.iter().map(|i| i.id).collect(),
+                    ip_address_ids: created.host.ip_addresses.iter().map(|i| i.id).collect(),
+                    found_subnet_ids: created.subnet_ids,
+                    ..Default::default()
+                }),
                 Err(e) => tracing::warn!(
                     network_id = %network_id,
                     chassis_id = %far_end.chassis_id,

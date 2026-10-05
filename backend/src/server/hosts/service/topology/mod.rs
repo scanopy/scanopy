@@ -4,6 +4,9 @@ use super::*;
 use crate::daemon::discovery::types::warnings::{
     DiscoveryWarning, UnmatchedNeighbour, UnresolvedPort,
 };
+use crate::server::daemons::r#impl::api::ScannedEntityIds;
+use crate::server::shared::services::traits::ObservationRefresher;
+use crate::server::shared::storage::snapshot::DiscoveryTracked;
 
 /// What makes two advertised ports on one far end the same port: the name when one was advertised,
 /// the MAC otherwise. Stored rows key the same way, so a pass and the rows it already wrote agree.
@@ -192,7 +195,11 @@ struct NeighbourPass {
     unplaced: Vec<UnplacedFarEnd>,
     /// Ports recorded on far ends from what their neighbours advertised. Each one is a port the next
     /// pass can bind a neighbour to, which is why a pass that recorded any is followed by another.
-    recorded_ports: usize,
+    recorded_port_ids: Vec<Uuid>,
+    /// Hosts a neighbour seen by *this* scan resolved to: the far ends it re-observed. Only
+    /// candidates on interfaces the scan walked count, because candidates on other interfaces were
+    /// read by an earlier scan and carry no evidence about this one.
+    resolved_far_ends: HashSet<Uuid>,
 }
 
 mod inference;
@@ -239,7 +246,12 @@ impl HostService {
     /// interface where interface-level context — existing bindings, `fdb_macs`, host id — is
     /// needed) and writes the whole desired adjacency set for an interface in one
     /// `reconcile_interface_neighbors` call, rather than one `interface.base.neighbor` field write.
-    async fn resolve_neighbours_once(&self, network_id: Uuid) -> Result<NeighbourPass> {
+    async fn resolve_neighbours_once(
+        &self,
+        network_id: Uuid,
+        scan_time: DateTime<Utc>,
+        run_interface_ids: &HashSet<Uuid>,
+    ) -> Result<NeighbourPass> {
         let resolver = self.lldp_inventory_snapshot(network_id).await?;
 
         // The instant before which neighbour evidence counts as stale, from the network's own
@@ -306,7 +318,7 @@ impl HostService {
         let mut advertised_os: Vec<(Uuid, String)> = Vec::new();
         let mut reopened = 0usize;
         let mut rebound = 0usize;
-        let scan_time = Utc::now();
+        let mut resolved_far_ends: HashSet<Uuid> = HashSet::new();
 
         for interface in &interfaces {
             let candidates = candidates_by_interface
@@ -530,6 +542,9 @@ impl HostService {
                 };
 
                 if let Some((host_id, neighbor)) = resolved_neighbor {
+                    if run_interface_ids.contains(&interface.id) {
+                        resolved_far_ends.insert(host_id);
+                    }
                     // Evidence freshness for this adjacency = when this candidate's evidence was
                     // last confirmed by a scan (its `created_at` — see
                     // `InterfaceNeighborService::replace_candidates_from_discovery`).
@@ -568,8 +583,8 @@ impl HostService {
                 .await?;
         }
 
-        let recorded_ports = self
-            .record_advertised_far_end_ports(network_id, advertised_ports)
+        let recorded_port_ids = self
+            .record_advertised_far_end_ports(network_id, advertised_ports, scan_time)
             .await;
         self.record_advertised_far_end_os(advertised_os).await;
 
@@ -586,7 +601,7 @@ impl HostService {
             host_no_strategy = stats.host_no_strategy,
             reopened,
             rebound,
-            recorded_ports,
+            recorded_ports = recorded_port_ids.len(),
             "LLDP/CDP link resolution complete"
         );
 
@@ -594,7 +609,8 @@ impl HostService {
             stats,
             warnings,
             unplaced,
-            recorded_ports,
+            recorded_port_ids,
+            resolved_far_ends,
         })
     }
 
@@ -615,12 +631,16 @@ impl HostService {
         &self,
         network_id: Uuid,
         scan_time: DateTime<Utc>,
+        run: &ScannedEntityIds,
     ) -> Result<LldpResolutionOutcome> {
         /// Re-runs never mint, and a port is recorded once, so passes settle on their own. The cap
         /// bounds the request should one not; a port it leaves unbound binds on the next scan.
         const MAX_RERUNS: usize = 2;
 
-        let mut first = self.resolve_neighbours_once(network_id).await?;
+        let run_interface_ids: HashSet<Uuid> = run.interface_ids.iter().copied().collect();
+        let mut first = self
+            .resolve_neighbours_once(network_id, scan_time, &run_interface_ids)
+            .await?;
 
         // The plan's host limit, built the way the daemon batch path builds it
         // (`DaemonService::process_discovery_entities`). Minting runs outside both existing gates,
@@ -633,26 +653,150 @@ impl HostService {
             .infer_far_end_subnets(network_id, unplaced, limit_ctx.as_ref(), scan_time)
             .await?;
 
+        let mut observed = inferred.observed;
         // A pass that created nothing has nothing new to resolve against, whatever the standing
         // report says about ranges awaiting confirmation.
-        let mut rerun = !inferred.minted_host_ids.is_empty() || first.recorded_ports > 0;
+        let mut rerun = !observed.host_ids.is_empty() || !first.recorded_port_ids.is_empty();
+        // Unioned across passes: a far end minted above first resolves in a re-run.
+        let mut resolved_far_ends = std::mem::take(&mut first.resolved_far_ends);
+        observed.merge(ScannedEntityIds {
+            interface_ids: std::mem::take(&mut first.recorded_port_ids),
+            ..Default::default()
+        });
         let mut last = first;
         for _ in 0..MAX_RERUNS {
             if !rerun {
                 break;
             }
-            last = self.resolve_neighbours_once(network_id).await?;
-            rerun = last.recorded_ports > 0;
+            last = self
+                .resolve_neighbours_once(network_id, scan_time, &run_interface_ids)
+                .await?;
+            rerun = !last.recorded_port_ids.is_empty();
+            resolved_far_ends.extend(std::mem::take(&mut last.resolved_far_ends));
+            observed.merge(ScannedEntityIds {
+                interface_ids: std::mem::take(&mut last.recorded_port_ids),
+                ..Default::default()
+            });
         }
+
+        // Far ends this scan's neighbours re-advertised. Hosts the daemon submitted are already
+        // refreshed and reported, and those minted above are already in `observed`.
+        let re_observed: Vec<Uuid> = resolved_far_ends
+            .into_iter()
+            .filter(|id| !run.host_ids.contains(id) && !observed.host_ids.contains(id))
+            .collect();
+        observed.merge(
+            self.refresh_re_observed_far_ends(&re_observed, scan_time)
+                .await?,
+        );
 
         let mut warnings = last.warnings;
         warnings.extend(inferred.warnings);
         Ok(LldpResolutionOutcome {
             stats: last.stats,
             warnings,
-            minted_host_ids: inferred.minted_host_ids,
-            minted_subnet_ids: inferred.minted_subnet_ids,
+            observed,
         })
+    }
+
+    /// Advance Last seen on the Inferred far ends a neighbour re-advertised this scan, with their
+    /// ports and addresses, and report them all as touched.
+    ///
+    /// Inferred only: a device the daemon scanned is refreshed by its own submission, and one it
+    /// failed to reach is not "seen" because a switch still lists it. Children with the host,
+    /// because the digest judges each child of an observed host by its own Last seen, and a
+    /// refreshed host with stale ports would be reported as losing them.
+    async fn refresh_re_observed_far_ends(
+        &self,
+        host_ids: &[Uuid],
+        scan_time: DateTime<Utc>,
+    ) -> Result<ScannedEntityIds> {
+        if host_ids.is_empty() {
+            return Ok(ScannedEntityIds::default());
+        }
+        let far_end_ids: Vec<Uuid> = self
+            .get_all(StorableFilter::<Host>::new_from_entity_ids(host_ids).live())
+            .await?
+            .into_iter()
+            .filter(|host| host.base.source == EntitySource::Inferred)
+            .map(|host| host.id)
+            .collect();
+        if far_end_ids.is_empty() {
+            return Ok(ScannedEntityIds::default());
+        }
+
+        ObservationRefresher::<Host>::refresh_observed(
+            self,
+            StorableFilter::<Host>::new_from_entity_ids(&far_end_ids),
+            scan_time,
+        )
+        .await?;
+        let interfaces = self
+            .interface_service
+            .refresh_observed(
+                StorableFilter::<Interface>::new_from_host_ids(&far_end_ids),
+                scan_time,
+            )
+            .await?;
+        let ip_addresses = self
+            .ip_address_service
+            .refresh_observed(
+                StorableFilter::<IPAddress>::new_from_host_ids(&far_end_ids),
+                scan_time,
+            )
+            .await?;
+        let ports = self
+            .port_service
+            .refresh_observed(
+                StorableFilter::<Port>::new_from_host_ids(&far_end_ids),
+                scan_time,
+            )
+            .await?;
+
+        Ok(ScannedEntityIds {
+            host_ids: far_end_ids,
+            interface_ids: interfaces.iter().map(|i| i.id).collect(),
+            ip_address_ids: ip_addresses.iter().map(|i| i.id).collect(),
+            port_ids: ports.iter().map(|p| p.id).collect(),
+            ..Default::default()
+        })
+    }
+
+    /// Advance Last seen on the subnets holding an address this scan touched, and return them.
+    ///
+    /// A daemon reports the address but not the range it is filed under, so a range found only
+    /// through its addresses (an IPv6 prefix, a neighbour-inferred range) never refreshed and never
+    /// carried the scan's discovery FKs. The caller files these as found, not swept.
+    pub async fn refresh_subnets_of_addresses(
+        &self,
+        ip_address_ids: &[Uuid],
+        scan_time: DateTime<Utc>,
+    ) -> Result<Vec<Uuid>> {
+        if ip_address_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let subnet_ids: Vec<Uuid> = self
+            .ip_address_service
+            .get_all(StorableFilter::<IPAddress>::new_from_entity_ids(ip_address_ids).live())
+            .await?
+            .into_iter()
+            .map(|ip| ip.base.subnet_id)
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect();
+        if subnet_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        Ok(self
+            .subnet_service
+            .refresh_observed(
+                StorableFilter::<Subnet>::new_from_entity_ids(&subnet_ids),
+                scan_time,
+            )
+            .await?
+            .into_iter()
+            .map(|subnet| subnet.id)
+            .collect())
     }
 
     /// Give a far end every port its neighbours advertised, where nothing else has ever described
@@ -682,14 +826,15 @@ impl HostService {
     /// Distinct from the minting path, which builds these for a host that did not exist. Here the
     /// host is real and already resolved; only its ports are missing.
     ///
-    /// Returns how many ports it recorded, so the caller knows whether another pass has something
-    /// new to bind.
+    /// Returns the ports it recorded: the caller reports them as touched by this scan, and any at
+    /// all means another pass has something new to bind.
     async fn record_advertised_far_end_ports(
         &self,
         network_id: Uuid,
         advertised: Vec<(Uuid, Option<String>, Option<String>)>,
-    ) -> usize {
-        let mut recorded_count = 0;
+        scan_time: DateTime<Utc>,
+    ) -> Vec<Uuid> {
+        let mut recorded_ids = Vec::new();
         let mut by_host: HashMap<Uuid, AdvertisedPorts> = HashMap::new();
         for (host_id, name, mac) in advertised {
             let mac = mac.as_deref().and_then(|m| m.parse::<MacAddress>().ok());
@@ -741,7 +886,7 @@ impl HostService {
                     continue;
                 }
 
-                let interface = Interface::new(InterfaceBase {
+                let mut interface = Interface::new(InterfaceBase {
                     network_id,
                     host_id,
                     if_descr: Some(descr),
@@ -753,6 +898,10 @@ impl HostService {
                     }),
                     ..Default::default()
                 });
+                // The scan's timestamp, not the wall clock, so the port falls inside the window
+                // of the scan that recorded it, as every other entity of that scan does.
+                interface.refresh_scan_timestamps(scan_time);
+                interface.originate_scan_timestamps(scan_time);
 
                 match self
                     .interface_service
@@ -760,7 +909,7 @@ impl HostService {
                     .await
                 {
                     Ok(created) => {
-                        recorded_count += 1;
+                        recorded_ids.push(created.id);
                         tracing::info!(
                             host_id = %host_id,
                             port = %created.base.if_descr.as_deref().unwrap_or("?"),
@@ -776,7 +925,7 @@ impl HostService {
             }
         }
 
-        recorded_count
+        recorded_ids
     }
 
     /// Name an OS for each far end from the system description its LLDP advertisement carried.
