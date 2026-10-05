@@ -54,6 +54,18 @@ jobs:
       - name: Refresh vendored data (oui.csv + domain-classification)
         run: backend/scripts/refresh-vendored-data.sh
 
+      # Pull the test images up front, retrying a rate-limited registry (a homeassistant pull hit
+      # toomanyrequests on the v0.17.21 release), so a transient limit can't fail the test run.
+      - name: Pre-pull test images
+        run: |
+          for attempt in 1 2 3 4 5; do
+            docker compose -f docker-compose.test.yml pull --ignore-buildable && exit 0
+            echo "Image pull failed (attempt $attempt); retrying in $((attempt * 30))s"
+            sleep $((attempt * 30))
+          done
+          echo "Image pull failed after 5 attempts" >&2
+          exit 1
+
       - name: Run all tests
         run: |
           make dev-down
