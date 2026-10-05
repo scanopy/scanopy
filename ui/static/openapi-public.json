@@ -14117,19 +14117,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-05T22:13:25.737543Z",
+              "created_at": "2026-10-05T22:33:02.057722Z",
               "first_discovery_id": null,
-              "id": "cec21bba-ed2a-4b47-b1dd-5c19c26cea4f",
+              "id": "72066c51-c8c7-42d6-ade4-3a014d2fd4aa",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T22:13:25.737543Z",
+              "last_seen_at": "2026-10-05T22:33:02.057722Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-05T22:13:25.737543Z",
-              "valid_from": "2026-10-05T22:13:25.737543Z",
+              "updated_at": "2026-10-05T22:33:02.057722Z",
+              "valid_from": "2026-10-05T22:33:02.057722Z",
               "valid_to": null
             }
           },
@@ -15614,6 +15614,13 @@
                 "format": "date-time",
                 "description": "When this record was last modified."
               },
+              "virtualization_depth": {
+                "type": "integer",
+                "format": "int32",
+                "description": "How many hosts sit above this one in its virtualization chain.",
+                "readOnly": true,
+                "minimum": 0
+              },
               "virtualization_interface_id": {
                 "type": [
                   "string",
@@ -15632,6 +15639,24 @@
                     "description": "How the host is virtualized, when it is a VM or container guest."
                   }
                 ]
+              },
+              "virtualization_parent_host_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The host this one runs under: the host of its virtualizing service.",
+                "readOnly": true
+              },
+              "virtualization_root_host_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The host at the top of this host's virtualization chain, itself when it is the top.\n`null` when the host neither runs under nor runs another host.",
+                "readOnly": true
               },
               "virtualization_service_id": {
                 "type": [
@@ -15767,19 +15792,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-05T22:13:25.722222Z",
+                      "created_at": "2026-10-05T22:33:02.038749Z",
                       "first_discovery_id": null,
-                      "id": "b694d95e-60f1-4cda-ac63-e24f01e69286",
+                      "id": "144a639a-be07-46c1-b053-ece2ed56e470",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-05T22:13:25.722222Z",
+                      "last_seen_at": "2026-10-05T22:33:02.038749Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-05T22:13:25.722222Z",
-                      "valid_from": "2026-10-05T22:13:25.722222Z",
+                      "updated_at": "2026-10-05T22:33:02.038749Z",
+                      "valid_from": "2026-10-05T22:33:02.038749Z",
                       "valid_to": null
                     }
                   ],
@@ -15792,7 +15817,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Paperless-NGX",
+                  "service_definition": "Docker Swarm",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -15818,8 +15843,11 @@
               "sys_object_id_source": "Unspecified",
               "tags": [],
               "updated_at": "2026-01-15T10:30:00Z",
+              "virtualization_depth": 0,
               "virtualization_interface_id": null,
               "virtualization_metadata": null,
+              "virtualization_parent_host_id": null,
+              "virtualization_root_host_id": null,
               "virtualization_service_id": null
             }
           },
@@ -17115,19 +17143,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T22:13:25.733861Z",
+                  "created_at": "2026-10-05T22:33:02.052528Z",
                   "first_discovery_id": null,
-                  "id": "7d3c33ef-e0fb-49c5-993d-a19f56cc63d4",
+                  "id": "e93cc391-910d-4b6e-aa41-a1076e23f30d",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T22:13:25.733861Z",
+                  "last_seen_at": "2026-10-05T22:33:02.052528Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-05T22:13:25.733861Z",
-                  "valid_from": "2026-10-05T22:13:25.733861Z",
+                  "updated_at": "2026-10-05T22:33:02.052528Z",
+                  "valid_from": "2026-10-05T22:33:02.052528Z",
                   "valid_to": null
                 }
               ],
@@ -17140,7 +17168,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Paperless-NGX",
+              "service_definition": "Docker Swarm",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -19777,19 +19805,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-05T22:13:25.722649Z",
+          "created_at": "2026-10-05T22:33:02.039226Z",
           "first_discovery_id": null,
-          "id": "85802a53-3bf7-464b-8733-8d1d8c26d107",
+          "id": "679d6a36-9df1-486f-b087-a0044ab131b3",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-05T22:13:25.722649Z",
+          "last_seen_at": "2026-10-05T22:33:02.039226Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-05T22:13:25.722649Z",
-          "valid_from": "2026-10-05T22:13:25.722649Z",
+          "updated_at": "2026-10-05T22:33:02.039226Z",
+          "valid_from": "2026-10-05T22:33:02.039226Z",
           "valid_to": null
         }
       },
@@ -20563,7 +20591,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Paperless-NGX",
+              "service_definition": "Docker Swarm",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -26500,7 +26528,8 @@
           "model",
           "sys_location",
           "os_family",
-          "hidden"
+          "hidden",
+          "virtualization_tree"
         ]
       },
       "HostOs": {
@@ -26941,6 +26970,13 @@
             "format": "date-time",
             "description": "When this record was last modified."
           },
+          "virtualization_depth": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many hosts sit above this one in its virtualization chain.",
+            "readOnly": true,
+            "minimum": 0
+          },
           "virtualization_interface_id": {
             "type": [
               "string",
@@ -26959,6 +26995,24 @@
                 "description": "How the host is virtualized, when it is a VM or container guest."
               }
             ]
+          },
+          "virtualization_parent_host_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The host this one runs under: the host of its virtualizing service.",
+            "readOnly": true
+          },
+          "virtualization_root_host_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The host at the top of this host's virtualization chain, itself when it is the top.\n`null` when the host neither runs under nor runs another host.",
+            "readOnly": true
           },
           "virtualization_service_id": {
             "type": [
@@ -27094,19 +27148,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T22:13:25.721746Z",
+                  "created_at": "2026-10-05T22:33:02.038160Z",
                   "first_discovery_id": null,
-                  "id": "8c8627db-3397-4253-be55-c32795c69c23",
+                  "id": "dbfe9955-e6f2-4c3d-b2d2-cd9326c24652",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T22:13:25.721746Z",
+                  "last_seen_at": "2026-10-05T22:33:02.038160Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-05T22:13:25.721746Z",
-                  "valid_from": "2026-10-05T22:13:25.721746Z",
+                  "updated_at": "2026-10-05T22:33:02.038160Z",
+                  "valid_from": "2026-10-05T22:33:02.038160Z",
                   "valid_to": null
                 }
               ],
@@ -27119,7 +27173,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Paperless-NGX",
+              "service_definition": "Docker Swarm",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -27145,8 +27199,11 @@
           "sys_object_id_source": "Unspecified",
           "tags": [],
           "updated_at": "2026-01-15T10:30:00Z",
+          "virtualization_depth": 0,
           "virtualization_interface_id": null,
           "virtualization_metadata": null,
+          "virtualization_parent_host_id": null,
+          "virtualization_root_host_id": null,
           "virtualization_service_id": null
         }
       },
@@ -30705,6 +30762,13 @@
                   "format": "date-time",
                   "description": "When this record was last modified."
                 },
+                "virtualization_depth": {
+                  "type": "integer",
+                  "format": "int32",
+                  "description": "How many hosts sit above this one in its virtualization chain.",
+                  "readOnly": true,
+                  "minimum": 0
+                },
                 "virtualization_interface_id": {
                   "type": [
                     "string",
@@ -30723,6 +30787,24 @@
                       "description": "How the host is virtualized, when it is a VM or container guest."
                     }
                   ]
+                },
+                "virtualization_parent_host_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid",
+                  "description": "The host this one runs under: the host of its virtualizing service.",
+                  "readOnly": true
+                },
+                "virtualization_root_host_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid",
+                  "description": "The host at the top of this host's virtualization chain, itself when it is the top.\n`null` when the host neither runs under nor runs another host.",
+                  "readOnly": true
                 },
                 "virtualization_service_id": {
                   "type": [
@@ -30858,19 +30940,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-05T22:13:25.714774Z",
+                        "created_at": "2026-10-05T22:33:02.029898Z",
                         "first_discovery_id": null,
-                        "id": "4c8492b2-2733-4d3d-839a-6a436cf95293",
+                        "id": "64e617b4-8221-4404-aba6-64b9896250f0",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-05T22:13:25.714774Z",
+                        "last_seen_at": "2026-10-05T22:33:02.029898Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-05T22:13:25.714774Z",
-                        "valid_from": "2026-10-05T22:13:25.714774Z",
+                        "updated_at": "2026-10-05T22:33:02.029898Z",
+                        "valid_from": "2026-10-05T22:33:02.029898Z",
                         "valid_to": null
                       }
                     ],
@@ -30883,7 +30965,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Paperless-NGX",
+                    "service_definition": "Docker Swarm",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -30909,8 +30991,11 @@
                 "sys_object_id_source": "Unspecified",
                 "tags": [],
                 "updated_at": "2026-01-15T10:30:00Z",
+                "virtualization_depth": 0,
                 "virtualization_interface_id": null,
                 "virtualization_metadata": null,
+                "virtualization_parent_host_id": null,
+                "virtualization_root_host_id": null,
                 "virtualization_service_id": null
               }
             },
@@ -31029,19 +31114,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-05T22:13:25.733203Z",
+                    "created_at": "2026-10-05T22:33:02.051790Z",
                     "first_discovery_id": null,
-                    "id": "0e720f74-bead-42e7-ab65-ebb61e097b09",
+                    "id": "ee9c7a3b-71f9-4460-bf7d-4153eca3d548",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-05T22:13:25.733203Z",
+                    "last_seen_at": "2026-10-05T22:33:02.051790Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-05T22:13:25.733203Z",
-                    "valid_from": "2026-10-05T22:13:25.733203Z",
+                    "updated_at": "2026-10-05T22:33:02.051790Z",
+                    "valid_from": "2026-10-05T22:33:02.051790Z",
                     "valid_to": null
                   }
                 ],
@@ -31054,7 +31139,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Paperless-NGX",
+                "service_definition": "Docker Swarm",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -33230,19 +33315,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-05T22:13:25.722524Z",
+              "created_at": "2026-10-05T22:33:02.039085Z",
               "first_discovery_id": null,
-              "id": "5dff429f-a8a0-464d-a299-0d2e5ad7e560",
+              "id": "757640ce-0281-456c-884c-e9ad316df70b",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T22:13:25.722524Z",
+              "last_seen_at": "2026-10-05T22:33:02.039085Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-05T22:13:25.722524Z",
-              "valid_from": "2026-10-05T22:13:25.722524Z",
+              "updated_at": "2026-10-05T22:33:02.039085Z",
+              "valid_from": "2026-10-05T22:33:02.039085Z",
               "valid_to": null
             }
           ],
@@ -33255,7 +33340,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Paperless-NGX",
+          "service_definition": "Docker Swarm",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -34938,7 +35023,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "88ebf303-4806-4044-8ca3-363c16581bd8",
+                  "id": "0dfcbe10-2aa8-41aa-b753-ddeb08c4740f",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34948,23 +35033,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "f05ea013-7400-49c3-806d-31619e166cc7",
+                  "id": "a898eb31-98e6-42f9-9b1e-673ca8033b9e",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "79e7ba93-625f-407f-be7b-1af89873e5bc",
+                  "id": "2b95baaf-6e04-4d58-9cd1-dfe139c6bf91",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "50dcae57-183a-4d34-859f-84ebf1c89cc7",
+                  "id": "f3aaac55-6733-48cf-9525-d009e1477c44",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "f05ea013-7400-49c3-806d-31619e166cc7",
+                  "id": "a898eb31-98e6-42f9-9b1e-673ca8033b9e",
                   "rule": "ByHost"
                 }
               ]
@@ -34994,19 +35079,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "4884fad5-3289-467d-ac1f-04aabfbf714c",
+                "id": "bd2a41d8-4d70-4c6d-be11-170991ecb01b",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "569e40f7-04cf-4d82-9778-958c1bda2317",
+                "id": "c214dd38-d36d-48ef-a248-ade2382a8a5b",
                 "rule": "ByVLAN"
               },
               {
-                "id": "5cacda82-0781-4cf4-b70f-cc897403e30d",
+                "id": "333e5f6d-7932-4b82-9b82-0bca31eb347b",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "6bc1f9b9-cb4a-4211-9c5c-5c9f57ffd312",
+                "id": "07f2b7d1-9113-49bc-bfdf-fd120c4017d5",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -35025,7 +35110,7 @@
                 }
               },
               {
-                "id": "4bff9891-7adf-487b-bdb3-95eee92d1fbd",
+                "id": "44365bf5-4889-4b2d-8fa1-7ab1b0e13a4c",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -35034,15 +35119,15 @@
                 }
               },
               {
-                "id": "0c3db362-abdf-4032-ae02-189ad0f785c8",
+                "id": "8d14a90d-eea5-4111-ac0c-71e55948da99",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "0dcc29b6-a969-4361-877e-8c8fd387ffa7",
+                "id": "c8df68dd-95fd-4a98-a064-622c6202957b",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "d1d0386b-682c-4f59-9e63-77fbb493510f",
+                "id": "79ca9d0d-587b-4bbc-b875-69aa7b806531",
                 "rule": "ByStack"
               }
             ]

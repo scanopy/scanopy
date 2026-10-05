@@ -3531,19 +3531,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-05T22:13:25.677287Z",
+             *       "created_at": "2026-10-05T22:33:01.988488Z",
              *       "first_discovery_id": null,
-             *       "id": "a672c824-e8fa-4e1e-b8cd-040b957cf8a6",
+             *       "id": "0069183c-5a9b-4538-9ccc-5ad44227e263",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-05T22:13:25.677287Z",
+             *       "last_seen_at": "2026-10-05T22:33:01.988488Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-10-05T22:13:25.677287Z",
-             *       "valid_from": "2026-10-05T22:13:25.677287Z",
+             *       "updated_at": "2026-10-05T22:33:01.988488Z",
+             *       "valid_from": "2026-10-05T22:33:01.988488Z",
              *       "valid_to": null
              *     }
              */
@@ -4374,19 +4374,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-05T22:13:25.652759Z",
+             *               "created_at": "2026-10-05T22:33:01.965461Z",
              *               "first_discovery_id": null,
-             *               "id": "6990b73e-ddce-474d-b81c-f2faeecdaff9",
+             *               "id": "7b6e792f-9a17-4f16-8839-1a990cec99e5",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-05T22:13:25.652759Z",
+             *               "last_seen_at": "2026-10-05T22:33:01.965461Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-10-05T22:13:25.652759Z",
-             *               "valid_from": "2026-10-05T22:13:25.652759Z",
+             *               "updated_at": "2026-10-05T22:33:01.965461Z",
+             *               "valid_from": "2026-10-05T22:33:01.965461Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4399,7 +4399,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Paperless-NGX",
+             *           "service_definition": "Docker Swarm",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -4425,8 +4425,11 @@ export interface components {
              *       "sys_object_id_source": "Unspecified",
              *       "tags": [],
              *       "updated_at": "2026-01-15T10:30:00Z",
+             *       "virtualization_depth": 0,
              *       "virtualization_interface_id": null,
              *       "virtualization_metadata": null,
+             *       "virtualization_parent_host_id": null,
+             *       "virtualization_root_host_id": null,
              *       "virtualization_service_id": null
              *     }
              */
@@ -4579,11 +4582,27 @@ export interface components {
                  */
                 updated_at: string;
                 /**
+                 * Format: int32
+                 * @description How many hosts sit above this one in its virtualization chain.
+                 */
+                readonly virtualization_depth?: number;
+                /**
                  * Format: uuid
                  * @description The interface on the virtualizing host that presents this host, for a network identity.
                  */
                 virtualization_interface_id?: string | null;
                 virtualization_metadata?: null | components["schemas"]["HostVirtualization"];
+                /**
+                 * Format: uuid
+                 * @description The host this one runs under: the host of its virtualizing service.
+                 */
+                readonly virtualization_parent_host_id?: string | null;
+                /**
+                 * Format: uuid
+                 * @description The host at the top of this host's virtualization chain, itself when it is the top.
+                 *     `null` when the host neither runs under nor runs another host.
+                 */
+                readonly virtualization_root_host_id?: string | null;
                 /**
                  * Format: uuid
                  * @description The hypervisor service this VM runs on.
@@ -5286,19 +5305,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-05T22:13:25.672150Z",
+             *           "created_at": "2026-10-05T22:33:01.983160Z",
              *           "first_discovery_id": null,
-             *           "id": "a15f30fa-1d46-4eaf-b4fd-7117f7622e26",
+             *           "id": "ff031a33-bb01-4a47-9098-2f27faa775a0",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-05T22:13:25.672150Z",
+             *           "last_seen_at": "2026-10-05T22:33:01.983160Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-10-05T22:13:25.672150Z",
-             *           "valid_from": "2026-10-05T22:13:25.672150Z",
+             *           "updated_at": "2026-10-05T22:33:01.983160Z",
+             *           "valid_from": "2026-10-05T22:33:01.983160Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5311,7 +5330,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Paperless-NGX",
+             *       "service_definition": "Docker Swarm",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -6505,19 +6524,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-05T22:13:25.653514Z",
+         *       "created_at": "2026-10-05T22:33:01.966006Z",
          *       "first_discovery_id": null,
-         *       "id": "c4ad7624-2d6a-4515-b2ed-ccae945085e7",
+         *       "id": "e53961b6-063d-4e2c-8f87-80f59944fbfd",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-05T22:13:25.653514Z",
+         *       "last_seen_at": "2026-10-05T22:33:01.966006Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-10-05T22:13:25.653514Z",
-         *       "valid_from": "2026-10-05T22:13:25.653514Z",
+         *       "updated_at": "2026-10-05T22:33:01.966006Z",
+         *       "valid_from": "2026-10-05T22:33:01.966006Z",
          *       "valid_to": null
          *     }
          */
@@ -6865,7 +6884,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Paperless-NGX",
+         *           "service_definition": "Docker Swarm",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9337,7 +9356,7 @@ export interface components {
          * @description Fields that hosts can be ordered/grouped by.
          * @enum {string}
          */
-        HostOrderField: "created_at" | "name" | "hostname" | "updated_at" | "virtualized_by" | "site_id" | "interface_ip" | "last_seen_at" | "mac_address" | "source" | "manufacturer" | "model" | "sys_location" | "os_family" | "hidden";
+        HostOrderField: "created_at" | "name" | "hostname" | "updated_at" | "virtualized_by" | "site_id" | "interface_ip" | "last_seen_at" | "mac_address" | "source" | "manufacturer" | "model" | "sys_location" | "os_family" | "hidden" | "virtualization_tree";
         /** @description Operating system of a host, as one source read or inferred it. */
         HostOs: {
             /** @description Release codename, such as "noble". */
@@ -9494,19 +9513,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-05T22:13:25.651930Z",
+         *               "created_at": "2026-10-05T22:33:01.964845Z",
          *               "first_discovery_id": null,
-         *               "id": "68478fc2-84cc-44b0-908c-609e1505228d",
+         *               "id": "f58ffd0f-a060-423b-942b-d1c395ba8ce3",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-05T22:13:25.651930Z",
+         *               "last_seen_at": "2026-10-05T22:33:01.964845Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-10-05T22:13:25.651930Z",
-         *               "valid_from": "2026-10-05T22:13:25.651930Z",
+         *               "updated_at": "2026-10-05T22:33:01.964845Z",
+         *               "valid_from": "2026-10-05T22:33:01.964845Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9519,7 +9538,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Paperless-NGX",
+         *           "service_definition": "Docker Swarm",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -9545,8 +9564,11 @@ export interface components {
          *       "sys_object_id_source": "Unspecified",
          *       "tags": [],
          *       "updated_at": "2026-01-15T10:30:00Z",
+         *       "virtualization_depth": 0,
          *       "virtualization_interface_id": null,
          *       "virtualization_metadata": null,
+         *       "virtualization_parent_host_id": null,
+         *       "virtualization_root_host_id": null,
          *       "virtualization_service_id": null
          *     }
          */
@@ -9699,11 +9721,27 @@ export interface components {
              */
             updated_at: string;
             /**
+             * Format: int32
+             * @description How many hosts sit above this one in its virtualization chain.
+             */
+            readonly virtualization_depth?: number;
+            /**
              * Format: uuid
              * @description The interface on the virtualizing host that presents this host, for a network identity.
              */
             virtualization_interface_id?: string | null;
             virtualization_metadata?: null | components["schemas"]["HostVirtualization"];
+            /**
+             * Format: uuid
+             * @description The host this one runs under: the host of its virtualizing service.
+             */
+            readonly virtualization_parent_host_id?: string | null;
+            /**
+             * Format: uuid
+             * @description The host at the top of this host's virtualization chain, itself when it is the top.
+             *     `null` when the host neither runs under nor runs another host.
+             */
+            readonly virtualization_root_host_id?: string | null;
             /**
              * Format: uuid
              * @description The hypervisor service this VM runs on.
@@ -11388,11 +11426,27 @@ export interface components {
                  */
                 updated_at: string;
                 /**
+                 * Format: int32
+                 * @description How many hosts sit above this one in its virtualization chain.
+                 */
+                readonly virtualization_depth?: number;
+                /**
                  * Format: uuid
                  * @description The interface on the virtualizing host that presents this host, for a network identity.
                  */
                 virtualization_interface_id?: string | null;
                 virtualization_metadata?: null | components["schemas"]["HostVirtualization"];
+                /**
+                 * Format: uuid
+                 * @description The host this one runs under: the host of its virtualizing service.
+                 */
+                readonly virtualization_parent_host_id?: string | null;
+                /**
+                 * Format: uuid
+                 * @description The host at the top of this host's virtualization chain, itself when it is the top.
+                 *     `null` when the host neither runs under nor runs another host.
+                 */
+                readonly virtualization_root_host_id?: string | null;
                 /**
                  * Format: uuid
                  * @description The hypervisor service this VM runs on.
@@ -12569,19 +12623,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-05T22:13:25.653292Z",
+         *           "created_at": "2026-10-05T22:33:01.965859Z",
          *           "first_discovery_id": null,
-         *           "id": "2d7391a2-1e84-4b6f-84a4-9649ac2b96be",
+         *           "id": "d971cf93-fbf7-4834-a38f-6aecb818e1eb",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-05T22:13:25.653292Z",
+         *           "last_seen_at": "2026-10-05T22:33:01.965859Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-10-05T22:13:25.653292Z",
-         *           "valid_from": "2026-10-05T22:13:25.653292Z",
+         *           "updated_at": "2026-10-05T22:33:01.965859Z",
+         *           "valid_from": "2026-10-05T22:33:01.965859Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12594,7 +12648,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Paperless-NGX",
+         *       "service_definition": "Docker Swarm",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -13480,7 +13534,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "43caef1e-692a-4a2a-bab5-893d14f2c8ba",
+             *           "id": "89eaf0e3-b908-4ce8-918d-731e65800249",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13490,23 +13544,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "791a1bb9-df34-44a8-a523-7e8ead37f415",
+             *           "id": "4cf6ca47-76d5-4e79-a8a2-b96bbc137d76",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "9a253dc9-c824-454b-b164-b0f3cc8e34a6",
+             *           "id": "c99b4c6c-31a1-4224-851d-cef13fcff8e2",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "9a405adf-3d2f-47b1-892a-91d403c0aaa9",
+             *           "id": "6bb72dfc-cf3c-4570-a505-a5281c32cb38",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "791a1bb9-df34-44a8-a523-7e8ead37f415",
+             *           "id": "4cf6ca47-76d5-4e79-a8a2-b96bbc137d76",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13519,19 +13573,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "f548234b-5073-47b6-a0a7-e7c9e850fc02",
+             *         "id": "7c679de3-abd4-48ab-907a-e0f30a12e92a",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "f4d98cc7-5029-4417-91f2-c686ae9ef9a5",
+             *         "id": "a86f2a87-a131-4190-96a4-328e7d0734ac",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "897960e9-b59a-40c7-9b23-0b6c3607b7f7",
+             *         "id": "1cd970f6-4613-4aab-bbae-c0e6c8e91164",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "67a21527-0b78-43a5-b6f2-fe1d87701ab4",
+             *         "id": "97c94d3a-8d4d-4821-a1de-8bbc4f855529",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13550,7 +13604,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "be03aa3b-d872-4c17-9503-1c2c75c26eed",
+             *         "id": "be6c6999-98eb-4d9e-981e-925cc2597b4c",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13559,15 +13613,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "88b6948e-000d-48b1-9184-eab6508b8f3d",
+             *         "id": "f58e7fd4-910d-4aea-82cf-5807ce13ce84",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "2bbac2cf-3d8a-495a-9da7-f8a84ed36975",
+             *         "id": "0194ceab-b623-4300-8c19-acb8d3b5a28d",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "45af5d5f-6da1-47a3-b323-24651850be02",
+             *         "id": "5bc82560-f59e-4748-9dbe-6e4648d46ad1",
              *         "rule": "ByStack"
              *       }
              *     ]
