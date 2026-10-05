@@ -751,7 +751,7 @@
 							return [
 								{
 									id: category,
-									...serviceCategoryMeta.getTag(category, common_category()),
+									...serviceCategoryMeta.getTag(category),
 									icon: serviceCategoryMeta.getIconComponent(category)
 								}
 							];
