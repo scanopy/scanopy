@@ -234,9 +234,15 @@ impl DiscoveryTracked for Subnet {
     fn scanned_in_session_filter(
         scanned: &crate::server::daemons::r#impl::api::ScannedEntityIds,
     ) -> crate::server::shared::storage::filter::StorableFilter<Self> {
+        // Swept and found alike: the run touched both, whatever the digest counts as coverage.
+        let ids: Vec<Uuid> = scanned
+            .subnet_ids
+            .iter()
+            .chain(&scanned.found_subnet_ids)
+            .copied()
+            .collect();
         crate::server::shared::storage::filter::StorableFilter::<Self>::new_from_uuids_column(
-            "id",
-            &scanned.subnet_ids,
+            "id", &ids,
         )
     }
 }

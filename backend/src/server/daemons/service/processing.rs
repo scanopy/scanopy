@@ -2,6 +2,7 @@
 use super::*;
 use crate::daemon::discovery::types::base::DiscoveryPhase;
 use crate::daemon::discovery::types::warnings::DiscoveryWarning;
+use crate::server::daemons::r#impl::api::ScannedEntityIds;
 
 /// How long the completion request will wait for neighbour resolution before cutting it short.
 ///
@@ -651,27 +652,53 @@ impl DaemonService {
         Ok(())
     }
 
-    /// Fold the subnets this daemon's host requests stored into the terminal payload's scanned
-    /// set, so they carry the run's discovery FKs.
+    /// Fold the subnets this scan found without the daemon naming them into the terminal payload,
+    /// as found rather than swept, so they carry the run's discovery FKs.
     ///
-    /// Container bridges ride inside the host request because their owner is the runtime service
-    /// the same request creates, and placed ranges are created by the server; neither id reaches
-    /// the daemon, so its own scanned set never names them. Into `update` before
-    /// `update_session`, like the warning below.
+    /// Two sources. The subnets this daemon's host requests stored: container bridges ride inside
+    /// the host request because their owner is the runtime service the same request creates, and
+    /// placed ranges are created by the server, so neither id reaches the daemon. And the subnets
+    /// holding any address the scan touched, whose Last seen this also advances: a daemon reports
+    /// an address, never the range it is filed under.
+    ///
+    /// Into `update` before `update_session`, like the warning below. After neighbour resolution,
+    /// so the far-end addresses it reports count too.
     async fn report_touched_subnets(&self, update: &mut DiscoveryUpdatePayload) {
-        let touched = self
+        let mut found = self
             .discovery_service
             .take_touched_subnets(&update.daemon_id)
             .await;
-        if touched.is_empty() {
-            return;
-        }
-        let scanned = update.scanned.get_or_insert_with(Default::default);
-        for id in touched {
-            if !scanned.subnet_ids.contains(&id) {
-                scanned.subnet_ids.push(id);
+
+        let scan_time = update.finished_at.unwrap_or_else(Utc::now);
+        let ip_address_ids = update
+            .scanned
+            .as_ref()
+            .map(|scanned| scanned.ip_address_ids.clone())
+            .unwrap_or_default();
+        if let Some(host_service) = self.host_service.get() {
+            match host_service
+                .refresh_subnets_of_addresses(&ip_address_ids, scan_time)
+                .await
+            {
+                Ok(holding) => found.extend(holding),
+                Err(e) => tracing::warn!(
+                    session_id = %update.session_id,
+                    error = %e,
+                    "Could not refresh the subnets this scan's addresses sit in"
+                ),
             }
         }
+
+        if found.is_empty() {
+            return;
+        }
+        update
+            .scanned
+            .get_or_insert_with(Default::default)
+            .merge(ScannedEntityIds {
+                found_subnet_ids: found,
+                ..Default::default()
+            });
     }
 
     /// Fold a latched "this daemon submitted an outdated format" observation into the terminal
@@ -723,11 +750,13 @@ impl DaemonService {
         // this scan carries. `finished_at` is what closes the digest's window; stamping mint time
         // instead would put the host just outside the window that exists to report it.
         let scan_time = update.finished_at.unwrap_or_else(Utc::now);
+        // What the daemon reported, so the pass counts only neighbours this scan re-read.
+        let run = update.scanned.clone().unwrap_or_default();
 
         let started = std::time::Instant::now();
         let outcome = tokio::time::timeout(
             RESOLUTION_BUDGET,
-            host_service.resolve_lldp_links(update.network_id, scan_time),
+            host_service.resolve_lldp_links(update.network_id, scan_time, &run),
         )
         .await;
 
@@ -739,11 +768,10 @@ impl DaemonService {
 
         match outcome {
             Ok(Ok(outcome)) => {
-                if !outcome.minted_host_ids.is_empty() || !outcome.minted_subnet_ids.is_empty() {
-                    let scanned = update.scanned.get_or_insert_with(Default::default);
-                    scanned.host_ids.extend(outcome.minted_host_ids);
-                    scanned.subnet_ids.extend(outcome.minted_subnet_ids);
-                }
+                update
+                    .scanned
+                    .get_or_insert_with(Default::default)
+                    .merge(outcome.observed);
                 // Into the row as it is written, rather than appended to it afterwards. The append
                 // existed only because this ran after the row; with the order reversed there is
                 // nothing to append to and nothing to race.

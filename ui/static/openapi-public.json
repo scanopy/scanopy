@@ -14068,19 +14068,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-05T01:08:45.222362Z",
+              "created_at": "2026-10-05T01:40:06.410795Z",
               "first_discovery_id": null,
-              "id": "d498d549-f1e3-47a5-abd2-1fb4d1af9afa",
+              "id": "91cf7c68-3ef2-4093-939b-7828c86c6aa3",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T01:08:45.222362Z",
+              "last_seen_at": "2026-10-05T01:40:06.410795Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-05T01:08:45.222362Z",
-              "valid_from": "2026-10-05T01:08:45.222362Z",
+              "updated_at": "2026-10-05T01:40:06.410795Z",
+              "valid_from": "2026-10-05T01:40:06.410795Z",
               "valid_to": null
             }
           },
@@ -15705,19 +15705,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-05T01:08:45.207076Z",
+                      "created_at": "2026-10-05T01:40:06.392514Z",
                       "first_discovery_id": null,
-                      "id": "fe87a8f7-3c79-4350-8ad0-6dafe5c2cb95",
+                      "id": "79a4212f-dedf-4619-bfbc-20ba3c78ae9a",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-05T01:08:45.207076Z",
+                      "last_seen_at": "2026-10-05T01:40:06.392514Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-05T01:08:45.207076Z",
-                      "valid_from": "2026-10-05T01:08:45.207076Z",
+                      "updated_at": "2026-10-05T01:40:06.392514Z",
+                      "valid_from": "2026-10-05T01:40:06.392514Z",
                       "valid_to": null
                     }
                   ],
@@ -15731,7 +15731,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Asterisk",
+                  "service_definition": "Bitwarden",
                   "source": {
                     "type": "Manual"
                   },
@@ -17130,19 +17130,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T01:08:45.218742Z",
+                  "created_at": "2026-10-05T01:40:06.406131Z",
                   "first_discovery_id": null,
-                  "id": "aa41219a-f805-4f84-8243-537f53eda2be",
+                  "id": "a84476c8-10e7-4b5a-9f34-bfeb889ec4dd",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T01:08:45.218742Z",
+                  "last_seen_at": "2026-10-05T01:40:06.406131Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-05T01:08:45.218742Z",
-                  "valid_from": "2026-10-05T01:08:45.218742Z",
+                  "updated_at": "2026-10-05T01:40:06.406131Z",
+                  "valid_from": "2026-10-05T01:40:06.406131Z",
                   "valid_to": null
                 }
               ],
@@ -17156,7 +17156,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Asterisk",
+              "service_definition": "Bitwarden",
               "source": {
                 "type": "Manual"
               },
@@ -19648,19 +19648,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-05T01:08:45.207492Z",
+          "created_at": "2026-10-05T01:40:06.392979Z",
           "first_discovery_id": null,
-          "id": "8756bf90-632d-429e-872e-d7a5e5c7d208",
+          "id": "874a02f7-5120-4913-ba10-a4ff52e6eb2f",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-05T01:08:45.207492Z",
+          "last_seen_at": "2026-10-05T01:40:06.392979Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-05T01:08:45.207492Z",
-          "valid_from": "2026-10-05T01:08:45.207492Z",
+          "updated_at": "2026-10-05T01:40:06.392979Z",
+          "valid_from": "2026-10-05T01:40:06.392979Z",
           "valid_to": null
         }
       },
@@ -20427,7 +20427,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Asterisk",
+              "service_definition": "Bitwarden",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -26886,19 +26886,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-05T01:08:45.206609Z",
+                  "created_at": "2026-10-05T01:40:06.391962Z",
                   "first_discovery_id": null,
-                  "id": "ffb55591-9ef6-482c-b0fe-9a448d59991b",
+                  "id": "0f7057da-a661-499c-9299-a95c33186d1b",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-05T01:08:45.206609Z",
+                  "last_seen_at": "2026-10-05T01:40:06.391962Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-05T01:08:45.206609Z",
-                  "valid_from": "2026-10-05T01:08:45.206609Z",
+                  "updated_at": "2026-10-05T01:40:06.391962Z",
+                  "valid_from": "2026-10-05T01:40:06.391962Z",
                   "valid_to": null
                 }
               ],
@@ -26912,7 +26912,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Asterisk",
+              "service_definition": "Bitwarden",
               "source": {
                 "type": "Manual"
               },
@@ -30785,19 +30785,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-05T01:08:45.199739Z",
+                        "created_at": "2026-10-05T01:40:06.384767Z",
                         "first_discovery_id": null,
-                        "id": "dc3fa5c6-31aa-4aaa-9183-86bca666d71f",
+                        "id": "c9cfe7bd-127e-4829-8fc8-f899d6d6de4b",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-05T01:08:45.199739Z",
+                        "last_seen_at": "2026-10-05T01:40:06.384767Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-05T01:08:45.199739Z",
-                        "valid_from": "2026-10-05T01:08:45.199739Z",
+                        "updated_at": "2026-10-05T01:40:06.384767Z",
+                        "valid_from": "2026-10-05T01:40:06.384767Z",
                         "valid_to": null
                       }
                     ],
@@ -30811,7 +30811,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Asterisk",
+                    "service_definition": "Bitwarden",
                     "source": {
                       "type": "Manual"
                     },
@@ -30955,19 +30955,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-05T01:08:45.218076Z",
+                    "created_at": "2026-10-05T01:40:06.405421Z",
                     "first_discovery_id": null,
-                    "id": "780b8913-a5e6-4de2-b630-bdd35ddbbaa5",
+                    "id": "bcd28998-c0ad-442e-96e4-e867ff4d39ae",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-05T01:08:45.218076Z",
+                    "last_seen_at": "2026-10-05T01:40:06.405421Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-05T01:08:45.218076Z",
-                    "valid_from": "2026-10-05T01:08:45.218076Z",
+                    "updated_at": "2026-10-05T01:40:06.405421Z",
+                    "valid_from": "2026-10-05T01:40:06.405421Z",
                     "valid_to": null
                   }
                 ],
@@ -30981,7 +30981,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Asterisk",
+                "service_definition": "Bitwarden",
                 "source": {
                   "type": "Manual"
                 },
@@ -32915,6 +32915,14 @@
             },
             "description": "Service bindings touched by this discovery."
           },
+          "found_subnet_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Subnets this discovery found without sweeping: ranges riding in a host request, ranges the\nserver inferred or placed addresses into, and ranges holding an address the scan saw.\n\nFilled by the server, never by a daemon. Kept apart from `subnet_ids` because the digest\nreads that list as the ranges the scan *swept*, and counting a range it only found evidence\nin would report every unobserved host there as stale. The discovery FKs take both."
+          },
           "host_ids": {
             "type": "array",
             "items": {
@@ -33212,19 +33220,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-05T01:08:45.207369Z",
+              "created_at": "2026-10-05T01:40:06.392840Z",
               "first_discovery_id": null,
-              "id": "1afd48ed-52af-447c-a732-7a17eee4ee30",
+              "id": "5b487acc-e993-4168-b41d-67e6492d37d0",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-05T01:08:45.207369Z",
+              "last_seen_at": "2026-10-05T01:40:06.392840Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-05T01:08:45.207369Z",
-              "valid_from": "2026-10-05T01:08:45.207369Z",
+              "updated_at": "2026-10-05T01:40:06.392840Z",
+              "valid_from": "2026-10-05T01:40:06.392840Z",
               "valid_to": null
             }
           ],
@@ -33238,7 +33246,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Asterisk",
+          "service_definition": "Bitwarden",
           "source": {
             "type": "Manual"
           },
@@ -34700,7 +34708,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "9299c020-0ccb-4d83-ac25-8160ad05cfd3",
+                  "id": "2ee98c13-c62f-4e09-bbb9-b8f0f6f24e73",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34710,23 +34718,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "6e183707-b79f-4b0c-bac8-c58ccabe53f8",
+                  "id": "dc2346d7-9e0e-40fb-8bbd-632daf207195",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "0b71527a-ab6b-421b-a006-b03f63669c27",
+                  "id": "8617b4e4-d545-4cd8-8020-d26f3bbcb17b",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "f5b324aa-eaeb-4c7f-9819-b3bd9601735f",
+                  "id": "749c344f-84aa-42c5-9074-d4404babd8f8",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "6e183707-b79f-4b0c-bac8-c58ccabe53f8",
+                  "id": "dc2346d7-9e0e-40fb-8bbd-632daf207195",
                   "rule": "ByHost"
                 }
               ]
@@ -34756,19 +34764,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "bd355bb4-6349-424e-83ca-454a48e2d7ab",
+                "id": "cd61d336-8c58-4728-afe9-318bb5bf656a",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "092604e3-373a-40df-b0b1-c7c831694f25",
+                "id": "ab834bcf-37a1-4984-b6a3-a3dcf919600e",
                 "rule": "ByVLAN"
               },
               {
-                "id": "99fb37a9-d036-4ac1-bd13-80565ee204b1",
+                "id": "49377c36-d66c-47b2-8d50-91c439dc8f02",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "0d0d8f47-72ca-472b-a255-74284ad7ef2b",
+                "id": "7f9e4345-9b36-419a-a535-ef449b33ca3e",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34787,7 +34795,7 @@
                 }
               },
               {
-                "id": "b1bf43a4-45c4-4ba8-82d1-1f4999d53a6f",
+                "id": "38855fa0-9d0b-493a-b00c-6e036f51f04a",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34796,15 +34804,15 @@
                 }
               },
               {
-                "id": "c860207e-9f95-4bf6-aec1-ea96d0aa7204",
+                "id": "e6774428-918f-4c38-98db-1211e6fdcfb7",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "7b45ece2-3d6f-483b-a455-26637a124ae8",
+                "id": "85343245-bbf2-4f27-9fd4-ffba65448658",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "187ddf20-1836-453e-bd47-c26d5d23973a",
+                "id": "1db232c4-203c-4cad-94ec-2207b40299b4",
                 "rule": "ByStack"
               }
             ]

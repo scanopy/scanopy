@@ -527,7 +527,7 @@ async fn far_ends_named_on_several_ports_hold_each_of_them() {
     };
 
     lab.host_service
-        .resolve_lldp_links(lab.network_id, chrono::Utc::now())
+        .resolve_lldp_links(lab.network_id, chrono::Utc::now(), &Default::default())
         .await
         .unwrap();
 
@@ -551,7 +551,7 @@ async fn far_ends_named_on_several_ports_hold_each_of_them() {
     assert_eq!(branch_ports, HashSet::from([gi6.id, gi8.id]));
 
     lab.host_service
-        .resolve_lldp_links(lab.network_id, chrono::Utc::now())
+        .resolve_lldp_links(lab.network_id, chrono::Utc::now(), &Default::default())
         .await
         .unwrap();
     assert_eq!(port_ids(mute.id).await, mute_ports);

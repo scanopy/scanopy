@@ -11,6 +11,7 @@ use uuid::Uuid;
 
 use crate::server::{
     auth::middleware::auth::AuthenticatedEntity,
+    daemons::r#impl::api::ScannedEntityIds,
     hosts::{
         r#impl::{
             attributes::HostChassisIdValue,
@@ -31,6 +32,7 @@ use crate::server::{
     shared::{
         attribution::{AttributeSource, Attributed},
         storage::{factory::StorageFactory, filter::StorableFilter, traits::Storage},
+        types::entities::EntitySource,
     },
 };
 
@@ -120,7 +122,7 @@ impl Lab {
 
     async fn resolve(&self) {
         self.host_service
-            .resolve_lldp_links(self.network_id, Utc::now())
+            .resolve_lldp_links(self.network_id, Utc::now(), &Default::default())
             .await
             .unwrap();
     }
@@ -219,6 +221,65 @@ const SIX: [(&str, &str); 6] = [
 
 fn names(ports: &[(&str, &str)]) -> HashSet<String> {
     ports.iter().map(|(_, port)| port.to_string()).collect()
+}
+
+// ---------------------------------------------------------------------------------------------
+// A far end a scan's neighbours re-advertise is seen by that scan.
+// ---------------------------------------------------------------------------------------------
+
+/// An Inferred far end with its Last seen at the scan that minted it, named again by `neighbour`.
+async fn re_advertised_far_end(lab: &Lab) -> (Host, Interface) {
+    let mut switch = lab.far_end(MUTE_SWITCH).await;
+    switch.base.source = EntitySource::Inferred;
+    switch.last_seen_at = Utc::now() - chrono::Duration::days(3);
+    lab.storage.hosts.update(&mut switch).await.unwrap();
+    let neighbour = lab.neighbour("access-1", MUTE_SWITCH, "ge-0/0/1").await;
+    (switch, neighbour)
+}
+
+#[tokio::test]
+async fn a_far_end_a_scan_re_reads_is_seen_by_that_scan() {
+    let lab = Lab::new().await;
+    let (switch, neighbour) = re_advertised_far_end(&lab).await;
+    // Microseconds, the precision Postgres keeps, so the stored value compares equal.
+    let scan_time = chrono::SubsecRound::trunc_subsecs(Utc::now(), 6);
+    let run = ScannedEntityIds {
+        interface_ids: vec![neighbour.id],
+        ..Default::default()
+    };
+
+    let outcome = lab
+        .host_service
+        .resolve_lldp_links(lab.network_id, scan_time, &run)
+        .await
+        .unwrap();
+
+    assert!(outcome.observed.host_ids.contains(&switch.id));
+    let refreshed = lab.host_by_chassis_id(MUTE_SWITCH).await;
+    assert_eq!(refreshed.last_seen_at, scan_time);
+    for port in lab.ports(switch.id).await {
+        assert!(outcome.observed.interface_ids.contains(&port.id));
+        assert_eq!(port.last_seen_at, scan_time, "its ports are seen with it");
+    }
+}
+
+/// Candidates on an interface this scan did not walk were read by an earlier one.
+#[tokio::test]
+async fn a_neighbour_this_scan_did_not_walk_is_no_evidence() {
+    let lab = Lab::new().await;
+    let (switch, _neighbour) = re_advertised_far_end(&lab).await;
+
+    let outcome = lab
+        .host_service
+        .resolve_lldp_links(lab.network_id, Utc::now(), &ScannedEntityIds::default())
+        .await
+        .unwrap();
+
+    assert!(!outcome.observed.host_ids.contains(&switch.id));
+    assert_eq!(
+        lab.host_by_chassis_id(MUTE_SWITCH).await.last_seen_at,
+        switch.last_seen_at
+    );
 }
 
 // ---------------------------------------------------------------------------------------------
