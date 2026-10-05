@@ -858,8 +858,16 @@ pub struct HostResponse {
     pub updated_at: DateTime<Utc>,
     /// Last time discovery observed this host. User-facing (drives the "Last
     /// seen" column and the stale badge), which is why it is carried here while
-    /// the rest of the SCD2/audit columns are not.
+    /// the version-history columns are not.
     pub last_seen_at: DateTime<Utc>,
+    /// The discovery run that first observed this host. Drives the "First found by" column.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub first_discovery_id: Option<Uuid>,
+    /// The discovery run that last observed this host. Drives the "Last found by" column.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub last_discovery_id: Option<Uuid>,
 
     // Host fields
     /// Human-facing name for the host.

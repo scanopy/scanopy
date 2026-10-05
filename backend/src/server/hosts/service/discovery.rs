@@ -79,7 +79,7 @@ impl HostService {
         scan_ctx: Option<&crate::server::shared::services::scan_context::ScanContext>,
         authentication: AuthenticatedEntity,
         limit_ctx: Option<&HostLimitContext>,
-    ) -> Result<HostResponse> {
+    ) -> Result<DiscoveredHost> {
         // SCD2 scan-time normalization: stamp every entity in this
         // submission with the same `scan_time` so per-scan diff queries
         // (Added/Removed/Modified/Refreshed-unchanged buckets keyed on
@@ -180,7 +180,7 @@ impl HostService {
             .map(|m| m.ip_addresses.iter().map(|i| i.base.subnet_id).collect())
             .unwrap_or_default();
 
-        let host_response = self
+        let discovered = self
             .create_with_children(
                 host,
                 ip_addresses,
@@ -199,7 +199,7 @@ impl HostService {
         // Link Interfaces to IPAddresses via MAC address matching (if any were created)
         if !interfaces.is_empty()
             && let Err(e) = self
-                .link_interfaces_to_ip_addresses(&host_response.id, authentication)
+                .link_interfaces_to_ip_addresses(&discovered.host.id, authentication)
                 .await
         {
             tracing::warn!(error = %e, "Failed to link Interfaces to IPAddresses");
@@ -210,13 +210,13 @@ impl HostService {
         // when nobody reports them anymore.
         if !interfaces.is_empty()
             && let Err(e) = self
-                .reconcile_subnet_vlans_for_host(&host_response.id, &previous_subnets)
+                .reconcile_subnet_vlans_for_host(&discovered.host.id, &previous_subnets)
                 .await
         {
             tracing::warn!(error = %e, "Failed to reconcile subnet_vlans");
         }
 
-        Ok(host_response)
+        Ok(discovered)
     }
 
     /// Link Interface records (SNMP if-entries) to IPAddress records for a host by matching MAC addresses.

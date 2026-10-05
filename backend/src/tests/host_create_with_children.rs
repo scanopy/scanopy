@@ -231,6 +231,7 @@ async fn submit(services: &ServiceFactory, s: Submission) -> anyhow::Result<Host
             None,
         )
         .await
+        .map(|discovered| discovered.host)
 }
 
 /// GH #650, as a test.
@@ -270,6 +271,49 @@ async fn bridge_subnet_owner_resolves_on_first_scan() {
         Some(runtime.id),
         "the bridge subnet must point at the runtime service that owns it — an unowned bridge \
          deduplicates on CIDR alone and merges with other hosts' bridges"
+    );
+}
+
+/// The bridge rides inside the host request, so the daemon never learns its stored id and cannot
+/// list it as scanned. The host-processing result has to carry it, or the scan's terminal update
+/// never stamps the bridge with its first and last discovery.
+#[tokio::test]
+async fn host_processing_reports_the_bridge_it_stored() {
+    harness!(services, network_id, _container);
+
+    let submission = Submission::container_host(network_id);
+    let bridge_cidr = submission.bridge_cidr();
+
+    let discovered = services
+        .host_service
+        .discover_host(
+            submission.host,
+            submission.ip_addresses,
+            submission.ports,
+            submission.services,
+            vec![],
+            submission.subnets,
+            true,
+            InterfaceDataComplete::default(),
+            None,
+            AuthenticatedEntity::System,
+            None,
+        )
+        .await
+        .expect("a container scan must persist");
+
+    let bridge = services
+        .subnet_service
+        .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|s| *s.base.cidr == bridge_cidr)
+        .expect("the bridge subnet is persisted");
+
+    assert!(
+        discovered.subnet_ids.contains(&bridge.id),
+        "the stored bridge id must come back for the scan record to stamp"
     );
 }
 
@@ -942,7 +986,8 @@ async fn a_host_is_never_owned_by_its_own_service() {
             None,
         )
         .await
-        .expect("the submission persists");
+        .expect("the submission persists")
+        .host;
 
     assert_eq!(
         container_submission.id, response.id,

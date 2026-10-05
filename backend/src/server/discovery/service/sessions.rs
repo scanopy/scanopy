@@ -319,6 +319,32 @@ impl DiscoveryService {
         self.superseded_wire_daemons.write().await.remove(daemon_id)
     }
 
+    /// Record subnets a host request from this daemon stored, for its scan's terminal update.
+    ///
+    /// Latched per daemon for the same reason as `note_superseded_wire_shape`: the submission
+    /// path sees the stored ids but not the session. Idempotent across hosts sharing a subnet.
+    pub async fn note_touched_subnets(&self, daemon_id: Uuid, subnet_ids: Vec<Uuid>) {
+        if subnet_ids.is_empty() {
+            return;
+        }
+        self.touched_subnets
+            .write()
+            .await
+            .entry(daemon_id)
+            .or_default()
+            .extend(subnet_ids);
+    }
+
+    /// Take this daemon's latched subnets, clearing them, so the next scan starts empty.
+    pub async fn take_touched_subnets(&self, daemon_id: &Uuid) -> Vec<Uuid> {
+        self.touched_subnets
+            .write()
+            .await
+            .remove(daemon_id)
+            .map(|ids| ids.into_iter().collect())
+            .unwrap_or_default()
+    }
+
     pub async fn pull_cancellation_for_daemon(&self, daemon_id: &Uuid) -> (bool, Uuid) {
         let mut daemon_cancellation_ids = self.daemon_pull_cancellations.write().await;
         daemon_cancellation_ids

@@ -67,6 +67,9 @@ pub struct DiscoveryService {
     /// In-memory only, and deliberately: it describes one scan, and a restart that loses it costs
     /// a warning the next scan raises again.
     superseded_wire_daemons: RwLock<HashSet<Uuid>>,
+    /// Per daemon, the subnets its host requests stored during the running scan. Drained into
+    /// the terminal update's scanned set; see `note_touched_subnets`.
+    touched_subnets: RwLock<HashMap<Uuid, HashSet<Uuid>>>,
     session_last_updated: RwLock<HashMap<Uuid, chrono::DateTime<Utc>>>,
     update_tx: broadcast::Sender<DiscoveryUpdatePayload>,
     scheduler: Option<Arc<JobScheduler>>,

@@ -724,11 +724,12 @@ async fn create_host(
                     .await;
             }
 
+            let daemon_id = *daemon_id;
             // Capture one scan_time for the whole submission so all entities
             // share consistent SCD2 timestamps. See ScanContext for rationale.
             let scan_ctx =
-                crate::server::shared::services::scan_context::ScanContext::new(*daemon_id);
-            let host_response = host_service
+                crate::server::shared::services::scan_context::ScanContext::new(daemon_id);
+            let discovered = host_service
                 .discover_host(
                     host,
                     ip_addresses,
@@ -744,7 +745,15 @@ async fn create_host(
                 )
                 .await?;
 
-            let legacy_response = LegacyHostWithServicesResponse::from_host_response(host_response);
+            // Latched for the scan record, as `superseded_wire_shape` is above.
+            state
+                .services
+                .discovery_service
+                .note_touched_subnets(daemon_id, discovered.subnet_ids)
+                .await;
+
+            let legacy_response =
+                LegacyHostWithServicesResponse::from_host_response(discovered.host);
 
             Ok(Json(ApiResponse::success(HostCreateResponse::Legacy(
                 legacy_response,

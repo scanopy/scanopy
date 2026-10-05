@@ -336,6 +336,7 @@ impl HostService {
             InterfaceDataComplete::default(),
         )
         .await
+        .map(|created| created.host)
     }
 
     /// Create-or-upsert body of `CrudService::create`, WITHOUT the
@@ -483,7 +484,7 @@ impl HostService {
         // interfaces and their resolved L2 neighbors (GH #649).
         interfaces_complete: bool,
         interface_data_complete: InterfaceDataComplete,
-    ) -> Result<HostResponse> {
+    ) -> Result<DiscoveredHost> {
         // For advancing `last_seen_at` on matched-existing child rows (see the upsert
         // branches below); mirrors how upsert_host refreshes the host's freshness signal.
         use crate::server::shared::storage::snapshot::DiscoveryTracked;
@@ -822,6 +823,9 @@ impl HostService {
         // so the common path skips the live-subnet lookup entirely.
         let mut created_subnet_ids: std::collections::HashSet<Uuid> =
             std::collections::HashSet::new();
+        // Subnets server-side placement filed an address into: the scan saw an address there.
+        let mut placed_subnet_ids: std::collections::HashSet<Uuid> =
+            std::collections::HashSet::new();
         for mut subnet in subnets {
             // Force the subnet onto the resolved host's network. The daemon's
             // discovery payload is only authenticated for its own network, but
@@ -937,6 +941,7 @@ impl HostService {
                                 "Placed ip_address server-side"
                             );
                             ip_address.base.subnet_id = subnet_id;
+                            placed_subnet_ids.insert(subnet_id);
                         }
                         // A public address, or IPv6 global unicast — not a segment of this network
                         // to invent. Leave the reference as it came and let the FK insert say so.
@@ -1782,16 +1787,22 @@ impl HostService {
 
         dedup_guard.release().await?;
 
-        if let Some(response) = merged_response {
-            return Ok(response);
-        }
-        Ok(HostResponse::from_host_with_children(
-            created_host,
-            created_ip_addresses,
-            created_ports,
-            created_services,
-            created_interfaces,
-        ))
+        // The subnets were stored before any merge, so their ids hold either way.
+        let subnet_ids = created_subnet_ids
+            .union(&placed_subnet_ids)
+            .copied()
+            .collect();
+        let host = match merged_response {
+            Some(response) => response,
+            None => HostResponse::from_host_with_children(
+                created_host,
+                created_ip_addresses,
+                created_ports,
+                created_services,
+                created_interfaces,
+            ),
+        };
+        Ok(DiscoveredHost { host, subnet_ids })
     }
 
     /// Merge `proven` into `destination` with [`Self::consolidate_hosts`], the same merge a person

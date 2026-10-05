@@ -207,6 +207,9 @@ impl DaemonResponse for HostResponse {
             created_at: _,
             updated_at: _,
             last_seen_at: _,
+            // Plain optional UUIDs: an older daemon ignores them, and the daemon never reads them.
+            first_discovery_id: _,
+            last_discovery_id: _,
             name: _,
             display_name: _,
             // A plain enum and a list of plain structs. The server adds rungs only alongside a

@@ -203,6 +203,7 @@ async fn discover(
         )
         .await
         .expect("the submission persists")
+        .host
 }
 
 async fn live_hosts(services: &ServiceFactory, lab: &Lab) -> Vec<Host> {
@@ -1184,6 +1185,7 @@ async fn discover_with_ports(
         )
         .await
         .expect("the submission persists")
+        .host
 }
 
 /// A container service owned by the runtime, bound to the runtime's API port.
