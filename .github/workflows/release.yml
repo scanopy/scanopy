@@ -808,7 +808,7 @@ jobs:
         uses: actions/download-artifact@v8
 
       - name: Upload binaries to release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           # `scanopy-daemon-*/scanopy-daemon-*` already matches the MSI artifact
           # (scanopy-daemon-windows-amd64.msi/scanopy-daemon-windows-amd64.msi). A
