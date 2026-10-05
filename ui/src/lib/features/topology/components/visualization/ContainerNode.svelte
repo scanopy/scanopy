@@ -15,7 +15,6 @@
 		serviceDefinitions,
 		containerTypes
 	} from '$lib/shared/stores/metadata';
-	import { common_category } from '$lib/paraglide/messages';
 	import { findInfraRuleId, getInfrastructureRuleIdForTopology } from '../../queries';
 	import { formatElementSummary, tallyContainerElements, tallyDirectElements } from '../../labels';
 	import {
@@ -251,10 +250,9 @@
 		return { label: tag?.name ?? tagId, color: (tag?.color as Color) ?? 'Gray' };
 	}
 
-	// A category group's pill: the category's name and colour, and a tooltip saying it is a
-	// service category and what the category holds.
+	// A category group's pill: the category's name and colour, and its description as the tooltip.
 	function categoryPill(category: string): GroupPill {
-		const { label, color, title } = serviceCategories.getTag(category, common_category());
+		const { label, color, title } = serviceCategories.getTag(category);
 		return { label, color: color ?? 'Gray', title };
 	}
 

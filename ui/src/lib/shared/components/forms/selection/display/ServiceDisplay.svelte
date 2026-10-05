@@ -6,7 +6,7 @@
 		serviceVirtualizations
 	} from '$lib/shared/stores/metadata';
 	import type { Port } from '$lib/features/hosts/types/base';
-	import { common_category, common_runtime, services_bindingCount } from '$lib/paraglide/messages';
+	import { common_runtime, services_bindingCount } from '$lib/paraglide/messages';
 
 	export type ServiceTagRole = 'category' | 'virtualization';
 
@@ -79,7 +79,7 @@
 			const category = serviceDefinitions.getCategory(service.service_definition);
 			if (category) {
 				tags.push({
-					...serviceCategories.getTag(category, common_category()),
+					...serviceCategories.getTag(category),
 					role: 'category' satisfies ServiceTagRole
 				});
 			}

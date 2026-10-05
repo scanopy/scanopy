@@ -17,7 +17,7 @@
 			serviceDefinitions.getColorHelper(serviceType.id).icon,
 		getTags: (serviceType: ServiceType) => [
 			{
-				...serviceCategories.getTag(serviceType.category, common_category()),
+				...serviceCategories.getTag(serviceType.category),
 				role: 'category' satisfies ServiceTypeTagRole
 			}
 		],
@@ -28,7 +28,6 @@
 <script lang="ts">
 	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import { serviceCategories, serviceDefinitions } from '$lib/shared/stores/metadata';
-	import { common_category } from '$lib/paraglide/messages';
 	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
 
 	export let item: ServiceType;

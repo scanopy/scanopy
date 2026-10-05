@@ -60,6 +60,13 @@ describe('getTag', () => {
 			}
 		});
 	}
+
+	it('without a dimension, the tooltip is the description alone', () => {
+		for (const item of serviceCategories.getItems()) {
+			const description = serviceCategories.getDescription(item.id);
+			expect(serviceCategories.getTag(item.id).title).toBe(description || undefined);
+		}
+	});
 });
 
 /** A tag explains itself: by tooltip, or by the entity popover an `entityRef` opens. */
