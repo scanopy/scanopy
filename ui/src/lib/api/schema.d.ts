@@ -3528,19 +3528,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-05T00:39:24.328835Z",
+             *       "created_at": "2026-10-05T01:12:31.609844Z",
              *       "first_discovery_id": null,
-             *       "id": "9f57086a-c497-4b70-9108-eb834a9d5a0b",
+             *       "id": "4f17704d-9380-4bcd-9b9c-970e57f0433d",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-05T00:39:24.328835Z",
+             *       "last_seen_at": "2026-10-05T01:12:31.609844Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-05T00:39:24.328835Z",
-             *       "valid_from": "2026-10-05T00:39:24.328835Z",
+             *       "updated_at": "2026-10-05T01:12:31.609844Z",
+             *       "valid_from": "2026-10-05T01:12:31.609844Z",
              *       "valid_to": null
              *     }
              */
@@ -4255,6 +4255,7 @@ export interface components {
              *       "display_name_rung": "Name",
              *       "firmware_revision": null,
              *       "firmware_revision_source": "Unspecified",
+             *       "first_discovery_id": null,
              *       "hidden": false,
              *       "hostname": "web-server-01.local",
              *       "hostname_source": "Manual",
@@ -4309,6 +4310,7 @@ export interface components {
              *           "valid_to": null
              *         }
              *       ],
+             *       "last_discovery_id": null,
              *       "last_seen_at": "2026-01-15T10:30:00Z",
              *       "management_url_source": "Unspecified",
              *       "manufacturer_source": "Unspecified",
@@ -4368,19 +4370,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-05T00:39:24.306544Z",
+             *               "created_at": "2026-10-05T01:12:31.584219Z",
              *               "first_discovery_id": null,
-             *               "id": "5802cdfa-1cd3-4d2b-a993-d0e2d9cc6876",
+             *               "id": "c72e2ab9-5bbb-4b7e-b04f-27826154bc7c",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-05T00:39:24.306544Z",
+             *               "last_seen_at": "2026-10-05T01:12:31.584219Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-05T00:39:24.306544Z",
-             *               "valid_from": "2026-10-05T00:39:24.306544Z",
+             *               "updated_at": "2026-10-05T01:12:31.584219Z",
+             *               "valid_from": "2026-10-05T01:12:31.584219Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4394,7 +4396,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Radarr",
+             *           "service_definition": "Sonarr",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4453,6 +4455,11 @@ export interface components {
                 readonly firmware_revision: string | null;
                 /** @description What produced the firmware revision. Read-only: decided by whichever source read it. */
                 firmware_revision_source?: components["schemas"]["AttributeSource"];
+                /**
+                 * Format: uuid
+                 * @description The discovery run that first observed this host. Drives the "First found by" column.
+                 */
+                readonly first_discovery_id?: string | null;
                 /** @description Whether the host is hidden from topology views. */
                 hidden: boolean;
                 /** @description Hostname as resolved or reported by the host. */
@@ -4472,10 +4479,15 @@ export interface components {
                 /** @description IP addresses on this host. */
                 ip_addresses: components["schemas"]["IPAddress"][];
                 /**
+                 * Format: uuid
+                 * @description The discovery run that last observed this host. Drives the "Last found by" column.
+                 */
+                readonly last_discovery_id?: string | null;
+                /**
                  * Format: date-time
                  * @description Last time discovery observed this host. User-facing (drives the "Last
                  *     seen" column and the stale badge), which is why it is carried here while
-                 *     the rest of the SCD2/audit columns are not.
+                 *     the version-history columns are not.
                  */
                 last_seen_at: string;
                 /** @description Link to the host's own management interface. */
@@ -5318,19 +5330,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-05T00:39:24.323875Z",
+             *           "created_at": "2026-10-05T01:12:31.604575Z",
              *           "first_discovery_id": null,
-             *           "id": "09c85f91-f198-4e90-bae3-345dee109248",
+             *           "id": "9b09892a-8e47-491f-8d9b-1f0f1ed58f23",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-05T00:39:24.323875Z",
+             *           "last_seen_at": "2026-10-05T01:12:31.604575Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-05T00:39:24.323875Z",
-             *           "valid_from": "2026-10-05T00:39:24.323875Z",
+             *           "updated_at": "2026-10-05T01:12:31.604575Z",
+             *           "valid_from": "2026-10-05T01:12:31.604575Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5344,7 +5356,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Radarr",
+             *       "service_definition": "Sonarr",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6446,19 +6458,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-05T00:39:24.307152Z",
+         *       "created_at": "2026-10-05T01:12:31.585014Z",
          *       "first_discovery_id": null,
-         *       "id": "2bb0fdaa-9837-4994-8f5c-7ad91e0c7c7a",
+         *       "id": "70aa0c3a-2951-4f1c-afde-5f374bf3b2e8",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-05T00:39:24.307152Z",
+         *       "last_seen_at": "2026-10-05T01:12:31.585014Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-05T00:39:24.307152Z",
-         *       "valid_from": "2026-10-05T00:39:24.307152Z",
+         *       "updated_at": "2026-10-05T01:12:31.585014Z",
+         *       "valid_from": "2026-10-05T01:12:31.585014Z",
          *       "valid_to": null
          *     }
          */
@@ -6806,7 +6818,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Radarr",
+         *           "service_definition": "Sonarr",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9286,6 +9298,7 @@ export interface components {
          *       "display_name_rung": "Name",
          *       "firmware_revision": null,
          *       "firmware_revision_source": "Unspecified",
+         *       "first_discovery_id": null,
          *       "hidden": false,
          *       "hostname": "web-server-01.local",
          *       "hostname_source": "Manual",
@@ -9340,6 +9353,7 @@ export interface components {
          *           "valid_to": null
          *         }
          *       ],
+         *       "last_discovery_id": null,
          *       "last_seen_at": "2026-01-15T10:30:00Z",
          *       "management_url_source": "Unspecified",
          *       "manufacturer_source": "Unspecified",
@@ -9399,19 +9413,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-05T00:39:24.305825Z",
+         *               "created_at": "2026-10-05T01:12:31.583280Z",
          *               "first_discovery_id": null,
-         *               "id": "88397939-32c3-4c82-86fe-4b699daf8482",
+         *               "id": "3c6d1ac3-8657-4e0b-8602-95b46e3b9c3f",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-05T00:39:24.305825Z",
+         *               "last_seen_at": "2026-10-05T01:12:31.583280Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-05T00:39:24.305825Z",
-         *               "valid_from": "2026-10-05T00:39:24.305825Z",
+         *               "updated_at": "2026-10-05T01:12:31.583280Z",
+         *               "valid_from": "2026-10-05T01:12:31.583280Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9425,7 +9439,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Radarr",
+         *           "service_definition": "Sonarr",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9484,6 +9498,11 @@ export interface components {
             readonly firmware_revision: string | null;
             /** @description What produced the firmware revision. Read-only: decided by whichever source read it. */
             firmware_revision_source?: components["schemas"]["AttributeSource"];
+            /**
+             * Format: uuid
+             * @description The discovery run that first observed this host. Drives the "First found by" column.
+             */
+            readonly first_discovery_id?: string | null;
             /** @description Whether the host is hidden from topology views. */
             hidden: boolean;
             /** @description Hostname as resolved or reported by the host. */
@@ -9503,10 +9522,15 @@ export interface components {
             /** @description IP addresses on this host. */
             ip_addresses: components["schemas"]["IPAddress"][];
             /**
+             * Format: uuid
+             * @description The discovery run that last observed this host. Drives the "Last found by" column.
+             */
+            readonly last_discovery_id?: string | null;
+            /**
              * Format: date-time
              * @description Last time discovery observed this host. User-facing (drives the "Last
              *     seen" column and the stale badge), which is why it is carried here while
-             *     the rest of the SCD2/audit columns are not.
+             *     the version-history columns are not.
              */
             last_seen_at: string;
             /** @description Link to the host's own management interface. */
@@ -11254,6 +11278,11 @@ export interface components {
                 readonly firmware_revision: string | null;
                 /** @description What produced the firmware revision. Read-only: decided by whichever source read it. */
                 firmware_revision_source?: components["schemas"]["AttributeSource"];
+                /**
+                 * Format: uuid
+                 * @description The discovery run that first observed this host. Drives the "First found by" column.
+                 */
+                readonly first_discovery_id?: string | null;
                 /** @description Whether the host is hidden from topology views. */
                 hidden: boolean;
                 /** @description Hostname as resolved or reported by the host. */
@@ -11273,10 +11302,15 @@ export interface components {
                 /** @description IP addresses on this host. */
                 ip_addresses: components["schemas"]["IPAddress"][];
                 /**
+                 * Format: uuid
+                 * @description The discovery run that last observed this host. Drives the "Last found by" column.
+                 */
+                readonly last_discovery_id?: string | null;
+                /**
                  * Format: date-time
                  * @description Last time discovery observed this host. User-facing (drives the "Last
                  *     seen" column and the stale badge), which is why it is carried here while
-                 *     the rest of the SCD2/audit columns are not.
+                 *     the version-history columns are not.
                  */
                 last_seen_at: string;
                 /** @description Link to the host's own management interface. */
@@ -12555,19 +12589,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-05T00:39:24.306976Z",
+         *           "created_at": "2026-10-05T01:12:31.584790Z",
          *           "first_discovery_id": null,
-         *           "id": "ddd5103f-3fe5-4d6c-b57a-8cacb1e40ab7",
+         *           "id": "ac712607-aceb-4a7c-8c6a-008fb52ac114",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-05T00:39:24.306976Z",
+         *           "last_seen_at": "2026-10-05T01:12:31.584790Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-05T00:39:24.306976Z",
-         *           "valid_from": "2026-10-05T00:39:24.306976Z",
+         *           "updated_at": "2026-10-05T01:12:31.584790Z",
+         *           "valid_from": "2026-10-05T01:12:31.584790Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12581,7 +12615,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Radarr",
+         *       "service_definition": "Sonarr",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -13341,7 +13375,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "00f69c0a-91e4-4945-8abf-4fae0e12e066",
+             *           "id": "abe8bc07-d65d-47fa-afa4-a751149203c6",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13351,23 +13385,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "b8ab43c5-1ae6-4ba7-bcae-c6f68a54de9e",
+             *           "id": "7b3d6981-d044-45aa-9bec-275fac03af3d",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "384c3428-33bd-4896-97b2-b87e657fb9fd",
+             *           "id": "2ccfd40a-a01b-4f1d-b2e3-24cf6b373988",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "139895df-8c7a-47de-8549-6c0bb2d30385",
+             *           "id": "968242a4-9560-4ffe-8a26-e95f4df45936",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "b8ab43c5-1ae6-4ba7-bcae-c6f68a54de9e",
+             *           "id": "7b3d6981-d044-45aa-9bec-275fac03af3d",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13380,19 +13414,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "c9454986-4639-4845-b3df-a5b98cbb4994",
+             *         "id": "077735c8-1aea-4fc2-8226-6dbd1f184496",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "e6a5e204-6610-42b8-8ef3-c1856b1650be",
+             *         "id": "816e6c13-cf03-4240-957a-7c9d8ebcf789",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "f9ba688b-3fd2-431e-a3e1-d0368cd570bf",
+             *         "id": "cbba82a7-abaa-4356-9c97-ba748bd8fc14",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "45b6625d-112b-490d-999b-66706cfe44ef",
+             *         "id": "b278bd2c-eb95-48d1-98d1-8fce12973743",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13411,7 +13445,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "be20724c-db4a-4c3a-b536-57364c373e75",
+             *         "id": "2156a1ce-f4f3-4365-88bd-2ae8569853b6",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13420,15 +13454,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "0c38600a-bc4c-4391-88a5-2e5e740a7e25",
+             *         "id": "eed66148-eddb-49ce-aa01-364f3c202ac6",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "8d916054-f5ca-4a4e-87ab-38c3c80c9ef0",
+             *         "id": "494050fe-76e4-429d-bf1d-7ea29ab6e871",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "428c2767-e629-4bf7-bba5-d94c40f4ba5e",
+             *         "id": "0149b5f8-af34-4d6f-87cf-188499f5d666",
              *         "rule": "ByStack"
              *       }
              *     ]
