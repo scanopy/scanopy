@@ -19,6 +19,7 @@ import { DaemonApiKeyDisplay } from '$lib/shared/components/forms/selection/disp
 import { BindingDisplay } from '$lib/shared/components/forms/selection/display/BindingDisplay.svelte';
 import { UserDisplay } from '$lib/shared/components/forms/selection/display/UserDisplay.svelte';
 import { DiscoveryDisplay } from '$lib/shared/components/forms/selection/display/DiscoveryDisplay.svelte';
+import { PortDisplay } from '$lib/shared/components/forms/selection/display/PortDisplay.svelte';
 
 export interface EntityUIConfig {
 	tabId: string;
@@ -78,7 +79,13 @@ export const entityUIConfig: Record<EntityDiscriminants, EntityUIConfig | null> 
 	},
 	// View-only tab: no edit modal, so no `modalName` / `displayComponent`.
 	Vlan: { tabId: 'vlans' },
-	Port: { tabId: 'hosts', parentType: 'Host', parentIdField: 'host_id', modalTab: 'ports' },
+	Port: {
+		tabId: 'hosts',
+		displayComponent: PortDisplay,
+		parentType: 'Host',
+		parentIdField: 'host_id',
+		modalTab: 'ports'
+	},
 	Binding: {
 		tabId: 'hosts',
 		parentType: 'Host',

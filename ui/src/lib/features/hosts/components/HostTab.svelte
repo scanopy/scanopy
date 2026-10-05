@@ -868,7 +868,12 @@
 								id: port.id,
 								label: formatPort(port),
 								color: entities.getColorHelper('Port').color,
-								entityRef: entityRef('Port', port.id, port)
+								// What the popover needs to name the service on the port and its addresses.
+								entityRef: entityRef('Port', port.id, port, {
+									currentServices: allServicesData.filter((s) => s.host_id === host.id),
+									ip_addresses: hostIPAddresses(host),
+									isContainerSubnet: isContainerSubnetFn
+								})
 							}))
 					}
 				},
