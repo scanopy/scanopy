@@ -3528,19 +3528,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-04T23:34:27.060330Z",
+             *       "created_at": "2026-10-05T00:39:24.328835Z",
              *       "first_discovery_id": null,
-             *       "id": "789be07d-929b-4b08-bca7-c356a54eba5b",
+             *       "id": "9f57086a-c497-4b70-9108-eb834a9d5a0b",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-04T23:34:27.060330Z",
+             *       "last_seen_at": "2026-10-05T00:39:24.328835Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-04T23:34:27.060330Z",
-             *       "valid_from": "2026-10-04T23:34:27.060330Z",
+             *       "updated_at": "2026-10-05T00:39:24.328835Z",
+             *       "valid_from": "2026-10-05T00:39:24.328835Z",
              *       "valid_to": null
              *     }
              */
@@ -4368,19 +4368,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-04T23:34:27.036593Z",
+             *               "created_at": "2026-10-05T00:39:24.306544Z",
              *               "first_discovery_id": null,
-             *               "id": "dfaef7a0-2ac6-45e7-a9e0-4c9135c24e9a",
+             *               "id": "5802cdfa-1cd3-4d2b-a993-d0e2d9cc6876",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-04T23:34:27.036593Z",
+             *               "last_seen_at": "2026-10-05T00:39:24.306544Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-04T23:34:27.036593Z",
-             *               "valid_from": "2026-10-04T23:34:27.036593Z",
+             *               "updated_at": "2026-10-05T00:39:24.306544Z",
+             *               "valid_from": "2026-10-05T00:39:24.306544Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4394,7 +4394,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Nagios",
+             *           "service_definition": "Radarr",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4713,9 +4713,8 @@ export interface components {
                  *
                  *     Read-only and computed from [`Interface::display_name`] — the same ladder topology port
                  *     labels an interface with, so it cannot be called one thing in a list and another on the
-                 *     map. Only set on outbound responses nested under a host (`HostResponse::interfaces`);
-                 *     absent on a daemon's own submission and on the standalone `/interfaces` CRUD endpoints,
-                 *     which return `Interface` directly without this computation.
+                 *     map. Set on every interface read from storage, so every endpoint that returns one carries
+                 *     it; absent on a daemon's own submission, and ignored on write.
                  */
                 readonly display_name?: string | null;
                 /**
@@ -5319,19 +5318,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-04T23:34:27.055160Z",
+             *           "created_at": "2026-10-05T00:39:24.323875Z",
              *           "first_discovery_id": null,
-             *           "id": "402c12f2-2989-4e18-9201-4f804e5d4c5c",
+             *           "id": "09c85f91-f198-4e90-bae3-345dee109248",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-04T23:34:27.055160Z",
+             *           "last_seen_at": "2026-10-05T00:39:24.323875Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-04T23:34:27.055160Z",
-             *           "valid_from": "2026-10-04T23:34:27.055160Z",
+             *           "updated_at": "2026-10-05T00:39:24.323875Z",
+             *           "valid_from": "2026-10-05T00:39:24.323875Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5345,7 +5344,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Nagios",
+             *       "service_definition": "Radarr",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6447,19 +6446,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-04T23:34:27.037280Z",
+         *       "created_at": "2026-10-05T00:39:24.307152Z",
          *       "first_discovery_id": null,
-         *       "id": "5d60b252-bf10-40f4-a95e-eab27e894c3a",
+         *       "id": "2bb0fdaa-9837-4994-8f5c-7ad91e0c7c7a",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-04T23:34:27.037280Z",
+         *       "last_seen_at": "2026-10-05T00:39:24.307152Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-04T23:34:27.037280Z",
-         *       "valid_from": "2026-10-04T23:34:27.037280Z",
+         *       "updated_at": "2026-10-05T00:39:24.307152Z",
+         *       "valid_from": "2026-10-05T00:39:24.307152Z",
          *       "valid_to": null
          *     }
          */
@@ -6807,7 +6806,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Nagios",
+         *           "service_definition": "Radarr",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9400,19 +9399,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-04T23:34:27.035780Z",
+         *               "created_at": "2026-10-05T00:39:24.305825Z",
          *               "first_discovery_id": null,
-         *               "id": "bc7a7250-aeda-4906-b82b-efee35deadd8",
+         *               "id": "88397939-32c3-4c82-86fe-4b699daf8482",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-04T23:34:27.035780Z",
+         *               "last_seen_at": "2026-10-05T00:39:24.305825Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-04T23:34:27.035780Z",
-         *               "valid_from": "2026-10-04T23:34:27.035780Z",
+         *               "updated_at": "2026-10-05T00:39:24.305825Z",
+         *               "valid_from": "2026-10-05T00:39:24.305825Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9426,7 +9425,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Nagios",
+         *           "service_definition": "Radarr",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9990,9 +9989,8 @@ export interface components {
              *
              *     Read-only and computed from [`Interface::display_name`] — the same ladder topology port
              *     labels an interface with, so it cannot be called one thing in a list and another on the
-             *     map. Only set on outbound responses nested under a host (`HostResponse::interfaces`);
-             *     absent on a daemon's own submission and on the standalone `/interfaces` CRUD endpoints,
-             *     which return `Interface` directly without this computation.
+             *     map. Set on every interface read from storage, so every endpoint that returns one carries
+             *     it; absent on a daemon's own submission, and ignored on write.
              */
             readonly display_name?: string | null;
             /**
@@ -12557,19 +12555,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-04T23:34:27.037089Z",
+         *           "created_at": "2026-10-05T00:39:24.306976Z",
          *           "first_discovery_id": null,
-         *           "id": "511aef71-1fc8-4d8c-882c-cdc0b3e2c36e",
+         *           "id": "ddd5103f-3fe5-4d6c-b57a-8cacb1e40ab7",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-04T23:34:27.037089Z",
+         *           "last_seen_at": "2026-10-05T00:39:24.306976Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-04T23:34:27.037089Z",
-         *           "valid_from": "2026-10-04T23:34:27.037089Z",
+         *           "updated_at": "2026-10-05T00:39:24.306976Z",
+         *           "valid_from": "2026-10-05T00:39:24.306976Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12583,7 +12581,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Nagios",
+         *       "service_definition": "Radarr",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -13343,7 +13341,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "65113b5a-60f6-4dd8-a71e-f3dc2131aa9c",
+             *           "id": "00f69c0a-91e4-4945-8abf-4fae0e12e066",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13353,23 +13351,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "4e267d1e-6ced-4f15-843e-ce2fe6e500a9",
+             *           "id": "b8ab43c5-1ae6-4ba7-bcae-c6f68a54de9e",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "989d013c-72a3-409a-96f0-2e2482814ed0",
+             *           "id": "384c3428-33bd-4896-97b2-b87e657fb9fd",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "8dffc178-46d8-42c4-b46d-30ae76b2cc35",
+             *           "id": "139895df-8c7a-47de-8549-6c0bb2d30385",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "4e267d1e-6ced-4f15-843e-ce2fe6e500a9",
+             *           "id": "b8ab43c5-1ae6-4ba7-bcae-c6f68a54de9e",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13382,19 +13380,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "069fdc7c-f014-4f6f-85a8-c368f9fa43b6",
+             *         "id": "c9454986-4639-4845-b3df-a5b98cbb4994",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "693674b8-1717-418c-ac4a-bf615f10fa53",
+             *         "id": "e6a5e204-6610-42b8-8ef3-c1856b1650be",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "6959a511-1c98-4578-ba75-3be6f4e4c54b",
+             *         "id": "f9ba688b-3fd2-431e-a3e1-d0368cd570bf",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "25cf170f-f389-4f5c-a315-cc6f24a8a6ba",
+             *         "id": "45b6625d-112b-490d-999b-66706cfe44ef",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13413,7 +13411,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "93b44630-2a73-4cdf-bdef-f32a9d1f3829",
+             *         "id": "be20724c-db4a-4c3a-b536-57364c373e75",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13422,15 +13420,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "c00195a2-7067-4cb6-809b-be7660bb9313",
+             *         "id": "0c38600a-bc4c-4391-88a5-2e5e740a7e25",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "ba28dd1b-1bdc-45db-9a54-a04336988532",
+             *         "id": "8d916054-f5ca-4a4e-87ab-38c3c80c9ef0",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "b02e6a11-b1bd-4c35-b5ec-4eb85bd04664",
+             *         "id": "428c2767-e629-4bf7-bba5-d94c40f4ba5e",
              *         "rule": "ByStack"
              *       }
              *     ]
