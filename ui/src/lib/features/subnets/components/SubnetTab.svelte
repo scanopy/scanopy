@@ -3,7 +3,7 @@
 	import { cidrSourceItems, isProvisionalCidr } from '$lib/shared/utils/cidr-source';
 	import { cidrContains, compareCidr } from '$lib/shared/utils/cidr';
 	import SubnetUtilization from './SubnetUtilization.svelte';
-	import { nestingItems, subnetNesting, utilizationRatio } from '../nesting';
+	import { nestedRangeOf, subnetNesting, utilizationRatio } from '../nesting';
 	import SubnetEditModal from './SubnetEditModal/SubnetEditModal.svelte';
 	import ProvisionalRangeModal from './ProvisionalRangeModal.svelte';
 	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
@@ -58,7 +58,6 @@
 		common_updated,
 		daemons_installPromptSubnets,
 		subnets_managedBy,
-		common_range,
 		subnets_resolveRange,
 		subnets_subnetType,
 		common_utilization
@@ -334,10 +333,18 @@
 					label: common_cidr(),
 					type: 'string',
 					searchable: true,
-					groupable: false,
+					// Groups each range with every range nested inside it, as nested sections. A subnet
+					// that nests with nothing falls in the ungrouped bucket rather than heading a
+					// group of one.
+					getGroupLabel: (subnet) => nestedRangeOf(subnet, nesting),
 					// Address order, not text order, which is also the tree order: each range sorts
 					// directly before the ranges inside it.
 					compare: (a, b) => compareCidr(a.cidr, b.cidr),
+					tree: {
+						key: (subnet) => subnet.id,
+						parentKey: (subnet) => subnet.parent_subnet_id ?? null,
+						label: (subnet) => subnet.cidr
+					},
 					display: { order: 3, getItems: cidrSourceItems() }
 				},
 				subnet_type: {
@@ -391,26 +398,6 @@
 					getValue: (subnet) => `${Math.round(utilizationRatio(subnet) * 100)}%`,
 					compare: (a, b) => utilizationRatio(a) - utilizationRatio(b),
 					display: { order: 5, cell: utilizationCell }
-				},
-				{
-					// Groups each range with every range nested inside it, drawn as a tree. A subnet
-					// that nests with nothing has no value, so it falls in the ungrouped bucket.
-					key: 'range',
-					label: common_range(),
-					type: 'string',
-					groupable: true,
-					getValue: (subnet) => {
-						const root = nesting.rootOf(subnet);
-						return root.id !== subnet.id || nesting.childrenOf(subnet.id).length > 0
-							? root.cidr
-							: null;
-					},
-					compare: (a, b) => compareCidr(a.cidr, b.cidr),
-					tree: {
-						key: (subnet) => subnet.id,
-						parentKey: (subnet) => subnet.parent_subnet_id ?? null
-					},
-					display: { order: 6, getItems: (subnet) => nestingItems(subnet, nesting) }
 				},
 				{
 					key: 'description',

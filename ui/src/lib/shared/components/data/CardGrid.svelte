@@ -1,54 +1,77 @@
 <script lang="ts" generics="T">
 	import type { Snippet } from 'svelte';
-	import type { GroupSlice } from './types';
-	import TreeIndent from './TreeIndent.svelte';
+	import { ChevronDown, ChevronRight } from 'lucide-svelte';
+	import type { RenderGroup, TreeEntry, TreeSection } from './controls/grouping';
+	import TreeGuides from './TreeGuides.svelte';
 	import { common_groupTotalShowing } from '$lib/paraglide/messages';
 
-	/** Card view's body: one grid, or a headed grid per group. */
+	/** Card view's body: one grid, or a collapsible headed grid per group. */
 	let {
 		items,
 		groups,
-		depthOf = null,
+		collapsed,
+		onToggleCollapse,
 		getItemId,
 		card
 	}: {
 		/** Ungrouped cards. Null when the list is grouped. */
 		items: T[] | null;
-		groups: { name: string; items: T[]; range: GroupSlice | null }[] | null;
 		/**
-		 * Each card's depth when the groups are trees. A tree reads top to bottom, so those groups
-		 * render as one indented column rather than a grid that would scatter a parent's children
-		 * across rows. Null otherwise.
+		 * Grouped cards. A group with `entries` is a tree: it reads top to bottom, so it renders as
+		 * one column of nested sections rather than a grid that would scatter a parent's children
+		 * across rows.
 		 */
-		depthOf?: ((item: T) => number) | null;
+		groups: RenderGroup<T>[] | null;
+		/** Keys of the collapsed groups and tree sections. Owned by the caller. */
+		collapsed: ReadonlySet<string>;
+		onToggleCollapse: (key: string) => void;
 		getItemId: (item: T) => string;
 		card: Snippet<[T]>;
 	} = $props();
+
+	function entryKey(entry: TreeEntry<T>): string {
+		return entry.type === 'row' ? getItemId(entry.item) : entry.key;
+	}
 </script>
 
 {#if groups}
 	<div class="space-y-6">
-		{#each groups as group (group.name)}
+		{#each groups as group (group.key)}
+			{@const isCollapsed = collapsed.has(group.key)}
 			<div class="space-y-3">
-				<div class="flex items-center gap-3">
-					<h3 class="text-primary text-lg font-semibold">{group.name}</h3>
-					<span class="text-tertiary text-sm">
-						{#if group.range}
-							{common_groupTotalShowing({
-								total: group.range.total,
-								start: group.range.start,
-								end: group.range.end
-							})}
+				<h3>
+					<button
+						type="button"
+						onclick={() => onToggleCollapse(group.key)}
+						aria-expanded={!isCollapsed}
+						class="flex items-center gap-3"
+					>
+						{#if isCollapsed}
+							<ChevronRight class="text-secondary h-5 w-5" aria-hidden="true" />
 						{:else}
-							({group.items.length})
+							<ChevronDown class="text-secondary h-5 w-5" aria-hidden="true" />
 						{/if}
-					</span>
-				</div>
+						<span class="text-primary text-lg font-semibold">{group.name}</span>
+						<span class="text-tertiary text-sm">
+							{#if group.range}
+								{common_groupTotalShowing({
+									total: group.range.total,
+									start: group.range.start,
+									end: group.range.end
+								})}
+							{:else}
+								({group.items.length})
+							{/if}
+						</span>
+					</button>
+				</h3>
 
-				{#if depthOf}
-					{@render tree(group.items, depthOf)}
-				{:else}
-					{@render grid(group.items)}
+				{#if !isCollapsed}
+					{#if group.entries}
+						<div>{@render treeEntries(group.entries)}</div>
+					{:else}
+						{@render grid(group.items)}
+					{/if}
 				{/if}
 			</div>
 		{/each}
@@ -65,13 +88,43 @@
 	</div>
 {/snippet}
 
-{#snippet tree(rows: T[], depth: (item: T) => number)}
-	<div class="space-y-3">
-		{#each rows as item (getItemId(item))}
-			<div class="flex items-start gap-2" style="padding-left: {depth(item) * 16}px">
-				<div class="pt-4"><TreeIndent depth={Math.min(depth(item), 1)} /></div>
-				<div class="min-w-0 flex-1">{@render card(item)}</div>
+<!--
+	Spacing is padding inside each entry rather than a gap between them, so a section's guide line
+	runs unbroken from one card to the next.
+-->
+{#snippet treeEntries(entries: TreeEntry<T>[])}
+	{#each entries as entry (entryKey(entry))}
+		{#if entry.type === 'row'}
+			<div class="relative pb-3" style="padding-left: {entry.guides.length}rem">
+				<TreeGuides guides={entry.guides} />
+				{@render card(entry.item)}
 			</div>
-		{/each}
+		{:else}
+			{@render sectionHeader(entry)}
+			{#if !collapsed.has(entry.key)}
+				{@render treeEntries(entry.entries)}
+			{/if}
+		{/if}
+	{/each}
+{/snippet}
+
+{#snippet sectionHeader(section: TreeSection<T>)}
+	{@const isCollapsed = collapsed.has(section.key)}
+	<div class="relative pb-3" style="padding-left: {section.guides.length}rem">
+		<TreeGuides guides={section.guides} />
+		<button
+			type="button"
+			onclick={() => onToggleCollapse(section.key)}
+			aria-expanded={!isCollapsed}
+			class="text-primary flex items-center gap-2 text-sm font-semibold"
+		>
+			{#if isCollapsed}
+				<ChevronRight class="h-4 w-4" aria-hidden="true" />
+			{:else}
+				<ChevronDown class="h-4 w-4" aria-hidden="true" />
+			{/if}
+			<span>{section.label}</span>
+			<span class="text-tertiary text-xs font-normal">({section.count})</span>
+		</button>
 	</div>
 {/snippet}

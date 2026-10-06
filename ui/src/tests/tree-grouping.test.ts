@@ -1,9 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { arrangeTree, treeDepthViolations } from '$lib/shared/components/data/controls/grouping';
+import {
+	buildTreeSections,
+	flattenTreeEntries,
+	treeDepthViolations,
+	type TreeEntry
+} from '$lib/shared/components/data/controls/grouping';
 import { compareByField } from '$lib/shared/components/data/controls/sorting';
 import type { FieldConfig, TreeConfig } from '$lib/shared/components/data/types';
 import { compareCidr } from '$lib/shared/utils/cidr';
-import { subnetNesting } from '$lib/features/subnets/nesting';
+import { nestedRangeOf, subnetNesting } from '$lib/features/subnets/nesting';
 import type { SubnetResponse } from '$lib/features/subnets/types/base';
 
 interface Range {
@@ -15,7 +20,8 @@ interface Range {
 
 const tree: TreeConfig<Range> = {
 	key: (r) => r.id,
-	parentKey: (r) => r.parent
+	parentKey: (r) => r.parent,
+	label: (r) => r.cidr
 };
 
 const byCidr = (a: Range, b: Range) => compareCidr(a.cidr, b.cidr);
@@ -52,41 +58,96 @@ describe('compareCidr', () => {
 	});
 });
 
-describe('arrangeTree', () => {
-	it('orders a full list parent-first and counts depth from the roots', () => {
-		const layout = arrangeTree([leaf, sibling, wide, mid], tree, false, byCidr);
-		expect(layout.items.map((r) => r.id)).toEqual(['wide', 'sibling', 'mid', 'leaf']);
-		expect(Object.fromEntries(layout.depths)).toEqual({ wide: 0, sibling: 1, mid: 1, leaf: 2 });
+/** A group's entries as `id` for a row and `[label, ...children]` for a section, with guides. */
+function shape(entries: TreeEntry<Range>[]): unknown[] {
+	return entries.map((entry) =>
+		entry.type === 'row'
+			? `${entry.guides.join(',')}|${entry.item.id}`
+			: {
+					section: entry.label,
+					count: entry.count,
+					guides: entry.guides.join(','),
+					entries: shape(entry.entries)
+				}
+	);
+}
+
+describe('buildTreeSections', () => {
+	it('nests a full list three levels deep, the group root heading its group', () => {
+		const entries = buildTreeSections([leaf, sibling, wide, mid], tree, false, 'g', byCidr);
+		expect(shape(entries)).toEqual([
+			'|wide',
+			'bar|sibling',
+			{
+				section: '10.10.16.0/20',
+				count: 2,
+				guides: 'bar',
+				entries: ['bar,space|mid', 'bar,bar|leaf']
+			}
+		]);
+		expect(flattenTreeEntries(entries).map((r) => r.id)).toEqual([
+			'wide',
+			'sibling',
+			'mid',
+			'leaf'
+		]);
 	});
 
-	it('makes a row whose parent is filtered out a root', () => {
-		const layout = arrangeTree([leaf, sibling, mid], tree, false, byCidr);
-		expect(layout.items.map((r) => r.id)).toEqual(['sibling', 'mid', 'leaf']);
-		expect(Object.fromEntries(layout.depths)).toEqual({ sibling: 0, mid: 0, leaf: 1 });
+	it('gives a row whose parent is filtered out a section of its own at the top', () => {
+		const entries = buildTreeSections([leaf, sibling, mid], tree, false, 'g', byCidr);
+		expect(shape(entries)).toEqual([
+			'|sibling',
+			{ section: '10.10.16.0/20', count: 2, guides: '', entries: ['space|mid', 'bar|leaf'] }
+		]);
 	});
 
 	it('keeps arrival order among siblings without a comparator', () => {
-		const layout = arrangeTree([wide, mid, sibling], tree, false);
-		expect(layout.items.map((r) => r.id)).toEqual(['wide', 'mid', 'sibling']);
+		const entries = buildTreeSections([wide, mid, sibling], tree, false, 'g');
+		expect(flattenTreeEntries(entries).map((r) => r.id)).toEqual(['wide', 'mid', 'sibling']);
 	});
 
 	it('survives a cycle instead of recursing forever', () => {
 		const a: Range = { id: 'a', cidr: '10.0.0.0/24', parent: 'b' };
 		const b: Range = { id: 'b', cidr: '10.0.1.0/24', parent: 'a' };
 		const root: Range = { id: 'root', cidr: '10.0.2.0/24', parent: null };
-		const layout = arrangeTree([a, b, root], tree, false);
+		const entries = buildTreeSections([a, b, root], tree, false, 'g');
 		// Neither cycle member has a parent outside the cycle, so only the real root is reached.
-		expect(layout.items.map((r) => r.id)).toEqual(['root']);
+		expect(shape(entries)).toEqual(['|root']);
 	});
 
-	it('trusts the server on a paginated list: arrival order, server depth', () => {
-		const paged = [
-			{ ...mid, depth: 1 },
-			{ ...leaf, depth: 2 }
-		];
-		const layout = arrangeTree(paged, { ...tree, depth: (r) => r.depth ?? 0 }, true, byCidr);
-		expect(layout.items.map((r) => r.id)).toEqual(['mid', 'leaf']);
-		expect(Object.fromEntries(layout.depths)).toEqual({ mid: 1, leaf: 2 });
+	it('nests a server page from depth, rows below an earlier page starting at the top', () => {
+		const depthTree = { ...tree, depth: (r: Range) => r.depth ?? 0 };
+		const other: Range = { id: 'other', cidr: '10.10.32.0/24', parent: 'wide', depth: 1 };
+		const page = [{ ...leaf, depth: 2 }, other];
+		expect(shape(buildTreeSections(page, depthTree, true, 'g'))).toEqual(['|leaf', '|other']);
+
+		const full = [{ ...wide, depth: 0 }, { ...mid, depth: 1 }, { ...leaf, depth: 2 }, other];
+		expect(shape(buildTreeSections(full, depthTree, true, 'g'))).toEqual([
+			'|wide',
+			{
+				section: '10.10.16.0/20',
+				count: 2,
+				guides: 'bar',
+				entries: ['bar,space|mid', 'bar,bar|leaf']
+			},
+			'bar|other'
+		]);
+	});
+
+	it('keys sections by path, so same-labelled rows in different places stay apart', () => {
+		const twinA: Range = { id: 'twin-a', cidr: '10.0.0.0/24', parent: null };
+		const twinB: Range = { id: 'twin-b', cidr: '10.0.0.0/24', parent: null };
+		const kidA: Range = { id: 'kid-a', cidr: '10.0.0.0/25', parent: 'twin-a' };
+		const kidB: Range = { id: 'kid-b', cidr: '10.0.0.0/25', parent: 'twin-b' };
+		const entries = buildTreeSections([twinA, kidA, twinB, kidB], tree, false, 'g');
+		const keys = entries.map((entry) => (entry.type === 'section' ? entry.key : null));
+		expect(keys[0]).not.toBeNull();
+		expect(new Set(keys).size).toBe(2);
+		expect(
+			buildTreeSections([twinA, kidA, twinB, kidB], tree, false, 'other').map((entry) =>
+				entry.type === 'section' ? entry.key : null
+			)
+		).not.toEqual(keys);
 	});
 });
 
@@ -144,5 +205,12 @@ describe('subnetNesting', () => {
 	it('treats a parent missing from the list as no parent', () => {
 		expect(nesting.parentOf(find('orphan'))).toBeNull();
 		expect(nesting.rootOf(find('orphan')).id).toBe('orphan');
+	});
+
+	it('groups a nested subnet under its widest range, and one that nests with nothing under none', () => {
+		expect(nestedRangeOf(find('leaf'), nesting)).toBe('10.10.0.0/16');
+		expect(nestedRangeOf(find('wide'), nesting)).toBe('10.10.0.0/16');
+		expect(nestedRangeOf(find('lone'), nesting)).toBeNull();
+		expect(nestedRangeOf(find('orphan'), nesting)).toBeNull();
 	});
 });
