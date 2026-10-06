@@ -131,7 +131,12 @@
 		function handleKeydown(e: KeyboardEvent) {
 			if (e.key !== 'Escape') return;
 			onClose();
-			if (role === 'dialog') triggerElement?.focus();
+			if (role === 'dialog') {
+				// Escape closes the innermost layer only. A modal listens on `window`, which this
+				// `document` listener runs before, so without this one press closed both.
+				e.stopPropagation();
+				triggerElement?.focus();
+			}
 		}
 
 		// Use capture to catch scroll on any ancestor

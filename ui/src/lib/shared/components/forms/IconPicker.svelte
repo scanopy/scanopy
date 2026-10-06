@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { ChevronDown, X } from 'lucide-svelte';
 	import { createIconComponent } from '$lib/shared/utils/styling';
+	import Popover from '$lib/shared/components/data/Popover.svelte';
 	import {
+		common_close,
 		common_none,
 		common_noIconsMatch,
 		common_searchPlaceholder
@@ -38,6 +40,7 @@
 	const OVERSCAN_ROWS = 2;
 
 	let open = $state(false);
+	let trigger: HTMLButtonElement | undefined = $state();
 	let query = $state('');
 	let scrollTop = $state(0);
 	let scroller: HTMLDivElement | undefined = $state();
@@ -62,10 +65,15 @@
 		if (scroller) scroller.scrollTop = 0;
 	}
 
-	function choose(name: string | null) {
-		onChange(name);
+	function close() {
 		open = false;
 		query = '';
+		scrollTop = 0;
+	}
+
+	function choose(name: string | null) {
+		onChange(name);
+		close();
 	}
 </script>
 
@@ -73,8 +81,11 @@
 	<label for={id} class="text-secondary block text-sm font-medium">{label}</label>
 	<div class="flex items-center gap-2">
 		<button
+			bind:this={trigger}
 			{id}
 			type="button"
+			aria-haspopup="dialog"
+			aria-expanded={open}
 			class="input-field flex w-40 items-center justify-between gap-2"
 			{disabled}
 			onclick={() => (open = !open)}
@@ -102,15 +113,29 @@
 		{/if}
 	</div>
 
-	{#if open && !disabled}
-		<div class="card space-y-2 p-2">
-			<input
-				type="text"
-				class="input-field w-full"
-				placeholder={common_searchPlaceholder()}
-				value={query}
-				oninput={(e) => handleQuery(e.currentTarget.value)}
-			/>
+	<!-- Portalled out of the surrounding modal and floated beside the trigger, so opening it
+	     never grows the modal and pushes the fields below it out of view. -->
+	<Popover
+		triggerElement={trigger ?? null}
+		isOpen={open && !disabled}
+		onClose={close}
+		role="dialog"
+		ariaLabel={label}
+		maxWidth="420px"
+	>
+		<div class="w-[380px] space-y-2">
+			<div class="flex items-center gap-2">
+				<input
+					type="text"
+					class="input-field w-full"
+					placeholder={common_searchPlaceholder()}
+					value={query}
+					oninput={(e) => handleQuery(e.currentTarget.value)}
+				/>
+				<button type="button" class="btn-icon" aria-label={common_close()} onclick={close}>
+					<X class="h-4 w-4" />
+				</button>
+			</div>
 			{#if filtered.length === 0}
 				<p class="text-tertiary px-1 py-2 text-xs">{common_noIconsMatch({ query })}</p>
 			{:else}
@@ -146,7 +171,7 @@
 				</div>
 			{/if}
 		</div>
-	{/if}
+	</Popover>
 
 	{#if helpText}
 		<p class="text-tertiary text-xs">{helpText}</p>
