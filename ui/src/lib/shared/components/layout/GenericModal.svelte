@@ -545,14 +545,18 @@
 	</div>
 {/if}
 
-<ConfirmationDialog
-	isOpen={pendingNavigationId !== null}
-	title={common_discardChangesTitle()}
-	message={common_discardChangesMessage()}
-	confirmLabel={common_discard()}
-	cancelLabel={common_keepEditing()}
-	variant="warning"
-	onConfirm={confirmPendingNavigation}
-	onCancel={() => (pendingNavigationId = null)}
-	onClose={() => (pendingNavigationId = null)}
-/>
+<!-- Only entity modals step between entities, so only they mount the discard dialog. The guard
+     also ends the recursion: ConfirmationDialog is itself a GenericModal, with no entity. -->
+{#if entityId}
+	<ConfirmationDialog
+		isOpen={pendingNavigationId !== null}
+		title={common_discardChangesTitle()}
+		message={common_discardChangesMessage()}
+		confirmLabel={common_discard()}
+		cancelLabel={common_keepEditing()}
+		variant="warning"
+		onConfirm={confirmPendingNavigation}
+		onCancel={() => (pendingNavigationId = null)}
+		onClose={() => (pendingNavigationId = null)}
+	/>
+{/if}
