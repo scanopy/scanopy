@@ -16,10 +16,6 @@ import {
 	createFilterActions,
 	type FilterActionsContext
 } from '$lib/shared/components/data/controls/filterActions';
-import {
-	parseStoredState,
-	serializeState
-} from '$lib/shared/components/data/controls/dataControlsStorage';
 import type { FieldConfig } from '$lib/shared/components/data/types';
 
 type Row = Record<string, unknown>;
@@ -242,7 +238,7 @@ describe('dropHiddenColumnState', () => {
 		expect(next).toMatchObject({ staleOnly: false, staleCleared: true });
 	});
 
-	it('offers only rendered fields to the card controls', () => {
+	it('offers only rendered fields to the header controls', () => {
 		expect(renderedFields(FIELDS, without('status', 'mode'))).not.toContain(status);
 		expect(renderedFields(FIELDS, without('status', 'mode'))).toContain(site);
 	});
@@ -301,30 +297,5 @@ describe('createFilterActions', () => {
 		actions.clearField('last_seen_at');
 		expect(ctx.staleOnly).toBe(false);
 		expect(ctx.onStaleFilterChange).toHaveBeenLastCalledWith(null);
-	});
-});
-
-describe('switching views', () => {
-	it('keeps filter, sort and group through a view change and a reload', () => {
-		const filterState = filtersWith((s) => toggleValue(s, 'status', 'up'));
-		const stored = {
-			searchQuery: '',
-			filterState: Object.fromEntries(
-				Object.entries(filterState).map(([key, f]) => [key, { ...f, values: [...f.values] }])
-			),
-			sortState: { field: 'site_id', direction: 'desc' as const },
-			selectedGroupField: 'status',
-			showFilters: true,
-			viewMode: 'table' as const,
-			currentPage: 1
-		};
-
-		const restored = parseStoredState(serializeState({ ...stored, viewMode: 'card' }))!;
-
-		expect(restored.viewMode).toBe('card');
-		expect(restored.filterState.status.values).toEqual(['up']);
-		expect(restored.sortState).toEqual(stored.sortState);
-		expect(restored.selectedGroupField).toBe('status');
-		expect(restored.showFilters).toBe(true);
 	});
 });

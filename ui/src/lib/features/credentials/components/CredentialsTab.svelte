@@ -13,6 +13,7 @@
 	import type { Credential } from '../types/base';
 	import type { CredentialOrderField } from '../types/base';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import {
 		defineFields,
 		entityRef,
@@ -118,7 +119,7 @@
 	// Which hosts a credential is assigned to is already on the credential —
 	// `host_assignments` is hydrated from the same `host_credentials` junction
 	// table that produces the host's `credential_assignments`. So the impact
-	// counts need no host data at all, and the card's host chips only need those
+	// counts need no host data at all, and the hosts column's chips only need those
 	// ids resolved to names.
 	//
 	// This was `useHostsQuery({ limit: 0 })`: every host in the organisation,
@@ -157,8 +158,8 @@
 	 *
 	 * A Docker socket credential cannot target sites at all, which is a
 	 * different statement from a SNMP credential that targets sites and
-	 * happens to have none. The card drew that distinction and the table should
-	 * too, so an out-of-scope assignment column says so rather than sitting empty.
+	 * happens to have none, so an out-of-scope assignment column says so rather
+	 * than sitting empty.
 	 */
 	function assignmentItems(applicable: boolean, items: CardFieldItem[]): CardFieldItem[] {
 		if (applicable) return items;
@@ -190,7 +191,7 @@
 		showCredentialEditor = true;
 	}
 
-	/** Row actions for table mode, matching what the card offers. */
+	/** Row actions. */
 	function credentialActions(credential: Credential): CardAction[] {
 		if (!canManage) return [];
 
@@ -277,6 +278,11 @@
 	function getCredentialTags(credential: Credential): string[] {
 		return credential.tags;
 	}
+
+	const tableDefaults: TableDefaults<CredentialOrderField | 'credential_type'> = {
+		group: 'credential_type',
+		sort: { field: 'name', direction: 'asc' }
+	};
 
 	// Define field configuration for the DataTableControls
 	const credentialFields = defineFields<Credential, CredentialOrderField>(
@@ -374,8 +380,6 @@
 			},
 			{ key: 'description', label: common_description(), type: 'string', searchable: true },
 			{
-				// Assignments were card-only, so the credentials table could not show
-				// what a credential actually applies to.
 				key: 'assigned_sites',
 				label: common_sites(),
 				type: 'array',
@@ -445,11 +449,10 @@
 				display: {
 					// Off by default: the target set is a property of the credential *type*, so it repeats
 					// down the column for every credential of the same type and earns its width
-					// only when someone is actually filtering by it. Still filterable, and still shown
-					// on the cards. An array, so it neither sorts nor groups.
+					// only when someone is actually filtering by it. Still filterable. An array, so
+					// it neither sorts nor groups.
 					hiddenByDefault: true,
-					// Same chip props the card uses, so a target reads identically in
-					// both views rather than falling back to undifferentiated grey.
+					// Coloured chips per target rather than undifferentiated grey.
 					getItems: (item: Credential) => {
 						const meta = credentialTypes.getMetadata(getCredentialTypeId(item));
 						return (meta?.targets ?? []).map((target: string) => ({
@@ -497,14 +500,11 @@
 			fields={credentialFields}
 			{allowBulkDelete}
 			storageKey="scanopy-credentials-table-state"
+			defaults={tableDefaults}
 			onBulkDelete={handleBulkDelete}
 			entityType={allowBulkDelete ? 'Credential' : undefined}
 			getItemTags={getCredentialTags}
 			getItemId={(item) => item.id}
-			getIcon={(credential) => ({
-				icon: credentialTypes.getIconComponent(getCredentialTypeId(credential)),
-				color: credentialTypes.getColorHelper(getCredentialTypeId(credential)).icon
-			})}
 			onCsvExport={handleCsvExport}
 			getActions={credentialActions}
 			entityLabel={common_credentials()}

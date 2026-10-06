@@ -5,8 +5,9 @@
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import { siteItems } from '$lib/features/sites/columns';
-	import { permissions, entities } from '$lib/shared/stores/metadata';
+	import { permissions } from '$lib/shared/stores/metadata';
 	import type { FieldConfig } from '$lib/shared/components/data/types';
 	import { Plus } from 'lucide-svelte';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
@@ -145,7 +146,7 @@
 		await downloadCsv('UserApiKey', {});
 	}
 
-	/** Row actions, matching what the card offered. */
+	/** Row actions. */
 	function userApiKeyActions(apiKey: UserApiKey): CardAction[] {
 		return [
 			{ label: common_edit(), icon: Edit, onClick: () => handleEdit(apiKey) },
@@ -157,6 +158,8 @@
 			}
 		];
 	}
+
+	const tableDefaults: TableDefaults<string> = { sort: { field: 'name', direction: 'asc' } };
 
 	const apiKeyFields: FieldConfig<UserApiKey>[] = [
 		{
@@ -311,12 +314,9 @@
 			entityType={isReadOnly ? undefined : 'UserApiKey'}
 			getItemTags={getUserApiKeyTags}
 			storageKey="scanopy-user-api-keys-table-state"
+			defaults={tableDefaults}
 			getItemId={(item) => item.id}
 			getActions={userApiKeyActions}
-			getIcon={() => ({
-				icon: entities.getIconComponent('UserApiKey'),
-				color: entities.getColorHelper('UserApiKey').icon
-			})}
 			onCsvExport={handleCsvExport}
 		></DataControls>
 	{/if}

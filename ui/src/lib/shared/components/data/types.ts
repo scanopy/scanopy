@@ -53,7 +53,6 @@ export interface CardAction {
 	disabled?: boolean;
 	tooltip?: string | ((disabled: boolean) => string | null);
 	animation?: string;
-	forceLabel?: boolean;
 }
 
 export interface EntityRef {
@@ -102,20 +101,12 @@ export interface CardFieldItem {
 	entityRef?: EntityRef;
 }
 
-export interface CardField {
-	label: string;
-	value?: string | CardFieldItem[] | undefined | null;
-	snippet?: Snippet; // Allow snippet as an alternative to value
-	color?: Color; // Used for tags when value is an array
-	emptyText?: string; // Used when value is empty array
-}
-
 // ============================================================================
 // Field Configuration for Data Controls
 // ============================================================================
 
 /**
- * How a field renders, in the card and the table alike.
+ * How a field renders in the table.
  *
  * Omit it and the value renders as the stringified `getValue` — the same value
  * search, filtering and grouping already match against, so what is shown can
@@ -127,9 +118,9 @@ export interface DisplayConfig<T> {
 	/** A real column, but unchecked in the column menu until the user asks for it. */
 	hiddenByDefault?: boolean;
 	/**
-	 * Rich chips, in the vocabulary the card already renders: `EntityTag` when
-	 * an item carries an `entityRef`, `Tag` otherwise. Prefer this over `cell` —
-	 * it is data rather than markup, so the card can reuse the same builder.
+	 * Rich chips: `EntityTag` when an item carries an `entityRef`, `Tag`
+	 * otherwise. Prefer this over `cell`: it is data rather than markup, so
+	 * `getValue` can derive from the same builder.
 	 *
 	 * Returning `undefined` — as opposed to `[]` — means "no chips for this row",
 	 * and the cell falls back to the field's plain value. That is what lets a
@@ -160,26 +151,11 @@ export interface DisplayConfig<T> {
 	/** Row identity: pinned left, carries the checkbox, renders as `<th scope="row">`. */
 	primary?: boolean;
 	/**
-	 * This field is the row's secondary line, so the card renders it under the
-	 * title rather than as another labelled row — a subnet's CIDR, a VLAN's
-	 * number, what a host is virtualized by.
-	 */
-	subtitle?: boolean;
-	/**
 	 * This field sits after the tag column, immediately before the row actions —
 	 * the far end of the row. For content that reads as the row's live state
 	 * rather than one of its attributes, like a running scan's progress.
 	 */
 	trailing?: boolean;
-	/**
-	 * This field is the row's status, so the card renders it as the tag beside
-	 * the title instead of as another labelled row.
-	 *
-	 * Marking it rather than letting the card compute its own is what stops the
-	 * two views disagreeing: a card that derived its own status tag showed
-	 * "Healthy" where the table's separate computation said "Active".
-	 */
-	statusTag?: boolean;
 	/**
 	 * This date is when something last happened (last seen, last used), so it renders as
 	 * recent activity: `3h ago`, or the full timestamp when the user turned relative times off.
@@ -216,7 +192,7 @@ export interface TreeConfig<T> {
  * Base configuration shared by all field types.
  */
 interface BaseFieldConfig<T> {
-	/** How this field renders, in both the card and the table. Omit for plain text. */
+	/** How this field renders in the table. Omit for plain text. */
 	display?: DisplayConfig<T>;
 	type: 'string' | 'boolean' | 'date' | 'array';
 	label: string;
@@ -272,7 +248,7 @@ interface BaseFieldConfig<T> {
 	 * This column carries the list's "Stale only" toggle. Staleness is a
 	 * server-side constraint rather than a value filter, so it has no field of
 	 * its own; marking the last-seen column gives it the same home as every
-	 * other filter, in the header popover and the card pane. Only takes effect
+	 * other filter, in the column's header popover. Only takes effect
 	 * when the parent passes `onStaleFilterChange`.
 	 */
 	staleFilter?: boolean;
@@ -334,6 +310,18 @@ export function isDisplayField<T, O extends string>(
  */
 export function getFieldKey<T, O extends string>(field: FieldConfig<T, O>): string {
 	return isOrderableField(field) ? field.orderField : field.key;
+}
+
+/**
+ * The grouping and sort a tab opens with until the user picks their own.
+ *
+ * Declared beside the tab's fields and keyed by the same field keys. Each must
+ * name a field whose column renders by default, since a list only groups and
+ * sorts by rendered columns; the dev guard in `DataControls` enforces that.
+ */
+export interface TableDefaults<K extends string = string> {
+	group?: K;
+	sort?: { field: K; direction: 'asc' | 'desc' };
 }
 
 // ============================================================================

@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { Edit, Trash2 } from 'lucide-svelte';
 	import type { CardAction } from '$lib/shared/components/data/types';
-	import { entities } from '$lib/shared/stores/metadata';
 	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import type { FieldConfig } from '$lib/shared/components/data/types';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import { siteItems } from '$lib/features/sites/columns';
 	import CreateApiKeyModal from './ApiKeyModal.svelte';
 	import type { ApiKey } from '../types/base';
@@ -74,8 +74,8 @@
 	let editingApiKey = $state<ApiKey | null>(null);
 
 	// Deep-link: open daemon API key editor from URL. Resolve the id against the FULL,
-	// unfiltered key list — the daemon card's "Manage key" action deep-links a key bound
-	// 1:1 to a daemon (daemon_id set), which is deliberately excluded from `apiKeysData`
+	// unfiltered key list — a deep link can name a key bound 1:1 to a daemon
+	// (daemon_id set), which is deliberately excluded from `apiKeysData`
 	// (the legacy-only tab list). Resolving against the filtered list would never find it.
 	$effect(() => {
 		if ($modalState.name === 'daemon-api-key' && !showCreateApiKeyModal) {
@@ -129,7 +129,7 @@
 		await downloadCsv('DaemonApiKey', {});
 	}
 
-	/** Row actions, matching what the card offered. */
+	/** Row actions. */
 	function apiKeyActions(apiKey: ApiKey): CardAction[] {
 		if (isReadOnly) return [];
 
@@ -140,11 +140,13 @@
 				icon: Trash2,
 				class: 'btn-icon-danger',
 				onClick: () => handleDeleteApiKey(apiKey),
-				// A key a daemon is using cannot be deleted — same gate the card had.
+				// A key a daemon is using cannot be deleted.
 				disabled: apiKeyIdsInUse.has(apiKey.id)
 			}
 		];
 	}
+
+	const tableDefaults: TableDefaults<string> = { sort: { field: 'name', direction: 'asc' } };
 
 	const apiKeyFields: FieldConfig<ApiKey>[] = [
 		{
@@ -233,9 +235,9 @@
 	<!-- Header. No create action: daemon keys are now minted 1:1 through daemon
 	     provisioning, so this tab only lists (and lets you manage) existing keys. -->
 	<!--
-		Every key on this tab is unbound, so the explanation the card carried as a
-		per-row "Legacy" tag says the same thing on every row — it belongs to the
-		tab.
+		Every key on this tab is unbound, so the legacy explanation sits in the tab
+		subtitle rather than as a per-row tag that would say the same thing on
+		every row.
 	-->
 	<TabHeader title={daemonApiKeys_title()} subtitle={daemons_legacyKeyHelp()} />
 	<!-- Loading state -->
@@ -255,12 +257,9 @@
 			entityType={isReadOnly ? undefined : 'DaemonApiKey'}
 			getItemTags={getApiKeyTags}
 			storageKey="scanopy-api-keys-table-state"
+			defaults={tableDefaults}
 			getItemId={(item) => item.id}
 			getActions={apiKeyActions}
-			getIcon={() => ({
-				icon: entities.getIconComponent('DaemonApiKey'),
-				color: entities.getColorHelper('DaemonApiKey').icon
-			})}
 			onCsvExport={handleCsvExport}
 		></DataControls>
 	{/if}

@@ -14,9 +14,7 @@
 	} from '$lib/paraglide/messages';
 
 	/**
-	 * One field's filter controls. The card pane renders one per filterable
-	 * column and the table renders one in each column's header popover, so both
-	 * views offer the same choices for a field.
+	 * One field's filter controls, rendered in its column's header popover.
 	 */
 	let {
 		field,

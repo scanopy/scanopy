@@ -21,16 +21,12 @@
 	import HostConsolidationModal from './HostConsolidationModal.svelte';
 	import HostExportModal from './HostExportModal.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import { defineFields, entityRef, type CardAction } from '$lib/shared/components/data/types';
 	import { tagNames } from '$lib/features/tags/columns';
 	import { siteItems } from '$lib/features/sites/columns';
 	import { credentialItems } from '$lib/features/credentials/columns';
-	import {
-		entities,
-		entitySources,
-		concepts,
-		serviceDefinitions
-	} from '$lib/shared/stores/metadata';
+	import { entities, entitySources, concepts } from '$lib/shared/stores/metadata';
 	import { Plus, Trash2, RefreshCw, Replace, Eye, Edit } from 'lucide-svelte';
 	import { useTagsQuery } from '$lib/features/tags/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
@@ -144,10 +140,16 @@
 	let pageSize = $state(20);
 	let currentPage = $state(1);
 
-	// Ordering state (for server-side ordering)
-	let groupBy = $state<HostOrderField | undefined>(undefined);
-	let orderBy = $state<HostOrderField | undefined>(undefined);
-	let orderDirection = $state<OrderDirection>('asc');
+	// Ordering state (for server-side ordering).
+	// The grouping and sort the table opens with. Declared ahead of the query state so the
+	// first request already carries them; DataControls replaces them with a saved choice.
+	const tableDefaults: TableDefaults<HostOrderField> = {
+		group: 'virtualized_by',
+		sort: { field: 'name', direction: 'asc' }
+	};
+	let groupBy = $state<HostOrderField | undefined>(tableDefaults.group);
+	let orderBy = $state<HostOrderField | undefined>(tableDefaults.sort?.field);
+	let orderDirection = $state<OrderDirection>(tableDefaults.sort?.direction ?? 'asc');
 
 	// Tag filter state (for server-side filtering)
 	let tagIds = $state<string[]>([]);
@@ -463,8 +465,7 @@
 		}
 	});
 
-	// What a host holds. These were resolved inside HostCard, so the table had no
-	// way to show them; resolving here gives both views the same columns.
+	// What a host holds, resolved here for the table's columns.
 	function hostCredentials(host: Host): Credential[] {
 		return (host.credential_assignments ?? [])
 			.map((a) => credentialsData.find((c) => c.id === a.credential_id))
@@ -509,9 +510,9 @@
 					searchable: true,
 					groupable: false,
 					// The title, not the stored `name`. `getValue` rather than `display.cell`
-					// because this one accessor also feeds the row header cell, the row
-					// checkbox's accessible name and the card title — a `cell` snippet would fix
-					// the table and leave those three rendering an empty string.
+					// because this one accessor also feeds the row header cell and the row
+					// checkbox's accessible name. A `cell` snippet would fix the cell and
+					// leave those two rendering an empty string.
 					//
 					// The key stays `name`: it is the `HostOrderField` sent to the server, which
 					// now orders by the same ladder this renders.
@@ -567,8 +568,6 @@
 						return hosts_notVirtualized();
 					},
 					display: {
-						// Not in the default column set — it stays a filter and group axis.
-						hiddenByDefault: true,
 						// No chips when a host isn't virtualized, so the cell renders the
 						// em dash rather than repeating "Not Virtualized" down the column.
 						// `getValue` keeps the phrase, so the filter still offers it.
@@ -587,7 +586,6 @@
 					}
 				},
 				interface_ip: {
-					// The card calls this "IP Addresses"; it named one thing two ways.
 					label: common_ipAddresses(),
 					type: 'string',
 					searchable: true,
@@ -946,13 +944,7 @@
 		showHostEditor = true;
 	}
 
-	/**
-	 * Row actions for table mode, matching what the card offers.
-	 *
-	 * The table never renders a card, so the actions the card builds for itself
-	 * are not reachable from it — the tab already owns every handler, so it is
-	 * the natural place to describe them once for both.
-	 */
+	/** Row actions. */
 	function hostActions(host: Host): CardAction[] {
 		if (isReadOnly) return [];
 
@@ -1121,22 +1113,11 @@
 			items={hostsData}
 			fields={hostFields}
 			storageKey="scanopy-hosts-table-state"
+			defaults={tableDefaults}
 			onBulkDelete={isReadOnly ? undefined : handleBulkDelete}
 			entityType={isReadOnly ? undefined : 'Host'}
 			getItemTags={getHostTags}
 			getItemId={(item) => item.id}
-			getIcon={(host) => {
-				const first = allServicesData.find(
-					(s) => s.host_id === host.id && s.service_definition !== 'Unclaimed Open Ports'
-				);
-				return {
-					icon: first
-						? serviceDefinitions.getIconComponent(first.service_definition)
-						: entities.getIconComponent('Host'),
-					color: entities.getColorHelper('Host').icon
-				};
-			}}
-			getLink={(host) => (host.hostname ? `http://${host.hostname}` : undefined)}
 			serverPagination={hostsPagination}
 			onPageChange={handlePageChange}
 			onOrderChange={handleOrderChange}

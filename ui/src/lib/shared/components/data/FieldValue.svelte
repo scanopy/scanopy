@@ -18,10 +18,9 @@
 	 * Chips to render, if this cell is a list of things.
 	 *
 	 * A field can supply rich chips through `getItems`, but an array-typed field
-	 * that only has a `getValue` is still a list — joining it into "a, b, c"
-	 * would render it as prose in the table while the card shows the same field
-	 * as tags. Falling back to plain chips keeps the two views consistent
-	 * without every field having to opt in.
+	 * that only has a `getValue` is still a list, and joining it into "a, b, c"
+	 * would render it as prose. Falling back to plain chips renders every list
+	 * field as chips without each one having to opt in.
 	 */
 	let items = $derived<CardFieldItem[] | null>(
 		column.display.getItems?.(item) ??

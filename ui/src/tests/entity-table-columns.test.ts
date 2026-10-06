@@ -281,10 +281,6 @@ describe('column reordering', () => {
 			serializeState({
 				searchQuery: '',
 				filterState: {},
-				sortState: { field: null, direction: 'asc' },
-				selectedGroupField: null,
-				showFilters: false,
-				viewMode: 'table',
 				currentPage: 1,
 				columnOrder: moved
 			})
@@ -302,10 +298,6 @@ describe('column widths', () => {
 			serializeState({
 				searchQuery: '',
 				filterState: {},
-				sortState: { field: null, direction: 'asc' },
-				selectedGroupField: null,
-				showFilters: false,
-				viewMode: 'table',
 				currentPage: 1,
 				columnSizing
 			})

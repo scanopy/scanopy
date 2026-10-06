@@ -12,7 +12,6 @@
 	 * When the viewer can edit, this is the picker itself rather than chips with
 	 * an edit affordance: a chip has to be removable in place, and gating that
 	 * behind a mode meant a tag could be added from the table but not taken off.
-	 * That is the same component the cards use, so both behave identically.
 	 *
 	 * Read-only viewers get plain chips, capped, since none of the picker's
 	 * machinery would do anything for them.

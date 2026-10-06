@@ -102,7 +102,7 @@ export interface TreeSection<T> {
 
 export type TreeEntry<T> = TreeRow<T> | TreeSection<T>;
 
-/** A group as the card and table views draw it. */
+/** A group as the table draws it. */
 export interface RenderGroup<T> {
 	/** Collapse-state key, unique per group. */
 	key: string;

@@ -27,8 +27,8 @@ export interface FilterActionsContext<T> {
 export type FilterActions = ReturnType<typeof createFilterActions>;
 
 /**
- * Every way a user changes a filter, shared by the card pane and the table
- * headers so both edit one selection and notify the parent the same way.
+ * Every way a user changes a filter, shared by the table's column headers so
+ * they edit one selection and notify the parent the same way.
  *
  * Tag selections are only recorded here: the component's tag effect notifies
  * the parent, whichever control changed them.

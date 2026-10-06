@@ -4,6 +4,7 @@
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import {
 		defineFields,
 		entityRef,
@@ -126,10 +127,15 @@
 	let pageSize = $state(20);
 	let currentPage = $state(1);
 
-	// Ordering state (for server-side ordering)
-	let groupBy = $state<ServiceOrderField | undefined>(undefined);
-	let orderBy = $state<ServiceOrderField | undefined>(undefined);
-	let orderDirection = $state<OrderDirection>('asc');
+	// Ordering state (for server-side ordering).
+	// The grouping and sort the table opens with. Declared ahead of the query state so the
+	// first request already carries them; DataControls replaces them with a saved choice.
+	const tableDefaults: TableDefaults<ServiceOrderField> = {
+		sort: { field: 'name', direction: 'asc' }
+	};
+	let groupBy = $state<ServiceOrderField | undefined>(tableDefaults.group);
+	let orderBy = $state<ServiceOrderField | undefined>(tableDefaults.sort?.field);
+	let orderDirection = $state<OrderDirection>(tableDefaults.sort?.direction ?? 'asc');
 
 	// Tag filter state (for server-side filtering)
 	let tagIds = $state<string[]>([]);
@@ -439,7 +445,7 @@
 		}
 	});
 
-	/** Row actions for table mode, matching what the card offers. */
+	/** Row actions. */
 	function serviceActions(service: Service): CardAction[] {
 		if (isReadOnly) return [];
 
@@ -818,14 +824,11 @@
 			items={servicesData}
 			fields={serviceFields}
 			storageKey="scanopy-services-table-state"
+			defaults={tableDefaults}
 			onBulkDelete={isReadOnly ? undefined : handleBulkDelete}
 			entityType={isReadOnly ? undefined : 'Service'}
 			getItemTags={getServiceTags}
 			getItemId={(item) => item.id}
-			getIcon={(service) => ({
-				icon: serviceDefinitions.getIconComponent(service.service_definition),
-				color: serviceDefinitions.getColorHelper(service.service_definition).icon
-			})}
 			serverPagination={servicesPagination}
 			onPageChange={handlePageChange}
 			onOrderChange={handleOrderChange}

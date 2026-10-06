@@ -12,14 +12,14 @@
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import type { Tag } from '../types/base';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import { defineFields, type CardAction } from '$lib/shared/components/data/types';
-	import { Plus, Trash2, Edit, Tag as TagIcon } from 'lucide-svelte';
-	import { createColorHelper } from '$lib/shared/utils/styling';
+	import { Plus, Trash2, Edit } from 'lucide-svelte';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { permissions, billingPlans, concepts } from '$lib/shared/stores/metadata';
+	import { permissions, billingPlans } from '$lib/shared/stores/metadata';
 	import type { TabProps } from '$lib/shared/types';
-	import { tagGroupLabel, isApplicationTag, tagIcon } from '../groups';
+	import { tagGroupLabel, tagIcon } from '../groups';
 	import { tagItems } from '../columns';
 	import type { components } from '$lib/api/schema';
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
@@ -106,7 +106,7 @@
 		showTagEditor = true;
 	}
 
-	/** Row actions for table mode, matching what the card offers. */
+	/** Row actions. */
 	function tagActions(tag: Tag): CardAction[] {
 		if (!canManage) return [];
 
@@ -159,6 +159,11 @@
 	async function handleCsvExport() {
 		await downloadCsv('Tag', {});
 	}
+
+	const tableDefaults: TableDefaults<TagOrderField> = {
+		group: 'tag_group',
+		sort: { field: 'name', direction: 'asc' }
+	};
 
 	// Define field configuration for the DataTableControls
 	// Uses defineFields to ensure all TagOrderField values are covered
@@ -248,14 +253,9 @@
 			fields={tagFields}
 			{allowBulkDelete}
 			storageKey="scanopy-tags-table-state"
+			defaults={tableDefaults}
 			onBulkDelete={handleBulkDelete}
 			getItemId={(item) => item.id}
-			getIcon={(tag) => ({
-				icon: tagIcon(tag) ?? TagIcon,
-				color: isApplicationTag(tag)
-					? concepts.getColorHelper('Application')?.icon
-					: createColorHelper(tag.color).icon
-			})}
 			onCsvExport={handleCsvExport}
 			getActions={tagActions}
 			entityLabel={common_tags()}

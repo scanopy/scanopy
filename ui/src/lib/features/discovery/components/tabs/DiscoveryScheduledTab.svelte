@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { entities, billingPlans, discoveryTypes } from '$lib/shared/stores/metadata';
+	import { billingPlans, discoveryTypes } from '$lib/shared/stores/metadata';
 	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import type { Discovery } from '../../types/base';
 	import {
 		discoveryFields,
@@ -231,10 +232,10 @@
 	}
 
 	/**
-	 * Row actions for table mode, matching what the card offers.
+	 * Row actions.
 	 *
 	 * A run in flight blocks the destructive and scheduling actions, and the
-	 * tooltip carries the reason — same gating the card applies.
+	 * tooltip carries the reason.
 	 */
 	function discoveryActions(discovery: Discovery): CardAction[] {
 		if (isReadOnly) return [];
@@ -341,6 +342,10 @@
 		return fields;
 	}
 
+	const tableDefaults: TableDefaults<DiscoveryConfigOrderField> = {
+		sort: { field: 'name', direction: 'asc' }
+	};
+
 	let fields = $derived(
 		defineFields<Discovery, DiscoveryConfigOrderField>(
 			withSharedDisplay(discoveryFields(daemonsData, sitesData)),
@@ -375,7 +380,6 @@
 					getValue: (item) =>
 						discoveryTypes.getMetadata(item.discovery_type.type).is_legacy ? common_legacy() : '',
 					display: {
-						statusTag: true,
 						getItems: (item) =>
 							discoveryTypes.getMetadata(item.discovery_type.type).is_legacy
 								? [
@@ -426,14 +430,14 @@
 						item.run_type.type !== 'Historical' && item.run_type.last_run
 							? item.run_type.last_run
 							: null,
-					display: { hiddenByDefault: true, recency: true }
+					display: { recency: true }
 				},
 				{
 					key: 'progress',
 					label: common_progress(),
 					// Progress belongs to the run, not the record, so there is nothing to
 					// sort, filter or group by — but it is still a field, so a running scan
-					// shows its tracker in the table as well as on the card.
+					// shows its tracker in the table.
 					type: 'string',
 					getValue: (item) => getActiveSession(item)?.phase ?? '',
 					// After the tags column, immediately before the row actions: it is the
@@ -528,11 +532,8 @@
 			{fields}
 			onBulkDelete={isReadOnly ? undefined : handleBulkDelete}
 			storageKey="scanopy-discovery-scans-table-state"
+			defaults={tableDefaults}
 			getItemId={(item) => item.id}
-			getIcon={() => ({
-				icon: entities.getIconComponent('Discovery'),
-				color: entities.getColorHelper('Discovery').icon
-			})}
 			entityType={isReadOnly ? undefined : 'Discovery'}
 			getItemTags={(item) => item.tags}
 			onCsvExport={handleCsvExport}
