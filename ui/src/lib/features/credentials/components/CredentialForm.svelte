@@ -25,6 +25,7 @@
 	import { entityRef } from '$lib/shared/components/data/types';
 	import { credentialTypes, entities } from '$lib/shared/stores/metadata';
 	import { DAEMON_HOST_IP } from '../utils/credentialTargets';
+	import { fieldRows } from '../utils/fieldRows';
 	import { translateFieldDefinitions } from '$lib/i18n/metadata';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
@@ -1448,12 +1449,20 @@
 {/snippet}
 
 {#snippet fieldList(fields: FieldDefinition[])}
-	{#each fields as field (field.id)}
+	{#each fieldRows(fields) as row (row[0].id)}
 		<!-- An OS choice several fields depend on comes once, above the first of them. -->
-		{#if showDaemonOsPicker && daemonOsDependents.length > 1 && daemonOsDependents[0] === field.id}
+		{#if showDaemonOsPicker && daemonOsDependents.length > 1 && row.some((field) => daemonOsDependents[0] === field.id)}
 			{@render daemonOsPicker()}
 		{/if}
-		{@render fieldRenderer(field, field.secret)}
+		{#if row.length === 2}
+			<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+				{#each row as field (field.id)}
+					{@render fieldRenderer(field, field.secret)}
+				{/each}
+			</div>
+		{:else}
+			{@render fieldRenderer(row[0], row[0].secret)}
+		{/if}
 	{/each}
 {/snippet}
 

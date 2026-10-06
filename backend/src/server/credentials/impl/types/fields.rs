@@ -42,6 +42,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: None,
                     file_name: Some("snmp-community"),
+                    half_width: false,
                 }]
             }
             Self::Gnmi {
@@ -69,6 +70,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Connection"),
                     file_name: None,
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "username",
@@ -86,6 +88,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Authentication"),
                     file_name: None,
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "password",
@@ -101,6 +104,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
                     file_name: Some("gnmi-password"),
+                    half_width: false,
                 },
             ],
             Self::SnmpV3 {
@@ -125,6 +129,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Authentication"),
                     file_name: None,
+                    half_width: true,
                 },
                 FieldDefinition {
                     id: "auth_protocol",
@@ -140,6 +145,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Authentication"),
                     file_name: None,
+                    half_width: true,
                 },
                 FieldDefinition {
                     id: "auth_password",
@@ -155,6 +161,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
                     file_name: Some("snmpv3-auth-password"),
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "priv_protocol",
@@ -170,6 +177,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Privacy"),
                     file_name: None,
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "priv_password",
@@ -185,6 +193,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Privacy"),
                     file_name: Some("snmpv3-priv-password"),
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "context_name",
@@ -202,6 +211,7 @@ impl CredentialType {
                     inline_format: None,
                     group: None,
                     file_name: None,
+                    half_width: false,
                 },
             ],
             Self::DockerProxy { .. } => container_proxy_field_definitions(
@@ -248,6 +258,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
                     file_name: Some("unifi-api-key"),
+                    half_width: false,
                 });
                 fields
             }
@@ -269,6 +280,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Authentication"),
                     file_name: None,
+                    half_width: false,
                 });
                 fields.push(FieldDefinition {
                     id: "password",
@@ -284,6 +296,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
                     file_name: Some("unifi-password"),
+                    half_width: false,
                 });
                 fields
             }
@@ -304,6 +317,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Authentication"),
                     file_name: None,
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "password",
@@ -319,6 +333,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
                     file_name: Some("instant-on-password"),
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "site",
@@ -336,6 +351,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Scope"),
                     file_name: None,
+                    half_width: false,
                 },
             ],
             Self::SshPassword {
@@ -362,6 +378,7 @@ impl CredentialType {
                 inline_format: Some(InlineFormat::Plain),
                 group: Some("Authentication"),
                 file_name: Some("ssh-password"),
+                half_width: false,
             }]),
             Self::SshKey {
                 port: _,
@@ -389,6 +406,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::SshPrivateKey),
                     group: Some("Authentication"),
                     file_name: Some("ssh-key"),
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "passphrase",
@@ -404,6 +422,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
                     file_name: Some("ssh-key-passphrase"),
+                    half_width: false,
                 },
             ]),
             Self::WakeOnLan {
@@ -428,23 +447,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Delivery"),
                     file_name: None,
-                },
-                FieldDefinition {
-                    id: "broadcast_address",
-                    label: "Broadcast Address",
-                    field_type: FieldType::String,
-                    placeholder: Some("(host's subnet broadcast)"),
-                    placeholder_by: None,
-                    secret: false,
-                    optional: true,
-                    help_text: Some(
-                        "Leave blank to send to the broadcast address of each host's subnet, which reaches it when the daemon is on the same network segment or the router forwards directed broadcasts. Otherwise enter where to send it instead: a router address with a relay rule, a Wake-on-LAN relay device, or 255.255.255.255.",
-                    ),
-                    options: None,
-                    default_value: None,
-                    inline_format: None,
-                    group: Some("Delivery"),
-                    file_name: None,
+                    half_width: true,
                 },
                 FieldDefinition {
                     id: "wait_seconds",
@@ -462,6 +465,25 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Delivery"),
                     file_name: None,
+                    half_width: true,
+                },
+                FieldDefinition {
+                    id: "broadcast_address",
+                    label: "Broadcast Address",
+                    field_type: FieldType::String,
+                    placeholder: Some("(host's subnet broadcast)"),
+                    placeholder_by: None,
+                    secret: false,
+                    optional: true,
+                    help_text: Some(
+                        "Leave blank to send to the broadcast address of each host's subnet, which reaches it when the daemon is on the same network segment or the router forwards directed broadcasts. Otherwise enter where to send it instead: a router address with a relay rule, a Wake-on-LAN relay device, or 255.255.255.255.",
+                    ),
+                    options: None,
+                    default_value: None,
+                    inline_format: None,
+                    group: Some("Delivery"),
+                    file_name: None,
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "secure_on_password",
@@ -479,6 +501,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::MacAddress),
                     group: Some("Delivery"),
                     file_name: Some("secureon-password"),
+                    half_width: false,
                 },
             ],
             Self::ProxmoxApiToken {
@@ -502,6 +525,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Connection"),
                     file_name: None,
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "token_id",
@@ -519,6 +543,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::ProxmoxTokenId),
                     group: Some("Authentication"),
                     file_name: None,
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "token_secret",
@@ -534,6 +559,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
                     file_name: Some("proxmox-token-secret"),
+                    half_width: false,
                 },
             ],
         }
@@ -558,6 +584,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             inline_format: None,
             group: Some("Connection"),
             file_name: None,
+            half_width: false,
         },
         FieldDefinition {
             id: "username",
@@ -575,6 +602,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             inline_format: None,
             group: Some("Authentication"),
             file_name: None,
+            half_width: false,
         },
     ];
     fields.extend(auth_fields);
@@ -595,6 +623,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             inline_format: None,
             group: Some("Script"),
             file_name: None,
+            half_width: false,
         },
         FieldDefinition {
             id: "script",
@@ -617,6 +646,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             inline_format: None,
             group: Some("Script"),
             file_name: Some("scanopy-inventory.sh"),
+            half_width: false,
         },
         FieldDefinition {
             id: "timeout_seconds",
@@ -632,6 +662,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             inline_format: None,
             group: Some("Script"),
             file_name: None,
+            half_width: true,
         },
         FieldDefinition {
             id: "host_key_fingerprint",
@@ -649,6 +680,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             inline_format: None,
             group: Some("Script"),
             file_name: None,
+            half_width: true,
         },
     ]);
     fields
@@ -675,6 +707,7 @@ fn unifi_connection_fields() -> Vec<FieldDefinition> {
             inline_format: None,
             group: Some("Connection"),
             file_name: None,
+            half_width: true,
         },
         FieldDefinition {
             id: "site",
@@ -692,6 +725,7 @@ fn unifi_connection_fields() -> Vec<FieldDefinition> {
             inline_format: None,
             group: Some("Connection"),
             file_name: None,
+            half_width: true,
         },
     ]
 }
@@ -718,6 +752,7 @@ fn socket_path_field(
         inline_format: None,
         group: Some("Connection"),
         file_name: None,
+        half_width: false,
     }
 }
 
@@ -743,6 +778,7 @@ fn container_proxy_field_definitions(
             inline_format: None,
             group: Some("Connection"),
             file_name: None,
+            half_width: false,
         },
         FieldDefinition {
             id: "path",
@@ -758,6 +794,7 @@ fn container_proxy_field_definitions(
             inline_format: None,
             group: Some("Connection"),
             file_name: None,
+            half_width: false,
         },
         FieldDefinition {
             id: "ssl_cert",
@@ -775,6 +812,7 @@ fn container_proxy_field_definitions(
             inline_format: Some(InlineFormat::PemCertificate),
             group: Some("TLS"),
             file_name: Some("cert.pem"),
+            half_width: false,
         },
         FieldDefinition {
             id: "ssl_key",
@@ -790,6 +828,7 @@ fn container_proxy_field_definitions(
             inline_format: Some(InlineFormat::PemPrivateKey),
             group: Some("TLS"),
             file_name: Some("key.pem"),
+            half_width: false,
         },
         FieldDefinition {
             id: "ssl_chain",
@@ -807,6 +846,7 @@ fn container_proxy_field_definitions(
             inline_format: Some(InlineFormat::PemCertificate),
             group: Some("TLS"),
             file_name: Some("ca.pem"),
+            half_width: false,
         },
     ]
 }
