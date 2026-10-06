@@ -32,7 +32,7 @@
 	import {
 		groupItems as groupItemsBy,
 		buildTreeSections,
-		isSingleRootTree,
+		mergeRootedTrees,
 		flattenTreeEntries,
 		computeGroupOffsets,
 		serverGroupKey as serverGroupKeyOf,
@@ -495,8 +495,8 @@
 	}
 
 	/** The groups as the table renders them. */
-	let groupList = $derived<RenderGroup<T>[]>(
-		[...groupedItems.entries()].map(([name, groupItems]) => {
+	let groupList = $derived.by<RenderGroup<T>[]>(() => {
+		const groups = [...groupedItems.entries()].map(([name, groupItems]) => {
 			const entries = treeEntries?.get(name) ?? null;
 			return {
 				key: name,
@@ -504,10 +504,11 @@
 				items: entries ? flattenTreeEntries(entries) : groupItems,
 				range: groupRange(groupItems),
 				entries,
-				headed: !(entries && activeTree && isSingleRootTree(entries, activeTree.tree))
+				rootRanges: null
 			};
-		})
-	);
+		});
+		return activeTree ? mergeRootedTrees(groups, activeTree.tree) : groups;
+	});
 
 	function toggleSort(fieldKey: string) {
 		ordering = { ...ordering, sort: nextSortState(sortState, fieldKey) };

@@ -3,6 +3,9 @@ import {
 	buildTreeSections,
 	flattenTreeEntries,
 	isSingleRootTree,
+	mergeRootedTrees,
+	ROOTED_TREES_KEY,
+	type RenderGroup,
 	treeDepthViolations,
 	type TreeEntry
 } from '$lib/shared/components/data/controls/grouping';
@@ -21,7 +24,8 @@ interface Range {
 
 const tree: TreeConfig<Range> = {
 	key: (r) => r.id,
-	parentKey: (r) => r.parent
+	parentKey: (r) => r.parent,
+	rootsLabel: () => 'Nested'
 };
 
 const byCidr = (a: Range, b: Range) => compareCidr(a.cidr, b.cidr);
@@ -149,20 +153,58 @@ describe('buildTreeSections', () => {
 });
 
 describe('isSingleRootTree', () => {
-	it('lets a group that is one tree under a real root drop its header', () => {
+	it('picks out a group that is one tree under a real root', () => {
 		const entries = buildTreeSections([wide, mid, leaf, sibling], tree, false, 'g', byCidr);
 		expect(isSingleRootTree(entries, tree)).toBe(true);
 	});
 
-	it('keeps the header when the top row has a parent that is filtered out or on another page', () => {
+	it('leaves out a group whose top row has a parent that is filtered out or on another page', () => {
 		const entries = buildTreeSections([mid, leaf], tree, false, 'g', byCidr);
 		expect(isSingleRootTree(entries, tree)).toBe(false);
 	});
 
-	it('keeps the header for a group of several top-level rows', () => {
+	it('leaves out a group of several top-level rows', () => {
 		const other: Range = { id: 'other', cidr: '192.168.0.0/24', parent: null };
 		const entries = buildTreeSections([wide, mid, other], tree, false, 'g', byCidr);
 		expect(isSingleRootTree(entries, tree)).toBe(false);
+	});
+});
+
+describe('mergeRootedTrees', () => {
+	const group = (key: string, rows: Range[], range: RenderGroup<Range>['range'] = null) => {
+		const entries = buildTreeSections(rows, tree, false, key, byCidr);
+		return { key, name: key, items: rows, range, entries, rootRanges: null };
+	};
+	const other: Range = { id: 'other', cidr: '192.168.0.0/16', parent: null };
+	const otherKid: Range = { id: 'other-kid', cidr: '192.168.1.0/24', parent: 'other' };
+	const loose: Range = { id: 'loose', cidr: '172.16.0.0/24', parent: null };
+
+	it('collects every rooted tree under one header, where the first one was', () => {
+		const range = { start: 1, end: 3, total: 3 };
+		const groups = [
+			group('Ungrouped', [loose]),
+			group('wide', [wide, mid, leaf], range),
+			group('other', [other, otherKid])
+		];
+		const merged = mergeRootedTrees(groups, tree);
+		expect(merged.map((g) => g.name)).toEqual(['Ungrouped', 'Nested']);
+		const [, trees] = merged;
+		expect(trees.key).toBe(ROOTED_TREES_KEY);
+		// Roots are ordinary rows of the merged group, not headers of their own.
+		expect(trees.entries!.map((entry) => entry.item.id)).toEqual(['wide', 'other']);
+		expect(trees.items.map((r) => r.id)).toEqual(['wide', 'mid', 'leaf', 'other', 'other-kid']);
+		expect(trees.rootRanges!.get('wide')).toEqual(range);
+		expect(trees.rootRanges!.has('other')).toBe(false);
+	});
+
+	it('keeps a group whose root is not shown under its own header', () => {
+		const groups = [group('wide', [mid, leaf]), group('other', [other, otherKid])];
+		expect(mergeRootedTrees(groups, tree).map((g) => g.name)).toEqual(['wide', 'Nested']);
+	});
+
+	it('leaves groups alone when none is a rooted tree', () => {
+		const groups = [group('Ungrouped', [loose])];
+		expect(mergeRootedTrees(groups, tree)).toBe(groups);
 	});
 });
 

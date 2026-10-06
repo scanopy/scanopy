@@ -59,6 +59,7 @@
 		common_updated,
 		daemons_installPromptSubnets,
 		subnets_managedBy,
+		subnets_nested,
 		subnets_resolveRange,
 		subnets_subnetType,
 		common_utilization
@@ -348,7 +349,8 @@
 					compare: (a, b) => compareCidr(a.cidr, b.cidr),
 					tree: {
 						key: (subnet) => subnet.id,
-						parentKey: (subnet) => subnet.parent_subnet_id ?? null
+						parentKey: (subnet) => subnet.parent_subnet_id ?? null,
+						rootsLabel: subnets_nested
 					},
 					display: { order: 3, getItems: cidrSourceItems() }
 				},

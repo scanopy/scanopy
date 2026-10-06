@@ -377,51 +377,47 @@
 		<tbody>
 			{#if groups}
 				{#each groups as group (group.key)}
-					{@const isCollapsed = group.headed && collapsed.has(group.key)}
-					{#if group.headed}
-						<tr class="border-t" style="border-color: var(--color-border)">
-							<!--
+					{@const isCollapsed = collapsed.has(group.key)}
+					<tr class="border-t" style="border-color: var(--color-border)">
+						<!--
 							scope="colgroup": this heading names the rows beneath it rather
 							than a column, so it is announced as the section it is.
 						-->
-							<th
-								scope="colgroup"
-								colspan={spannedColumns}
-								class="bg-black/[0.07] px-[var(--cell-px)] py-[var(--cell-py)] text-left dark:bg-white/[0.08]"
+						<th
+							scope="colgroup"
+							colspan={spannedColumns}
+							class="bg-black/[0.07] px-[var(--cell-px)] py-[var(--cell-py)] text-left dark:bg-white/[0.08]"
+						>
+							<button
+								type="button"
+								onclick={() => onToggleCollapse(group.key)}
+								aria-expanded={!isCollapsed}
+								class="text-primary flex items-center gap-2 text-sm font-semibold"
 							>
-								<button
-									type="button"
-									onclick={() => onToggleCollapse(group.key)}
-									aria-expanded={!isCollapsed}
-									class="text-primary flex items-center gap-2 text-sm font-semibold"
-								>
-									{#if isCollapsed}
-										<ChevronRight class="h-4 w-4" aria-hidden="true" />
+								{#if isCollapsed}
+									<ChevronRight class="h-4 w-4" aria-hidden="true" />
+								{:else}
+									<ChevronDown class="h-4 w-4" aria-hidden="true" />
+								{/if}
+								<span>{group.name}</span>
+								<span class="text-tertiary text-xs font-normal">
+									{#if group.range}
+										{common_groupTotalShowing({
+											total: group.range.total,
+											start: group.range.start,
+											end: group.range.end
+										})}
 									{:else}
-										<ChevronDown class="h-4 w-4" aria-hidden="true" />
+										({group.items.length})
 									{/if}
-									<span>{group.name}</span>
-									<span class="text-tertiary text-xs font-normal">
-										{#if group.range}
-											{common_groupTotalShowing({
-												total: group.range.total,
-												start: group.range.start,
-												end: group.range.end
-											})}
-										{:else}
-											({group.items.length})
-										{/if}
-									</span>
-								</button>
-							</th>
-						</tr>
-					{/if}
+								</span>
+							</button>
+						</th>
+					</tr>
 
 					{#if !isCollapsed}
 						{#if group.entries}
-							<!-- A headless group's root row stands in for the header, so it shows the
-							     group's page range where the header would have. -->
-							{@render treeEntries(group.entries, group.headed ? null : { range: group.range })}
+							{@render treeEntries(group.entries, group.rootRanges)}
 						{:else}
 							{#each group.items as item (getItemId(item))}
 								{@const row = rowById.get(getItemId(item))}
@@ -441,7 +437,8 @@
 	</table>
 </div>
 
-{#snippet treeEntries(entries: TreeEntry<T>[], root: { range: GroupSlice | null } | null)}
+<!-- `rootRanges` holds the merged group's roots' own page ranges; only the top level has any. -->
+{#snippet treeEntries(entries: TreeEntry<T>[], rootRanges: Map<string, GroupSlice> | null)}
 	{#each entries as entry (entryKey(entry))}
 		{@const row = rowById.get(getItemId(entry.item))}
 		{#if entry.type === 'row'}
@@ -450,7 +447,10 @@
 			{/if}
 		{:else}
 			{#if row}
-				{@render bodyRow(row, entry.depth, { section: entry, range: root?.range ?? null })}
+				{@render bodyRow(row, entry.depth, {
+					section: entry,
+					range: rootRanges?.get(getItemId(entry.item)) ?? null
+				})}
 			{/if}
 			{#if !collapsed.has(entry.key)}
 				{@render treeEntries(entry.entries, null)}

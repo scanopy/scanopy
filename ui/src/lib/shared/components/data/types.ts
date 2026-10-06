@@ -184,6 +184,12 @@ export interface TreeConfig<T> {
 	parentKey: (item: T) => string | null;
 	/** The row's depth as the server computed it. Required on a server-paginated list. */
 	depth?: (item: T) => number;
+	/**
+	 * The header of the one group that collects every tree under a real root ("Virtualized",
+	 * "Nested"), set apart from the rows outside any tree. Each root row inside it carries its own
+	 * chevron and count.
+	 */
+	rootsLabel: () => string;
 }
 
 /**

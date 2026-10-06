@@ -106,8 +106,8 @@ export type TreeEntry<T> = TreeRow<T> | TreeSection<T>;
 
 /**
  * What a tree row's first cell shows besides its value: the section when the row has children
- * (its chevron and count), else a spacer; and, for the root of a headless group, the group's page
- * range in place of the count.
+ * (its chevron and count), else a spacer; and, for a root in the merged group of trees, its own
+ * page range in place of the count.
  */
 export interface TreeCell<T> {
 	section: TreeSection<T> | null;
@@ -126,10 +126,49 @@ export interface RenderGroup<T> {
 	/** The group's nested sections when the grouping is a tree, else null. */
 	entries: TreeEntry<T>[] | null;
 	/**
-	 * Whether the group draws its own header. False for a group that is one tree under a real root:
-	 * the root's row already names it, and carries its chevron and the group's count.
+	 * For the merged group of trees (see `mergeRootedTrees`): each root's own page range, by the
+	 * root row's key, shown on that row in place of its count. Null otherwise.
 	 */
-	headed: boolean;
+	rootRanges: Map<string, GroupSlice> | null;
+}
+
+/** Collapse key of the merged group of trees; NUL keeps it apart from every group label. */
+export const ROOTED_TREES_KEY = `${String.fromCharCode(0)}rooted-trees`;
+
+/**
+ * Collect every group that is one tree under a real root into a single group headed
+ * `tree.rootsLabel()`, placed where the first of them was.
+ *
+ * Each such group is otherwise headed by its own root's name, with that root's row repeated
+ * under it, which reads as the root nesting under itself. Merged, the roots are ordinary rows
+ * carrying their own chevrons, and the shared header sets them apart from the rows outside any
+ * tree ("Virtualized" beside "Not Virtualized"). A root's own page range moves onto its row.
+ */
+export function mergeRootedTrees<T>(
+	groups: RenderGroup<T>[],
+	tree: TreeConfig<T>
+): RenderGroup<T>[] {
+	const isRooted = (group: RenderGroup<T>) =>
+		group.entries !== null && isSingleRootTree(group.entries, tree);
+	const rooted = groups.filter(isRooted);
+	if (rooted.length === 0) return groups;
+
+	const rootRanges = new Map<string, GroupSlice>();
+	for (const group of rooted) {
+		if (group.range) rootRanges.set(tree.key(group.entries![0].item), group.range);
+	}
+	const merged: RenderGroup<T> = {
+		key: ROOTED_TREES_KEY,
+		name: tree.rootsLabel(),
+		items: rooted.flatMap((group) => group.items),
+		range: null,
+		entries: rooted.flatMap((group) => group.entries!),
+		rootRanges
+	};
+
+	const at = groups.findIndex(isRooted);
+	const rest = groups.filter((group) => !isRooted(group));
+	return [...rest.slice(0, at), merged, ...rest.slice(at)];
 }
 
 interface TreeNode<T> {
@@ -168,12 +207,17 @@ export function buildTreeSections<T>(
 }
 
 /**
- * Whether a group's entries are one tree under a real root, so the root's row stands in for the
- * group header. A root whose parent is filtered out or on another page is not a real root: the
- * group header then names the ancestor that isn't shown.
+ * Whether a group's entries are one tree under a real root, so it joins the merged group of trees.
+ * A root whose parent is filtered out or on another page is not a real root: that group keeps its
+ * own header, which names the ancestor that isn't shown. A lone row with nothing under it is no
+ * tree, so a "Not Virtualized" group of one stays where it is.
  */
 export function isSingleRootTree<T>(entries: TreeEntry<T>[], tree: TreeConfig<T>): boolean {
-	return entries.length === 1 && tree.parentKey(entries[0].item) === null;
+	return (
+		entries.length === 1 &&
+		entries[0].type === 'section' &&
+		tree.parentKey(entries[0].item) === null
+	);
 }
 
 /** Every row of a group's entries, in the order they are drawn. */
