@@ -7,7 +7,6 @@
 		useBulkDeleteCredentialsMutation
 	} from '../queries';
 	import CredentialEditModal from './CredentialEditModal.svelte';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import type { Credential } from '../types/base';
@@ -474,17 +473,16 @@
 	);
 </script>
 
-<div class="space-y-6">
-	<TabHeader title={common_credentials()} subtitle={credentials_subtitle()}>
-		<svelte:fragment slot="actions">
-			{#if canManage}
-				<button class="btn-primary flex items-center" onclick={handleCreateCredential}>
-					<Plus class="h-5 w-5" />{common_create()}
-				</button>
-			{/if}
-		</svelte:fragment>
-	</TabHeader>
+<!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
+{#snippet toolbarActions()}
+	{#if canManage}
+		<button class="btn-primary toolbar-control flex items-center" onclick={handleCreateCredential}>
+			<Plus class="h-5 w-5" />{common_create()}
+		</button>
+	{/if}
+{/snippet}
 
+<div class="space-y-6">
 	{#if isLoading}
 		<Loading />
 	{:else if credentials.length === 0}
@@ -496,6 +494,9 @@
 		/>
 	{:else}
 		<DataControls
+			title={common_credentials()}
+			subtitle={credentials_subtitle()}
+			{toolbarActions}
 			items={credentials}
 			fields={credentialFields}
 			{allowBulkDelete}

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
@@ -808,9 +807,6 @@
 </script>
 
 <div class="space-y-6">
-	<!-- Header -->
-	<TabHeader title={common_services()} subtitle={services_subtitle()} />
-
 	{#if !hasDaemon(onboarding)}
 		<PreDaemonEmptyState title={daemons_installPromptServices()} {isReadOnly} />
 	{:else if isInitialLoading}
@@ -821,6 +817,8 @@
 		<EmptyState title={common_noEntityYet({ entity: common_services() })} subtitle="" />
 	{:else}
 		<DataControls
+			title={common_services()}
+			subtitle={services_subtitle()}
 			items={servicesData}
 			fields={serviceFields}
 			storageKey="scanopy-services-table-state"

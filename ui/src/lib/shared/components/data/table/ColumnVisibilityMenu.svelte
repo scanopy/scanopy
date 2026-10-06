@@ -126,7 +126,7 @@
 	<button
 		type="button"
 		onclick={() => (open = !open)}
-		class="btn-secondary h-[42px]"
+		class="btn-secondary toolbar-control"
 		aria-expanded={open}
 		aria-haspopup="true"
 		title={common_fields()}

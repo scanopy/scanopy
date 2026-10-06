@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { lastSeenItems } from '$lib/shared/utils/freshness';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
@@ -185,7 +184,6 @@
 
 <div class="space-y-6">
 	<!-- Header: no actions — VLANs are discovery-populated and view-only -->
-	<TabHeader title={common_vlans()} />
 
 	{#if !hasDaemon(onboarding)}
 		<PreDaemonEmptyState title={daemons_installPromptVlans()} />
@@ -200,6 +198,7 @@
 		/>
 	{:else}
 		<DataControls
+			title={common_vlans()}
 			items={vlansData}
 			fields={vlanFields}
 			storageKey="scanopy-vlans-table-state"

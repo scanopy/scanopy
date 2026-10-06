@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { credentialItems } from '$lib/features/credentials/columns';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import type { Site } from '../types';
@@ -352,38 +351,36 @@
 	]);
 </script>
 
-<div class="space-y-6">
-	<!-- Header -->
-	<TabHeader title={common_sites()}>
-		<svelte:fragment slot="actions">
-			<div class="flex items-center gap-3">
-				{#if siteLimit !== null && !canBuyMore}
-					<span
-						class="text-sm {isAtSiteLimit
-							? 'text-amber-400'
-							: isNearSiteLimit
-								? 'text-yellow-400'
-								: 'text-tertiary'}"
-					>
-						{sitesData.length} / {siteLimit}
-					</span>
+<!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
+{#snippet toolbarActions()}
+	<div class="flex items-center gap-3">
+		{#if siteLimit !== null && !canBuyMore}
+			<span
+				class="text-sm {isAtSiteLimit
+					? 'text-amber-400'
+					: isNearSiteLimit
+						? 'text-yellow-400'
+						: 'text-tertiary'}"
+			>
+				{sitesData.length} / {siteLimit}
+			</span>
+		{/if}
+		{#if canManageSites}
+			{#if isAtSiteLimit}
+				<UpgradeButton feature="sites" surface="sites_tab" gate_type="limit_hit" />
+			{:else}
+				{#if isNearSiteLimit}
+					<UpgradeButton feature="sites" surface="sites_tab" gate_type="limit_hit" />
 				{/if}
-				{#if canManageSites}
-					{#if isAtSiteLimit}
-						<UpgradeButton feature="sites" surface="sites_tab" gate_type="limit_hit" />
-					{:else}
-						{#if isNearSiteLimit}
-							<UpgradeButton feature="sites" surface="sites_tab" gate_type="limit_hit" />
-						{/if}
-						<button class="btn-primary flex items-center" onclick={handleCreateSite}
-							><Plus class="h-5 w-5" />{common_create()}</button
-						>
-					{/if}
-				{/if}
-			</div>
-		</svelte:fragment>
-	</TabHeader>
+				<button class="btn-primary toolbar-control flex items-center" onclick={handleCreateSite}
+					><Plus class="h-5 w-5" />{common_create()}</button
+				>
+			{/if}
+		{/if}
+	</div>
+{/snippet}
 
+<div class="space-y-6">
 	<!-- Loading state -->
 	{#if isLoading}
 		<Loading />
@@ -397,6 +394,8 @@
 		/>
 	{:else}
 		<DataControls
+			title={common_sites()}
+			{toolbarActions}
 			items={sitesData}
 			fields={siteFields}
 			onBulkDelete={handleBulkDelete}

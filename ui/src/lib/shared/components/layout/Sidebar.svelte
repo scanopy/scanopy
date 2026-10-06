@@ -36,12 +36,12 @@
 	import type { SubTab } from '$lib/shared/components/layout/ContentSubTabs.svelte';
 	import {
 		common_demo,
-		common_searchPlaceholder,
 		common_upgrade,
 		billing_trialPill,
 		billing_trialPillOneDay,
 		billing_trialPillToday,
 		globalSearch_openWithShortcut,
+		globalSearch_searchAll,
 		globalSearch_placeholder
 	} from '$lib/paraglide/messages';
 	import {
@@ -728,7 +728,7 @@
 			<button
 				onclick={toggleCollapse}
 				class="text-tertiary hover:text-secondary flex w-full items-center rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
-				style="height: 2rem; padding: 0.375rem 0.75rem;"
+				style="height: 38px; padding: 0.375rem 0.75rem;"
 				aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
 			>
 				<Menu class="h-5 w-5 flex-shrink-0" />
@@ -745,17 +745,21 @@
 			<!-- Global search. Collapsed, the bar shrinks to its icon and the shortcut moves to the
 			     tooltip, the way every other collapsed sidebar item keeps its label. -->
 			{#if mainAppAvailable && !mainAppLocked}
+				<!-- Styled as the search input it opens, like every other search box: same border,
+				     height and key chip. -->
 				<button
 					type="button"
 					onclick={() => globalSearchOpen.set(true)}
-					class="{inactiveButtonClass} mt-2 flex w-full items-center gap-2 rounded-lg text-sm"
-					style="height: 2rem; padding: 0.375rem 0.75rem;"
+					class="{collapsed
+						? `${inactiveButtonClass} justify-center rounded-lg`
+						: 'input-field text-muted hover:border-gray-400 dark:hover:border-gray-500'} toolbar-control mt-2 flex w-full items-center gap-2 px-3"
 					title={collapsed ? globalSearch_openWithShortcut({ shortcut: searchShortcut }) : ''}
 					aria-label={globalSearch_placeholder()}
+					aria-keyshortcuts={searchShortcut}
 				>
-					<Search class="h-4 w-4 flex-shrink-0" />
+					<Search class="text-tertiary h-4 w-4 flex-shrink-0" />
 					{#if !collapsed}
-						<span class="flex-1 truncate text-left">{common_searchPlaceholder()}</span>
+						<span class="flex-1 truncate text-left">{globalSearch_searchAll()}</span>
 						<KbdKey key={searchShortcut} size="sm" />
 					{/if}
 				</button>

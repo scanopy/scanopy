@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ChevronLeft, ChevronRight } from 'lucide-svelte';
+	import { ChevronLeft, ChevronRight, FunnelX } from 'lucide-svelte';
 	import { PAGE_SIZE_OPTIONS, type PageSizeOption } from '../types';
 	import {
 		common_noItems,
@@ -12,7 +12,10 @@
 		common_show,
 		common_previousPage,
 		common_nextPage,
-		common_pageOf
+		common_pageOf,
+		common_clearAll,
+		common_filterApplied,
+		common_nFiltersApplied
 	} from '$lib/paraglide/messages';
 
 	let {
@@ -31,7 +34,9 @@
 		itemCount,
 		onPrevPage,
 		onNextPage,
-		onPageSizeChange
+		onPageSizeChange,
+		filterCount = 0,
+		onClearFilters = undefined
 	}: {
 		totalCount: number;
 		totalPages: number;
@@ -48,34 +53,58 @@
 		onPrevPage: () => void;
 		onNextPage: () => void;
 		onPageSizeChange: (size: PageSizeOption) => void;
+		/** Filters set from the column headers; shown beside the count with a way to clear them. */
+		filterCount?: number;
+		onClearFilters?: () => void;
 	} = $props();
 </script>
 
 <div class="text-tertiary flex items-center justify-between text-sm">
-	<span>
-		{#if totalCount === 0}
-			{common_noItems()}
-		{:else if totalPages > 1}
-			{common_showingRange({
-				start: showingStart,
-				end: showingEnd,
-				total: totalCount,
-				itemLabel: totalCount === 1 ? common_item() : common_items()
-			})}
-		{:else if useServerPagination}
-			{common_showingTotal({
-				count: totalCount,
-				total: totalCount,
-				itemLabel: totalCount === 1 ? common_item() : common_items()
-			})}
-		{:else}
-			{common_showingTotal({
-				count: processedCount,
-				total: itemCount,
-				itemLabel: itemCount === 1 ? common_item() : common_items()
-			})}
+	<div class="flex items-center gap-2">
+		<span>
+			{#if totalCount === 0}
+				{common_noItems()}
+			{:else if totalPages > 1}
+				{common_showingRange({
+					start: showingStart,
+					end: showingEnd,
+					total: totalCount,
+					itemLabel: totalCount === 1 ? common_item() : common_items()
+				})}
+			{:else if useServerPagination}
+				{common_showingTotal({
+					count: totalCount,
+					total: totalCount,
+					itemLabel: totalCount === 1 ? common_item() : common_items()
+				})}
+			{:else}
+				{common_showingTotal({
+					count: processedCount,
+					total: itemCount,
+					itemLabel: itemCount === 1 ? common_item() : common_items()
+				})}
+			{/if}
+		</span>
+		<!-- Same pattern as the topology options panel's filter clearing. -->
+		{#if filterCount > 0}
+			<span aria-hidden="true">·</span>
+			<span
+				>{filterCount === 1
+					? common_filterApplied()
+					: common_nFiltersApplied({ count: filterCount })}</span
+			>
+			{#if onClearFilters}
+				<button
+					type="button"
+					class="btn-secondary shrink-0 gap-1 rounded px-1.5 py-0 text-xs font-medium"
+					onclick={onClearFilters}
+				>
+					<FunnelX class="h-3 w-3" />
+					{common_clearAll()}
+				</button>
+			{/if}
 		{/if}
-	</span>
+	</div>
 	<div class="flex items-center gap-4">
 		{#if groupCount !== null}
 			<span>

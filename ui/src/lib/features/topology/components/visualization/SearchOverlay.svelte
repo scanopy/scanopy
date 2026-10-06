@@ -28,6 +28,8 @@
 	import { selectNode, type SelectionStores } from '../../selection';
 	import { formatEntityLabel, viewEntityTypes } from '../../labels';
 	import { focusNodes } from '../../viewport-fit';
+	import { browser } from '$app/environment';
+	import { shortcutLabel } from '$lib/features/search/results';
 	import {
 		topology_searchPlaceholder,
 		topology_searchNoMatches,
@@ -38,6 +40,8 @@
 	} from '$lib/paraglide/messages';
 
 	const { fitBounds, getNode, getInternalNode } = useSvelteFlow();
+
+	const findShortcut = shortcutLabel(browser ? navigator.platform : '', 'F');
 
 	/** Move the camera onto a node. See `boundsOfAdoptedNodes` for why this is not `fitView`. */
 	function focusNode(id: string) {
@@ -225,6 +229,7 @@
 							entities: formatEntityLabel(viewEntityTypes(currentView)),
 							view: views.getName(currentView) ?? currentView
 						})}
+						shortcut={findShortcut}
 						onInput={(value) => (query = value)}
 						onkeydown={handleKeydown}
 					>

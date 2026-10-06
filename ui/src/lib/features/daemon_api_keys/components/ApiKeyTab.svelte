@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Edit, Trash2 } from 'lucide-svelte';
 	import type { CardAction } from '$lib/shared/components/data/types';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import type { FieldConfig } from '$lib/shared/components/data/types';
@@ -239,7 +238,6 @@
 		subtitle rather than as a per-row tag that would say the same thing on
 		every row.
 	-->
-	<TabHeader title={daemonApiKeys_title()} subtitle={daemons_legacyKeyHelp()} />
 	<!-- Loading state -->
 	{#if isLoading}
 		<Loading />
@@ -251,6 +249,8 @@
 		/>
 	{:else}
 		<DataControls
+			title={daemonApiKeys_title()}
+			subtitle={daemons_legacyKeyHelp()}
 			items={apiKeysData}
 			fields={apiKeyFields}
 			onBulkDelete={isReadOnly ? undefined : handleBulkDelete}

@@ -7,7 +7,6 @@
 		useBulkDeleteTagsMutation
 	} from '../queries';
 	import TagEditModal from './TagEditModal.svelte';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import type { Tag } from '../types/base';
@@ -227,17 +226,16 @@
 	);
 </script>
 
-<div class="space-y-6">
-	<TabHeader title={common_tags()} subtitle={tags_subtitle()}>
-		<svelte:fragment slot="actions">
-			{#if canManage}
-				<button class="btn-primary flex items-center" onclick={handleCreateTag}>
-					<Plus class="h-5 w-5" />{common_create()}
-				</button>
-			{/if}
-		</svelte:fragment>
-	</TabHeader>
+<!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
+{#snippet toolbarActions()}
+	{#if canManage}
+		<button class="btn-primary toolbar-control flex items-center" onclick={handleCreateTag}>
+			<Plus class="h-5 w-5" />{common_create()}
+		</button>
+	{/if}
+{/snippet}
 
+<div class="space-y-6">
 	{#if isLoading}
 		<Loading />
 	{:else if tags.length === 0}
@@ -249,6 +247,9 @@
 		/>
 	{:else}
 		<DataControls
+			title={common_tags()}
+			subtitle={tags_subtitle()}
+			{toolbarActions}
 			items={tags}
 			fields={tagFields}
 			{allowBulkDelete}

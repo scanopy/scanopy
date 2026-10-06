@@ -290,12 +290,23 @@ export function isFieldFilterActive<T>(
 	return filter.values.size > 0;
 }
 
+/** How many filters currently narrow the list: one per filtered column, plus Stale only. */
+export function activeFilterCount<T>(
+	fields: FieldConfig<T>[],
+	filterState: FilterState,
+	staleOnly: boolean
+): number {
+	const columns = fields.filter((field) =>
+		isFieldFilterActive(field, filterState[getFieldKey(field)])
+	).length;
+	return columns + (staleOnly ? 1 : 0);
+}
+
 /** Whether any filter would currently narrow the list. */
 export function hasActiveFilters<T>(
 	fields: FieldConfig<T>[],
 	filterState: FilterState,
 	staleOnly: boolean
 ): boolean {
-	if (staleOnly) return true;
-	return fields.some((field) => isFieldFilterActive(field, filterState[getFieldKey(field)]));
+	return activeFilterCount(fields, filterState, staleOnly) > 0;
 }

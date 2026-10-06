@@ -102,6 +102,13 @@
 		@apply px-5 py-2.5 text-base;
 	}
 
+	/* One height for everything on a page's toolbar row: the filter input, icon buttons and the
+	   page's own actions. Matches an `input-field` at `text-sm`, and the sidebar search, so the
+	   toolbar lines up with it. */
+	.toolbar-control {
+		@apply h-[38px] py-0 text-sm;
+	}
+
 	/* Secondary action button - outlined, less prominent */
 	.btn-secondary {
 		@apply bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800;

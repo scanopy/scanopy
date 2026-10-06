@@ -8,6 +8,8 @@
 -->
 <script lang="ts">
 	import throttle from 'just-throttle';
+	import { get } from 'svelte/store';
+	import { ListFilter } from 'lucide-svelte';
 	import { createForm } from '@tanstack/svelte-form';
 	import GenericModal from './GenericModal.svelte';
 	import SearchInput from '$lib/shared/components/forms/input/SearchInput.svelte';
@@ -22,6 +24,9 @@
 		globalSearchRestoreQuery,
 		isGlobalSearchShortcut,
 		moveHighlight,
+		pageFilters,
+		visiblePageFilter,
+		type PageFilter,
 		type SearchGroup,
 		type SearchRow
 	} from '$lib/features/search/results';
@@ -38,6 +43,7 @@
 		common_services,
 		common_subnets,
 		common_vlans,
+		globalSearch_filterPage,
 		globalSearch_noResults,
 		globalSearch_placeholder
 	} from '$lib/paraglide/messages';
@@ -92,12 +98,26 @@
 				vlansQuery.isPending)
 	);
 
+	/**
+	 * The filter of the list page the palette was opened over, captured on open. While there is a
+	 * query it heads the results as "Filter hosts for '...'", so one shortcut reaches both the
+	 * page's own filter and every site.
+	 */
+	let pageFilter = $state<PageFilter | null>(null);
+	$effect(() => {
+		if ($globalSearchOpen) pageFilter = visiblePageFilter(get(pageFilters));
+	});
+
+	/** 1 while the page-filter row heads the list, shifting every entity row down one. */
+	let filterOffset = $derived(pageFilter && query.trim() ? 1 : 0);
+	let total = $derived(filterOffset + rows.length);
+
 	// A new result set starts with its first row highlighted, so Enter opens the best match. Keyed on
 	// the highlight being out of range rather than on `rows` changing: `rows` is rebuilt whenever any
 	// of the four queries updates, and resetting on that threw the highlight back to the top mid-list.
 	$effect(() => {
-		if (rows.length === 0) highlighted = -1;
-		else if (highlighted < 0 || highlighted >= rows.length) highlighted = 0;
+		if (total === 0) highlighted = -1;
+		else if (highlighted < 0 || highlighted >= total) highlighted = 0;
 	});
 
 	// Reopened by "Back to Search" from an entity opened here: restore the query it was opened from.
@@ -118,7 +138,14 @@
 	};
 
 	function rowIndex(row: SearchRow<Entity>): number {
-		return rows.indexOf(row);
+		return rows.indexOf(row) + filterOffset;
+	}
+
+	function applyPageFilter() {
+		const filter = pageFilter;
+		const value = query.trim();
+		close();
+		filter?.apply(value);
 	}
 
 	function close() {
@@ -146,13 +173,14 @@
 	function handleInputKeydown(event: KeyboardEvent) {
 		if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
 			event.preventDefault();
-			highlighted = moveHighlight(highlighted, event.key === 'ArrowDown' ? 1 : -1, rows.length);
+			highlighted = moveHighlight(highlighted, event.key === 'ArrowDown' ? 1 : -1, total);
 			document
 				.getElementById(`global-search-row-${highlighted}`)
 				?.scrollIntoView({ block: 'nearest' });
-		} else if (event.key === 'Enter' && highlighted >= 0 && rows[highlighted]) {
+		} else if (event.key === 'Enter' && highlighted >= 0) {
 			event.preventDefault();
-			openRow(rows[highlighted]);
+			if (highlighted < filterOffset) applyPageFilter();
+			else if (rows[highlighted - filterOffset]) openRow(rows[highlighted - filterOffset]);
 		}
 	}
 
@@ -187,9 +215,30 @@
 		{/snippet}
 	</form.Field>
 
-	{#if hasSearch}
+	{#if hasSearch || filterOffset}
 		<div class="max-h-[60vh] overflow-y-auto px-2 pb-2" role="listbox">
-			{#if isLoading && rows.length === 0}
+			{#if pageFilter && filterOffset}
+				<button
+					id="global-search-row-0"
+					type="button"
+					role="option"
+					aria-selected={highlighted === 0}
+					class="mb-2 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors {highlighted ===
+					0
+						? 'bg-gray-100 dark:bg-gray-800'
+						: 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}"
+					onmousemove={() => (highlighted = 0)}
+					onclick={applyPageFilter}
+				>
+					<ListFilter class="text-tertiary h-4 w-4 flex-shrink-0" />
+					<span class="text-primary truncate"
+						>{globalSearch_filterPage({ entity: pageFilter.entity, query: query.trim() })}</span
+					>
+				</button>
+			{/if}
+			{#if !hasSearch}
+				<!-- Only the page-filter row so far; results arrive after the throttle. -->
+			{:else if isLoading && rows.length === 0}
 				<p class="text-tertiary px-2 py-3 text-sm">{common_loading()}</p>
 			{:else if hasSearch && rows.length === 0}
 				<p class="text-tertiary px-2 py-3 text-sm">{globalSearch_noResults({ query: search })}</p>

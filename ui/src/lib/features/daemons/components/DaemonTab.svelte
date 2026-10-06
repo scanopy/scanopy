@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { formatLongDate } from '$lib/shared/utils/formatting';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
@@ -516,18 +515,16 @@
 	{/if}
 {/snippet}
 
-<div class="space-y-6">
-	<!-- Header -->
-	<TabHeader title={common_daemons()}>
-		<svelte:fragment slot="actions">
-			{#if !isReadOnly}
-				<button class="btn-primary flex items-center" onclick={handleCreateDaemon}
-					><Plus class="h-5 w-5" />{common_create()}</button
-				>
-			{/if}
-		</svelte:fragment>
-	</TabHeader>
+<!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
+{#snippet toolbarActions()}
+	{#if !isReadOnly}
+		<button class="btn-primary toolbar-control flex items-center" onclick={handleCreateDaemon}
+			><Plus class="h-5 w-5" />{common_create()}</button
+		>
+	{/if}
+{/snippet}
 
+<div class="space-y-6">
 	<!-- Loading state -->
 	{#if isLoading}
 		<Loading />
@@ -549,6 +546,8 @@
 			</div>
 		{/if}
 		<DataControls
+			title={common_daemons()}
+			{toolbarActions}
 			items={daemonsData}
 			fields={daemonFields}
 			storageKey="scanopy-daemons-table-state"

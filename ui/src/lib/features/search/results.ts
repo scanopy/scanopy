@@ -66,7 +66,55 @@ export function isGlobalSearchShortcut(
 	);
 }
 
-/** The shortcut as the sidebar shows it: `⌘K` on macOS, `Ctrl K` elsewhere. */
-export function shortcutLabel(platform: string): string {
-	return /mac|iphone|ipad/i.test(platform) ? '⌘K' : 'Ctrl K';
+/** A Cmd/Ctrl shortcut as a key chip shows it: `⌘K` on macOS, `Ctrl K` elsewhere. */
+export function shortcutLabel(platform: string, key = 'K'): string {
+	return /mac|iphone|ipad/i.test(platform) ? `⌘${key}` : `Ctrl ${key}`;
+}
+
+/** The key that focuses a list page's filter. */
+export const PAGE_FILTER_KEY = '/';
+
+/**
+ * Whether a keypress should focus the page filter: a bare `/` while nothing editable has focus,
+ * so typing a slash into any field still types it.
+ */
+export function isPageFilterShortcut(
+	event: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'target'>
+): boolean {
+	if (event.key !== PAGE_FILTER_KEY || event.metaKey || event.ctrlKey || event.altKey) return false;
+	const target = event.target as HTMLElement | null;
+	return !(
+		target &&
+		(target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+	);
+}
+
+/** A list page's filter, as the Cmd+K palette offers it. */
+export interface PageFilter {
+	/** The entities the page lists, lowercase plural ("hosts"). */
+	entity: string;
+	/** Whether this page is the one on screen; list pages stay mounted behind other tabs. */
+	isVisible: () => boolean;
+	/** Set the page's filter to `query` and focus it. */
+	apply: (query: string) => void;
+}
+
+/** Every mounted list page's filter. The palette offers the visible one. */
+export const pageFilters = writable<Set<PageFilter>>(new Set());
+
+/** Register a page's filter for the palette; returns the unregister function. */
+export function registerPageFilter(filter: PageFilter): () => void {
+	pageFilters.update((set) => new Set(set).add(filter));
+	return () =>
+		pageFilters.update((set) => {
+			const next = new Set(set);
+			next.delete(filter);
+			return next;
+		});
+}
+
+/** The filter of the list page on screen, if any. */
+export function visiblePageFilter(filters: Iterable<PageFilter>): PageFilter | null {
+	for (const filter of filters) if (filter.isVisible()) return filter;
+	return null;
 }

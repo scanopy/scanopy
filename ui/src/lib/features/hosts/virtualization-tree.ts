@@ -9,7 +9,7 @@
  * page.
  */
 import type { TreeConfig } from '$lib/shared/components/data/types';
-import { hosts_virtualized } from '$lib/paraglide/messages';
+import { common_virtualized } from '$lib/paraglide/messages';
 import { hostDisplayName } from './host-display-name';
 import type { Host } from './types/base';
 
@@ -58,5 +58,5 @@ export const virtualizationTree: TreeConfig<TreeHost> = {
 	key: (host) => host.id,
 	parentKey: (host) => host.virtualization_parent_host_id ?? null,
 	depth: (host) => host.virtualization_depth ?? 0,
-	rootsLabel: hosts_virtualized
+	rootsLabel: () => common_virtualized()
 };

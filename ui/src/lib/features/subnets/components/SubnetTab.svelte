@@ -6,7 +6,6 @@
 	import { nestedRangeOf, subnetNesting, utilizationRatio } from '../nesting';
 	import SubnetEditModal from './SubnetEditModal/SubnetEditModal.svelte';
 	import ProvisionalRangeModal from './ProvisionalRangeModal.svelte';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
@@ -41,6 +40,7 @@
 		common_cidr,
 		common_confirmDeleteName,
 		common_create,
+		common_nested,
 		common_confirmBulkDelete,
 		common_created,
 		common_description,
@@ -59,7 +59,6 @@
 		common_updated,
 		daemons_installPromptSubnets,
 		subnets_managedBy,
-		subnets_nested,
 		subnets_resolveRange,
 		subnets_subnetType,
 		common_utilization
@@ -350,7 +349,7 @@
 					tree: {
 						key: (subnet) => subnet.id,
 						parentKey: (subnet) => subnet.parent_subnet_id ?? null,
-						rootsLabel: subnets_nested
+						rootsLabel: () => common_nested()
 					},
 					display: { order: 3, getItems: cidrSourceItems() }
 				},
@@ -489,18 +488,16 @@
 	<SubnetUtilization {subnet} />
 {/snippet}
 
-<div class="space-y-6">
-	<!-- Header -->
-	<TabHeader title={common_subnets()}>
-		<svelte:fragment slot="actions">
-			{#if hasDaemon(onboarding) && !isReadOnly}
-				<button class="btn-primary flex items-center" onclick={handleCreateSubnet}
-					><Plus class="h-5 w-5" />{common_create()}</button
-				>
-			{/if}
-		</svelte:fragment>
-	</TabHeader>
+<!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
+{#snippet toolbarActions()}
+	{#if hasDaemon(onboarding) && !isReadOnly}
+		<button class="btn-primary toolbar-control flex items-center" onclick={handleCreateSubnet}
+			><Plus class="h-5 w-5" />{common_create()}</button
+		>
+	{/if}
+{/snippet}
 
+<div class="space-y-6">
 	{#if !hasDaemon(onboarding)}
 		<PreDaemonEmptyState title={daemons_installPromptSubnets()} {isReadOnly} />
 	{:else if isLoading}
@@ -521,6 +518,8 @@
 		/>
 	{:else}
 		<DataControls
+			title={common_subnets()}
+			{toolbarActions}
 			items={subnetsData}
 			fields={subnetFields}
 			storageKey="scanopy-subnets-table-state"

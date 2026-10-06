@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { discoveryPhases, discoveryTypes } from '$lib/shared/stores/metadata';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
@@ -499,9 +498,6 @@
 {/snippet}
 
 <div class="space-y-6">
-	<!-- Header -->
-	<TabHeader title={discovery_historyTitle()} />
-
 	{#if !hasDaemon(onboarding)}
 		<PreDaemonEmptyState title={daemons_installPromptDiscoveries()} {isReadOnly} />
 	{:else if isLoading}
@@ -520,6 +516,7 @@
 		/>
 	{:else}
 		<DataControls
+			title={discovery_historyTitle()}
 			items={discoveriesData}
 			{fields}
 			onBulkDelete={isReadOnly ? undefined : handleBulkDelete}

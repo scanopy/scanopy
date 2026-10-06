@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { billingPlans, discoveryTypes } from '$lib/shared/stores/metadata';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
@@ -492,18 +491,16 @@
 	{/if}
 {/snippet}
 
-<div class="space-y-6">
-	<!-- Header -->
-	<TabHeader title={common_scans()}>
-		<svelte:fragment slot="actions">
-			{#if hasDaemon(onboarding) && !isReadOnly}
-				<button class="btn-primary flex items-center" onclick={handleCreateDiscovery}
-					><Plus class="h-5 w-5" />{common_create()}</button
-				>
-			{/if}
-		</svelte:fragment>
-	</TabHeader>
+<!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
+{#snippet toolbarActions()}
+	{#if hasDaemon(onboarding) && !isReadOnly}
+		<button class="btn-primary toolbar-control flex items-center" onclick={handleCreateDiscovery}
+			><Plus class="h-5 w-5" />{common_create()}</button
+		>
+	{/if}
+{/snippet}
 
+<div class="space-y-6">
 	{#if hasLegacyDaemons}
 		<InlineWarning
 			title=""
@@ -526,6 +523,8 @@
 		/>
 	{:else}
 		<DataControls
+			title={common_scans()}
+			{toolbarActions}
 			items={discoveriesData.filter(
 				(d) => d.run_type.type == 'AdHoc' || d.run_type.type == 'Scheduled'
 			)}

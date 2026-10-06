@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Edit, Trash2 } from 'lucide-svelte';
 	import type { CardAction } from '$lib/shared/components/data/types';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
@@ -271,25 +270,24 @@
 	];
 </script>
 
-<div class="space-y-6">
-	<TabHeader title={common_apiKeys()} subtitle={userApiKeys_subtitle()}>
-		<svelte:fragment slot="actions">
-			{#if !isReadOnly && hasApiAccess}
-				{#if !isEmailVerified}
-					<span data-tooltip={userApiKeys_verifyEmailToCreate()} use:tooltip>
-						<button class="btn-primary flex items-center opacity-50" disabled>
-							<Plus class="h-5 w-5" />{common_create()}
-						</button>
-					</span>
-				{:else}
-					<button class="btn-primary flex items-center" onclick={handleCreate}>
-						<Plus class="h-5 w-5" />{common_create()}
-					</button>
-				{/if}
-			{/if}
-		</svelte:fragment>
-	</TabHeader>
+<!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
+{#snippet toolbarActions()}
+	{#if !isReadOnly && hasApiAccess}
+		{#if !isEmailVerified}
+			<span data-tooltip={userApiKeys_verifyEmailToCreate()} use:tooltip>
+				<button class="btn-primary toolbar-control flex items-center opacity-50" disabled>
+					<Plus class="h-5 w-5" />{common_create()}
+				</button>
+			</span>
+		{:else}
+			<button class="btn-primary toolbar-control flex items-center" onclick={handleCreate}>
+				<Plus class="h-5 w-5" />{common_create()}
+			</button>
+		{/if}
+	{/if}
+{/snippet}
 
+<div class="space-y-6">
 	{#if !hasApiAccess}
 		<EmptyState
 			title={userApiKeys_apiAccessUnavailableTitle()}
@@ -308,6 +306,9 @@
 		/>
 	{:else}
 		<DataControls
+			title={common_apiKeys()}
+			subtitle={userApiKeys_subtitle()}
+			{toolbarActions}
 			items={userApiKeysData}
 			fields={apiKeyFields}
 			onBulkDelete={isReadOnly ? undefined : handleBulkDelete}

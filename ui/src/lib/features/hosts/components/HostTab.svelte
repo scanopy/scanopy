@@ -5,7 +5,6 @@
 		CreateHostWithServicesRequest,
 		UpdateHostWithServicesRequest
 	} from '../types/base';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
@@ -1061,40 +1060,38 @@
 	{/if}
 {/snippet}
 
-<div class="space-y-6">
-	<!-- Header -->
-	<TabHeader title={common_hosts()}>
-		<svelte:fragment slot="actions">
-			{#if hasDaemon(onboarding)}
-				<div class="flex items-center gap-3">
-					{#if hostLimit !== null && !canBuyMoreHosts}
-						<span
-							class="text-sm {isAtHostLimit
-								? 'text-amber-400'
-								: isNearHostLimit
-									? 'text-yellow-400'
-									: 'text-tertiary'}"
-						>
-							{totalHostCount} / {hostLimit}
-						</span>
-					{/if}
-					{#if !isReadOnly}
-						{#if isAtHostLimit}
-							<UpgradeButton feature="hosts" surface="hosts_tab" gate_type="limit_hit" />
-						{:else}
-							{#if isNearHostLimit}
-								<UpgradeButton feature="hosts" surface="hosts_tab" gate_type="limit_hit" />
-							{/if}
-							<button class="btn-primary flex items-center" onclick={handleCreateHost}
-								><Plus class="h-5 w-5" />{common_create()}</button
-							>
-						{/if}
-					{/if}
-				</div>
+<!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
+{#snippet toolbarActions()}
+	{#if hasDaemon(onboarding)}
+		<div class="flex items-center gap-3">
+			{#if hostLimit !== null && !canBuyMoreHosts}
+				<span
+					class="text-sm {isAtHostLimit
+						? 'text-amber-400'
+						: isNearHostLimit
+							? 'text-yellow-400'
+							: 'text-tertiary'}"
+				>
+					{totalHostCount} / {hostLimit}
+				</span>
 			{/if}
-		</svelte:fragment>
-	</TabHeader>
+			{#if !isReadOnly}
+				{#if isAtHostLimit}
+					<UpgradeButton feature="hosts" surface="hosts_tab" gate_type="limit_hit" />
+				{:else}
+					{#if isNearHostLimit}
+						<UpgradeButton feature="hosts" surface="hosts_tab" gate_type="limit_hit" />
+					{/if}
+					<button class="btn-primary toolbar-control flex items-center" onclick={handleCreateHost}
+						><Plus class="h-5 w-5" />{common_create()}</button
+					>
+				{/if}
+			{/if}
+		</div>
+	{/if}
+{/snippet}
 
+<div class="space-y-6">
 	{#if !hasDaemon(onboarding)}
 		<PreDaemonEmptyState title={daemons_installPromptHosts()} {isReadOnly} />
 	{:else if isInitialLoading}
@@ -1110,6 +1107,8 @@
 		/>
 	{:else}
 		<DataControls
+			title={common_hosts()}
+			{toolbarActions}
 			items={hostsData}
 			fields={hostFields}
 			storageKey="scanopy-hosts-table-state"

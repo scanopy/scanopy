@@ -1,4 +1,5 @@
 <script lang="ts" generics="T">
+	import type { Snippet } from 'svelte';
 	import {
 		type FieldConfig,
 		getFieldKey,
@@ -22,6 +23,7 @@
 		blankFilterState,
 		restoredServerFilters,
 		hasActiveFilters as hasActiveFiltersOf,
+		activeFilterCount as activeFilterCountOf,
 		type FilterState
 	} from './controls/filtering';
 	import { createFilterActions } from './controls/filterActions';
@@ -140,7 +142,12 @@
 		// Names the table for screen readers, e.g. "Hosts".
 		entityLabel = null,
 		// The grouping and sort the tab opens with until the user picks their own.
-		defaults = {}
+		defaults = {},
+		// The page's own actions (Create), last in the toolbar.
+		toolbarActions = undefined,
+		// The page title and its hover note, first in the toolbar row.
+		title = null,
+		subtitle = null
 	}: {
 		items: T[];
 		fields: FieldConfig<T>[];
@@ -185,6 +192,9 @@
 		// Accessible name for the table, e.g. "Hosts".
 		entityLabel?: string | null;
 		defaults?: TableDefaults;
+		toolbarActions?: Snippet;
+		title?: string | null;
+		subtitle?: string | null;
 	} = $props();
 
 	// Tags query for filter display
@@ -643,6 +653,7 @@
 	let hasBulkTagging = $derived(entityType !== null && getItemTags !== null);
 
 	let hasActiveFilters = $derived(hasActiveFiltersOf(fields, filterState, staleOnly));
+	let activeFilterCount = $derived(activeFilterCountOf(fields, filterState, staleOnly));
 
 	let hasActiveSearch = $derived(searchQuery.trim().length > 0);
 	let hasActiveGrouping = $derived(activeGroupField !== null);
@@ -811,17 +822,21 @@
 	<!-- Sentinel for sticky detection -->
 	<div bind:this={sentinelRef} class="h-0 w-full"></div>
 
-	<!-- Sticky Controls Bar -->
+	<!-- Sticky Controls Bar. `!mt-0`: the zero-height sentinel above would otherwise give it the
+	     group's gap, putting the toolbar 16px below the sidebar's first row instead of level. -->
 	<div
-		class="sticky top-0 z-20 -mx-4 border-b bg-[var(--color-bg-body)] px-4 pb-4 {isStuck
+		class="sticky top-0 z-20 -mx-4 !mt-0 border-b bg-[var(--color-bg-body)] px-4 pb-4 {isStuck
 			? 'border-gray-700 pt-4 shadow-lg'
 			: 'border-transparent'}"
 	>
 		<ControlsBar
 			bind:searchQuery
-			{hasActiveSearch}
 			onClearSearch={clearSearch}
 			onExport={onExportClick ?? onCsvExport}
+			{entityLabel}
+			actions={toolbarActions}
+			{title}
+			{subtitle}
 		>
 			{#snippet columnMenu()}
 				<ColumnVisibilityMenu
@@ -832,13 +847,6 @@
 					onReorder={reorderColumns}
 					onReset={resetColumns}
 				/>
-			{/snippet}
-			{#snippet filterActions()}
-				{#if hasActiveFilters}
-					<button onclick={filters.clearAll} class="btn-secondary h-[42px] whitespace-nowrap">
-						{common_clearAll()}
-					</button>
-				{/if}
 			{/snippet}
 		</ControlsBar>
 	</div>
@@ -868,6 +876,8 @@
 		canGoPrev={page.canGoPrev}
 		canGoNext={page.canGoNext}
 		groupCount={hasActiveGrouping ? groupedItems.size : null}
+		filterCount={activeFilterCount}
+		onClearFilters={filters.clearAll}
 		{useServerPagination}
 		processedCount={processedItems.length}
 		itemCount={items.length}

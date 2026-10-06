@@ -4,7 +4,6 @@
 	import type { LabelledCardFieldItem } from '$lib/shared/components/data/types';
 	import { Edit, UserX, Trash2 } from 'lucide-svelte';
 	import type { CardAction } from '$lib/shared/components/data/types';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
@@ -421,37 +420,35 @@
 	];
 </script>
 
-<div class="space-y-6">
-	<!-- Header -->
-	<TabHeader title={common_users()} subtitle={users_subtitle()}>
-		<svelte:fragment slot="actions">
-			<div class="flex items-center gap-3">
-				{#if seatLimit !== null && !canBuyMoreSeats}
-					<span class="text-sm {isAtSeatLimit ? 'text-amber-400' : 'text-tertiary'}">
-						{userCount} / {seatLimit}
-					</span>
-				{/if}
-				{#if canInviteUsers}
-					{#if isAtSeatLimit}
-						<UpgradeButton feature="seats" surface="users_tab" gate_type="limit_hit" />
-					{:else if currentUser && !currentUser.email_verified}
-						<span data-tooltip={users_verifyEmailToInvite()} use:tooltip>
-							<button class="btn-primary flex items-center opacity-50" disabled>
-								<UserPlus class="mr-2 h-5 w-5" />
-								{users_inviteUser()}
-							</button>
-						</span>
-					{:else}
-						<button class="btn-primary flex items-center" onclick={handleCreateInvite}>
-							<UserPlus class="mr-2 h-5 w-5" />
-							{users_inviteUser()}
-						</button>
-					{/if}
-				{/if}
-			</div>
-		</svelte:fragment>
-	</TabHeader>
+<!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
+{#snippet toolbarActions()}
+	<div class="flex items-center gap-3">
+		{#if seatLimit !== null && !canBuyMoreSeats}
+			<span class="text-sm {isAtSeatLimit ? 'text-amber-400' : 'text-tertiary'}">
+				{userCount} / {seatLimit}
+			</span>
+		{/if}
+		{#if canInviteUsers}
+			{#if isAtSeatLimit}
+				<UpgradeButton feature="seats" surface="users_tab" gate_type="limit_hit" />
+			{:else if currentUser && !currentUser.email_verified}
+				<span data-tooltip={users_verifyEmailToInvite()} use:tooltip>
+					<button class="btn-primary toolbar-control flex items-center opacity-50" disabled>
+						<UserPlus class="mr-2 h-5 w-5" />
+						{users_inviteUser()}
+					</button>
+				</span>
+			{:else}
+				<button class="btn-primary toolbar-control flex items-center" onclick={handleCreateInvite}>
+					<UserPlus class="mr-2 h-5 w-5" />
+					{users_inviteUser()}
+				</button>
+			{/if}
+		{/if}
+	</div>
+{/snippet}
 
+<div class="space-y-6">
 	<!-- Loading state -->
 	{#if isLoading}
 		<Loading />
@@ -460,6 +457,9 @@
 		<EmptyState title={users_noUsersFound()} subtitle={users_noUsersSubtitle()} />
 	{:else}
 		<DataControls
+			title={common_users()}
+			subtitle={users_subtitle()}
+			{toolbarActions}
 			items={combinedItems}
 			fields={userFields}
 			storageKey="scanopy-users-table-state"
