@@ -353,16 +353,16 @@ fn daemons_report_the_subnets_their_host_has_addresses_on() {
     }
 }
 
-/// The demo's tag assignments keep the rule exclusive sets exist for: no entity holds two tags of
-/// one set. Seeding writes the junction rows directly, so nothing else would catch a demo host
+/// The demo's tag assignments keep the rule tag groups exist for: no entity holds two tags of
+/// one group. Seeding writes the junction rows directly, so nothing else would catch a demo host
 /// tagged both Production and Development.
 #[test]
-fn no_demo_entity_holds_two_tags_of_one_exclusive_set() {
+fn no_demo_entity_holds_two_tags_of_one_tag_group() {
     let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4());
-    let set_of: HashMap<Uuid, String> = demo
+    let group_of: HashMap<Uuid, String> = demo
         .tags
         .iter()
-        .filter_map(|t| t.base.exclusive_set.as_ref().map(|s| (t.id, s.to_string())))
+        .filter_map(|t| t.base.tag_group.as_ref().map(|g| (t.id, g.to_string())))
         .collect();
 
     let hosts: Vec<&HostWithServices> = demo
@@ -389,10 +389,10 @@ fn no_demo_entity_holds_two_tags_of_one_exclusive_set() {
     };
     for (id, tags) in tag_lists {
         let mut seen = HashSet::new();
-        for set in tags.iter().filter_map(|id| set_of.get(id)) {
+        for group in tags.iter().filter_map(|id| group_of.get(id)) {
             assert!(
-                seen.insert(set),
-                "entity {id} holds two tags of the {set} set: {:?}",
+                seen.insert(group),
+                "entity {id} holds two tags of the {group} group: {:?}",
                 tags.iter().filter_map(name_of).collect::<Vec<_>>()
             );
         }

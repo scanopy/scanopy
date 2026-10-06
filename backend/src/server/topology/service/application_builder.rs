@@ -779,7 +779,7 @@ mod tests {
                 description: None,
                 color: Color::Blue,
                 organization_id: Uuid::new_v4(),
-                exclusive_set: Some(crate::server::tags::r#impl::base::ExclusiveSet::Application),
+                tag_group: Some(crate::server::tags::r#impl::base::TagGroup::Application),
                 icon: None,
             },
             ..Default::default()
@@ -793,7 +793,7 @@ mod tests {
                 description: None,
                 color: Color::Green,
                 organization_id: Uuid::new_v4(),
-                exclusive_set: Some(crate::server::tags::r#impl::base::ExclusiveSet::Application),
+                tag_group: Some(crate::server::tags::r#impl::base::TagGroup::Application),
                 icon: None,
             },
             ..Default::default()
@@ -931,7 +931,7 @@ mod tests {
                 description: None,
                 color: Color::Blue,
                 organization_id: Uuid::new_v4(),
-                exclusive_set: Some(crate::server::tags::r#impl::base::ExclusiveSet::Application),
+                tag_group: Some(crate::server::tags::r#impl::base::TagGroup::Application),
                 icon: None,
             },
             ..Default::default()
@@ -945,7 +945,7 @@ mod tests {
                 description: None,
                 color: Color::Green,
                 organization_id: Uuid::new_v4(),
-                exclusive_set: Some(crate::server::tags::r#impl::base::ExclusiveSet::Application),
+                tag_group: Some(crate::server::tags::r#impl::base::TagGroup::Application),
                 icon: None,
             },
             ..Default::default()

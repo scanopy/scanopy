@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { isApplicationTag } from '$lib/features/tags/sets';
+	import { isApplicationTag } from '$lib/features/tags/groups';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
 	import { AVAILABLE_COLORS, type Color } from '$lib/shared/utils/styling';
@@ -70,7 +70,7 @@
 		try {
 			await updateTagMutation.mutateAsync({
 				...tag,
-				exclusive_set: { type: 'Application' },
+				tag_group: { type: 'Application' },
 				icon: null
 			});
 		} finally {
@@ -92,7 +92,7 @@
 			const tag = createDefaultTag(organization.id);
 			tag.name = trimmed;
 			tag.color = color ?? getRandomColor();
-			tag.exclusive_set = { type: 'Application' };
+			tag.tag_group = { type: 'Application' };
 			await createTagMutation.mutateAsync(tag);
 		} finally {
 			isCreating = false;

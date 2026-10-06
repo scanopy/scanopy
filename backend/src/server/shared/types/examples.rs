@@ -307,7 +307,7 @@ pub fn tag() -> Tag {
             description: Some("Production environment resources".to_string()),
             color: Color::Green,
             organization_id: ids::ORGANIZATION,
-            exclusive_set: None,
+            tag_group: None,
             icon: None,
         },
     }

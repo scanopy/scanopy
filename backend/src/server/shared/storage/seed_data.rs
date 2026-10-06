@@ -16,12 +16,16 @@ use crate::server::{
         definitions::{client::Client, dns_server::DnsServer, web_service::WebService},
         r#impl::base::{Service, ServiceBase},
     },
-    shared::{storage::traits::Storable, types::entities::EntitySource},
+    shared::{
+        storage::traits::Storable,
+        types::{Color, Icon, entities::EntitySource},
+    },
     sites::r#impl::{Site, SiteBase},
     subnets::r#impl::{
         base::{Subnet, SubnetBase},
         types::SubnetType,
     },
+    tags::r#impl::base::{Tag, TagBase, TagGroup, TagIcon},
     users::r#impl::base::{User, UserBase},
 };
 
@@ -57,6 +61,52 @@ be found by scanning. Create ip_addresses on this subnet to include them in your
     };
 
     Subnet::new(base)
+}
+
+/// The tag group an asset's status sits in, on its way from planned to decommissioned.
+pub const STATUS_TAG_GROUP: &str = "Status";
+
+/// The Status tags every organization starts with: (name, description, color, icon), in the
+/// order an asset moves through them.
+const STATUS_TAGS: [(&str, &str, Color, Icon); 4] = [
+    (
+        "Planned",
+        "Ordered or scheduled, not yet in service",
+        Color::Blue,
+        Icon::CalendarClock,
+    ),
+    ("Active", "In service", Color::Green, Icon::CircleCheck),
+    (
+        "Decommissioning",
+        "Being retired; still on the network",
+        Color::Orange,
+        Icon::Hourglass,
+    ),
+    (
+        "Decommissioned",
+        "Retired from service; kept for the record",
+        Color::Gray,
+        Icon::Archive,
+    ),
+];
+
+/// The default Status tags for an organization.
+pub fn create_status_tags(organization_id: Uuid) -> Vec<Tag> {
+    STATUS_TAGS
+        .iter()
+        .map(|(name, description, color, icon)| {
+            Tag::new(TagBase {
+                name: name.to_string(),
+                description: Some(description.to_string()),
+                color: *color,
+                organization_id,
+                tag_group: Some(TagGroup::Named {
+                    name: STATUS_TAG_GROUP.to_string(),
+                }),
+                icon: Some(TagIcon(*icon)),
+            })
+        })
+        .collect()
 }
 
 pub fn create_remote_subnet(site_id: Uuid) -> Subnet {

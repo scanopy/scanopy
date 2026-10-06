@@ -6,7 +6,7 @@
 	import { createColorHelper, AVAILABLE_COLORS, type Color } from '$lib/shared/utils/styling';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { permissions, billingPlans } from '$lib/shared/stores/metadata';
-	import { isApplicationTag, tagIcon, withTagAdded } from '$lib/features/tags/sets';
+	import { isApplicationTag, tagIcon, withTagAdded } from '$lib/features/tags/groups';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 
 	/**
@@ -116,7 +116,7 @@
 
 	function addTag(tagId: string) {
 		if (!selectedTagIds.includes(tagId)) {
-			// A tag from an exclusive set replaces the one of that set already selected, as the
+			// A tag from a tag group replaces the one of that group already selected, as the
 			// server would on save.
 			updateTags(withTagAdded(selectedTagIds, tagId, tags));
 		}

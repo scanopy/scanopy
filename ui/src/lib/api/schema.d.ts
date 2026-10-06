@@ -3531,19 +3531,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-05T22:43:23.241287Z",
+             *       "created_at": "2026-10-06T15:26:20.175789Z",
              *       "first_discovery_id": null,
-             *       "id": "4e0321ae-aa98-4d21-9750-b86f2ff335eb",
+             *       "id": "8a793f62-fb7e-4e75-9c62-0e79548fd9c2",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-05T22:43:23.241287Z",
+             *       "last_seen_at": "2026-10-06T15:26:20.175789Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-10-05T22:43:23.241287Z",
-             *       "valid_from": "2026-10-05T22:43:23.241287Z",
+             *       "updated_at": "2026-10-06T15:26:20.175789Z",
+             *       "valid_from": "2026-10-06T15:26:20.175789Z",
              *       "valid_to": null
              *     }
              */
@@ -4374,19 +4374,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-05T22:43:23.215710Z",
+             *               "created_at": "2026-10-06T15:26:20.156267Z",
              *               "first_discovery_id": null,
-             *               "id": "7295f032-8626-48b9-9ff5-7e2fc8fbca71",
+             *               "id": "f5b981ec-ed65-42c9-bc9f-b6a1262f2b7e",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-05T22:43:23.215710Z",
+             *               "last_seen_at": "2026-10-06T15:26:20.156267Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-10-05T22:43:23.215710Z",
-             *               "valid_from": "2026-10-05T22:43:23.215710Z",
+             *               "updated_at": "2026-10-06T15:26:20.156267Z",
+             *               "valid_from": "2026-10-06T15:26:20.156267Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4399,7 +4399,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Loki",
+             *           "service_definition": "TP-Link EAP",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -5305,19 +5305,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-05T22:43:23.236153Z",
+             *           "created_at": "2026-10-06T15:26:20.171221Z",
              *           "first_discovery_id": null,
-             *           "id": "057a3970-4922-4ed9-b1e7-9cc4d2295823",
+             *           "id": "cead5df7-b588-4bcd-b7cb-07d068ffe650",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-05T22:43:23.236153Z",
+             *           "last_seen_at": "2026-10-06T15:26:20.171221Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-10-05T22:43:23.236153Z",
-             *           "valid_from": "2026-10-05T22:43:23.236153Z",
+             *           "updated_at": "2026-10-06T15:26:20.171221Z",
+             *           "valid_from": "2026-10-06T15:26:20.171221Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5330,7 +5330,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Loki",
+             *       "service_definition": "TP-Link EAP",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -5780,12 +5780,12 @@ export interface components {
              *       "color": "Green",
              *       "created_at": "2026-01-15T10:30:00Z",
              *       "description": "Production environment resources",
-             *       "exclusive_set": null,
              *       "icon": null,
              *       "id": "550e8400-e29b-41d4-a716-44665544000a",
              *       "lineage_id": null,
              *       "name": "production",
              *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+             *       "tag_group": null,
              *       "updated_at": "2026-01-15T10:30:00Z",
              *       "valid_from": "2026-01-15T10:30:00Z",
              *       "valid_to": null
@@ -6524,19 +6524,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-05T22:43:23.216494Z",
+         *       "created_at": "2026-10-06T15:26:20.156791Z",
          *       "first_discovery_id": null,
-         *       "id": "bdddc3ab-3d5f-4bc2-bc5d-ab42fa198d03",
+         *       "id": "f070d921-cf8f-4f5e-863e-f1dfb4928562",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-05T22:43:23.216494Z",
+         *       "last_seen_at": "2026-10-06T15:26:20.156791Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-10-05T22:43:23.216494Z",
-         *       "valid_from": "2026-10-05T22:43:23.216494Z",
+         *       "updated_at": "2026-10-06T15:26:20.156791Z",
+         *       "valid_from": "2026-10-06T15:26:20.156791Z",
          *       "valid_to": null
          *     }
          */
@@ -6884,7 +6884,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Loki",
+         *           "service_definition": "TP-Link EAP",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8998,23 +8998,6 @@ export interface components {
             /** @description Guest name as configured on the ESXi host. */
             vm_name?: string | null;
         };
-        /**
-         * @description A set of tags of which an entity may hold at most one.
-         *
-         *     Assigning a tag from a set replaces whichever tag of the same set the entity already holds.
-         *     `Application` is the built-in set: its tags drive the application view, which can place an
-         *     entity in one application only. `Group` sets are named by the organization (a lifecycle, an
-         *     environment, a tier) and exist for as long as a tag carries the name.
-         */
-        ExclusiveSet: {
-            /** @enum {string} */
-            type: "Application";
-        } | {
-            /** @description The set's name, shared by every tag in it. */
-            name: string;
-            /** @enum {string} */
-            type: "Group";
-        };
         /** @description Export feature flags derived from the share creator's billing plan */
         ExportFeatures: {
             /** @description Viewer may export the diagram for Confluence. */
@@ -9513,19 +9496,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-05T22:43:23.214858Z",
+         *               "created_at": "2026-10-06T15:26:20.155672Z",
          *               "first_discovery_id": null,
-         *               "id": "3f6251d6-8ecc-4d4c-9bde-f7d289a91c4b",
+         *               "id": "030a5653-4620-455f-b953-4ca70f397aa9",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-05T22:43:23.214858Z",
+         *               "last_seen_at": "2026-10-06T15:26:20.155672Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-10-05T22:43:23.214858Z",
-         *               "valid_from": "2026-10-05T22:43:23.214858Z",
+         *               "updated_at": "2026-10-06T15:26:20.155672Z",
+         *               "valid_from": "2026-10-06T15:26:20.155672Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9538,7 +9521,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Loki",
+         *           "service_definition": "TP-Link EAP",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -12623,19 +12606,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-05T22:43:23.216264Z",
+         *           "created_at": "2026-10-06T15:26:20.156644Z",
          *           "first_discovery_id": null,
-         *           "id": "cd1b7e17-3c59-48fa-b6be-719b98133e5d",
+         *           "id": "c47cfddb-6798-4715-aa9d-861c73c210d7",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-05T22:43:23.216264Z",
+         *           "last_seen_at": "2026-10-06T15:26:20.156644Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-10-05T22:43:23.216264Z",
-         *           "valid_from": "2026-10-05T22:43:23.216264Z",
+         *           "updated_at": "2026-10-06T15:26:20.156644Z",
+         *           "valid_from": "2026-10-06T15:26:20.156644Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12648,7 +12631,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Loki",
+         *       "service_definition": "TP-Link EAP",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -13262,12 +13245,12 @@ export interface components {
          *       "color": "Green",
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "description": "Production environment resources",
-         *       "exclusive_set": null,
          *       "icon": null,
          *       "id": "550e8400-e29b-41d4-a716-44665544000a",
          *       "lineage_id": null,
          *       "name": "production",
          *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+         *       "tag_group": null,
          *       "updated_at": "2026-01-15T10:30:00Z",
          *       "valid_from": "2026-01-15T10:30:00Z",
          *       "valid_to": null
@@ -13310,7 +13293,6 @@ export interface components {
             color: components["schemas"]["Color"];
             /** @description Free-text notes about the tag. */
             description?: string | null;
-            exclusive_set?: null | components["schemas"]["ExclusiveSet"];
             icon?: null | components["schemas"]["TagIcon"];
             /** @description Human-facing name for this tag. */
             name: string;
@@ -13319,6 +13301,24 @@ export interface components {
              * @description The organization that owns this record.
              */
             organization_id: string;
+            tag_group?: null | components["schemas"]["TagGroup"];
+        };
+        /**
+         * @description A group of tags of which an entity may hold at most one.
+         *
+         *     Assigning a tag from a group replaces whichever tag of the same group the entity already holds.
+         *     `Application` is the built-in group: its tags drive the application view, which can place an
+         *     entity in one application only. `Named` groups are named by the organization (a status, an
+         *     environment, a tier) and exist for as long as a tag carries the name.
+         */
+        TagGroup: {
+            /** @enum {string} */
+            type: "Application";
+        } | {
+            /** @description The group's name, shared by every tag in it. */
+            name: string;
+            /** @enum {string} */
+            type: "Named";
         };
         /**
          * @description A lucide icon a person chose for a tag.
@@ -13331,7 +13331,7 @@ export interface components {
          * @description Fields that tags can be ordered/grouped by.
          * @enum {string}
          */
-        TagOrderField: "created_at" | "name" | "color" | "updated_at" | "exclusive_set";
+        TagOrderField: "created_at" | "name" | "color" | "updated_at" | "tag_group";
         /**
          * @description Company size bracket offered by the plan-inquiry form.
          * @enum {string}
@@ -13534,7 +13534,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "87a68a79-304d-47a7-982e-d659e21fe6c1",
+             *           "id": "55acc384-8ffd-4453-8f19-90f945b1a771",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13544,23 +13544,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "ac60fdfc-1333-4ca7-9377-5607b4272c9c",
+             *           "id": "39afbf69-0f43-4a9a-a321-3c457c3eab6f",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "8c036d8c-cba2-421c-b6e6-558649908932",
+             *           "id": "649fa4c2-bce4-4d1c-af28-adaa1320b781",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "a7b8ba30-d043-46ba-a752-adcd03aed87d",
+             *           "id": "f65903f2-f679-4543-a913-8863ec015c21",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "ac60fdfc-1333-4ca7-9377-5607b4272c9c",
+             *           "id": "39afbf69-0f43-4a9a-a321-3c457c3eab6f",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13573,19 +13573,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "6848371f-5aaf-4a79-bfdf-0678a9bc3627",
+             *         "id": "ab0f2b31-98ff-4e1a-903d-998ae568d2ca",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "77ac7d94-2551-4e87-bfe0-89b9812d85e8",
+             *         "id": "f857d1fb-5957-4f39-bd10-2d23faf27b35",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "b3175339-fe2f-4f81-b17b-06bc3bd0b425",
+             *         "id": "16df1a8d-a8f2-4629-981e-ac7925e8221e",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "fbf00c3d-a027-41ba-9ce8-b82ebfd45724",
+             *         "id": "3552ecb9-629a-4d4c-82c0-6897bb692d75",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13604,7 +13604,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "9864cc22-ec55-4c0c-a688-45ac011db310",
+             *         "id": "671cad2c-71ee-451e-8bb8-3e9548397a75",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13613,15 +13613,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "82d6b8b6-0322-409d-936d-edb5e456cf19",
+             *         "id": "7f4f09c6-1bce-4764-8167-e763812ccca1",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "0acde355-75b6-4379-bd54-83a4bc544345",
+             *         "id": "a9152c6b-a13d-410b-b5ec-b0a90a5c8e7a",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "6b02ac82-3168-4577-ae42-c84aca05f78a",
+             *         "id": "f45e951a-694e-4052-b006-036e9b8d1036",
              *         "rule": "ByStack"
              *       }
              *     ]

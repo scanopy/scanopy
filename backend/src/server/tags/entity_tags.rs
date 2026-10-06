@@ -20,7 +20,7 @@ use crate::server::shared::storage::{
     traits::{Entity, SqlValue, Storable, Storage},
 };
 use crate::server::shared::types::api::{ApiError, ValidationError};
-use crate::server::tags::r#impl::base::{ExclusiveSet, Tag};
+use crate::server::tags::r#impl::base::{Tag, TagGroup};
 use crate::server::tags::service::TagService;
 
 /// Build the `entity_tags` lookup filter for a batch of entities.
@@ -574,7 +574,7 @@ impl EntityTagService {
         // Validate tag exists and belongs to organization
         let tag = self.validate_tag_full(tag_id, organization_id).await?;
 
-        // A tag from an exclusive set replaces the one of that set the entity already holds.
+        // A tag from a tag group replaces the one of that group the entity already holds.
         self.remove_displaced(&tag, &[entity_id], entity_type)
             .await?;
 
@@ -616,16 +616,16 @@ impl EntityTagService {
             return Ok(());
         }
 
-        // Validate all tags, then refuse a list naming two tags of one exclusive set: which of
+        // Validate all tags, then refuse a list naming two tags of one tag group: which of
         // them should win is the caller's call, not ours.
         let mut tags = Vec::with_capacity(tag_ids.len());
         for tag_id in &tag_ids {
             tags.push(self.validate_tag_full(*tag_id, organization_id).await?);
         }
-        if let Some(set) = set_held_twice(&tags) {
+        if let Some(group) = group_held_twice(&tags) {
             return Err(ValidationError::new(format!(
-                "A {} can hold only one tag of the \"{}\" set",
-                entity_type, set
+                "A {} can hold only one tag of the \"{}\" group",
+                entity_type, group
             ))
             .into());
         }
@@ -680,7 +680,7 @@ impl EntityTagService {
             .await
             .map_err(ApiError::from)?;
 
-        // A tag from an exclusive set replaces the one of that set each entity already holds.
+        // A tag from a tag group replaces the one of that group each entity already holds.
         self.remove_displaced(&tag, entity_ids, entity_type)
             .await
             .map_err(ApiError::from)?;
@@ -743,8 +743,8 @@ impl EntityTagService {
         }
     }
 
-    /// Close each entity's tags that `incoming` displaces: the other tags of its exclusive set.
-    /// Nothing to do for a tag in no set.
+    /// Close each entity's tags that `incoming` displaces: the other tags of its tag group.
+    /// Nothing to do for a tag in no group.
     async fn remove_displaced(
         &self,
         incoming: &Tag,
@@ -753,7 +753,7 @@ impl EntityTagService {
     ) -> Result<()> {
         use crate::server::shared::services::traits::CrudService;
 
-        if incoming.base.exclusive_set.is_none() || entity_ids.is_empty() {
+        if incoming.base.tag_group.is_none() || entity_ids.is_empty() {
             return Ok(());
         }
 
@@ -789,40 +789,40 @@ impl EntityTagService {
     }
 }
 
-/// The tags among `held` that assigning `incoming` displaces: those in the same exclusive set,
+/// The tags among `held` that assigning `incoming` displaces: those in the same tag group,
 /// other than `incoming` itself.
 fn displaced_by(incoming: &Tag, held: &[Tag]) -> Vec<Uuid> {
-    let Some(set) = &incoming.base.exclusive_set else {
+    let Some(group) = &incoming.base.tag_group else {
         return Vec::new();
     };
     held.iter()
-        .filter(|tag| tag.id != incoming.id && tag.base.exclusive_set.as_ref() == Some(set))
+        .filter(|tag| tag.id != incoming.id && tag.base.tag_group.as_ref() == Some(group))
         .map(|tag| tag.id)
         .collect()
 }
 
-/// The first exclusive set that two of `tags` belong to, if any.
-fn set_held_twice(tags: &[Tag]) -> Option<&ExclusiveSet> {
-    let mut seen: Vec<(&ExclusiveSet, Uuid)> = Vec::new();
+/// The first tag group that two of `tags` belong to, if any.
+fn group_held_twice(tags: &[Tag]) -> Option<&TagGroup> {
+    let mut seen: Vec<(&TagGroup, Uuid)> = Vec::new();
     for tag in tags {
-        let Some(set) = &tag.base.exclusive_set else {
+        let Some(group) = &tag.base.tag_group else {
             continue;
         };
-        if seen.iter().any(|(s, id)| *s == set && *id != tag.id) {
-            return Some(set);
+        if seen.iter().any(|(s, id)| *s == group && *id != tag.id) {
+            return Some(group);
         }
-        seen.push((set, tag.id));
+        seen.push((group, tag.id));
     }
     None
 }
 
-/// How many entities `rows` show holding more than one of `set_tag_ids`. Used to refuse moving a
-/// tag into a set that some entity already holds another tag of.
-pub(crate) fn entities_holding_several(rows: &[EntityTag], set_tag_ids: &[Uuid]) -> usize {
+/// How many entities `rows` show holding more than one of `group_tag_ids`. Used to refuse moving a
+/// tag into a group that some entity already holds another tag of.
+pub(crate) fn entities_holding_several(rows: &[EntityTag], group_tag_ids: &[Uuid]) -> usize {
     let mut counts: HashMap<(Uuid, EntityDiscriminants), usize> = HashMap::new();
     for row in rows
         .iter()
-        .filter(|row| set_tag_ids.contains(&row.base.tag_id))
+        .filter(|row| group_tag_ids.contains(&row.base.tag_id))
     {
         *counts
             .entry((row.base.entity_id, row.base.entity_type))
@@ -864,73 +864,73 @@ mod entity_tags_filter_tests {
 }
 
 #[cfg(test)]
-mod exclusive_set_tests {
+mod tag_group_tests {
     use super::*;
     use crate::server::tags::r#impl::base::TagBase;
 
-    fn tag(set: Option<ExclusiveSet>) -> Tag {
+    fn tag(group: Option<TagGroup>) -> Tag {
         Tag {
             id: Uuid::new_v4(),
             base: TagBase {
-                exclusive_set: set,
+                tag_group: group,
                 ..Default::default()
             },
             ..Default::default()
         }
     }
 
-    fn group(name: &str) -> Option<ExclusiveSet> {
-        Some(ExclusiveSet::Group {
+    fn group(name: &str) -> Option<TagGroup> {
+        Some(TagGroup::Named {
             name: name.to_string(),
         })
     }
 
     #[test]
-    fn a_set_tag_displaces_only_the_held_tags_of_its_own_set() {
-        let planned = tag(group("Lifecycle"));
+    fn a_grouped_tag_displaces_only_the_held_tags_of_its_own_group() {
+        let planned = tag(group("Status"));
         let staging = tag(group("Environment"));
         let plain = tag(None);
-        let app = tag(Some(ExclusiveSet::Application));
-        let decommissioned = tag(group("Lifecycle"));
+        let app = tag(Some(TagGroup::Application));
+        let decommissioned = tag(group("Status"));
 
         let held = [planned.clone(), staging, plain, app, decommissioned.clone()];
         assert_eq!(displaced_by(&decommissioned, &held), vec![planned.id]);
     }
 
     #[test]
-    fn a_tag_in_no_set_displaces_nothing() {
-        let held = [tag(group("Lifecycle")), tag(None)];
+    fn a_tag_in_no_group_displaces_nothing() {
+        let held = [tag(group("Status")), tag(None)];
         assert!(displaced_by(&tag(None), &held).is_empty());
     }
 
     #[test]
     fn application_tags_displace_each_other() {
-        let web = tag(Some(ExclusiveSet::Application));
-        let db = tag(Some(ExclusiveSet::Application));
+        let web = tag(Some(TagGroup::Application));
+        let db = tag(Some(TagGroup::Application));
         assert_eq!(displaced_by(&db, std::slice::from_ref(&web)), vec![web.id]);
     }
 
     #[test]
-    fn a_list_with_two_tags_of_one_set_is_named_by_that_set() {
+    fn a_list_with_two_tags_of_one_group_is_named_by_that_group() {
         let tags = [
             tag(group("Environment")),
             tag(None),
-            tag(group("Lifecycle")),
-            tag(group("Lifecycle")),
+            tag(group("Status")),
+            tag(group("Status")),
         ];
-        assert_eq!(set_held_twice(&tags), group("Lifecycle").as_ref());
+        assert_eq!(group_held_twice(&tags), group("Status").as_ref());
     }
 
     #[test]
-    fn a_list_with_one_tag_per_set_passes() {
+    fn a_list_with_one_tag_per_group_passes() {
         let tags = [
             tag(group("Environment")),
-            tag(group("Lifecycle")),
-            tag(Some(ExclusiveSet::Application)),
+            tag(group("Status")),
+            tag(Some(TagGroup::Application)),
             tag(None),
             tag(None),
         ];
-        assert_eq!(set_held_twice(&tags), None);
+        assert_eq!(group_held_twice(&tags), None);
     }
 
     #[test]

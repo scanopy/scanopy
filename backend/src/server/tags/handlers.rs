@@ -43,8 +43,8 @@ pub enum TagOrderField {
     Name,
     Color,
     UpdatedAt,
-    /// The exclusive set: "Application" for application tags, the set name for a named set.
-    ExclusiveSet,
+    /// The tag group: "Application" for application tags, the group name for a named group.
+    TagGroup,
 }
 
 impl OrderField for TagOrderField {
@@ -54,8 +54,8 @@ impl OrderField for TagOrderField {
             Self::Name => "tags.name",
             Self::Color => "tags.color",
             Self::UpdatedAt => "tags.updated_at",
-            Self::ExclusiveSet => {
-                "CASE WHEN tags.is_application THEN 'Application' ELSE tags.exclusive_group END"
+            Self::TagGroup => {
+                "CASE WHEN tags.is_application THEN 'Application' ELSE tags.tag_group END"
             }
         }
     }

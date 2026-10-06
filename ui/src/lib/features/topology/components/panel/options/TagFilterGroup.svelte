@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { isApplicationTag, tagIcon } from '$lib/features/tags/sets';
+	import { isApplicationTag, tagIcon } from '$lib/features/tags/groups';
 	import type { components } from '$lib/api/schema';
 	import { UNTAGGED_SENTINEL, hoveredTag } from '../../../interactions';
 	import FilterGroup, { type FilterItem } from './FilterGroup.svelte';
