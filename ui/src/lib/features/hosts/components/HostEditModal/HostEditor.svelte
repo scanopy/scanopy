@@ -125,7 +125,6 @@
 			nameSource: host?.name_source
 		});
 		formData.hostname = values.hostname;
-		formData.asset_tag = values.asset_tag;
 		formData.description = values.description;
 
 		// Sync interface field values (ip, mac, name) to formData.ip_addresses
@@ -209,7 +208,6 @@
 		defaultValues: {
 			name: overrideOf(formData.name, formData.name_source),
 			hostname: formData.hostname || '',
-			asset_tag: formData.asset_tag || '',
 			description: formData.description || '',
 			ip_addresses: formData.ip_addresses || [],
 			ports: formData.ports || [],
@@ -384,7 +382,6 @@
 		form.reset({
 			name: overrideOf(formData.name, formData.name_source),
 			hostname: formData.hostname || '',
-			asset_tag: formData.asset_tag || '',
 			description: formData.description || '',
 			ip_addresses: formData.ip_addresses || [],
 			ports: formData.ports || [],

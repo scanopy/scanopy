@@ -755,11 +755,6 @@ pub struct CreateHostRequest {
     /// LLDP chassis identifier, used to match the host to its neighbours.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub chassis_id: Option<String>,
-    /// The organization's asset tag for the device. Outranks the value discovery reads from
-    /// ENTITY-MIB entPhysicalAssetID.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[validate(length(max = 100, message = "Asset tag must be 100 characters or less"))]
-    pub asset_tag: Option<String>,
     /// Credentials to scan this host with.
     #[serde(default)]
     pub credential_assignments: Vec<CredentialAssignment>,
@@ -794,12 +789,6 @@ pub struct UpdateHostRequest {
     pub name: String,
     /// Hostname as resolved or reported by the host.
     pub hostname: Option<String>,
-    /// The organization's asset tag for the device. Omit it to keep the current one, send an
-    /// empty string to clear it. A changed value outranks what discovery reads from ENTITY-MIB
-    /// entPhysicalAssetID.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[validate(length(max = 100, message = "Asset tag must be 100 characters or less"))]
-    pub asset_tag: Option<String>,
     /// Free-text notes about the host.
     #[validate(length(max = 500, message = "Description must be 500 characters or less"))]
     pub description: Option<String>,
@@ -1029,12 +1018,12 @@ pub struct HostResponse {
     #[serde(default)]
     #[schema(read_only)]
     pub serial_number_source: AttributeSource,
-    /// The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person.
-    /// Set it through `asset_tag` on create and update; a typed value outranks what discovery reads.
+    /// The asset tag the device reports: ENTITY-MIB entPhysicalAssetID. Read-only: discovery is
+    /// the only writer, so it always says what the device itself carries.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schema(read_only)]
     pub asset_tag: Option<String>,
-    /// What produced the asset tag. Read-only: `Manual` when a person typed it.
+    /// What produced the asset tag. Read-only.
     #[serde(default)]
     #[schema(read_only)]
     pub asset_tag_source: AttributeSource,

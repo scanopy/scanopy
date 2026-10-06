@@ -51,7 +51,6 @@ async fn test_service_site_validation(ctx: &TestContext) -> Result<(), String> {
         sys_contact: None,
         management_url: None,
         chassis_id: None,
-        asset_tag: None,
         credential_assignments: vec![],
         ip_addresses: vec![],
         ports: vec![],

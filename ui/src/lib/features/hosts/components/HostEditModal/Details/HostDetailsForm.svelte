@@ -3,16 +3,12 @@
 	import type { HostFormData } from '$lib/features/hosts/types/base';
 	import { max } from '$lib/shared/components/forms/validators';
 	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
 	import SelectSite from '$lib/features/sites/components/SelectSite.svelte';
 	import TagPicker from '$lib/features/tags/components/TagPicker.svelte';
 	import IdentitySection from './IdentitySection.svelte';
 	import DeviceFactsSection from './DeviceFactsSection.svelte';
 	import {
-		common_assetTag,
 		common_description,
-		hosts_details_assetTagHelp,
-		hosts_details_assetTagPlaceholder,
 		hosts_details_descriptionPlaceholder
 	} from '$lib/paraglide/messages';
 
@@ -45,23 +41,6 @@
 				onSiteChange={(id) => (formData.site_id = id)}
 			/>
 		{/if}
-
-		<form.Field
-			name="asset_tag"
-			validators={{
-				onBlur: ({ value }: { value: string }) => max(100)(value)
-			}}
-		>
-			{#snippet children(field: AnyFieldApi)}
-				<TextInput
-					label={common_assetTag()}
-					id="asset_tag"
-					placeholder={hosts_details_assetTagPlaceholder()}
-					helpText={hosts_details_assetTagHelp()}
-					{field}
-				/>
-			{/snippet}
-		</form.Field>
 
 		<form.Field
 			name="description"

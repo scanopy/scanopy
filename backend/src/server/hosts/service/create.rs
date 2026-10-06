@@ -218,7 +218,6 @@ impl HostService {
             sys_contact,
             management_url,
             chassis_id,
-            asset_tag,
             credential_assignments,
             ip_addresses: ip_address_inputs,
             ports: port_inputs,
@@ -288,10 +287,7 @@ impl HostService {
             manufacturer: None,
             model: None,
             serial_number: None,
-            asset_tag: asset_tag
-                .map(|v| v.trim().to_string())
-                .filter(|v| !v.is_empty())
-                .map(|v| Attributed::new(HostAssetTagValue(v), AttributeSource::Manual)),
+            asset_tag: None,
             firmware_revision: None,
             software_revision: None,
             os: None,

@@ -148,7 +148,9 @@ pub fn host() -> Host {
             serial_number: None,
             asset_tag: Some(crate::server::shared::attribution::Attributed::new(
                 crate::server::hosts::r#impl::attributes::HostAssetTagValue("IT-00412".to_string()),
-                crate::server::shared::attribution::AttributeSource::Manual,
+                crate::server::shared::attribution::AttributeSource::Probe(
+                    crate::server::services::r#impl::patterns::ClientProbe::Snmp,
+                ),
             )),
             firmware_revision: None,
             software_revision: None,
@@ -521,7 +523,6 @@ pub fn create_host_request() -> CreateHostRequest {
         sys_contact: None,
         management_url: None,
         chassis_id: None,
-        asset_tag: Some("IT-00412".to_string()),
         credential_assignments: vec![],
         ip_addresses: vec![IPAddressInput {
             id: ids::IP_ADDRESS,

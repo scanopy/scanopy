@@ -1,11 +1,10 @@
 use crate::server::credentials::r#impl::types::CredentialAssignment;
 use crate::server::hosts::r#impl::attributes::{
-    HostAssetTagAttributed, HostAssetTagValue, HostChassisIdAttributed,
-    HostFirmwareRevisionAttributed, HostHostnameAttributed, HostManagementUrlAttributed,
-    HostManufacturerAttributed, HostModelAttributed, HostOsAttributed, HostOsValue,
-    HostSerialNumberAttributed, HostSoftwareRevisionAttributed, HostSysContactAttributed,
-    HostSysDescrAttributed, HostSysLocationAttributed, HostSysNameAttributed,
-    HostSysObjectIdAttributed,
+    HostAssetTagAttributed, HostChassisIdAttributed, HostFirmwareRevisionAttributed,
+    HostHostnameAttributed, HostManagementUrlAttributed, HostManufacturerAttributed,
+    HostModelAttributed, HostOsAttributed, HostOsValue, HostSerialNumberAttributed,
+    HostSoftwareRevisionAttributed, HostSysContactAttributed, HostSysDescrAttributed,
+    HostSysLocationAttributed, HostSysNameAttributed, HostSysObjectIdAttributed,
 };
 use crate::server::hosts::r#impl::name::{HostName, HostNameSources};
 use crate::server::hosts::r#impl::os::recog::RecogDatabase;
@@ -283,26 +282,6 @@ impl HostBase {
             return false;
         }
         self.name = HostName::unnamed();
-        true
-    }
-
-    /// Apply the asset tag an update request carries. Returns whether anything changed.
-    ///
-    /// `None` keeps the stored tag: the field is newer than the API, and a client that predates it
-    /// must not clear a tag discovery read. The edit modal sends the stored value back on every
-    /// save, so only an actual change is a person asserting one, stamped `Manual` so no scan
-    /// displaces it. A blank string is a person clearing it, after which the next scan may fill it
-    /// again.
-    pub fn apply_requested_asset_tag(&mut self, requested: Option<String>) -> bool {
-        let Some(requested) = requested else {
-            return false;
-        };
-        let requested = Some(requested.trim().to_string()).filter(|v| !v.is_empty());
-        if requested == attribution::text_of(&self.asset_tag) {
-            return false;
-        }
-        self.asset_tag =
-            requested.map(|v| Attributed::new(HostAssetTagValue(v), AttributeSource::Manual));
         true
     }
 
