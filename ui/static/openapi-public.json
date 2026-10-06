@@ -14117,19 +14117,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-06T15:26:06.717871Z",
+              "created_at": "2026-10-06T15:39:34.098991Z",
               "first_discovery_id": null,
-              "id": "b7289cac-f92a-486d-b278-961b5b0fea96",
+              "id": "5754068d-c025-4546-8cb0-7f78106769ec",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-06T15:26:06.717871Z",
+              "last_seen_at": "2026-10-06T15:39:34.098991Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-06T15:26:06.717871Z",
-              "valid_from": "2026-10-06T15:26:06.717871Z",
+              "updated_at": "2026-10-06T15:39:34.098991Z",
+              "valid_from": "2026-10-06T15:39:34.098991Z",
               "valid_to": null
             }
           },
@@ -15794,19 +15794,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-06T15:26:06.668081Z",
+                      "created_at": "2026-10-06T15:39:34.083349Z",
                       "first_discovery_id": null,
-                      "id": "401851f3-b3a7-44af-9b28-87dedd356358",
+                      "id": "c2e35c2a-2120-4406-8f15-a373879496ca",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-06T15:26:06.668081Z",
+                      "last_seen_at": "2026-10-06T15:39:34.083349Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-06T15:26:06.668081Z",
-                      "valid_from": "2026-10-06T15:26:06.668081Z",
+                      "updated_at": "2026-10-06T15:39:34.083349Z",
+                      "valid_from": "2026-10-06T15:39:34.083349Z",
                       "valid_to": null
                     }
                   ],
@@ -15819,7 +15819,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Open WebUI",
+                  "service_definition": "Prometheus Node Exporter",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -17145,19 +17145,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-06T15:26:06.713633Z",
+                  "created_at": "2026-10-06T15:39:34.095176Z",
                   "first_discovery_id": null,
-                  "id": "8be2d249-43b1-4adb-bbf2-d6682709b381",
+                  "id": "a7f9853a-d47f-4f39-85e0-490d51afcb87",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-06T15:26:06.713633Z",
+                  "last_seen_at": "2026-10-06T15:39:34.095176Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-06T15:26:06.713633Z",
-                  "valid_from": "2026-10-06T15:26:06.713633Z",
+                  "updated_at": "2026-10-06T15:39:34.095176Z",
+                  "valid_from": "2026-10-06T15:39:34.095176Z",
                   "valid_to": null
                 }
               ],
@@ -17170,7 +17170,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Open WebUI",
+              "service_definition": "Prometheus Node Exporter",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -17870,12 +17870,12 @@
               "color": "Green",
               "created_at": "2026-01-15T10:30:00Z",
               "description": "Production environment resources",
-              "exclusive_set": null,
               "icon": null,
               "id": "550e8400-e29b-41d4-a716-44665544000a",
               "lineage_id": null,
               "name": "production",
               "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+              "tag_group": null,
               "updated_at": "2026-01-15T10:30:00Z",
               "valid_from": "2026-01-15T10:30:00Z",
               "valid_to": null
@@ -19807,19 +19807,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-06T15:26:06.670074Z",
+          "created_at": "2026-10-06T15:39:34.083783Z",
           "first_discovery_id": null,
-          "id": "b460a817-2bd1-4108-827b-138226eb5041",
+          "id": "75f26afb-f538-4689-9c41-4206c3b9bb0d",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-06T15:26:06.670074Z",
+          "last_seen_at": "2026-10-06T15:39:34.083783Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-06T15:26:06.670074Z",
-          "valid_from": "2026-10-06T15:26:06.670074Z",
+          "updated_at": "2026-10-06T15:39:34.083783Z",
+          "valid_from": "2026-10-06T15:39:34.083783Z",
           "valid_to": null
         }
       },
@@ -20585,7 +20585,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Open WebUI",
+              "service_definition": "Prometheus Node Exporter",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -25712,46 +25712,6 @@
           }
         }
       },
-      "ExclusiveSet": {
-        "oneOf": [
-          {
-            "type": "object",
-            "description": "The built-in set of application tags.",
-            "required": [
-              "type"
-            ],
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": [
-                  "Application"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "description": "A set the organization named.",
-            "required": [
-              "name",
-              "type"
-            ],
-            "properties": {
-              "name": {
-                "type": "string",
-                "description": "The set's name, shared by every tag in it."
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "Group"
-                ]
-              }
-            }
-          }
-        ],
-        "description": "A set of tags of which an entity may hold at most one.\n\nAssigning a tag from a set replaces whichever tag of the same set the entity already holds.\n`Application` is the built-in set: its tags drive the application view, which can place an\nentity in one application only. `Group` sets are named by the organization (a lifecycle, an\nenvironment, a tier) and exist for as long as a tag carries the name."
-      },
       "ExportFeatures": {
         "type": "object",
         "description": "Export feature flags derived from the share creator's billing plan",
@@ -27145,19 +27105,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-06T15:26:06.666629Z",
+                  "created_at": "2026-10-06T15:39:34.082870Z",
                   "first_discovery_id": null,
-                  "id": "2afe7d31-15c0-4483-8b43-11f0cd3031b6",
+                  "id": "65a44fd3-bd62-4e86-bd71-d1fdab4e9504",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-06T15:26:06.666629Z",
+                  "last_seen_at": "2026-10-06T15:39:34.082870Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-06T15:26:06.666629Z",
-                  "valid_from": "2026-10-06T15:26:06.666629Z",
+                  "updated_at": "2026-10-06T15:39:34.082870Z",
+                  "valid_from": "2026-10-06T15:39:34.082870Z",
                   "valid_to": null
                 }
               ],
@@ -27170,7 +27130,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Open WebUI",
+              "service_definition": "Prometheus Node Exporter",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -30939,19 +30899,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-06T15:26:06.634377Z",
+                        "created_at": "2026-10-06T15:39:34.075896Z",
                         "first_discovery_id": null,
-                        "id": "6a5d15d8-939a-42a1-8491-aae25e2fb1a8",
+                        "id": "76306505-c77b-42e9-8ada-d8edd91d9e69",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-06T15:26:06.634377Z",
+                        "last_seen_at": "2026-10-06T15:39:34.075896Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-06T15:26:06.634377Z",
-                        "valid_from": "2026-10-06T15:26:06.634377Z",
+                        "updated_at": "2026-10-06T15:39:34.075896Z",
+                        "valid_from": "2026-10-06T15:39:34.075896Z",
                         "valid_to": null
                       }
                     ],
@@ -30964,7 +30924,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Open WebUI",
+                    "service_definition": "Prometheus Node Exporter",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -31113,19 +31073,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-06T15:26:06.711583Z",
+                    "created_at": "2026-10-06T15:39:34.094426Z",
                     "first_discovery_id": null,
-                    "id": "a65dc38e-f878-452c-8558-3e982f07f4a3",
+                    "id": "cd3209df-d989-418e-879a-9220bfb022d3",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-06T15:26:06.711583Z",
+                    "last_seen_at": "2026-10-06T15:39:34.094426Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-06T15:26:06.711583Z",
-                    "valid_from": "2026-10-06T15:26:06.711583Z",
+                    "updated_at": "2026-10-06T15:39:34.094426Z",
+                    "valid_from": "2026-10-06T15:39:34.094426Z",
                     "valid_to": null
                   }
                 ],
@@ -31138,7 +31098,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Open WebUI",
+                "service_definition": "Prometheus Node Exporter",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -31313,12 +31273,12 @@
                 "color": "Green",
                 "created_at": "2026-01-15T10:30:00Z",
                 "description": "Production environment resources",
-                "exclusive_set": null,
                 "icon": null,
                 "id": "550e8400-e29b-41d4-a716-44665544000a",
                 "lineage_id": null,
                 "name": "production",
                 "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+                "tag_group": null,
                 "updated_at": "2026-01-15T10:30:00Z",
                 "valid_from": "2026-01-15T10:30:00Z",
                 "valid_to": null
@@ -33314,19 +33274,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-06T15:26:06.668695Z",
+              "created_at": "2026-10-06T15:39:34.083656Z",
               "first_discovery_id": null,
-              "id": "2fc0fdc8-0500-449d-a9a8-42871700b29c",
+              "id": "04f8d88f-9c80-4909-8d9a-6c0ab0d0bb89",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-06T15:26:06.668695Z",
+              "last_seen_at": "2026-10-06T15:39:34.083656Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-06T15:26:06.668695Z",
-              "valid_from": "2026-10-06T15:26:06.668695Z",
+              "updated_at": "2026-10-06T15:39:34.083656Z",
+              "valid_from": "2026-10-06T15:39:34.083656Z",
               "valid_to": null
             }
           ],
@@ -33339,7 +33299,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Open WebUI",
+          "service_definition": "Prometheus Node Exporter",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -34537,12 +34497,12 @@
           "color": "Green",
           "created_at": "2026-01-15T10:30:00Z",
           "description": "Production environment resources",
-          "exclusive_set": null,
           "icon": null,
           "id": "550e8400-e29b-41d4-a716-44665544000a",
           "lineage_id": null,
           "name": "production",
           "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+          "tag_group": null,
           "updated_at": "2026-01-15T10:30:00Z",
           "valid_from": "2026-01-15T10:30:00Z",
           "valid_to": null
@@ -34567,17 +34527,6 @@
             ],
             "description": "Free-text notes about the tag."
           },
-          "exclusive_set": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ExclusiveSet",
-                "description": "The set this tag belongs to, if any. An entity holds at most one tag of a set."
-              }
-            ]
-          },
           "icon": {
             "oneOf": [
               {
@@ -34597,8 +34546,59 @@
             "type": "string",
             "format": "uuid",
             "description": "The organization that owns this record."
+          },
+          "tag_group": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TagGroup",
+                "description": "The group this tag belongs to, if any. An entity holds at most one tag of a group."
+              }
+            ]
           }
         }
+      },
+      "TagGroup": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "The built-in group of application tags.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Application"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "A group the organization named.",
+            "required": [
+              "name",
+              "type"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The group's name, shared by every tag in it."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Named"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "A group of tags of which an entity may hold at most one.\n\nAssigning a tag from a group replaces whichever tag of the same group the entity already holds.\n`Application` is the built-in group: its tags drive the application view, which can place an\nentity in one application only. `Named` groups are named by the organization (a status, an\nenvironment, a tier) and exist for as long as a tag carries the name."
       },
       "TagIcon": {
         "type": "string",
@@ -34612,7 +34612,7 @@
           "name",
           "color",
           "updated_at",
-          "exclusive_set"
+          "tag_group"
         ]
       },
       "TeamSize": {
@@ -35022,7 +35022,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "18ada9f1-83fe-4297-9b9a-6d4b277cd140",
+                  "id": "1c174a9e-b6bf-4ac5-8e1a-d76148a9f18f",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -35032,23 +35032,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "61edbfbf-00b9-4245-a944-f9bd90e2f81e",
+                  "id": "d23821d0-198d-4be8-aa81-7d0ba57feba4",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "236761c0-fe3e-496b-8b70-7f55db7c7d60",
+                  "id": "5cfbfb11-61b6-49e2-a8bd-0936c8726c07",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "1c1bbad9-cb26-4a34-be39-265506d4f72c",
+                  "id": "92d1c7f3-382a-4689-ae75-2f6ece498729",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "61edbfbf-00b9-4245-a944-f9bd90e2f81e",
+                  "id": "d23821d0-198d-4be8-aa81-7d0ba57feba4",
                   "rule": "ByHost"
                 }
               ]
@@ -35078,19 +35078,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "98cad808-52cb-468f-a1bd-afca89888ab5",
+                "id": "bcb6f2e1-6b9f-43d7-978e-e8c472e804f2",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "82e719b6-830f-4b17-b850-59eec3a68198",
+                "id": "5370747c-ad76-4af2-9f57-a57988e7324f",
                 "rule": "ByVLAN"
               },
               {
-                "id": "b0110c7a-679e-4cbf-b61f-cada26a3ce1c",
+                "id": "123705c9-6515-432f-b53e-1d546ed810e8",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "7919f285-f935-4e7a-80c0-3c55a1e7e01d",
+                "id": "528b4d43-f4b2-412d-8173-656deaa8d122",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -35109,7 +35109,7 @@
                 }
               },
               {
-                "id": "a6e14a2a-6b16-4312-a9b8-e932195ca1cb",
+                "id": "9fc6be4f-3db5-42a3-9099-8d8f18b85e99",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -35118,15 +35118,15 @@
                 }
               },
               {
-                "id": "016737b5-c020-48fa-9a06-6979a9be3f20",
+                "id": "e22c3850-7cd3-4faf-ac15-fd77e3248db3",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "8e2bbfdc-c645-4ab4-bfa5-225c457fb62f",
+                "id": "eb02f20f-c38d-4f67-bbab-5134501f9b03",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "9bd7d8ab-c2a4-44a9-a26c-be33ec4137ec",
+                "id": "09b43007-dabf-4161-84ab-47b31b66e077",
                 "rule": "ByStack"
               }
             ]

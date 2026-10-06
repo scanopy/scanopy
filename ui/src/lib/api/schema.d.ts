@@ -3531,19 +3531,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-06T15:26:06.575228Z",
+             *       "created_at": "2026-10-06T15:39:34.040006Z",
              *       "first_discovery_id": null,
-             *       "id": "53f71e4d-a5fb-4c25-b59c-772c54066e9b",
+             *       "id": "cf5c3aaf-9a8f-4ad8-bd03-ed83ba40a27d",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-06T15:26:06.575228Z",
+             *       "last_seen_at": "2026-10-06T15:39:34.040006Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-10-06T15:26:06.575228Z",
-             *       "valid_from": "2026-10-06T15:26:06.575228Z",
+             *       "updated_at": "2026-10-06T15:39:34.040006Z",
+             *       "valid_from": "2026-10-06T15:39:34.040006Z",
              *       "valid_to": null
              *     }
              */
@@ -4376,19 +4376,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-06T15:26:06.545258Z",
+             *               "created_at": "2026-10-06T15:39:34.017834Z",
              *               "first_discovery_id": null,
-             *               "id": "6e7e5975-8e81-4f39-9b7e-e05df1436e35",
+             *               "id": "a4bc1757-af37-45a6-a4e7-eb684371baec",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-06T15:26:06.545258Z",
+             *               "last_seen_at": "2026-10-06T15:39:34.017834Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-10-06T15:26:06.545258Z",
-             *               "valid_from": "2026-10-06T15:26:06.545258Z",
+             *               "updated_at": "2026-10-06T15:39:34.017834Z",
+             *               "valid_from": "2026-10-06T15:39:34.017834Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4401,7 +4401,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Open WebUI",
+             *           "service_definition": "Prometheus Node Exporter",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -5307,19 +5307,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-06T15:26:06.560488Z",
+             *           "created_at": "2026-10-06T15:39:34.035171Z",
              *           "first_discovery_id": null,
-             *           "id": "7826d8e8-ddfc-4186-a664-8f763ee5d74a",
+             *           "id": "6f47c035-6df7-426c-b2d0-14f176be3a53",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-06T15:26:06.560488Z",
+             *           "last_seen_at": "2026-10-06T15:39:34.035171Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-10-06T15:26:06.560488Z",
-             *           "valid_from": "2026-10-06T15:26:06.560488Z",
+             *           "updated_at": "2026-10-06T15:39:34.035171Z",
+             *           "valid_from": "2026-10-06T15:39:34.035171Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5332,7 +5332,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Open WebUI",
+             *       "service_definition": "Prometheus Node Exporter",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -5782,12 +5782,12 @@ export interface components {
              *       "color": "Green",
              *       "created_at": "2026-01-15T10:30:00Z",
              *       "description": "Production environment resources",
-             *       "exclusive_set": null,
              *       "icon": null,
              *       "id": "550e8400-e29b-41d4-a716-44665544000a",
              *       "lineage_id": null,
              *       "name": "production",
              *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+             *       "tag_group": null,
              *       "updated_at": "2026-01-15T10:30:00Z",
              *       "valid_from": "2026-01-15T10:30:00Z",
              *       "valid_to": null
@@ -6526,19 +6526,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-06T15:26:06.545758Z",
+         *       "created_at": "2026-10-06T15:39:34.018464Z",
          *       "first_discovery_id": null,
-         *       "id": "1c68bb87-f49c-442f-8cea-9056ba0085d3",
+         *       "id": "3c5a0c26-edc8-44fd-a920-d2b5fc4bc6fc",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-06T15:26:06.545758Z",
+         *       "last_seen_at": "2026-10-06T15:39:34.018464Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-10-06T15:26:06.545758Z",
-         *       "valid_from": "2026-10-06T15:26:06.545758Z",
+         *       "updated_at": "2026-10-06T15:39:34.018464Z",
+         *       "valid_from": "2026-10-06T15:39:34.018464Z",
          *       "valid_to": null
          *     }
          */
@@ -6885,7 +6885,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Open WebUI",
+         *           "service_definition": "Prometheus Node Exporter",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8994,23 +8994,6 @@ export interface components {
             /** @description Guest name as configured on the ESXi host. */
             vm_name?: string | null;
         };
-        /**
-         * @description A set of tags of which an entity may hold at most one.
-         *
-         *     Assigning a tag from a set replaces whichever tag of the same set the entity already holds.
-         *     `Application` is the built-in set: its tags drive the application view, which can place an
-         *     entity in one application only. `Group` sets are named by the organization (a lifecycle, an
-         *     environment, a tier) and exist for as long as a tag carries the name.
-         */
-        ExclusiveSet: {
-            /** @enum {string} */
-            type: "Application";
-        } | {
-            /** @description The set's name, shared by every tag in it. */
-            name: string;
-            /** @enum {string} */
-            type: "Group";
-        };
         /** @description Export feature flags derived from the share creator's billing plan */
         ExportFeatures: {
             /** @description Viewer may export the diagram for Confluence. */
@@ -9513,19 +9496,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-06T15:26:06.544707Z",
+         *               "created_at": "2026-10-06T15:39:34.017138Z",
          *               "first_discovery_id": null,
-         *               "id": "5973d9a5-b232-4996-933b-ff3244132105",
+         *               "id": "8cc66767-7ac0-4deb-a04a-99be4e9d1e6a",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-06T15:26:06.544707Z",
+         *               "last_seen_at": "2026-10-06T15:39:34.017138Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-10-06T15:26:06.544707Z",
-         *               "valid_from": "2026-10-06T15:26:06.544707Z",
+         *               "updated_at": "2026-10-06T15:39:34.017138Z",
+         *               "valid_from": "2026-10-06T15:39:34.017138Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9538,7 +9521,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Open WebUI",
+         *           "service_definition": "Prometheus Node Exporter",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -12623,19 +12606,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-06T15:26:06.545612Z",
+         *           "created_at": "2026-10-06T15:39:34.018279Z",
          *           "first_discovery_id": null,
-         *           "id": "6b2f3be5-26b8-45a8-9dc7-3a7c7c1539d7",
+         *           "id": "d20ea006-326f-4bc4-9c9c-b69618fec01d",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-06T15:26:06.545612Z",
+         *           "last_seen_at": "2026-10-06T15:39:34.018279Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-10-06T15:26:06.545612Z",
-         *           "valid_from": "2026-10-06T15:26:06.545612Z",
+         *           "updated_at": "2026-10-06T15:39:34.018279Z",
+         *           "valid_from": "2026-10-06T15:39:34.018279Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12648,7 +12631,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Open WebUI",
+         *       "service_definition": "Prometheus Node Exporter",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -13262,12 +13245,12 @@ export interface components {
          *       "color": "Green",
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "description": "Production environment resources",
-         *       "exclusive_set": null,
          *       "icon": null,
          *       "id": "550e8400-e29b-41d4-a716-44665544000a",
          *       "lineage_id": null,
          *       "name": "production",
          *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+         *       "tag_group": null,
          *       "updated_at": "2026-01-15T10:30:00Z",
          *       "valid_from": "2026-01-15T10:30:00Z",
          *       "valid_to": null
@@ -13310,7 +13293,6 @@ export interface components {
             color: components["schemas"]["Color"];
             /** @description Free-text notes about the tag. */
             description?: string | null;
-            exclusive_set?: null | components["schemas"]["ExclusiveSet"];
             icon?: null | components["schemas"]["TagIcon"];
             /** @description Human-facing name for this tag. */
             name: string;
@@ -13319,6 +13301,24 @@ export interface components {
              * @description The organization that owns this record.
              */
             organization_id: string;
+            tag_group?: null | components["schemas"]["TagGroup"];
+        };
+        /**
+         * @description A group of tags of which an entity may hold at most one.
+         *
+         *     Assigning a tag from a group replaces whichever tag of the same group the entity already holds.
+         *     `Application` is the built-in group: its tags drive the application view, which can place an
+         *     entity in one application only. `Named` groups are named by the organization (a status, an
+         *     environment, a tier) and exist for as long as a tag carries the name.
+         */
+        TagGroup: {
+            /** @enum {string} */
+            type: "Application";
+        } | {
+            /** @description The group's name, shared by every tag in it. */
+            name: string;
+            /** @enum {string} */
+            type: "Named";
         };
         /**
          * @description A lucide icon a person chose for a tag.
@@ -13331,7 +13331,7 @@ export interface components {
          * @description Fields that tags can be ordered/grouped by.
          * @enum {string}
          */
-        TagOrderField: "created_at" | "name" | "color" | "updated_at" | "exclusive_set";
+        TagOrderField: "created_at" | "name" | "color" | "updated_at" | "tag_group";
         /**
          * @description Company size bracket offered by the plan-inquiry form.
          * @enum {string}
@@ -13534,7 +13534,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "d52af9fc-a985-4b66-a2bf-391fe970120e",
+             *           "id": "3c98ba28-95e0-4f65-bb56-fd5b18947ea7",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13544,23 +13544,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "3a679659-dbe8-495a-9e3f-0f8da06be783",
+             *           "id": "18d3a4a7-28dc-40d7-86ac-9d503399be3a",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "94292351-5a5b-4bbc-a9ef-9c6b22bbaf2b",
+             *           "id": "81d8ab16-2a26-414f-850e-2f720e915c68",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "fea1ead3-422c-437b-8157-7aa6081ad5d3",
+             *           "id": "fe85c512-7111-4d32-8894-9059736c74f1",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "3a679659-dbe8-495a-9e3f-0f8da06be783",
+             *           "id": "18d3a4a7-28dc-40d7-86ac-9d503399be3a",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13573,19 +13573,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "4adb90e3-7add-4baa-8c46-e4e853a1cae6",
+             *         "id": "4002b718-3845-4261-ad7f-42f63a0d62b8",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "6daafe63-ae3d-4eff-91be-0becd176783c",
+             *         "id": "a43c7bfb-5bfe-4874-97be-bd49d92daee7",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "90316793-5069-4c04-aa17-894d961865d8",
+             *         "id": "d65c252b-5c3d-4c83-acf9-f4b138fcd19b",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "40f3bf8d-8214-4556-8a49-a03eacaf67cb",
+             *         "id": "4fa2336b-7c87-4a64-b983-95e2d9cfbb9c",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13604,7 +13604,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "f9d407fb-29b1-4192-9024-65a8560bb1af",
+             *         "id": "2bda7691-1e19-4d9a-8c83-f48580ed5e31",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13613,15 +13613,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "1c65ae4c-34b9-4d92-b34d-810d943cbdd6",
+             *         "id": "35054879-9ee4-4777-b79b-d9b9a8ca2919",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "ed62f6d2-dfbd-4cf6-851f-5c2ec18b855e",
+             *         "id": "c2eb8dd7-df55-4042-9ff3-287769e3e7f3",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "cec942c0-bae5-4779-960d-7cfff736e4ee",
+             *         "id": "e56059a8-e2cd-4a5c-bcc1-05916a5fc6d0",
              *         "rule": "ByStack"
              *       }
              *     ]
