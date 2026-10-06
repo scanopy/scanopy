@@ -921,12 +921,13 @@
 	{/if}
 
 	<!-- Bulk tagging floats at the bottom of the viewport, over the table, so a long tag list never
-	     crowds the toolbar. Sticky rather than fixed: a list page on a hidden tab sits in an
-	     overflow-hidden wrapper, which clips a sticky card but not a fixed one. -->
+	     crowds the toolbar. It takes Popover's floating-surface shadow. Sticky rather than fixed:
+	     a list page on a hidden tab sits in an overflow-hidden wrapper, which clips a sticky card
+	     but not a fixed one. -->
 	{#if hasBulkTagging && selectedIds.size > 0}
 		<div class="pointer-events-none sticky bottom-6 z-20 flex justify-center">
 			<div
-				class="card card-static pointer-events-auto flex max-w-full items-center gap-2 !px-4 !py-2"
+				class="card card-static pointer-events-auto flex max-w-full items-center gap-2 !px-4 !py-2 !shadow-[0_4px_24px_rgba(0,0,0,0.15)] dark:!shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
 			>
 				<span class="text-secondary text-sm">{common_tags()}</span>
 				<TagPickerInline
