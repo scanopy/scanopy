@@ -7,24 +7,20 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use std::{collections::HashMap, fmt::Debug, hash::Hash, net::IpAddr};
+use std::{borrow::Cow, collections::HashMap, fmt::Debug, hash::Hash, net::IpAddr};
 use std::{sync::Arc, time::Duration};
 use strum::IntoDiscriminant;
 use tokio::sync::{RwLock, broadcast};
 use uuid::Uuid;
 
-use crate::daemon::discovery::types::base::{DiscoveryPhase, DiscoveryTerminalReason};
+use crate::daemon::discovery::types::base::DiscoveryTerminalReason;
 use crate::server::{
-    auth::middleware::auth::AuthenticatedEntity,
+    auth::middleware::auth::{ActorProperties, AuthenticatedEntity},
+    daemons::r#impl::version::own_version,
     discovery::r#impl::types::DiscoveryType,
     shared::{
         entities::{Entity, EntityDiscriminants},
-        events::types::{
-            AnalyticsOperation, AnalyticsOperationDiscriminants, AuthOperation,
-            AuthOperationDiscriminants, BillingOperation, BillingOperationDiscriminants,
-            EntityOperation, EntityOperationDiscriminants, EventLogLevel, LabelColor,
-            OnboardingOperation, OnboardingOperationDiscriminants,
-        },
+        events::types::{EntityOperation, EntityOperationDiscriminants, EventLogLevel, LabelColor},
     },
 };
 
@@ -64,18 +60,33 @@ pub trait Operation:
     + Sized
     + 'static
 {
-    type Scope: Clone + Debug + Send + Sync + Serialize + DeserializeOwned + 'static;
+    type Scope: EventScope + Clone + Debug + Send + Sync + Serialize + DeserializeOwned + 'static;
     type Flags: Default + Clone + Debug + Send + Sync + Serialize + DeserializeOwned + 'static;
     type Filter: SubscriberFilter<Self>;
 
     fn log_level(&self) -> EventLogLevel;
 
-    /// Human-scannable label prefixed to the event's log line, e.g.
-    /// `"Created"`. Receives the `Scope` because some operations (notably
-    /// entity events) carry the meaningful noun there rather than on the
-    /// operation itself. Default is the operation discriminant's name.
-    fn log_label(&self, _scope: &Self::Scope) -> String {
-        self.discriminant().as_ref().to_string()
+    /// The event's snake_case name, e.g. `"subnet_created"`: the one name every consumer outside
+    /// the bus (log line, PostHog) uses. Receives the `Scope` because some operations (notably
+    /// entity events) carry the meaningful noun there rather than on the operation itself.
+    fn event_name(&self, scope: &Self::Scope) -> Cow<'static, str>;
+
+    /// Label prefixed to the event's log line. Defaults to [`Operation::event_name`].
+    fn log_label(&self, scope: &Self::Scope) -> String {
+        self.event_name(scope).into_owned()
+    }
+
+    /// Whom the event is about, for consumers that attribute events to a person.
+    fn attribution(&self, _scope: &Self::Scope) -> Attribution {
+        Attribution::Actor
+    }
+
+    /// The event-specific payload a consumer outside the server receives, under `metadata`.
+    /// Defaults to the operation itself. Operations whose identity lives on the scope override
+    /// it to pick the scope fields that are safe to send: a scope can carry the whole entity, a
+    /// client address or a device's diagnostic.
+    fn metadata<'a>(&'a self, _scope: &'a Self::Scope) -> impl Serialize + Send + 'a {
+        self
     }
 
     /// Color for the label in the log line. Defaults to `Neutral`; operation
@@ -89,6 +100,31 @@ pub trait Operation:
 // ===========================================================================
 // Scope types
 // ===========================================================================
+
+/// The organization an event belongs to, as its scope names it. A site-scoped event names its
+/// site; the consumer looks the site's organization up.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ScopeOrganization {
+    Org(Uuid),
+    Site(Uuid),
+}
+
+/// Implemented by every operation's `Scope`.
+pub trait EventScope {
+    /// `None` only where the scope has no organization at all, e.g. a failed login.
+    fn organization(&self) -> Option<ScopeOrganization>;
+}
+
+/// Whom an event is about.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Attribution {
+    /// The authenticated user, else the event's organization.
+    Actor,
+    /// A named user, e.g. an email's recipient.
+    User(Uuid),
+    /// The organization, whoever acted, e.g. an anonymous share view.
+    Organization,
+}
 
 /// Identity scope for org-only events: `BillingOperation`, `OnboardingOperation`,
 /// `AnalyticsOperation`.
@@ -174,21 +210,40 @@ impl EntityScope {
     pub fn entity_discriminant(&self) -> EntityDiscriminants {
         self.entity_type().discriminant()
     }
+}
 
-    pub fn organization_id(&self) -> Option<Uuid> {
-        match self {
+impl EventScope for OrgScope {
+    fn organization(&self) -> Option<ScopeOrganization> {
+        Some(ScopeOrganization::Org(self.organization_id))
+    }
+}
+
+impl EventScope for SiteScope {
+    fn organization(&self) -> Option<ScopeOrganization> {
+        Some(ScopeOrganization::Site(self.site_id))
+    }
+}
+
+impl EventScope for AuthScope {
+    fn organization(&self) -> Option<ScopeOrganization> {
+        self.organization_id.map(ScopeOrganization::Org)
+    }
+}
+
+impl EventScope for EntityScope {
+    fn organization(&self) -> Option<ScopeOrganization> {
+        Some(match self {
             EntityScope::Org {
                 organization_id, ..
-            } => Some(*organization_id),
-            EntityScope::Site { .. } => None,
-        }
+            } => ScopeOrganization::Org(*organization_id),
+            EntityScope::Site { site_id, .. } => ScopeOrganization::Site(*site_id),
+        })
     }
+}
 
-    pub fn site_id(&self) -> Option<Uuid> {
-        match self {
-            EntityScope::Org { .. } => None,
-            EntityScope::Site { site_id, .. } => Some(*site_id),
-        }
+impl EventScope for DiscoveryScope {
+    fn organization(&self) -> Option<ScopeOrganization> {
+        Some(ScopeOrganization::Site(self.site_id))
     }
 }
 
@@ -270,6 +325,59 @@ impl<Op: Operation> Event<Op> {
 
     pub fn log_label(&self) -> String {
         self.operation.log_label(&self.scope)
+    }
+
+    pub fn name(&self) -> Cow<'static, str> {
+        self.operation.event_name(&self.scope)
+    }
+
+    pub fn attribution(&self) -> Attribution {
+        self.operation.attribution(&self.scope)
+    }
+
+    /// The event as a consumer outside the server receives it: who acted, this server's version,
+    /// and the operation's [`metadata`](Operation::metadata). `site_organization_id` is the
+    /// caller's lookup of a [`ScopeOrganization::Site`]; the organization falls back to the
+    /// authenticated entity's when the scope yields none.
+    pub fn properties(
+        &self,
+        site_organization_id: Option<Uuid>,
+    ) -> EventProperties<impl Serialize + Send + '_> {
+        let mut actor = ActorProperties::from(&self.authentication);
+        let scope_organization_id = match self.scope.organization() {
+            Some(ScopeOrganization::Org(id)) => Some(id),
+            Some(ScopeOrganization::Site(_)) => site_organization_id,
+            None => None,
+        };
+        if let Some(id) = scope_organization_id {
+            actor.organization_id = Some(id);
+        }
+        EventProperties {
+            actor,
+            server_version: own_version(),
+            metadata: self.operation.metadata(&self.scope),
+        }
+    }
+}
+
+/// See [`Event::properties`]. `metadata` holds every event-specific field, so the top level
+/// is the same for every event.
+#[derive(Debug, Serialize)]
+pub struct EventProperties<M> {
+    #[serde(flatten)]
+    pub actor: ActorProperties,
+    pub server_version: semver::Version,
+    pub metadata: M,
+}
+
+impl<M> EventProperties<M> {
+    /// Extend the metadata, e.g. with a count a consumer aggregated over several events.
+    pub fn map_metadata<N>(self, f: impl FnOnce(M) -> N) -> EventProperties<N> {
+        EventProperties {
+            actor: self.actor,
+            server_version: self.server_version,
+            metadata: f(self.metadata),
+        }
     }
 }
 
@@ -378,99 +486,6 @@ impl SubscriberFilter<EntityOperation> for EntityEventFilter {
         }
     }
 }
-
-// ===========================================================================
-// Operation impls — log_level lives on the trait, not as inherent methods
-// ===========================================================================
-
-impl Operation for BillingOperation {
-    type Scope = OrgScope;
-    type Flags = EventFlags;
-    type Filter = EventFilter<BillingOperation>;
-    fn log_level(&self) -> EventLogLevel {
-        EventLogLevel::Info
-    }
-}
-
-impl Operation for OnboardingOperation {
-    type Scope = OrgScope;
-    type Flags = EventFlags;
-    type Filter = EventFilter<OnboardingOperation>;
-    fn log_level(&self) -> EventLogLevel {
-        EventLogLevel::Info
-    }
-}
-
-impl Operation for AnalyticsOperation {
-    type Scope = OrgScope;
-    type Flags = EventFlags;
-    type Filter = EventFilter<AnalyticsOperation>;
-    fn log_level(&self) -> EventLogLevel {
-        EventLogLevel::Debug
-    }
-}
-
-impl Operation for AuthOperation {
-    type Scope = AuthScope;
-    type Flags = EventFlags;
-    type Filter = EventFilter<AuthOperation>;
-    fn log_level(&self) -> EventLogLevel {
-        match self {
-            AuthOperation::LoginFailed { .. } | AuthOperation::ApiKeyAuthFailed { .. } => {
-                EventLogLevel::Warn
-            }
-            _ => EventLogLevel::Info,
-        }
-    }
-}
-
-impl Operation for EntityOperation {
-    type Scope = EntityScope;
-    type Flags = EntityEventFlags;
-    type Filter = EntityEventFilter;
-    fn log_level(&self) -> EventLogLevel {
-        EventLogLevel::Info
-    }
-
-    /// Entity events carry the noun in the scope, so compose it with the
-    /// operation, e.g. `"Subnet Created"`.
-    fn log_label(&self, scope: &Self::Scope) -> String {
-        format!(
-            "{} {}",
-            scope.entity_discriminant().as_ref(),
-            self.discriminant().as_ref()
-        )
-    }
-
-    fn log_color(&self) -> LabelColor {
-        match self {
-            EntityOperation::Created => LabelColor::Green,
-            EntityOperation::Updated => LabelColor::Blue,
-            EntityOperation::Deleted => LabelColor::Red,
-            EntityOperation::Get | EntityOperation::GetAll => LabelColor::Neutral,
-        }
-    }
-}
-
-impl Operation for DiscoveryPhase {
-    type Scope = DiscoveryScope;
-    type Flags = EventFlags;
-    type Filter = EventFilter<DiscoveryPhase>;
-    fn log_level(&self) -> EventLogLevel {
-        match self {
-            DiscoveryPhase::Failed => EventLogLevel::Warn,
-            _ => EventLogLevel::Info,
-        }
-    }
-}
-
-// Convenience aliases for the discriminant types so consumers don't have to
-// write `<BillingOperation as IntoDiscriminant>::Discriminant`.
-pub type BillingDiscriminant = BillingOperationDiscriminants;
-pub type OnboardingDiscriminant = OnboardingOperationDiscriminants;
-pub type AnalyticsDiscriminant = AnalyticsOperationDiscriminants;
-pub type AuthDiscriminant = AuthOperationDiscriminants;
-pub type EntityDiscriminant = EntityOperationDiscriminants;
 
 // ===========================================================================
 // Subscriber trait

@@ -43,7 +43,7 @@ fn baseline_floor() -> Version {
 /// enforces a floor newer than itself, so it can never reject a daemon of its
 /// own generation. A pinned/stale self-hosted server therefore converges to a
 /// floor it can actually reason about and stops.
-fn own_version() -> Version {
+pub(crate) fn own_version() -> Version {
     Version::parse(env!("CARGO_PKG_VERSION")).expect("CARGO_PKG_VERSION is valid semver")
 }
 

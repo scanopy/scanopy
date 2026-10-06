@@ -20,7 +20,10 @@ use crate::server::{
         entities::{Entity, EntityDiscriminants},
         events::{
             registry::SubscriberRegistration,
-            traits::{EntityEventFilter, Event, EventFilter, NonRetryable, Subscriber},
+            traits::{
+                EntityEventFilter, Event, EventFilter, EventScope, NonRetryable, ScopeOrganization,
+                Subscriber,
+            },
             types::{
                 AuthOperation, AuthOperationDiscriminants, BillingOperation,
                 BillingOperationDiscriminants, EntityOperation, EntityOperationDiscriminants,
@@ -608,15 +611,14 @@ impl Subscriber<EntityOperation> for EmailService {
         let mut plan_limit_failures = Vec::new();
         let mut send_failure = None;
         for event in events {
-            let org_id = if let Some(org_id) = event.scope.organization_id() {
-                Some(org_id)
-            } else if let Some(site_id) = event.scope.site_id() {
-                self.site_service
+            let org_id = match event.scope.organization() {
+                Some(ScopeOrganization::Org(org_id)) => Some(org_id),
+                Some(ScopeOrganization::Site(site_id)) => self
+                    .site_service
                     .get_by_id(&site_id)
                     .await?
-                    .map(|n| n.base.organization_id)
-            } else {
-                None
+                    .map(|n| n.base.organization_id),
+                None => None,
             };
 
             if let Some(org_id) = org_id

@@ -698,20 +698,6 @@ pub enum AnalyticsOperation {
     },
 }
 
-impl AnalyticsOperation {
-    /// The PostHog person an event belongs to. An email goes to one user, so
-    /// its send lands on the same person as their click; a share view has no
-    /// viewer identity and is attributed to the org.
-    pub fn distinct_id(&self, organization_id: Uuid) -> String {
-        match self {
-            Self::EmailSent { user_id, .. } => user_id.to_string(),
-            Self::TopologyShareViewed { .. } | Self::TopologyEmbedViewed { .. } => {
-                format!("org:{organization_id}")
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

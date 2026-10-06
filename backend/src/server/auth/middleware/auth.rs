@@ -139,6 +139,33 @@ pub enum AuthenticatedEntity {
     Anonymous,
 }
 
+/// Who acted, in the form sent outside the server with every event: identifiers only, never
+/// permissions or site access.
+#[derive(Debug, Clone, Serialize)]
+pub struct ActorProperties {
+    pub auth_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<EmailAddress>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub organization_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub daemon_id: Option<Uuid>,
+}
+
+impl From<&AuthenticatedEntity> for ActorProperties {
+    fn from(auth: &AuthenticatedEntity) -> Self {
+        Self {
+            auth_type: auth.entity_name(),
+            user_id: auth.user_id(),
+            email: auth.email().cloned(),
+            organization_id: auth.organization_id(),
+            daemon_id: auth.daemon_id(),
+        }
+    }
+}
+
 impl Display for AuthenticatedEntity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

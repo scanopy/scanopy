@@ -1,7 +1,7 @@
 //! Custom field formatter for event logs.
 //!
 //! Renders each event-log line as a color-coded `<label>: ` prefix followed by
-//! the JSON payload, e.g. `Subnet Created: {"id":...}`. Regular log lines (no
+//! the JSON payload, e.g. `subnet_created: {"id":...}`. Regular log lines (no
 //! `log_label` field) are rendered normally — message first, then any
 //! remaining fields as `key=value`.
 //!

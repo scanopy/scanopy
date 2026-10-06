@@ -15,7 +15,7 @@ use crate::server::{
         entities::EntityDiscriminants,
         events::{
             registry::SubscriberRegistration,
-            traits::{EntityEventFilter, Event, Subscriber},
+            traits::{EntityEventFilter, Event, EventScope, ScopeOrganization, Subscriber},
             types::EntityOperation,
         },
         services::traits::CrudService,
@@ -55,23 +55,24 @@ impl Subscriber<EntityOperation> for TopologyService {
         for event in events {
             // For org-scoped events (e.g., Tag changes), fan out to every
             // site in the org so live consumers refetch.
-            let scope_site_id = event.scope.site_id();
-            let scope_org_id = event.scope.organization_id();
-
-            if let Some(site_id) = scope_site_id {
-                affected_sites.insert(site_id);
-            } else if let Some(org_id) = scope_org_id {
-                let nets = self
-                    .site_service
-                    .get_all(
-                        StorageFilter::<crate::server::sites::r#impl::Site>::new_from_org_id(
-                            &org_id,
-                        ),
-                    )
-                    .await?;
-                for n in nets {
-                    affected_sites.insert(n.id);
+            match event.scope.organization() {
+                Some(ScopeOrganization::Site(site_id)) => {
+                    affected_sites.insert(site_id);
                 }
+                Some(ScopeOrganization::Org(org_id)) => {
+                    let nets = self
+                        .site_service
+                        .get_all(
+                            StorageFilter::<crate::server::sites::r#impl::Site>::new_from_org_id(
+                                &org_id,
+                            ),
+                        )
+                        .await?;
+                    for n in nets {
+                        affected_sites.insert(n.id);
+                    }
+                }
+                None => {}
             }
         }
 
