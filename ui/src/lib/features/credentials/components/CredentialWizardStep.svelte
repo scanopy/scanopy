@@ -26,7 +26,10 @@
 		daemonOsRefusal,
 		daemonTooOldForCredential
 	} from '$lib/features/credentials/utils/versionGate';
-	import { defaultFieldValue } from '$lib/features/credentials/utils/fieldValues';
+	import {
+		credentialFieldValues,
+		defaultFieldValue
+	} from '$lib/features/credentials/utils/fieldValues';
 	import {
 		DAEMON_HOST_IP,
 		hasExplicitTarget
@@ -358,7 +361,13 @@
 				// As in handleAddCredential: a daemon-host-only type's single target is
 				// implicit, so record it rather than leaving the row looking untargeted.
 				targetIps: isDaemonHostOnly(existing.credential_type.type) ? [DAEMON_HOST_IP] : [''],
-				fieldValues: {},
+				// Its saved values, not `{}`: every add or remove rebuilds the shared form from
+				// the rows' `fieldValues`, and a read-only card never reports changes, so an
+				// empty map would erase what the card shows and fail its required fields.
+				fieldValues: credentialFieldValues(
+					existing.credential_type,
+					credentialTypes.getMetadata(existing.credential_type.type)?.fields ?? []
+				),
 				isExisting: true,
 				// Mirror handleAddCredential: reset() picks the same default internally, but
 				// never emits it, so the row must carry it or a broadcast type would be

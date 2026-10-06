@@ -42,6 +42,7 @@
 		type OsFamily
 	} from '../utils/placeholders';
 	import {
+		credentialFieldValues,
 		defaultFieldValue,
 		parseScriptSource,
 		scriptSourceText,
@@ -265,27 +266,8 @@
 	}
 
 	function initFieldValues(ct: CredentialType) {
-		const values: Record<string, string> = {};
-		const raw = ct as unknown as Record<string, unknown>;
-		const fields = credentialTypes.getMetadata(raw.type as string)?.fields ?? [];
-		const fieldMap = new Map(fields.map((f) => [f.id, f]));
-		for (const [key, val] of Object.entries(raw)) {
-			if (key === 'type') continue;
-			const fieldDef = fieldMap.get(key);
-			if (
-				(fieldDef?.field_type === 'secretpathorinline' ||
-					fieldDef?.field_type === 'pathorinline' ||
-					fieldDef?.field_type === 'scriptsource') &&
-				val != null &&
-				typeof val === 'object'
-			) {
-				values[key] = JSON.stringify(val);
-			} else {
-				values[key] = val != null ? String(val) : '';
-			}
-		}
-		fieldValues = values;
-		syncFieldsToForm(raw.type as string, 'all');
+		fieldValues = credentialFieldValues(ct, credentialTypes.getMetadata(ct.type)?.fields ?? []);
+		syncFieldsToForm(ct.type, 'all');
 	}
 
 	function initDefaultFieldValues(typeId: string) {
