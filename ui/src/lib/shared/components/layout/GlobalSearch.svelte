@@ -169,6 +169,8 @@
 <GenericModal
 	isOpen={$globalSearchOpen}
 	title={common_search()}
+	showTitleRow={false}
+	showCloseButton={false}
 	onClose={close}
 	onOpen={() => inputEl?.focus()}
 	size="lg"

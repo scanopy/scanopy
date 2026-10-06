@@ -41,6 +41,7 @@
 		anchor = 'viewport',
 		preventCloseOnClickOutside = false,
 		showCloseButton = true,
+		showTitleRow = true,
 		showBackdrop = true,
 		borderless = false,
 		floatingCloseButton = false,
@@ -73,6 +74,11 @@
 		anchor?: 'viewport' | 'container';
 		preventCloseOnClickOutside?: boolean;
 		showCloseButton?: boolean;
+		/**
+		 * False drops the title row, leaving the title for screen readers only. The modal then closes
+		 * by Escape and clicking outside, as a command palette does.
+		 */
+		showTitleRow?: boolean;
 		showBackdrop?: boolean;
 		borderless?: boolean;
 		floatingCloseButton?: boolean;
@@ -99,12 +105,12 @@
 		footer?: Snippet;
 	} = $props();
 
-	// With banners in the frame above, the icon and title only compete with them,
-	// so the title row stands down. Guarded on `showCloseButton` because the close
-	// button lives in that row: a gated modal has none today, and this makes sure
-	// no future caller can lose its only way out. The heading itself survives as
-	// sr-only below, since `aria-labelledby` points at it.
-	let hideTitleRow = $derived(banners != null && !showCloseButton);
+	// `showTitleRow={false}` drops the row outright (the search palette). With banners in the
+	// frame above, the icon and title only compete with them, so the row stands down too, guarded
+	// on `showCloseButton` because the close button lives in that row: a gated modal has none
+	// today, and this makes sure no future caller can lose its only way out. The heading itself
+	// survives as sr-only below, since `aria-labelledby` points at it.
+	let hideTitleRow = $derived(!showTitleRow || (banners != null && !showCloseButton));
 
 	// Tabs and steppers share the title row, between the title and the close button, whenever
 	// that row shows a left-aligned title. Otherwise they keep their own row below. In the row,
@@ -305,8 +311,8 @@
 				<!-- Keeps the dialog's accessible name while the row is stood down. -->
 				<h2 id="modal-title" class="sr-only">{title}</h2>
 			{/if}
-			<!-- Header (hidden when no title, no close button, and no tabs) -->
-			{#if title || showCloseButton || tabs.length > 0}
+			<!-- Header (hidden when it would hold nothing: no title row and no tabs) -->
+			{#if (title || showCloseButton || tabs.length > 0) && !(hideTitleRow && tabs.length === 0)}
 				<div class="modal-header flex-col gap-0 {tabs.length > 0 && !inlineTabs ? 'pb-0' : ''}">
 					<!-- Title row -->
 					{#if !hideTitleRow}
