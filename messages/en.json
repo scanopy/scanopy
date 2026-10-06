@@ -2776,7 +2776,6 @@
 	"userApiKeys_noApiKeysSubtitle": "Create API keys to access the API programmatically",
 	"userApiKeys_noApiKeysYet": "No API Keys yet",
 	"userApiKeys_permissionsHelp": "The maximum permission level this key can have (cannot exceed your own)",
-	"userApiKeys_shareIntegration": "Share your integration with the community!",
 	"userApiKeys_subtitle": "Manage your personal API keys for programmatic access",
 	"userApiKeys_verifyEmailToCreate": "Please verify email to create an API key",
 	"users_authMethod": "Auth Method",

@@ -23,7 +23,6 @@
 		useCreateUserApiKeyMutation,
 		useRotateUserApiKeyMutation
 	} from '../queries';
-	import InlineSuccess from '$lib/shared/components/feedback/InlineSuccess.svelte';
 	import {
 		common_apiKeyNameHelp,
 		common_close,
@@ -42,8 +41,7 @@
 		userApiKeys_createApiKey,
 		userApiKeys_enableHelp,
 		userApiKeys_namePlaceholder,
-		userApiKeys_permissionsHelp,
-		userApiKeys_shareIntegration
+		userApiKeys_permissionsHelp
 	} from '$lib/paraglide/messages';
 
 	interface Props {
@@ -213,11 +211,6 @@
 	>
 		<div class="min-h-0 flex-1 overflow-auto p-6">
 			<div class="space-y-6">
-				<InlineSuccess
-					title={userApiKeys_shareIntegration()}
-					body="Creating an integration that you think others might benefit from? Scanopy will be adding an integration library in an upcoming release. Go to the <a class='underline hover:no-underline' target='_blank' href='https://github.com/scanopy/integrations'>Scanopy integrations GitHub</a> and create a PR to get started."
-				></InlineSuccess>
-
 				<div class="space-y-4">
 					<form.Field
 						name="name"
