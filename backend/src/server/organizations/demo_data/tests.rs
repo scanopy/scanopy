@@ -398,3 +398,25 @@ fn no_demo_entity_holds_two_tags_of_one_tag_group() {
         }
     }
 }
+
+#[test]
+fn every_daemon_api_key_is_bound_one_to_one() {
+    let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4());
+    assert!(!demo.api_keys.is_empty());
+
+    // No site-shared legacy keys: each key names a daemon, and that daemon names it back.
+    for key in &demo.api_keys {
+        let daemon_id = key
+            .base
+            .daemon_id
+            .unwrap_or_else(|| panic!("{} is not bound to a daemon", key.base.name));
+        let daemon = demo
+            .daemons
+            .iter()
+            .find(|d| d.id == daemon_id)
+            .unwrap_or_else(|| panic!("{} names a daemon the demo lacks", key.base.name));
+        assert_eq!(daemon.base.api_key_id, Some(key.id), "{}", daemon.base.name);
+        assert_eq!(daemon.base.site_id, key.base.site_id, "{}", key.base.name);
+    }
+    assert!(demo.daemons.iter().all(|d| d.base.api_key_id.is_some()));
+}

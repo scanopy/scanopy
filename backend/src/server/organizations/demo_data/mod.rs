@@ -236,9 +236,10 @@ impl DemoData {
             generate_interfaces(&sites, &hosts, &ip_addresses, &vlans, now);
         let subnet_vlan_records =
             generate_subnet_vlan_records(&interfaces, &hosts_with_services, now);
-        let daemons = generate_daemons(&sites, &hosts, now, user_id);
+        let mut daemons = generate_daemons(&sites, &hosts, now, user_id);
         let daemon_interfaced_subnets = generate_daemon_interfaced_subnets(&daemons, &ip_addresses);
-        let api_keys = generate_api_keys(&sites, now);
+        let api_keys = generate_api_keys(&daemons, now);
+        bind_daemon_api_keys(&mut daemons, &api_keys);
         let topologies = generate_topologies(&sites, &tags, now);
         let discoveries =
             generate_discoveries(&sites, &subnets, &daemons, &hosts, &credentials, now);
@@ -289,7 +290,7 @@ mod tags;
 mod topologies;
 mod vlans;
 
-use api_keys::{generate_api_keys, generate_user_api_keys};
+use api_keys::{bind_daemon_api_keys, generate_api_keys, generate_user_api_keys};
 use credentials::{generate_credentials, generate_site_credential_assignments};
 use daemons::{generate_daemon_interfaced_subnets, generate_daemons};
 use dependencies::generate_dependencies;

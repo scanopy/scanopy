@@ -522,11 +522,22 @@ pub(crate) async fn insert_demo_data(
             .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     }
 
-    // 6. Daemons (depends on hosts, sites, subnets)
+    // 6. Daemons (depends on hosts, sites, subnets). Inserted without their api key, which does
+    // not exist yet: each key names its daemon and each daemon its key, so the daemon side of
+    // the binding is written in 7.1, as provisioning does.
+    let unbound_daemons: Vec<_> = demo_data
+        .daemons
+        .iter()
+        .cloned()
+        .map(|mut daemon| {
+            daemon.base.api_key_id = None;
+            daemon
+        })
+        .collect();
     services
         .daemon_service
         .storage()
-        .create_many(&demo_data.daemons)
+        .create_many(&unbound_daemons)
         .await?;
 
     // 6.1. Daemon interfaced subnets (depend on daemons + subnets). Same service method the
@@ -538,11 +549,18 @@ pub(crate) async fn insert_demo_data(
             .await?;
     }
 
-    // 7. Daemon API Keys (depends on sites)
+    // 7. Daemon API Keys (depends on sites and daemons)
     services
         .daemon_api_key_service
         .storage()
         .create_many(&demo_data.api_keys)
+        .await?;
+
+    // 7.1. Bind each daemon to its key.
+    services
+        .daemon_service
+        .storage()
+        .update_many(&demo_data.daemons)
         .await?;
 
     // 8. Discoveries (depends on daemons, sites, subnets)
