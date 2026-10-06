@@ -126,7 +126,6 @@ function toCreateHostRequest(formData: HostFormData): CreateHostRequest {
 		name: formData.name,
 		site_id: formData.site_id,
 		hostname: formData.hostname ?? null,
-		asset_tag: formData.asset_tag?.trim() || null,
 		description: formData.description,
 		virtualization_metadata: formData.virtualization_metadata,
 		virtualization_service_id: formData.virtualization_service_id,
@@ -569,9 +568,6 @@ export function useUpdateHostMutation() {
 				id: data.host.id,
 				name: data.host.name,
 				hostname: data.host.hostname ?? null,
-				// Omitted keeps the stored tag, an empty string clears it, and the stored value sent back
-				// unchanged leaves its source alone.
-				asset_tag: data.host.asset_tag,
 				description: data.host.description,
 				virtualization_metadata: data.host.virtualization_metadata,
 				virtualization_service_id: data.host.virtualization_service_id,

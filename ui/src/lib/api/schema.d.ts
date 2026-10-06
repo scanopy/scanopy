@@ -3531,19 +3531,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-05T22:43:23.241287Z",
+             *       "created_at": "2026-10-06T15:26:06.575228Z",
              *       "first_discovery_id": null,
-             *       "id": "4e0321ae-aa98-4d21-9750-b86f2ff335eb",
+             *       "id": "53f71e4d-a5fb-4c25-b59c-772c54066e9b",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-05T22:43:23.241287Z",
+             *       "last_seen_at": "2026-10-06T15:26:06.575228Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-10-05T22:43:23.241287Z",
-             *       "valid_from": "2026-10-05T22:43:23.241287Z",
+             *       "updated_at": "2026-10-06T15:26:06.575228Z",
+             *       "valid_from": "2026-10-06T15:26:06.575228Z",
              *       "valid_to": null
              *     }
              */
@@ -4251,7 +4251,9 @@ export interface components {
              *     Includes children (ip_addresses, ports, services, interfaces).
              * @example {
              *       "asset_tag": "IT-00412",
-             *       "asset_tag_source": "Manual",
+             *       "asset_tag_source": {
+             *         "Probe": "Snmp"
+             *       },
              *       "chassis_id_source": "Unspecified",
              *       "created_at": "2026-01-15T10:30:00Z",
              *       "credential_assignments": [],
@@ -4374,19 +4376,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-05T22:43:23.215710Z",
+             *               "created_at": "2026-10-06T15:26:06.545258Z",
              *               "first_discovery_id": null,
-             *               "id": "7295f032-8626-48b9-9ff5-7e2fc8fbca71",
+             *               "id": "6e7e5975-8e81-4f39-9b7e-e05df1436e35",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-05T22:43:23.215710Z",
+             *               "last_seen_at": "2026-10-06T15:26:06.545258Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-10-05T22:43:23.215710Z",
-             *               "valid_from": "2026-10-05T22:43:23.215710Z",
+             *               "updated_at": "2026-10-06T15:26:06.545258Z",
+             *               "valid_from": "2026-10-06T15:26:06.545258Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4399,7 +4401,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Loki",
+             *           "service_definition": "Open WebUI",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -4435,11 +4437,11 @@ export interface components {
              */
             data?: {
                 /**
-                 * @description The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person.
-                 *     Set it through `asset_tag` on create and update; a typed value outranks what discovery reads.
+                 * @description The asset tag the device reports: ENTITY-MIB entPhysicalAssetID. Read-only: discovery is
+                 *     the only writer, so it always says what the device itself carries.
                  */
                 readonly asset_tag?: string | null;
-                /** @description What produced the asset tag. Read-only: `Manual` when a person typed it. */
+                /** @description What produced the asset tag. Read-only. */
                 asset_tag_source?: components["schemas"]["AttributeSource"];
                 /** @description LLDP chassis identifier, used to match the host to its neighbours. */
                 chassis_id?: string | null;
@@ -5305,19 +5307,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-05T22:43:23.236153Z",
+             *           "created_at": "2026-10-06T15:26:06.560488Z",
              *           "first_discovery_id": null,
-             *           "id": "057a3970-4922-4ed9-b1e7-9cc4d2295823",
+             *           "id": "7826d8e8-ddfc-4186-a664-8f763ee5d74a",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-05T22:43:23.236153Z",
+             *           "last_seen_at": "2026-10-06T15:26:06.560488Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-10-05T22:43:23.236153Z",
-             *           "valid_from": "2026-10-05T22:43:23.236153Z",
+             *           "updated_at": "2026-10-06T15:26:06.560488Z",
+             *           "valid_from": "2026-10-06T15:26:06.560488Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5330,7 +5332,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Loki",
+             *       "service_definition": "Open WebUI",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -6524,19 +6526,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-05T22:43:23.216494Z",
+         *       "created_at": "2026-10-06T15:26:06.545758Z",
          *       "first_discovery_id": null,
-         *       "id": "bdddc3ab-3d5f-4bc2-bc5d-ab42fa198d03",
+         *       "id": "1c68bb87-f49c-442f-8cea-9056ba0085d3",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-05T22:43:23.216494Z",
+         *       "last_seen_at": "2026-10-06T15:26:06.545758Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-10-05T22:43:23.216494Z",
-         *       "valid_from": "2026-10-05T22:43:23.216494Z",
+         *       "updated_at": "2026-10-06T15:26:06.545758Z",
+         *       "valid_from": "2026-10-06T15:26:06.545758Z",
          *       "valid_to": null
          *     }
          */
@@ -6847,7 +6849,6 @@ export interface components {
          *     Client must provide UUIDs for all entities, enabling services to reference
          *     ip_addresses/ports by ID in the same request.
          * @example {
-         *       "asset_tag": "IT-00412",
          *       "credential_assignments": [],
          *       "description": "Primary web server",
          *       "hidden": false,
@@ -6884,7 +6885,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Loki",
+         *           "service_definition": "Open WebUI",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -6898,11 +6899,6 @@ export interface components {
          *     }
          */
         CreateHostRequest: {
-            /**
-             * @description The organization's asset tag for the device. Outranks the value discovery reads from
-             *     ENTITY-MIB entPhysicalAssetID.
-             */
-            asset_tag?: string | null;
             /** @description LLDP chassis identifier, used to match the host to its neighbours. */
             chassis_id?: string | null;
             /** @description Credentials to scan this host with. */
@@ -9153,7 +9149,9 @@ export interface components {
         /**
          * @example {
          *       "asset_tag": "IT-00412",
-         *       "asset_tag_source": "Manual",
+         *       "asset_tag_source": {
+         *         "Probe": "Snmp"
+         *       },
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "credential_assignments": [],
          *       "description": "Primary web server",
@@ -9390,7 +9388,9 @@ export interface components {
          *     Includes children (ip_addresses, ports, services, interfaces).
          * @example {
          *       "asset_tag": "IT-00412",
-         *       "asset_tag_source": "Manual",
+         *       "asset_tag_source": {
+         *         "Probe": "Snmp"
+         *       },
          *       "chassis_id_source": "Unspecified",
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "credential_assignments": [],
@@ -9513,19 +9513,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-05T22:43:23.214858Z",
+         *               "created_at": "2026-10-06T15:26:06.544707Z",
          *               "first_discovery_id": null,
-         *               "id": "3f6251d6-8ecc-4d4c-9bde-f7d289a91c4b",
+         *               "id": "5973d9a5-b232-4996-933b-ff3244132105",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-05T22:43:23.214858Z",
+         *               "last_seen_at": "2026-10-06T15:26:06.544707Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-10-05T22:43:23.214858Z",
-         *               "valid_from": "2026-10-05T22:43:23.214858Z",
+         *               "updated_at": "2026-10-06T15:26:06.544707Z",
+         *               "valid_from": "2026-10-06T15:26:06.544707Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9538,7 +9538,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Loki",
+         *           "service_definition": "Open WebUI",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -9574,11 +9574,11 @@ export interface components {
          */
         HostResponse: {
             /**
-             * @description The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person.
-             *     Set it through `asset_tag` on create and update; a typed value outranks what discovery reads.
+             * @description The asset tag the device reports: ENTITY-MIB entPhysicalAssetID. Read-only: discovery is
+             *     the only writer, so it always says what the device itself carries.
              */
             readonly asset_tag?: string | null;
-            /** @description What produced the asset tag. Read-only: `Manual` when a person typed it. */
+            /** @description What produced the asset tag. Read-only. */
             asset_tag_source?: components["schemas"]["AttributeSource"];
             /** @description LLDP chassis identifier, used to match the host to its neighbours. */
             chassis_id?: string | null;
@@ -11279,11 +11279,11 @@ export interface components {
             /** @description The page of results. Empty when nothing matched the query. */
             data: {
                 /**
-                 * @description The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person.
-                 *     Set it through `asset_tag` on create and update; a typed value outranks what discovery reads.
+                 * @description The asset tag the device reports: ENTITY-MIB entPhysicalAssetID. Read-only: discovery is
+                 *     the only writer, so it always says what the device itself carries.
                  */
                 readonly asset_tag?: string | null;
-                /** @description What produced the asset tag. Read-only: `Manual` when a person typed it. */
+                /** @description What produced the asset tag. Read-only. */
                 asset_tag_source?: components["schemas"]["AttributeSource"];
                 /** @description LLDP chassis identifier, used to match the host to its neighbours. */
                 chassis_id?: string | null;
@@ -12623,19 +12623,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-05T22:43:23.216264Z",
+         *           "created_at": "2026-10-06T15:26:06.545612Z",
          *           "first_discovery_id": null,
-         *           "id": "cd1b7e17-3c59-48fa-b6be-719b98133e5d",
+         *           "id": "6b2f3be5-26b8-45a8-9dc7-3a7c7c1539d7",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-05T22:43:23.216264Z",
+         *           "last_seen_at": "2026-10-06T15:26:06.545612Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-10-05T22:43:23.216264Z",
-         *           "valid_from": "2026-10-05T22:43:23.216264Z",
+         *           "updated_at": "2026-10-06T15:26:06.545612Z",
+         *           "valid_from": "2026-10-06T15:26:06.545612Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12648,7 +12648,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Loki",
+         *       "service_definition": "Open WebUI",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -13534,7 +13534,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "87a68a79-304d-47a7-982e-d659e21fe6c1",
+             *           "id": "d52af9fc-a985-4b66-a2bf-391fe970120e",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13544,23 +13544,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "ac60fdfc-1333-4ca7-9377-5607b4272c9c",
+             *           "id": "3a679659-dbe8-495a-9e3f-0f8da06be783",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "8c036d8c-cba2-421c-b6e6-558649908932",
+             *           "id": "94292351-5a5b-4bbc-a9ef-9c6b22bbaf2b",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "a7b8ba30-d043-46ba-a752-adcd03aed87d",
+             *           "id": "fea1ead3-422c-437b-8157-7aa6081ad5d3",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "ac60fdfc-1333-4ca7-9377-5607b4272c9c",
+             *           "id": "3a679659-dbe8-495a-9e3f-0f8da06be783",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13573,19 +13573,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "6848371f-5aaf-4a79-bfdf-0678a9bc3627",
+             *         "id": "4adb90e3-7add-4baa-8c46-e4e853a1cae6",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "77ac7d94-2551-4e87-bfe0-89b9812d85e8",
+             *         "id": "6daafe63-ae3d-4eff-91be-0becd176783c",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "b3175339-fe2f-4f81-b17b-06bc3bd0b425",
+             *         "id": "90316793-5069-4c04-aa17-894d961865d8",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "fbf00c3d-a027-41ba-9ce8-b82ebfd45724",
+             *         "id": "40f3bf8d-8214-4556-8a49-a03eacaf67cb",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13604,7 +13604,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "9864cc22-ec55-4c0c-a688-45ac011db310",
+             *         "id": "f9d407fb-29b1-4192-9024-65a8560bb1af",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13613,15 +13613,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "82d6b8b6-0322-409d-936d-edb5e456cf19",
+             *         "id": "1c65ae4c-34b9-4d92-b34d-810d943cbdd6",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "0acde355-75b6-4379-bd54-83a4bc544345",
+             *         "id": "ed62f6d2-dfbd-4cf6-851f-5c2ec18b855e",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "6b02ac82-3168-4577-ae42-c84aca05f78a",
+             *         "id": "cec942c0-bae5-4779-960d-7cfff736e4ee",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -13772,12 +13772,6 @@ export interface components {
          *     Server will sync children (create new, update existing, delete removed) only if provided.
          */
         UpdateHostRequest: {
-            /**
-             * @description The organization's asset tag for the device. Omit it to keep the current one, send an
-             *     empty string to clear it. A changed value outranks what discovery reads from ENTITY-MIB
-             *     entPhysicalAssetID.
-             */
-            asset_tag?: string | null;
             /**
              * @description Credential assignments for this host.
              *     If provided, replaces all existing credential assignments.

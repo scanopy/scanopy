@@ -439,18 +439,6 @@ fn with_snmp(
     (host, ip_address)
 }
 
-/// Wraps a `create_host()` result to set the organization's asset tag, as a person typed it into
-/// Scanopy (`Manual`) or a scan read it from ENTITY-MIB `entPhysicalAssetID`. Most devices leave
-/// that object empty, so the demo, like a real network, has typed tags on most of its servers.
-fn with_asset_tag(
-    (mut host, ip_address): (Host, IPAddress),
-    asset_tag: &str,
-    source: AttributeSource,
-) -> (Host, IPAddress) {
-    host.base.asset_tag = Some(Attributed::new(HostAssetTagValue(asset_tag.into()), source));
-    (host, ip_address)
-}
-
 /// Wraps a `create_host()` result to add what the "Linux Inventory" SSH credential's script
 /// reports: the OS and hardware identity, attributed to the script as a real scan would.
 fn with_ssh_inventory(

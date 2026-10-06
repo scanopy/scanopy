@@ -1,6 +1,6 @@
 use super::*;
 use crate::server::hosts::r#impl::attributes::{
-    HostChassisIdValue, HostHostnameValue, HostModelValue, HostSysNameValue,
+    HostAssetTagValue, HostChassisIdValue, HostHostnameValue, HostModelValue, HostSysNameValue,
 };
 use crate::server::hosts::r#impl::name_ladder::HostNameRung;
 use crate::server::services::r#impl::patterns::ClientProbe;
@@ -373,65 +373,22 @@ fn snmp_asset_tag(tag: &str) -> Option<HostAssetTagAttributed> {
     ))
 }
 
-/// The edit modal sends the stored tag back on every save. Resending what a scan read must not
-/// restamp it `Manual`, or the next relabel on the device would never land.
+/// Discovery is the only writer of the asset tag, so a device an administrator relabels reports
+/// its new tag on the next scan rather than keeping the old one.
 #[test]
-fn resending_the_stored_asset_tag_keeps_its_source() {
+fn a_relabelled_device_reports_its_new_asset_tag_on_the_next_scan() {
     let mut base = HostBase {
         asset_tag: snmp_asset_tag("IT-00412"),
         ..Default::default()
     };
-
-    assert!(!base.apply_requested_asset_tag(Some(" IT-00412 ".to_string())));
-    assert!(!base.apply_requested_asset_tag(None));
-    assert_eq!(
-        base.asset_tag.as_ref().map(|t| t.source()),
-        Some(AttributeSource::Probe(ClientProbe::Snmp))
-    );
-}
-
-/// A typed tag outranks the device's own, so a later scan reading the old label leaves it.
-#[test]
-fn a_typed_asset_tag_survives_the_next_scan() {
-    let mut base = HostBase {
-        asset_tag: snmp_asset_tag("IT-00412"),
-        ..Default::default()
-    };
-
-    assert!(base.apply_requested_asset_tag(Some("IT-09001".to_string())));
     let rescan = HostBase {
-        asset_tag: snmp_asset_tag("IT-00412"),
-        ..Default::default()
-    };
-    base.apply_attributes_from(&rescan);
-
-    assert_eq!(
-        attribution::text_of(&base.asset_tag).as_deref(),
-        Some("IT-09001")
-    );
-}
-
-/// A blank field is a person clearing the tag, and clearing hands it back to discovery.
-#[test]
-fn a_blank_asset_tag_clears_it_and_the_next_scan_refills_it() {
-    let mut base = HostBase {
-        asset_tag: Some(Attributed::new(
-            HostAssetTagValue("IT-09001".to_string()),
-            AttributeSource::Manual,
-        )),
+        asset_tag: snmp_asset_tag("IT-09001"),
         ..Default::default()
     };
 
-    assert!(base.apply_requested_asset_tag(Some("  ".to_string())));
-    assert_eq!(base.asset_tag, None);
-
-    let rescan = HostBase {
-        asset_tag: snmp_asset_tag("IT-00412"),
-        ..Default::default()
-    };
     assert!(base.apply_attributes_from(&rescan));
     assert_eq!(
         attribution::text_of(&base.asset_tag).as_deref(),
-        Some("IT-00412")
+        Some("IT-09001")
     );
 }

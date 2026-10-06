@@ -20,7 +20,6 @@ impl HostService {
             id,
             name,
             hostname,
-            asset_tag,
             description,
             virtualization_metadata,
             virtualization_service_id,
@@ -131,8 +130,6 @@ impl HostService {
             updated_host.base.hostname = requested_hostname
                 .map(|h| Attributed::new(HostHostnameValue(h), AttributeSource::Manual));
         }
-
-        updated_host.base.apply_requested_asset_tag(asset_tag);
 
         if let Some(org_id) = authentication.organization_id() {
             self.entity_tag_service
