@@ -1,5 +1,5 @@
 /**
- * Global search: the pure half of the Cmd+K palette.
+ * Global search: the pure half of the global search palette.
  *
  * The palette shows one section per entity type and moves a single highlight through all of them
  * with the arrow keys, so the sections are flattened into one list that the highlight indexes.
@@ -51,37 +51,19 @@ export function moveHighlight(current: number, delta: 1 | -1, total: number): nu
 	return (current + delta + total) % total;
 }
 
+/** The key that opens the palette ("Search all"). */
+export const GLOBAL_SEARCH_KEY = '/';
+
 /**
- * The palette's shortcut: Cmd+K on macOS, Ctrl+K elsewhere. Either modifier is accepted on every
- * platform, matching the topology's Cmd/Ctrl+F; Shift and Alt variants are left to the browser.
+ * Whether a keypress should open the palette: a bare `/` while nothing editable has focus, so
+ * typing a slash into any field still types it.
  */
 export function isGlobalSearchShortcut(
-	event: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey'>
-): boolean {
-	return (
-		(event.metaKey || event.ctrlKey) &&
-		!event.altKey &&
-		!event.shiftKey &&
-		event.key.toLowerCase() === 'k'
-	);
-}
-
-/** A Cmd/Ctrl shortcut as a key chip shows it: `⌘K` on macOS, `Ctrl K` elsewhere. */
-export function shortcutLabel(platform: string, key = 'K'): string {
-	return /mac|iphone|ipad/i.test(platform) ? `⌘${key}` : `Ctrl ${key}`;
-}
-
-/** The key that focuses a list page's filter. */
-export const PAGE_FILTER_KEY = '/';
-
-/**
- * Whether a keypress should focus the page filter: a bare `/` while nothing editable has focus,
- * so typing a slash into any field still types it.
- */
-export function isPageFilterShortcut(
 	event: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'target'>
 ): boolean {
-	if (event.key !== PAGE_FILTER_KEY || event.metaKey || event.ctrlKey || event.altKey) return false;
+	if (event.key !== GLOBAL_SEARCH_KEY || event.metaKey || event.ctrlKey || event.altKey) {
+		return false;
+	}
 	const target = event.target as HTMLElement | null;
 	return !(
 		target &&
@@ -89,7 +71,28 @@ export function isPageFilterShortcut(
 	);
 }
 
-/** A list page's filter, as the Cmd+K palette offers it. */
+/**
+ * Cmd+F on macOS, Ctrl+F elsewhere: focuses the filter of the list page on screen, as it does the
+ * topology's find. Either modifier is accepted on every platform; Shift and Alt variants are left
+ * to the browser.
+ */
+export function isFindShortcut(
+	event: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey'>
+): boolean {
+	return (
+		(event.metaKey || event.ctrlKey) &&
+		!event.altKey &&
+		!event.shiftKey &&
+		event.key.toLowerCase() === 'f'
+	);
+}
+
+/** A Cmd/Ctrl shortcut as a key chip shows it: `⌘F` on macOS, `Ctrl F` elsewhere. */
+export function shortcutLabel(platform: string, key: string): string {
+	return /mac|iphone|ipad/i.test(platform) ? `⌘${key}` : `Ctrl ${key}`;
+}
+
+/** A list page's filter, as the global search palette offers it. */
 export interface PageFilter {
 	/** The entities the page lists, lowercase plural ("hosts"). */
 	entity: string;

@@ -1,5 +1,5 @@
 <!--
-	The keyboard hint under a search box. One component so the Cmd+K palette and the topology
+	The keyboard hint under a search box. One component so the global search palette and the topology
 	search describe their keys identically; both take ↑↓ to move, Enter to open, Esc to close.
 -->
 <script lang="ts">

@@ -2,18 +2,28 @@ import { describe, it, expect } from 'vitest';
 import {
 	flattenGroups,
 	moveHighlight,
+	isFindShortcut,
 	isGlobalSearchShortcut,
 	shortcutLabel
 } from '$lib/features/search/results';
 
-const key = (k: string, mods: Partial<KeyboardEvent> = {}) => ({
+const key = (
+	k: string,
+	mods: Partial<Pick<KeyboardEvent, 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey'>> = {},
+	target: EventTarget | null = null
+) => ({
 	key: k,
 	metaKey: false,
 	ctrlKey: false,
 	altKey: false,
 	shiftKey: false,
+	target,
 	...mods
 });
+
+/** An element as the event target sees it: only the parts the shortcut checks read. */
+const element = (tagName: string, isContentEditable = false) =>
+	({ tagName, isContentEditable }) as unknown as EventTarget;
 
 describe('flattenGroups', () => {
 	it('keeps section order, drops empty sections, and tags each row with its type', () => {
@@ -47,26 +57,41 @@ describe('moveHighlight', () => {
 });
 
 describe('isGlobalSearchShortcut', () => {
-	it('accepts Cmd+K and Ctrl+K, in either case', () => {
-		expect(isGlobalSearchShortcut(key('k', { metaKey: true }))).toBe(true);
-		expect(isGlobalSearchShortcut(key('K', { ctrlKey: true }))).toBe(true);
+	it('opens on a bare slash', () => {
+		expect(isGlobalSearchShortcut(key('/'))).toBe(true);
+		expect(isGlobalSearchShortcut(key('/', {}, element('DIV')))).toBe(true);
 	});
 
-	it('leaves bare K and Shift/Alt chords alone', () => {
-		expect(isGlobalSearchShortcut(key('k'))).toBe(false);
-		expect(isGlobalSearchShortcut(key('k', { metaKey: true, shiftKey: true }))).toBe(false);
-		expect(isGlobalSearchShortcut(key('k', { ctrlKey: true, altKey: true }))).toBe(false);
+	it('leaves a slash typed into a field alone', () => {
+		for (const tag of ['INPUT', 'TEXTAREA', 'SELECT']) {
+			expect(isGlobalSearchShortcut(key('/', {}, element(tag)))).toBe(false);
+		}
+		expect(isGlobalSearchShortcut(key('/', {}, element('DIV', true)))).toBe(false);
 	});
 
-	it('does not claim the topology search shortcut', () => {
-		expect(isGlobalSearchShortcut(key('f', { metaKey: true }))).toBe(false);
+	it('leaves modified slashes to the browser', () => {
+		expect(isGlobalSearchShortcut(key('/', { metaKey: true }))).toBe(false);
+		expect(isGlobalSearchShortcut(key('/', { ctrlKey: true }))).toBe(false);
+	});
+});
+
+describe('isFindShortcut', () => {
+	it('accepts Cmd+F and Ctrl+F, in either case', () => {
+		expect(isFindShortcut(key('f', { metaKey: true }))).toBe(true);
+		expect(isFindShortcut(key('F', { ctrlKey: true }))).toBe(true);
+	});
+
+	it('leaves bare F and Shift/Alt chords alone', () => {
+		expect(isFindShortcut(key('f'))).toBe(false);
+		expect(isFindShortcut(key('f', { metaKey: true, shiftKey: true }))).toBe(false);
+		expect(isFindShortcut(key('f', { ctrlKey: true, altKey: true }))).toBe(false);
 	});
 });
 
 describe('shortcutLabel', () => {
 	it('uses the Command glyph only on Apple platforms', () => {
-		expect(shortcutLabel('MacIntel')).toBe('⌘K');
-		expect(shortcutLabel('Win32')).toBe('Ctrl K');
-		expect(shortcutLabel('Linux x86_64')).toBe('Ctrl K');
+		expect(shortcutLabel('MacIntel', 'F')).toBe('⌘F');
+		expect(shortcutLabel('Win32', 'F')).toBe('Ctrl F');
+		expect(shortcutLabel('Linux x86_64', 'F')).toBe('Ctrl F');
 	});
 });

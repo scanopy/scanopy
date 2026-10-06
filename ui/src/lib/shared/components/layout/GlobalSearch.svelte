@@ -1,9 +1,9 @@
 <!--
-	The Cmd+K palette: one box that finds a host, service, subnet or VLAN on any site the user can
+	The global search palette: one box that finds a host, service, subnet or VLAN on any site the user can
 	see and opens it.
 
 	Separate from the topology's Cmd+F search, which highlights nodes on the canvas in view. This one
-	searches the server and navigates; that one filters what is already drawn. Cmd+K opens this one
+	searches the server and navigates; that one filters what is already drawn. `/` opens this one
 	on every tab, the topology included.
 -->
 <script lang="ts">

@@ -1,5 +1,5 @@
 /**
- * The four lookups behind the Cmd+K palette: hosts, services, subnets and VLANs, each searched on
+ * The four lookups behind the global search palette: hosts, services, subnets and VLANs, each searched on
  * the server and capped at a handful of rows.
  *
  * One query per entity rather than one combined query, each keyed under its entity's root key: a

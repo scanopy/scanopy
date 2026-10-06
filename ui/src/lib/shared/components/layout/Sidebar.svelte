@@ -28,8 +28,7 @@
 		Search
 	} from 'lucide-svelte';
 	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
-	import { browser } from '$app/environment';
-	import { globalSearchOpen, shortcutLabel } from '$lib/features/search/results';
+	import { GLOBAL_SEARCH_KEY, globalSearchOpen } from '$lib/features/search/results';
 	import { onMount } from 'svelte';
 	import type { Component } from 'svelte';
 	import type { UserOrgPermissions } from '$lib/features/users/types';
@@ -714,7 +713,7 @@
 	const baseClasses = 'flex w-full items-center rounded-lg font-medium transition-colors';
 
 	/** The palette's shortcut as this platform spells it. */
-	const searchShortcut = shortcutLabel(browser ? navigator.platform : '');
+	const searchShortcut = GLOBAL_SEARCH_KEY;
 </script>
 
 <div

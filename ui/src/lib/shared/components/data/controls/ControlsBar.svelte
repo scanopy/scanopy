@@ -1,14 +1,11 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
 	import { createForm } from '@tanstack/svelte-form';
+	import { browser } from '$app/environment';
 	import { Download } from 'lucide-svelte';
 	import PageTitle from '$lib/shared/components/layout/PageTitle.svelte';
 	import SearchInput from '$lib/shared/components/forms/input/SearchInput.svelte';
-	import {
-		PAGE_FILTER_KEY,
-		isPageFilterShortcut,
-		registerPageFilter
-	} from '$lib/features/search/results';
+	import { isFindShortcut, shortcutLabel, registerPageFilter } from '$lib/features/search/results';
 	import { lowercasePreservingAcronyms } from '$lib/shared/utils/formatting';
 	import {
 		common_export,
@@ -45,6 +42,7 @@
 
 	let isExporting = $state(false);
 	let inputEl: HTMLInputElement | undefined = $state();
+	const findShortcut = shortcutLabel(browser ? navigator.platform : '', 'F');
 
 	const form = createForm(() => ({ defaultValues: { query: searchQuery } }));
 
@@ -87,7 +85,8 @@
 	);
 
 	function handleWindowKeydown(event: KeyboardEvent) {
-		if (!isPageFilterShortcut(event) || !isVisible()) return;
+		// Only the page on screen takes Cmd/Ctrl+F; everywhere else the browser keeps its own find.
+		if (!isFindShortcut(event) || !isVisible()) return;
 		event.preventDefault();
 		inputEl?.focus();
 	}
@@ -134,7 +133,7 @@
 						id="page-filter-{entity ?? 'items'}"
 						bind:inputEl
 						{placeholder}
-						shortcut={PAGE_FILTER_KEY}
+						shortcut={findShortcut}
 						inset={false}
 						onInput={(next) => (searchQuery = next)}
 						onClear={clear}

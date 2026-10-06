@@ -1,5 +1,5 @@
 <!--
-	The search box every search in the app uses: the Cmd+K palette, the topology's Cmd+F find and
+	The search box every search in the app uses: the global search palette, the topology's Cmd+F find and
 	each list page's filter. It is the same input as every other text field (`input-field`), with
 	the search icon inside it, the shortcut that focuses it as a key chip on the right while it is
 	empty, and a clear button in that place once it has text.

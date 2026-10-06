@@ -155,7 +155,7 @@
 	}
 
 	/**
-	 * Enter opens the current match, as it opens the highlighted row in the Cmd+K palette: the node is
+	 * Enter opens the current match, as it opens the highlighted row in the global search palette: the node is
 	 * selected, which shows it in the inspector and closes the search.
 	 */
 	function openMatch() {
@@ -214,7 +214,7 @@
 		class="pointer-events-none absolute top-4 z-20 flex justify-center"
 		style="left: {insets.left + OBSTACLE_GAP_PX}px; right: {insets.right + OBSTACLE_GAP_PX}px"
 	>
-		<!-- Same layout as the Cmd+K palette: the shared search box, then a hint footer. -->
+		<!-- Same layout as the global search palette: the shared search box, then a hint footer. -->
 		<div
 			class="card card-static pointer-events-auto w-[42rem] max-w-full overflow-hidden p-0 shadow-lg"
 		>

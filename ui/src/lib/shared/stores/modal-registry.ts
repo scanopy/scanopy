@@ -3,7 +3,7 @@ import type { EntityDiscriminants } from '$lib/api/entities';
 import { entityUIConfig, TAB_LABELS } from '$lib/shared/entity-ui-config';
 import { reopenGlobalSearch } from '$lib/features/search/results';
 
-/** Return-URL parameter carrying the Cmd+K query an entity was opened from. */
+/** Return-URL parameter carrying the global search query an entity was opened from. */
 const RETURN_SEARCH_PARAM = 'search';
 
 export interface ModalState {
@@ -90,7 +90,7 @@ export function goBack(): void {
 	// Set hash (triggers tab reactivity)
 	window.location.hash = target.hash || '';
 
-	// Opened from the Cmd+K palette, which lives outside the URL: close this modal and reopen the
+	// Opened from the global search palette, which lives outside the URL: close this modal and reopen the
 	// palette on the query it was opened from.
 	const returnSearch = target.searchParams.get(RETURN_SEARCH_PARAM);
 	if (returnSearch !== null) {
@@ -151,7 +151,7 @@ export function navigateToEntity(
 	entityId: string,
 	data?: Record<string, unknown>,
 	opts?: {
-		/** The Cmd+K query this was opened from, so the back button reopens the palette on it. */
+		/** The global search query this was opened from, so the back button reopens the palette on it. */
 		returnSearch?: string;
 	}
 ): void {
