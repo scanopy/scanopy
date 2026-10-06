@@ -162,8 +162,7 @@
 <!-- Declared out here, not as a child of the modal, so it can be passed
      conditionally. While this modal gates the app, the page behind it is covered
      and this has no close button, so the app's banners have nowhere else to go.
-     Passing `undefined` when dismissible keeps "has banners" a truthful signal:
-     GenericModal stands its title row down on exactly that. -->
+     The title row stands down with them, so the banners take its place. -->
 {#snippet bannersSnippet()}
 	<AppBanners />
 {/snippet}
@@ -177,6 +176,7 @@
 	onOpen={handleOpen}
 	preventCloseOnClickOutside={!dismissible}
 	showCloseButton={dismissible}
+	showTitleRow={dismissible}
 	banners={dismissible ? undefined : bannersSnippet}
 	tabs={visibleTabs}
 	{activeTab}
