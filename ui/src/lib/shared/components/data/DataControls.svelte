@@ -820,21 +820,7 @@
 	});
 </script>
 
-<!-- With rows selected, tagging joins the toolbar after the filter, and Delete leads its buttons. -->
-{#snippet bulkTagging()}
-	<div class="card card-static flex items-center gap-2 !px-3 !py-1.5">
-		<span class="text-secondary text-sm">{common_tags()}</span>
-		<TagPickerInline
-			selectedTagIds={commonTags}
-			onAdd={handleBulkTagAdd}
-			onRemove={handleBulkTagRemove}
-		/>
-		{#if commonTags.length === 0 && selectedIds.size > 1}
-			<span class="text-tertiary whitespace-nowrap text-xs">{common_noCommonTags()}</span>
-		{/if}
-	</div>
-{/snippet}
-
+<!-- With rows selected, Delete leads the toolbar's buttons. -->
 {#snippet bulkDelete()}
 	<button onclick={handleBulkDelete} class="btn-danger toolbar-control flex items-center gap-2">
 		<Trash2 class="h-4 w-4" />
@@ -859,7 +845,6 @@
 			onExport={onExportClick ?? onCsvExport}
 			{entityLabel}
 			actions={toolbarActions}
-			selectionTools={hasBulkTagging && selectedIds.size > 0 ? bulkTagging : undefined}
 			selectionActions={allowBulkDelete && onBulkDelete && selectedIds.size > 0
 				? bulkDelete
 				: undefined}
@@ -933,6 +918,27 @@
 			hasActiveGrouping ? null : paginatedItems,
 			hasActiveGrouping ? null : tableCaptionText
 		)}
+	{/if}
+
+	<!-- Bulk tagging floats at the bottom of the viewport, over the table, so a long tag list never
+	     crowds the toolbar. Sticky rather than fixed: a list page on a hidden tab sits in an
+	     overflow-hidden wrapper, which clips a sticky card but not a fixed one. -->
+	{#if hasBulkTagging && selectedIds.size > 0}
+		<div class="pointer-events-none sticky bottom-6 z-20 flex justify-center">
+			<div
+				class="card card-static pointer-events-auto flex max-w-full items-center gap-2 !px-4 !py-2"
+			>
+				<span class="text-secondary text-sm">{common_tags()}</span>
+				<TagPickerInline
+					selectedTagIds={commonTags}
+					onAdd={handleBulkTagAdd}
+					onRemove={handleBulkTagRemove}
+				/>
+				{#if commonTags.length === 0 && selectedIds.size > 1}
+					<span class="text-tertiary whitespace-nowrap text-xs">{common_noCommonTags()}</span>
+				{/if}
+			</div>
+		</div>
 	{/if}
 </div>
 
