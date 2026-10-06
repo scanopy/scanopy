@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ChevronLeft, ChevronRight, FunnelX, Ungroup } from 'lucide-svelte';
+	import { ChevronLeft, ChevronRight, FunnelX, Ungroup, X } from 'lucide-svelte';
 	import type { IconComponent } from '$lib/shared/utils/types';
 	import { PAGE_SIZE_OPTIONS, type PageSizeOption } from '../types';
 	import {
@@ -16,7 +16,8 @@
 		common_pageOf,
 		common_clear,
 		common_filterApplied,
-		common_nFiltersApplied
+		common_nFiltersApplied,
+		common_itemsSelected
 	} from '$lib/paraglide/messages';
 
 	let {
@@ -38,7 +39,9 @@
 		onPageSizeChange,
 		filterCount = 0,
 		onClearFilters = undefined,
-		onClearGrouping = undefined
+		onClearGrouping = undefined,
+		selectedCount = 0,
+		onClearSelection = undefined
 	}: {
 		totalCount: number;
 		totalPages: number;
@@ -60,6 +63,9 @@
 		onClearFilters?: () => void;
 		/** Shown beside the group count. */
 		onClearGrouping?: () => void;
+		/** Rows checked for a bulk action; shown with the other clears. */
+		selectedCount?: number;
+		onClearSelection?: () => void;
 	} = $props();
 </script>
 
@@ -120,6 +126,18 @@
 			</span>
 			{#if onClearGrouping}
 				{@render clearButton(onClearGrouping, Ungroup)}
+			{/if}
+		{/if}
+		{#if selectedCount > 0}
+			<span aria-hidden="true">·</span>
+			<span
+				>{common_itemsSelected({
+					count: selectedCount,
+					itemLabel: selectedCount === 1 ? common_item() : common_items()
+				})}</span
+			>
+			{#if onClearSelection}
+				{@render clearButton(onClearSelection, X)}
 			{/if}
 		{/if}
 	</div>

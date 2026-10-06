@@ -59,7 +59,7 @@
 	} from './controls/dataControlsStorage';
 	import ControlsBar from './controls/ControlsBar.svelte';
 	import ColumnControlsMenu from './table/ColumnControlsMenu.svelte';
-	import BulkActionBar from './controls/BulkActionBar.svelte';
+	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
 	import PaginationBar from './controls/PaginationBar.svelte';
 	import EntityTable from './table/EntityTable.svelte';
 	import ColumnVisibilityMenu from './table/ColumnVisibilityMenu.svelte';
@@ -81,13 +81,15 @@
 		common_ungrouped,
 		common_tableCaption,
 		common_tags,
+		common_deleteSelected,
+		common_noCommonTags,
 		common_item,
 		common_items,
 		common_no,
 		common_yes
 	} from '$lib/paraglide/messages';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import { SearchX } from 'lucide-svelte';
+	import { SearchX, Trash2 } from 'lucide-svelte';
 	import {
 		useTagsQuery,
 		useBulkAddTagMutation,
@@ -818,6 +820,28 @@
 	});
 </script>
 
+<!-- With rows selected, tagging joins the toolbar after the filter, and Delete leads its buttons. -->
+{#snippet bulkTagging()}
+	<div class="card card-static flex items-center gap-2 !px-3 !py-1.5">
+		<span class="text-secondary text-sm">{common_tags()}</span>
+		<TagPickerInline
+			selectedTagIds={commonTags}
+			onAdd={handleBulkTagAdd}
+			onRemove={handleBulkTagRemove}
+		/>
+		{#if commonTags.length === 0 && selectedIds.size > 1}
+			<span class="text-tertiary whitespace-nowrap text-xs">{common_noCommonTags()}</span>
+		{/if}
+	</div>
+{/snippet}
+
+{#snippet bulkDelete()}
+	<button onclick={handleBulkDelete} class="btn-danger toolbar-control flex items-center gap-2">
+		<Trash2 class="h-4 w-4" />
+		{common_deleteSelected()}
+	</button>
+{/snippet}
+
 <div class="space-y-4">
 	<!-- Sentinel for sticky detection -->
 	<div bind:this={sentinelRef} class="h-0 w-full"></div>
@@ -835,6 +859,10 @@
 			onExport={onExportClick ?? onCsvExport}
 			{entityLabel}
 			actions={toolbarActions}
+			selectionTools={hasBulkTagging && selectedIds.size > 0 ? bulkTagging : undefined}
+			selectionActions={allowBulkDelete && onBulkDelete && selectedIds.size > 0
+				? bulkDelete
+				: undefined}
 			{title}
 			{subtitle}
 		>
@@ -864,6 +892,8 @@
 				filterCount={activeFilterCount}
 				onClearFilters={filters.clearAll}
 				onClearGrouping={() => (ordering = { ...ordering, group: null })}
+				selectedCount={showSelection ? selectedIds.size : 0}
+				onClearSelection={selectNone}
 				{useServerPagination}
 				processedCount={processedItems.length}
 				itemCount={items.length}
@@ -873,20 +903,6 @@
 			/>
 		</div>
 	</div>
-
-	<!-- Bulk Action Bar (shown when items are selected) -->
-	{#if (onBulkDelete || hasBulkTagging) && selectedIds.size > 0}
-		<BulkActionBar
-			selectedCount={selectedIds.size}
-			showDelete={Boolean(allowBulkDelete && onBulkDelete)}
-			showTagging={hasBulkTagging}
-			{commonTags}
-			onClearSelection={selectNone}
-			onBulkDelete={handleBulkDelete}
-			onTagAdd={handleBulkTagAdd}
-			onTagRemove={handleBulkTagRemove}
-		/>
-	{/if}
 
 	<!-- Content -->
 	{#if totalCount === 0 && (hasActiveFilters || hasActiveSearch)}

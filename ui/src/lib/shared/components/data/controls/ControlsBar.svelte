@@ -24,7 +24,11 @@
 		/** Column visibility and order menu. */
 		columnMenu,
 		/** The page's own actions (Create), last in the toolbar. */
-		actions = undefined
+		actions = undefined,
+		/** Shown after the filter while rows are selected (bulk tagging). */
+		selectionTools = undefined,
+		/** First among the buttons while rows are selected (bulk delete). */
+		selectionActions = undefined
 	}: {
 		searchQuery: string;
 		onClearSearch: () => void;
@@ -38,6 +42,8 @@
 		subtitle?: string | null;
 		columnMenu?: Snippet;
 		actions?: Snippet;
+		selectionTools?: Snippet;
+		selectionActions?: Snippet;
 	} = $props();
 
 	let isExporting = $state(false);
@@ -124,10 +130,17 @@
 				{/snippet}
 			</form.Field>
 		</div>
+		{#if selectionTools}
+			{@render selectionTools()}
+		{/if}
 	</div>
 
 	<!-- Right: table actions, then the page's own -->
 	<div class="flex flex-shrink-0 items-center gap-2">
+		{#if selectionActions}
+			{@render selectionActions()}
+		{/if}
+
 		{#if columnMenu}
 			{@render columnMenu()}
 		{/if}
