@@ -5,6 +5,10 @@
 	import { activeView, getInfrastructureRuleIdForTopology } from '$lib/features/topology/queries';
 	import { views, entities } from '$lib/shared/stores/metadata';
 	import { tallyContainerElements } from '$lib/features/topology/labels';
+	import type { TopologyEditState } from '$lib/features/topology/state';
+	import { useSubnetsQuery } from '$lib/features/subnets/queries';
+	import SubnetUtilization from '$lib/features/subnets/components/SubnetUtilization.svelte';
+	import { common_utilization } from '$lib/paraglide/messages';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 
@@ -12,11 +16,29 @@
 
 	let {
 		node,
-		topology
+		topology,
+		editState
 	}: {
 		node: Node;
 		topology: RenderableTopology;
+		editState: TopologyEditState;
 	} = $props();
+
+	// A subnet container's utilization, beside the counts of what it holds. It is derived
+	// server-side across the whole site, so it comes from the live subnet list rather than the
+	// topology payload. Not in a read-only view: a shared link has no session to fetch with, and a
+	// snapshot's past contents would be paired with today's counts.
+	let isSubnet = $derived(topology.subnets.some((s) => s.id === node.id));
+	const subnetsQuery = useSubnetsQuery(
+		undefined,
+		undefined,
+		() => isSubnet && !editState.isReadonly
+	);
+	let listedSubnet = $derived(
+		isSubnet && !editState.isReadonly
+			? ((subnetsQuery.data ?? []).find((s) => s.id === node.id) ?? null)
+			: null
+	);
 
 	let elementConfig = $derived(
 		(
@@ -82,5 +104,11 @@
 				<span class="text-primary">{counts.get(entity) ?? 0}</span>
 			</div>
 		{/each}
+		{#if listedSubnet}
+			<div class="border-border mt-1 space-y-1 border-t pt-2">
+				<span class="text-secondary font-medium">{common_utilization()}</span>
+				<SubnetUtilization subnet={listedSubnet} />
+			</div>
+		{/if}
 	</div>
 </InspectorSection>

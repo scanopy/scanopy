@@ -30,9 +30,12 @@
 	import { createChangeTracker, sameOrder } from './controls/changeTracker';
 	import {
 		groupItems as groupItemsBy,
-		arrangeTree,
+		buildTreeSections,
+		flattenTreeEntries,
 		computeGroupOffsets,
-		serverGroupKey as serverGroupKeyOf
+		serverGroupKey as serverGroupKeyOf,
+		type RenderGroup,
+		type TreeEntry
 	} from './controls/grouping';
 	import {
 		visibleItems,
@@ -456,23 +459,27 @@
 		// A server-paginated page arrives in the server's group order, which the
 		// cumulative offsets from `serverGroupCounts` are indexed by, so its
 		// buckets keep that order.
-		const groups = groupItemsBy(
+		return groupItemsBy(
 			processedItems,
 			fields,
 			activeGroupField,
 			{ ungrouped: common_ungrouped(), yes: common_yes(), no: common_no() },
 			serverGroupCounts !== null || useServerPagination
 		);
+	});
 
-		// A tree field's groups render parent-first, so arrange each one here, where the order is
-		// decided, rather than in the renderers.
-		if (!activeTree) return groups;
+	/**
+	 * Each group's nested sections when the grouping is a tree, built here where the order is
+	 * decided rather than in the renderers. Null otherwise.
+	 */
+	let treeEntries = $derived.by(() => {
+		if (!activeTree) return null;
 		const { tree, compare } = activeTree;
-		const arranged = new SvelteMap<string, T[]>();
-		for (const [name, rows] of groups) {
-			arranged.set(name, arrangeTree(rows, tree, useServerPagination, compare).items);
+		const entries = new SvelteMap<string, TreeEntry<T>[]>();
+		for (const [name, rows] of groupedItems) {
+			entries.set(name, buildTreeSections(rows, tree, useServerPagination, name, compare));
 		}
-		return arranged;
+		return entries;
 	});
 
 	/** The active group field, when its groups are trees. */
@@ -481,26 +488,16 @@
 		return field?.tree ? { tree: field.tree, compare: field.compare } : null;
 	});
 
-	/** Every grouped row's depth under the active tree grouping, keyed by `tree.key`. */
-	let treeDepths = $derived.by(() => {
-		const depths = new Map<string, number>();
-		if (!activeTree) return depths;
-		const { tree, compare } = activeTree;
-		for (const rows of groupedItems.values()) {
-			for (const [key, depth] of arrangeTree(rows, tree, useServerPagination, compare).depths) {
-				depths.set(key, depth);
-			}
-		}
-		return depths;
-	});
+	/**
+	 * Collapsed groups and tree sections, by key. Group keys and section paths can't collide:
+	 * section paths are a group key plus NUL-separated row keys.
+	 */
+	const collapsedSections = new SvelteSet<string>();
 
-	/** A row's indent under the active tree grouping, or `null` when the grouping isn't a tree. */
-	let depthOf = $derived.by(() => {
-		if (!activeTree) return null;
-		const { tree } = activeTree;
-		const depths = treeDepths;
-		return (item: T) => depths.get(tree.key(item)) ?? 0;
-	});
+	function toggleSection(key: string) {
+		if (collapsedSections.has(key)) collapsedSections.delete(key);
+		else collapsedSections.add(key);
+	}
 
 	let groupOffsets = $derived(computeGroupOffsets(serverGroupCounts));
 
@@ -523,12 +520,17 @@
 	}
 
 	/** The groups as both views render them. */
-	let groupList = $derived(
-		[...groupedItems.entries()].map(([name, groupItems]) => ({
-			name,
-			items: groupItems,
-			range: groupRange(groupItems)
-		}))
+	let groupList = $derived<RenderGroup<T>[]>(
+		[...groupedItems.entries()].map(([name, groupItems]) => {
+			const entries = treeEntries?.get(name) ?? null;
+			return {
+				key: name,
+				name,
+				items: entries ? flattenTreeEntries(entries) : groupItems,
+				range: groupRange(groupItems),
+				entries
+			};
+		})
 	);
 
 	function toggleSort(fieldKey: string) {
@@ -971,7 +973,8 @@
 		<CardGrid
 			items={hasActiveGrouping ? null : paginatedItems}
 			groups={hasActiveGrouping ? groupList : null}
-			{depthOf}
+			collapsed={collapsedSections}
+			onToggleCollapse={toggleSection}
 			{getItemId}
 			card={cardFor}
 		/>
@@ -1004,11 +1007,12 @@
 {/snippet}
 
 {#snippet tableFor(rows: T[] | null, caption: string | null)}
-	{@const flat = rows ?? [...groupedItems.values()].flat()}
+	{@const flat = rows ?? groupList.flatMap((group) => group.items)}
 	<EntityTable
 		items={rows}
 		groups={rows ? null : groupList}
-		depthOf={rows ? null : depthOf}
+		collapsed={collapsedSections}
+		onToggleCollapse={toggleSection}
 		columns={renderedColumns}
 		columnSizing={columnState.sizing}
 		onColumnSizingChange={resizeColumns}

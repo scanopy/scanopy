@@ -1,4 +1,4 @@
-//! Cloud setup: the site, its system subnets and the live topology row a
+//! Cloud setup: the site, its system subnets, the live topology row and the default Status tags a
 //! cloud org works from.
 //!
 //! This is the one place that sequence is created. It runs from `OrgCreated`
@@ -27,12 +27,13 @@ use crate::server::{
         services::traits::CrudService,
         storage::{
             filter::StorableFilter,
-            seed_data::{create_remote_subnet, create_wan_subnet},
+            seed_data::{create_remote_subnet, create_status_tags, create_wan_subnet},
             traits::Storable,
         },
     },
     sites::r#impl::{Site, SiteBase},
     subnets::{r#impl::base::Subnet, r#impl::types::SubnetType},
+    tags::r#impl::base::Tag,
     topology::{
         service::main::TopologyService,
         types::base::{Topology, TopologyBase},
@@ -59,6 +60,19 @@ impl SiteSetupGaps {
                 .collect(),
         }
     }
+}
+
+/// The default Status tags an org lacks, by name. Names compare case-insensitively, so an org
+/// that already made its own "active" tag doesn't get a second one.
+pub(crate) fn missing_status_tags(organization_id: Uuid, existing_names: &[String]) -> Vec<Tag> {
+    create_status_tags(organization_id)
+        .into_iter()
+        .filter(|tag| {
+            !existing_names
+                .iter()
+                .any(|name| name.eq_ignore_ascii_case(&tag.base.name))
+        })
+        .collect()
 }
 
 /// Whether a billing event puts the org on a cloud plan it may not have been
@@ -108,6 +122,30 @@ impl TopologyService {
                 .await?;
         }
 
+        self.ensure_status_tags(organization_id, authentication)
+            .await?;
+
+        Ok(())
+    }
+
+    /// Create whichever of the default Status tags the org lacks. A tag the org already has by
+    /// that name is kept as it is, so a person's edits to it survive a repeat run.
+    async fn ensure_status_tags(
+        &self,
+        organization_id: Uuid,
+        authentication: AuthenticatedEntity,
+    ) -> Result<(), Error> {
+        let existing: Vec<String> = self
+            .tag_service
+            .get_all(StorableFilter::<Tag>::new_from_org_id(&organization_id).live())
+            .await?
+            .into_iter()
+            .map(|tag| tag.base.name)
+            .collect();
+
+        for tag in missing_status_tags(organization_id, &existing) {
+            self.tag_service.create(tag, authentication.clone()).await?;
+        }
         Ok(())
     }
 
@@ -267,6 +305,44 @@ mod tests {
         assert_eq!(
             SiteSetupGaps::find(true, &[SubnetType::Remote, SubnetType::Internet]),
             SiteSetupGaps::default()
+        );
+    }
+
+    #[test]
+    fn a_new_org_gets_every_status_tag_in_the_status_group() {
+        let org = Uuid::new_v4();
+        let tags = missing_status_tags(org, &[]);
+        assert!(!tags.is_empty());
+        assert!(tags.iter().all(|t| t.base.organization_id == org
+            && t.base.tag_group
+                == Some(crate::server::tags::r#impl::base::TagGroup::Named {
+                    name: crate::server::shared::storage::seed_data::STATUS_TAG_GROUP.to_string()
+                })
+            && t.base.icon.is_some()));
+    }
+
+    #[test]
+    fn a_second_run_creates_nothing() {
+        let org = Uuid::new_v4();
+        let existing: Vec<String> = missing_status_tags(org, &[])
+            .into_iter()
+            .map(|t| t.base.name)
+            .collect();
+        assert!(missing_status_tags(org, &existing).is_empty());
+    }
+
+    /// A tag the org made itself under one of these names is kept, never duplicated.
+    #[test]
+    fn an_existing_tag_of_the_same_name_is_kept() {
+        let org = Uuid::new_v4();
+        let all = missing_status_tags(org, &[]);
+        let taken = all[0].base.name.to_lowercase();
+        let missing = missing_status_tags(org, &[taken.clone(), "Critical".to_string()]);
+        assert_eq!(missing.len(), all.len() - 1);
+        assert!(
+            missing
+                .iter()
+                .all(|t| !t.base.name.eq_ignore_ascii_case(&taken))
         );
     }
 }

@@ -54,6 +54,16 @@ export function nestingItems(subnet: SubnetResponse, nesting: SubnetNesting): Ca
 	return items;
 }
 
+/**
+ * The range a subnet groups under when the list is grouped by CIDR: the widest range above it, or
+ * itself when it contains others. `null` for a subnet that nests with nothing, so it falls in the
+ * ungrouped bucket rather than heading a group of one.
+ */
+export function nestedRangeOf(subnet: SubnetResponse, nesting: SubnetNesting): string | null {
+	const root = nesting.rootOf(subnet);
+	return root.id !== subnet.id || nesting.childrenOf(subnet.id).length > 0 ? root.cidr : null;
+}
+
 export interface SubnetNesting {
 	/** The subnets directly inside this one. */
 	childrenOf: (id: string) => SubnetResponse[];

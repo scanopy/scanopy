@@ -60,7 +60,7 @@ export interface ReloadInputs {
 }
 
 /** Order-independent set equality. */
-function sameSet(a: Set<string>, b: Set<string>): boolean {
+function sameGroup(a: Set<string>, b: Set<string>): boolean {
 	if (a === b) return true;
 	if (a.size !== b.size) return false;
 	for (const value of a) {
@@ -90,13 +90,13 @@ export function reloadInputsDiff(previous: ReloadInputs, next: ReloadInputs): st
 	const changed: string[] = [];
 	if (previous.bundleEdges !== next.bundleEdges) changed.push('bundleEdges');
 	if (previous.hiddenEdgeTypes !== next.hiddenEdgeTypes) changed.push('hiddenEdgeTypes');
-	if (!sameSet(previous.collapsed, next.collapsed)) changed.push('collapsed');
-	if (!sameSet(previous.expandedBundles, next.expandedBundles)) changed.push('expandedBundles');
-	if (!sameSet(previous.expandedPorts, next.expandedPorts)) changed.push('expandedPorts');
-	if (!sameSet(previous.expandedInlineGroups, next.expandedInlineGroups))
+	if (!sameGroup(previous.collapsed, next.collapsed)) changed.push('collapsed');
+	if (!sameGroup(previous.expandedBundles, next.expandedBundles)) changed.push('expandedBundles');
+	if (!sameGroup(previous.expandedPorts, next.expandedPorts)) changed.push('expandedPorts');
+	if (!sameGroup(previous.expandedInlineGroups, next.expandedInlineGroups))
 		changed.push('expandedInlineGroups');
-	if (!sameSet(previous.tagHidden, next.tagHidden)) changed.push('tagHidden');
-	if (!sameSet(previous.hiddenEntities, next.hiddenEntities)) changed.push('hiddenEntities');
+	if (!sameGroup(previous.tagHidden, next.tagHidden)) changed.push('tagHidden');
+	if (!sameGroup(previous.hiddenEntities, next.hiddenEntities)) changed.push('hiddenEntities');
 	if (previous.hiddenMetadata !== next.hiddenMetadata) changed.push('hiddenMetadata');
 	if (previous.topology !== next.topology) changed.push('topology');
 	return changed;

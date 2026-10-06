@@ -17,7 +17,7 @@ use crate::server::{
     },
     tags::{
         entity_tags::{EntityTagStorage, entities_holding_several},
-        r#impl::base::{ExclusiveSet, Tag},
+        r#impl::base::{Tag, TagGroup},
     },
 };
 use anyhow::{Result, anyhow};
@@ -27,7 +27,7 @@ use uuid::Uuid;
 
 pub struct TagService {
     storage: Arc<GenericPostgresStorage<Tag>>,
-    /// The tags module's own junction storage, read to check a set change against existing
+    /// The tags module's own junction storage, read to check a tag group change against existing
     /// assignments.
     entity_tags: Arc<EntityTagStorage>,
     event_bus: Arc<EventBus>,
@@ -75,10 +75,10 @@ impl CrudService<Tag> for TagService {
             .await?
             .ok_or_else(|| anyhow!("Could not find Tag {}", entity.id))?;
 
-        if entity.base.exclusive_set != current.base.exclusive_set
-            && let Some(set) = &entity.base.exclusive_set
+        if entity.base.tag_group != current.base.tag_group
+            && let Some(group) = &entity.base.tag_group
         {
-            self.refuse_set_already_doubled(entity, set).await?;
+            self.refuse_group_already_doubled(entity, group).await?;
         }
 
         let updated = SnapshotMutator::close_and_clone(self, entity.clone()).await?;
@@ -166,30 +166,30 @@ impl TagService {
         }
     }
 
-    /// Refuse to move `tag` into `set` while some entity holds both it and another tag of `set`.
+    /// Refuse to move `tag` into `group` while some entity holds both it and another tag of `group`.
     ///
-    /// Moving it would leave that entity breaking the rule the set exists to keep, and which of
+    /// Moving it would leave that entity breaking the rule the group exists to keep, and which of
     /// its tags should go is a person's call. So the change is refused with a count, and nothing
     /// is removed on the person's behalf.
-    async fn refuse_set_already_doubled(&self, tag: &Tag, set: &ExclusiveSet) -> Result<()> {
+    async fn refuse_group_already_doubled(&self, tag: &Tag, group: &TagGroup) -> Result<()> {
         let siblings = self
             .get_all(StorableFilter::<Tag>::new_from_org_id(&tag.base.organization_id).live())
             .await?;
-        let mut set_tag_ids: Vec<Uuid> = siblings
+        let mut group_tag_ids: Vec<Uuid> = siblings
             .iter()
-            .filter(|t| t.id != tag.id && t.base.exclusive_set.as_ref() == Some(set))
+            .filter(|t| t.id != tag.id && t.base.tag_group.as_ref() == Some(group))
             .map(|t| t.id)
             .collect();
-        if set_tag_ids.is_empty() {
+        if group_tag_ids.is_empty() {
             return Ok(());
         }
-        set_tag_ids.push(tag.id);
+        group_tag_ids.push(tag.id);
 
-        let rows = self.entity_tags.get_live_for_tags(&set_tag_ids).await?;
-        match entities_holding_several(&rows, &set_tag_ids) {
+        let rows = self.entity_tags.get_live_for_tags(&group_tag_ids).await?;
+        match entities_holding_several(&rows, &group_tag_ids) {
             0 => Ok(()),
             count => Err(ValidationError::new(format!(
-                "{count} {} hold more than one tag in the \"{set}\" set. Remove the extra tags first.",
+                "{count} {} hold more than one tag in the \"{group}\" group. Remove the extra tags first.",
                 if count == 1 { "entity" } else { "entities" }
             ))
             .into()),

@@ -12,30 +12,30 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 use validator::Validate;
 
-/// A set of tags of which an entity may hold at most one.
+/// A group of tags of which an entity may hold at most one.
 ///
-/// Assigning a tag from a set replaces whichever tag of the same set the entity already holds.
-/// `Application` is the built-in set: its tags drive the application view, which can place an
-/// entity in one application only. `Group` sets are named by the organization (a lifecycle, an
+/// Assigning a tag from a group replaces whichever tag of the same group the entity already holds.
+/// `Application` is the built-in group: its tags drive the application view, which can place an
+/// entity in one application only. `Named` groups are named by the organization (a status, an
 /// environment, a tier) and exist for as long as a tag carries the name.
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash, ToSchema)]
 #[serde(tag = "type")]
-pub enum ExclusiveSet {
-    /// The built-in set of application tags.
+pub enum TagGroup {
+    /// The built-in group of application tags.
     Application,
-    /// A set the organization named.
-    Group {
-        /// The set's name, shared by every tag in it.
+    /// A group the organization named.
+    Named {
+        /// The group's name, shared by every tag in it.
         #[serde(deserialize_with = "deserialize_trimmed")]
         name: String,
     },
 }
 
-impl Display for ExclusiveSet {
+impl Display for TagGroup {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Application => write!(f, "Application"),
-            Self::Group { name } => write!(f, "{name}"),
+            Self::Named { name } => write!(f, "{name}"),
         }
     }
 }
@@ -44,11 +44,11 @@ fn deserialize_trimmed<'de, D: serde::Deserializer<'de>>(d: D) -> Result<String,
     Ok(String::deserialize(d)?.trim().to_string())
 }
 
-fn validate_exclusive_set(set: &ExclusiveSet) -> Result<(), validator::ValidationError> {
-    match set {
-        ExclusiveSet::Group { name } if name.is_empty() || name.chars().count() > 100 => {
-            Err(validator::ValidationError::new("exclusive_set_name")
-                .with_message("Exclusive set name must be between 1 and 100 characters".into()))
+fn validate_tag_group(group: &TagGroup) -> Result<(), validator::ValidationError> {
+    match group {
+        TagGroup::Named { name } if name.is_empty() || name.chars().count() > 100 => {
+            Err(validator::ValidationError::new("tag_group_name")
+                .with_message("Tag group name must be between 1 and 100 characters".into()))
         }
         _ => Ok(()),
     }
@@ -135,10 +135,10 @@ pub struct TagBase {
     pub color: Color,
     /// The organization that owns this record.
     pub organization_id: Uuid,
-    /// The set this tag belongs to, if any. An entity holds at most one tag of a set.
+    /// The group this tag belongs to, if any. An entity holds at most one tag of a group.
     #[serde(default)]
-    #[validate(custom(function = "validate_exclusive_set"))]
-    pub exclusive_set: Option<ExclusiveSet>,
+    #[validate(custom(function = "validate_tag_group"))]
+    pub tag_group: Option<TagGroup>,
     /// Icon drawn on the tag. Application tags always use the application icon.
     #[serde(default)]
     pub icon: Option<TagIcon>,
@@ -147,7 +147,7 @@ pub struct TagBase {
 impl TagBase {
     /// Whether this tag groups an application, so it drives the application view.
     pub fn is_application(&self) -> bool {
-        matches!(self.exclusive_set, Some(ExclusiveSet::Application))
+        matches!(self.tag_group, Some(TagGroup::Application))
     }
 }
 
@@ -158,7 +158,7 @@ impl Default for TagBase {
             description: None,
             color: Color::Yellow,
             organization_id: Uuid::nil(),
-            exclusive_set: None,
+            tag_group: None,
             icon: None,
         }
     }
@@ -226,9 +226,9 @@ impl Display for Tag {
 mod tests {
     use super::*;
 
-    fn base(exclusive_set: Option<ExclusiveSet>, icon: Option<Icon>) -> TagBase {
+    fn base(tag_group: Option<TagGroup>, icon: Option<Icon>) -> TagBase {
         TagBase {
-            exclusive_set,
+            tag_group,
             icon: icon.map(TagIcon),
             ..Default::default()
         }
@@ -237,40 +237,36 @@ mod tests {
     #[test]
     fn an_application_tag_cannot_choose_its_own_icon() {
         assert!(
-            base(Some(ExclusiveSet::Application), Some(Icon::Rocket))
+            base(Some(TagGroup::Application), Some(Icon::Rocket))
                 .validate()
                 .is_err()
         );
-        assert!(
-            base(Some(ExclusiveSet::Application), None)
-                .validate()
-                .is_ok()
-        );
-        let lifecycle = Some(ExclusiveSet::Group {
-            name: "Lifecycle".to_string(),
+        assert!(base(Some(TagGroup::Application), None).validate().is_ok());
+        let status = Some(TagGroup::Named {
+            name: "Status".to_string(),
         });
-        assert!(base(lifecycle, Some(Icon::Rocket)).validate().is_ok());
+        assert!(base(status, Some(Icon::Rocket)).validate().is_ok());
     }
 
     #[test]
-    fn a_set_name_is_trimmed_and_a_blank_one_refused() {
+    fn a_group_name_is_trimmed_and_a_blank_one_refused() {
         let tag: TagBase = serde_json::from_value(serde_json::json!({
             "name": "Old printer",
             "description": null,
             "color": "Gray",
             "organization_id": Uuid::nil(),
-            "exclusive_set": { "type": "Group", "name": "  Lifecycle " },
+            "tag_group": { "type": "Named", "name": "  Status " },
         }))
         .unwrap();
         assert_eq!(
-            tag.exclusive_set,
-            Some(ExclusiveSet::Group {
-                name: "Lifecycle".to_string()
+            tag.tag_group,
+            Some(TagGroup::Named {
+                name: "Status".to_string()
             })
         );
 
         let blank = base(
-            Some(ExclusiveSet::Group {
+            Some(TagGroup::Named {
                 name: String::new(),
             }),
             None,

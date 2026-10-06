@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { isApplicationTag } from '$lib/features/tags/sets';
+	import { isApplicationTag } from '$lib/features/tags/groups';
 	import { get } from 'svelte/store';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { Eye, EyeOff, X, Crosshair, ArrowDown } from 'lucide-svelte';

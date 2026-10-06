@@ -19,7 +19,8 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { permissions, billingPlans, concepts } from '$lib/shared/stores/metadata';
 	import type { TabProps } from '$lib/shared/types';
-	import { exclusiveSetLabel, isApplicationTag, tagIcon } from '../sets';
+	import { tagGroupLabel, isApplicationTag, tagIcon } from '../groups';
+	import { tagItems } from '../columns';
 	import type { components } from '$lib/api/schema';
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
 	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
@@ -32,11 +33,12 @@
 		common_delete,
 		common_edit,
 		common_description,
+		common_icon,
 		common_name,
 		common_noEntityYet,
 		common_tags,
 		common_updated,
-		tags_exclusiveSet,
+		tags_tagGroup,
 		tags_noTagsHelp,
 		tags_subtitle
 	} from '$lib/paraglide/messages';
@@ -162,21 +164,24 @@
 	// Uses defineFields to ensure all TagOrderField values are covered
 	const tagFields = defineFields<Tag, TagOrderField>(
 		{
-			// Identity field: grouping by it would render a header per tag.
+			// Identity field: grouping by it would render a header per tag. Drawn as the tag itself,
+			// with its icon and colour, as it appears on every entity carrying it.
 			name: {
 				label: common_name(),
 				type: 'string',
 				searchable: true,
 				groupable: false,
-				display: { primary: true, width: 220 }
+				display: { primary: true, width: 220, getItems: (tag) => tagItems([tag.id], [tag]) }
 			},
 			color: {
 				label: common_color(),
 				type: 'string',
 				searchable: true,
 				filterable: true,
-				// A colour name is worth showing in its own colour.
+				// A colour name is worth showing in its own colour. Hidden by default: the name column
+				// already draws it, so this column is there to group and filter by.
 				display: {
+					hiddenByDefault: true,
 					getItems: (tag) => [
 						{
 							id: tag.color,
@@ -186,16 +191,34 @@
 					]
 				}
 			},
-			exclusive_set: {
-				label: tags_exclusiveSet(),
+			tag_group: {
+				label: tags_tagGroup(),
 				type: 'string',
 				filterable: true,
-				getValue: (tag) => exclusiveSetLabel(tag.exclusive_set)
+				getValue: (tag) => tagGroupLabel(tag.tag_group)
 			},
 			created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
 			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } }
 		},
-		[{ key: 'description', label: common_description(), type: 'string', searchable: true }]
+		[
+			{ key: 'description', label: common_description(), type: 'string', searchable: true },
+			{
+				// Hidden by default for the same reason as colour: the name column draws the icon.
+				key: 'icon',
+				label: common_icon(),
+				type: 'string',
+				filterable: true,
+				groupable: true,
+				getValue: (tag) => tag.icon ?? null,
+				display: {
+					hiddenByDefault: true,
+					getItems: (tag) => {
+						const icon = tagIcon(tag);
+						return icon && tag.icon ? [{ id: tag.icon, label: tag.icon, icon }] : [];
+					}
+				}
+			}
+		]
 	);
 </script>
 

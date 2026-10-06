@@ -8,7 +8,6 @@
 	import type { TopologyEditState } from '$lib/features/topology/state';
 	import { useSubnetsQuery, useUpdateSubnetMutation } from '$lib/features/subnets/queries';
 	import { nestingItems, subnetNesting } from '$lib/features/subnets/nesting';
-	import SubnetUtilization from '$lib/features/subnets/components/SubnetUtilization.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import { inspector_thisSubnet, topology_focusNode } from '$lib/paraglide/messages';
 	import InspectorSection from '../shared/InspectorSection.svelte';
@@ -29,8 +28,8 @@
 	let isReadonly = $derived(editState.isReadonly);
 	let subnet = $derived(topology.subnets.find((s) => s.id === node.id) ?? null);
 
-	// Utilization and nesting are derived server-side across the whole site, so they come from the
-	// live subnet list rather than the topology payload. Not in a read-only view: a shared link has
+	// Nesting is derived server-side across the whole site, so it comes from the live subnet list
+	// rather than the topology payload. Not in a read-only view: a shared link has
 	// no session to fetch with, and a snapshot's past state would be paired with today's counts.
 	const subnetsQuery = useSubnetsQuery(undefined, undefined, () => !editState.isReadonly);
 	let subnetsData = $derived(subnetsQuery.data ?? []);
@@ -70,16 +69,11 @@
 				item={subnet}
 				displayComponent={SubnetDisplay}
 			/>
-			{#if listed}
-				<div class="mt-2 space-y-1.5">
-					<SubnetUtilization subnet={listed} />
-					{#if nestedLabels.length > 0}
-						<div class="flex flex-wrap gap-1">
-							{#each nestedLabels as label (label.id)}
-								<Tag label={label.label} color={label.color} title={label.title} />
-							{/each}
-						</div>
-					{/if}
+			{#if nestedLabels.length > 0}
+				<div class="mt-2 flex flex-wrap gap-1">
+					{#each nestedLabels as label (label.id)}
+						<Tag label={label.label} color={label.color} title={label.title} />
+					{/each}
 				</div>
 			{/if}
 		</div>

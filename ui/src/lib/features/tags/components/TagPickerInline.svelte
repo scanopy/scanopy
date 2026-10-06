@@ -16,7 +16,7 @@
 	import { onMount } from 'svelte';
 	import { common_creating, tags_addTag, tags_createTagQuoted } from '$lib/paraglide/messages';
 	import CreatableOptionList from '$lib/shared/components/forms/selection/CreatableOptionList.svelte';
-	import { isApplicationTag, sameSet, tagIcon } from '$lib/features/tags/sets';
+	import { isApplicationTag, sameGroup, tagIcon } from '$lib/features/tags/groups';
 
 	/**
 	 * Compact inline tag picker for use in cards and bulk actions.
@@ -207,7 +207,7 @@
 			newTag.name = name;
 			newTag.color = getRandomColor();
 			if (createAsApplication) {
-				newTag.exclusive_set = { type: 'Application' };
+				newTag.tag_group = { type: 'Application' };
 			}
 
 			const result = await createTagMutation.mutateAsync(newTag);
@@ -227,11 +227,11 @@
 				tag_id: tagId
 			});
 		} else {
-			// The server replaces a held tag of the same exclusive set on assignment; in callback
+			// The server replaces a held tag of the same tag group on assignment; in callback
 			// mode the caller holds the list, so drop the displaced tag here to match.
 			const added = getTag(tagId);
 			for (const heldId of selectedTagIds) {
-				if (heldId !== tagId && sameSet(getTag(heldId)?.exclusive_set, added?.exclusive_set)) {
+				if (heldId !== tagId && sameGroup(getTag(heldId)?.tag_group, added?.tag_group)) {
 					onRemove?.(heldId);
 				}
 			}

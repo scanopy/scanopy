@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { groupItems } from '$lib/shared/components/data/controls/grouping';
+import { buildTreeSections, groupItems } from '$lib/shared/components/data/controls/grouping';
 import type { FieldConfig } from '$lib/shared/components/data/types';
 import {
 	missingRootIds,
@@ -33,6 +33,7 @@ const row = (
 });
 
 const labels = { notVirtualized: 'Not virtualized', unknownRoot: 'Unknown host' };
+const NUL = String.fromCharCode(0);
 
 // A page holding a VM and its container, but not the Proxmox node above them.
 const vm = row('docker-vm', 'pve-01', 'pve-01', 1, 'Proxmox VE');
@@ -81,6 +82,23 @@ describe('virtualization tree grouping', () => {
 		expect([...groups.entries()].map(([name, rows]) => [name, rows.map((r) => r.id)])).toEqual([
 			['Not virtualized', ['printer']],
 			['pve-01', ['docker-vm', 'pihole']]
+		]);
+	});
+
+	it('heads a section with the guest that runs others, even when its root is on another page', () => {
+		const entries = buildTreeSections([vm, container], virtualizationTree, true, 'pve-01');
+		expect(entries).toEqual([
+			{
+				type: 'section',
+				key: `pve-01${NUL}docker-vm`,
+				label: 'docker-vm',
+				count: 2,
+				guides: [],
+				entries: [
+					{ type: 'row', item: vm, guides: ['space'] },
+					{ type: 'row', item: container, guides: ['bar'] }
+				]
+			}
 		]);
 	});
 });

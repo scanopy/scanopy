@@ -14,9 +14,9 @@
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
 	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
 	import IconPicker from '$lib/shared/components/forms/IconPicker.svelte';
-	import ExclusiveSetSelect from './ExclusiveSetSelect.svelte';
+	import TagGroupSelect from './TagGroupSelect.svelte';
 	import { useTagsQuery } from '../queries';
-	import { groupNames, type ExclusiveSet } from '../sets';
+	import { groupNames, type TagGroup } from '../groups';
 	import tagIconsFixture from '$lib/data/tag-icons.json';
 	import {
 		common_cancel,
@@ -35,9 +35,9 @@
 		tags_applicationHelp,
 		tags_createTag,
 		tags_descriptionPlaceholder,
-		tags_exclusiveSet,
-		tags_exclusiveSetHelp,
-		tags_exclusiveSetPlaceholder,
+		tags_tagGroup,
+		tags_tagGroupHelp,
+		tags_tagGroupPlaceholder,
 		tags_iconApplicationFixed,
 		tags_tagNamePlaceholder
 	} from '$lib/paraglide/messages';
@@ -64,7 +64,7 @@
 	const organizationQuery = useOrganizationQuery();
 	let organization = $derived(organizationQuery.data);
 
-	// Every tag, for the names of the sets already in use.
+	// Every tag, for the names of the tag groups already in use.
 	const tagsQuery = useTagsQuery();
 	let allTags = $derived(tagsQuery.data ?? []);
 	const tagIconNames: string[] = tagIconsFixture;
@@ -112,15 +112,15 @@
 		}
 	}));
 
-	// The set and icon are source of truth here and synced into the form: switching to the
-	// Application set clears the icon programmatically, which the form store alone would not show.
-	let selectedSet = $state<ExclusiveSet | null>(null);
+	// The group and icon are source of truth here and synced into the form: switching to the
+	// Application group clears the icon programmatically, which the form store alone would not show.
+	let selectedGroup = $state<TagGroup | null>(null);
 	let selectedIcon = $state<string | null>(null);
 
-	function handleSetChange(set: ExclusiveSet | null) {
-		selectedSet = set;
-		form.setFieldValue('exclusive_set', set);
-		if (set?.type === 'Application') handleIconChange(null);
+	function handleGroupChange(group: TagGroup | null) {
+		selectedGroup = group;
+		form.setFieldValue('tag_group', group);
+		if (group?.type === 'Application') handleIconChange(null);
 	}
 
 	function handleIconChange(icon: string | null) {
@@ -132,7 +132,7 @@
 	function handleOpen() {
 		const defaults = getDefaultValues();
 		form.reset(defaults);
-		selectedSet = defaults.exclusive_set ?? null;
+		selectedGroup = defaults.tag_group ?? null;
 		selectedIcon = defaults.icon ?? null;
 	}
 
@@ -215,25 +215,25 @@
 						{/snippet}
 					</form.Field>
 
-					<!-- Exclusive set. Held in $state: choosing Application clears the icon, a
+					<!-- Tag group. Held in $state: choosing Application clears the icon, a
 					     programmatic write TanStack Form would not re-render. -->
-					<form.Field name="exclusive_set">
+					<form.Field name="tag_group">
 						{#snippet children()}
 							<div class="space-y-2">
-								<label for="exclusive_set" class="text-secondary block text-sm font-medium">
-									{tags_exclusiveSet()}
+								<label for="tag_group" class="text-secondary block text-sm font-medium">
+									{tags_tagGroup()}
 								</label>
-								<ExclusiveSetSelect
-									id="exclusive_set"
-									value={selectedSet}
+								<TagGroupSelect
+									id="tag_group"
+									value={selectedGroup}
 									groups={groupNames(allTags)}
-									placeholder={tags_exclusiveSetPlaceholder()}
-									onChange={handleSetChange}
+									placeholder={tags_tagGroupPlaceholder()}
+									onChange={handleGroupChange}
 								/>
 								<p class="text-tertiary text-xs">
-									{selectedSet?.type === 'Application'
+									{selectedGroup?.type === 'Application'
 										? tags_applicationHelp()
-										: tags_exclusiveSetHelp()}
+										: tags_tagGroupHelp()}
 								</p>
 							</div>
 						{/snippet}
@@ -244,10 +244,10 @@
 							<IconPicker
 								id="icon"
 								label={common_icon()}
-								value={selectedSet?.type === 'Application' ? null : selectedIcon}
+								value={selectedGroup?.type === 'Application' ? null : selectedIcon}
 								icons={tagIconNames}
-								disabled={selectedSet?.type === 'Application'}
-								helpText={selectedSet?.type === 'Application' ? tags_iconApplicationFixed() : ''}
+								disabled={selectedGroup?.type === 'Application'}
+								helpText={selectedGroup?.type === 'Application' ? tags_iconApplicationFixed() : ''}
 								onChange={handleIconChange}
 							/>
 						{/snippet}

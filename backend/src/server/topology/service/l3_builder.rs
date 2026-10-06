@@ -179,7 +179,7 @@ mod tests {
                 description: None,
                 color: Color::Orange,
                 organization_id: Uuid::new_v4(),
-                exclusive_set: None,
+                tag_group: None,
                 icon: None,
             },
             ..Default::default()

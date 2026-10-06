@@ -1,6 +1,7 @@
 /**
  * Grouping the host list by virtualization tree: every host under the host at the top of its
- * chain (a Proxmox node above its VMs above their containers), parent first and indented.
+ * chain (a Proxmox node above its VMs above their containers), each host that runs others heading
+ * a collapsible section of them.
  *
  * The tree itself comes from the server, which orders the rows across pages and sends each host's
  * root, parent and depth. This module only reads those fields: the group key has to match the
@@ -13,7 +14,11 @@ import type { Host } from './types/base';
 
 type TreeHost = Pick<
 	Host,
-	'id' | 'virtualization_parent_host_id' | 'virtualization_root_host_id' | 'virtualization_depth'
+	| 'id'
+	| 'display_name'
+	| 'virtualization_parent_host_id'
+	| 'virtualization_root_host_id'
+	| 'virtualization_depth'
 >;
 
 /** The key the server groups a host under: its tree's root id, `''` for a host in no tree. */
@@ -51,5 +56,6 @@ export function virtualizationGroupLabel(
 export const virtualizationTree: TreeConfig<TreeHost> = {
 	key: (host) => host.id,
 	parentKey: (host) => host.virtualization_parent_host_id ?? null,
-	depth: (host) => host.virtualization_depth ?? 0
+	depth: (host) => host.virtualization_depth ?? 0,
+	label: (host) => hostDisplayName(host)
 };

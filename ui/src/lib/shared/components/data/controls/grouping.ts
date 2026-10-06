@@ -1,4 +1,10 @@
-import { getFieldKey, type FieldConfig, type GroupPosition, type TreeConfig } from '../types';
+import {
+	getFieldKey,
+	type FieldConfig,
+	type GroupPosition,
+	type GroupSlice,
+	type TreeConfig
+} from '../types';
 import { getFieldValue, type FieldValue } from './fieldValues';
 
 /**
@@ -66,35 +72,139 @@ export function groupItems<T>(
 	return new Map([...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])));
 }
 
-/** A group's rows in tree order, and each row's depth keyed by its `tree.key`. */
-export interface TreeLayout<T> {
-	items: T[];
-	depths: Map<string, number>;
+/**
+ * One column of a row's tree guide, left to right. `bar` continues the line of the section the row
+ * sits in; `space` holds the indent under a section header's chevron for the section's own row.
+ */
+export type TreeGuide = 'bar' | 'space';
+
+/** A row of a tree group, with the guides drawn before it. */
+export interface TreeRow<T> {
+	type: 'row';
+	item: T;
+	guides: TreeGuide[];
 }
 
 /**
- * One group's rows arranged as the tree `tree` describes.
- *
- * With `serverPaginated` the rows are left in the order they arrived, which the server already
- * made parent-first across every page, and depth comes from `tree.depth`.
- *
- * Otherwise every row is in hand, so both are derived: roots are the rows with no parent in this
- * group (a parent filtered out of the list makes its children roots), each followed by its
- * descendants. Siblings keep the order they arrived in unless `compare` is given.
+ * A row that has children, drawn as a collapsible section: a header, then the row itself, then
+ * its children. `key` is the path from the group down to this row, so two rows with the same
+ * label never share collapse state.
  */
-export function arrangeTree<T>(
+export interface TreeSection<T> {
+	type: 'section';
+	key: string;
+	label: string;
+	/** Rows in the loaded subtree, this row included. */
+	count: number;
+	guides: TreeGuide[];
+	entries: TreeEntry<T>[];
+}
+
+export type TreeEntry<T> = TreeRow<T> | TreeSection<T>;
+
+/** A group as the card and table views draw it. */
+export interface RenderGroup<T> {
+	/** Collapse-state key, unique per group. */
+	key: string;
+	/** The header. */
+	name: string;
+	/** Every row of the group, in the order drawn. */
+	items: T[];
+	range: GroupSlice | null;
+	/** The group's nested sections when the grouping is a tree, else null. */
+	entries: TreeEntry<T>[] | null;
+}
+
+interface TreeNode<T> {
+	item: T;
+	children: TreeNode<T>[];
+}
+
+/** Separates the keys of a section path; NUL cannot occur in a group label or an id. */
+const PATH_SEPARATOR = String.fromCharCode(0);
+
+/**
+ * One group's rows as the nested sections the tree `tree` describes.
+ *
+ * Every row with children becomes a section headed by `tree.label`, holding the row itself and
+ * then its children. A group whose rows all descend from one top-level row (no parent at all) is
+ * already headed by that row, so that row stays a plain row and its children sit one guide in.
+ *
+ * - With `serverPaginated` the rows keep the order they arrived in, which the server made
+ *   parent-first across every page, and nesting comes from `tree.depth`. A row whose ancestors are
+ *   on an earlier page starts at the top of the group.
+ * - Otherwise every row is in hand, so nesting comes from `tree.parentKey`: a row whose parent is
+ *   not in the group (filtered out, say) starts at the top. Siblings are ordered by `compare`
+ *   when given, else kept in arrival order. A cycle is cut where it would repeat.
+ *
+ * `groupKey` prefixes every section key, so the same row under two groupings keeps two states.
+ */
+export function buildTreeSections<T>(
 	items: T[],
 	tree: TreeConfig<T>,
 	serverPaginated: boolean,
+	groupKey: string,
 	compare?: (a: T, b: T) => number
-): TreeLayout<T> {
-	if (serverPaginated) {
-		return {
-			items,
-			depths: new Map(items.map((item) => [tree.key(item), tree.depth?.(item) ?? 0]))
-		};
-	}
+): TreeEntry<T>[] {
+	const forest = serverPaginated
+		? forestFromDepths(items, tree)
+		: forestFromParents(items, tree, compare);
 
+	// Only a real root heads its group: a row whose parent is filtered out, or on another page,
+	// still gets a section of its own.
+	if (
+		forest.length === 1 &&
+		forest[0].children.length > 0 &&
+		tree.parentKey(forest[0].item) === null
+	) {
+		const [root] = forest;
+		const path = groupKey + PATH_SEPARATOR + tree.key(root.item);
+		return [
+			{ type: 'row', item: root.item, guides: [] },
+			...root.children.map((child) => toEntry(child, ['bar'], path, tree))
+		];
+	}
+	return forest.map((node) => toEntry(node, [], groupKey, tree));
+}
+
+/** Every row of a group's entries, in the order they are drawn. */
+export function flattenTreeEntries<T>(entries: TreeEntry<T>[]): T[] {
+	return entries.flatMap((entry) =>
+		entry.type === 'row' ? [entry.item] : flattenTreeEntries(entry.entries)
+	);
+}
+
+function toEntry<T>(
+	node: TreeNode<T>,
+	guides: TreeGuide[],
+	parentPath: string,
+	tree: TreeConfig<T>
+): TreeEntry<T> {
+	if (node.children.length === 0) return { type: 'row', item: node.item, guides };
+
+	const key = parentPath + PATH_SEPARATOR + tree.key(node.item);
+	return {
+		type: 'section',
+		key,
+		label: tree.label(node.item),
+		count: subtreeSize(node),
+		guides,
+		entries: [
+			{ type: 'row', item: node.item, guides: [...guides, 'space'] },
+			...node.children.map((child) => toEntry(child, [...guides, 'bar'], key, tree))
+		]
+	};
+}
+
+function subtreeSize<T>(node: TreeNode<T>): number {
+	return 1 + node.children.reduce((sum, child) => sum + subtreeSize(child), 0);
+}
+
+function forestFromParents<T>(
+	items: T[],
+	tree: TreeConfig<T>,
+	compare?: (a: T, b: T) => number
+): TreeNode<T>[] {
 	const present = new Set(items.map((item) => tree.key(item)));
 	const children = new Map<string | null, T[]>();
 	for (const item of items) {
@@ -107,21 +217,34 @@ export function arrangeTree<T>(
 		for (const siblings of children.values()) siblings.sort(compare);
 	}
 
-	const ordered: T[] = [];
-	const depths = new Map<string, number>();
-	const visit = (parent: string | null, depth: number) => {
+	const seen = new Set<string>();
+	const build = (parent: string | null): TreeNode<T>[] => {
+		const nodes: TreeNode<T>[] = [];
 		for (const item of children.get(parent) ?? []) {
 			const key = tree.key(item);
 			// A key seen twice would be a cycle; stop rather than recurse forever.
-			if (depths.has(key)) continue;
-			depths.set(key, depth);
-			ordered.push(item);
-			visit(key, depth + 1);
+			if (seen.has(key)) continue;
+			seen.add(key);
+			nodes.push({ item, children: build(key) });
 		}
+		return nodes;
 	};
-	visit(null, 0);
+	return build(null);
+}
 
-	return { items: ordered, depths };
+function forestFromDepths<T>(items: T[], tree: TreeConfig<T>): TreeNode<T>[] {
+	const roots: TreeNode<T>[] = [];
+	// Open ancestors, deepest last. A row nests under the nearest one shallower than itself.
+	const stack: { depth: number; node: TreeNode<T> }[] = [];
+	for (const item of items) {
+		const depth = tree.depth?.(item) ?? 0;
+		while (stack.length > 0 && stack[stack.length - 1].depth >= depth) stack.pop();
+		const node: TreeNode<T> = { item, children: [] };
+		if (stack.length > 0) stack[stack.length - 1].node.children.push(node);
+		else roots.push(node);
+		stack.push({ depth, node });
+	}
+	return roots;
 }
 
 /**

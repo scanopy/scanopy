@@ -258,11 +258,12 @@ const DECISIONS: Record<string, TabDecisions> = {
 		columns: {
 			name: IDENTITY,
 			color: YES,
-			// One set per tag: Application or a named set.
-			exclusive_set: YES,
+			// One group per tag: Application or a named group.
+			tag_group: YES,
 			created_at: DATE,
 			updated_at: DATE,
-			description: TEXT
+			description: TEXT,
+			icon: { sort: 'An icon name has no useful order', group: true, filter: true }
 		}
 	},
 	'sites/components/SitesTab.svelte': {
@@ -312,7 +313,8 @@ const DECISIONS: Record<string, TabDecisions> = {
 	'subnets/components/SubnetTab.svelte': {
 		columns: {
 			name: IDENTITY,
-			cidr: IDENTITY,
+			// Groups each range with the ranges nested inside it, not one group per CIDR.
+			cidr: { sort: true, group: true, filter: SEARCH },
 			subnet_type: YES,
 			site_id: YES,
 			created_at: DATE,
@@ -328,11 +330,6 @@ const DECISIONS: Record<string, TabDecisions> = {
 				sort: true,
 				group: 'A percentage; every value would be its own group',
 				filter: 'A percentage; sort finds the fullest'
-			},
-			range: {
-				sort: 'Sort by CIDR orders ranges the same way',
-				group: true,
-				filter: 'Group by range shows each one'
 			}
 		}
 	},
