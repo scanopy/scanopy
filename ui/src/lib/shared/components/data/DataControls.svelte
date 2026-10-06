@@ -826,7 +826,7 @@
 	     group's gap, putting the toolbar 16px below the sidebar's first row instead of level. -->
 	<div
 		class="sticky top-0 z-20 -mx-4 !mt-0 border-b bg-[var(--color-bg-body)] px-4 pb-4 {isStuck
-			? 'border-gray-700 pt-4 shadow-lg'
+			? 'border-[var(--color-border)] pt-4 shadow-lg'
 			: 'border-transparent'}"
 	>
 		<ControlsBar
