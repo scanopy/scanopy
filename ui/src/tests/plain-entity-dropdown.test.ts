@@ -57,7 +57,6 @@ const ALLOWED_PLAIN_DROPDOWNS = new Map<string, string>([
 		'Cancellation reason: short static list.'
 	],
 	['lib/features/billing/PlanInquiryModal.svelte', 'Inquiry answers: short static lists.'],
-	['lib/shared/components/data/controls/ControlsBar.svelte', 'Group-by and sort-by column keys.'],
 	['lib/shared/components/data/controls/PaginationBar.svelte', 'Page size.']
 ]);
 

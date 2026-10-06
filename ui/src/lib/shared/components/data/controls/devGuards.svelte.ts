@@ -1,6 +1,6 @@
-import type { FieldConfig } from '../types';
+import type { FieldConfig, TableDefaults } from '../types';
 import { serverFilterViolations, type ServerFilterMode } from './filtering';
-import { serverOrderViolations } from './sorting';
+import { defaultOrderingViolations, serverOrderViolations } from './sorting';
 import { treeDepthViolations } from './grouping';
 
 /**
@@ -67,6 +67,28 @@ export function guardServerPaginatedConfig<T>(
 			`DataControls: ${offenders.join(', ')} ${offenders.length === 1 ? 'draws' : 'draw'} a ` +
 				`tree on a server-paginated list without tree.depth. Return each row's depth from ` +
 				`the server and pass it as tree.depth.`
+		);
+	});
+}
+
+/**
+ * Fail loudly on a default group or sort the list cannot apply.
+ *
+ * Call during component init. Dev/test only, so it never reaches a user.
+ */
+export function guardTableDefaults<T>(
+	get: () => { fields: FieldConfig<T>[]; defaults: TableDefaults; serverPaginated: boolean }
+) {
+	$effect(() => {
+		if (!import.meta.env.DEV) return;
+
+		const { fields, defaults, serverPaginated } = get();
+		const offenders = defaultOrderingViolations(fields, defaults, serverPaginated);
+		if (offenders.length === 0) return;
+
+		throw new Error(
+			`DataControls: default ${offenders.join(', ')} cannot apply. A default must name a ` +
+				`groupable or sortable field whose column renders by default.`
 		);
 	});
 }

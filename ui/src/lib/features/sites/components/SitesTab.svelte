@@ -6,6 +6,7 @@
 	import type { Site } from '../types';
 	import SiteEditModal from './SiteEditModal.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import type { FieldConfig } from '$lib/shared/components/data/types';
 	import { tagNames } from '$lib/features/tags/columns';
 	import { entityRef, type CardAction } from '$lib/shared/components/data/types';
@@ -70,16 +71,16 @@
 
 	const tagsQuery = useTagsQuery();
 	const sitesQuery = useSitesQuery();
-	// What each site contains, resolved here so card and table share it.
+	// What each site contains, resolved here for the table's columns.
 	const daemonsQuery = useDaemonsQuery();
 	const subnetsQuery = useSubnetsQuery();
 	const vlansQuery = useVlansQuery();
 	const credentialsQuery = useCredentialsQuery();
 	useDependenciesQuery();
 
-	// Only the hosts the daemons run on. Each card needs one host name per daemon
-	// chip; fetching per card meant every card subscribing to an unpaginated
-	// org-wide hosts query (~1.9MB), shared by key with every other consumer.
+	// Only the hosts the daemons run on: each daemon chip needs one host name,
+	// and an unpaginated org-wide hosts query is ~1.9MB, shared by key with
+	// every other consumer.
 	let daemonHostIds = $derived([
 		...new Set((daemonsQuery.data ?? []).map((d) => d.host_id).filter((id): id is string => !!id))
 	]);
@@ -137,7 +138,7 @@
 			permissions.getMetadata(currentUser.permissions).manage_org_entities
 	);
 
-	/** Row actions for table mode, matching what the card offers. */
+	/** Row actions. */
 	function siteActions(site: Site): CardAction[] {
 		if (!allowBulkDelete) return [];
 
@@ -208,9 +209,7 @@
 		await downloadCsv('Site', {});
 	}
 
-	// What a site contains. These were computed inside the card, so the table
-	// had no way to show them; resolving here is what gives both views the same
-	// columns.
+	// What a site contains, one resolver per column.
 	function siteDaemons(site: Site): Daemon[] {
 		return daemonsData.filter((daemon) => daemon.site_id === site.id);
 	}
@@ -228,6 +227,8 @@
 			.map((id) => credentialsData.find((c) => c.id === id))
 			.filter((c): c is Credential => Boolean(c));
 	}
+
+	const tableDefaults: TableDefaults<string> = { sort: { field: 'name', direction: 'asc' } };
 
 	// Derived, not a plain const: it closes over `tagsData` and references the
 	// `tagsCell` snippet, neither of which exists yet when the script body runs.
@@ -403,11 +404,8 @@
 			getItemTags={getSiteTags}
 			{allowBulkDelete}
 			storageKey="scanopy-sites-table-state"
+			defaults={tableDefaults}
 			getItemId={(item) => item.id}
-			getIcon={() => ({
-				icon: entities.getIconComponent('Site'),
-				color: entities.getColorHelper('Site').icon
-			})}
 			onCsvExport={handleCsvExport}
 			getActions={siteActions}
 			entityLabel={common_sites()}

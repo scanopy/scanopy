@@ -1,16 +1,4 @@
 /**
- * Selection scope.
- *
- * "Select all" has to mean the rows the user can actually see. Grouped mode
- * renders every processed item; ungrouped mode renders only the current page
- * slice. Deriving both the action and the label from this one set is what keeps
- * the button's promise and the bulk operation's effect in agreement.
- */
-export function visibleItems<T>(grouped: boolean, processed: T[], paginated: T[]): T[] {
-	return grouped ? processed : paginated;
-}
-
-/**
  * Whether every visible row is selected.
  *
  * Compares membership rather than counts. A count comparison is satisfiable by

@@ -1,4 +1,10 @@
-import { getFieldKey, isDisplayField, isOrderableField, type FieldConfig } from '../types';
+import {
+	getFieldKey,
+	isDisplayField,
+	isOrderableField,
+	type FieldConfig,
+	type TableDefaults
+} from '../types';
 import { getFieldValue } from './fieldValues';
 
 export type SortDirection = 'asc' | 'desc';
@@ -174,4 +180,36 @@ export function serverOrderViolations<T>(
 			(field) => isDisplayField(field) && (field.sortable === true || field.groupable === true)
 		)
 		.map(getFieldKey);
+}
+
+/**
+ * Default group and sort keys a list cannot apply.
+ *
+ * A list groups and sorts only by rendered columns, so a default on a missing
+ * field, a field that cannot group or sort, or a column hidden until the user
+ * shows it would silently open the tab ungrouped or unsorted.
+ */
+export function defaultOrderingViolations<T>(
+	fields: FieldConfig<T>[],
+	defaults: TableDefaults,
+	serverPaginated: boolean
+): string[] {
+	const rendersByDefault = (field: FieldConfig<T>) =>
+		!field.display?.hidden && !field.display?.hiddenByDefault;
+	const fieldFor = (key: string) => fields.find((f) => getFieldKey(f) === key);
+
+	const offenders: string[] = [];
+	if (defaults.group) {
+		const field = fieldFor(defaults.group);
+		if (!field || !rendersByDefault(field) || !isGroupableField(field, serverPaginated)) {
+			offenders.push(`group "${defaults.group}"`);
+		}
+	}
+	if (defaults.sort) {
+		const field = fieldFor(defaults.sort.field);
+		if (!field || !rendersByDefault(field) || !isSortableField(field, serverPaginated)) {
+			offenders.push(`sort "${defaults.sort.field}"`);
+		}
+	}
+	return offenders;
 }

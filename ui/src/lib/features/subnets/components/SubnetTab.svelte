@@ -12,6 +12,7 @@
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import type { Subnet, SubnetResponse } from '../types/base';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import { defineFields, entityRef, type CardAction } from '$lib/shared/components/data/types';
 	import { tagNames } from '$lib/features/tags/columns';
 	import { siteItems } from '$lib/features/sites/columns';
@@ -166,7 +167,7 @@
 		showSubnetEditor = true;
 	}
 
-	/** Row actions for table mode, matching what the card offers. */
+	/** Row actions. */
 	function subnetActions(subnet: Subnet): CardAction[] {
 		if (isReadOnly) return [];
 
@@ -315,6 +316,11 @@
 	async function handleCsvExport() {
 		await downloadCsv('Subnet', {});
 	}
+
+	const tableDefaults: TableDefaults<SubnetOrderField> = {
+		group: 'cidr',
+		sort: { field: 'cidr', direction: 'asc' }
+	};
 
 	// Define field configuration for the DataTableControls
 	// Uses defineFields to ensure all SubnetOrderField values are covered
@@ -517,14 +523,11 @@
 			items={subnetsData}
 			fields={subnetFields}
 			storageKey="scanopy-subnets-table-state"
+			defaults={tableDefaults}
 			onBulkDelete={isReadOnly ? undefined : handleBulkDelete}
 			entityType={isReadOnly ? undefined : 'Subnet'}
 			getItemTags={getSubnetTags}
 			getItemId={(item) => item.id}
-			getIcon={(subnet) => ({
-				icon: subnetTypes.getIconComponent(subnet.subnet_type),
-				color: subnetTypes.getColorHelper(subnet.subnet_type).icon
-			})}
 			onStaleFilterChange={handleStaleFilterChange}
 			onCsvExport={handleCsvExport}
 			getActions={subnetActions}

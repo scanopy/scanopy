@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { entities, discoveryPhases, discoveryTypes } from '$lib/shared/stores/metadata';
+	import { discoveryPhases, discoveryTypes } from '$lib/shared/stores/metadata';
 	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import type { Discovery } from '../../types/base';
 	import DiscoveryEditModal from '../DiscoveryModal/DiscoveryEditModal.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
@@ -77,9 +78,14 @@
 	let currentPage = $state(1);
 
 	// Ordering state (server-side)
-	let groupBy = $state<DiscoveryOrderField | undefined>(undefined);
-	let orderBy = $state<DiscoveryOrderField | undefined>(undefined);
-	let orderDirection = $state<OrderDirection>('asc');
+	// The grouping and sort the table opens with. Declared ahead of the query state so the
+	// first request already carries them; DataControls replaces them with a saved choice.
+	const tableDefaults: TableDefaults<DiscoveryOrderField> = {
+		sort: { field: 'started_at', direction: 'desc' }
+	};
+	let groupBy = $state<DiscoveryOrderField | undefined>(tableDefaults.group);
+	let orderBy = $state<DiscoveryOrderField | undefined>(tableDefaults.sort?.field);
+	let orderDirection = $state<OrderDirection>(tableDefaults.sort?.direction ?? 'asc');
 
 	// Search state (server-side: the run history is paginated, so a client-side
 	// search would only ever match the page in hand)
@@ -309,7 +315,7 @@
 		return resultsOf(discovery)?.warnings ?? [];
 	}
 
-	/** Row actions for table mode, matching what the card offers. */
+	/** Row actions. */
 	function discoveryActions(discovery: Discovery): CardAction[] {
 		return [{ label: common_details(), icon: Info, onClick: () => handleEditDiscovery(discovery) }];
 	}
@@ -378,7 +384,7 @@
 				},
 				created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
 				updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } },
-				// The run's outcome, which the card shows as its header tag. Sorted, grouped and
+				// The run's outcome. Sorted, grouped and
 				// filtered by the terminal phase; the cell shows the outcome tag, whose hover carries
 				// the reason the run ended.
 				phase: {
@@ -399,7 +405,6 @@
 					getGroupValue: (item) => resultsOf(item)?.phase ?? null,
 					display: {
 						order: 1,
-						statusTag: true,
 						getItems: (item) => {
 							const tag = outcomeTag(item);
 							return tag
@@ -519,11 +524,8 @@
 			{fields}
 			onBulkDelete={isReadOnly ? undefined : handleBulkDelete}
 			storageKey="scanopy-discovery-historical-table-state"
+			defaults={tableDefaults}
 			getItemId={(item) => item.id}
-			getIcon={() => ({
-				icon: entities.getIconComponent('Discovery'),
-				color: entities.getColorHelper('Discovery').icon
-			})}
 			serverPagination={discoveriesPagination}
 			onPageChange={handlePageChange}
 			onOrderChange={handleOrderChange}

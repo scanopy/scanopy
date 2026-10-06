@@ -16,6 +16,7 @@
 	import CreateDaemonModal from './CreateDaemonModal/CreateDaemonModal.svelte';
 	import { defineFields, type CardAction } from '$lib/shared/components/data/types';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import { tagNames } from '$lib/features/tags/columns';
 	import { siteItems } from '$lib/features/sites/columns';
 	import { entityRef } from '$lib/shared/components/data/types';
@@ -100,9 +101,9 @@
 
 	// Only the hosts the daemons actually run on. This was an unpaginated
 	// org-wide hosts query (~1.9MB on a few hundred hosts) issued to resolve one
-	// name per daemon card — and because TanStack dedupes by key, it was shared
+	// name per daemon row — and because TanStack dedupes by key, it was shared
 	// with every other consumer, so it loaded on pages that never showed a
-	// daemon. Scoped to the ids in hand and passed down to the cards.
+	// daemon. Scoped to the ids in hand and read by the host column.
 	let daemonHostIds = $derived([
 		...new Set(daemonsData.map((d) => d.host_id).filter((id): id is string => !!id))
 	]);
@@ -220,8 +221,7 @@
 				label: common_update(),
 				icon: ArrowBigUp,
 				class: upgradeButtonClass(daemon),
-				onClick: () => handleOpenUpgrade(daemon),
-				forceLabel: true
+				onClick: () => handleOpenUpgrade(daemon)
 			});
 		}
 
@@ -233,8 +233,7 @@
 				icon: RefreshCw,
 				class: 'btn-icon-info',
 				onClick: () => retryConnectionMutation.mutate(daemon.id),
-				disabled: retryConnectionMutation.isPending,
-				forceLabel: true
+				disabled: retryConnectionMutation.isPending
 			});
 		}
 
@@ -298,6 +297,10 @@
 		await downloadCsv('Daemon', {});
 	}
 
+	const tableDefaults: TableDefaults<DaemonOrderField> = {
+		sort: { field: 'name', direction: 'asc' }
+	};
+
 	// Define field configuration for the DataTableControls
 	// Uses defineFields to ensure all DaemonOrderField values are covered
 	let daemonFields = $derived(
@@ -331,9 +334,8 @@
 			},
 			[
 				{
-					// Host, version and subnet interfaces were card-only. Declaring
-					// them here is what makes them exist for both views at once.
-					// Display-only: none is a DaemonOrderField, so the server cannot
+					// Host, version and subnet interfaces are display-only: none is a
+					// DaemonOrderField, so the server cannot
 					// order on them and defineFields rightly refuses them above.
 					// One daemon per host, so the host neither groups nor filters; search finds it.
 					key: 'host_id',
@@ -361,11 +363,8 @@
 					}
 				},
 				{
-					// One mapping for both views. This used to compute its own
-					// active/standby/unreachable strings while the card called
-					// getDaemonStatusTag, so the same daemon read "Active" in the table
-					// and "Healthy" on the card. Both now come from the one helper,
-					// which also carries version lifecycle (deprecated, unsupported).
+					// From getDaemonStatusTag, the same helper the home page uses, which
+					// also carries version lifecycle (deprecated, unsupported).
 					key: 'status',
 					label: common_status(),
 					type: 'string',
@@ -376,7 +375,6 @@
 					getValue: (daemon) => getDaemonStatusTag(daemon).label,
 					display: {
 						order: 1,
-						statusTag: true,
 						getItems: (daemon) => {
 							const tag = getDaemonStatusTag(daemon);
 							return [
@@ -554,14 +552,11 @@
 			items={daemonsData}
 			fields={daemonFields}
 			storageKey="scanopy-daemons-table-state"
+			defaults={tableDefaults}
 			onBulkDelete={isReadOnly ? undefined : handleBulkDelete}
 			entityType={isReadOnly ? undefined : 'Daemon'}
 			getItemTags={getDaemonTags}
 			getItemId={(item) => item.id}
-			getIcon={() => ({
-				icon: entities.getIconComponent('Daemon'),
-				color: entities.getColorHelper('Daemon').icon
-			})}
 			onCsvExport={handleCsvExport}
 			getActions={daemonActions}
 			entityLabel={common_daemons()}

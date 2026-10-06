@@ -5,6 +5,7 @@
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import { defineFields, entityRef } from '$lib/shared/components/data/types';
 	import { siteItems } from '$lib/features/sites/columns';
 	import { entities, entitySources } from '$lib/shared/stores/metadata';
@@ -78,6 +79,10 @@
 	async function handleCsvExport() {
 		await downloadCsv('Vlan', {});
 	}
+
+	const tableDefaults: TableDefaults<VlanOrderField> = {
+		sort: { field: 'vlan_number', direction: 'asc' }
+	};
 
 	// Define field configuration for the DataTableControls
 	// Uses defineFields to ensure all VlanOrderField values are covered
@@ -198,11 +203,8 @@
 			items={vlansData}
 			fields={vlanFields}
 			storageKey="scanopy-vlans-table-state"
+			defaults={tableDefaults}
 			getItemId={(item) => item.id}
-			getIcon={() => ({
-				icon: entities.getIconComponent('Vlan'),
-				color: entities.getColorHelper('Vlan').icon
-			})}
 			onCsvExport={handleCsvExport}
 			entityLabel={common_vlans()}
 		></DataControls>

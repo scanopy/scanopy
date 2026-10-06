@@ -17,8 +17,7 @@
 	/**
 	 * A column header's filter and group control: an icon button that opens a
 	 * popover. Sits beside the sort button rather than inside it, so opening it
-	 * never sorts. The filter body is the card pane's `FieldFilter`, so both
-	 * views offer the same choices for a field. Every column shows the same
+	 * never sorts. The filter body is `FieldFilter`. Every column shows the same
 	 * filter icon; a column that only groups opens to just the grouping button.
 	 */
 	let {

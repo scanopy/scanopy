@@ -8,7 +8,7 @@ import type { Site } from './types';
  * Takes one id or many, because entities reference a site either way
  * (`site_id` on most, `site_ids` on user API keys). Building the chip
  * here keeps the colour and the entity link identical wherever a site
- * appears, and matches what the cards already render.
+ * appears.
  */
 export function siteItems(
 	siteIds: string | string[] | null | undefined,

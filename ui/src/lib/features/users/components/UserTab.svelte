@@ -8,6 +8,7 @@
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import type { FieldConfig } from '$lib/shared/components/data/types';
 	import {
 		useInvitesQuery,
@@ -250,9 +251,10 @@
 
 	/**
 	 * The list holds two shapes, so every field resolves for both. A field that
-	 * only one variant has returns empty for the other rather than existing in
-	 * only one view — that asymmetry is what the card/table split used to hide.
+	 * only one variant has returns empty for the other.
 	 */
+	const tableDefaults: TableDefaults<string> = { sort: { field: 'email', direction: 'asc' } };
+
 	const userFields: FieldConfig<UserOrInvite>[] = [
 		{
 			key: 'email',
@@ -279,7 +281,6 @@
 						? common_you()
 						: common_user(),
 			display: {
-				statusTag: true,
 				getItems: (item) => {
 					if (!isUser(item)) {
 						return [{ id: 'pending', label: invites_pendingInvite(), color: 'Yellow' }];
@@ -462,13 +463,10 @@
 			items={combinedItems}
 			fields={userFields}
 			storageKey="scanopy-users-table-state"
+			defaults={tableDefaults}
 			onBulkDelete={handleBulkDelete}
 			getItemId={(item) => item.id}
 			getActions={userActions}
-			getIcon={() => ({
-				icon: entities.getIconComponent('User'),
-				color: entities.getColorHelper('User').icon
-			})}
 			onCsvExport={handleCsvExport}
 		></DataControls>
 	{/if}

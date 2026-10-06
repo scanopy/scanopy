@@ -5,7 +5,8 @@
 		groupPageSlice,
 		type GroupSlice,
 		type PageSizeOption,
-		type CardAction
+		type CardAction,
+		type TableDefaults
 	} from './types';
 	import { getUniqueValues as uniqueValuesOf } from './controls/fieldValues';
 	import {
@@ -24,7 +25,7 @@
 		type FilterState
 	} from './controls/filtering';
 	import { createFilterActions } from './controls/filterActions';
-	import { guardServerPaginatedConfig } from './controls/devGuards.svelte';
+	import { guardServerPaginatedConfig, guardTableDefaults } from './controls/devGuards.svelte';
 	import { columnControls, renderedFields, dropHiddenColumnState } from './controls/headerControls';
 	import { paginationView, pageSlice } from './controls/pagination';
 	import { createChangeTracker, sameOrder } from './controls/changeTracker';
@@ -38,7 +39,6 @@
 		type TreeEntry
 	} from './controls/grouping';
 	import {
-		visibleItems,
 		isAllSelected,
 		isPartiallySelected,
 		visibleIds,
@@ -50,18 +50,15 @@
 		serializeState,
 		reviveFilterState,
 		toStoredFilterState,
-		DEFAULT_VIEW_MODE,
-		type ViewMode
+		resolveOrdering,
+		STORED_STATE_VERSION,
+		type OrderingChoice
 	} from './controls/dataControlsStorage';
 	import ControlsBar from './controls/ControlsBar.svelte';
-	import FilterPanel from './controls/FilterPanel.svelte';
 	import ColumnControlsMenu from './table/ColumnControlsMenu.svelte';
 	import BulkActionBar from './controls/BulkActionBar.svelte';
 	import PaginationBar from './controls/PaginationBar.svelte';
 	import EntityTable from './table/EntityTable.svelte';
-	import EntityCard from './EntityCard.svelte';
-	import CardGrid from './CardGrid.svelte';
-	import type { IconComponent } from '$lib/shared/utils/types';
 	import ColumnVisibilityMenu from './table/ColumnVisibilityMenu.svelte';
 	import TagCell from './TagCell.svelte';
 	import { tagItems } from '$lib/features/tags/columns';
@@ -137,15 +134,12 @@
 		// Export button click override (optional)
 		// If provided, replaces onCsvExport entirely - use for custom export UI (e.g., modal with options)
 		onExportClick = null,
-		// Row actions, used by both views. The card and the table render the same
-		// list, so an action cannot exist in one and be missing from the other.
+		// Row actions, rendered in the table's trailing column.
 		getActions = null,
 		// Names the table for screen readers, e.g. "Hosts".
 		entityLabel = null,
-		// Card chrome. Per row, because a host's icon comes from its first service
-		// and a service's from its type.
-		getIcon = null,
-		getLink = null
+		// The grouping and sort the tab opens with until the user picks their own.
+		defaults = {}
 	}: {
 		items: T[];
 		fields: FieldConfig<T>[];
@@ -185,12 +179,11 @@
 		onCsvExport?: (() => void | Promise<void>) | null;
 		// Export button click override: if provided, replaces onCsvExport entirely
 		onExportClick?: (() => void | Promise<void>) | null;
-		// Row actions, rendered by both views.
+		// Row actions.
 		getActions?: ((item: T) => CardAction[]) | null;
 		// Accessible name for the table, e.g. "Hosts".
 		entityLabel?: string | null;
-		getIcon?: ((item: T) => { icon: IconComponent | null; color?: string }) | null;
-		getLink?: ((item: T) => string | undefined) | null;
+		defaults?: TableDefaults;
 	} = $props();
 
 	// Tags query for filter display
@@ -207,22 +200,17 @@
 	// Filter state. The shape lives with the filtering logic that reads it, so
 	// there is one definition of what a filter selection is.
 	let filterState = $state<FilterState>({});
-	let showFilters = $state(false);
 	// Staleness lives outside `filterState`: it's a server-side constraint
 	// rather than a set of values matched against loaded rows.
 	let staleOnly = $state(false);
 
-	// Sort state
-	let sortState = $state<SortState>({
-		field: null,
-		direction: 'asc'
-	});
-
-	// Grouping state
-	let selectedGroupField = $state<string | null>(null);
-
-	// View mode state
-	let viewMode = $state<ViewMode>(DEFAULT_VIEW_MODE);
+	// Sort and grouping: only what the user picked is held and stored, and the
+	// tab's defaults fill whatever they didn't.
+	let ordering = $state<OrderingChoice>({});
+	let fieldKeys = $derived(new Set(fields.map((f) => getFieldKey(f))));
+	let resolvedOrdering = $derived(resolveOrdering(ordering, defaults, fieldKeys));
+	let sortState = $derived(resolvedOrdering.sortState);
+	let selectedGroupField = $derived(resolvedOrdering.groupField);
 
 	// Column state — owned here so it persists alongside every other control,
 	// and handed to table-core as controlled state rather than kept in parallel.
@@ -247,12 +235,7 @@
 
 		searchQuery = state.searchQuery;
 		filterState = reviveFilterState(state.filterState);
-		sortState = state.sortState;
-		if (state.selectedGroupField) selectedGroupField = state.selectedGroupField;
-		showFilters = state.showFilters;
-		// Already normalised, so a pre-table `list` lands on the table rather than
-		// on a mode that matches neither branch.
-		viewMode = state.viewMode;
+		ordering = { sort: state.sortState, group: state.selectedGroupField };
 		currentPage = state.currentPage;
 
 		if (state.columnVisibility) columnVisibility = state.columnVisibility;
@@ -279,12 +262,11 @@
 			localStorage.setItem(
 				storageKey,
 				serializeState({
+					version: STORED_STATE_VERSION,
 					searchQuery,
 					filterState: toStoredFilterState(filterState),
-					sortState,
-					selectedGroupField,
-					showFilters,
-					viewMode,
+					sortState: ordering.sort,
+					selectedGroupField: ordering.group,
 					currentPage,
 					pageSize,
 					columnVisibility,
@@ -315,10 +297,9 @@
 			onPageChange(currentPage, restoredPageSize);
 		}
 
-		// Notify parent of restored ordering state
-		if (onOrderChange && (activeGroupField || activeSort.field)) {
-			onOrderChange(activeGroupField, activeSort.field, activeSort.direction);
-		}
+		// Notify parent of the ordering in force, restored or default. Always, so
+		// a saved "no grouping" also replaces the default the parent started with.
+		onOrderChange?.(activeGroupField, activeSort.field, activeSort.direction);
 
 		// Notify parent of restored search state
 		if (onSearchChange && searchQuery.trim()) {
@@ -347,11 +328,7 @@
 					// Track all state that should trigger saves
 					void searchQuery;
 					void filterState;
-					void sortState.field;
-					void sortState.direction;
-					void selectedGroupField;
-					void showFilters;
-					void viewMode;
+					void ordering;
 					void currentPage;
 					void pageSize;
 					void columnVisibility;
@@ -404,17 +381,14 @@
 
 	let renderedColumns = $derived(withTagColumn(visibleColumns(allColumns, columnState), tagColumn));
 	let renderedColumnIds = $derived(new Set(renderedColumns.map((c) => c.id)));
-	/** The fields both views filter, sort and group by: those with a rendered column. */
+	/** The fields the list filters, sorts and groups by: those with a rendered column. */
 	let columnFields = $derived(renderedFields(fields, renderedColumnIds));
 	let staleAvailable = $derived(onStaleFilterChange !== null);
-	let canFilter = $derived(
-		columnFields.some((f) => f.filterable || (staleAvailable && f.staleFilter))
-	);
 
 	// Under server pagination only server-orderable fields are offered: the
 	// client holds one page, so sorting or grouping it here would describe that
-	// page alone while the pager walks the server's order. Either view offers
-	// only fields whose column renders: hiding a column takes its controls too.
+	// page alone while the pager walks the server's order. Only fields whose
+	// column renders are offered: hiding a column takes its controls too.
 	let groupableFields = $derived(groupableFieldsOf(columnFields, useServerPagination));
 	let sortableFields = $derived(sortableFieldsOf(columnFields, useServerPagination));
 
@@ -519,7 +493,7 @@
 		return groupPageSlice(group, serverPagination.offset, items.length);
 	}
 
-	/** The groups as both views render them. */
+	/** The groups as the table renders them. */
 	let groupList = $derived<RenderGroup<T>[]>(
 		[...groupedItems.entries()].map(([name, groupItems]) => {
 			const entries = treeEntries?.get(name) ?? null;
@@ -534,7 +508,7 @@
 	);
 
 	function toggleSort(fieldKey: string) {
-		sortState = nextSortState(sortState, fieldKey);
+		ordering = { ...ordering, sort: nextSortState(sortState, fieldKey) };
 	}
 
 	/**
@@ -575,10 +549,19 @@
 	 * narrows and orders by columns it renders, so hiding one takes its state
 	 * with it. `notify` is false while restoring, before anything reached the
 	 * parent; the order and tag effects pick up their own changes.
+	 *
+	 * Only the user's own sort and group are cleared. A default on a hidden
+	 * column is already inert, since the list orders by rendered columns only,
+	 * and it comes back with the column.
 	 */
 	function dropHiddenColumns(notify: boolean) {
 		const next = dropHiddenColumnState(
-			{ filterState, staleOnly, sortState, groupField: selectedGroupField },
+			{
+				filterState,
+				staleOnly,
+				sortState: ordering.sort ?? { field: null, direction: 'asc' },
+				groupField: ordering.group ?? null
+			},
 			fields,
 			renderedColumnIds
 		);
@@ -586,8 +569,10 @@
 
 		filterState = next.filterState;
 		staleOnly = next.staleOnly;
-		sortState = next.sortState;
-		selectedGroupField = next.groupField;
+		ordering = {
+			sort: ordering.sort && next.sortState,
+			group: ordering.group === undefined ? undefined : next.groupField
+		};
 
 		if (!notify) return;
 		if (next.staleCleared) onStaleFilterChange?.(null);
@@ -609,18 +594,9 @@
 		clearSearch();
 	}
 
-	function clearGrouping() {
-		selectedGroupField = null;
-	}
-
 	/** A header's group button: group by this column, or ungroup if it already is. */
 	function toggleGroup(fieldKey: string) {
-		selectedGroupField = activeGroupField === fieldKey ? null : fieldKey;
-	}
-
-	// Select every rendered row — the same set `allSelected` reports on.
-	function selectAll() {
-		visibleIds(selectableItems, getItemId).forEach((id) => selectedIds.add(id));
+		ordering = { ...ordering, group: activeGroupField === fieldKey ? null : fieldKey };
 	}
 
 	// Deselect all items
@@ -673,6 +649,7 @@
 		serverPaginated: useServerPagination,
 		server: { tags: onTagFilterChange !== null, fields: onFilterChange !== null }
 	}));
+	guardTableDefaults(() => ({ fields, defaults, serverPaginated: useServerPagination }));
 
 	// Every pagination number comes from one resolution of "who is paginating",
 	// so the count and the rows beneath it cannot fall out of step. The server's
@@ -693,17 +670,6 @@
 	let paginatedItems = $derived(
 		pageSlice(processedItems, effectiveCurrentPage, pageSize, useServerPagination)
 	);
-
-	/**
-	 * The rows select-all acts on: exactly what is rendered.
-	 *
-	 * Grouped mode renders every processed item; ungrouped renders the page
-	 * slice. Deriving the action and its label from one set is what keeps the
-	 * button's promise and a bulk operation's effect in agreement — comparing
-	 * counts instead let any N carried-over selections read as "all".
-	 */
-	let selectableItems = $derived(visibleItems(hasActiveGrouping, processedItems, paginatedItems));
-	let allSelected = $derived(isAllSelected(selectableItems, selectedIds, getItemId));
 
 	function setRowSelected(itemId: string, selected: boolean) {
 		if (selected) {
@@ -850,23 +816,8 @@
 	>
 		<ControlsBar
 			bind:searchQuery
-			bind:selectedGroupField
-			bind:sortState
-			bind:viewMode
-			bind:showFilters
-			{canFilter}
-			{groupableFields}
-			{sortableFields}
-			{hasActiveFilters}
 			{hasActiveSearch}
-			{hasActiveGrouping}
-			showSelectAll={Boolean(onBulkDelete) || hasBulkTagging}
-			{allSelected}
-			onToggleSort={toggleSort}
 			onClearSearch={clearSearch}
-			onClearGrouping={clearGrouping}
-			onSelectAll={selectAll}
-			onSelectNone={selectNone}
 			onExport={onExportClick ?? onCsvExport}
 		>
 			{#snippet columnMenu()}
@@ -879,7 +830,7 @@
 					onReset={resetColumns}
 				/>
 			{/snippet}
-			{#snippet tableControls()}
+			{#snippet filterActions()}
 				{#if hasActiveFilters}
 					<button onclick={filters.clearAll} class="btn-secondary h-[42px] whitespace-nowrap">
 						{common_clearAll()}
@@ -887,24 +838,6 @@
 				{/if}
 			{/snippet}
 		</ControlsBar>
-
-		<!-- Filter Panel (inside sticky wrapper). Table view filters from its headers. -->
-		{#if showFilters && viewMode === 'card'}
-			<FilterPanel
-				fields={columnFields}
-				{filterState}
-				{allTags}
-				{staleOnly}
-				{hasActiveFilters}
-				showStaleFilter={staleAvailable}
-				{getUniqueValues}
-				onClearFilters={filters.clearAll}
-				onToggleBoolean={filters.toggleBoolean}
-				onToggleString={filters.toggleString}
-				onToggleTag={filters.toggleTag}
-				onToggleStale={filters.toggleStale}
-			/>
-		{/if}
 	</div>
 
 	<!-- Bulk Action Bar (shown when items are selected) -->
@@ -958,7 +891,7 @@
 		>
 			<button onclick={clearAllNarrowing} class="btn-secondary">{common_clearAll()}</button>
 		</EmptyState>
-	{:else if viewMode === 'table'}
+	{:else}
 		<!--
 			Grouped or not, one table with one header row. Splitting a grouped list
 			into a table per group gave each group its own header and its own column
@@ -969,15 +902,6 @@
 			hasActiveGrouping ? null : paginatedItems,
 			hasActiveGrouping ? null : tableCaptionText
 		)}
-	{:else}
-		<CardGrid
-			items={hasActiveGrouping ? null : paginatedItems}
-			groups={hasActiveGrouping ? groupList : null}
-			collapsed={collapsedSections}
-			onToggleCollapse={toggleSection}
-			{getItemId}
-			card={cardFor}
-		/>
 	{/if}
 </div>
 
@@ -989,20 +913,6 @@
 		entityId={getItemId(item)}
 		entityType={entityType ?? undefined}
 		editable={Boolean(entityType)}
-	/>
-{/snippet}
-
-{#snippet cardFor(item: T)}
-	{@const itemId = getItemId(item)}
-	<EntityCard
-		{item}
-		columns={renderedColumns}
-		actions={getActions ? getActions(item) : []}
-		{getIcon}
-		{getLink}
-		selected={selectedIds.has(itemId)}
-		selectable={showSelection}
-		onSelectionChange={(selected) => setRowSelected(itemId, selected)}
 	/>
 {/snippet}
 
