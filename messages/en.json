@@ -201,6 +201,7 @@
 	"common_cause": "Cause",
 	"common_change": "Change",
 	"common_cidr": "CIDR",
+	"common_clear": "Clear",
 	"common_clearAll": "Clear all",
 	"common_clearFilter": "Clear filter",
 	"common_clearGrouping": "Clear grouping",

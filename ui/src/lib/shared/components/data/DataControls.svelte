@@ -878,6 +878,7 @@
 		groupCount={hasActiveGrouping ? groupedItems.size : null}
 		filterCount={activeFilterCount}
 		onClearFilters={filters.clearAll}
+		onClearGrouping={() => (ordering = { ...ordering, group: null })}
 		{useServerPagination}
 		processedCount={processedItems.length}
 		itemCount={items.length}
