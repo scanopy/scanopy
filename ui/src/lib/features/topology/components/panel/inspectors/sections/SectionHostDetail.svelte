@@ -7,6 +7,7 @@
 	import type { ElementRenderContext } from '$lib/features/topology/resolvers';
 	import { useUpdateHostDescriptionMutation } from '$lib/features/hosts/queries';
 	import { useSvelteFlow } from '@xyflow/svelte';
+	import { focusNodes } from '$lib/features/topology/viewport-fit';
 	import { Crosshair } from 'lucide-svelte';
 	import { inspector_thisEntity, topology_focusNode } from '$lib/paraglide/messages';
 	import { entities, inspectorSections } from '$lib/shared/stores/metadata';
@@ -32,7 +33,7 @@
 	// On a Host element (Workloads) the host is the selection itself, so this section takes the
 	// selection's heading and focus control; Identity leaves Host elements to it.
 	let isSelectedHost = $derived(elementContext?.elementType === 'Host');
-	const { fitView } = useSvelteFlow();
+	const flow = useSvelteFlow();
 
 	const updateHostDescriptionMutation = useUpdateHostDescriptionMutation();
 
@@ -66,7 +67,7 @@
 			{#if isSelectedHost}
 				<button
 					class="btn-icon p-0.5"
-					onclick={() => fitView({ nodes: [{ id: node.id }], padding: 0.5, duration: 300 })}
+					onclick={() => focusNodes(flow, [node.id])}
 					title={topology_focusNode()}
 				>
 					<Crosshair class="h-3.5 w-3.5" />

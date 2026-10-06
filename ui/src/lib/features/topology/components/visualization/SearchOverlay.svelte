@@ -27,6 +27,7 @@
 	} from '../../queries';
 	import { selectNode, type SelectionStores } from '../../selection';
 	import { formatEntityLabel, viewEntityTypes } from '../../labels';
+	import { focusNodes } from '../../viewport-fit';
 	import {
 		topology_searchPlaceholder,
 		topology_searchNoMatches,
@@ -36,7 +37,12 @@
 		common_previous
 	} from '$lib/paraglide/messages';
 
-	const { fitView, getNode } = useSvelteFlow();
+	const { fitBounds, getNode, getInternalNode } = useSvelteFlow();
+
+	/** Move the camera onto a node. See `boundsOfAdoptedNodes` for why this is not `fitView`. */
+	function focusNode(id: string) {
+		focusNodes({ fitBounds, getInternalNode }, [id]);
+	}
 
 	// The share and embed viewers scope selection to their own stores; see BaseTopologyViewer.
 	/* eslint-disable svelte/require-store-reactive-access */
@@ -115,7 +121,7 @@
 			((index % navigableIds.length) + navigableIds.length) % navigableIds.length;
 		searchActiveIndex.set(wrappedIndex);
 		const nodeId = navigableIds[wrappedIndex];
-		fitView({ nodes: [{ id: nodeId }], padding: 0.5, duration: 300 });
+		focusNode(nodeId);
 	}
 
 	function nextMatch() {
@@ -151,7 +157,7 @@
 	function openMatch() {
 		const node = getNode(navigableIds[activeIndex] ?? '');
 		if (!node) return;
-		fitView({ nodes: [{ id: node.id }], padding: 0.5, duration: 300 });
+		focusNode(node.id);
 		resetQuery();
 		selectNode(node, selectionStores);
 	}

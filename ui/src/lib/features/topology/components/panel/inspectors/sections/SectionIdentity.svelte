@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Node } from '@xyflow/svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
+	import { focusNodes } from '$lib/features/topology/viewport-fit';
 	import { Crosshair } from 'lucide-svelte';
 	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
 	import { IPAddressDisplay } from '$lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
@@ -33,10 +34,10 @@
 		containerContext?: ContainerRenderContext;
 	} = $props();
 
-	const { fitView } = useSvelteFlow();
+	const flow = useSvelteFlow();
 
 	function handleFocus() {
-		fitView({ nodes: [{ id: node.id }], padding: 0.5, duration: 300 });
+		focusNodes(flow, [node.id]);
 	}
 
 	// Derive the section label from entity/container type metadata

@@ -4,6 +4,7 @@
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { Eye, EyeOff, X, Crosshair, ArrowDown } from 'lucide-svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
+	import { focusNodes } from '$lib/features/topology/viewport-fit';
 	import {
 		selectedNodes,
 		previewEdges,
@@ -116,7 +117,8 @@
 
 	let isEditMode = $derived(editingDependency !== null);
 
-	const { fitView, getInternalNode } = useSvelteFlow();
+	const flow = useSvelteFlow();
+	const { getInternalNode } = flow;
 	const PREVIEW_STORAGE_KEY = 'scanopy_topology_group_preview';
 
 	const bulkAddTagMutation = useBulkAddTagMutation();
@@ -847,7 +849,10 @@
 				<button
 					class="btn-icon p-1"
 					onclick={() =>
-						fitView({ nodes: nodes.map((n) => ({ id: n.id })), padding: 0.5, duration: 300 })}
+						focusNodes(
+							flow,
+							nodes.map((n) => n.id)
+						)}
 					title={topology_focusSelection()}
 				>
 					<Crosshair class="h-4 w-4" />

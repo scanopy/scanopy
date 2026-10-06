@@ -29,6 +29,7 @@
 		ABSOLUTE_MIN_ZOOM,
 		DEFAULT_MIN_ZOOM,
 		boundsOfNodes,
+		focusNodes,
 		zoomFloorFor
 	} from '../../viewport-fit';
 	import '@xyflow/svelte/dist/style.css';
@@ -214,7 +215,8 @@
 	let viewportMoved = false;
 	let viewportMoveTimer: ReturnType<typeof setTimeout> | null = null;
 
-	const { fitView, setViewport, getNodes, getInternalNode, getViewport } = useSvelteFlow();
+	const { fitView, fitBounds, setViewport, getNodes, getInternalNode, getViewport } =
+		useSvelteFlow();
 	const viewerViewport = useViewport();
 	let containerElement: HTMLDivElement;
 
@@ -388,9 +390,7 @@
 	}
 
 	export function fitViewToNodes(nodeIds: string[]) {
-		requestAnimationFrame(() =>
-			fitView({ nodes: nodeIds.map((id) => ({ id })), padding: 0.5, duration: 300 })
-		);
+		requestAnimationFrame(() => focusNodes({ fitBounds, getInternalNode }, nodeIds));
 	}
 
 	onMount(() => {
