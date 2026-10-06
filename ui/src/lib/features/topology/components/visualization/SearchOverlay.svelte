@@ -21,9 +21,6 @@
 	import type { RenderableTopology } from '../../types/base';
 	import {
 		activeView,
-		optionsPanelExpanded,
-		OPTIONS_PANEL_FITVIEW_PADDING_PX,
-		OPTIONS_PANEL_LEFT_OFFSET_PX,
 		selectedNode as globalSelectedNode,
 		selectedEdge as globalSelectedEdge,
 		selectedNodes as globalSelectedNodes
@@ -159,6 +156,35 @@
 		selectNode(node, selectionStores);
 	}
 
+	/** Gap between the search box and the options panel or canvas controls beside it. */
+	const OBSTACLE_GAP_PX = 16;
+
+	let anchorEl: HTMLDivElement | undefined = $state();
+	/** How far the options panel (left) and the canvas controls (right) reach into the view area. */
+	let insets = $state({ left: 0, right: 0 });
+
+	// Measured rather than derived from constants: the panel's width depends on whether it is
+	// expanded, the controls' width on which buttons the viewer shows, and the share viewer has no
+	// panel at all.
+	$effect(() => {
+		const area = anchorEl?.offsetParent;
+		if (!isOpen || !area) return;
+		const viewArea = document.getElementById('topology-view-area') ?? area;
+		const panel = viewArea.querySelector<HTMLElement>('.topology-options');
+		const controls = area.querySelector<HTMLElement>('.svelte-flow__panel.top-right');
+		const measure = () => {
+			const bounds = area.getBoundingClientRect();
+			insets = {
+				left: panel ? Math.max(0, panel.getBoundingClientRect().right - bounds.left) : 0,
+				right: controls ? Math.max(0, bounds.right - controls.getBoundingClientRect().left) : 0
+			};
+		};
+		measure();
+		const observer = new ResizeObserver(measure);
+		for (const el of [area, panel, controls]) if (el) observer.observe(el);
+		return () => observer.disconnect();
+	});
+
 	function resetQuery() {
 		form.reset();
 		query = '';
@@ -171,13 +197,12 @@
 </script>
 
 {#if isOpen}
-	<!-- Spans the canvas to the right of the options panel, as `TopologyOverlay` does, and centres
-	     the search box in it, so the box never slides under the expanded panel. -->
+	<!-- Spans the canvas between the options panel and the canvas controls, the same gap from each,
+	     and centres the search box in it, so it never slides under either. -->
 	<div
-		class="pointer-events-none absolute right-4 top-4 z-20 flex justify-center"
-		style="left: {$optionsPanelExpanded
-			? OPTIONS_PANEL_FITVIEW_PADDING_PX
-			: OPTIONS_PANEL_LEFT_OFFSET_PX}px"
+		bind:this={anchorEl}
+		class="pointer-events-none absolute top-4 z-20 flex justify-center"
+		style="left: {insets.left + OBSTACLE_GAP_PX}px; right: {insets.right + OBSTACLE_GAP_PX}px"
 	>
 		<!-- Same layout as the Cmd+K palette: the shared search box, then a hint footer. -->
 		<div
