@@ -41,7 +41,8 @@
 		billing_trialPillToday,
 		globalSearch_openWithShortcut,
 		globalSearch_searchAll,
-		globalSearch_placeholder
+		globalSearch_placeholder,
+		daemons_legacyKeyHelp
 	} from '$lib/paraglide/messages';
 	import {
 		getTrialDaysLeft,
@@ -321,6 +322,7 @@
 						{
 							id: entityUIConfig.DaemonApiKey!.tabId,
 							label: TAB_LABELS[entityUIConfig.DaemonApiKey!.tabId],
+							subtitle: daemons_legacyKeyHelp(),
 							icon: entities.getIconComponent('DaemonApiKey'),
 							component: ApiKeyTab,
 							requiredPermissions: ['Member', 'Admin', 'Owner'] as UserOrgPermissions[]

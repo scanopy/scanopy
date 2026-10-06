@@ -39,8 +39,7 @@
 		common_updated,
 		common_unknownSite,
 		daemonApiKeys_title,
-		daemonApiKeys_provisionOnlyHint,
-		daemons_legacyKeyHelp
+		daemonApiKeys_provisionOnlyHint
 	} from '$lib/paraglide/messages';
 
 	let { isReadOnly = false }: TabProps = $props();
@@ -250,7 +249,6 @@
 	{:else}
 		<DataControls
 			title={daemonApiKeys_title()}
-			subtitle={daemons_legacyKeyHelp()}
 			items={apiKeysData}
 			fields={apiKeyFields}
 			onBulkDelete={isReadOnly ? undefined : handleBulkDelete}
