@@ -6,6 +6,7 @@ erDiagram
 "public.hosts" }o--o| "public.services" : "FOREIGN KEY (virtualization_service_id) REFERENCES services(id) ON DELETE SET NULL"
 "public.hosts" }o--o| "public.discovery" : "FOREIGN KEY (first_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
 "public.hosts" }o--o| "public.discovery" : "FOREIGN KEY (last_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
+"public.hosts" }o--o| "public.interfaces" : "FOREIGN KEY (virtualization_interface_id) REFERENCES interfaces(id) ON DELETE SET NULL"
 "public.hosts" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
 "public.subnets" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
 "public.subnets" }o--o| "public.services" : "FOREIGN KEY (virtualization_service_id) REFERENCES services(id) ON DELETE SET NULL"
@@ -186,6 +187,7 @@ erDiagram
   jsonb hostname_source
   jsonb os
   jsonb os_source
+  uuid virtualization_interface_id FK
 }
 "public.subnets" {
   uuid id
@@ -318,6 +320,7 @@ erDiagram
   timestamp_with_time_zone license_key_issued_at
   text license_key_type
   boolean bills_by_invoice
+  text license_server_version
 }
 "public.topologies" {
   uuid id
