@@ -391,7 +391,7 @@
 						<th
 							scope="colgroup"
 							colspan={spannedColumns}
-							class="bg-black/[0.03] px-[var(--cell-px)] py-[var(--cell-py)] text-left dark:bg-white/[0.03]"
+							class="bg-black/[0.07] px-[var(--cell-px)] py-[var(--cell-py)] text-left dark:bg-white/[0.08]"
 						>
 							<button
 								type="button"
@@ -461,7 +461,7 @@
 {#snippet sectionHeader(section: TreeSection<T>)}
 	{@const isCollapsed = collapsed.has(section.key)}
 	<tr
-		class="border-t bg-black/[0.03] dark:bg-white/[0.03]"
+		class="border-t bg-black/[0.07] dark:bg-white/[0.08]"
 		style="border-color: var(--color-border)"
 	>
 		{#if selectable}
