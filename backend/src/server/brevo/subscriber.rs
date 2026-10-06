@@ -18,7 +18,10 @@ use crate::{
             entities::EntityDiscriminants,
             events::{
                 registry::SubscriberRegistration,
-                traits::{EntityEventFilter, Event, EventFilter, NonRetryable, Subscriber},
+                traits::{
+                    EntityEventFilter, Event, EventFilter, EventScope, NonRetryable,
+                    ScopeOrganization, Subscriber,
+                },
                 types::{
                     AuthOperation, AuthOperationDiscriminants, BillingOperation, EntityOperation,
                     EntityOperationDiscriminants, OnboardingOperation,
@@ -161,13 +164,12 @@ impl Subscriber<EntityOperation> for BrevoService {
         // Aggregate org IDs whose entity counts changed; sync once per org.
         let mut org_ids_for_metrics: HashSet<Uuid> = HashSet::new();
         for event in &events {
-            if let Some(org_id) = event.scope.organization_id() {
-                org_ids_for_metrics.insert(org_id);
-            } else if let Some(site_id) = event.scope.site_id()
-                && let Some(org_id) = self.get_org_id_from_site(&site_id).await
-            {
-                org_ids_for_metrics.insert(org_id);
-            }
+            let org_id = match event.scope.organization() {
+                Some(ScopeOrganization::Org(org_id)) => Some(org_id),
+                Some(ScopeOrganization::Site(site_id)) => self.get_org_id_from_site(&site_id).await,
+                None => None,
+            };
+            org_ids_for_metrics.extend(org_id);
         }
 
         let mut failures = Vec::new();

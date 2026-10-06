@@ -16,13 +16,19 @@
 //! duplication is exactly what the warning events replaced. Nothing else subscribes today; metrics,
 //! analytics or a subscriber that appends to a scan record can, without this code changing.
 
+use std::borrow::Cow;
+
 use serde::{Deserialize, Serialize};
+use strum::IntoDiscriminant;
 use strum_macros::{AsRefStr, EnumDiscriminants};
 use uuid::Uuid;
 
 use crate::server::shared::attribution::AttributeSource;
 use crate::server::shared::events::EventFlags;
-use crate::server::shared::events::traits::{EventFilter, Operation};
+use crate::server::shared::events::registry::to_snake_case;
+use crate::server::shared::events::traits::{
+    EventFilter, EventScope, Operation, ScopeOrganization,
+};
 use crate::server::shared::events::types::EventLogLevel;
 
 /// What a reading did to a range that had been inferred.
@@ -71,4 +77,37 @@ impl Operation for SubnetCorrection {
         // who sees a range move should be able to find out why without turning up the log level.
         EventLogLevel::Warn
     }
+
+    /// `subnet_promoted`, `subnet_widened` or `subnet_narrowed`: the three mean different things
+    /// to whoever reads the log.
+    fn event_name(&self, _scope: &SubnetCorrectionScope) -> Cow<'static, str> {
+        format!("subnet_{}", to_snake_case(self.discriminant().as_ref())).into()
+    }
+
+    fn metadata<'a>(&'a self, scope: &'a SubnetCorrectionScope) -> impl Serialize + Send + 'a {
+        SubnetCorrectionMetadata {
+            site_id: scope.site_id,
+            subnet_id: scope.subnet_id,
+            from_source: &scope.from_source,
+            to_source: &scope.to_source,
+            correction: self,
+        }
+    }
+}
+
+impl EventScope for SubnetCorrectionScope {
+    fn organization(&self) -> Option<ScopeOrganization> {
+        Some(ScopeOrganization::Site(self.site_id))
+    }
+}
+
+/// What leaves the server about a correction. The ranges stay behind: they map a customer's
+/// network.
+#[derive(Serialize)]
+struct SubnetCorrectionMetadata<'a> {
+    site_id: Uuid,
+    subnet_id: Uuid,
+    from_source: &'a AttributeSource,
+    to_source: &'a AttributeSource,
+    correction: &'a SubnetCorrection,
 }

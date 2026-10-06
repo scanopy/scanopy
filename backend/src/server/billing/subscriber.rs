@@ -13,7 +13,7 @@ use crate::server::{
         entities::EntityDiscriminants,
         events::{
             registry::SubscriberRegistration,
-            traits::{EntityEventFilter, Event, Subscriber},
+            traits::{EntityEventFilter, Event, EventScope, ScopeOrganization, Subscriber},
             types::{EntityOperation, EntityOperationDiscriminants},
         },
         services::traits::CrudService,
@@ -44,15 +44,15 @@ impl Subscriber<EntityOperation> for BillingService {
         for event in events {
             // Resolve the org_id from the event scope (org-scoped entity) or
             // from the site (site-scoped entity).
-            let org_id = if let Some(org_id) = event.scope.organization_id() {
-                org_id
-            } else if let Some(site_id) = event.scope.site_id() {
-                match self.site_service.get_by_id(&site_id).await? {
-                    Some(site) => site.base.organization_id,
-                    None => continue,
+            let org_id = match event.scope.organization() {
+                Some(ScopeOrganization::Org(org_id)) => org_id,
+                Some(ScopeOrganization::Site(site_id)) => {
+                    match self.site_service.get_by_id(&site_id).await? {
+                        Some(site) => site.base.organization_id,
+                        None => continue,
+                    }
                 }
-            } else {
-                continue;
+                None => continue,
             };
 
             let Some(org) = self.organization_service.get_by_id(&org_id).await? else {

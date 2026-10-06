@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use chrono::{DateTime, Utc};
 use email_address::EmailAddress;
 use serde::{Deserialize, Serialize};
@@ -5,6 +7,9 @@ use strum::{AsRefStr, EnumIter};
 use strum_macros::EnumDiscriminants;
 use uuid::Uuid;
 
+use crate::server::shared::events::traits::{
+    EventFilter, EventScope, Operation, ScopeOrganization,
+};
 use crate::server::shared::events::types::EventLogLevel;
 
 /// Compact summary of a host for digest rendering. Keeps the payload small
@@ -207,12 +212,52 @@ pub struct DiscoveryDigestFlags {
     pub suppress_logs: bool,
 }
 
-impl crate::server::shared::events::traits::Operation for DiscoveryDigestOperation {
+impl EventScope for DiscoveryDigestScope {
+    fn organization(&self) -> Option<ScopeOrganization> {
+        Some(ScopeOrganization::Org(self.organization_id))
+    }
+}
+
+/// What leaves the server about a digest: how much changed, never which hosts, subnets or
+/// recipients.
+#[derive(Serialize)]
+struct DiscoveryDigestMetadata {
+    session_id: Uuid,
+    site_id: Uuid,
+    subnets_scanned: usize,
+    hosts_added: usize,
+    hosts_stale: usize,
+    hosts_changed: usize,
+    vlans_added: usize,
+    vlans_stale: usize,
+    recipients: usize,
+}
+
+impl Operation for DiscoveryDigestOperation {
     type Scope = DiscoveryDigestScope;
     type Flags = DiscoveryDigestFlags;
-    type Filter = crate::server::shared::events::traits::EventFilter<DiscoveryDigestOperation>;
+    type Filter = EventFilter<DiscoveryDigestOperation>;
 
     fn log_level(&self) -> EventLogLevel {
         EventLogLevel::Info
+    }
+
+    fn event_name(&self, _scope: &DiscoveryDigestScope) -> Cow<'static, str> {
+        format!("discovery_digest_{self}").into()
+    }
+
+    fn metadata<'a>(&'a self, _scope: &'a DiscoveryDigestScope) -> impl Serialize + Send + 'a {
+        let Self::Computed { payload } = self;
+        DiscoveryDigestMetadata {
+            session_id: payload.session_id,
+            site_id: payload.site_id,
+            subnets_scanned: payload.subnets_scanned.len(),
+            hosts_added: payload.hosts_added.len(),
+            hosts_stale: payload.hosts_stale.len(),
+            hosts_changed: payload.hosts_changed.len(),
+            vlans_added: payload.vlans_added.len(),
+            vlans_stale: payload.vlans_stale.len(),
+            recipients: payload.recipients.len(),
+        }
     }
 }

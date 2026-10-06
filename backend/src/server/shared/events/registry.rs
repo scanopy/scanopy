@@ -210,7 +210,7 @@ fn snake_case_last_segment(t: &str) -> String {
     to_snake_case(last)
 }
 
-fn to_snake_case(s: &str) -> String {
+pub(crate) fn to_snake_case(s: &str) -> String {
     let mut out = String::with_capacity(s.len() + 4);
     for (i, ch) in s.chars().enumerate() {
         if ch.is_ascii_uppercase() {
