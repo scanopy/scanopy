@@ -192,13 +192,13 @@ export interface DisplayConfig<T> {
  * How the rows of a group nest, for a groupable field whose groups are trees: subnets inside the
  * range that contains them, guests under the host that runs them.
  *
- * When the list is grouped by that field, each group renders parent before children, with every
- * row's primary cell indented by its depth.
+ * When the list is grouped by that field, every row with children heads a collapsible section
+ * holding the row and then its children, nested as deep as the tree goes. See
+ * `buildTreeSections`.
  *
- * - On a list holding every row, the table derives both: it orders each group parent-first from
- *   `parentKey` (siblings by the field's `compare`, else in the current sort) and counts depth
- *   from the group's own roots. A row whose parent is filtered out becomes a root.
- * - On a server-paginated list a parent can sit on another page, so neither can be derived here.
+ * - On a list holding every row, the nesting comes from `parentKey` (siblings by the field's
+ *   `compare`, else in the current sort). A row whose parent is filtered out starts at the top.
+ * - On a server-paginated list a parent can sit on another page, so it can't be derived here.
  *   The server must return each group's rows parent-first, and `depth` is required.
  */
 export interface TreeConfig<T> {
@@ -206,6 +206,8 @@ export interface TreeConfig<T> {
 	key: (item: T) => string;
 	/** The identity of the row this one nests under, or `null` for a top-level row. */
 	parentKey: (item: T) => string | null;
+	/** The header of the section a row with children heads. */
+	label: (item: T) => string;
 	/** The row's depth as the server computed it. Required on a server-paginated list. */
 	depth?: (item: T) => number;
 }
@@ -263,7 +265,7 @@ interface BaseFieldConfig<T> {
 	 */
 	compare?: (a: T, b: T) => number;
 	/**
-	 * Grouping by this field draws each group as an indented tree. See {@link TreeConfig}.
+	 * Grouping by this field draws each group as nested tree sections. See {@link TreeConfig}.
 	 */
 	tree?: TreeConfig<T>;
 	/**

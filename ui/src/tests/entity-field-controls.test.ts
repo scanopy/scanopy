@@ -312,7 +312,8 @@ const DECISIONS: Record<string, TabDecisions> = {
 	'subnets/components/SubnetTab.svelte': {
 		columns: {
 			name: IDENTITY,
-			cidr: IDENTITY,
+			// Groups each range with the ranges nested inside it, not one group per CIDR.
+			cidr: { sort: true, group: true, filter: SEARCH },
 			subnet_type: YES,
 			site_id: YES,
 			created_at: DATE,
@@ -328,11 +329,6 @@ const DECISIONS: Record<string, TabDecisions> = {
 				sort: true,
 				group: 'A percentage; every value would be its own group',
 				filter: 'A percentage; sort finds the fullest'
-			},
-			range: {
-				sort: 'Sort by CIDR orders ranges the same way',
-				group: true,
-				filter: 'Group by range shows each one'
 			}
 		}
 	},

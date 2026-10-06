@@ -26,12 +26,12 @@
 	} from './columns';
 	import { displaySettings } from '$lib/shared/stores/display-settings.svelte';
 	import FieldValue from '../FieldValue.svelte';
-	import TreeIndent from '../TreeIndent.svelte';
+	import TreeGuides from '../TreeGuides.svelte';
 	import { tooltip } from '$lib/shared/actions/tooltip';
-	import { SvelteSet } from 'svelte/reactivity';
 	import { getFieldValue } from '../controls/fieldValues';
+	import type { RenderGroup, TreeEntry, TreeGuide, TreeSection } from '../controls/grouping';
 	import type { SortState } from '../controls/sorting';
-	import type { CardAction, GroupSlice } from '../types';
+	import type { CardAction } from '../types';
 	import {
 		common_actions,
 		common_selectRow,
@@ -45,7 +45,8 @@
 	let {
 		items,
 		groups = null,
-		depthOf = null,
+		collapsed,
+		onToggleCollapse,
 		columns,
 		columnSizing,
 		onColumnSizingChange,
@@ -69,12 +70,10 @@
 		 * a table each — so every group shares the one header and the one set of
 		 * column widths, which is what makes groups comparable.
 		 */
-		groups: { name: string; items: T[]; range: GroupSlice | null }[] | null;
-		/**
-		 * Each row's depth when the groups are trees, which indents its primary cell. Null
-		 * otherwise. The groups' rows already arrive parent-first.
-		 */
-		depthOf?: ((item: T) => number) | null;
+		groups: RenderGroup<T>[] | null;
+		/** Keys of the collapsed groups and tree sections. Owned by the caller. */
+		collapsed: ReadonlySet<string>;
+		onToggleCollapse: (key: string) => void;
 		columns: EntityColumn<T>[];
 		/** Widths the user resized columns to, in px. Owned and persisted by the caller. */
 		columnSizing: Record<string, number>;
@@ -146,13 +145,6 @@
 
 	/** Every row on the page, grouped or not — table-core sees one flat list. */
 	let allRows = $derived(items ?? (groups ?? []).flatMap((group) => group.items));
-
-	const collapsed = new SvelteSet<string>();
-
-	function toggleGroup(name: string) {
-		if (collapsed.has(name)) collapsed.delete(name);
-		else collapsed.add(name);
-	}
 
 	const view = createSvelteTable<T>(() => ({
 		get data() {
@@ -252,21 +244,25 @@
 	}
 
 	/**
-	 * Rows keyed by group, so the body can emit a group header row followed by
-	 * that group's rows while table-core still owns one row model for all of them.
+	 * table-core's rows by id, so the body can emit group and section headers between rows while
+	 * table-core still owns one row model for all of them.
 	 */
-	let rowsByGroup = $derived.by(() => {
-		const rowById = new Map(view.rows.map((row) => [row.id, row]));
-		return (groups ?? []).map((group) => ({
-			...group,
-			rows: group.items
-				.map((item) => rowById.get(getItemId(item)))
-				.filter((row) => row !== undefined)
-		}));
-	});
+	let rowById = $derived(new Map(view.rows.map((row) => [row.id, row])));
 
 	/** Header checkbox, plus every data column, plus the actions column. */
 	let spannedColumns = $derived(columns.length + (selectable ? 1 : 0) + (getActions ? 1 : 0));
+
+	/**
+	 * Where a tree section header's guides start, so its lines meet the guides drawn in the rows'
+	 * primary cell, which sits after the checkbox column.
+	 */
+	let sectionGuideOffset = $derived(
+		selectable ? 'calc(2.5rem + var(--cell-px))' : 'var(--cell-px)'
+	);
+
+	function entryKey(entry: TreeEntry<T>): string {
+		return entry.type === 'row' ? getItemId(entry.item) : entry.key;
+	}
 
 	let byId = $derived(new Map(columns.map((c) => [c.id, c])));
 	let primaryColumn = $derived(columns.find((c) => c.primary) ?? columns[0]);
@@ -386,8 +382,8 @@
 
 		<tbody>
 			{#if groups}
-				{#each rowsByGroup as group (group.name)}
-					{@const isCollapsed = collapsed.has(group.name)}
+				{#each groups as group (group.key)}
+					{@const isCollapsed = collapsed.has(group.key)}
 					<tr class="border-t" style="border-color: var(--color-border)">
 						<!--
 							scope="colgroup": this heading names the rows beneath it rather
@@ -400,7 +396,7 @@
 						>
 							<button
 								type="button"
-								onclick={() => toggleGroup(group.name)}
+								onclick={() => onToggleCollapse(group.key)}
 								aria-expanded={!isCollapsed}
 								class="text-primary flex items-center gap-2 text-sm font-semibold"
 							>
@@ -426,21 +422,72 @@
 					</tr>
 
 					{#if !isCollapsed}
-						{#each group.rows as row (row.id)}
-							{@render bodyRow(row)}
-						{/each}
+						{#if group.entries}
+							{@render treeEntries(group.entries)}
+						{:else}
+							{#each group.items as item (getItemId(item))}
+								{@const row = rowById.get(getItemId(item))}
+								{#if row}
+									{@render bodyRow(row, [])}
+								{/if}
+							{/each}
+						{/if}
 					{/if}
 				{/each}
 			{:else}
 				{#each view.rows as row (row.id)}
-					{@render bodyRow(row)}
+					{@render bodyRow(row, [])}
 				{/each}
 			{/if}
 		</tbody>
 	</table>
 </div>
 
-{#snippet bodyRow(row: Row<T>)}
+{#snippet treeEntries(entries: TreeEntry<T>[])}
+	{#each entries as entry (entryKey(entry))}
+		{#if entry.type === 'row'}
+			{@const row = rowById.get(getItemId(entry.item))}
+			{#if row}
+				{@render bodyRow(row, entry.guides)}
+			{/if}
+		{:else}
+			{@render sectionHeader(entry)}
+			{#if !collapsed.has(entry.key)}
+				{@render treeEntries(entry.entries)}
+			{/if}
+		{/if}
+	{/each}
+{/snippet}
+
+{#snippet sectionHeader(section: TreeSection<T>)}
+	{@const isCollapsed = collapsed.has(section.key)}
+	<tr class="border-t" style="border-color: var(--color-border)">
+		<th
+			scope="colgroup"
+			colspan={spannedColumns}
+			class="relative bg-black/[0.03] py-[var(--cell-py)] pr-[var(--cell-px)] text-left dark:bg-white/[0.03]"
+			style="padding-left: calc({sectionGuideOffset} + {section.guides.length}rem)"
+		>
+			<TreeGuides guides={section.guides} offset={sectionGuideOffset} />
+			<button
+				type="button"
+				onclick={() => onToggleCollapse(section.key)}
+				aria-expanded={!isCollapsed}
+				class="text-primary flex items-center gap-2 text-sm font-medium"
+			>
+				{#if isCollapsed}
+					<ChevronRight class="h-4 w-4" aria-hidden="true" />
+				{:else}
+					<ChevronDown class="h-4 w-4" aria-hidden="true" />
+				{/if}
+				<span>{section.label}</span>
+				<span class="text-tertiary text-xs font-normal">({section.count})</span>
+			</button>
+		</th>
+	</tr>
+{/snippet}
+
+{#snippet bodyRow(row: Row<T>, guides: TreeGuide[])}
 	{@const item = row.original}
 	{@const itemId = getItemId(item)}
 	{@const isSelected = selectedIds.has(itemId)}
@@ -469,12 +516,12 @@
 					<!-- Announces the row's identity before each cell when navigating across. -->
 					<th
 						scope="row"
-						class="text-primary px-[var(--cell-px)] py-[var(--cell-py)] text-left align-middle font-medium"
+						class="text-primary relative px-[var(--cell-px)] py-[var(--cell-py)] text-left align-middle font-medium"
 					>
-						{#if depthOf}
-							<div class="flex items-center gap-1.5" style={contentMaxWidth(column)}>
-								<TreeIndent depth={depthOf(item)} />
-								<div class="min-w-0">
+						{#if guides.length > 0}
+							<TreeGuides {guides} offset="var(--cell-px)" />
+							<div style="padding-left: {guides.length}rem">
+								<div style={contentMaxWidth(column)}>
 									<FieldValue {item} {column} />
 								</div>
 							</div>
