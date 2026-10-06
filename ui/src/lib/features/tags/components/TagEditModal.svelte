@@ -218,44 +218,38 @@
 					<!-- Tag group. Held in $state: choosing Application clears the icon, a
 					     programmatic write TanStack Form would not re-render. -->
 					<form.Field name="tag_group">
-						{#snippet children()}
-							<div class="space-y-2">
-								<label for="tag_group" class="text-secondary block text-sm font-medium">
-									{tags_tagGroup()}
-								</label>
-								<TagGroupSelect
-									id="tag_group"
-									value={selectedGroup}
-									groups={groupNames(allTags)}
-									placeholder={tags_tagGroupPlaceholder()}
-									onChange={handleGroupChange}
-								/>
-								<p class="text-tertiary text-xs">
-									{selectedGroup?.type === 'Application'
-										? tags_applicationHelp()
-										: tags_tagGroupHelp()}
-								</p>
-							</div>
-						{/snippet}
+						<div class="space-y-2">
+							<label for="tag_group" class="text-secondary block text-sm font-medium">
+								{tags_tagGroup()}
+							</label>
+							<TagGroupSelect
+								id="tag_group"
+								value={selectedGroup}
+								groups={groupNames(allTags)}
+								placeholder={tags_tagGroupPlaceholder()}
+								onChange={handleGroupChange}
+							/>
+							<p class="text-tertiary text-xs">
+								{selectedGroup?.type === 'Application'
+									? tags_applicationHelp()
+									: tags_tagGroupHelp()}
+							</p>
+						</div>
 					</form.Field>
 
 					<!-- Icon and colour side by side: the icon grid is tall, and stacked it pushed the
 					     colour swatches below the fold. -->
 					<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
 						<form.Field name="icon">
-							{#snippet children()}
-								<IconPicker
-									id="icon"
-									label={common_icon()}
-									value={selectedGroup?.type === 'Application' ? null : selectedIcon}
-									icons={tagIconNames}
-									disabled={selectedGroup?.type === 'Application'}
-									helpText={selectedGroup?.type === 'Application'
-										? tags_iconApplicationFixed()
-										: ''}
-									onChange={handleIconChange}
-								/>
-							{/snippet}
+							<IconPicker
+								id="icon"
+								label={common_icon()}
+								value={selectedGroup?.type === 'Application' ? null : selectedIcon}
+								icons={tagIconNames}
+								disabled={selectedGroup?.type === 'Application'}
+								helpText={selectedGroup?.type === 'Application' ? tags_iconApplicationFixed() : ''}
+								onChange={handleIconChange}
+							/>
 						</form.Field>
 
 						<form.Field name="color">

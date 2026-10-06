@@ -12,7 +12,7 @@
 	let { depth, offset = '0px' }: { depth: number; offset?: string } = $props();
 </script>
 
-{#each { length: depth } as _, index (index)}
+{#each { length: depth }, index (index)}
 	<span
 		class="pointer-events-none absolute inset-y-0 w-px"
 		style="left: calc({offset} + {index}rem + 0.5rem); background-color: var(--color-border)"
