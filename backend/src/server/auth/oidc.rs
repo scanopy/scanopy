@@ -80,6 +80,7 @@ impl OidcService {
                 config.issuer_url.clone(),
                 config.client_id.clone(),
                 config.client_secret.clone(),
+                config.trusted_audiences.clone(),
                 redirect_url,
                 http_client.clone(),
             );
