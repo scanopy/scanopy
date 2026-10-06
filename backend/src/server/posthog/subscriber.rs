@@ -243,6 +243,16 @@ impl Subscriber<AuthOperation> for PosthogService {
 }
 inventory::submit!(SubscriberRegistration::new::<PosthogService, AuthOperation>());
 
+/// Capture properties of an analytics event: the full payload under `metadata`, as billing and
+/// onboarding events carry theirs, so `email_sent` reads `metadata.utm_campaign`.
+fn analytics_properties(event: &Event<AnalyticsOperation>) -> serde_json::Value {
+    let mut props = auth_properties(&event.authentication);
+    props["organization_id"] = json!(event.scope.organization_id.to_string());
+    props["metadata"] = serde_json::to_value(&event.operation).unwrap_or(serde_json::Value::Null);
+    inject_org_group(&mut props);
+    props
+}
+
 /// Capture properties of a billing event: the full payload under `metadata`,
 /// grouped on the organization the event is scoped to.
 fn billing_properties(event: &Event<BillingOperation>) -> serde_json::Value {
@@ -428,7 +438,7 @@ impl Subscriber<AnalyticsOperation> for PosthogService {
     fn filter(&self) -> EventFilter<AnalyticsOperation> {
         // Forward every analytics event: the person comes from
         // `AnalyticsOperation::distinct_id`, an exhaustive match, and the
-        // payload is flattened generically, so a new variant needs no change
+        // payload is serialized generically into `metadata`, so a new variant needs no change
         // here. Same reasoning as the billing filter.
         EventFilter::all()
     }
@@ -448,17 +458,7 @@ impl Subscriber<AnalyticsOperation> for PosthogService {
             let distinct_id = event.operation.distinct_id(org_id);
             let event_name = event.operation.to_string();
 
-            let mut props = auth_properties(&event.authentication);
-            props["organization_id"] = json!(org_id.to_string());
-            if let Ok(serde_json::Value::Object(payload)) = serde_json::to_value(&event.operation) {
-                for (k, v) in payload {
-                    if k != "type" {
-                        props[k] = v;
-                    }
-                }
-            }
-
-            inject_org_group(&mut props);
+            let props = analytics_properties(&event);
             failures.extend(self.capture(&event_name, &distinct_id, props).await.err());
         }
         NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
@@ -701,6 +701,32 @@ mod tests {
             json!({"organization": organization_id.to_string()})
         );
         assert_eq!(props["metadata"]["server_version"], json!("0.17.20"));
+    }
+
+    /// An `email_sent` event names its email the way billing events name their details: under
+    /// `metadata`, where the campaign identifies which email went out.
+    #[test]
+    fn an_email_send_carries_its_campaign_in_metadata() {
+        use crate::server::shared::events::traits::OrgScope;
+
+        let organization_id = Uuid::new_v4();
+        let event = Event::new(
+            OrgScope { organization_id },
+            AnalyticsOperation::EmailSent {
+                utm_campaign: "trial_ending".to_string(),
+                utm_medium: "billing".to_string(),
+                user_id: Uuid::new_v4(),
+            },
+            AuthenticatedEntity::System,
+        );
+
+        let props = analytics_properties(&event);
+        assert_eq!(props["metadata"]["utm_campaign"], json!("trial_ending"));
+        assert_eq!(props["metadata"]["utm_medium"], json!("billing"));
+        assert_eq!(
+            props["$groups"],
+            json!({"organization": organization_id.to_string()})
+        );
     }
 
     /// A send and the click it produces have to land on the same PostHog
