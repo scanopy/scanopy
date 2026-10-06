@@ -1,7 +1,7 @@
 <!--
-	The search box shared by the Cmd+K palette and the topology's Cmd+F search, so both read the
-	same: a search icon, the input, optional trailing controls, and a line under it naming what the
-	search covers.
+	The search box shared by the Cmd+K palette and the topology's Cmd+F search. It is the same
+	input as every other text field (`input-field`), with the search icon inside it the way the
+	table search shows it, plus optional trailing controls beside it.
 
 	Bound to a TanStack field. The caller keeps its own `$state` copy of the query for reactive
 	reads, since `field.state.value` is not tracked by `$derived`; `onInput` is where it updates it.
@@ -16,7 +16,6 @@
 		value,
 		id,
 		placeholder,
-		scope,
 		inputEl = $bindable(),
 		onInput,
 		onkeydown,
@@ -26,9 +25,8 @@
 		/** The caller's reactive copy of the query, which the input renders. */
 		value: string;
 		id: string;
+		/** Names what the search covers, so it needs no separate help text. */
 		placeholder: string;
-		/** What this search covers, shown under the input. */
-		scope: string;
 		inputEl?: HTMLInputElement;
 		onInput?: (value: string) => void;
 		onkeydown?: (event: KeyboardEvent) => void;
@@ -36,15 +34,17 @@
 	} = $props();
 
 	function handleInput(event: Event) {
-		const value = (event.currentTarget as HTMLInputElement).value;
-		field.handleChange(value);
-		onInput?.(value);
+		const next = (event.currentTarget as HTMLInputElement).value;
+		field.handleChange(next);
+		onInput?.(next);
 	}
 </script>
 
-<div class="space-y-1 px-4 py-3">
-	<div class="flex items-center gap-2">
-		<Search class="text-tertiary h-4 w-4 flex-shrink-0" />
+<div class="flex items-center gap-2 px-4 py-3">
+	<div class="relative min-w-0 flex-1">
+		<Search
+			class="text-tertiary pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+		/>
 		<input
 			bind:this={inputEl}
 			{id}
@@ -55,12 +55,11 @@
 			autocomplete="off"
 			{placeholder}
 			aria-label={placeholder}
-			aria-describedby="{id}-scope"
-			class="text-primary h-7 w-full border-none bg-transparent text-sm focus:outline-none"
+			title={placeholder}
+			class="input-field w-full pl-10 text-sm"
 		/>
-		{#if trailing}
-			{@render trailing()}
-		{/if}
 	</div>
-	<p id="{id}-scope" class="text-tertiary pl-6 text-xs">{scope}</p>
+	{#if trailing}
+		{@render trailing()}
+	{/if}
 </div>

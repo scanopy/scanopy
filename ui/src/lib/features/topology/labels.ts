@@ -178,6 +178,30 @@ export function tallyDirectElements(
 	return counts;
 }
 
+/**
+ * The entity types a view draws, from its fixture's `element_config`: its container entity, then
+ * each element entity and the entities inlined in it, without repeats. L3 Logical gives Subnet,
+ * IPAddress, Port and Service.
+ */
+export function viewEntityTypes(viewId: string | null): Entity[] {
+	if (!viewId) return [];
+	const config = (
+		views.getMetadata(viewId) as
+			| {
+					element_config?: {
+						container_entity?: Entity | null;
+						element_entities?: Array<{ entity_type: Entity; inline_entities: Entity[] }>;
+					};
+			  }
+			| undefined
+	)?.element_config;
+	const types = [
+		config?.container_entity,
+		...(config?.element_entities ?? []).flatMap((e) => [e.entity_type, ...e.inline_entities])
+	].filter((type): type is Entity => !!type);
+	return [...new Set(types)];
+}
+
 /** Read a view's collective noun (e.g. Workloads → "workload"). Singular. */
 export function getViewCollectiveNoun(viewId: string | null): string | undefined {
 	if (!viewId) return undefined;

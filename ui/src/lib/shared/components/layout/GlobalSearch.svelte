@@ -11,6 +11,7 @@
 	import { createForm } from '@tanstack/svelte-form';
 	import GenericModal from './GenericModal.svelte';
 	import SearchInput from '$lib/shared/components/forms/input/SearchInput.svelte';
+	import SearchHint from '$lib/shared/components/forms/input/SearchHint.svelte';
 	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
 	import { entityUIConfig } from '$lib/shared/entity-ui-config';
 	import { navigateToEntity } from '$lib/shared/stores/modal-registry';
@@ -36,10 +37,8 @@
 		common_services,
 		common_subnets,
 		common_vlans,
-		globalSearch_navigateHint,
 		globalSearch_noResults,
-		globalSearch_placeholder,
-		globalSearch_scope
+		globalSearch_placeholder
 	} from '$lib/paraglide/messages';
 
 	/** Same pause RichSelect gives a server-side search, so a burst of keystrokes costs one request. */
@@ -154,65 +153,64 @@
 	title={common_search()}
 	onClose={close}
 	onOpen={() => inputEl?.focus()}
-	size="md"
+	size="lg"
 >
-	<div class="border-b" style="border-color: var(--color-border)">
-		<form.Field name="query">
-			{#snippet children(field)}
-				<SearchInput
-					{field}
-					value={query}
-					id="global-search"
-					bind:inputEl
-					placeholder={globalSearch_placeholder()}
-					scope={globalSearch_scope()}
-					onInput={handleInput}
-					onkeydown={handleInputKeydown}
-				/>
-			{/snippet}
-		</form.Field>
-	</div>
+	<form.Field name="query">
+		{#snippet children(field)}
+			<SearchInput
+				{field}
+				value={query}
+				id="global-search"
+				bind:inputEl
+				placeholder={globalSearch_placeholder()}
+				onInput={handleInput}
+				onkeydown={handleInputKeydown}
+			/>
+		{/snippet}
+	</form.Field>
 
-	<div class="max-h-[60vh] overflow-y-auto p-2" role="listbox">
-		{#if isLoading && rows.length === 0}
-			<p class="text-tertiary px-2 py-3 text-sm">{common_loading()}</p>
-		{:else if hasSearch && rows.length === 0}
-			<p class="text-tertiary px-2 py-3 text-sm">{globalSearch_noResults({ query: search })}</p>
-		{/if}
-
-		{#each groups as group (group.type)}
-			{#if group.items.length > 0}
-				<div class="mb-2">
-					<h3 class="text-tertiary px-2 py-1 text-xs font-semibold uppercase tracking-wide">
-						{groupLabels[group.type]?.()}
-					</h3>
-					{#each rows.filter((row) => row.type === group.type) as row (row.item.id)}
-						{@const index = rowIndex(row)}
-						<button
-							id="global-search-row-{index}"
-							type="button"
-							role="option"
-							aria-selected={index === highlighted}
-							class="w-full rounded-lg px-2 py-1.5 text-left transition-colors {index ===
-							highlighted
-								? 'bg-gray-100 dark:bg-gray-800'
-								: 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}"
-							onmouseenter={() => (highlighted = index)}
-							onclick={() => openRow(row)}
-						>
-							<EntityDisplayWrapper
-								item={row.item}
-								context={{}}
-								displayComponent={entityUIConfig[row.type]!.displayComponent!}
-							/>
-						</button>
-					{/each}
-				</div>
+	{#if hasSearch}
+		<div class="max-h-[60vh] overflow-y-auto px-2 pb-2" role="listbox">
+			{#if isLoading && rows.length === 0}
+				<p class="text-tertiary px-2 py-3 text-sm">{common_loading()}</p>
+			{:else if hasSearch && rows.length === 0}
+				<p class="text-tertiary px-2 py-3 text-sm">{globalSearch_noResults({ query: search })}</p>
 			{/if}
-		{/each}
-	</div>
+
+			{#each groups as group (group.type)}
+				{#if group.items.length > 0}
+					<div class="mb-2">
+						<h3 class="text-tertiary px-2 py-1 text-xs font-semibold uppercase tracking-wide">
+							{groupLabels[group.type]?.()}
+						</h3>
+						{#each rows.filter((row) => row.type === group.type) as row (row.item.id)}
+							{@const index = rowIndex(row)}
+							<button
+								id="global-search-row-{index}"
+								type="button"
+								role="option"
+								aria-selected={index === highlighted}
+								class="w-full rounded-lg px-2 py-1.5 text-left transition-colors {index ===
+								highlighted
+									? 'bg-gray-100 dark:bg-gray-800'
+									: 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}"
+								onmouseenter={() => (highlighted = index)}
+								onclick={() => openRow(row)}
+							>
+								<EntityDisplayWrapper
+									item={row.item}
+									context={{}}
+									displayComponent={entityUIConfig[row.type]!.displayComponent!}
+								/>
+							</button>
+						{/each}
+					</div>
+				{/if}
+			{/each}
+		</div>
+	{/if}
 
 	{#snippet footer()}
-		<p class="text-tertiary px-4 py-2 text-xs">{globalSearch_navigateHint()}</p>
+		<SearchHint />
 	{/snippet}
 </GenericModal>

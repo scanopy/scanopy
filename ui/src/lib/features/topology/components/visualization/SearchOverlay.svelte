@@ -2,9 +2,11 @@
 	import { X, ChevronUp, ChevronDown } from 'lucide-svelte';
 	import { createForm } from '@tanstack/svelte-form';
 	import SearchInput from '$lib/shared/components/forms/input/SearchInput.svelte';
+	import SearchHint from '$lib/shared/components/forms/input/SearchHint.svelte';
 	import { views } from '$lib/shared/stores/metadata';
-	import { get } from 'svelte/store';
-	import { useSvelteFlow } from '@xyflow/svelte';
+	import { getContext } from 'svelte';
+	import { get, type Writable } from 'svelte/store';
+	import { useSvelteFlow, type Edge, type Node } from '@xyflow/svelte';
 	import {
 		searchMatchNodeIds,
 		searchActiveIndex,
@@ -17,19 +19,33 @@
 	import { collapsedContainers } from '../../collapse';
 	import { useTopology, selectedTopologyId } from '../../context';
 	import type { RenderableTopology } from '../../types/base';
-	import { activeView } from '../../queries';
+	import {
+		activeView,
+		selectedNode as globalSelectedNode,
+		selectedEdge as globalSelectedEdge,
+		selectedNodes as globalSelectedNodes
+	} from '../../queries';
+	import { selectNode, type SelectionStores } from '../../selection';
+	import { formatEntityLabel, viewEntityTypes } from '../../labels';
 	import {
 		topology_searchPlaceholder,
 		topology_searchNoMatches,
 		topology_searchMatchCount,
-		topology_searchNavigateHint,
-		topology_searchScope,
 		common_close,
 		common_next,
 		common_previous
 	} from '$lib/paraglide/messages';
 
-	const { fitView } = useSvelteFlow();
+	const { fitView, getNode } = useSvelteFlow();
+
+	// The share and embed viewers scope selection to their own stores; see BaseTopologyViewer.
+	/* eslint-disable svelte/require-store-reactive-access */
+	const selectionStores: SelectionStores = {
+		selectedNode: getContext<Writable<Node | null>>('selectedNode') ?? globalSelectedNode,
+		selectedEdge: getContext<Writable<Edge | null>>('selectedEdge') ?? globalSelectedEdge,
+		selectedNodes: getContext<Writable<Node[]>>('selectedNodes') ?? globalSelectedNodes
+	};
+	/* eslint-enable svelte/require-store-reactive-access */
 
 	const topo = useTopology();
 	const topoStore = topo.fromContext ? topo.store : null;
@@ -116,13 +132,28 @@
 			event.stopPropagation();
 			resetQuery();
 			clearSearch();
-		} else if (event.key === 'Enter' || event.key === 'ArrowDown') {
+		} else if (event.key === 'Enter') {
+			event.preventDefault();
+			openMatch();
+		} else if (event.key === 'ArrowDown') {
 			event.preventDefault();
 			nextMatch();
 		} else if (event.key === 'ArrowUp') {
 			event.preventDefault();
 			prevMatch();
 		}
+	}
+
+	/**
+	 * Enter opens the current match, as it opens the highlighted row in the Cmd+K palette: the node is
+	 * selected, which shows it in the inspector and closes the search.
+	 */
+	function openMatch() {
+		const node = getNode(navigableIds[activeIndex] ?? '');
+		if (!node) return;
+		fitView({ nodes: [{ id: node.id }], padding: 0.5, duration: 300 });
+		resetQuery();
+		selectNode(node, selectionStores);
 	}
 
 	function resetQuery() {
@@ -137,7 +168,7 @@
 </script>
 
 {#if isOpen}
-	<div class="absolute left-1/2 top-4 z-20 w-[32rem] max-w-[calc(100%-2rem)] -translate-x-1/2">
+	<div class="absolute left-1/2 top-4 z-20 w-[42rem] max-w-[calc(100%-2rem)] -translate-x-1/2">
 		<!-- Same layout as the Cmd+K palette: the shared search box, then a hint footer. -->
 		<div class="card card-static overflow-hidden p-0 shadow-lg">
 			<form.Field name="query">
@@ -147,8 +178,10 @@
 						value={query}
 						id="topology-search"
 						bind:inputEl
-						placeholder={topology_searchPlaceholder()}
-						scope={topology_searchScope({ view: views.getName(currentView) ?? currentView })}
+						placeholder={topology_searchPlaceholder({
+							entities: formatEntityLabel(viewEntityTypes(currentView)),
+							view: views.getName(currentView) ?? currentView
+						})}
 						onInput={(value) => (query = value)}
 						onkeydown={handleKeydown}
 					>
@@ -192,9 +225,7 @@
 					</SearchInput>
 				{/snippet}
 			</form.Field>
-			<p class="text-tertiary border-t px-4 py-2 text-xs" style="border-color: var(--color-border)">
-				{topology_searchNavigateHint()}
-			</p>
+			<SearchHint />
 		</div>
 	</div>
 {/if}
