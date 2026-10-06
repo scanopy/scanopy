@@ -28,8 +28,7 @@
 	import { selectNode, type SelectionStores } from '../../selection';
 	import { formatEntityLabel, viewEntityTypes } from '../../labels';
 	import { focusNodes } from '../../viewport-fit';
-	import { browser } from '$app/environment';
-	import { shortcutLabel } from '$lib/features/search/results';
+	import { shortcutLabel } from '$lib/shared/utils/shortcuts';
 	import {
 		topology_searchPlaceholder,
 		topology_searchNoMatches,
@@ -41,7 +40,7 @@
 
 	const { fitBounds, getNode, getInternalNode } = useSvelteFlow();
 
-	const findShortcut = shortcutLabel(browser ? navigator.platform : '', 'F');
+	const findShortcut = shortcutLabel('F');
 
 	/** Move the camera onto a node. See `boundsOfAdoptedNodes` for why this is not `fitView`. */
 	function focusNode(id: string) {

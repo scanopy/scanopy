@@ -22,13 +22,9 @@
 	// Props for callbacks from parent
 	let {
 		topology,
-		onToggleLock,
-		onRebuild,
 		isActive = false
 	}: {
 		topology: RenderableTopology | null | undefined;
-		onToggleLock?: () => void;
-		onRebuild?: () => void;
 		isActive?: boolean;
 	} = $props();
 
@@ -151,9 +147,7 @@
 		getShortcutsHelpOpen: () => shortcutsHelpOpen,
 		setShortcutsHelpOpen: (open) => (shortcutsHelpOpen = open),
 		selectionStores: { selectedNode, selectedEdge, selectedNodes },
-		isEnabled: () => isActive,
-		onToggleLock: () => onToggleLock?.(),
-		onRebuild: () => onRebuild?.()
+		isEnabled: () => isActive
 	});
 </script>
 

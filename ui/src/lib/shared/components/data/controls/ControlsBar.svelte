@@ -1,11 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { createForm } from '@tanstack/svelte-form';
-	import { browser } from '$app/environment';
 	import { Download } from 'lucide-svelte';
 	import PageTitle from '$lib/shared/components/layout/PageTitle.svelte';
 	import SearchInput from '$lib/shared/components/forms/input/SearchInput.svelte';
-	import { isFindShortcut, shortcutLabel } from '$lib/features/search/results';
+	import { isFindShortcut } from '$lib/features/search/results';
+	import { shortcutLabel } from '$lib/shared/utils/shortcuts';
 	import { lowercasePreservingAcronyms } from '$lib/shared/utils/formatting';
 	import {
 		common_export,
@@ -42,7 +42,7 @@
 
 	let isExporting = $state(false);
 	let inputEl: HTMLInputElement | undefined = $state();
-	const findShortcut = shortcutLabel(browser ? navigator.platform : '', 'F');
+	const findShortcut = shortcutLabel('F');
 
 	const form = createForm(() => ({ defaultValues: { query: searchQuery } }));
 

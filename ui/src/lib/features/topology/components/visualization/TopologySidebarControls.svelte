@@ -25,6 +25,7 @@
 		common_shortcuts
 	} from '$lib/paraglide/messages';
 	import TopologySidebarButton from './TopologySidebarButton.svelte';
+	import { shortcutLabel } from '$lib/shared/utils/shortcuts';
 
 	let {
 		editMode = false,
@@ -57,6 +58,7 @@
 	} = $props();
 
 	const { zoomIn, zoomOut } = useSvelteFlow();
+	const findShortcut = shortcutLabel('F');
 </script>
 
 <Panel position="top-right" class="!m-[10px] !flex !flex-col !items-end !gap-2 !p-0">
@@ -130,7 +132,7 @@
 			onclick={onOpenSearch}
 			title={topology_shortcutSearch()}
 			label={common_search()}
-			shortcut="/"
+			shortcut={findShortcut}
 			collapsed={sidebarCollapsed}
 		>
 			{#snippet icon()}

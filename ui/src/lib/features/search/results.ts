@@ -86,8 +86,3 @@ export function isFindShortcut(
 		event.key.toLowerCase() === 'f'
 	);
 }
-
-/** A Cmd/Ctrl shortcut as a key chip shows it: `⌘F` on macOS, `Ctrl F` elsewhere. */
-export function shortcutLabel(platform: string, key: string): string {
-	return /mac|iphone|ipad/i.test(platform) ? `⌘${key}` : `Ctrl ${key}`;
-}

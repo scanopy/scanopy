@@ -3,15 +3,13 @@ import type { Node } from '@xyflow/svelte';
 import { searchOpen, clearSearch } from './interactions';
 import { clearSelection, type SelectionStores } from './selection';
 import type BaseTopologyViewer from './components/visualization/BaseTopologyViewer.svelte';
+import { isFindShortcut } from '$lib/features/search/results';
 
 export interface KeyboardShortcutHandlers {
 	getBaseViewer: () => BaseTopologyViewer | null;
 	getShortcutsHelpOpen: () => boolean;
 	setShortcutsHelpOpen: (open: boolean) => void;
 	selectionStores: SelectionStores;
-	/** Edit-only handlers — omit for readonly contexts */
-	onToggleLock?: () => void;
-	onRebuild?: () => void;
 	/** Guard — return false to skip all shortcuts (e.g. tab not active) */
 	isEnabled?: () => boolean;
 }
@@ -48,8 +46,7 @@ export function createTopologyKeydownHandler(handlers: KeyboardShortcutHandlers)
 		// Skip shortcuts when typing in inputs (except Escape handled above)
 		if (isInputElement(event.target)) return;
 
-		// Cmd/Ctrl+F: open search
-		if ((event.metaKey || event.ctrlKey) && event.key === 'f') {
+		if (isFindShortcut(event)) {
 			event.preventDefault();
 			searchOpen.set(true);
 			return;
@@ -61,10 +58,6 @@ export function createTopologyKeydownHandler(handlers: KeyboardShortcutHandlers)
 		const viewer = handlers.getBaseViewer();
 
 		switch (event.key) {
-			case '/':
-				event.preventDefault();
-				searchOpen.set(true);
-				break;
 			case 'f':
 			case 'F':
 				viewer?.triggerFitView();
@@ -80,14 +73,6 @@ export function createTopologyKeydownHandler(handlers: KeyboardShortcutHandlers)
 				}
 				break;
 			}
-			case 'l':
-			case 'L':
-				handlers.onToggleLock?.();
-				break;
-			case 'r':
-			case 'R':
-				handlers.onRebuild?.();
-				break;
 			case '?':
 				handlers.setShortcutsHelpOpen(!handlers.getShortcutsHelpOpen());
 				break;

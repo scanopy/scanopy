@@ -10,7 +10,7 @@
 	import DependencyTutorialCanvas from './DependencyTutorialCanvas.svelte';
 	import { selectedNodes } from '../queries';
 	import { dependencyTypes } from '$lib/shared/stores/metadata';
-	import { browser } from '$app/environment';
+	import { keyLabel } from '$lib/shared/utils/shortcuts';
 	import {
 		TUTORIAL_SERVICES,
 		TUTORIAL_TOPOLOGY,
@@ -35,7 +35,7 @@
 		dependencyTypeToggled?: boolean;
 	} = $props();
 
-	const modifier = browser && navigator.platform.includes('Mac') ? '⌘' : 'Ctrl';
+	const modifier = keyLabel('Mod');
 
 	// Provide tutorial topology via context so ElementNode resolves services
 	const topologyStore = writable(TUTORIAL_TOPOLOGY);

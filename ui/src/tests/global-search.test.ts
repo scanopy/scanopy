@@ -3,9 +3,9 @@ import {
 	flattenGroups,
 	moveHighlight,
 	isFindShortcut,
-	isGlobalSearchShortcut,
-	shortcutLabel
+	isGlobalSearchShortcut
 } from '$lib/features/search/results';
+import { keyLabel, shortcutLabel } from '$lib/shared/utils/shortcuts';
 
 const key = (
 	k: string,
@@ -90,8 +90,14 @@ describe('isFindShortcut', () => {
 
 describe('shortcutLabel', () => {
 	it('uses the Command glyph only on Apple platforms', () => {
-		expect(shortcutLabel('MacIntel', 'F')).toBe('⌘F');
-		expect(shortcutLabel('Win32', 'F')).toBe('Ctrl F');
-		expect(shortcutLabel('Linux x86_64', 'F')).toBe('Ctrl F');
+		expect(shortcutLabel('F', 'MacIntel')).toBe('⌘F');
+		expect(shortcutLabel('F', 'Win32')).toBe('Ctrl F');
+		expect(shortcutLabel('F', 'Linux x86_64')).toBe('Ctrl F');
+	});
+
+	it('spells modifiers per platform and passes other keys through', () => {
+		expect(keyLabel('Shift', 'iPhone')).toBe('⇧');
+		expect(keyLabel('Shift', 'Win32')).toBe('Shift');
+		expect(keyLabel('[', 'MacIntel')).toBe('[');
 	});
 });

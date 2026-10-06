@@ -43,11 +43,12 @@
 
 	/* Padding to center content:
 	   With shortcut: 58px − 2px borders = 56px; icon(16)+gap(6)+kbd(20)=42px → (56−42)/2 = 7px
-	   Icon only: centered via justify-center, uniform padding */
+	   Icon only: centered via justify-center, uniform padding
+	   A wider chip (`Ctrl F` off Apple platforms) grows the button past 58px rather than clipping. */
 	let hPad = $derived(shortcut ? 7 : 0);
 </script>
 
-<div class="relative" style="width: {hasShortcut ? '58px' : '32px'};">
+<div class="relative" style="min-width: {hasShortcut ? '58px' : '32px'};">
 	<button
 		class="flex w-full items-center justify-center overflow-hidden text-xs font-medium {roundingClass}
 			{disabled
