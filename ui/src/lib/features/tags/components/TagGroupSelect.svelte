@@ -4,12 +4,12 @@
 		type CreatableOption
 	} from '$lib/shared/components/forms/selection/CreatableOptionList.svelte';
 	import { concepts } from '$lib/shared/stores/metadata';
-	import { exclusiveSetLabel, type ExclusiveSet } from '../sets';
+	import { tagGroupLabel, type TagGroup } from '../groups';
 	import { common_application, common_none, tags_createTagQuoted } from '$lib/paraglide/messages';
 
 	/**
-	 * Choose the exclusive set a tag belongs to: the built-in Application set, a set another tag
-	 * already names, a new set typed here, or none. A tag sits in at most one set, so this is a
+	 * Choose the tag group a tag belongs to: the built-in Application group, a group another tag
+	 * already names, a new group typed here, or none. A tag sits in at most one group, so this is a
 	 * single value rather than a list.
 	 */
 	let {
@@ -20,10 +20,10 @@
 		placeholder,
 		disabled = false
 	}: {
-		value: ExclusiveSet | null;
-		/** Names of the sets already in use. */
+		value: TagGroup | null;
+		/** Names of the groups already in use. */
 		groups: string[];
-		onChange: (set: ExclusiveSet | null) => void;
+		onChange: (group: TagGroup | null) => void;
 		id: string;
 		placeholder: string;
 		disabled?: boolean;
@@ -53,7 +53,7 @@
 		return result;
 	});
 
-	// Offer to create what was typed unless it already names a set.
+	// Offer to create what was typed unless it already names a group.
 	let canCreate = $derived(
 		needle.length > 0 &&
 			!groups.some((name) => name.toLowerCase() === needle) &&
@@ -63,14 +63,14 @@
 	function select(optionId: string) {
 		if (optionId === NONE) onChange(null);
 		else if (optionId === APPLICATION) onChange({ type: 'Application' });
-		else onChange({ type: 'Group', name: optionId.slice(GROUP_PREFIX.length) });
+		else onChange({ type: 'Named', name: optionId.slice(GROUP_PREFIX.length) });
 		close();
 	}
 
 	function create() {
 		const name = query.trim();
 		if (!name) return;
-		onChange({ type: 'Group', name });
+		onChange({ type: 'Named', name });
 		close();
 	}
 
@@ -97,7 +97,7 @@
 		class="input-field w-full pr-8"
 		{disabled}
 		placeholder={open ? '' : placeholder}
-		value={open ? query : (exclusiveSetLabel(value) ?? '')}
+		value={open ? query : (tagGroupLabel(value) ?? '')}
 		onfocus={() => (open = true)}
 		onblur={() => setTimeout(close, 150)}
 		oninput={(e) => (query = e.currentTarget.value)}

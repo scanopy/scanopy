@@ -258,11 +258,12 @@ const DECISIONS: Record<string, TabDecisions> = {
 		columns: {
 			name: IDENTITY,
 			color: YES,
-			// One set per tag: Application or a named set.
-			exclusive_set: YES,
+			// One group per tag: Application or a named group.
+			tag_group: YES,
 			created_at: DATE,
 			updated_at: DATE,
-			description: TEXT
+			description: TEXT,
+			icon: { sort: 'An icon name has no useful order', group: true, filter: true }
 		}
 	},
 	'sites/components/SitesTab.svelte': {

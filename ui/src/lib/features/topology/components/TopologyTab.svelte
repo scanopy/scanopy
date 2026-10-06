@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { isApplicationTag } from '$lib/features/tags/sets';
+	import { isApplicationTag } from '$lib/features/tags/groups';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import { hasDaemon } from '$lib/shared/onboarding/checklist';

@@ -1,5 +1,5 @@
 import type { LabelledCardFieldItem } from '$lib/shared/components/data/types';
-import { tagIcon } from './sets';
+import { tagIcon } from './groups';
 import type { Tag } from './types/base';
 
 /**

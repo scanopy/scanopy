@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { isApplicationTag } from '$lib/features/tags/sets';
+	import { isApplicationTag } from '$lib/features/tags/groups';
 	import type { Node } from '@xyflow/svelte';
 	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';

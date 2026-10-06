@@ -1,123 +1,117 @@
 //! Tags
 
 use super::*;
+use crate::server::shared::storage::seed_data::create_status_tags;
 use crate::server::shared::types::Icon;
-use crate::server::tags::r#impl::base::{ExclusiveSet, TagIcon};
+use crate::server::tags::r#impl::base::{TagGroup, TagIcon};
 
-/// The set a demo tag belongs to.
-enum Set {
+/// The tag group a demo tag belongs to.
+enum Group {
     None,
     Application,
-    Group(&'static str),
+    Named(&'static str),
 }
 
 pub(super) fn generate_tags(organization_id: Uuid, now: DateTime<Utc>) -> Vec<Tag> {
-    // (name, description, color, set, icon). Application tags draw the application icon, so
+    // (name, description, color, group, icon). Application tags draw the application icon, so
     // they carry none of their own.
-    let tag_definitions: [(&str, &str, Color, Set, Option<Icon>); 14] = [
+    let tag_definitions: [(&str, &str, Color, Group, Option<Icon>); 13] = [
         (
             "Production",
             "Systems running in production",
             Color::Red,
-            Set::Group("Environment"),
+            Group::Named("Environment"),
             Some(Icon::Rocket),
         ),
         (
             "Development",
             "Development and test systems",
             Color::Blue,
-            Set::Group("Environment"),
+            Group::Named("Environment"),
             Some(Icon::FlaskConical),
         ),
         (
             "Critical",
             "Business-critical services",
             Color::Orange,
-            Set::None,
+            Group::None,
             Some(Icon::TriangleAlert),
         ),
         (
             "Backup Target",
             "Backup destinations",
             Color::Green,
-            Set::None,
+            Group::None,
             Some(Icon::Archive),
         ),
         (
             "Monitoring",
             "Monitoring infrastructure",
             Color::Purple,
-            Set::Application,
+            Group::Application,
             None,
         ),
         (
             "Database",
             "Database servers",
             Color::Cyan,
-            Set::Application,
+            Group::Application,
             None,
         ),
         (
             "Web Tier",
             "Web and application servers",
             Color::Teal,
-            Set::Application,
+            Group::Application,
             None,
         ),
         (
             "IoT Device",
             "Smart devices",
             Color::Yellow,
-            Set::None,
+            Group::None,
             Some(Icon::Cpu),
         ),
         (
             "Needs Attention",
             "Requires admin review",
             Color::Rose,
-            Set::None,
+            Group::None,
             Some(Icon::Bell),
         ),
         (
             "Managed Client",
             "Client-owned assets",
             Color::Indigo,
-            Set::None,
+            Group::None,
             Some(Icon::Briefcase),
         ),
         (
             "DevOps Pipeline",
             "CI/CD and deployment tools",
             Color::Pink,
-            Set::Application,
+            Group::Application,
             None,
         ),
         (
             "Storage",
             "Storage and backup systems",
             Color::Lime,
-            Set::Application,
+            Group::Application,
             None,
         ),
         (
             "Messaging",
             "Message brokers and email",
             Color::Amber,
-            Set::Application,
+            Group::Application,
             None,
-        ),
-        (
-            "Decommissioned",
-            "Retired from service; kept for the record",
-            Color::Gray,
-            Set::Group("Lifecycle"),
-            Some(Icon::ArchiveX),
         ),
     ];
 
-    tag_definitions
+    let demo_tags = tag_definitions
         .iter()
-        .map(|(name, description, color, set, icon)| Tag {
+        .map(|(name, description, color, group, icon)| Tag {
             id: Uuid::new_v4(),
             created_at: now,
             updated_at: now,
@@ -129,15 +123,26 @@ pub(super) fn generate_tags(organization_id: Uuid, now: DateTime<Utc>) -> Vec<Ta
                 description: Some(description.to_string()),
                 color: *color,
                 organization_id,
-                exclusive_set: match set {
-                    Set::None => None,
-                    Set::Application => Some(ExclusiveSet::Application),
-                    Set::Group(name) => Some(ExclusiveSet::Group {
+                tag_group: match group {
+                    Group::None => None,
+                    Group::Application => Some(TagGroup::Application),
+                    Group::Named(name) => Some(TagGroup::Named {
                         name: name.to_string(),
                     }),
                 },
                 icon: icon.map(TagIcon),
             },
-        })
-        .collect()
+        });
+
+    // The Status tags every organization starts with, so the demo shows what a new org has.
+    let status_tags = create_status_tags(organization_id)
+        .into_iter()
+        .map(|tag| Tag {
+            created_at: now,
+            updated_at: now,
+            valid_from: now,
+            ..tag
+        });
+
+    demo_tags.chain(status_tags).collect()
 }
