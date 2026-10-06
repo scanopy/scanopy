@@ -83,6 +83,7 @@
 		common_tags,
 		common_deleteSelected,
 		common_noCommonTags,
+		common_commonTags,
 		common_item,
 		common_items,
 		common_no,
@@ -935,15 +936,18 @@
 	{/if}
 
 	<!-- Bulk tagging floats at the bottom of the viewport, over the table, so a long tag list never
-	     crowds the toolbar. It takes Popover's floating-surface shadow. Sticky rather than fixed:
-	     a list page on a hidden tab sits in an overflow-hidden wrapper, which clips a sticky card
-	     but not a fixed one. -->
+	     crowds the toolbar. A heavier shadow and an edge ring lift it off the rows; in dark mode an
+	     opaque surface replaces the card's translucent one, which let the rows show through.
+	     Sticky rather than fixed: a list page on a hidden tab sits in an overflow-hidden wrapper,
+	     which clips a sticky card but not a fixed one. -->
 	{#if hasBulkTagging && selectedIds.size > 0}
 		<div class="pointer-events-none sticky bottom-6 z-20 flex justify-center">
 			<div
-				class="card card-static pointer-events-auto flex max-w-full items-center gap-2 !px-4 !py-2 !shadow-[0_4px_24px_rgba(0,0,0,0.15)] dark:!shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
+				class="card card-static pointer-events-auto flex max-w-full items-center gap-2 !px-4 !py-2 !shadow-[0_10px_40px_rgba(0,0,0,0.25)] ring-1 ring-black/5 dark:!border-gray-600 dark:!bg-gray-800 dark:!shadow-[0_10px_40px_rgba(0,0,0,0.7)] dark:ring-white/10"
 			>
-				<span class="text-secondary text-sm">{common_tags()}</span>
+				<span class="text-secondary whitespace-nowrap text-sm"
+					>{selectedIds.size > 1 ? common_commonTags() : common_tags()}</span
+				>
 				<TagPickerInline
 					selectedTagIds={commonTags}
 					onAdd={handleBulkTagAdd}
