@@ -1,5 +1,7 @@
 <script lang="ts">
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
+	import PageTitle from '$lib/shared/components/layout/PageTitle.svelte';
+	import { common_home } from '$lib/paraglide/messages';
 	import { useDashboardQuery } from '$lib/features/home/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { isPlanLapsed } from '$lib/features/organizations/types';
@@ -91,14 +93,9 @@
 </script>
 
 <div class="space-y-6">
-	<div>
-		<h1 class="text-primary text-2xl font-bold">Home</h1>
-		<p class="text-tertiary mt-1 text-sm">
-			{#if organization}
-				{organization.name}
-			{/if}
-		</p>
-	</div>
+	<!-- Same title row as every list page; the organization's name follows the title, muted,
+	     rather than sitting on a line of its own. -->
+	<PageTitle title={common_home()} aside={organization?.name ?? null} />
 
 	{#if dashboardQuery.isPending || organizationQuery.isPending}
 		<Loading />

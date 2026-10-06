@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
 	import { createForm } from '@tanstack/svelte-form';
-	import { Download, Info } from 'lucide-svelte';
-	import { tooltip } from '$lib/shared/actions/tooltip';
+	import { Download } from 'lucide-svelte';
+	import PageTitle from '$lib/shared/components/layout/PageTitle.svelte';
 	import SearchInput from '$lib/shared/components/forms/input/SearchInput.svelte';
 	import {
 		PAGE_FILTER_KEY,
@@ -119,23 +119,8 @@
 	blank space. The left group shrinks (the filter keeps its own `min-w-48` floor) and the right
 	group holds its size and wraps to a second line rather than squashing its buttons.
 -->
-<!-- The title row matches the sidebar's logo row (38px, `text-sm` bold) and sits 8px above the
-     toolbar, as the logo row does the sidebar search, so the toolbar lines up with global search. -->
 {#if title}
-	<div class="mb-2 flex h-[38px] items-center gap-2">
-		<h2 class="text-primary text-sm font-bold">{title}</h2>
-		{#if subtitle}
-			<span
-				class="text-tertiary hover:text-secondary inline-flex cursor-help transition-colors"
-				use:tooltip
-				data-tooltip={subtitle}
-				role="note"
-				aria-label={subtitle}
-			>
-				<Info class="h-4 w-4" aria-hidden="true" />
-			</span>
-		{/if}
-	</div>
+	<PageTitle {title} {subtitle} />
 {/if}
 <div class="flex flex-wrap items-center justify-between gap-y-3">
 	<!-- Left: the page filter. Filters, grouping and sort live in the column headers. -->
