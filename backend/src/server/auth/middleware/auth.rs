@@ -105,7 +105,17 @@ impl Display for AuthMethod {
 }
 
 /// Represents either an authenticated user, daemon, or user API key
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum::VariantNames)]
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    strum::VariantNames,
+    strum::EnumDiscriminants,
+)]
+#[strum_discriminants(derive(Serialize), serde(rename_all = "snake_case"))]
 pub enum AuthenticatedEntity {
     User {
         user_id: Uuid,
@@ -143,7 +153,7 @@ pub enum AuthenticatedEntity {
 /// permissions or site access.
 #[derive(Debug, Clone, Serialize)]
 pub struct ActorProperties {
-    pub auth_type: String,
+    pub auth_type: AuthenticatedEntityDiscriminants,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_id: Option<Uuid>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -157,7 +167,7 @@ pub struct ActorProperties {
 impl From<&AuthenticatedEntity> for ActorProperties {
     fn from(auth: &AuthenticatedEntity) -> Self {
         Self {
-            auth_type: auth.entity_name(),
+            auth_type: auth.into(),
             user_id: auth.user_id(),
             email: auth.email().cloned(),
             organization_id: auth.organization_id(),
