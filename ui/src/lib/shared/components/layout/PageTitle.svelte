@@ -1,8 +1,8 @@
 <!--
 	A page's title row, the same on every page. It is the height of the sidebar's logo row and sits
 	8px above what follows, as the logo row does the sidebar search, so a page's toolbar lines up
-	with global search. A subtitle is a hover note on an (i), and `aside` is muted context after the
-	title, set at the title's size and weight (Home's organization name); neither adds a second line.
+	with global search. A subtitle is a hover note on an (i), and `aside` is context after the
+	title, set in the title's style (Home's organization name); neither adds a second line.
 -->
 <script lang="ts">
 	import { Info } from 'lucide-svelte';
@@ -29,7 +29,7 @@
 		</span>
 	{/if}
 	{#if aside}
-		<span aria-hidden="true" class="text-tertiary text-xl font-bold">·</span>
-		<span class="text-tertiary truncate text-xl font-bold">{aside}</span>
+		<span aria-hidden="true" class="text-primary text-xl font-bold">·</span>
+		<span class="text-primary truncate text-xl font-bold">{aside}</span>
 	{/if}
 </div>
