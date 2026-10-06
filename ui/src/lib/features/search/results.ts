@@ -12,6 +12,18 @@ import type { EntityDiscriminants } from '$lib/api/entities';
 /** Whether the palette is open. The sidebar's search bar and the shortcut both set it. */
 export const globalSearchOpen = writable(false);
 
+/**
+ * A query for the palette to reopen with, set by "Back to Search" on an entity opened from it.
+ * The palette consumes it on open and resets it to `null`.
+ */
+export const globalSearchRestoreQuery = writable<string | null>(null);
+
+/** Open the palette with `query` already searched, as the user left it. */
+export function reopenGlobalSearch(query: string) {
+	globalSearchRestoreQuery.set(query);
+	globalSearchOpen.set(true);
+}
+
 /** One section of results: every match of one entity type the server returned. */
 export interface SearchGroup<T = unknown> {
 	type: EntityDiscriminants;

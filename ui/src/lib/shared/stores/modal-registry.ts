@@ -1,6 +1,10 @@
 import { get, writable } from 'svelte/store';
 import type { EntityDiscriminants } from '$lib/api/entities';
 import { entityUIConfig, TAB_LABELS } from '$lib/shared/entity-ui-config';
+import { reopenGlobalSearch } from '$lib/features/search/results';
+
+/** Return-URL parameter carrying the Cmd+K query an entity was opened from. */
+const RETURN_SEARCH_PARAM = 'search';
 
 export interface ModalState {
 	name: string | null;
@@ -86,6 +90,15 @@ export function goBack(): void {
 	// Set hash (triggers tab reactivity)
 	window.location.hash = target.hash || '';
 
+	// Opened from the Cmd+K palette, which lives outside the URL: close this modal and reopen the
+	// palette on the query it was opened from.
+	const returnSearch = target.searchParams.get(RETURN_SEARCH_PARAM);
+	if (returnSearch !== null) {
+		closeModal();
+		reopenGlobalSearch(returnSearch);
+		return;
+	}
+
 	// Restore modal state from return URL, or clear if no modal
 	const modalName = target.searchParams.get('modal');
 	if (modalName) {
@@ -136,14 +149,23 @@ export function initModalFromUrl(): void {
 export function navigateToEntity(
 	entityType: EntityDiscriminants,
 	entityId: string,
-	data?: Record<string, unknown>
+	data?: Record<string, unknown>,
+	opts?: {
+		/** The Cmd+K query this was opened from, so the back button reopens the palette on it. */
+		returnSearch?: string;
+	}
 ): void {
 	const typeConfig = entityUIConfig[entityType];
 	const config = (data && typeConfig?.forEntity?.(data)) || typeConfig;
 	if (!config) return;
 
 	// Snapshot current URL and modal title before navigation so the back button can return here
-	const returnUrl = typeof window !== 'undefined' ? window.location.href : undefined;
+	let returnUrl = typeof window !== 'undefined' ? window.location.href : undefined;
+	if (returnUrl && opts?.returnSearch !== undefined) {
+		const url = new URL(returnUrl);
+		url.searchParams.set(RETURN_SEARCH_PARAM, opts.returnSearch);
+		returnUrl = url.toString();
+	}
 	const returnTitle = captureReturnTitle();
 
 	if (config.modalName) {

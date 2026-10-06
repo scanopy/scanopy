@@ -19,6 +19,7 @@
 	import {
 		flattenGroups,
 		globalSearchOpen,
+		globalSearchRestoreQuery,
 		isGlobalSearchShortcut,
 		moveHighlight,
 		type SearchGroup,
@@ -91,9 +92,22 @@
 				vlansQuery.isPending)
 	);
 
-	// A new result set starts with its first row highlighted, so Enter opens the best match.
+	// A new result set starts with its first row highlighted, so Enter opens the best match. Keyed on
+	// the highlight being out of range rather than on `rows` changing: `rows` is rebuilt whenever any
+	// of the four queries updates, and resetting on that threw the highlight back to the top mid-list.
 	$effect(() => {
-		highlighted = rows.length > 0 ? 0 : -1;
+		if (rows.length === 0) highlighted = -1;
+		else if (highlighted < 0 || highlighted >= rows.length) highlighted = 0;
+	});
+
+	// Reopened by "Back to Search" from an entity opened here: restore the query it was opened from.
+	$effect(() => {
+		const restored = $globalSearchRestoreQuery;
+		if (!$globalSearchOpen || restored === null) return;
+		globalSearchRestoreQuery.set(null);
+		form.setFieldValue('query', restored);
+		query = restored;
+		search = restored;
 	});
 
 	const groupLabels: Partial<Record<EntityDiscriminants, () => string>> = {
@@ -116,12 +130,16 @@
 	}
 
 	function openRow(row: SearchRow<Entity>) {
+		const returnSearch = query;
 		close();
-		navigateToEntity(row.type, row.item.id, row.item as unknown as Record<string, unknown>);
+		navigateToEntity(row.type, row.item.id, row.item as unknown as Record<string, unknown>, {
+			returnSearch
+		});
 	}
 
 	function handleInput(value: string) {
 		query = value;
+		highlighted = -1;
 		sendSearch(value);
 	}
 
@@ -194,7 +212,7 @@
 								highlighted
 									? 'bg-gray-100 dark:bg-gray-800'
 									: 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}"
-								onmouseenter={() => (highlighted = index)}
+								onmousemove={() => (highlighted = index)}
 								onclick={() => openRow(row)}
 							>
 								<EntityDisplayWrapper
