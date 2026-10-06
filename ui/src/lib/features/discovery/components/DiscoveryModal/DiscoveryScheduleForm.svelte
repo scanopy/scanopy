@@ -172,24 +172,49 @@
 			{discovery_scheduleHelp()}
 		</p>
 
-		{#if rawCronMode}
-			<!-- Raw Cron Mode -->
+		<!-- Timezone (shown in both modes) -->
+		{#snippet timezoneField()}
 			<form.Field
-				name="schedule_cron"
+				name="schedule_timezone"
 				listeners={{
-					onChange: ({ value }: { value: string }) => handleRawCronChange(value)
+					onChange: ({ value }: { value: string }) => handleTimezoneChange(value)
 				}}
 			>
 				{#snippet children(field: AnyFieldApi)}
-					<TextInput
-						label={discovery_scheduleCronExpression()}
-						id="schedule_cron"
+					<SelectInput
+						label={common_timezone()}
+						id="schedule_timezone"
+						options={timezoneOptions}
 						{field}
 						disabled={readOnly}
-						placeholder="0 0 0 * * *"
+						helpText={discovery_scheduleTimezoneHelp()}
 					/>
 				{/snippet}
 			</form.Field>
+		{/snippet}
+
+		{#if rawCronMode}
+			<!-- Raw Cron Mode -->
+			<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+				<form.Field
+					name="schedule_cron"
+					listeners={{
+						onChange: ({ value }: { value: string }) => handleRawCronChange(value)
+					}}
+				>
+					{#snippet children(field: AnyFieldApi)}
+						<TextInput
+							label={discovery_scheduleCronExpression()}
+							id="schedule_cron"
+							{field}
+							disabled={readOnly}
+							placeholder="0 0 0 * * *"
+						/>
+					{/snippet}
+				</form.Field>
+
+				{@render timezoneField()}
+			</div>
 
 			<button
 				type="button"
@@ -225,16 +250,20 @@
 				{/snippet}
 			</form.Field>
 
-			<form.Field
-				name="schedule_time"
-				listeners={{
-					onChange: () => updateCronFromDayTime()
-				}}
-			>
-				{#snippet children(field: AnyFieldApi)}
-					<TimeInput label={common_time()} id="schedule_time" {field} disabled={readOnly} />
-				{/snippet}
-			</form.Field>
+			<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+				<form.Field
+					name="schedule_time"
+					listeners={{
+						onChange: () => updateCronFromDayTime()
+					}}
+				>
+					{#snippet children(field: AnyFieldApi)}
+						<TimeInput label={common_time()} id="schedule_time" {field} disabled={readOnly} />
+					{/snippet}
+				</form.Field>
+
+				{@render timezoneField()}
+			</div>
 
 			<button
 				type="button"
@@ -245,25 +274,6 @@
 				{discovery_scheduleEditAsCron()}
 			</button>
 		{/if}
-
-		<!-- Timezone (shown in both modes) -->
-		<form.Field
-			name="schedule_timezone"
-			listeners={{
-				onChange: ({ value }: { value: string }) => handleTimezoneChange(value)
-			}}
-		>
-			{#snippet children(field: AnyFieldApi)}
-				<SelectInput
-					label={common_timezone()}
-					id="schedule_timezone"
-					options={timezoneOptions}
-					{field}
-					disabled={readOnly}
-					helpText={discovery_scheduleTimezoneHelp()}
-				/>
-			{/snippet}
-		</form.Field>
 	</div>
 {:else}
 	<!-- Ad-hoc info box (safety fallback if rendered in AdHoc mode) -->

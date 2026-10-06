@@ -106,100 +106,105 @@
 </script>
 
 <div class="space-y-4">
-	{#each booleanFields as field (field.id)}
-		<InfoCard title={field.label}>
-			<div class="flex flex-col gap-1">
-				<label
-					for={`scan_${field.id}`}
-					class="text-secondary flex cursor-pointer items-center gap-2 text-sm font-medium"
-				>
-					<input
-						type="checkbox"
-						id={`scan_${field.id}`}
-						checked={!!getScanValue(field.id)}
-						disabled={readOnly}
-						onchange={(e) => updateScanSetting(field.id, e.currentTarget.checked)}
-						class="checkbox-card h-4 w-4 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-					/>
-					<div>{common_enabled()}</div>
-				</label>
-				{#if getHelpText(field)}
-					<p class="text-tertiary text-xs">{getHelpText(field)}</p>
-				{/if}
-			</div>
-		</InfoCard>
-	{/each}
-
-	{#if fullScanIntervalField}
-		<InfoCard title={discovery_fullPortScan()}>
-			<div
-				class="space-y-2"
-				use:tooltip
-				data-tooltip={!isEditing ? discovery_firstScanMustBeLight() : null}
-			>
-				<label for="scan_full_scan_interval" class="text-secondary block text-sm font-medium">
-					{fullScanIntervalField.label}
-				</label>
-				<input
-					id="scan_full_scan_interval"
-					type="number"
-					value={getScanValue('full_scan_interval')}
-					oninput={(e) => updateScanSetting('full_scan_interval', Number(e.currentTarget.value))}
-					placeholder={fullScanIntervalField.placeholder ?? ''}
-					disabled={readOnly || !isEditing}
-					class="input-field"
-				/>
-				{#if fullScanIntervalField.help_text}
-					<p class="text-tertiary text-xs">{fullScanIntervalField.help_text}</p>
-				{/if}
-				<p class="text-tertiary text-xs italic">{discovery_scanModeIntervalExplainer()}</p>
-			</div>
-			{#if formData.discovery_type.type === 'Unified'}
-				<div
-					class="flex flex-col gap-1 pt-1"
-					use:tooltip
-					data-tooltip={!isEditing ? discovery_firstScanMustBeLight() : null}
-				>
+	<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+		{#each booleanFields as field (field.id)}
+			<InfoCard title={field.label}>
+				<div class="flex flex-col gap-1">
 					<label
-						for="scan_force_full_scan"
-						class="text-secondary flex items-center gap-2 text-sm font-medium"
-						class:cursor-pointer={isEditing && !readOnly}
-						class:cursor-not-allowed={!isEditing || readOnly}
-						class:opacity-50={!isEditing}
+						for={`scan_${field.id}`}
+						class="text-secondary flex cursor-pointer items-center gap-2 text-sm font-medium"
 					>
 						<input
 							type="checkbox"
-							id="scan_force_full_scan"
-							checked={formData.force_full_scan ?? false}
-							disabled={readOnly || !isEditing}
-							onchange={(e) => {
-								formData.force_full_scan = e.currentTarget.checked;
-							}}
+							id={`scan_${field.id}`}
+							checked={!!getScanValue(field.id)}
+							disabled={readOnly}
+							onchange={(e) => updateScanSetting(field.id, e.currentTarget.checked)}
 							class="checkbox-card h-4 w-4 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
 						/>
-						<div>{discovery_forceFullScan()}</div>
+						<div>{common_enabled()}</div>
 					</label>
-					<p class="text-tertiary text-xs">{discovery_forceFullScanHelp()}</p>
+					{#if getHelpText(field)}
+						<p class="text-tertiary text-xs">{getHelpText(field)}</p>
+					{/if}
 				</div>
-			{/if}
-		</InfoCard>
-	{/if}
+			</InfoCard>
+		{/each}
+	</div>
 
-	{#if maxDiscoveryDurationField}
-		<InfoCard title={maxDiscoveryDurationField.label} variant="compact">
-			<input
-				id="scan_max_discovery_duration"
-				aria-label={maxDiscoveryDurationField.label}
-				type="number"
-				value={getScanValue('max_discovery_duration')}
-				oninput={(e) => updateScanSetting('max_discovery_duration', Number(e.currentTarget.value))}
-				placeholder={maxDiscoveryDurationField.placeholder ?? ''}
-				disabled={readOnly}
-				class="input-field"
-			/>
-			{#if maxDiscoveryDurationField.help_text}
-				<p class="text-tertiary text-xs">{maxDiscoveryDurationField.help_text}</p>
-			{/if}
-		</InfoCard>
-	{/if}
+	<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+		{#if fullScanIntervalField}
+			<InfoCard title={discovery_fullPortScan()}>
+				<div
+					class="space-y-2"
+					use:tooltip
+					data-tooltip={!isEditing ? discovery_firstScanMustBeLight() : null}
+				>
+					<label for="scan_full_scan_interval" class="text-secondary block text-sm font-medium">
+						{fullScanIntervalField.label}
+					</label>
+					<input
+						id="scan_full_scan_interval"
+						type="number"
+						value={getScanValue('full_scan_interval')}
+						oninput={(e) => updateScanSetting('full_scan_interval', Number(e.currentTarget.value))}
+						placeholder={fullScanIntervalField.placeholder ?? ''}
+						disabled={readOnly || !isEditing}
+						class="input-field"
+					/>
+					{#if fullScanIntervalField.help_text}
+						<p class="text-tertiary text-xs">{fullScanIntervalField.help_text}</p>
+					{/if}
+					<p class="text-tertiary text-xs italic">{discovery_scanModeIntervalExplainer()}</p>
+				</div>
+				{#if formData.discovery_type.type === 'Unified'}
+					<div
+						class="flex flex-col gap-1 pt-1"
+						use:tooltip
+						data-tooltip={!isEditing ? discovery_firstScanMustBeLight() : null}
+					>
+						<label
+							for="scan_force_full_scan"
+							class="text-secondary flex items-center gap-2 text-sm font-medium"
+							class:cursor-pointer={isEditing && !readOnly}
+							class:cursor-not-allowed={!isEditing || readOnly}
+							class:opacity-50={!isEditing}
+						>
+							<input
+								type="checkbox"
+								id="scan_force_full_scan"
+								checked={formData.force_full_scan ?? false}
+								disabled={readOnly || !isEditing}
+								onchange={(e) => {
+									formData.force_full_scan = e.currentTarget.checked;
+								}}
+								class="checkbox-card h-4 w-4 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+							/>
+							<div>{discovery_forceFullScan()}</div>
+						</label>
+						<p class="text-tertiary text-xs">{discovery_forceFullScanHelp()}</p>
+					</div>
+				{/if}
+			</InfoCard>
+		{/if}
+
+		{#if maxDiscoveryDurationField}
+			<InfoCard title={maxDiscoveryDurationField.label} variant="compact">
+				<input
+					id="scan_max_discovery_duration"
+					aria-label={maxDiscoveryDurationField.label}
+					type="number"
+					value={getScanValue('max_discovery_duration')}
+					oninput={(e) =>
+						updateScanSetting('max_discovery_duration', Number(e.currentTarget.value))}
+					placeholder={maxDiscoveryDurationField.placeholder ?? ''}
+					disabled={readOnly}
+					class="input-field"
+				/>
+				{#if maxDiscoveryDurationField.help_text}
+					<p class="text-tertiary text-xs">{maxDiscoveryDurationField.help_text}</p>
+				{/if}
+			</InfoCard>
+		{/if}
+	</div>
 </div>

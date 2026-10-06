@@ -9031,6 +9031,11 @@ export interface components {
             file_name?: string | null;
             /** @description Grouping label used to section a long form. */
             group?: string | null;
+            /**
+             * @description Whether the field is short enough to share a row. The form puts two adjacent half-width
+             *     fields of the same group side by side.
+             */
+            half_width: boolean;
             /** @description Explanatory text shown beneath the field. */
             help_text?: string | null;
             /** @description Server-assigned unique identifier. */

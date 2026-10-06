@@ -775,7 +775,7 @@
 	{hasUnsavedChanges}
 	{onClose}
 	onOpen={handleOpen}
-	size="full"
+	size="wide"
 	fixedHeight={true}
 	showCloseButton={true}
 	{tabs}

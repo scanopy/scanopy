@@ -165,67 +165,71 @@
 			<div class="space-y-8">
 				<!-- Subnet Details Section -->
 				<div class="space-y-4">
-					<!-- Name Field -->
-					<form.Field
-						name="name"
-						validators={{
-							onBlur: ({ value }) => required(value) || max(100)(value)
-						}}
-					>
-						{#snippet children(field)}
-							<TextInput
-								label={common_name()}
-								id="name"
-								{field}
-								placeholder={subnets_namePlaceholder()}
-								required
-							/>
-						{/snippet}
-					</form.Field>
+					<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+						<!-- Name Field -->
+						<form.Field
+							name="name"
+							validators={{
+								onBlur: ({ value }) => required(value) || max(100)(value)
+							}}
+						>
+							{#snippet children(field)}
+								<TextInput
+									label={common_name()}
+									id="name"
+									{field}
+									placeholder={subnets_namePlaceholder()}
+									required
+								/>
+							{/snippet}
+						</form.Field>
 
-					<!-- CIDR Field -->
-					<form.Field
-						name="cidr"
-						validators={{
-							onBlur: ({ value }) => required(value) || cidrNotation(value)
-						}}
-					>
-						{#snippet children(field)}
-							<TextInput
-								label={common_cidr()}
-								id="cidr"
-								{field}
-								placeholder={subnets_cidrPlaceholder()}
-								disabled={getIsCidrDisabled()}
-								helpText={subnets_cidrHelp()}
-								required
-							/>
-						{/snippet}
-					</form.Field>
+						<!-- CIDR Field -->
+						<form.Field
+							name="cidr"
+							validators={{
+								onBlur: ({ value }) => required(value) || cidrNotation(value)
+							}}
+						>
+							{#snippet children(field)}
+								<TextInput
+									label={common_cidr()}
+									id="cidr"
+									{field}
+									placeholder={subnets_cidrPlaceholder()}
+									disabled={getIsCidrDisabled()}
+									helpText={subnets_cidrHelp()}
+									required
+								/>
+							{/snippet}
+						</form.Field>
+					</div>
 
-					<!-- Site Selection -->
-					<form.Field name="site_id">
-						{#snippet children(field)}
-							<SelectSite
-								selectedSiteId={field.state.value}
-								onSiteChange={(id) => field.handleChange(id)}
-							/>
-						{/snippet}
-					</form.Field>
+					<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+						<!-- Site Selection -->
+						<form.Field name="site_id">
+							{#snippet children(field)}
+								<SelectSite
+									selectedSiteId={field.state.value}
+									onSiteChange={(id) => field.handleChange(id)}
+								/>
+							{/snippet}
+						</form.Field>
 
-					<!-- Subnet Type -->
-					<form.Field name="subnet_type">
-						{#snippet children(field)}
-							<RichSelect
-								label={subnets_subnetType()}
-								selectedValue={field.state.value}
-								options={subnetTypeOptions}
-								displayComponent={SimpleOptionDisplay}
-								showSearch={true}
-								onSelect={(value) => field.handleChange(value as Subnet['subnet_type'])}
-							/>
-						{/snippet}
-					</form.Field>
+						<!-- Subnet Type -->
+						<form.Field name="subnet_type">
+							{#snippet children(field)}
+								<RichSelect
+									label={subnets_subnetType()}
+									selectedValue={field.state.value}
+									options={subnetTypeOptions}
+									displayComponent={SimpleOptionDisplay}
+									showSearch={true}
+									onSelect={(value) => field.handleChange(value as Subnet['subnet_type'])}
+								/>
+							{/snippet}
+						</form.Field>
+					</div>
 
 					<!-- Description Field -->
 					<form.Field

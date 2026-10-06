@@ -81,6 +81,9 @@ pub struct FieldDefinition {
     /// form joins to the Daemon OS's example directory for the path placeholder.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file_name: Option<&'static str>,
+    /// Whether the field is short enough to share a row. The form puts two adjacent half-width
+    /// fields of the same group side by side.
+    pub half_width: bool,
 }
 
 /// A placeholder that applies while `depends_on` holds `value`.

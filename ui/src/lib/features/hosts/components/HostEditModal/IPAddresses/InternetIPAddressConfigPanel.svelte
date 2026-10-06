@@ -82,7 +82,7 @@
 			subtitle={subnet?.description}
 		/>
 
-		<div class="space-y-4">
+		<div class="grid grid-cols-2 items-start gap-4">
 			<div>
 				<label for="interface_{iface.id}" class="text-secondary mb-1 block text-sm font-medium">
 					{common_name()} <span class="text-red-400">*</span>

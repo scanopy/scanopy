@@ -175,14 +175,14 @@
 			{#if user}
 				<div class="space-y-6">
 					<InfoCard title={common_account()}>
-						<div class="space-y-2">
-							<div class="flex items-center justify-between">
-								<span class="text-secondary text-sm">{common_email()}</span>
-								<span class="text-primary text-sm font-medium">{user.email}</span>
+						<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+							<div class="space-y-1">
+								<span class="text-secondary block text-sm">{common_email()}</span>
+								<span class="text-primary block break-all text-sm font-medium">{user.email}</span>
 							</div>
-							<div class="flex items-center justify-between">
-								<span class="text-secondary text-sm">{common_authentication()}</span>
-								<span class="text-primary text-sm"
+							<div class="space-y-1">
+								<span class="text-secondary block text-sm">{common_authentication()}</span>
+								<span class="text-primary block text-sm"
 									>{user.oidc_provider || common_emailAndPassword()}</span
 								>
 							</div>

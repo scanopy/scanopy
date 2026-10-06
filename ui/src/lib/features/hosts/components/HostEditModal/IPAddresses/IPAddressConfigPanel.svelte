@@ -116,50 +116,56 @@
 				{/snippet}
 			</form.Field>
 
-			<form.Field
-				name={ipFieldName}
-				validators={{
-					onBlur: ({ value }: { value: string }) =>
-						required(value) || ipAddressFormat(value) || ipAddressInCidrFormat(subnet.cidr)(value),
-					onChange: ({ value }: { value: string }) =>
-						required(value) || ipAddressFormat(value) || ipAddressInCidrFormat(subnet.cidr)(value)
-				}}
-				listeners={{
-					onChange: ({ value }: { value: string }) => handleIpChange(value)
-				}}
-			>
-				{#snippet children(field: AnyFieldApi)}
-					<TextInput
-						label={common_ipAddress()}
-						id="interface_ip_{iface.id}"
-						placeholder={subnet.cidr.includes(':') ? '2001:db8::1' : common_placeholderIpAddress()}
-						required={true}
-						helpText={hosts_ipAddresses_ipMustBeWithin({ cidr: subnet.cidr })}
-						{field}
-					/>
-				{/snippet}
-			</form.Field>
+			<div class="grid grid-cols-2 items-start gap-4">
+				<form.Field
+					name={ipFieldName}
+					validators={{
+						onBlur: ({ value }: { value: string }) =>
+							required(value) ||
+							ipAddressFormat(value) ||
+							ipAddressInCidrFormat(subnet.cidr)(value),
+						onChange: ({ value }: { value: string }) =>
+							required(value) || ipAddressFormat(value) || ipAddressInCidrFormat(subnet.cidr)(value)
+					}}
+					listeners={{
+						onChange: ({ value }: { value: string }) => handleIpChange(value)
+					}}
+				>
+					{#snippet children(field: AnyFieldApi)}
+						<TextInput
+							label={common_ipAddress()}
+							id="interface_ip_{iface.id}"
+							placeholder={subnet.cidr.includes(':')
+								? '2001:db8::1'
+								: common_placeholderIpAddress()}
+							required={true}
+							helpText={hosts_ipAddresses_ipMustBeWithin({ cidr: subnet.cidr })}
+							{field}
+						/>
+					{/snippet}
+				</form.Field>
 
-			<form.Field
-				name={macFieldName}
-				validators={{
-					onBlur: ({ value }: { value: string }) => macFormat(value)
-				}}
-				listeners={{
-					onChange: ({ value }: { value: string }) => handleMacChange(value)
-				}}
-			>
-				{#snippet children(field: AnyFieldApi)}
-					<TextInput
-						label={common_macAddress()}
-						id="interface_mac_{iface.id}"
-						placeholder="00:1B:44:11:3A:B7"
-						helpText={isEditing ? hosts_ipAddresses_macReadOnly() : hosts_ipAddresses_macFormat()}
-						disabled={isEditing}
-						{field}
-					/>
-				{/snippet}
-			</form.Field>
+				<form.Field
+					name={macFieldName}
+					validators={{
+						onBlur: ({ value }: { value: string }) => macFormat(value)
+					}}
+					listeners={{
+						onChange: ({ value }: { value: string }) => handleMacChange(value)
+					}}
+				>
+					{#snippet children(field: AnyFieldApi)}
+						<TextInput
+							label={common_macAddress()}
+							id="interface_mac_{iface.id}"
+							placeholder="00:1B:44:11:3A:B7"
+							helpText={isEditing ? hosts_ipAddresses_macReadOnly() : hosts_ipAddresses_macFormat()}
+							disabled={isEditing}
+							{field}
+						/>
+					{/snippet}
+				</form.Field>
+			</div>
 		</div>
 	</div>
 {/if}

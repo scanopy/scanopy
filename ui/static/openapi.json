@@ -28662,7 +28662,8 @@
           "label",
           "field_type",
           "secret",
-          "optional"
+          "optional",
+          "half_width"
         ],
         "properties": {
           "default_value": {
@@ -28689,6 +28690,10 @@
               "null"
             ],
             "description": "Grouping label used to section a long form."
+          },
+          "half_width": {
+            "type": "boolean",
+            "description": "Whether the field is short enough to share a row. The form puts two adjacent half-width\nfields of the same group side by side."
           },
           "help_text": {
             "type": [
