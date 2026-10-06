@@ -14,6 +14,7 @@
 	import { entityRef } from '$lib/shared/components/data/types';
 	import type { Subnet } from '$lib/features/subnets/types/base';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
+	import ConfigHeader from '$lib/shared/components/forms/config/ConfigHeader.svelte';
 	import { entities } from '$lib/shared/stores/metadata';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import {
@@ -78,8 +79,8 @@
 
 {#if subnet}
 	<div class="space-y-6">
-		<div class="border-b border-gray-600 pb-4">
-			<h3 class="text-primary flex items-center gap-1.5 text-sm font-medium">
+		<ConfigHeader subtitle={subnet?.description || null}>
+			{#snippet heading()}
 				{common_ipAddress()} on
 				<EntityTag
 					entityRef={entityRef('Subnet', subnet.id, subnet)}
@@ -92,11 +93,8 @@
 				{#if staleTag}
 					<Tag {...staleTag} />
 				{/if}
-			</h3>
-			{#if subnet?.description}
-				<p class="text-secondary mt-1 text-sm">{subnet.description}</p>
-			{/if}
-		</div>
+			{/snippet}
+		</ConfigHeader>
 
 		<div class="space-y-4">
 			<form.Field

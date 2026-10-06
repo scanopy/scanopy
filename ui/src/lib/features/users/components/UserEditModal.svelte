@@ -13,7 +13,11 @@
 	import { pushSuccess } from '$lib/shared/stores/feedback';
 	import type { User, UserOrgPermissions } from '../types';
 	import type { Site } from '$lib/features/sites/types';
+	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
+	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
 	import {
+		common_access,
+		common_account,
 		common_authentication,
 		common_cancel,
 		common_email,
@@ -97,7 +101,13 @@
 		}
 	}));
 
-	let permissionsValue = $derived(form.state.values.permissions);
+	// Mirrored from the form store: form.state.values is not tracked by $derived.
+	let permissionsValue = $state<string>(getDefaultValues().permissions);
+	$effect(() => {
+		return form.store.subscribe(() => {
+			permissionsValue = form.state.values.permissions;
+		});
+	});
 
 	// Reset form when modal opens
 	function handleOpen() {
@@ -140,6 +150,7 @@
 	{title}
 	{name}
 	entityId={user?.id}
+	{form}
 	size="xl"
 	onClose={handleClose}
 	onOpen={handleOpen}
@@ -163,8 +174,7 @@
 		<div class="flex-1 overflow-auto p-6">
 			{#if user}
 				<div class="space-y-6">
-					<!-- User Info (read-only) -->
-					<div class="card card-static">
+					<InfoCard title={common_account()}>
 						<div class="space-y-2">
 							<div class="flex items-center justify-between">
 								<span class="text-secondary text-sm">{common_email()}</span>
@@ -177,50 +187,47 @@
 								>
 							</div>
 						</div>
-					</div>
+					</InfoCard>
 
-					<!-- Permissions Selection -->
-					<form.Field
-						name="permissions"
-						validators={{
-							onChange: ({ value }) => required(value)
-						}}
-					>
-						{#snippet children(field)}
-							<PermissionSelect
-								{field}
-								label={users_permissionsLevel()}
-								context="user"
-								helpText={users_permissionsLevelHelp()}
+					<InfoCard title={common_access()}>
+						<form.Field
+							name="permissions"
+							validators={{
+								onChange: ({ value }) => required(value)
+							}}
+						>
+							{#snippet children(field)}
+								<PermissionSelect
+									{field}
+									label={users_permissionsLevel()}
+									context="user"
+									helpText={users_permissionsLevelHelp()}
+								/>
+							{/snippet}
+						</form.Field>
+
+						<!-- Site Assignment (only for Member/Viewer) -->
+						{#if !sitesNotNeeded.includes(permissionsValue as UserOrgPermissions)}
+							<ListManager
+								label={common_sites()}
+								helpText={users_siteAccessHelp()}
+								required={true}
+								allowReorder={false}
+								allowAddFromOptions={true}
+								allowCreateNew={false}
+								allowItemEdit={() => false}
+								disableCreateNewButton={false}
+								onAdd={handleAddSite}
+								onRemove={handleRemoveSite}
+								options={siteOptions}
+								optionDisplayComponent={SiteDisplay}
+								items={selectedSites}
+								itemDisplayComponent={SiteDisplay}
 							/>
-						{/snippet}
-					</form.Field>
-
-					<!-- Site Assignment (only for Member/Viewer) -->
-					{#if !sitesNotNeeded.includes(permissionsValue as UserOrgPermissions)}
-						<ListManager
-							label={common_sites()}
-							helpText={users_siteAccessHelp()}
-							required={true}
-							allowReorder={false}
-							allowAddFromOptions={true}
-							allowCreateNew={false}
-							allowItemEdit={() => false}
-							disableCreateNewButton={false}
-							onAdd={handleAddSite}
-							onRemove={handleRemoveSite}
-							options={siteOptions}
-							optionDisplayComponent={SiteDisplay}
-							items={selectedSites}
-							itemDisplayComponent={SiteDisplay}
-						/>
-					{:else}
-						<div class="card card-static">
-							<p class="text-secondary text-sm">
-								{users_hasAllSites({ permissions: permissionsValue })}
-							</p>
-						</div>
-					{/if}
+						{:else}
+							<InlineInfo body={users_hasAllSites({ permissions: permissionsValue })} />
+						{/if}
+					</InfoCard>
 				</div>
 			{/if}
 		</div>

@@ -20,7 +20,7 @@
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import type { TabProps } from '$lib/shared/types';
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { modalState } from '$lib/shared/stores/modal-registry';
+	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 	import {
 		common_enabled,
 		common_expired,
@@ -76,17 +76,16 @@
 	// (daemon_id set), which is deliberately excluded from `apiKeysData`
 	// (the legacy-only tab list). Resolving against the filtered list would never find it.
 	$effect(() => {
-		if ($modalState.name === 'daemon-api-key' && !showCreateApiKeyModal) {
-			if ($modalState.id) {
-				const entity = (apiKeysQuery.data ?? []).find((e) => e.id === $modalState.id);
-				if (entity) {
-					editingApiKey = entity;
-					showCreateApiKeyModal = true;
-				}
-			} else {
-				editingApiKey = null;
-				showCreateApiKeyModal = true;
-			}
+		const result = resolveModalDeepLink(
+			$modalState,
+			'daemon-api-key',
+			apiKeysQuery.data ?? [],
+			showCreateApiKeyModal,
+			editingApiKey?.id
+		);
+		if (result !== undefined) {
+			editingApiKey = result;
+			showCreateApiKeyModal = true;
 		}
 	});
 

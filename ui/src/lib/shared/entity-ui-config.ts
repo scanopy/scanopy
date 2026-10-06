@@ -38,6 +38,8 @@ export interface EntityUIConfig {
 	 * discovery run opens in the history tab, a scan configuration in the scans tab.
 	 */
 	forEntity?: (data: Record<string, unknown>) => EntityUIConfig | undefined;
+	/** Every config `forEntity` can return, so the modals it names can be listed without data. */
+	variants?: EntityUIConfig[];
 }
 
 /** Tab ID → display label. Single source of truth for sidebar and back navigation. */
@@ -61,6 +63,12 @@ export const TAB_LABELS: Record<string, string> = {
 	credentials: 'Credentials'
 };
 
+/** A historical discovery run opens in the history tab's read-only detail modal. */
+const HISTORICAL_DISCOVERY: EntityUIConfig = {
+	tabId: 'discovery-history',
+	modalName: 'discovery-history-detail'
+};
+
 export const entityUIConfig: Record<EntityDiscriminants, EntityUIConfig | null> = {
 	Host: { tabId: 'hosts', modalName: 'host-editor', displayComponent: HostDisplay },
 	Service: { tabId: 'services', modalName: 'service-editor', displayComponent: ServiceDisplay },
@@ -78,8 +86,7 @@ export const entityUIConfig: Record<EntityDiscriminants, EntityUIConfig | null> 
 		parentIdField: 'host_id',
 		modalTab: 'interfaces'
 	},
-	// View-only tab: no edit modal, so no `modalName`. Navigating to a VLAN opens its tab.
-	Vlan: { tabId: 'vlans', displayComponent: VlanDisplay },
+	Vlan: { tabId: 'vlans', modalName: 'vlan-editor', displayComponent: VlanDisplay },
 	Port: {
 		tabId: 'hosts',
 		displayComponent: PortDisplay,
@@ -118,8 +125,9 @@ export const entityUIConfig: Record<EntityDiscriminants, EntityUIConfig | null> 
 		displayComponent: DiscoveryDisplay,
 		forEntity: (data) =>
 			(data.run_type as { type?: string } | undefined)?.type === 'Historical'
-				? { tabId: 'discovery-history', modalName: 'discovery-history-detail' }
-				: undefined
+				? HISTORICAL_DISCOVERY
+				: undefined,
+		variants: [HISTORICAL_DISCOVERY]
 	},
 	Tag: { tabId: 'tags', modalName: 'tag-editor' },
 	Share: { tabId: 'shares', modalName: 'share-editor' },
@@ -131,3 +139,10 @@ export const entityUIConfig: Record<EntityDiscriminants, EntityUIConfig | null> 
 	Invite: null,
 	Unknown: null
 };
+
+/** Every modal that opens one entity: the modals arrow-key navigation steps between. */
+export const entityModalNames: ReadonlySet<string> = new Set(
+	Object.values(entityUIConfig)
+		.flatMap((config) => (config ? [config, ...(config.variants ?? [])] : []))
+		.flatMap((config) => (config.modalName ? [config.modalName] : []))
+);

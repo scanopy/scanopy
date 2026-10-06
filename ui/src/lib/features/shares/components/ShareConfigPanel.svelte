@@ -12,6 +12,7 @@
 	import UpgradeButton from '$lib/shared/components/UpgradeButton.svelte';
 	import CodeContainer from '$lib/shared/components/data/CodeContainer.svelte';
 	import CollapsibleCard from '$lib/shared/components/data/CollapsibleCard.svelte';
+	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
 	import {
 		SimpleOptionDisplay,
@@ -59,7 +60,9 @@
 		shares_allViewsEnabled,
 		shares_urlAvailableAfterSaveTitle,
 		shares_urlAvailableAfterSaveBody,
-		topology_showMinimap
+		topology_showMinimap,
+		common_details,
+		shares_linkAndEmbed
 	} from '$lib/paraglide/messages';
 
 	interface Props {
@@ -158,8 +161,7 @@
 		dismissableKey="share-cache-info"
 	/>
 
-	<!-- Name -->
-	<div class="card card-static">
+	<InfoCard title={common_details()}>
 		<form.Field
 			name={nameFieldName}
 			validators={{
@@ -180,12 +182,12 @@
 				/>
 			{/snippet}
 		</form.Field>
-	</div>
+	</InfoCard>
 
-	<!-- Share URL / Embed Code — directly below name. Hidden until the share has been
-	     saved, since the URL can't resolve until the backend has a persisted record. -->
-	{#if isSaved}
-		<div class="space-y-3">
+	<!-- Share URL / Embed Code. Shown once the share has been saved, since the URL can't
+	     resolve until the backend has a persisted record. -->
+	<InfoCard title={shares_linkAndEmbed()}>
+		{#if isSaved}
 			<div>
 				<span class="text-secondary mb-1 block text-sm font-medium">{shares_shareUrl()}</span>
 				<CodeContainer
@@ -209,13 +211,13 @@
 					/>
 				{/if}
 			</div>
-		</div>
-	{:else}
-		<InlineInfo
-			title={shares_urlAvailableAfterSaveTitle()}
-			body={shares_urlAvailableAfterSaveBody()}
-		/>
-	{/if}
+		{:else}
+			<InlineInfo
+				title={shares_urlAvailableAfterSaveTitle()}
+				body={shares_urlAvailableAfterSaveBody()}
+			/>
+		{/if}
+	</InfoCard>
 
 	<!-- Topology Views — collapsible -->
 	<CollapsibleCard title={shares_topologyViews()} expanded={false}>

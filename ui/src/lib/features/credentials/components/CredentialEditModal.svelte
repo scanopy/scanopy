@@ -239,6 +239,7 @@
 	{title}
 	{name}
 	entityId={credential?.id}
+	{form}
 	size="xl"
 	{onClose}
 	onOpen={handleOpen}

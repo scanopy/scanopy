@@ -33,7 +33,6 @@
 		common_enableApiKey,
 		common_expirationDateOptional,
 		common_expirationNeverHelp,
-		common_keyDetails,
 		common_name,
 		common_nameRequired,
 		common_siteRequired,
@@ -109,8 +108,13 @@
 		}
 	}));
 
-	// Track permission value for NetworkAccessSelect
-	let permissionsValue = $derived(form.state.values.permissions);
+	// Mirrored from the form store for SiteAccessSelect: form.state.values is not tracked by $derived.
+	let permissionsValue = $state(createEmptyUserApiKeyFormData().permissions);
+	$effect(() => {
+		return form.store.subscribe(() => {
+			permissionsValue = form.state.values.permissions;
+		});
+	});
 
 	// Reset form when modal opens
 	function handleOpen() {
@@ -189,6 +193,7 @@
 	{title}
 	{name}
 	entityId={apiKey?.id}
+	{form}
 	size="xl"
 	onClose={handleOnClose}
 	onOpen={handleOpen}
@@ -213,10 +218,7 @@
 					body="Creating an integration that you think others might benefit from? Scanopy will be adding an integration library in an upcoming release. Go to the <a class='underline hover:no-underline' target='_blank' href='https://github.com/scanopy/integrations'>Scanopy integrations GitHub</a> and create a PR to get started."
 				></InlineSuccess>
 
-				<!-- Key Details Section -->
 				<div class="space-y-4">
-					<h3 class="text-primary text-lg font-medium">{common_keyDetails()}</h3>
-
 					<form.Field
 						name="name"
 						validators={{

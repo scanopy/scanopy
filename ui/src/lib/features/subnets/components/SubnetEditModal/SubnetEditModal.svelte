@@ -25,7 +25,6 @@
 		common_delete,
 		common_deleting,
 		common_description,
-		common_details,
 		common_editName,
 		common_name,
 		common_saving,
@@ -144,6 +143,7 @@
 	{title}
 	{name}
 	entityId={subnet?.id}
+	{form}
 	size="xl"
 	{onClose}
 	onOpen={handleOpen}
@@ -165,8 +165,6 @@
 			<div class="space-y-8">
 				<!-- Subnet Details Section -->
 				<div class="space-y-4">
-					<h3 class="text-primary text-lg font-medium">{common_details()}</h3>
-
 					<!-- Name Field -->
 					<form.Field
 						name="name"

@@ -165,6 +165,9 @@
 					: discovery_scheduleFreePlanWarning()}
 			/>
 		{/if}
+		{#if rawCronMode}
+			<InlineInfo title={discovery_scheduleCronExpression()} body={discovery_scheduleCronInfo()} />
+		{/if}
 		<p class="text-tertiary text-sm">
 			{discovery_scheduleHelp()}
 		</p>
@@ -187,8 +190,6 @@
 					/>
 				{/snippet}
 			</form.Field>
-
-			<InlineInfo title={discovery_scheduleCronExpression()} body={discovery_scheduleCronInfo()} />
 
 			<button
 				type="button"
@@ -266,25 +267,5 @@
 	</div>
 {:else}
 	<!-- Ad-hoc info box (safety fallback if rendered in AdHoc mode) -->
-	<div class="card flex items-start gap-3">
-		<svg
-			class="text-tertiary mt-0.5 h-5 w-5 flex-shrink-0"
-			fill="none"
-			stroke="currentColor"
-			viewBox="0 0 24 24"
-		>
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				stroke-width="2"
-				d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-			/>
-		</svg>
-		<div>
-			<h4 class="mb-1 text-sm font-medium text-gray-300">{discovery_manualDiscovery()}</h4>
-			<p class="text-sm text-gray-400">
-				{discovery_manualDiscoveryHelp()}
-			</p>
-		</div>
-	</div>
+	<InlineInfo title={discovery_manualDiscovery()} body={discovery_manualDiscoveryHelp()} />
 {/if}

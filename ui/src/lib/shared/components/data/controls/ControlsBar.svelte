@@ -6,6 +6,7 @@
 	import SearchInput from '$lib/shared/components/forms/input/SearchInput.svelte';
 	import { isFindShortcut } from '$lib/features/search/results';
 	import { shortcutLabel } from '$lib/shared/utils/shortcuts';
+	import { isOnVisiblePage } from '$lib/shared/stores/modal-registry';
 	import { lowercasePreservingAcronyms } from '$lib/shared/utils/formatting';
 	import {
 		common_export,
@@ -50,17 +51,6 @@
 	let entity = $derived(entityLabel ? lowercasePreservingAcronyms(entityLabel) : null);
 	let placeholder = $derived(entity ? common_filterEntity({ entity }) : common_filter());
 
-	/**
-	 * Whether this page is the one on screen. Every list page stays mounted; an inactive one sits in a
-	 * zero-height, overflow-hidden wrapper, so it still lays out and `offsetParent` can't tell.
-	 */
-	function isVisible(): boolean {
-		for (let el: HTMLElement | null = inputEl ?? null; el; el = el.parentElement) {
-			if (el.clientHeight === 0 && getComputedStyle(el).overflow === 'hidden') return false;
-		}
-		return !!inputEl;
-	}
-
 	function clear() {
 		form.setFieldValue('query', '');
 		onClearSearch();
@@ -68,7 +58,7 @@
 
 	function handleWindowKeydown(event: KeyboardEvent) {
 		// Only the page on screen takes Cmd/Ctrl+F; everywhere else the browser keeps its own find.
-		if (!isFindShortcut(event) || !isVisible()) return;
+		if (!isFindShortcut(event) || !isOnVisiblePage(inputEl)) return;
 		event.preventDefault();
 		inputEl?.focus();
 	}

@@ -5,7 +5,9 @@
 	import { serviceDefinitions } from '$lib/shared/stores/metadata';
 	import { translateFieldDefinitions } from '$lib/i18n/metadata';
 	import { tooltip } from '$lib/shared/actions/tooltip';
+	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import {
+		common_enabled,
 		discovery_firstScanMustBeLight,
 		discovery_forceFullScan,
 		discovery_forceFullScanHelp,
@@ -105,7 +107,7 @@
 
 <div class="space-y-4">
 	{#each booleanFields as field (field.id)}
-		<div class="card">
+		<InfoCard title={field.label}>
 			<div class="flex flex-col gap-1">
 				<label
 					for={`scan_${field.id}`}
@@ -119,18 +121,17 @@
 						onchange={(e) => updateScanSetting(field.id, e.currentTarget.checked)}
 						class="checkbox-card h-4 w-4 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
 					/>
-					<div>{field.label}</div>
+					<div>{common_enabled()}</div>
 				</label>
 				{#if getHelpText(field)}
 					<p class="text-tertiary text-xs">{getHelpText(field)}</p>
 				{/if}
 			</div>
-		</div>
+		</InfoCard>
 	{/each}
 
 	{#if fullScanIntervalField}
-		<div class="card space-y-3">
-			<h4 class="text-secondary text-sm font-medium">{discovery_fullPortScan()}</h4>
+		<InfoCard title={discovery_fullPortScan()}>
 			<div
 				class="space-y-2"
 				use:tooltip
@@ -181,16 +182,14 @@
 					<p class="text-tertiary text-xs">{discovery_forceFullScanHelp()}</p>
 				</div>
 			{/if}
-		</div>
+		</InfoCard>
 	{/if}
 
 	{#if maxDiscoveryDurationField}
-		<div class="card space-y-2">
-			<label for="scan_max_discovery_duration" class="text-secondary block text-sm font-medium">
-				{maxDiscoveryDurationField.label}
-			</label>
+		<InfoCard title={maxDiscoveryDurationField.label} variant="compact">
 			<input
 				id="scan_max_discovery_duration"
+				aria-label={maxDiscoveryDurationField.label}
 				type="number"
 				value={getScanValue('max_discovery_duration')}
 				oninput={(e) => updateScanSetting('max_discovery_duration', Number(e.currentTarget.value))}
@@ -201,6 +200,6 @@
 			{#if maxDiscoveryDurationField.help_text}
 				<p class="text-tertiary text-xs">{maxDiscoveryDurationField.help_text}</p>
 			{/if}
-		</div>
+		</InfoCard>
 	{/if}
 </div>

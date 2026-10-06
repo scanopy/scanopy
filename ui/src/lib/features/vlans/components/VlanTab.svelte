@@ -13,7 +13,12 @@
 	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { isUserManagedSubnet, useSubnetsQuery } from '$lib/features/subnets/queries';
 	import type { Subnet } from '$lib/features/subnets/types/base';
-	import { useVlansQuery } from '../queries';
+	import { useUpdateVlanMutation, useVlansQuery } from '../queries';
+	import VlanEditModal from './VlanEditModal.svelte';
+	import { Edit } from 'lucide-svelte';
+	import type { CardAction } from '$lib/shared/components/data/types';
+	import type { TabProps } from '$lib/shared/types';
+	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
 	import { discoveryRunIds, discoveryRunItems } from '$lib/features/discovery/columns';
 	import type { Vlan, VlanOrderField } from '../types/base';
@@ -22,6 +27,7 @@
 	import {
 		common_created,
 		common_description,
+		common_edit,
 		common_firstFoundBy,
 		common_lastFoundBy,
 		common_lastSeen,
@@ -41,9 +47,25 @@
 
 	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 
-	// No `$props()`: unlike the sibling tabs this one declares no `TabProps`.
-	// It is view-only for every permission level, so `isReadOnly` would have
-	// nothing to gate.
+	let { isReadOnly = false }: TabProps = $props();
+
+	let showVlanEditor = $state(false);
+	let editingVlan: Vlan | null = $state(null);
+
+	// Deep-link: open the VLAN editor from the URL (fresh open and entity switch)
+	$effect(() => {
+		const result = resolveModalDeepLink(
+			$modalState,
+			'vlan-editor',
+			vlansData,
+			showVlanEditor,
+			editingVlan?.id
+		);
+		if (result) {
+			editingVlan = result;
+			showVlanEditor = true;
+		}
+	});
 
 	// Organization query for onboarding state
 	const organizationQuery = useOrganizationQuery();
@@ -65,6 +87,33 @@
 		new Map((subnetsQuery.data ?? []).filter(isUserManagedSubnet).map((s) => [s.id, s]))
 	);
 	let isLoading = $derived(vlansQuery.isPending);
+
+	const updateVlanMutation = useUpdateVlanMutation();
+
+	/** Row actions. VLANs are discovered, so editing is the only action. */
+	function vlanActions(vlan: Vlan): CardAction[] {
+		if (isReadOnly) return [];
+		return [{ label: common_edit(), icon: Edit, onClick: () => handleEditVlan(vlan) }];
+	}
+
+	function handleEditVlan(vlan: Vlan) {
+		editingVlan = vlan;
+		showVlanEditor = true;
+	}
+
+	async function handleVlanUpdate(data: Vlan) {
+		try {
+			await updateVlanMutation.mutateAsync(data);
+			handleCloseVlanEditor();
+		} catch {
+			// Error handled by mutation
+		}
+	}
+
+	function handleCloseVlanEditor() {
+		showVlanEditor = false;
+		editingVlan = null;
+	}
 
 	function getSubnets(vlan: Vlan): Subnet[] {
 		return (vlan.subnet_ids ?? []).map((id) => subnetsById.get(id)).filter((s) => s !== undefined);
@@ -183,7 +232,7 @@
 </script>
 
 <div class="space-y-6">
-	<!-- Header: no actions — VLANs are discovery-populated and view-only -->
+	<!-- Header: no actions — VLANs are discovery-populated, so there is nothing to create -->
 
 	{#if !hasDaemon(onboarding)}
 		<PreDaemonEmptyState title={daemons_installPromptVlans()} />
@@ -205,7 +254,16 @@
 			defaults={tableDefaults}
 			getItemId={(item) => item.id}
 			onCsvExport={handleCsvExport}
+			getActions={vlanActions}
 			entityLabel={common_vlans()}
 		></DataControls>
 	{/if}
 </div>
+
+<VlanEditModal
+	name="vlan-editor"
+	isOpen={showVlanEditor}
+	vlan={editingVlan}
+	onUpdate={handleVlanUpdate}
+	onClose={handleCloseVlanEditor}
+/>

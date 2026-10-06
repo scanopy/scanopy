@@ -25,7 +25,12 @@
 	import type { components } from '$lib/api/schema';
 	import type { TabProps } from '$lib/shared/types';
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { modalState, openModal, closeModal } from '$lib/shared/stores/modal-registry';
+	import {
+		modalState,
+		openModal,
+		closeModal,
+		resolveModalDeepLink
+	} from '$lib/shared/stores/modal-registry';
 	import { Info } from 'lucide-svelte';
 	import { daemonItems } from '$lib/features/daemons/columns';
 	import { siteItems } from '$lib/features/sites/columns';
@@ -241,22 +246,21 @@
 	let showDiscoveryModal = $state(false);
 	let editingDiscovery: Discovery | null = $state(null);
 
-	// Deep-link: open detail modal from URL
+	// Deep-link: open detail modal from URL (fresh open and entity switch). A run linked from
+	// another tab (the scan that found a host) is rarely on this page, so the helper falls back to
+	// the run the link carried.
 	$effect(() => {
-		if ($modalState.name === 'discovery-history-detail' && !showDiscoveryModal) {
-			if ($modalState.id) {
-				// A run linked from another tab (the scan that found a host) is rarely on this page,
-				// so fall back to the run the link carried.
-				const disc =
-					discoveriesData.find((d) => d.id === $modalState.id) ??
-					($modalState.entityData?.id === $modalState.id
-						? ($modalState.entityData as Discovery)
-						: undefined);
-				if (disc) {
-					editingDiscovery = disc;
-					showDiscoveryModal = true;
-				}
-			}
+		const result = resolveModalDeepLink(
+			$modalState,
+			'discovery-history-detail',
+			discoveriesData,
+			showDiscoveryModal,
+			editingDiscovery?.id
+		);
+		// No create mode here: a run without an id has nothing to show.
+		if (result) {
+			editingDiscovery = result;
+			showDiscoveryModal = true;
 		}
 	});
 
