@@ -18,7 +18,8 @@
 	 * A column header's filter and group control: an icon button that opens a
 	 * popover. Sits beside the sort button rather than inside it, so opening it
 	 * never sorts. The filter body is the card pane's `FieldFilter`, so both
-	 * views offer the same choices for a field.
+	 * views offer the same choices for a field. Every column shows the same
+	 * filter icon; a column that only groups opens to just the grouping button.
 	 */
 	let {
 		control,
@@ -65,11 +66,8 @@
 		? 'text-accent'
 		: 'text-tertiary hover:text-secondary'}"
 >
-	{#if filtersHere}
-		<Filter class="h-3.5 w-3.5" aria-hidden="true" />
-	{:else}
-		<Group class="h-3.5 w-3.5" aria-hidden="true" />
-	{/if}
+	<!-- One header control for every column; what the popover holds depends on the field. -->
+	<Filter class="h-3.5 w-3.5" aria-hidden="true" />
 	{#if active}
 		<span
 			class="absolute right-0 top-0 h-1.5 w-1.5 rounded-full bg-purple-600 dark:bg-purple-400"

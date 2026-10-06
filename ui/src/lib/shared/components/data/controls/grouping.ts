@@ -73,16 +73,14 @@ export function groupItems<T>(
 }
 
 /**
- * One column of a row's tree guide, left to right. `bar` continues the line of the section the row
- * sits in; `space` holds the indent under a section header's chevron for the section's own row.
+ * A row of a tree group. `depth` is how many sections (counting the group itself when its top row
+ * heads it) the row sits inside: it is indented one step per level and draws one guide line per
+ * level, so each section's line runs from just under its header down to its last row.
  */
-export type TreeGuide = 'bar' | 'space';
-
-/** A row of a tree group, with the guides drawn before it. */
 export interface TreeRow<T> {
 	type: 'row';
 	item: T;
-	guides: TreeGuide[];
+	depth: number;
 }
 
 /**
@@ -96,7 +94,11 @@ export interface TreeSection<T> {
 	label: string;
 	/** Rows in the loaded subtree, this row included. */
 	count: number;
-	guides: TreeGuide[];
+	/**
+	 * Sections this header sits inside. Its chevron sits at this level, directly above the guide
+	 * line its own rows draw one level in.
+	 */
+	depth: number;
 	entries: TreeEntry<T>[];
 }
 
@@ -127,8 +129,9 @@ const PATH_SEPARATOR = String.fromCharCode(0);
  * One group's rows as the nested sections the tree `tree` describes.
  *
  * Every row with children becomes a section headed by `tree.label`, holding the row itself and
- * then its children. A group whose rows all descend from one top-level row (no parent at all) is
- * already headed by that row, so that row stays a plain row and its children sit one guide in.
+ * then its children, all one level in, so the section's line starts at its own row. A group whose
+ * rows all descend from one top-level row (no parent at all) is already headed by that row, so
+ * the group header serves as its section header: the row and its children start one level in.
  *
  * - With `serverPaginated` the rows keep the order they arrived in, which the server made
  *   parent-first across every page, and nesting comes from `tree.depth`. A row whose ancestors are
@@ -160,11 +163,11 @@ export function buildTreeSections<T>(
 		const [root] = forest;
 		const path = groupKey + PATH_SEPARATOR + tree.key(root.item);
 		return [
-			{ type: 'row', item: root.item, guides: [] },
-			...root.children.map((child) => toEntry(child, ['bar'], path, tree))
+			{ type: 'row', item: root.item, depth: 1 },
+			...root.children.map((child) => toEntry(child, 1, path, tree))
 		];
 	}
-	return forest.map((node) => toEntry(node, [], groupKey, tree));
+	return forest.map((node) => toEntry(node, 0, groupKey, tree));
 }
 
 /** Every row of a group's entries, in the order they are drawn. */
@@ -176,11 +179,11 @@ export function flattenTreeEntries<T>(entries: TreeEntry<T>[]): T[] {
 
 function toEntry<T>(
 	node: TreeNode<T>,
-	guides: TreeGuide[],
+	depth: number,
 	parentPath: string,
 	tree: TreeConfig<T>
 ): TreeEntry<T> {
-	if (node.children.length === 0) return { type: 'row', item: node.item, guides };
+	if (node.children.length === 0) return { type: 'row', item: node.item, depth };
 
 	const key = parentPath + PATH_SEPARATOR + tree.key(node.item);
 	return {
@@ -188,10 +191,10 @@ function toEntry<T>(
 		key,
 		label: tree.label(node.item),
 		count: subtreeSize(node),
-		guides,
+		depth,
 		entries: [
-			{ type: 'row', item: node.item, guides: [...guides, 'space'] },
-			...node.children.map((child) => toEntry(child, [...guides, 'bar'], key, tree))
+			{ type: 'row', item: node.item, depth: depth + 1 },
+			...node.children.map((child) => toEntry(child, depth + 1, key, tree))
 		]
 	};
 }
