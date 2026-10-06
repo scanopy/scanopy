@@ -5,7 +5,7 @@
 	title, set in the title's style (Home's organization name); neither adds a second line.
 
 	A page with sub-tabs (Daemons and API Keys) passes `tabs` instead of a title: the tabs take the
-	title's place, styled as titles, so the toolbar below sits where it does on a single page. The
+	title's place, styled as titles and underlined like modal tabs, so the toolbar below sits where it does on a single page. The
 	sub-tab pages' own titles then render nothing, through `providePageTabs`.
 -->
 <script module lang="ts">
@@ -57,21 +57,26 @@
 {#if !hidden}
 	<div class="mb-2 flex h-[38px] min-w-0 items-center gap-2">
 		{#if tabs}
-			<div class="flex min-w-0 items-center gap-5" role="tablist" aria-label={common_contentTabs()}>
+			<div
+				class="-ml-1 flex min-w-0 gap-5 self-stretch"
+				role="tablist"
+				aria-label={common_contentTabs()}
+			>
 				{#each tabs as tab (tab.id)}
 					<button
 						type="button"
 						role="tab"
 						aria-selected={tab.id === activeTab}
-						class="relative shrink-0 text-xl font-bold transition-colors {tab.id === activeTab
-							? 'text-primary'
-							: 'text-tertiary hover:text-secondary'}"
+						class="relative flex shrink-0 items-center border-y-2 border-t-transparent px-1 text-xl font-bold transition-colors {tab.id ===
+						activeTab
+							? 'text-primary border-b-blue-500'
+							: 'text-muted hover:text-secondary border-b-transparent'}"
 						onclick={() => onSelectTab(tab.id)}
 					>
 						{tab.label}
 						{#if tab.notification}
 							<span
-								class="absolute -right-2 top-0.5 h-2 w-2 rounded-full"
+								class="absolute -right-1 top-2 h-2 w-2 rounded-full"
 								style="background-color: {tab.notification}"
 							></span>
 						{/if}
