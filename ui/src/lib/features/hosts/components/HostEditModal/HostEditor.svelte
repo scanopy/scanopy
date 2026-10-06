@@ -495,7 +495,7 @@
 	onClose={handleClose}
 	onOpen={handleOpen}
 	onSubEntityNavigation={handleSubEntityNavigation}
-	size="full"
+	size="wide"
 	showCloseButton={true}
 	{tabs}
 	{activeTab}

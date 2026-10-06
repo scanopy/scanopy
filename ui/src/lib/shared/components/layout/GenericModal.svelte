@@ -20,7 +20,7 @@
 
 <script lang="ts">
 	import { untrack, type Snippet } from 'svelte';
-	import { ArrowLeft, X } from 'lucide-svelte';
+	import { ArrowLeft, ChevronLeft, ChevronRight, X } from 'lucide-svelte';
 	import type { AnyFormApi } from '@tanstack/form-core';
 	import {
 		common_closeModal,
@@ -85,7 +85,7 @@
 		centerTitle?: boolean;
 		isOpen?: boolean;
 		onClose?: (() => void) | null;
-		size?: 'sm' | 'md' | 'lg' | 'xl' | 'full' | 'max';
+		size?: 'sm' | 'md' | 'lg' | 'xl' | 'wide' | 'full' | 'max';
 		/**
 		 * What the modal is positioned against. `viewport` covers the whole window; `container`
 		 * fills the nearest positioned ancestor instead, for a modal that belongs to one region of
@@ -319,6 +319,7 @@
 		md: 'max-w-lg',
 		lg: 'max-w-2xl',
 		xl: 'max-w-4xl',
+		wide: 'max-w-6xl',
 		full: 'max-w-7xl',
 		max: 'max-w-none w-full'
 	};
@@ -366,7 +367,7 @@
 	<div
 		class="{showBackdrop ? 'modal-page modal-background' : 'modal-page'} {anchor === 'container'
 			? 'modal-page-anchored'
-			: ''} {compactPadding ? '!px-2 !py-1 sm:!px-4 sm:!py-4' : ''}"
+			: ''} {compactPadding ? '!px-2 !py-1 sm:!px-4 sm:!py-4' : ''} {listOrder ? 'sm:!px-16' : ''}"
 		onclick={handleBackdropClick}
 		role="dialog"
 		aria-modal="true"
@@ -387,13 +388,20 @@
 			</button>
 		{/if}
 
+		<!-- Previous / next entity, over the backdrop either side of the panel. The backdrop's
+		     side gutter (below) keeps the panel clear of them at every size. -->
+		{#if listOrder}
+			{@render entityStep('ArrowLeft', previousId, common_previous(), 'left-3')}
+			{@render entityStep('ArrowRight', nextId, common_next(), 'right-3')}
+		{/if}
+
 		<!-- Modal content -->
 		<div
 			class="relative {borderless ? '' : 'modal-container'} {sizeClasses[size]} {compactPadding
-				? size === 'full' || fixedHeight
+				? size === 'full' || size === 'wide' || fixedHeight
 					? 'h-[calc(100vh-1rem)] sm:h-[calc(100vh-2rem)]'
 					: 'max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-2rem)]'
-				: size === 'full' || fixedHeight
+				: size === 'full' || size === 'wide' || fixedHeight
 					? 'h-[calc(100vh-2rem)] sm:h-[calc(100vh-8rem)]'
 					: 'max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-8rem)]'} flex w-full flex-col"
 		>
@@ -445,31 +453,6 @@
 
 							{#if inlineTabs}
 								{@render tabNav(true)}
-							{/if}
-
-							{#if listOrder}
-								<div class="ml-auto mr-2 flex shrink-0 items-center gap-1">
-									<button
-										type="button"
-										class="btn-icon p-1 disabled:opacity-40"
-										disabled={!previousId}
-										onclick={() => previousId && requestNavigation(previousId)}
-										aria-label={common_previous()}
-										title={common_previous()}
-									>
-										<KbdKey key={keyLabel('ArrowLeft')} size="sm" />
-									</button>
-									<button
-										type="button"
-										class="btn-icon p-1 disabled:opacity-40"
-										disabled={!nextId}
-										onclick={() => nextId && requestNavigation(nextId)}
-										aria-label={common_next()}
-										title={common_next()}
-									>
-										<KbdKey key={keyLabel('ArrowRight')} size="sm" />
-									</button>
-								</div>
 							{/if}
 
 							{#if showCloseButton}
@@ -545,6 +528,28 @@
 		</div>
 	</div>
 {/if}
+
+{#snippet entityStep(key: string, targetId: string | null, label: string, side: string)}
+	<button
+		type="button"
+		disabled={!targetId}
+		onclick={() => targetId && requestNavigation(targetId)}
+		class="fixed {side} top-1/2 z-50 hidden -translate-y-1/2 flex-col items-center gap-1.5 rounded-full p-1 text-gray-200 transition-colors hover:text-white disabled:cursor-default disabled:opacity-30 sm:flex"
+		aria-label={label}
+		title={label}
+	>
+		<span
+			class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20"
+		>
+			{#if key === 'ArrowLeft'}
+				<ChevronLeft class="h-6 w-6" />
+			{:else}
+				<ChevronRight class="h-6 w-6" />
+			{/if}
+		</span>
+		<KbdKey key={keyLabel(key)} size="sm" />
+	</button>
+{/snippet}
 
 <ConfirmationDialog
 	isOpen={pendingNavigationId !== null}
