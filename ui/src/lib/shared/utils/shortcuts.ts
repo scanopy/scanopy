@@ -23,6 +23,10 @@ export function keyLabel(key: string, platform = currentPlatform): string {
 			return apple ? '⇧' : 'Shift';
 		case 'Escape':
 			return 'Esc';
+		case 'ArrowLeft':
+			return '←';
+		case 'ArrowRight':
+			return '→';
 		default:
 			return key;
 	}
@@ -32,4 +36,14 @@ export function keyLabel(key: string, platform = currentPlatform): string {
 export function shortcutLabel(key: string, platform = currentPlatform): string {
 	const mod = keyLabel('Mod', platform);
 	return isApplePlatform(platform) ? `${mod}${key}` : `${mod} ${key}`;
+}
+
+/**
+ * Whether a keypress landed in something that edits text: an input, textarea, select or
+ * contenteditable. Single-key shortcuts skip these so the key still types or moves the cursor.
+ */
+export function isEditableTarget(target: EventTarget | null): boolean {
+	const el = target as HTMLElement | null;
+	if (!el || typeof el.tagName !== 'string') return false;
+	return el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName);
 }

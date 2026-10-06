@@ -288,4 +288,49 @@ impl Entity for Vlan {
     fn set_updated_at(&mut self, time: DateTime<Utc>) {
         self.updated_at = time;
     }
+
+    fn preserve_immutable_fields(&mut self, existing: &Self) {
+        // A VLAN is identified by (site_id, vlan_number). Create enforces that pair is unique
+        // per site; an update has no such check, so neither half may move on update.
+        self.base.vlan_number = existing.base.vlan_number;
+        self.base.site_id = existing.base.site_id;
+        self.base.organization_id = existing.base.organization_id;
+        self.base.source = existing.base.source.clone();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::server::shared::types::entities::EntitySource;
+
+    #[test]
+    fn update_cannot_change_vlan_identity() {
+        let existing = Vlan {
+            base: VlanBase {
+                vlan_number: 20,
+                name: "Servers".to_string(),
+                site_id: Uuid::new_v4(),
+                organization_id: Uuid::new_v4(),
+                source: EntitySource::Manual,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let mut request = existing.clone();
+        request.base.name = "Server farm".to_string();
+        request.base.description = Some("Rack A".to_string());
+        request.base.vlan_number = 30;
+        request.base.site_id = Uuid::new_v4();
+        request.base.organization_id = Uuid::new_v4();
+
+        request.preserve_immutable_fields(&existing);
+
+        assert_eq!(request.base.name, "Server farm");
+        assert_eq!(request.base.description.as_deref(), Some("Rack A"));
+        assert_eq!(request.base.vlan_number, 20);
+        assert_eq!(request.base.site_id, existing.base.site_id);
+        assert_eq!(request.base.organization_id, existing.base.organization_id);
+    }
 }

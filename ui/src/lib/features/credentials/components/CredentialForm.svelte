@@ -53,7 +53,9 @@
 	} from '../utils/fieldValues';
 	import {
 		common_description,
+		common_details,
 		common_name,
+		common_options,
 		credentials_credentialType,
 		credentials_daemonOs,
 		credentials_daemonOsHelp,
@@ -234,6 +236,18 @@
 		}
 		return groups;
 	});
+
+	let visibleFieldGroups = $derived(fieldGroups.filter((g) => g.fields.length > 0));
+
+	// One group on screen sits on the modal surface; two or more each get a titled card.
+	let useGroupCards = $derived(
+		(section !== 'fields' ? 1 : 0) + (section !== 'identity' ? visibleFieldGroups.length : 0) > 1
+	);
+
+	// Ungrouped fields (e.g. SNMPv3's context name) need a title once they sit beside named groups.
+	function groupTitle(name: string | null): string {
+		return name ?? common_options();
+	}
 
 	// Track target IPs as local $state for reactivity (TanStack Form doesn't drive Svelte 5 reactivity)
 	let targetIpValues = $state<string[]>(['']);
@@ -786,8 +800,9 @@
 	}
 </script>
 
-<!-- The selected type's integration guide. One rendering for the dedicated modal (below the
-     type picker) and the daemon/discovery wizards (top of each compact row). -->
+<!-- The selected type's integration guide. One rendering for the dedicated modal (top of the
+     identity section, with the other feedback boxes) and the daemon/discovery wizards (top of each
+     compact row). -->
 {#snippet integrationDocsHint()}
 	{#if integrationDocsPath}
 		<DocsHint
@@ -941,15 +956,13 @@
 					{/snippet}
 				</form.Field>
 
-				{#each fieldGroups as group (group.name ?? '_ungrouped')}
-					{#if group.name}
-						<InfoCard title={group.name}>
+				{#each visibleFieldGroups as group (group.name ?? '_ungrouped')}
+					{#if visibleFieldGroups.length > 1}
+						<InfoCard title={groupTitle(group.name)}>
 							{@render fieldList(group.fields)}
 						</InfoCard>
-					{:else if group.fields.length > 0}
-						<InfoCard title={null}>
-							{@render fieldList(group.fields)}
-						</InfoCard>
+					{:else}
+						{@render fieldList(group.fields)}
 					{/if}
 				{/each}
 			</fieldset>
@@ -964,78 +977,31 @@
 		}}
 		class="flex flex-col gap-4"
 	>
-		<!-- Standard mode: card wrapper for name/type, separate cards for fields. A caller showing one
-		     section unmounts the other's fields, so validation only reaches what is on screen; the
-		     values and modes live in this component and the form, and survive. -->
+		<!-- Standard mode: name/type and each field group are separate groups. One group on screen
+		     sits on the surface; two or more each get a titled card. A caller showing one section
+		     unmounts the other's fields, so validation only reaches what is on screen; the values and
+		     modes live in this component and the form, and survive. -->
 		{#if section !== 'fields'}
-			<div class="card card-static space-y-4 p-4">
-				{#if showName}
-					<form.Field
-						name={nameFieldName}
-						validators={{
-							onBlur: ({ value }: { value: string }) => required(value) || max(100)(value),
-							onSubmit: ({ value }: { value: string }) => required(value) || max(100)(value)
-						}}
-					>
-						{#snippet children(field: AnyFieldApi)}
-							<TextInput
-								label={common_name()}
-								id="credential-name"
-								{field}
-								placeholder={credentials_namePlaceholderExample()}
-								required
-							/>
-						{/snippet}
-					</form.Field>
-
-					<form.Field
-						name="description"
-						validators={{
-							onBlur: ({ value }: { value: string | null }) => max(500)(value || '')
-						}}
-					>
-						{#snippet children(field: AnyFieldApi)}
-							<TextArea
-								label={common_description()}
-								id="credential-description"
-								{field}
-								placeholder={credentials_descriptionPlaceholder()}
-							/>
-						{/snippet}
-					</form.Field>
-				{/if}
-
-				{#if showTypeSelector}
-					<div class="space-y-2">
-						<RichSelect
-							label={credentials_credentialType()}
-							selectedValue={selectedTypeId}
-							options={typeOptions}
-							displayComponent={CredentialTypeDisplay}
-							showSearch={true}
-							disabled={isEditing}
-							onSelect={handleTypeChange}
-						/>
-						{#if !isEditing}
-							<p class="text-muted mt-1 text-xs">{credentials_typeImmutableWarning()}</p>
-						{/if}
-					</div>
-				{/if}
-
-				{@render integrationDocsHint()}
-			</div>
+			{@render integrationDocsHint()}
+			{#if useGroupCards}
+				<InfoCard title={common_details()}>
+					{@render identityFields()}
+				</InfoCard>
+			{:else}
+				<div class="space-y-4">
+					{@render identityFields()}
+				</div>
+			{/if}
 		{/if}
 
 		{#if section !== 'identity'}
-			{#each fieldGroups as group (group.name ?? '_ungrouped')}
-				{#if group.name}
-					<InfoCard title={group.name}>
+			{#each visibleFieldGroups as group (group.name ?? '_ungrouped')}
+				{#if useGroupCards}
+					<InfoCard title={groupTitle(group.name)}>
 						{@render fieldList(group.fields)}
 					</InfoCard>
-				{:else if group.fields.length > 0}
-					<div class="card card-static space-y-4 p-4">
-						{@render fieldList(group.fields)}
-					</div>
+				{:else}
+					{@render fieldList(group.fields)}
 				{/if}
 			{/each}
 		{/if}
@@ -1044,6 +1010,61 @@
 		<button type="submit" class="hidden" aria-hidden="true" tabindex={-1}></button>
 	</form>
 {/if}
+
+{#snippet identityFields()}
+	{#if showName}
+		<form.Field
+			name={nameFieldName}
+			validators={{
+				onBlur: ({ value }: { value: string }) => required(value) || max(100)(value),
+				onSubmit: ({ value }: { value: string }) => required(value) || max(100)(value)
+			}}
+		>
+			{#snippet children(field: AnyFieldApi)}
+				<TextInput
+					label={common_name()}
+					id="credential-name"
+					{field}
+					placeholder={credentials_namePlaceholderExample()}
+					required
+				/>
+			{/snippet}
+		</form.Field>
+
+		<form.Field
+			name="description"
+			validators={{
+				onBlur: ({ value }: { value: string | null }) => max(500)(value || '')
+			}}
+		>
+			{#snippet children(field: AnyFieldApi)}
+				<TextArea
+					label={common_description()}
+					id="credential-description"
+					{field}
+					placeholder={credentials_descriptionPlaceholder()}
+				/>
+			{/snippet}
+		</form.Field>
+	{/if}
+
+	{#if showTypeSelector}
+		<div class="space-y-2">
+			<RichSelect
+				label={credentials_credentialType()}
+				selectedValue={selectedTypeId}
+				options={typeOptions}
+				displayComponent={CredentialTypeDisplay}
+				showSearch={true}
+				disabled={isEditing}
+				onSelect={handleTypeChange}
+			/>
+			{#if !isEditing}
+				<p class="text-muted mt-1 text-xs">{credentials_typeImmutableWarning()}</p>
+			{/if}
+		</div>
+	{/if}
+{/snippet}
 
 {#snippet daemonOsPicker()}
 	<form.Field name="{fieldPrefix}{DAEMON_OS_FIELD}">

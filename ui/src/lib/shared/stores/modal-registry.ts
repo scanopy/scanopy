@@ -1,6 +1,7 @@
 import { get, writable } from 'svelte/store';
+import { SvelteSet } from 'svelte/reactivity';
 import type { EntityDiscriminants } from '$lib/api/entities';
-import { entityUIConfig, TAB_LABELS } from '$lib/shared/entity-ui-config';
+import { entityModalNames, entityUIConfig, TAB_LABELS } from '$lib/shared/entity-ui-config';
 import { reopenGlobalSearch } from '$lib/features/search/results';
 
 /** Return-URL parameter carrying the global search query an entity was opened from. */
@@ -268,4 +269,65 @@ function syncToUrl(state: ModalState): void {
 		url.searchParams.delete('subEntityId');
 	}
 	window.history.replaceState({}, '', url.toString());
+}
+
+/**
+ * An entity list on screen, as its rows render: filtered, sorted, grouped and paginated.
+ * `DataControls` registers one per mounted list so an open entity modal can step through it.
+ */
+export interface EntityListSource {
+	ids: () => string[];
+	/** False while the list's page is mounted but not the one on screen. */
+	isVisible: () => boolean;
+}
+
+const entityListSources = new SvelteSet<EntityListSource>();
+
+/** Register a list. Returns the unregister function, for use as an effect teardown. */
+export function registerEntityList(source: EntityListSource): () => void {
+	entityListSources.add(source);
+	return () => entityListSources.delete(source);
+}
+
+/**
+ * The row order of the on-screen list that contains `entityId`, or null when no visible list
+ * holds it (opened from topology, or filtered out of its own list). Entity ids are UUIDs, so the
+ * list that contains the id is the list the modal belongs to. Null too when `modalName` is not an
+ * entity's own modal: a dialog that acts on one entity, such as resolving a subnet's range, has
+ * no neighbour to step to.
+ */
+export function entityListOrderFor(modalName: string, entityId: string): string[] | null {
+	if (!entityModalNames.has(modalName)) return null;
+	for (const source of entityListSources) {
+		const ids = source.ids();
+		if (ids.includes(entityId) && source.isVisible()) return ids;
+	}
+	return null;
+}
+
+/**
+ * The id one step from `entityId` in `order`, or null at either end or when `entityId` is not
+ * in the list. The ends stop rather than wrap, so holding an arrow key halts on the last row.
+ */
+export function adjacentEntityId(
+	order: string[] | null,
+	entityId: string,
+	step: -1 | 1
+): string | null {
+	if (!order) return null;
+	const index = order.indexOf(entityId);
+	if (index === -1) return null;
+	return order[index + step] ?? null;
+}
+
+/**
+ * Whether `el` sits on the list page on screen. Every list page stays mounted; an inactive one
+ * sits in a zero-height, overflow-hidden wrapper, so it still lays out and `offsetParent` can't
+ * tell.
+ */
+export function isOnVisiblePage(el: HTMLElement | null | undefined): boolean {
+	for (let node: HTMLElement | null = el ?? null; node; node = node.parentElement) {
+		if (node.clientHeight === 0 && getComputedStyle(node).overflow === 'hidden') return false;
+	}
+	return !!el;
 }

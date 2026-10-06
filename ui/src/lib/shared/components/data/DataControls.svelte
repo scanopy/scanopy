@@ -99,6 +99,7 @@
 	import { computeCommonTags } from '$lib/shared/utils/tags';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import throttle from 'just-throttle';
+	import { isOnVisiblePage, registerEntityList } from '$lib/shared/stores/modal-registry';
 	import type { components } from '$lib/api/schema';
 
 	type PaginationMeta = components['schemas']['PaginationMeta'];
@@ -687,6 +688,19 @@
 		pageSlice(processedItems, effectiveCurrentPage, pageSize, useServerPagination)
 	);
 
+	/** Every row in the order the table renders it: the current page, or each group's rows in turn. */
+	let orderedItems = $derived(
+		hasActiveGrouping ? groupList.flatMap((group) => group.items) : paginatedItems
+	);
+
+	// Lets an open entity modal step to the previous or next row with the arrow keys.
+	$effect(() =>
+		registerEntityList({
+			ids: () => orderedItems.map(getItemId),
+			isVisible: () => isOnVisiblePage(sentinelRef)
+		})
+	);
+
 	function setRowSelected(itemId: string, selected: boolean) {
 		if (selected) {
 			selectedIds.add(itemId);
@@ -955,7 +969,7 @@
 {/snippet}
 
 {#snippet tableFor(rows: T[] | null, caption: string | null)}
-	{@const flat = rows ?? groupList.flatMap((group) => group.items)}
+	{@const flat = rows ?? orderedItems}
 	<EntityTable
 		items={rows}
 		groups={rows ? null : groupList}

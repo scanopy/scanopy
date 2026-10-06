@@ -24,7 +24,6 @@
 		hosts_consolidateModal_interfacesMigrated,
 		hosts_consolidateModal_portsMigrated,
 		hosts_consolidateModal_previewSubtitle,
-		hosts_consolidateModal_previewTitle,
 		hosts_consolidateModal_selectHost,
 		hosts_consolidateModal_servicesMigrated,
 		hosts_consolidateModal_title,
@@ -207,7 +206,7 @@
 			<!-- Step 1: Target Selection -->
 			<div>
 				<!-- Source host info -->
-				<div class="card mb-6">
+				<div class="card card-static mb-6">
 					<EntityDisplay
 						context={hostDisplayContext(ipAddressesData, otherHostServices.services)}
 						item={otherHost}
@@ -238,26 +237,18 @@
 			</div>
 		{:else}
 			<!-- Step 2: Conversion Preview -->
-			<div>
-				<div class="mb-6 text-center">
-					<h3 class="text-primary mb-2 text-lg font-medium">
-						{hosts_consolidateModal_previewTitle()}
-					</h3>
-					<p class="text-secondary text-sm">
-						{hosts_consolidateModal_previewSubtitle()}
-					</p>
-				</div>
+			<div class="space-y-4">
+				<InlineWarning
+					title={hosts_consolidateModal_warningTitle()}
+					body={hosts_consolidateModal_warningBody()}
+				/>
+
+				<p class="text-secondary text-sm">
+					{hosts_consolidateModal_previewSubtitle()}
+				</p>
 
 				<!-- Details of what will happen -->
 				<EntityList title="" items={consolidationActions} />
-
-				<!-- Warning -->
-				<div class="mt-4">
-					<InlineWarning
-						title={hosts_consolidateModal_warningTitle()}
-						body={hosts_consolidateModal_warningBody()}
-					/>
-				</div>
 			</div>
 		{/if}
 	</div>

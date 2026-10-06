@@ -148,6 +148,7 @@
 	{title}
 	{name}
 	entityId={service?.id}
+	{form}
 	{onClose}
 	onOpen={handleOpen}
 	size="xl"

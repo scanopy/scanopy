@@ -26,7 +26,6 @@
 		common_delete,
 		common_deleting,
 		common_description,
-		common_details,
 		common_editName,
 		common_icon,
 		common_name,
@@ -151,7 +150,14 @@
 		}
 	}
 
-	let colorHelper = $derived(createColorHelper(form.state.values.color));
+	// Mirrored from the form store: form.state.values is not tracked by $derived.
+	let colorValue = $state(createDefaultTag('').color);
+	$effect(() => {
+		return form.store.subscribe(() => {
+			colorValue = form.state.values.color;
+		});
+	});
+	let colorHelper = $derived(createColorHelper(colorValue));
 </script>
 
 <GenericModal
@@ -159,6 +165,7 @@
 	{title}
 	{name}
 	entityId={tag?.id}
+	{form}
 	size="xl"
 	{onClose}
 	onOpen={handleOpen}
@@ -180,8 +187,6 @@
 			<div class="space-y-8">
 				<!-- Tag Details Section -->
 				<div class="space-y-4">
-					<h3 class="text-primary text-lg font-medium">{common_details()}</h3>
-
 					<form.Field
 						name="name"
 						validators={{

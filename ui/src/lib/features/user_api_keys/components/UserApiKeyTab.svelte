@@ -52,7 +52,7 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { billingPlans } from '$lib/shared/stores/metadata';
 	import UpgradeButton from '$lib/shared/components/UpgradeButton.svelte';
-	import { modalState } from '$lib/shared/stores/modal-registry';
+	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 
 	let { isReadOnly = false }: TabProps = $props();
 
@@ -87,19 +87,18 @@
 	let showModal = $state(false);
 	let editingApiKey = $state<UserApiKey | null>(null);
 
-	// Deep-link: open user API key editor from URL
+	// Deep-link: open user API key editor from URL (handles both fresh open and entity switch)
 	$effect(() => {
-		if ($modalState.name === 'user-api-key' && !showModal) {
-			if ($modalState.id) {
-				const entity = userApiKeysData.find((e) => e.id === $modalState.id);
-				if (entity) {
-					editingApiKey = entity;
-					showModal = true;
-				}
-			} else {
-				editingApiKey = null;
-				showModal = true;
-			}
+		const result = resolveModalDeepLink(
+			$modalState,
+			'user-api-key',
+			userApiKeysData,
+			showModal,
+			editingApiKey?.id
+		);
+		if (result !== undefined) {
+			editingApiKey = result;
+			showModal = true;
 		}
 	});
 

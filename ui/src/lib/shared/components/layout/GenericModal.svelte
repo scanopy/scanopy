@@ -13,12 +13,29 @@
 		count?: number;
 		disabled?: boolean;
 	}
+
+	/** Open modals, oldest first. Only the last one answers keys shared by every modal. */
+	const openModals: symbol[] = [];
 </script>
 
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import { ArrowLeft, X } from 'lucide-svelte';
-	import { common_closeModal, common_modal, common_modalTabs } from '$lib/paraglide/messages';
+	import type { AnyFormApi } from '@tanstack/form-core';
+	import {
+		common_closeModal,
+		common_discard,
+		common_discardChangesMessage,
+		common_discardChangesTitle,
+		common_keepEditing,
+		common_modal,
+		common_modalTabs,
+		common_next,
+		common_previous
+	} from '$lib/paraglide/messages';
+	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
+	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
+	import { isEditableTarget, keyLabel } from '$lib/shared/utils/shortcuts';
 	import ModalStepper from './ModalStepper.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import { toColor } from '$lib/shared/utils/styling';
@@ -27,6 +44,8 @@
 		modalState,
 		openModal,
 		closeModal,
+		adjacentEntityId,
+		entityListOrderFor,
 		restoreModal,
 		setModalTab,
 		goBack
@@ -56,6 +75,8 @@
 		instanceKey = $bindable(0),
 		name = undefined,
 		entityId = undefined,
+		form = undefined,
+		hasUnsavedChanges = undefined,
 		headerIcon,
 		banners,
 		children,
@@ -93,6 +114,13 @@
 		instanceKey?: number;
 		name?: string;
 		entityId?: string;
+		/**
+		 * The editor's form. Arrow-key navigation to the previous or next entity asks before
+		 * leaving when it holds unsaved changes.
+		 */
+		form?: AnyFormApi;
+		/** Unsaved state the editor keeps outside `form`, such as a host's interface list. */
+		hasUnsavedChanges?: () => boolean;
 		headerIcon?: Snippet;
 		/**
 		 * Rendered inside the panel frame, above the title. Opt-in: this component
@@ -119,6 +147,78 @@
 
 	// Track previous open state to detect open transition
 	let wasOpen = $state(false);
+
+	// Stacking order: a dialog opened over this one takes Escape and the arrow keys, not both.
+	const stackToken = Symbol();
+	$effect(() => {
+		if (!isOpen) return;
+		openModals.push(stackToken);
+		return () => {
+			openModals.splice(openModals.indexOf(stackToken), 1);
+		};
+	});
+
+	function isTopmost(): boolean {
+		return openModals.at(-1) === stackToken;
+	}
+
+	// Left and Right step to the previous and next entity of the on-screen list this modal's
+	// entity belongs to. The ends stop rather than wrap.
+	let listOrder = $derived(isOpen && name && entityId ? entityListOrderFor(name, entityId) : null);
+	let previousId = $derived(entityId ? adjacentEntityId(listOrder, entityId, -1) : null);
+	let nextId = $derived(entityId ? adjacentEntityId(listOrder, entityId, 1) : null);
+
+	/** The entity a step is waiting to reach while the discard-changes dialog is up. */
+	let pendingNavigationId = $state<string | null>(null);
+	/** The entity a step has asked the registry for, until the parent hands it over. */
+	let navigatingToId: string | null = null;
+
+	function isDirty(): boolean {
+		// Dirty alone stays true after an edit is typed back to the loaded value.
+		const formDirty = !!form && form.state.isDirty && !form.state.isDefaultValue;
+		return formDirty || (hasUnsavedChanges?.() ?? false);
+	}
+
+	function requestNavigation(targetId: string) {
+		if (isDirty()) {
+			pendingNavigationId = targetId;
+		} else {
+			navigateTo(targetId);
+		}
+	}
+
+	function navigateTo(targetId: string) {
+		if (!name) return;
+		const state = get(modalState);
+		navigatingToId = targetId;
+		// The parent's deep-link effect answers the registry by handing this modal the new entity.
+		openModal(name, {
+			id: targetId,
+			tab: activeTab || undefined,
+			returnUrl: state.returnUrl ?? undefined,
+			returnTitle: state.returnTitle ?? undefined
+		});
+	}
+
+	function confirmPendingNavigation() {
+		const targetId = pendingNavigationId;
+		pendingNavigationId = null;
+		if (targetId) navigateTo(targetId);
+	}
+
+	// Once the parent has swapped in the stepped-to entity, reload the editor as a fresh open
+	// would, keeping the tab the user was on.
+	$effect(() => {
+		if (isOpen && entityId && entityId === navigatingToId) {
+			navigatingToId = null;
+			untrack(() => {
+				const tab = activeTab;
+				instanceKey++;
+				onOpen?.();
+				if (tab && tabs.some((t) => t.id === tab)) activeTab = tab;
+			});
+		}
+	});
 
 	function handleTabClick(tabId: string) {
 		activeTab = tabId;
@@ -237,8 +337,23 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape' && isOpen) {
+		if (!isOpen || !isTopmost()) return;
+		if (event.key === 'Escape') {
 			handleClose();
+			return;
+		}
+		if (
+			(event.key === 'ArrowLeft' || event.key === 'ArrowRight') &&
+			!event.altKey &&
+			!event.ctrlKey &&
+			!event.metaKey &&
+			!event.shiftKey &&
+			!isEditableTarget(event.target)
+		) {
+			const targetId = event.key === 'ArrowLeft' ? previousId : nextId;
+			if (!targetId) return;
+			event.preventDefault();
+			requestNavigation(targetId);
 		}
 	}
 </script>
@@ -255,7 +370,7 @@
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="modal-title"
-		onkeydown={(e) => e.key === 'Escape' && handleClose()}
+		onkeydown={(e) => e.key === 'Escape' && isTopmost() && handleClose()}
 		tabindex="-1"
 	>
 		<!-- Floating back button (upper-left of viewport, over backdrop) -->
@@ -331,6 +446,31 @@
 								{@render tabNav(true)}
 							{/if}
 
+							{#if listOrder}
+								<div class="ml-auto mr-2 flex shrink-0 items-center gap-1">
+									<button
+										type="button"
+										class="btn-icon p-1 disabled:opacity-40"
+										disabled={!previousId}
+										onclick={() => previousId && requestNavigation(previousId)}
+										aria-label={common_previous()}
+										title={common_previous()}
+									>
+										<KbdKey key={keyLabel('ArrowLeft')} size="sm" />
+									</button>
+									<button
+										type="button"
+										class="btn-icon p-1 disabled:opacity-40"
+										disabled={!nextId}
+										onclick={() => nextId && requestNavigation(nextId)}
+										aria-label={common_next()}
+										title={common_next()}
+									>
+										<KbdKey key={keyLabel('ArrowRight')} size="sm" />
+									</button>
+								</div>
+							{/if}
+
 							{#if showCloseButton}
 								<button
 									type="button"
@@ -404,3 +544,15 @@
 		</div>
 	</div>
 {/if}
+
+<ConfirmationDialog
+	isOpen={pendingNavigationId !== null}
+	title={common_discardChangesTitle()}
+	message={common_discardChangesMessage()}
+	confirmLabel={common_discard()}
+	cancelLabel={common_keepEditing()}
+	variant="warning"
+	onConfirm={confirmPendingNavigation}
+	onCancel={() => (pendingNavigationId = null)}
+	onClose={() => (pendingNavigationId = null)}
+/>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { effectiveTimeZone } from '$lib/shared/stores/display-settings.svelte';
 	import { createForm } from '@tanstack/svelte-form';
 	import { submitForm, validateForm } from '$lib/shared/components/forms/form-context';
@@ -295,6 +296,8 @@
 		if (!isOpen || !allCredentialsQuery.data) return;
 		if (junctionFingerprint === appliedJunctionFingerprint) return;
 		appliedJunctionFingerprint = junctionFingerprint;
+		// Attaching locked hosts is not an edit: a clean modal stays clean.
+		const wasClean = untrack(() => !hasUnsavedChanges());
 
 		const byCredential = junctionHostsByCredential;
 		const withLocked = pendingCredentials.map((p) => {
@@ -319,7 +322,19 @@
 					: [];
 			});
 		pendingCredentials = [...withLocked, ...lockedOnly];
+		if (wasClean) untrack(() => (loadedSnapshot = editableSnapshot()));
 	});
+
+	/** The editable state as loaded, to tell the user's edits from the discovery they opened. */
+	let loadedSnapshot = '';
+
+	function editableSnapshot(): string {
+		return JSON.stringify($state.snapshot({ formData, pendingCredentials, credentialIds }));
+	}
+
+	function hasUnsavedChanges(): boolean {
+		return !isHistoricalRun && editableSnapshot() !== loadedSnapshot;
+	}
 
 	// Claimed integrations (credential types) on the daemon host — feeds the shared
 	// CredentialsStep's bidirectional socket↔proxy blocking. Generic across
@@ -716,6 +731,7 @@
 			schedule_timezone: scheduleTimezone,
 			schedule_cron: scheduleCron
 		});
+		loadedSnapshot = editableSnapshot();
 	}
 
 	async function handleSubmit() {
@@ -755,6 +771,8 @@
 	{title}
 	{name}
 	entityId={discovery?.id}
+	{form}
+	{hasUnsavedChanges}
 	{onClose}
 	onOpen={handleOpen}
 	size="full"

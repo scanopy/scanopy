@@ -8,6 +8,7 @@
 
 import { writable } from 'svelte/store';
 import type { EntityDiscriminants } from '$lib/api/entities';
+import { isEditableTarget } from '$lib/shared/utils/shortcuts';
 
 /** Whether the palette is open. The sidebar's search bar and the shortcut both set it. */
 export const globalSearchOpen = writable(false);
@@ -64,11 +65,7 @@ export function isGlobalSearchShortcut(
 	if (event.key !== GLOBAL_SEARCH_KEY || event.metaKey || event.ctrlKey || event.altKey) {
 		return false;
 	}
-	const target = event.target as HTMLElement | null;
-	return !(
-		target &&
-		(target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
-	);
+	return !isEditableTarget(event.target);
 }
 
 /**

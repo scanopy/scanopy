@@ -2,15 +2,8 @@
 	import { createForm } from '@tanstack/svelte-form';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import {
-		UserPlus,
-		Copy,
-		Check,
-		Calendar,
-		Link as LinkIcon,
-		RotateCcw,
-		Send
-	} from 'lucide-svelte';
+	import { UserPlus, Copy, Check, Calendar, RotateCcw, Send } from 'lucide-svelte';
+	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import { pushSuccess, pushError } from '$lib/shared/stores/feedback';
 	import { formatTimestamp } from '$lib/shared/utils/formatting';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
@@ -22,6 +15,7 @@
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import {
+		common_access,
 		common_close,
 		common_copied,
 		common_copyLink,
@@ -89,8 +83,15 @@
 		}
 	}));
 
-	let permissionsValue = $derived(form.state.values.permissions);
-	let emailValue = $derived(form.state.values.email);
+	// Mirrored from the form store: form.state.values is not tracked by $derived.
+	let permissionsValue = $state<UserOrgPermissions>('Viewer');
+	let emailValue = $state('');
+	$effect(() => {
+		return form.store.subscribe(() => {
+			permissionsValue = form.state.values.permissions;
+			emailValue = form.state.values.email;
+		});
+	});
 	let emailValid = $derived(!emailValue || !email(emailValue));
 
 	let usingEmail = $derived(enableEmail && emailValue && emailValid);
@@ -189,106 +190,90 @@
 					{users_inviteInstructions()}
 				</p>
 
-				<!-- Permissions Selection -->
-				<form.Field name="permissions">
-					{#snippet children(field)}
-						<PermissionSelect
-							{field}
-							label={users_permissionsLevel()}
-							helpText={users_permissionsLevelHelp()}
-							disabled={!!invite}
-						/>
-					{/snippet}
-				</form.Field>
-
-				<SiteAccessSelect
-					{selectedSiteIds}
-					onChange={handleSiteChange}
-					permissionLevel={permissionsValue}
-					helpText={users_siteAccessHelp()}
-				/>
-
-				{#if enableEmail}
-					<form.Field name="email" validators={{ onBlur: ({ value }) => email(value) }}>
-						{#snippet children(field)}
-							<TextInput
-								label={common_email()}
-								id="email"
-								placeholder={users_emailPlaceholder()}
-								helpText={users_emailHelp()}
-								{field}
-							/>
-						{/snippet}
-					</form.Field>
-				{/if}
-
-				<!-- Generate Invite Button (shown when no invite exists) -->
-				{#if !invite}
-					<button
-						onclick={handleGenerateInvite}
-						type="button"
-						disabled={generatingInvite || !emailValid}
-						class="btn-primary w-full"
-					>
-						<CtaIcon class="mr-2 h-4 w-4" />
-						{generatingInvite ? ctaLoadingText : ctaText}
-					</button>
-				{/if}
-
-				<!-- Invite URL Card (shown when invite exists) -->
 				{#if invite}
-					<div class="card card-static">
-						<div class="space-y-3">
-							<div class="flex items-center gap-2">
-								<LinkIcon class="text-secondary h-4 w-4 flex-shrink-0" />
-								<h3 class="text-primary text-sm font-semibold">{users_inviteLink()}</h3>
-							</div>
-
-							<!-- URL Display -->
-							<div class="card">
-								<code class="text-primary block break-all text-sm">{formatInviteUrl(invite)}</code>
-							</div>
-
-							<!-- Copy Button -->
-							{#if isSecureContext}
-								<button
-									onclick={handleCopy}
-									type="button"
-									class="btn-primary w-full"
-									disabled={copied}
-								>
-									{#if copied}
-										<Check class="mr-2 h-4 w-4" />
-										{common_copied()}
-									{:else}
-										<Copy class="mr-2 h-4 w-4" />
-										{common_copyLink()}
-									{/if}
-								</button>
-							{/if}
-						</div>
-					</div>
-
-					<!-- Expiration Info -->
-					<div class="card card-static">
-						<div class="flex items-center gap-3">
-							<div
-								class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/10"
-							>
-								<Calendar class="h-5 w-5 text-blue-400" />
-							</div>
-							<div class="flex-1">
-								<p class="text-primary text-sm font-medium">
-									{users_expires({ timestamp: formatTimestamp(invite.expires_at) })}
-								</p>
-							</div>
-						</div>
-					</div>
-
 					<InlineWarning
 						title={users_sensitiveLink()}
 						body={users_sensitiveLinkWarning({ permissions: permissionsValue })}
 					/>
+				{/if}
+
+				<InfoCard title={common_access()}>
+					<form.Field name="permissions">
+						{#snippet children(field)}
+							<PermissionSelect
+								{field}
+								label={users_permissionsLevel()}
+								helpText={users_permissionsLevelHelp()}
+								disabled={!!invite}
+							/>
+						{/snippet}
+					</form.Field>
+
+					<SiteAccessSelect
+						{selectedSiteIds}
+						onChange={handleSiteChange}
+						permissionLevel={permissionsValue}
+						helpText={users_siteAccessHelp()}
+					/>
+
+					{#if enableEmail}
+						<form.Field name="email" validators={{ onBlur: ({ value }) => email(value) }}>
+							{#snippet children(field)}
+								<TextInput
+									label={common_email()}
+									id="email"
+									placeholder={users_emailPlaceholder()}
+									helpText={users_emailHelp()}
+									{field}
+								/>
+							{/snippet}
+						</form.Field>
+					{/if}
+
+					<!-- Generate Invite Button (shown when no invite exists) -->
+					{#if !invite}
+						<button
+							onclick={handleGenerateInvite}
+							type="button"
+							disabled={generatingInvite || !emailValid}
+							class="btn-primary w-full"
+						>
+							<CtaIcon class="mr-2 h-4 w-4" />
+							{generatingInvite ? ctaLoadingText : ctaText}
+						</button>
+					{/if}
+				</InfoCard>
+
+				{#if invite}
+					<InfoCard title={users_inviteLink()}>
+						<div class="rounded-md border border-[var(--color-border)] p-3">
+							<code class="text-primary block break-all text-sm">{formatInviteUrl(invite)}</code>
+						</div>
+
+						{#if isSecureContext}
+							<button
+								onclick={handleCopy}
+								type="button"
+								class="btn-primary w-full"
+								disabled={copied}
+							>
+								{#if copied}
+									<Check class="mr-2 h-4 w-4" />
+									{common_copied()}
+								{:else}
+									<Copy class="mr-2 h-4 w-4" />
+									{common_copyLink()}
+								{/if}
+							</button>
+						{/if}
+
+						<div class="flex items-center gap-2">
+							<Calendar class="text-secondary h-4 w-4 flex-shrink-0" />
+							<p class="text-secondary text-sm">
+								{users_expires({ timestamp: formatTimestamp(invite.expires_at) })}
+							</p>
+						</div>
+					</InfoCard>
 				{/if}
 			</div>
 		</div>

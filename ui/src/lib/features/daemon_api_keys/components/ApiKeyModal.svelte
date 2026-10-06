@@ -152,6 +152,7 @@
 	{title}
 	{name}
 	entityId={apiKey?.id}
+	{form}
 	size="xl"
 	onClose={handleOnClose}
 	onOpen={handleOpen}

@@ -19,7 +19,6 @@
 		common_enableApiKey,
 		common_expirationDateOptional,
 		common_expirationNeverHelp,
-		common_keyDetails,
 		common_name,
 		daemonApiKeys_enableApiKeyHelp,
 		daemonApiKeys_namePlaceholder
@@ -38,8 +37,6 @@
 		showName?: boolean;
 		/** Hide the tag picker where tags aren't meaningful for the key. */
 		showTags?: boolean;
-		/** Hide the "Key Details" heading when the surrounding tab already labels the section. */
-		showHeading?: boolean;
 	}
 
 	let {
@@ -51,8 +48,7 @@
 		onRotate,
 		showSite = true,
 		showName = true,
-		showTags = true,
-		showHeading = true
+		showTags = true
 	}: Props = $props();
 
 	// Minimum selectable expiry (now), in the local format datetime-local expects.
@@ -66,10 +62,6 @@
 
 <div class="space-y-6">
 	<div class="space-y-4">
-		{#if showHeading}
-			<h3 class="text-primary text-lg font-medium">{common_keyDetails()}</h3>
-		{/if}
-
 		{#if showName}
 			<form.Field
 				name="name"

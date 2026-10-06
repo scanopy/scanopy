@@ -27,7 +27,6 @@
 		common_create,
 		common_delete,
 		common_deleting,
-		common_details,
 		common_editName,
 		common_name,
 		common_saving,
@@ -190,6 +189,7 @@
 	{title}
 	{name}
 	entityId={site?.id}
+	{form}
 	size="xl"
 	onClose={handleClose}
 	onOpen={handleOpen}
@@ -211,8 +211,6 @@
 			<div class="space-y-8">
 				<!-- Site Details Section -->
 				<div class="space-y-4">
-					<h3 class="text-primary text-lg font-medium">{common_details()}</h3>
-
 					<form.Field
 						name="name"
 						validators={{

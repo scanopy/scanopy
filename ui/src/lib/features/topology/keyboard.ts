@@ -4,6 +4,7 @@ import { searchOpen, clearSearch } from './interactions';
 import { clearSelection, type SelectionStores } from './selection';
 import type BaseTopologyViewer from './components/visualization/BaseTopologyViewer.svelte';
 import { isFindShortcut } from '$lib/features/search/results';
+import { isEditableTarget } from '$lib/shared/utils/shortcuts';
 
 export interface KeyboardShortcutHandlers {
 	getBaseViewer: () => BaseTopologyViewer | null;
@@ -12,14 +13,6 @@ export interface KeyboardShortcutHandlers {
 	selectionStores: SelectionStores;
 	/** Guard — return false to skip all shortcuts (e.g. tab not active) */
 	isEnabled?: () => boolean;
-}
-
-function isInputElement(target: EventTarget | null): boolean {
-	if (!target || !(target instanceof HTMLElement)) return false;
-	const tag = target.tagName.toLowerCase();
-	if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
-	if (target.isContentEditable) return true;
-	return false;
 }
 
 /**
@@ -44,7 +37,7 @@ export function createTopologyKeydownHandler(handlers: KeyboardShortcutHandlers)
 		}
 
 		// Skip shortcuts when typing in inputs (except Escape handled above)
-		if (isInputElement(event.target)) return;
+		if (isEditableTarget(event.target)) return;
 
 		if (isFindShortcut(event)) {
 			event.preventDefault();
