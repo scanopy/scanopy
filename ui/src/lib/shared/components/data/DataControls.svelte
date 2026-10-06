@@ -32,6 +32,7 @@
 	import {
 		groupItems as groupItemsBy,
 		buildTreeSections,
+		isSingleRootTree,
 		flattenTreeEntries,
 		computeGroupOffsets,
 		serverGroupKey as serverGroupKeyOf,
@@ -502,7 +503,8 @@
 				name,
 				items: entries ? flattenTreeEntries(entries) : groupItems,
 				range: groupRange(groupItems),
-				entries
+				entries,
+				headed: !(entries && activeTree && isSingleRootTree(entries, activeTree.tree))
 			};
 		})
 	);

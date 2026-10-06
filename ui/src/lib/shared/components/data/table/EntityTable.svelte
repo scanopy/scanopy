@@ -29,9 +29,9 @@
 	import TreeGuides from '../TreeGuides.svelte';
 	import { tooltip } from '$lib/shared/actions/tooltip';
 	import { getFieldValue } from '../controls/fieldValues';
-	import type { RenderGroup, TreeEntry, TreeSection } from '../controls/grouping';
+	import type { RenderGroup, TreeCell, TreeEntry } from '../controls/grouping';
 	import type { SortState } from '../controls/sorting';
-	import type { CardAction } from '../types';
+	import type { CardAction, GroupSlice } from '../types';
 	import {
 		common_actions,
 		common_selectRow,
@@ -39,7 +39,9 @@
 		common_deselectAll,
 		common_selectAllOnPage,
 		common_groupTotalShowing,
-		common_resizeColumn
+		common_resizeColumn,
+		common_expand,
+		common_collapse
 	} from '$lib/paraglide/messages';
 
 	let {
@@ -252,13 +254,6 @@
 	/** Header checkbox, plus every data column, plus the actions column. */
 	let spannedColumns = $derived(columns.length + (selectable ? 1 : 0) + (getActions ? 1 : 0));
 
-	/**
-	 * A tree section header spans every column after the checkbox, so its chevron and guide lines
-	 * start where the rows' primary cell does and its lines meet theirs. Assumes the primary column
-	 * comes first, as every tab declares it.
-	 */
-	let sectionSpan = $derived(spannedColumns - (selectable ? 1 : 0));
-
 	function entryKey(entry: TreeEntry<T>): string {
 		return entry.type === 'row' ? getItemId(entry.item) : entry.key;
 	}
@@ -382,52 +377,56 @@
 		<tbody>
 			{#if groups}
 				{#each groups as group (group.key)}
-					{@const isCollapsed = collapsed.has(group.key)}
-					<tr class="border-t" style="border-color: var(--color-border)">
-						<!--
+					{@const isCollapsed = group.headed && collapsed.has(group.key)}
+					{#if group.headed}
+						<tr class="border-t" style="border-color: var(--color-border)">
+							<!--
 							scope="colgroup": this heading names the rows beneath it rather
 							than a column, so it is announced as the section it is.
 						-->
-						<th
-							scope="colgroup"
-							colspan={spannedColumns}
-							class="bg-black/[0.07] px-[var(--cell-px)] py-[var(--cell-py)] text-left dark:bg-white/[0.08]"
-						>
-							<button
-								type="button"
-								onclick={() => onToggleCollapse(group.key)}
-								aria-expanded={!isCollapsed}
-								class="text-primary flex items-center gap-2 text-sm font-semibold"
+							<th
+								scope="colgroup"
+								colspan={spannedColumns}
+								class="bg-black/[0.07] px-[var(--cell-px)] py-[var(--cell-py)] text-left dark:bg-white/[0.08]"
 							>
-								{#if isCollapsed}
-									<ChevronRight class="h-4 w-4" aria-hidden="true" />
-								{:else}
-									<ChevronDown class="h-4 w-4" aria-hidden="true" />
-								{/if}
-								<span>{group.name}</span>
-								<span class="text-tertiary text-xs font-normal">
-									{#if group.range}
-										{common_groupTotalShowing({
-											total: group.range.total,
-											start: group.range.start,
-											end: group.range.end
-										})}
+								<button
+									type="button"
+									onclick={() => onToggleCollapse(group.key)}
+									aria-expanded={!isCollapsed}
+									class="text-primary flex items-center gap-2 text-sm font-semibold"
+								>
+									{#if isCollapsed}
+										<ChevronRight class="h-4 w-4" aria-hidden="true" />
 									{:else}
-										({group.items.length})
+										<ChevronDown class="h-4 w-4" aria-hidden="true" />
 									{/if}
-								</span>
-							</button>
-						</th>
-					</tr>
+									<span>{group.name}</span>
+									<span class="text-tertiary text-xs font-normal">
+										{#if group.range}
+											{common_groupTotalShowing({
+												total: group.range.total,
+												start: group.range.start,
+												end: group.range.end
+											})}
+										{:else}
+											({group.items.length})
+										{/if}
+									</span>
+								</button>
+							</th>
+						</tr>
+					{/if}
 
 					{#if !isCollapsed}
 						{#if group.entries}
-							{@render treeEntries(group.entries)}
+							<!-- A headless group's root row stands in for the header, so it shows the
+							     group's page range where the header would have. -->
+							{@render treeEntries(group.entries, group.headed ? null : { range: group.range })}
 						{:else}
 							{#each group.items as item (getItemId(item))}
 								{@const row = rowById.get(getItemId(item))}
 								{#if row}
-									{@render bodyRow(row, 0)}
+									{@render bodyRow(row, 0, null)}
 								{/if}
 							{/each}
 						{/if}
@@ -435,71 +434,89 @@
 				{/each}
 			{:else}
 				{#each view.rows as row (row.id)}
-					{@render bodyRow(row, 0)}
+					{@render bodyRow(row, 0, null)}
 				{/each}
 			{/if}
 		</tbody>
 	</table>
 </div>
 
-{#snippet treeEntries(entries: TreeEntry<T>[])}
+{#snippet treeEntries(entries: TreeEntry<T>[], root: { range: GroupSlice | null } | null)}
 	{#each entries as entry (entryKey(entry))}
+		{@const row = rowById.get(getItemId(entry.item))}
 		{#if entry.type === 'row'}
-			{@const row = rowById.get(getItemId(entry.item))}
 			{#if row}
-				{@render bodyRow(row, entry.depth)}
+				{@render bodyRow(row, entry.depth, {
+					section: null,
+					range: null,
+					groupRoot: root !== null
+				})}
 			{/if}
 		{:else}
-			{@render sectionHeader(entry)}
+			{#if row}
+				{@render bodyRow(row, entry.depth, {
+					section: entry,
+					range: root?.range ?? null,
+					groupRoot: root !== null
+				})}
+			{/if}
 			{#if !collapsed.has(entry.key)}
-				{@render treeEntries(entry.entries)}
+				{@render treeEntries(entry.entries, null)}
 			{/if}
 		{/if}
 	{/each}
 {/snippet}
 
-{#snippet sectionHeader(section: TreeSection<T>)}
-	{@const isCollapsed = collapsed.has(section.key)}
-	<tr
-		class="border-t bg-black/[0.07] dark:bg-white/[0.08]"
-		style="border-color: var(--color-border)"
-	>
-		{#if selectable}
-			<td class="w-10 px-[var(--cell-px)] py-[var(--cell-py)]" aria-hidden="true"></td>
-		{/if}
-		<th
-			scope="colgroup"
-			colspan={sectionSpan}
-			class="relative py-[var(--cell-py)] pr-[var(--cell-px)] text-left"
-			style="padding-left: calc(var(--cell-px) + {section.depth}rem)"
+<!-- A tree row's chevron, or the same width of space for a row with no children, so names line
+     up across a level. A parent's chevron collapses its children and shows how many there are. -->
+{#snippet treeToggle(tree: TreeCell<T>)}
+	{#if tree.section}
+		{@const section = tree.section}
+		{@const isCollapsed = collapsed.has(section.key)}
+		<button
+			type="button"
+			onclick={() => onToggleCollapse(section.key)}
+			aria-expanded={!isCollapsed}
+			aria-label={isCollapsed ? common_expand() : common_collapse()}
+			class="text-tertiary hover:text-primary flex shrink-0 items-center transition-colors"
 		>
-			<TreeGuides depth={section.depth} offset="var(--cell-px)" />
-			<button
-				type="button"
-				onclick={() => onToggleCollapse(section.key)}
-				aria-expanded={!isCollapsed}
-				class="text-primary flex items-center gap-2 text-sm font-medium"
-			>
-				{#if isCollapsed}
-					<ChevronRight class="h-4 w-4" aria-hidden="true" />
-				{:else}
-					<ChevronDown class="h-4 w-4" aria-hidden="true" />
-				{/if}
-				<span>{section.label}</span>
-				<span class="text-tertiary text-xs font-normal">({section.count})</span>
-			</button>
-		</th>
-	</tr>
+			{#if isCollapsed}
+				<ChevronRight class="h-4 w-4" aria-hidden="true" />
+			{:else}
+				<ChevronDown class="h-4 w-4" aria-hidden="true" />
+			{/if}
+		</button>
+	{:else}
+		<span class="w-4 shrink-0" aria-hidden="true"></span>
+	{/if}
 {/snippet}
 
-{#snippet bodyRow(row: Row<T>, depth: number)}
+{#snippet treeCount(tree: TreeCell<T>)}
+	{#if tree.section}
+		<span class="text-tertiary shrink-0 text-xs font-normal">
+			{#if tree.range}
+				{common_groupTotalShowing({
+					total: tree.range.total,
+					start: tree.range.start,
+					end: tree.range.end
+				})}
+			{:else}
+				({tree.section.count})
+			{/if}
+		</span>
+	{/if}
+{/snippet}
+
+{#snippet bodyRow(row: Row<T>, depth: number, tree: TreeCell<T> | null)}
 	{@const item = row.original}
 	{@const itemId = getItemId(item)}
 	{@const isSelected = selectedIds.has(itemId)}
 	<tr
 		class="border-t transition-colors {isSelected
 			? 'bg-black/5 dark:bg-white/5'
-			: 'hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'}"
+			: tree?.groupRoot
+				? 'bg-black/[0.07] dark:bg-white/[0.08]'
+				: 'hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'}"
 		style="border-color: var(--color-border)"
 	>
 		{#if selectable}
@@ -523,12 +540,16 @@
 						scope="row"
 						class="text-primary relative px-[var(--cell-px)] py-[var(--cell-py)] text-left align-middle font-medium"
 					>
-						{#if depth > 0}
-							<TreeGuides {depth} offset="var(--cell-px)" />
-							<div style="padding-left: {depth}rem">
-								<div style={contentMaxWidth(column)}>
+						{#if tree}
+							{#if depth > 0}
+								<TreeGuides {depth} offset="var(--cell-px)" />
+							{/if}
+							<div class="flex items-center gap-1.5" style="padding-left: {depth}rem">
+								{@render treeToggle(tree)}
+								<div class="min-w-0" style={contentMaxWidth(column)}>
 									<FieldValue {item} {column} />
 								</div>
+								{@render treeCount(tree)}
 							</div>
 						{:else}
 							<div style={contentMaxWidth(column)}>

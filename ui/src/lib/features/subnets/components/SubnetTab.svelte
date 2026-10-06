@@ -348,8 +348,7 @@
 					compare: (a, b) => compareCidr(a.cidr, b.cidr),
 					tree: {
 						key: (subnet) => subnet.id,
-						parentKey: (subnet) => subnet.parent_subnet_id ?? null,
-						label: (subnet) => subnet.cidr
+						parentKey: (subnet) => subnet.parent_subnet_id ?? null
 					},
 					display: { order: 3, getItems: cidrSourceItems() }
 				},

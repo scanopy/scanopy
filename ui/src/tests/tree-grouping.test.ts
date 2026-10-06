@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	buildTreeSections,
 	flattenTreeEntries,
+	isSingleRootTree,
 	treeDepthViolations,
 	type TreeEntry
 } from '$lib/shared/components/data/controls/grouping';
@@ -20,8 +21,7 @@ interface Range {
 
 const tree: TreeConfig<Range> = {
 	key: (r) => r.id,
-	parentKey: (r) => r.parent,
-	label: (r) => r.cidr
+	parentKey: (r) => r.parent
 };
 
 const byCidr = (a: Range, b: Range) => compareCidr(a.cidr, b.cidr);
@@ -58,13 +58,13 @@ describe('compareCidr', () => {
 	});
 });
 
-/** A group's entries as `depth|id` for a row and a section object with its depth. */
+/** A group's entries as `depth|id` for a leaf row and an object for a row with children. */
 function shape(entries: TreeEntry<Range>[]): unknown[] {
 	return entries.map((entry) =>
 		entry.type === 'row'
 			? `${entry.depth}|${entry.item.id}`
 			: {
-					section: entry.label,
+					section: `${entry.depth}|${entry.item.id}`,
 					count: entry.count,
 					depth: entry.depth,
 					entries: shape(entry.entries)
@@ -73,16 +73,15 @@ function shape(entries: TreeEntry<Range>[]): unknown[] {
 }
 
 describe('buildTreeSections', () => {
-	it('nests a full list three levels deep, the group root heading its group', () => {
+	it('nests a full list three levels deep, each parent its own row with its children under it', () => {
 		const entries = buildTreeSections([leaf, sibling, wide, mid], tree, false, 'g', byCidr);
+		// No parent appears inside its own section: wide is the row, its children follow one in.
 		expect(shape(entries)).toEqual([
-			'1|wide',
-			'1|sibling',
 			{
-				section: '10.10.16.0/20',
-				count: 2,
-				depth: 1,
-				entries: ['2|mid', '2|leaf']
+				section: '0|wide',
+				count: 3,
+				depth: 0,
+				entries: ['1|sibling', { section: '1|mid', count: 1, depth: 1, entries: ['2|leaf'] }]
 			}
 		]);
 		expect(flattenTreeEntries(entries).map((r) => r.id)).toEqual([
@@ -97,7 +96,7 @@ describe('buildTreeSections', () => {
 		const entries = buildTreeSections([leaf, sibling, mid], tree, false, 'g', byCidr);
 		expect(shape(entries)).toEqual([
 			'0|sibling',
-			{ section: '10.10.16.0/20', count: 2, depth: 0, entries: ['1|mid', '1|leaf'] }
+			{ section: '0|mid', count: 1, depth: 0, entries: ['1|leaf'] }
 		]);
 	});
 
@@ -123,14 +122,12 @@ describe('buildTreeSections', () => {
 
 		const full = [{ ...wide, depth: 0 }, { ...mid, depth: 1 }, { ...leaf, depth: 2 }, other];
 		expect(shape(buildTreeSections(full, depthTree, true, 'g'))).toEqual([
-			'1|wide',
 			{
-				section: '10.10.16.0/20',
-				count: 2,
-				depth: 1,
-				entries: ['2|mid', '2|leaf']
-			},
-			'1|other'
+				section: '0|wide',
+				count: 3,
+				depth: 0,
+				entries: [{ section: '1|mid', count: 1, depth: 1, entries: ['2|leaf'] }, '1|other']
+			}
 		]);
 	});
 
@@ -148,6 +145,24 @@ describe('buildTreeSections', () => {
 				entry.type === 'section' ? entry.key : null
 			)
 		).not.toEqual(keys);
+	});
+});
+
+describe('isSingleRootTree', () => {
+	it('lets a group that is one tree under a real root drop its header', () => {
+		const entries = buildTreeSections([wide, mid, leaf, sibling], tree, false, 'g', byCidr);
+		expect(isSingleRootTree(entries, tree)).toBe(true);
+	});
+
+	it('keeps the header when the top row has a parent that is filtered out or on another page', () => {
+		const entries = buildTreeSections([mid, leaf], tree, false, 'g', byCidr);
+		expect(isSingleRootTree(entries, tree)).toBe(false);
+	});
+
+	it('keeps the header for a group of several top-level rows', () => {
+		const other: Range = { id: 'other', cidr: '192.168.0.0/24', parent: null };
+		const entries = buildTreeSections([wide, mid, other], tree, false, 'g', byCidr);
+		expect(isSingleRootTree(entries, tree)).toBe(false);
 	});
 });
 

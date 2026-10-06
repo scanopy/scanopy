@@ -91,13 +91,10 @@ describe('virtualization tree grouping', () => {
 			{
 				type: 'section',
 				key: `pve-01${NUL}docker-vm`,
-				label: 'docker-vm',
-				count: 2,
+				item: vm,
+				count: 1,
 				depth: 0,
-				entries: [
-					{ type: 'row', item: vm, depth: 1 },
-					{ type: 'row', item: container, depth: 1 }
-				]
+				entries: [{ type: 'row', item: container, depth: 1 }]
 			}
 		]);
 	});

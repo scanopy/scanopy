@@ -168,8 +168,8 @@ export interface DisplayConfig<T> {
  * How the rows of a group nest, for a groupable field whose groups are trees: subnets inside the
  * range that contains them, guests under the host that runs them.
  *
- * When the list is grouped by that field, every row with children heads a collapsible section
- * holding the row and then its children, nested as deep as the tree goes. See
+ * When the list is grouped by that field, every row with children gets a chevron that collapses
+ * its children, which sit one level in beneath it, as deep as the tree goes. See
  * `buildTreeSections`.
  *
  * - On a list holding every row, the nesting comes from `parentKey` (siblings by the field's
@@ -182,8 +182,6 @@ export interface TreeConfig<T> {
 	key: (item: T) => string;
 	/** The identity of the row this one nests under, or `null` for a top-level row. */
 	parentKey: (item: T) => string | null;
-	/** The header of the section a row with children heads. */
-	label: (item: T) => string;
 	/** The row's depth as the server computed it. Required on a server-paginated list. */
 	depth?: (item: T) => number;
 }

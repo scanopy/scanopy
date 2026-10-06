@@ -84,25 +84,37 @@ export interface TreeRow<T> {
 }
 
 /**
- * A row that has children, drawn as a collapsible section: a header, then the row itself, then
- * its children. `key` is the path from the group down to this row, so two rows with the same
- * label never share collapse state.
+ * A row that has children, drawn as itself with a chevron that collapses them; its children
+ * follow one level in. It is not a separate heading: a heading with the row repeated under it
+ * read as the row nesting under itself (a VM shown as virtualized by itself). `key` is the path
+ * from the group down to this row, so two rows with the same label never share collapse state.
  */
 export interface TreeSection<T> {
 	type: 'section';
 	key: string;
-	label: string;
-	/** Rows in the loaded subtree, this row included. */
+	/** The row with children. */
+	item: T;
+	/** Rows below it in the loaded subtree, itself excluded. */
 	count: number;
-	/**
-	 * Sections this header sits inside. Its chevron sits at this level, directly above the guide
-	 * line its own rows draw one level in.
-	 */
+	/** Its own indent level; its children sit one level in. */
 	depth: number;
+	/** Its children only. */
 	entries: TreeEntry<T>[];
 }
 
 export type TreeEntry<T> = TreeRow<T> | TreeSection<T>;
+
+/**
+ * What a tree row's first cell shows besides its value: the section when the row has children
+ * (its chevron and count), else a spacer; and, for the root of a headless group, the group's page
+ * range in place of the count.
+ */
+export interface TreeCell<T> {
+	section: TreeSection<T> | null;
+	range: GroupSlice | null;
+	/** The root row of a headless group: drawn with the group-header tint so it reads as a new group. */
+	groupRoot: boolean;
+}
 
 /** A group as the table draws it. */
 export interface RenderGroup<T> {
@@ -115,6 +127,11 @@ export interface RenderGroup<T> {
 	range: GroupSlice | null;
 	/** The group's nested sections when the grouping is a tree, else null. */
 	entries: TreeEntry<T>[] | null;
+	/**
+	 * Whether the group draws its own header. False for a group that is one tree under a real root:
+	 * the root's row already names it, and carries its chevron and the group's count.
+	 */
+	headed: boolean;
 }
 
 interface TreeNode<T> {
@@ -128,10 +145,7 @@ const PATH_SEPARATOR = String.fromCharCode(0);
 /**
  * One group's rows as the nested sections the tree `tree` describes.
  *
- * Every row with children becomes a section headed by `tree.label`, holding the row itself and
- * then its children, all one level in, so the section's line starts at its own row. A group whose
- * rows all descend from one top-level row (no parent at all) is already headed by that row, so
- * the group header serves as its section header: the row and its children start one level in.
+ * Every row with children becomes a section: the row itself, with its children one level in.
  *
  * - With `serverPaginated` the rows keep the order they arrived in, which the server made
  *   parent-first across every page, and nesting comes from `tree.depth`. A row whose ancestors are
@@ -152,28 +166,22 @@ export function buildTreeSections<T>(
 	const forest = serverPaginated
 		? forestFromDepths(items, tree)
 		: forestFromParents(items, tree, compare);
-
-	// Only a real root heads its group: a row whose parent is filtered out, or on another page,
-	// still gets a section of its own.
-	if (
-		forest.length === 1 &&
-		forest[0].children.length > 0 &&
-		tree.parentKey(forest[0].item) === null
-	) {
-		const [root] = forest;
-		const path = groupKey + PATH_SEPARATOR + tree.key(root.item);
-		return [
-			{ type: 'row', item: root.item, depth: 1 },
-			...root.children.map((child) => toEntry(child, 1, path, tree))
-		];
-	}
 	return forest.map((node) => toEntry(node, 0, groupKey, tree));
+}
+
+/**
+ * Whether a group's entries are one tree under a real root, so the root's row stands in for the
+ * group header. A root whose parent is filtered out or on another page is not a real root: the
+ * group header then names the ancestor that isn't shown.
+ */
+export function isSingleRootTree<T>(entries: TreeEntry<T>[], tree: TreeConfig<T>): boolean {
+	return entries.length === 1 && tree.parentKey(entries[0].item) === null;
 }
 
 /** Every row of a group's entries, in the order they are drawn. */
 export function flattenTreeEntries<T>(entries: TreeEntry<T>[]): T[] {
 	return entries.flatMap((entry) =>
-		entry.type === 'row' ? [entry.item] : flattenTreeEntries(entry.entries)
+		entry.type === 'row' ? [entry.item] : [entry.item, ...flattenTreeEntries(entry.entries)]
 	);
 }
 
@@ -189,18 +197,15 @@ function toEntry<T>(
 	return {
 		type: 'section',
 		key,
-		label: tree.label(node.item),
-		count: subtreeSize(node),
+		item: node.item,
+		count: descendantCount(node),
 		depth,
-		entries: [
-			{ type: 'row', item: node.item, depth: depth + 1 },
-			...node.children.map((child) => toEntry(child, depth + 1, key, tree))
-		]
+		entries: node.children.map((child) => toEntry(child, depth + 1, key, tree))
 	};
 }
 
-function subtreeSize<T>(node: TreeNode<T>): number {
-	return 1 + node.children.reduce((sum, child) => sum + subtreeSize(child), 0);
+function descendantCount<T>(node: TreeNode<T>): number {
+	return node.children.reduce((sum, child) => sum + 1 + descendantCount(child), 0);
 }
 
 function forestFromParents<T>(
