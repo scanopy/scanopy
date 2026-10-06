@@ -21,6 +21,9 @@
 	import type { RenderableTopology } from '../../types/base';
 	import {
 		activeView,
+		optionsPanelExpanded,
+		OPTIONS_PANEL_FITVIEW_PADDING_PX,
+		OPTIONS_PANEL_LEFT_OFFSET_PX,
 		selectedNode as globalSelectedNode,
 		selectedEdge as globalSelectedEdge,
 		selectedNodes as globalSelectedNodes
@@ -168,9 +171,18 @@
 </script>
 
 {#if isOpen}
-	<div class="absolute left-1/2 top-4 z-20 w-[42rem] max-w-[calc(100%-2rem)] -translate-x-1/2">
+	<!-- Spans the canvas to the right of the options panel, as `TopologyOverlay` does, and centres
+	     the search box in it, so the box never slides under the expanded panel. -->
+	<div
+		class="pointer-events-none absolute right-4 top-4 z-20 flex justify-center"
+		style="left: {$optionsPanelExpanded
+			? OPTIONS_PANEL_FITVIEW_PADDING_PX
+			: OPTIONS_PANEL_LEFT_OFFSET_PX}px"
+	>
 		<!-- Same layout as the Cmd+K palette: the shared search box, then a hint footer. -->
-		<div class="card card-static overflow-hidden p-0 shadow-lg">
+		<div
+			class="card card-static pointer-events-auto w-[42rem] max-w-full overflow-hidden p-0 shadow-lg"
+		>
 			<form.Field name="query">
 				{#snippet children(field)}
 					<SearchInput
