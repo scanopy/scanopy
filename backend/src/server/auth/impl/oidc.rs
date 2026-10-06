@@ -3,7 +3,10 @@ use chrono::{DateTime, Utc};
 use openidconnect::{
     AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce,
     PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, Scope, TokenResponse,
-    core::{CoreClient, CoreProviderMetadata, CoreResponseType},
+    core::{
+        CoreClient, CoreIdToken, CoreIdTokenClaims, CoreIdTokenVerifier, CoreProviderMetadata,
+        CoreResponseType,
+    },
     reqwest::Client as ReqwestClient,
 };
 use serde::{Deserialize, Serialize};
@@ -43,6 +46,18 @@ pub struct OidcUserInfo {
     pub subject: String,
     pub email: Option<String>,
     pub name: Option<String>,
+}
+
+impl From<&CoreIdTokenClaims> for OidcUserInfo {
+    fn from(claims: &CoreIdTokenClaims) -> Self {
+        Self {
+            subject: claims.subject().to_string(),
+            email: claims.email().map(|e| e.to_string()),
+            name: claims
+                .name()
+                .and_then(|n| n.get(None).map(|s| s.to_string())),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -219,15 +234,19 @@ impl OidcProvider {
             .id_token()
             .ok_or_else(|| anyhow::anyhow!("No ID token in response"))?;
 
-        let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
+        let claims = self.verified_claims(id_token, client.id_token_verifier(), &nonce)?;
 
-        Ok(OidcUserInfo {
-            subject: claims.subject().to_string(),
-            email: claims.email().map(|e| e.to_string()),
-            name: claims
-                .name()
-                .and_then(|n| n.get(None).map(|s| s.to_string())),
-        })
+        Ok(claims.into())
+    }
+
+    /// Verify the ID token's signature and claims.
+    fn verified_claims<'t>(
+        &self,
+        id_token: &'t CoreIdToken,
+        verifier: CoreIdTokenVerifier<'_>,
+        nonce: &Nonce,
+    ) -> Result<&'t CoreIdTokenClaims> {
+        Ok(id_token.claims(&verifier, nonce)?)
     }
 }
 
@@ -235,6 +254,171 @@ impl OidcProvider {
 mod tests {
     use super::*;
     use crate::server::shared::trusted_ca::test_support::serve_test_tls;
+    use chrono::Duration;
+    use openidconnect::{
+        Audience, EmptyAdditionalClaims, EndUserEmail, EndUserName, JsonWebKeySet, StandardClaims,
+        SubjectIdentifier,
+        core::{CoreHmacKey, CoreJwsSigningAlgorithm},
+    };
+
+    const ISSUER: &str = "https://idp.example.com";
+    const CLIENT_ID: &str = "scanopy-client";
+    const CLIENT_SECRET: &str = "scanopy-client-secret-that-is-long-enough";
+    const NONCE: &str = "test-nonce";
+
+    fn provider() -> OidcProvider {
+        OidcProvider::new(
+            "idp".to_string(),
+            "IdP".to_string(),
+            None,
+            ISSUER.to_string(),
+            CLIENT_ID.to_string(),
+            CLIENT_SECRET.to_string(),
+            "https://scanopy.example/api/auth/oidc/idp/callback".to_string(),
+            ReqwestClient::new(),
+        )
+    }
+
+    /// The verifier `exchange_code` gets from `CoreClient::id_token_verifier`, set up for HS256
+    /// tokens signed with the client secret so tests need no provider JWKS.
+    fn verifier() -> CoreIdTokenVerifier<'static> {
+        CoreIdTokenVerifier::new_confidential_client(
+            ClientId::new(CLIENT_ID.to_string()),
+            ClientSecret::new(CLIENT_SECRET.to_string()),
+            IssuerUrl::new(ISSUER.to_string()).unwrap(),
+            JsonWebKeySet::new(vec![]),
+        )
+        .set_allowed_algs([CoreJwsSigningAlgorithm::HmacSha256])
+    }
+
+    /// Valid claims for `CLIENT_ID`; tests change one thing at a time.
+    fn claims(audiences: &[&str]) -> CoreIdTokenClaims {
+        let now = Utc::now();
+        CoreIdTokenClaims::new(
+            IssuerUrl::new(ISSUER.to_string()).unwrap(),
+            audiences
+                .iter()
+                .map(|aud| Audience::new(aud.to_string()))
+                .collect(),
+            now + Duration::minutes(5),
+            now,
+            StandardClaims::new(SubjectIdentifier::new("user-1".to_string()))
+                .set_email(Some(EndUserEmail::new("user@example.com".to_string())))
+                .set_name(Some(EndUserName::new("Test User".to_string()).into())),
+            EmptyAdditionalClaims {},
+        )
+        .set_nonce(Some(Nonce::new(NONCE.to_string())))
+    }
+
+    fn sign_with(claims: CoreIdTokenClaims, secret: &str) -> CoreIdToken {
+        CoreIdToken::new(
+            claims,
+            &CoreHmacKey::new(secret.as_bytes()),
+            CoreJwsSigningAlgorithm::HmacSha256,
+            None,
+            None,
+        )
+        .unwrap()
+    }
+
+    fn sign(claims: CoreIdTokenClaims) -> CoreIdToken {
+        sign_with(claims, CLIENT_SECRET)
+    }
+
+    fn verify(provider: &OidcProvider, token: &CoreIdToken) -> Result<OidcUserInfo> {
+        provider
+            .verified_claims(token, verifier(), &Nonce::new(NONCE.to_string()))
+            .map(OidcUserInfo::from)
+    }
+
+    // Regression tests: behaviour every provider had before `trusted_audiences` existed.
+
+    #[test]
+    fn a_single_audience_token_yields_the_user() {
+        let user = verify(&provider(), &sign(claims(&[CLIENT_ID]))).unwrap();
+        assert_eq!(user.subject, "user-1");
+        assert_eq!(user.email.as_deref(), Some("user@example.com"));
+        assert_eq!(user.name.as_deref(), Some("Test User"));
+    }
+
+    #[test]
+    fn a_single_audience_token_passes_whatever_its_azp() {
+        let token = sign(
+            claims(&[CLIENT_ID]).set_authorized_party(Some(ClientId::new("other-client".into()))),
+        );
+        assert!(verify(&provider(), &token).is_ok());
+    }
+
+    #[test]
+    fn an_extra_audience_is_rejected_without_config() {
+        let err = verify(&provider(), &sign(claims(&[CLIENT_ID, "project-1"]))).unwrap_err();
+        assert!(err.to_string().contains("project-1"), "{err}");
+    }
+
+    #[test]
+    fn a_token_from_another_issuer_is_rejected() {
+        let mut claims = claims(&[CLIENT_ID]);
+        claims = claims.set_issuer(IssuerUrl::new("https://evil.example.com".into()).unwrap());
+        assert!(verify(&provider(), &sign(claims)).is_err());
+    }
+
+    #[test]
+    fn a_token_with_the_wrong_nonce_is_rejected() {
+        let token = sign(claims(&[CLIENT_ID]).set_nonce(Some(Nonce::new("other".into()))));
+        assert!(verify(&provider(), &token).is_err());
+    }
+
+    #[test]
+    fn an_expired_token_is_rejected() {
+        let token = sign(claims(&[CLIENT_ID]).set_expiration(Utc::now() - Duration::minutes(1)));
+        assert!(verify(&provider(), &token).is_err());
+    }
+
+    #[test]
+    fn a_token_signed_with_another_key_is_rejected() {
+        let token = sign_with(
+            claims(&[CLIENT_ID]),
+            "a-different-secret-of-similar-length!!",
+        );
+        assert!(verify(&provider(), &token).is_err());
+    }
+
+    #[test]
+    fn a_provider_without_trusted_audiences_still_parses() {
+        let toml = r#"
+            [[oidc_providers]]
+            name = "Authentik"
+            slug = "authentik"
+            issuer_url = "https://auth.example.com"
+            client_id = "id"
+            client_secret = "secret"
+        "#;
+        let env = r#"[{name="Authentik",slug="authentik",issuer_url="https://auth.example.com",client_id="id",client_secret="secret"}]"#;
+
+        for providers in [parse_toml(toml), parse_env(env)] {
+            assert_eq!(providers.len(), 1);
+            assert_eq!(providers[0].client_id, "id");
+        }
+    }
+
+    fn parse_toml(toml: &str) -> Vec<OidcProviderConfig> {
+        use figment::providers::Format;
+        figment::Figment::from(figment::providers::Toml::string(toml))
+            .extract_inner("oidc_providers")
+            .unwrap()
+    }
+
+    /// Parse the way `Env::prefixed("SCANOPY_")` parses `SCANOPY_OIDC_PROVIDERS`, which is also
+    /// where `SCANOPY_OIDC_PROVIDERS_FILE` lands after `apply_file_env_vars`.
+    fn parse_env(value: &str) -> Vec<OidcProviderConfig> {
+        let value: figment::value::Value = value.parse().unwrap();
+        figment::Figment::from(figment::providers::Serialized::default(
+            "oidc_providers",
+            value,
+        ))
+        .extract_inner("oidc_providers")
+        .unwrap()
+    }
 
     /// An issuer behind a certificate the server doesn't trust must say so, not read like an
     /// unreachable host. openidconnect hides the cause in its Display, so this checks that it
