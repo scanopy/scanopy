@@ -2635,6 +2635,7 @@
 	"tags_tagGroup": "Tag Group",
 	"tags_tagGroupHelp": "Entities can only be assigned one tag from a given group. Leave group empty to leave tag assignment unrestricted",
 	"tags_tagGroupPlaceholder": "None. Type to pick or create a group",
+	"tags_tagGroupTooltip": "Tag group: {group}",
 	"tags_tagNamePlaceholder": "e.g., Production, Critical, Staging",
 	"topology_addContainerRule": "Add structure rule",
 	"topology_addElementRule": "Add grouping rule",

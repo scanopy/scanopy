@@ -16,7 +16,7 @@
 	import { onMount } from 'svelte';
 	import { common_creating, tags_addTag, tags_createTagQuoted } from '$lib/paraglide/messages';
 	import CreatableOptionList from '$lib/shared/components/forms/selection/CreatableOptionList.svelte';
-	import { isApplicationTag, sameGroup, tagIcon } from '$lib/features/tags/groups';
+	import { isApplicationTag, sameGroup, tagIcon, tagTooltip } from '$lib/features/tags/groups';
 
 	/**
 	 * Compact inline tag picker for use in cards and bulk actions.
@@ -300,6 +300,7 @@
 			label={tag?.name}
 			color={tag?.color}
 			icon={tagIcon(tag)}
+			title={tagTooltip(tag)}
 			isShiny={isApplicationTag(tag)}
 			pill={!disabled}
 			removable={!disabled && !!(onRemove || isEntityMode)}

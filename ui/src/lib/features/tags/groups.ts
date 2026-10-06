@@ -2,7 +2,7 @@ import type { components } from '$lib/api/schema';
 import type { IconComponent } from '$lib/shared/utils/types';
 import { concepts } from '$lib/shared/stores/metadata';
 import { createIconComponent } from '$lib/shared/utils/styling';
-import { common_application } from '$lib/paraglide/messages';
+import { common_application, tags_tagGroupTooltip } from '$lib/paraglide/messages';
 import type { Tag } from './types/base';
 
 export type TagGroup = components['schemas']['TagGroup'];
@@ -22,6 +22,18 @@ export function sameGroup(a: TagGroup | null | undefined, b: TagGroup | null | u
 export function tagGroupLabel(group: TagGroup | null | undefined): string | null {
 	if (!group) return null;
 	return group.type === 'Application' ? common_application() : group.name;
+}
+
+/**
+ * A tag chip's hover text: its tag group, then its description, one per line. Empty when the tag
+ * has neither, so the chip shows no tooltip.
+ */
+export function tagTooltip(tag: Pick<Tag, 'tag_group' | 'description'> | null | undefined): string {
+	const group = tagGroupLabel(tag?.tag_group);
+	const description = tag?.description?.trim();
+	return [group ? tags_tagGroupTooltip({ group }) : null, description || null]
+		.filter((line): line is string => line !== null)
+		.join('\n');
 }
 
 /** The named groups in use, from the tags that carry them. A group exists while a tag carries it. */

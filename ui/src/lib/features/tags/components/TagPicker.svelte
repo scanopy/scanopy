@@ -6,7 +6,7 @@
 	import { createColorHelper, AVAILABLE_COLORS, type Color } from '$lib/shared/utils/styling';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { permissions, billingPlans } from '$lib/shared/stores/metadata';
-	import { isApplicationTag, tagIcon, withTagAdded } from '$lib/features/tags/groups';
+	import { isApplicationTag, tagIcon, tagTooltip, withTagAdded } from '$lib/features/tags/groups';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 
 	/**
@@ -182,6 +182,7 @@
 							label={tag?.name}
 							color={tag?.color}
 							icon={tagIcon(tag)}
+							title={tagTooltip(tag)}
 							isShiny={isApplicationTag(tag)}
 							pill={true}
 							removable={!disabled}

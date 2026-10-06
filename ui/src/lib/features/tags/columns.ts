@@ -1,5 +1,5 @@
 import type { LabelledCardFieldItem } from '$lib/shared/components/data/types';
-import { tagIcon } from './groups';
+import { tagIcon, tagTooltip } from './groups';
 import type { Tag } from './types/base';
 
 /**
@@ -18,7 +18,8 @@ export function tagItems(tagIds: string[], tags: Tag[]): LabelledCardFieldItem[]
 			id: tag.id,
 			label: tag.name,
 			color: tag.color,
-			icon: tagIcon(tag) ?? undefined
+			icon: tagIcon(tag) ?? undefined,
+			title: tagTooltip(tag) || undefined
 		}));
 }
 

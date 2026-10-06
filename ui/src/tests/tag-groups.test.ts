@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groupNames, withTagAdded } from '$lib/features/tags/groups';
+import { groupNames, tagTooltip, withTagAdded } from '$lib/features/tags/groups';
 import { createDefaultTag, type Tag } from '$lib/features/tags/types/base';
 
 function tag(id: string, tag_group: Tag['tag_group'] = null): Tag {
@@ -46,5 +46,26 @@ describe('groupNames', () => {
 		expect(
 			groupNames([status('a'), environment('b'), status('c'), application('d'), tag('e')])
 		).toEqual(['Environment', 'Status']);
+	});
+});
+
+describe('tagTooltip', () => {
+	it('puts the group first and the description under it', () => {
+		const lines = tagTooltip({ ...status('planned'), description: '  Not deployed yet ' }).split(
+			'\n'
+		);
+		expect(lines).toHaveLength(2);
+		expect(lines[0]).toContain('Status');
+		expect(lines[1]).toBe('Not deployed yet');
+	});
+
+	it('shows whichever of the two a tag has', () => {
+		expect(tagTooltip({ ...tag('critical'), description: 'Pages on-call' })).toBe('Pages on-call');
+		expect(tagTooltip(status('planned'))).toContain('Status');
+	});
+
+	it('is empty for a tag with neither, so the chip shows no tooltip', () => {
+		expect(tagTooltip({ ...tag('critical'), description: '   ' })).toBe('');
+		expect(tagTooltip(null)).toBe('');
 	});
 });

@@ -32,6 +32,7 @@
 	import { entities } from '$lib/shared/stores/metadata';
 	import { queryClient, queryKeys } from '$lib/api/query-client';
 	import type { Tag } from '$lib/features/tags/types/base';
+	import { tagTooltip } from '$lib/features/tags/groups';
 	import type { Writable } from 'svelte/store';
 	import { getContext } from 'svelte';
 	import { editModeEnabled } from '../../state';
@@ -243,11 +244,15 @@
 	// id→name flicker while the bundle catches up); fall back to the topology
 	// bundle, which is the only source in the unauthenticated share viewer (no
 	// cache there — the backend ships rule tags on the bundle for that case).
-	function resolveTagPill(tagId: string): { label: string; color: Color } {
+	function resolveTagPill(tagId: string): GroupPill {
 		const tag =
 			queryClient.getQueryData<Tag[]>(queryKeys.tags.all)?.find((t) => t.id === tagId) ??
 			topology?.entity_tags?.find((t) => t.id === tagId);
-		return { label: tag?.name ?? tagId, color: (tag?.color as Color) ?? 'Gray' };
+		return {
+			label: tag?.name ?? tagId,
+			color: (tag?.color as Color) ?? 'Gray',
+			title: tagTooltip(tag) || undefined
+		};
 	}
 
 	// A category group's pill: the category's name and colour, and its description as the tooltip.
