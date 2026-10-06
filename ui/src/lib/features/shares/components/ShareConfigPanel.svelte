@@ -24,7 +24,6 @@
 	import viewsJson from '$lib/data/views.json';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import {
-		common_enabled,
 		common_height,
 		common_name,
 		common_password,
@@ -62,7 +61,7 @@
 		shares_urlAvailableAfterSaveBody,
 		topology_showMinimap,
 		common_details,
-		shares_linkAndEmbed
+		shares_enableShare
 	} from '$lib/paraglide/messages';
 
 	interface Props {
@@ -182,11 +181,9 @@
 				/>
 			{/snippet}
 		</form.Field>
-	</InfoCard>
 
-	<!-- Share URL / Embed Code. Shown once the share has been saved, since the URL can't
-	     resolve until the backend has a persisted record. -->
-	<InfoCard title={shares_linkAndEmbed()}>
+		<!-- Share URL / Embed Code. Shown once the share has been saved, since the URL can't
+		     resolve until the backend has a persisted record. -->
 		{#if isSaved}
 			<div>
 				<span class="text-secondary mb-1 block text-sm font-medium">{shares_shareUrl()}</span>
@@ -257,35 +254,32 @@
 				{/snippet}
 			</form.Field>
 
-			<div class="grid grid-cols-2 gap-4">
-				<form.Field name={expiresAtFieldName}>
-					{#snippet children(field: AnyFieldApi)}
-						<DateInput
-							{field}
-							label={shares_expirationDate()}
-							id="expires-at-{index}"
-							helpText={shares_expirationHelp()}
-						/>
-					{/snippet}
-				</form.Field>
-				<div class="flex items-center">
-					<form.Field
-						name={isEnabledFieldName}
-						listeners={{
-							onChange: ({ value }: { value: boolean }) => handleEnabledChange(value)
-						}}
-					>
-						{#snippet children(field: AnyFieldApi)}
-							<Checkbox
-								label={common_enabled()}
-								id="is-enabled-{index}"
-								{field}
-								helpText={shares_enabledHelp()}
-							/>
-						{/snippet}
-					</form.Field>
-				</div>
-			</div>
+			<form.Field name={expiresAtFieldName}>
+				{#snippet children(field: AnyFieldApi)}
+					<DateInput
+						{field}
+						label={shares_expirationDate()}
+						id="expires-at-{index}"
+						helpText={shares_expirationHelp()}
+					/>
+				{/snippet}
+			</form.Field>
+
+			<form.Field
+				name={isEnabledFieldName}
+				listeners={{
+					onChange: ({ value }: { value: boolean }) => handleEnabledChange(value)
+				}}
+			>
+				{#snippet children(field: AnyFieldApi)}
+					<Checkbox
+						label={shares_enableShare()}
+						id="is-enabled-{index}"
+						{field}
+						helpText={shares_enabledHelp()}
+					/>
+				{/snippet}
+			</form.Field>
 
 			<form.Field name={allowedDomainsFieldName}>
 				{#snippet children(field: AnyFieldApi)}

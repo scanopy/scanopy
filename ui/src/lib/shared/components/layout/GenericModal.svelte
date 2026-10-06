@@ -34,8 +34,7 @@
 		common_previous
 	} from '$lib/paraglide/messages';
 	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
-	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
-	import { isEditableTarget, keyLabel } from '$lib/shared/utils/shortcuts';
+	import { isEditableTarget } from '$lib/shared/utils/shortcuts';
 	import ModalStepper from './ModalStepper.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import { toColor } from '$lib/shared/utils/styling';
@@ -534,7 +533,7 @@
 		type="button"
 		disabled={!targetId}
 		onclick={() => targetId && requestNavigation(targetId)}
-		class="fixed {side} top-1/2 z-50 hidden -translate-y-1/2 flex-col items-center gap-1.5 rounded-full p-1 text-gray-200 transition-colors hover:text-white disabled:cursor-default disabled:opacity-30 sm:flex"
+		class="fixed {side} top-1/2 z-50 hidden -translate-y-1/2 rounded-full p-1 text-gray-200 transition-colors hover:text-white disabled:cursor-default disabled:opacity-30 sm:flex"
 		aria-label={label}
 		title={label}
 	>
@@ -547,7 +546,6 @@
 				<ChevronRight class="h-6 w-6" />
 			{/if}
 		</span>
-		<KbdKey key={keyLabel(key)} size="sm" />
 	</button>
 {/snippet}
 

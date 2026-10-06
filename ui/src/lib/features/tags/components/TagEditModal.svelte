@@ -187,46 +187,22 @@
 			<div class="space-y-8">
 				<!-- Tag Details Section -->
 				<div class="space-y-4">
-					<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-						<form.Field
-							name="name"
-							validators={{
-								onBlur: ({ value }) => required(value) || max(100)(value)
-							}}
-						>
-							{#snippet children(field)}
-								<TextInput
-									label={common_name()}
-									id="name"
-									{field}
-									placeholder={tags_tagNamePlaceholder()}
-									required
-								/>
-							{/snippet}
-						</form.Field>
-
-						<!-- Tag group. Held in $state: choosing Application clears the icon, a
-						     programmatic write TanStack Form would not re-render. -->
-						<form.Field name="tag_group">
-							<div class="space-y-2">
-								<label for="tag_group" class="text-secondary block text-sm font-medium">
-									{tags_tagGroup()}
-								</label>
-								<TagGroupSelect
-									id="tag_group"
-									value={selectedGroup}
-									groups={groupNames(allTags)}
-									placeholder={tags_tagGroupPlaceholder()}
-									onChange={handleGroupChange}
-								/>
-								<p class="text-tertiary text-xs">
-									{selectedGroup?.type === 'Application'
-										? tags_applicationHelp()
-										: tags_tagGroupHelp()}
-								</p>
-							</div>
-						</form.Field>
-					</div>
+					<form.Field
+						name="name"
+						validators={{
+							onBlur: ({ value }) => required(value) || max(100)(value)
+						}}
+					>
+						{#snippet children(field)}
+							<TextInput
+								label={common_name()}
+								id="name"
+								{field}
+								placeholder={tags_tagNamePlaceholder()}
+								required
+							/>
+						{/snippet}
+					</form.Field>
 
 					<form.Field
 						name="description"
@@ -242,6 +218,28 @@
 								placeholder={tags_descriptionPlaceholder()}
 							/>
 						{/snippet}
+					</form.Field>
+
+					<!-- Tag group. Held in $state: choosing Application clears the icon, a
+					     programmatic write TanStack Form would not re-render. -->
+					<form.Field name="tag_group">
+						<div class="space-y-2">
+							<label for="tag_group" class="text-secondary block text-sm font-medium">
+								{tags_tagGroup()}
+							</label>
+							<TagGroupSelect
+								id="tag_group"
+								value={selectedGroup}
+								groups={groupNames(allTags)}
+								placeholder={tags_tagGroupPlaceholder()}
+								onChange={handleGroupChange}
+							/>
+							<p class="text-tertiary text-xs">
+								{selectedGroup?.type === 'Application'
+									? tags_applicationHelp()
+									: tags_tagGroupHelp()}
+							</p>
+						</div>
 					</form.Field>
 
 					<!-- Icon and colour side by side: the icon grid is tall, and stacked it pushed the

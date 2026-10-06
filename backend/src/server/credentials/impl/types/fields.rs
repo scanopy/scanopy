@@ -447,25 +447,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Delivery"),
                     file_name: None,
-                    half_width: true,
-                },
-                FieldDefinition {
-                    id: "wait_seconds",
-                    label: "Wait (seconds)",
-                    field_type: FieldType::Number,
-                    placeholder: Some("90"),
-                    placeholder_by: None,
-                    secret: false,
-                    optional: true,
-                    help_text: Some(
-                        "How long the daemon waits after sending the packets before the scan starts. Hosts the scan finds count as woken. Allow for disks spinning up and services starting.",
-                    ),
-                    options: None,
-                    default_value: Some("90"),
-                    inline_format: None,
-                    group: Some("Delivery"),
-                    file_name: None,
-                    half_width: true,
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "broadcast_address",
@@ -480,6 +462,24 @@ impl CredentialType {
                     ),
                     options: None,
                     default_value: None,
+                    inline_format: None,
+                    group: Some("Delivery"),
+                    file_name: None,
+                    half_width: false,
+                },
+                FieldDefinition {
+                    id: "wait_seconds",
+                    label: "Wait (seconds)",
+                    field_type: FieldType::Number,
+                    placeholder: Some("90"),
+                    placeholder_by: None,
+                    secret: false,
+                    optional: true,
+                    help_text: Some(
+                        "How long the daemon waits after sending the packets before the scan starts. Hosts the scan finds count as woken. Allow for disks spinning up and services starting.",
+                    ),
+                    options: None,
+                    default_value: Some("90"),
                     inline_format: None,
                     group: Some("Delivery"),
                     file_name: None,
@@ -662,7 +662,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             inline_format: None,
             group: Some("Script"),
             file_name: None,
-            half_width: true,
+            half_width: false,
         },
         FieldDefinition {
             id: "host_key_fingerprint",
@@ -680,7 +680,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             inline_format: None,
             group: Some("Script"),
             file_name: None,
-            half_width: true,
+            half_width: false,
         },
     ]);
     fields
@@ -707,7 +707,7 @@ fn unifi_connection_fields() -> Vec<FieldDefinition> {
             inline_format: None,
             group: Some("Connection"),
             file_name: None,
-            half_width: true,
+            half_width: false,
         },
         FieldDefinition {
             id: "site",
@@ -725,7 +725,7 @@ fn unifi_connection_fields() -> Vec<FieldDefinition> {
             inline_format: None,
             group: Some("Connection"),
             file_name: None,
-            half_width: true,
+            half_width: false,
         },
     ]
 }

@@ -32,15 +32,15 @@
      metadata below stay in view. With one card it keeps the full width. -->
 <div class="grid grid-cols-1 items-start gap-6 p-6 lg:has-[>:nth-child(2)]:grid-cols-2">
 	<div class="card card-static space-y-6">
+		<IdentitySection {form} {formData} {isEditing} />
+
 		<!-- Create only: an update keeps the host's existing site whatever the request says. -->
-		{#snippet siteField()}
+		{#if !isEditing}
 			<SelectSite
 				selectedSiteId={formData.site_id}
 				onSiteChange={(id) => (formData.site_id = id)}
 			/>
-		{/snippet}
-
-		<IdentitySection {form} {formData} {isEditing} siteField={isEditing ? undefined : siteField} />
+		{/if}
 
 		<form.Field
 			name="description"

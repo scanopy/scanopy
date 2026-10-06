@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
-	import { untrack, type Snippet } from 'svelte';
+	import { untrack } from 'svelte';
 	import { Pencil } from 'lucide-svelte';
 	import type { HostFormData } from '$lib/features/hosts/types/base';
 	import { discoveredName, overrideOf, rungLabel } from '$lib/features/hosts/host-identity';
@@ -28,11 +28,9 @@
 		form: { Field: any };
 		formData: HostFormData;
 		isEditing: boolean;
-		/** Create mode only: a third field (the site) rendered on the name/hostname row. */
-		siteField?: Snippet;
 	}
 
-	let { form, formData, isEditing, siteField }: Props = $props();
+	let { form, formData, isEditing }: Props = $props();
 
 	// Server data, so it stays what was discovered whatever the override field holds.
 	let discovered = $derived(discoveredName(formData.name_ladder ?? []));
@@ -113,7 +111,7 @@
 			</div>
 		{/if}
 	{:else}
-		<div class="grid items-start gap-6 {siteField ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'}">
+		<div class="grid grid-cols-2 gap-6">
 			<form.Field
 				name="name"
 				validators={{
@@ -145,8 +143,6 @@
 					/>
 				{/snippet}
 			</form.Field>
-
-			{@render siteField?.()}
 		</div>
 	{/if}
 </div>
