@@ -91,33 +91,3 @@ export function isFindShortcut(
 export function shortcutLabel(platform: string, key: string): string {
 	return /mac|iphone|ipad/i.test(platform) ? `⌘${key}` : `Ctrl ${key}`;
 }
-
-/** A list page's filter, as the global search palette offers it. */
-export interface PageFilter {
-	/** The entities the page lists, lowercase plural ("hosts"). */
-	entity: string;
-	/** Whether this page is the one on screen; list pages stay mounted behind other tabs. */
-	isVisible: () => boolean;
-	/** Set the page's filter to `query` and focus it. */
-	apply: (query: string) => void;
-}
-
-/** Every mounted list page's filter. The palette offers the visible one. */
-export const pageFilters = writable<Set<PageFilter>>(new Set());
-
-/** Register a page's filter for the palette; returns the unregister function. */
-export function registerPageFilter(filter: PageFilter): () => void {
-	pageFilters.update((set) => new Set(set).add(filter));
-	return () =>
-		pageFilters.update((set) => {
-			const next = new Set(set);
-			next.delete(filter);
-			return next;
-		});
-}
-
-/** The filter of the list page on screen, if any. */
-export function visiblePageFilter(filters: Iterable<PageFilter>): PageFilter | null {
-	for (const filter of filters) if (filter.isVisible()) return filter;
-	return null;
-}

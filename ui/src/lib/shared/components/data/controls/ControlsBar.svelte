@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { onMount, type Snippet } from 'svelte';
+	import type { Snippet } from 'svelte';
 	import { createForm } from '@tanstack/svelte-form';
 	import { browser } from '$app/environment';
 	import { Download } from 'lucide-svelte';
 	import PageTitle from '$lib/shared/components/layout/PageTitle.svelte';
 	import SearchInput from '$lib/shared/components/forms/input/SearchInput.svelte';
-	import { isFindShortcut, shortcutLabel, registerPageFilter } from '$lib/features/search/results';
+	import { isFindShortcut, shortcutLabel } from '$lib/features/search/results';
 	import { lowercasePreservingAcronyms } from '$lib/shared/utils/formatting';
 	import {
 		common_export,
@@ -46,7 +46,7 @@
 
 	const form = createForm(() => ({ defaultValues: { query: searchQuery } }));
 
-	/** "hosts", for the placeholder and the palette's filter row. */
+	/** "hosts", for the placeholder. */
 	let entity = $derived(entityLabel ? lowercasePreservingAcronyms(entityLabel) : null);
 	let placeholder = $derived(entity ? common_filterEntity({ entity }) : common_filter());
 
@@ -61,28 +61,10 @@
 		return !!inputEl;
 	}
 
-	function setQuery(next: string) {
-		form.setFieldValue('query', next);
-		searchQuery = next;
-	}
-
 	function clear() {
 		form.setFieldValue('query', '');
 		onClearSearch();
 	}
-
-	onMount(() =>
-		registerPageFilter({
-			get entity() {
-				return entity ?? '';
-			},
-			isVisible,
-			apply: (query) => {
-				setQuery(query);
-				inputEl?.focus();
-			}
-		})
-	);
 
 	function handleWindowKeydown(event: KeyboardEvent) {
 		// Only the page on screen takes Cmd/Ctrl+F; everywhere else the browser keeps its own find.

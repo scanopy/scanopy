@@ -1132,7 +1132,6 @@
 	"gettingStarted_stepTopologyLabel": "View your topology",
 	"gettingStarted_title": "Getting Started",
 	"gettingStarted_whileYouWait": "While you wait:",
-	"globalSearch_filterPage": "Filter {entity} for \"{query}\"",
 	"globalSearch_noResults": "Nothing matches \"{query}\"",
 	"globalSearch_openWithShortcut": "Search ({shortcut})",
 	"globalSearch_placeholder": "Search hosts, services, subnets, and VLANs across the sites you can access",
