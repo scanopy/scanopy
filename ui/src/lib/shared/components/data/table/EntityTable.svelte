@@ -29,7 +29,7 @@
 	import TreeGuides from '../TreeGuides.svelte';
 	import { tooltip } from '$lib/shared/actions/tooltip';
 	import { getFieldValue } from '../controls/fieldValues';
-	import type { RenderGroup, TreeEntry, TreeGuide, TreeSection } from '../controls/grouping';
+	import type { RenderGroup, TreeEntry, TreeSection } from '../controls/grouping';
 	import type { SortState } from '../controls/sorting';
 	import type { CardAction } from '../types';
 	import {
@@ -253,12 +253,11 @@
 	let spannedColumns = $derived(columns.length + (selectable ? 1 : 0) + (getActions ? 1 : 0));
 
 	/**
-	 * Where a tree section header's guides start, so its lines meet the guides drawn in the rows'
-	 * primary cell, which sits after the checkbox column.
+	 * A tree section header spans every column after the checkbox, so its chevron and guide lines
+	 * start where the rows' primary cell does and its lines meet theirs. Assumes the primary column
+	 * comes first, as every tab declares it.
 	 */
-	let sectionGuideOffset = $derived(
-		selectable ? 'calc(2.5rem + var(--cell-px))' : 'var(--cell-px)'
-	);
+	let sectionSpan = $derived(spannedColumns - (selectable ? 1 : 0));
 
 	function entryKey(entry: TreeEntry<T>): string {
 		return entry.type === 'row' ? getItemId(entry.item) : entry.key;
@@ -428,7 +427,7 @@
 							{#each group.items as item (getItemId(item))}
 								{@const row = rowById.get(getItemId(item))}
 								{#if row}
-									{@render bodyRow(row, [])}
+									{@render bodyRow(row, 0)}
 								{/if}
 							{/each}
 						{/if}
@@ -436,7 +435,7 @@
 				{/each}
 			{:else}
 				{#each view.rows as row (row.id)}
-					{@render bodyRow(row, [])}
+					{@render bodyRow(row, 0)}
 				{/each}
 			{/if}
 		</tbody>
@@ -448,7 +447,7 @@
 		{#if entry.type === 'row'}
 			{@const row = rowById.get(getItemId(entry.item))}
 			{#if row}
-				{@render bodyRow(row, entry.guides)}
+				{@render bodyRow(row, entry.depth)}
 			{/if}
 		{:else}
 			{@render sectionHeader(entry)}
@@ -461,14 +460,20 @@
 
 {#snippet sectionHeader(section: TreeSection<T>)}
 	{@const isCollapsed = collapsed.has(section.key)}
-	<tr class="border-t" style="border-color: var(--color-border)">
+	<tr
+		class="border-t bg-black/[0.03] dark:bg-white/[0.03]"
+		style="border-color: var(--color-border)"
+	>
+		{#if selectable}
+			<td class="w-10 px-[var(--cell-px)] py-[var(--cell-py)]" aria-hidden="true"></td>
+		{/if}
 		<th
 			scope="colgroup"
-			colspan={spannedColumns}
-			class="relative bg-black/[0.03] py-[var(--cell-py)] pr-[var(--cell-px)] text-left dark:bg-white/[0.03]"
-			style="padding-left: calc({sectionGuideOffset} + {section.guides.length}rem)"
+			colspan={sectionSpan}
+			class="relative py-[var(--cell-py)] pr-[var(--cell-px)] text-left"
+			style="padding-left: calc(var(--cell-px) + {section.depth}rem)"
 		>
-			<TreeGuides guides={section.guides} offset={sectionGuideOffset} />
+			<TreeGuides depth={section.depth} offset="var(--cell-px)" />
 			<button
 				type="button"
 				onclick={() => onToggleCollapse(section.key)}
@@ -487,7 +492,7 @@
 	</tr>
 {/snippet}
 
-{#snippet bodyRow(row: Row<T>, guides: TreeGuide[])}
+{#snippet bodyRow(row: Row<T>, depth: number)}
 	{@const item = row.original}
 	{@const itemId = getItemId(item)}
 	{@const isSelected = selectedIds.has(itemId)}
@@ -518,9 +523,9 @@
 						scope="row"
 						class="text-primary relative px-[var(--cell-px)] py-[var(--cell-py)] text-left align-middle font-medium"
 					>
-						{#if guides.length > 0}
-							<TreeGuides {guides} offset="var(--cell-px)" />
-							<div style="padding-left: {guides.length}rem">
+						{#if depth > 0}
+							<TreeGuides {depth} offset="var(--cell-px)" />
+							<div style="padding-left: {depth}rem">
 								<div style={contentMaxWidth(column)}>
 									<FieldValue {item} {column} />
 								</div>

@@ -95,8 +95,8 @@
 {#snippet treeEntries(entries: TreeEntry<T>[])}
 	{#each entries as entry (entryKey(entry))}
 		{#if entry.type === 'row'}
-			<div class="relative pb-3" style="padding-left: {entry.guides.length}rem">
-				<TreeGuides guides={entry.guides} />
+			<div class="relative pb-3" style="padding-left: {entry.depth}rem">
+				<TreeGuides depth={entry.depth} />
 				{@render card(entry.item)}
 			</div>
 		{:else}
@@ -110,8 +110,8 @@
 
 {#snippet sectionHeader(section: TreeSection<T>)}
 	{@const isCollapsed = collapsed.has(section.key)}
-	<div class="relative pb-3" style="padding-left: {section.guides.length}rem">
-		<TreeGuides guides={section.guides} />
+	<div class="relative pb-3" style="padding-left: {section.depth}rem">
+		<TreeGuides depth={section.depth} />
 		<button
 			type="button"
 			onclick={() => onToggleCollapse(section.key)}

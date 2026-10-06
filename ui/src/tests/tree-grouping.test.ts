@@ -58,15 +58,15 @@ describe('compareCidr', () => {
 	});
 });
 
-/** A group's entries as `id` for a row and `[label, ...children]` for a section, with guides. */
+/** A group's entries as `depth|id` for a row and a section object with its depth. */
 function shape(entries: TreeEntry<Range>[]): unknown[] {
 	return entries.map((entry) =>
 		entry.type === 'row'
-			? `${entry.guides.join(',')}|${entry.item.id}`
+			? `${entry.depth}|${entry.item.id}`
 			: {
 					section: entry.label,
 					count: entry.count,
-					guides: entry.guides.join(','),
+					depth: entry.depth,
 					entries: shape(entry.entries)
 				}
 	);
@@ -76,13 +76,13 @@ describe('buildTreeSections', () => {
 	it('nests a full list three levels deep, the group root heading its group', () => {
 		const entries = buildTreeSections([leaf, sibling, wide, mid], tree, false, 'g', byCidr);
 		expect(shape(entries)).toEqual([
-			'|wide',
-			'bar|sibling',
+			'1|wide',
+			'1|sibling',
 			{
 				section: '10.10.16.0/20',
 				count: 2,
-				guides: 'bar',
-				entries: ['bar,space|mid', 'bar,bar|leaf']
+				depth: 1,
+				entries: ['2|mid', '2|leaf']
 			}
 		]);
 		expect(flattenTreeEntries(entries).map((r) => r.id)).toEqual([
@@ -96,8 +96,8 @@ describe('buildTreeSections', () => {
 	it('gives a row whose parent is filtered out a section of its own at the top', () => {
 		const entries = buildTreeSections([leaf, sibling, mid], tree, false, 'g', byCidr);
 		expect(shape(entries)).toEqual([
-			'|sibling',
-			{ section: '10.10.16.0/20', count: 2, guides: '', entries: ['space|mid', 'bar|leaf'] }
+			'0|sibling',
+			{ section: '10.10.16.0/20', count: 2, depth: 0, entries: ['1|mid', '1|leaf'] }
 		]);
 	});
 
@@ -112,25 +112,25 @@ describe('buildTreeSections', () => {
 		const root: Range = { id: 'root', cidr: '10.0.2.0/24', parent: null };
 		const entries = buildTreeSections([a, b, root], tree, false, 'g');
 		// Neither cycle member has a parent outside the cycle, so only the real root is reached.
-		expect(shape(entries)).toEqual(['|root']);
+		expect(shape(entries)).toEqual(['0|root']);
 	});
 
 	it('nests a server page from depth, rows below an earlier page starting at the top', () => {
 		const depthTree = { ...tree, depth: (r: Range) => r.depth ?? 0 };
 		const other: Range = { id: 'other', cidr: '10.10.32.0/24', parent: 'wide', depth: 1 };
 		const page = [{ ...leaf, depth: 2 }, other];
-		expect(shape(buildTreeSections(page, depthTree, true, 'g'))).toEqual(['|leaf', '|other']);
+		expect(shape(buildTreeSections(page, depthTree, true, 'g'))).toEqual(['0|leaf', '0|other']);
 
 		const full = [{ ...wide, depth: 0 }, { ...mid, depth: 1 }, { ...leaf, depth: 2 }, other];
 		expect(shape(buildTreeSections(full, depthTree, true, 'g'))).toEqual([
-			'|wide',
+			'1|wide',
 			{
 				section: '10.10.16.0/20',
 				count: 2,
-				guides: 'bar',
-				entries: ['bar,space|mid', 'bar,bar|leaf']
+				depth: 1,
+				entries: ['2|mid', '2|leaf']
 			},
-			'bar|other'
+			'1|other'
 		]);
 	});
 
