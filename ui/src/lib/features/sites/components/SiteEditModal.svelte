@@ -211,35 +211,37 @@
 			<div class="space-y-8">
 				<!-- Site Details Section -->
 				<div class="space-y-4">
-					<form.Field
-						name="name"
-						validators={{
-							onBlur: ({ value }) => required(value) || max(100)(value)
-						}}
-					>
-						{#snippet children(field)}
-							<TextInput
-								label={common_name()}
-								id="name"
-								{field}
-								placeholder={sites_siteNamePlaceholder()}
-								required
-							/>
-						{/snippet}
-					</form.Field>
+					<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+						<form.Field
+							name="name"
+							validators={{
+								onBlur: ({ value }) => required(value) || max(100)(value)
+							}}
+						>
+							{#snippet children(field)}
+								<TextInput
+									label={common_name()}
+									id="name"
+									{field}
+									placeholder={sites_siteNamePlaceholder()}
+									required
+								/>
+							{/snippet}
+						</form.Field>
 
-					<form.Field name="stale_after_hours">
-						{#snippet children(field)}
-							<DurationInput
-								label={sites_staleAfterHours()}
-								id="stale_after_hours"
-								{field}
-								initialHours={site?.stale_after_hours ?? null}
-								placeholderHours={site?.effective_stale_after_hours ?? null}
-								helpText={sites_staleAfterHoursHelp()}
-							/>
-						{/snippet}
-					</form.Field>
+						<form.Field name="stale_after_hours">
+							{#snippet children(field)}
+								<DurationInput
+									label={sites_staleAfterHours()}
+									id="stale_after_hours"
+									{field}
+									initialHours={site?.stale_after_hours ?? null}
+									placeholderHours={site?.effective_stale_after_hours ?? null}
+									helpText={sites_staleAfterHoursHelp()}
+								/>
+							{/snippet}
+						</form.Field>
+					</div>
 
 					<form.Field name="tags">
 						{#snippet children(field)}

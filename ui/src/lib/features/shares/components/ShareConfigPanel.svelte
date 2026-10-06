@@ -304,26 +304,28 @@
 	<!-- Display Options — collapsible -->
 	<CollapsibleCard title={shares_displayOptions()} expanded={false}>
 		<div class="space-y-3">
-			<form.Field name={showZoomControlsFieldName}>
-				{#snippet children(field: AnyFieldApi)}
-					<Checkbox label={shares_showZoomControls()} id="show-zoom-controls-{index}" {field} />
-				{/snippet}
-			</form.Field>
-			<form.Field name={showInspectPanelFieldName}>
-				{#snippet children(field: AnyFieldApi)}
-					<Checkbox label={shares_showInspectPanel()} id="show-inspect-panel-{index}" {field} />
-				{/snippet}
-			</form.Field>
-			<form.Field name={showExportButtonFieldName}>
-				{#snippet children(field: AnyFieldApi)}
-					<Checkbox label={shares_showExportButton()} id="show-export-button-{index}" {field} />
-				{/snippet}
-			</form.Field>
-			<form.Field name={showMinimapFieldName}>
-				{#snippet children(field: AnyFieldApi)}
-					<Checkbox label={topology_showMinimap()} id="show-minimap-{index}" {field} />
-				{/snippet}
-			</form.Field>
+			<div class="grid grid-cols-2 gap-x-4 gap-y-3">
+				<form.Field name={showZoomControlsFieldName}>
+					{#snippet children(field: AnyFieldApi)}
+						<Checkbox label={shares_showZoomControls()} id="show-zoom-controls-{index}" {field} />
+					{/snippet}
+				</form.Field>
+				<form.Field name={showInspectPanelFieldName}>
+					{#snippet children(field: AnyFieldApi)}
+						<Checkbox label={shares_showInspectPanel()} id="show-inspect-panel-{index}" {field} />
+					{/snippet}
+				</form.Field>
+				<form.Field name={showExportButtonFieldName}>
+					{#snippet children(field: AnyFieldApi)}
+						<Checkbox label={shares_showExportButton()} id="show-export-button-{index}" {field} />
+					{/snippet}
+				</form.Field>
+				<form.Field name={showMinimapFieldName}>
+					{#snippet children(field: AnyFieldApi)}
+						<Checkbox label={topology_showMinimap()} id="show-minimap-{index}" {field} />
+					{/snippet}
+				</form.Field>
+			</div>
 			<div>
 				<span class="text-secondary mb-1 block text-sm font-medium">{common_theme()}</span>
 				<div class="flex gap-2">

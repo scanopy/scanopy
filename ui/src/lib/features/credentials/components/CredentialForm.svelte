@@ -1013,58 +1013,74 @@
 {/if}
 
 {#snippet identityFields()}
-	{#if showName}
-		<form.Field
-			name={nameFieldName}
-			validators={{
-				onBlur: ({ value }: { value: string }) => required(value) || max(100)(value),
-				onSubmit: ({ value }: { value: string }) => required(value) || max(100)(value)
-			}}
-		>
-			{#snippet children(field: AnyFieldApi)}
-				<TextInput
-					label={common_name()}
-					id="credential-name"
-					{field}
-					placeholder={credentials_namePlaceholderExample()}
-					required
-				/>
-			{/snippet}
-		</form.Field>
-
-		<form.Field
-			name="description"
-			validators={{
-				onBlur: ({ value }: { value: string | null }) => max(500)(value || '')
-			}}
-		>
-			{#snippet children(field: AnyFieldApi)}
-				<TextArea
-					label={common_description()}
-					id="credential-description"
-					{field}
-					placeholder={credentials_descriptionPlaceholder()}
-				/>
-			{/snippet}
-		</form.Field>
-	{/if}
-
-	{#if showTypeSelector}
-		<div class="space-y-2">
-			<RichSelect
-				label={credentials_credentialType()}
-				selectedValue={selectedTypeId}
-				options={typeOptions}
-				displayComponent={CredentialTypeDisplay}
-				showSearch={true}
-				disabled={isEditing}
-				onSelect={handleTypeChange}
-			/>
-			{#if !isEditing}
-				<p class="text-muted mt-1 text-xs">{credentials_typeImmutableWarning()}</p>
-			{/if}
+	<!-- Name and type share a row when both show; the description follows at full width. -->
+	{#if showName && showTypeSelector}
+		<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+			{@render nameField()}
+			{@render typeField()}
 		</div>
+		{@render descriptionField()}
+	{:else if showName}
+		{@render nameField()}
+		{@render descriptionField()}
+	{:else if showTypeSelector}
+		{@render typeField()}
 	{/if}
+{/snippet}
+
+{#snippet nameField()}
+	<form.Field
+		name={nameFieldName}
+		validators={{
+			onBlur: ({ value }: { value: string }) => required(value) || max(100)(value),
+			onSubmit: ({ value }: { value: string }) => required(value) || max(100)(value)
+		}}
+	>
+		{#snippet children(field: AnyFieldApi)}
+			<TextInput
+				label={common_name()}
+				id="credential-name"
+				{field}
+				placeholder={credentials_namePlaceholderExample()}
+				required
+			/>
+		{/snippet}
+	</form.Field>
+{/snippet}
+
+{#snippet descriptionField()}
+	<form.Field
+		name="description"
+		validators={{
+			onBlur: ({ value }: { value: string | null }) => max(500)(value || '')
+		}}
+	>
+		{#snippet children(field: AnyFieldApi)}
+			<TextArea
+				label={common_description()}
+				id="credential-description"
+				{field}
+				placeholder={credentials_descriptionPlaceholder()}
+			/>
+		{/snippet}
+	</form.Field>
+{/snippet}
+
+{#snippet typeField()}
+	<div class="space-y-2">
+		<RichSelect
+			label={credentials_credentialType()}
+			selectedValue={selectedTypeId}
+			options={typeOptions}
+			displayComponent={CredentialTypeDisplay}
+			showSearch={true}
+			disabled={isEditing}
+			onSelect={handleTypeChange}
+		/>
+		{#if !isEditing}
+			<p class="text-muted mt-1 text-xs">{credentials_typeImmutableWarning()}</p>
+		{/if}
+	</div>
 {/snippet}
 
 {#snippet daemonOsPicker()}

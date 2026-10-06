@@ -173,20 +173,22 @@
 							{@const maxIps = Math.pow(2, 32 - arpScanCutoff)}
 							{@const secondsAt50pps = maxIps / 50}
 							{@const subnetNames = truncatedInterfacedSubnets.map((s) => s.name).join(', ')}
-							<InlineWarning
-								title={secondsAt50pps >= 3600
-									? discovery_arpScanCutoffWarningSlow({
-											cutoff: String(arpScanCutoff),
-											ipCount: maxIps.toLocaleString(),
-											timeEstimate: formatDurationHuman(secondsAt50pps),
-											subnets: subnetNames
-										})
-									: discovery_arpScanCutoffWarning({
-											cutoff: String(arpScanCutoff),
-											ipCount: maxIps.toLocaleString(),
-											subnets: subnetNames
-										})}
-							/>
+							<div class="col-span-2">
+								<InlineWarning
+									title={secondsAt50pps >= 3600
+										? discovery_arpScanCutoffWarningSlow({
+												cutoff: String(arpScanCutoff),
+												ipCount: maxIps.toLocaleString(),
+												timeEstimate: formatDurationHuman(secondsAt50pps),
+												subnets: subnetNames
+											})
+										: discovery_arpScanCutoffWarning({
+												cutoff: String(arpScanCutoff),
+												ipCount: maxIps.toLocaleString(),
+												subnets: subnetNames
+											})}
+								/>
+							</div>
 						{/if}
 					{/each}
 				</div>

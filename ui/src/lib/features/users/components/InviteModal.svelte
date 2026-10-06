@@ -198,16 +198,32 @@
 				{/if}
 
 				<InfoCard title={common_access()}>
-					<form.Field name="permissions">
-						{#snippet children(field)}
-							<PermissionSelect
-								{field}
-								label={users_permissionsLevel()}
-								helpText={users_permissionsLevelHelp()}
-								disabled={!!invite}
-							/>
-						{/snippet}
-					</form.Field>
+					<div class="grid grid-cols-1 items-start gap-4 {enableEmail ? 'sm:grid-cols-2' : ''}">
+						<form.Field name="permissions">
+							{#snippet children(field)}
+								<PermissionSelect
+									{field}
+									label={users_permissionsLevel()}
+									helpText={users_permissionsLevelHelp()}
+									disabled={!!invite}
+								/>
+							{/snippet}
+						</form.Field>
+
+						{#if enableEmail}
+							<form.Field name="email" validators={{ onBlur: ({ value }) => email(value) }}>
+								{#snippet children(field)}
+									<TextInput
+										label={common_email()}
+										id="email"
+										placeholder={users_emailPlaceholder()}
+										helpText={users_emailHelp()}
+										{field}
+									/>
+								{/snippet}
+							</form.Field>
+						{/if}
+					</div>
 
 					<SiteAccessSelect
 						{selectedSiteIds}
@@ -215,20 +231,6 @@
 						permissionLevel={permissionsValue}
 						helpText={users_siteAccessHelp()}
 					/>
-
-					{#if enableEmail}
-						<form.Field name="email" validators={{ onBlur: ({ value }) => email(value) }}>
-							{#snippet children(field)}
-								<TextInput
-									label={common_email()}
-									id="email"
-									placeholder={users_emailPlaceholder()}
-									helpText={users_emailHelp()}
-									{field}
-								/>
-							{/snippet}
-						</form.Field>
-					{/if}
 
 					<!-- Generate Invite Button (shown when no invite exists) -->
 					{#if !invite}
