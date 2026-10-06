@@ -23,10 +23,6 @@ export function keyLabel(key: string, platform = currentPlatform): string {
 			return apple ? '⇧' : 'Shift';
 		case 'Escape':
 			return 'Esc';
-		case 'ArrowLeft':
-			return '←';
-		case 'ArrowRight':
-			return '→';
 		default:
 			return key;
 	}

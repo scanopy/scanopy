@@ -240,15 +240,64 @@
 
 	let visibleFieldGroups = $derived(fieldGroups.filter((g) => g.fields.length > 0));
 
-	// One group on screen sits on the modal surface; two or more each get a titled card.
-	let useGroupCards = $derived(
-		(section !== 'fields' ? 1 : 0) + (section !== 'identity' ? visibleFieldGroups.length : 0) > 1
-	);
+	type FieldGroup = (typeof fieldGroups)[number];
+	interface FieldCard {
+		key: string;
+		title: string;
+		/** Holds the name/description/type fields (standard mode only). */
+		identity: boolean;
+		groups: FieldGroup[];
+	}
 
 	// Ungrouped fields (e.g. SNMPv3's context name) need a title once they sit beside named groups.
 	function groupTitle(name: string | null): string {
 		return name ?? common_options();
 	}
+
+	// A card holds two or more fields: a group with one field joins the card before it (the
+	// Details card for the first group), or the next card when nothing precedes it.
+	function buildFieldCards(withIdentity: boolean, groups: FieldGroup[]): FieldCard[] {
+		const cards: FieldCard[] = [];
+		if (withIdentity) {
+			cards.push({ key: '_identity', title: common_details(), identity: true, groups: [] });
+		}
+		let pending: FieldGroup[] = [];
+		for (const group of groups) {
+			const last = cards.at(-1);
+			if (group.fields.length === 1) {
+				if (last) last.groups.push(group);
+				else pending.push(group);
+				continue;
+			}
+			cards.push({
+				key: group.name ?? '_ungrouped',
+				title: groupTitle(group.name),
+				identity: false,
+				groups: [...pending, group]
+			});
+			pending = [];
+		}
+		if (pending.length > 0) {
+			cards.push({
+				key: pending[0].name ?? '_ungrouped',
+				title: groupTitle(pending[0].name),
+				identity: false,
+				groups: pending
+			});
+		}
+		return cards;
+	}
+
+	// Standard mode: the identity fields and each field group. Compact mode keeps the name on the
+	// surface above the groups.
+	let fieldCards = $derived(
+		compact
+			? buildFieldCards(false, visibleFieldGroups)
+			: buildFieldCards(section !== 'fields', section !== 'identity' ? visibleFieldGroups : [])
+	);
+
+	// One card's worth of fields sits on the modal surface; two or more cards each get a title.
+	let useGroupCards = $derived(fieldCards.length > 1);
 
 	// Track target IPs as local $state for reactivity (TanStack Form doesn't drive Svelte 5 reactivity)
 	let targetIpValues = $state<string[]>(['']);
@@ -957,15 +1006,7 @@
 					{/snippet}
 				</form.Field>
 
-				{#each visibleFieldGroups as group (group.name ?? '_ungrouped')}
-					{#if visibleFieldGroups.length > 1}
-						<InfoCard title={groupTitle(group.name)}>
-							{@render fieldList(group.fields)}
-						</InfoCard>
-					{:else}
-						{@render fieldList(group.fields)}
-					{/if}
-				{/each}
+				{@render fieldCardList()}
 			</fieldset>
 		{/if}
 	</div>
@@ -978,52 +1019,49 @@
 		}}
 		class="flex flex-col gap-4"
 	>
-		<!-- Standard mode: name/type and each field group are separate groups. One group on screen
-		     sits on the surface; two or more each get a titled card. A caller showing one section
-		     unmounts the other's fields, so validation only reaches what is on screen; the values and
-		     modes live in this component and the form, and survive. -->
+		<!-- Standard mode: name/type and the field groups, laid out by `fieldCards`. A caller showing
+		     one section unmounts the other's fields, so validation only reaches what is on screen; the
+		     values and modes live in this component and the form, and survive. -->
 		{#if section !== 'fields'}
 			{@render integrationDocsHint()}
-			{#if useGroupCards}
-				<InfoCard title={common_details()}>
-					{@render identityFields()}
-				</InfoCard>
-			{:else}
-				<div class="space-y-4">
-					{@render identityFields()}
-				</div>
-			{/if}
 		{/if}
 
-		{#if section !== 'identity'}
-			{#each visibleFieldGroups as group (group.name ?? '_ungrouped')}
-				{#if useGroupCards}
-					<InfoCard title={groupTitle(group.name)}>
-						{@render fieldList(group.fields)}
-					</InfoCard>
-				{:else}
-					{@render fieldList(group.fields)}
-				{/if}
-			{/each}
-		{/if}
+		{@render fieldCardList()}
 
 		<!-- Hidden submit button for Enter-to-submit -->
 		<button type="submit" class="hidden" aria-hidden="true" tabindex={-1}></button>
 	</form>
 {/if}
 
-{#snippet identityFields()}
-	<!-- Name and type share a row when both show; the description follows at full width. -->
-	{#if showName && showTypeSelector}
-		<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-			{@render nameField()}
-			{@render typeField()}
+{#snippet fieldCardList()}
+	{#each fieldCards as card (card.key)}
+		{#if useGroupCards}
+			<InfoCard title={card.title}>
+				{@render fieldCardContents(card)}
+			</InfoCard>
+		{:else}
+			{@render fieldCardContents(card)}
+		{/if}
+	{/each}
+{/snippet}
+
+{#snippet fieldCardContents(card: FieldCard)}
+	{#if card.identity}
+		<div class="space-y-4">
+			{@render identityFields()}
 		</div>
-		{@render descriptionField()}
-	{:else if showName}
+	{/if}
+	{#each card.groups as group (group.name ?? '_ungrouped')}
+		{@render fieldList(group.fields)}
+	{/each}
+{/snippet}
+
+{#snippet identityFields()}
+	{#if showName}
 		{@render nameField()}
 		{@render descriptionField()}
-	{:else if showTypeSelector}
+	{/if}
+	{#if showTypeSelector}
 		{@render typeField()}
 	{/if}
 {/snippet}

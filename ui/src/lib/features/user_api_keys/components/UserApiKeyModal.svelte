@@ -212,36 +212,34 @@
 		<div class="min-h-0 flex-1 overflow-auto p-6">
 			<div class="space-y-6">
 				<div class="space-y-4">
-					<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-						<form.Field
-							name="name"
-							validators={{
-								onBlur: ({ value }) => required(value) || max(100)(value)
-							}}
-						>
-							{#snippet children(field)}
-								<TextInput
-									label={common_name()}
-									id="name"
-									{field}
-									placeholder={userApiKeys_namePlaceholder()}
-									helpText={common_apiKeyNameHelp()}
-									required
-								/>
-							{/snippet}
-						</form.Field>
+					<form.Field
+						name="name"
+						validators={{
+							onBlur: ({ value }) => required(value) || max(100)(value)
+						}}
+					>
+						{#snippet children(field)}
+							<TextInput
+								label={common_name()}
+								id="name"
+								{field}
+								placeholder={userApiKeys_namePlaceholder()}
+								helpText={common_apiKeyNameHelp()}
+								required
+							/>
+						{/snippet}
+					</form.Field>
 
-						<form.Field name="permissions">
-							{#snippet children(field)}
-								<PermissionSelect
-									{field}
-									label={common_permissions()}
-									helpText={userApiKeys_permissionsHelp()}
-									context="api_key"
-								/>
-							{/snippet}
-						</form.Field>
-					</div>
+					<form.Field name="permissions">
+						{#snippet children(field)}
+							<PermissionSelect
+								{field}
+								label={common_permissions()}
+								helpText={userApiKeys_permissionsHelp()}
+								context="api_key"
+							/>
+						{/snippet}
+					</form.Field>
 
 					<form.Field name="site_ids">
 						{#snippet children(field)}
@@ -265,32 +263,28 @@
 						{/snippet}
 					</form.Field>
 
-					<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-						<form.Field name="expires_at">
-							{#snippet children(field)}
-								<DateInput
-									label={common_expirationDateOptional()}
-									id="expires_at"
-									{field}
-									helpText={common_expirationNeverHelp()}
-									min={today}
-								/>
-							{/snippet}
-						</form.Field>
+					<form.Field name="expires_at">
+						{#snippet children(field)}
+							<DateInput
+								label={common_expirationDateOptional()}
+								id="expires_at"
+								{field}
+								helpText={common_expirationNeverHelp()}
+								min={today}
+							/>
+						{/snippet}
+					</form.Field>
 
-						<div class="flex items-center">
-							<form.Field name="is_enabled">
-								{#snippet children(field)}
-									<Checkbox
-										{field}
-										label={common_enableApiKey()}
-										helpText={userApiKeys_enableHelp()}
-										id="enableApiKey"
-									/>
-								{/snippet}
-							</form.Field>
-						</div>
-					</div>
+					<form.Field name="is_enabled">
+						{#snippet children(field)}
+							<Checkbox
+								{field}
+								label={common_enableApiKey()}
+								helpText={userApiKeys_enableHelp()}
+								id="enableApiKey"
+							/>
+						{/snippet}
+					</form.Field>
 				</div>
 
 				<!-- Key generation section -->

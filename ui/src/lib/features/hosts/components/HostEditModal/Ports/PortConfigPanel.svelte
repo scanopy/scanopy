@@ -45,7 +45,7 @@
 <div class="space-y-6">
 	<ConfigHeader title={hosts_ports_configTitle()} subtitle={hosts_ports_configSubtitle()} />
 
-	<div class="grid grid-cols-2 items-start gap-4">
+	<div class="space-y-4">
 		<form.Field
 			name={numberFieldName}
 			validators={{
