@@ -9,16 +9,28 @@ pub(super) fn generate_vlans(
 ) -> Vec<Vlan> {
     let mut vlans = Vec::new();
 
-    let vlan_defs: Vec<(u16, &str)> = vec![
-        (1, "Default"),
-        (10, "Management"),
-        (20, "Servers"),
-        (30, "Users"),
-        (100, "Guest"),
+    let vlan_defs: Vec<(u16, &str, &str)> = vec![
+        (
+            1,
+            "Default",
+            "Untagged native VLAN on trunk ports. Nothing should live here.",
+        ),
+        (
+            10,
+            "Management",
+            "Switch, firewall and hypervisor management interfaces.",
+        ),
+        (20, "Servers", "Production servers and the NAS."),
+        (30, "Users", "Staff workstations and printers."),
+        (
+            100,
+            "Guest",
+            "Visitor Wi-Fi. Internet access only, isolated from internal VLANs.",
+        ),
     ];
 
     for site in sites {
-        for &(vlan_number, name) in &vlan_defs {
+        for &(vlan_number, name, description) in &vlan_defs {
             vlans.push(Vlan {
                 id: Uuid::new_v4(),
                 created_at: now,
@@ -32,7 +44,7 @@ pub(super) fn generate_vlans(
                 base: VlanBase {
                     vlan_number,
                     name: name.to_string(),
-                    description: None,
+                    description: Some(description.to_string()),
                     site_id: site.id,
                     organization_id,
                     source: EntitySource::Discovery,
