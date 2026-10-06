@@ -849,6 +849,29 @@
 				/>
 			{/snippet}
 		</ControlsBar>
+		<!-- Count, filter and grouping clears, and paging stay in view with the toolbar. -->
+		<div class="mt-4">
+			<PaginationBar
+				{totalCount}
+				{totalPages}
+				currentPage={effectiveCurrentPage}
+				{pageSize}
+				showingStart={page.showingStart}
+				showingEnd={page.showingEnd}
+				canGoPrev={page.canGoPrev}
+				canGoNext={page.canGoNext}
+				groupCount={hasActiveGrouping ? groupedItems.size : null}
+				filterCount={activeFilterCount}
+				onClearFilters={filters.clearAll}
+				onClearGrouping={() => (ordering = { ...ordering, group: null })}
+				{useServerPagination}
+				processedCount={processedItems.length}
+				itemCount={items.length}
+				onPrevPage={() => page.canGoPrev && goToPage(effectiveCurrentPage - 1)}
+				onNextPage={() => page.canGoNext && goToPage(effectiveCurrentPage + 1)}
+				onPageSizeChange={handlePageSizeChange}
+			/>
+		</div>
 	</div>
 
 	<!-- Bulk Action Bar (shown when items are selected) -->
@@ -864,28 +887,6 @@
 			onTagRemove={handleBulkTagRemove}
 		/>
 	{/if}
-
-	<!-- Results Count and Pagination -->
-	<PaginationBar
-		{totalCount}
-		{totalPages}
-		currentPage={effectiveCurrentPage}
-		{pageSize}
-		showingStart={page.showingStart}
-		showingEnd={page.showingEnd}
-		canGoPrev={page.canGoPrev}
-		canGoNext={page.canGoNext}
-		groupCount={hasActiveGrouping ? groupedItems.size : null}
-		filterCount={activeFilterCount}
-		onClearFilters={filters.clearAll}
-		onClearGrouping={() => (ordering = { ...ordering, group: null })}
-		{useServerPagination}
-		processedCount={processedItems.length}
-		itemCount={items.length}
-		onPrevPage={() => page.canGoPrev && goToPage(effectiveCurrentPage - 1)}
-		onNextPage={() => page.canGoNext && goToPage(effectiveCurrentPage + 1)}
-		onPageSizeChange={handlePageSizeChange}
-	/>
 
 	<!-- Content -->
 	{#if totalCount === 0 && (hasActiveFilters || hasActiveSearch)}
