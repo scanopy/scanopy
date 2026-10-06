@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { Search, X, ChevronUp, ChevronDown } from 'lucide-svelte';
+	import { X, ChevronUp, ChevronDown } from 'lucide-svelte';
+	import { createForm } from '@tanstack/svelte-form';
+	import SearchInput from '$lib/shared/components/forms/input/SearchInput.svelte';
+	import { views } from '$lib/shared/stores/metadata';
 	import { get } from 'svelte/store';
 	import { useSvelteFlow } from '@xyflow/svelte';
 	import {
@@ -18,7 +21,12 @@
 	import {
 		topology_searchPlaceholder,
 		topology_searchNoMatches,
-		topology_searchMatchCount
+		topology_searchMatchCount,
+		topology_searchNavigateHint,
+		topology_searchScope,
+		common_close,
+		common_next,
+		common_previous
 	} from '$lib/paraglide/messages';
 
 	const { fitView } = useSvelteFlow();
@@ -32,6 +40,9 @@
 					RenderableTopology | undefined)
 	);
 
+	const form = createForm(() => ({ defaultValues: { query: '' } }));
+
+	/** Reactive copy of the query field, which `$derived` cannot read off the form. */
 	let query = $state('');
 	let inputEl: HTMLInputElement | undefined = $state();
 
@@ -68,7 +79,7 @@
 			// Focus the input when opened
 			requestAnimationFrame(() => inputEl?.focus());
 		} else {
-			query = '';
+			resetQuery();
 		}
 	});
 
@@ -103,7 +114,7 @@
 		if (event.key === 'Escape') {
 			event.preventDefault();
 			event.stopPropagation();
-			query = '';
+			resetQuery();
 			clearSearch();
 		} else if (event.key === 'Enter' || event.key === 'ArrowDown') {
 			event.preventDefault();
@@ -114,51 +125,76 @@
 		}
 	}
 
-	function handleClose() {
+	function resetQuery() {
+		form.reset();
 		query = '';
+	}
+
+	function handleClose() {
+		resetQuery();
 		clearSearch();
 	}
 </script>
 
 {#if isOpen}
-	<div class="absolute left-1/2 top-4 z-20 -translate-x-1/2">
-		<div class="card card-static flex items-center gap-2 px-3 py-2 shadow-lg">
-			<Search class="text-tertiary h-4 w-4 flex-shrink-0" />
-			<input
-				bind:this={inputEl}
-				bind:value={query}
-				onkeydown={handleKeydown}
-				type="text"
-				placeholder={topology_searchPlaceholder()}
-				class="h-7 w-64 border-none bg-transparent text-sm focus:outline-none"
-				style="color: var(--color-text-primary)"
-			/>
+	<div class="absolute left-1/2 top-4 z-20 w-[32rem] max-w-[calc(100%-2rem)] -translate-x-1/2">
+		<!-- Same layout as the Cmd+K palette: the shared search box, then a hint footer. -->
+		<div class="card card-static overflow-hidden p-0 shadow-lg">
+			<form.Field name="query">
+				{#snippet children(field)}
+					<SearchInput
+						{field}
+						value={query}
+						id="topology-search"
+						bind:inputEl
+						placeholder={topology_searchPlaceholder()}
+						scope={topology_searchScope({ view: views.getName(currentView) ?? currentView })}
+						onInput={(value) => (query = value)}
+						onkeydown={handleKeydown}
+					>
+						{#snippet trailing()}
+							{#if query}
+								<span class="text-tertiary whitespace-nowrap text-xs">
+									{#if navigableIds.length === 0}
+										{topology_searchNoMatches()}
+									{:else}
+										{topology_searchMatchCount({
+											current: String(activeIndex + 1),
+											total: String(navigableIds.length)
+										})}
+									{/if}
+								</span>
 
-			{#if query}
-				<span class="text-tertiary whitespace-nowrap text-xs">
-					{#if navigableIds.length === 0}
-						{topology_searchNoMatches()}
-					{:else}
-						{topology_searchMatchCount({
-							current: String(activeIndex + 1),
-							total: String(navigableIds.length)
-						})}
-					{/if}
-				</span>
+								<div class="flex items-center gap-0.5">
+									<button
+										class="btn-icon p-0.5"
+										onclick={prevMatch}
+										disabled={navigableIds.length === 0}
+										aria-label={common_previous()}
+									>
+										<ChevronUp class="h-4 w-4" />
+									</button>
+									<button
+										class="btn-icon p-0.5"
+										onclick={nextMatch}
+										disabled={navigableIds.length === 0}
+										aria-label={common_next()}
+									>
+										<ChevronDown class="h-4 w-4" />
+									</button>
+								</div>
+							{/if}
 
-				<div class="flex items-center gap-0.5">
-					<button class="btn-icon p-0.5" onclick={prevMatch} disabled={navigableIds.length === 0}>
-						<ChevronUp class="h-4 w-4" />
-					</button>
-					<button class="btn-icon p-0.5" onclick={nextMatch} disabled={navigableIds.length === 0}>
-						<ChevronDown class="h-4 w-4" />
-					</button>
-				</div>
-			{/if}
-
-			<button class="btn-icon p-0.5" onclick={handleClose}>
-				<X class="h-4 w-4" />
-			</button>
+							<button class="btn-icon p-0.5" onclick={handleClose} aria-label={common_close()}>
+								<X class="h-4 w-4" />
+							</button>
+						{/snippet}
+					</SearchInput>
+				{/snippet}
+			</form.Field>
+			<p class="text-tertiary border-t px-4 py-2 text-xs" style="border-color: var(--color-border)">
+				{topology_searchNavigateHint()}
+			</p>
 		</div>
 	</div>
 {/if}

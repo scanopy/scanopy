@@ -8,8 +8,9 @@
 -->
 <script lang="ts">
 	import throttle from 'just-throttle';
-	import { Search } from 'lucide-svelte';
+	import { createForm } from '@tanstack/svelte-form';
 	import GenericModal from './GenericModal.svelte';
+	import SearchInput from '$lib/shared/components/forms/input/SearchInput.svelte';
 	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
 	import { entityUIConfig } from '$lib/shared/entity-ui-config';
 	import { navigateToEntity } from '$lib/shared/stores/modal-registry';
@@ -37,7 +38,8 @@
 		common_vlans,
 		globalSearch_navigateHint,
 		globalSearch_noResults,
-		globalSearch_placeholder
+		globalSearch_placeholder,
+		globalSearch_scope
 	} from '$lib/paraglide/messages';
 
 	/** Same pause RichSelect gives a server-side search, so a burst of keystrokes costs one request. */
@@ -45,6 +47,9 @@
 
 	type Entity = { id: string };
 
+	const form = createForm(() => ({ defaultValues: { query: '' } }));
+
+	/** Reactive copy of the query field, which `$derived` cannot read off the form. */
 	let query = $state('');
 	/** The query as last sent to the server; trails `query` by the throttle. */
 	let search = $state('');
@@ -105,6 +110,7 @@
 
 	function close() {
 		sendSearch.cancel();
+		form.reset();
 		query = '';
 		search = '';
 		globalSearchOpen.set(false);
@@ -115,9 +121,9 @@
 		navigateToEntity(row.type, row.item.id, row.item as unknown as Record<string, unknown>);
 	}
 
-	function handleInput(event: Event) {
-		query = (event.currentTarget as HTMLInputElement).value;
-		sendSearch(query);
+	function handleInput(value: string) {
+		query = value;
+		sendSearch(value);
 	}
 
 	function handleInputKeydown(event: KeyboardEvent) {
@@ -150,18 +156,21 @@
 	onOpen={() => inputEl?.focus()}
 	size="md"
 >
-	<div class="flex items-center gap-2 border-b px-4 py-3" style="border-color: var(--color-border)">
-		<Search class="text-tertiary h-4 w-4 flex-shrink-0" />
-		<input
-			bind:this={inputEl}
-			value={query}
-			oninput={handleInput}
-			onkeydown={handleInputKeydown}
-			type="text"
-			placeholder={globalSearch_placeholder()}
-			aria-label={globalSearch_placeholder()}
-			class="text-primary w-full border-none bg-transparent text-sm focus:outline-none"
-		/>
+	<div class="border-b" style="border-color: var(--color-border)">
+		<form.Field name="query">
+			{#snippet children(field)}
+				<SearchInput
+					{field}
+					value={query}
+					id="global-search"
+					bind:inputEl
+					placeholder={globalSearch_placeholder()}
+					scope={globalSearch_scope()}
+					onInput={handleInput}
+					onkeydown={handleInputKeydown}
+				/>
+			{/snippet}
+		</form.Field>
 	</div>
 
 	<div class="max-h-[60vh] overflow-y-auto p-2" role="listbox">
