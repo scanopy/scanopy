@@ -112,8 +112,6 @@ export type TreeEntry<T> = TreeRow<T> | TreeSection<T>;
 export interface TreeCell<T> {
 	section: TreeSection<T> | null;
 	range: GroupSlice | null;
-	/** The root row of a headless group: drawn with the group-header tint so it reads as a new group. */
-	groupRoot: boolean;
 }
 
 /** A group as the table draws it. */

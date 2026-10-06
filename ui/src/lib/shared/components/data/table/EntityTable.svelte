@@ -446,19 +446,11 @@
 		{@const row = rowById.get(getItemId(entry.item))}
 		{#if entry.type === 'row'}
 			{#if row}
-				{@render bodyRow(row, entry.depth, {
-					section: null,
-					range: null,
-					groupRoot: root !== null
-				})}
+				{@render bodyRow(row, entry.depth, { section: null, range: null })}
 			{/if}
 		{:else}
 			{#if row}
-				{@render bodyRow(row, entry.depth, {
-					section: entry,
-					range: root?.range ?? null,
-					groupRoot: root !== null
-				})}
+				{@render bodyRow(row, entry.depth, { section: entry, range: root?.range ?? null })}
 			{/if}
 			{#if !collapsed.has(entry.key)}
 				{@render treeEntries(entry.entries, null)}
@@ -514,9 +506,7 @@
 	<tr
 		class="border-t transition-colors {isSelected
 			? 'bg-black/5 dark:bg-white/5'
-			: tree?.groupRoot
-				? 'bg-black/[0.07] dark:bg-white/[0.08]'
-				: 'hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'}"
+			: 'hover:bg-black/[0.03] dark:hover:bg-white/[0.03]'}"
 		style="border-color: var(--color-border)"
 	>
 		{#if selectable}
