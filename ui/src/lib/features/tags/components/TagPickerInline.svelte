@@ -9,7 +9,7 @@
 		type EntityDiscriminants
 	} from '$lib/features/tags/queries';
 	import { createDefaultTag } from '$lib/features/tags/types/base';
-	import { createColorHelper, AVAILABLE_COLORS, type Color } from '$lib/shared/utils/styling';
+	import { AVAILABLE_COLORS, type Color } from '$lib/shared/utils/styling';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { permissions, billingPlans } from '$lib/shared/stores/metadata';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
@@ -350,8 +350,7 @@
 		<CreatableOptionList
 			options={availableTags.map((tag) => ({
 				id: tag.id,
-				label: tag.name,
-				swatch: createColorHelper(tag.color).rgb
+				label: tag.name
 			}))}
 			onSelect={handleAddTag}
 			createLabel={showCreateOption
@@ -361,6 +360,17 @@
 				: null}
 			onCreate={handleCreateTag}
 			creating={isCreating}
-		/>
+		>
+			{#snippet row(option)}
+				{@const tag = getTag(option.id)}
+				<Tag
+					label={tag?.name}
+					color={tag?.color}
+					icon={tagIcon(tag)}
+					title={tagTooltip(tag)}
+					isShiny={isApplicationTag(tag)}
+				/>
+			{/snippet}
+		</CreatableOptionList>
 	</div>
 {/if}

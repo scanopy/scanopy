@@ -12,6 +12,7 @@
 </script>
 
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { Plus } from 'lucide-svelte';
 
 	/**
@@ -24,7 +25,8 @@
 		onSelect,
 		createLabel = null,
 		onCreate,
-		creating = false
+		creating = false,
+		row = undefined
 	}: {
 		options: CreatableOption[];
 		onSelect: (id: string) => void;
@@ -32,6 +34,8 @@
 		createLabel?: string | null;
 		onCreate?: () => void;
 		creating?: boolean;
+		/** Draws an option's row content in place of the swatch or icon and label (tags draw the tag). */
+		row?: Snippet<[CreatableOption]>;
 	} = $props();
 </script>
 
@@ -54,12 +58,16 @@
 		class="select-option flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors"
 		onmousedown={() => onSelect(option.id)}
 	>
-		{#if option.icon}
-			<option.icon class="text-secondary h-3 w-3 shrink-0" />
-		{:else if option.swatch}
-			<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {option.swatch};"
-			></span>
+		{#if row}
+			{@render row(option)}
+		{:else}
+			{#if option.icon}
+				<option.icon class="text-secondary h-3 w-3 shrink-0" />
+			{:else if option.swatch}
+				<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {option.swatch};"
+				></span>
+			{/if}
+			<span class="text-primary">{option.label}</span>
 		{/if}
-		<span class="text-primary">{option.label}</span>
 	</button>
 {/each}
