@@ -513,7 +513,7 @@ function parseField(src: string, open: number, orderable: boolean): ParsedField 
 
 /** The `<script>` blocks of a Svelte file: the template's text would derail the brace matcher. */
 function scriptOf(source: string): string {
-	return [...source.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)]
+	return [...source.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\b[^>]*>/gi)]
 		.map((m) => m[1])
 		.join('\n');
 }

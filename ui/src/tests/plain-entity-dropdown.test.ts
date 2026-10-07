@@ -116,7 +116,7 @@ function attribute(attrs: string, name: string): string | null {
  *  `<select>`'s `value`, or the `name` of the form field a `SelectInput` sits in. */
 export function findPlainDropdowns(source: string): PlainDropdown[] {
 	const markup = source
-		.replace(/<script\b[\s\S]*?<\/script\s*>/gi, blank)
+		.replace(/<script\b[\s\S]*?<\/script\b[^>]*>/gi, blank)
 		.replace(/<!--[\s\S]*?-->/g, blank);
 
 	const found: PlainDropdown[] = [];
