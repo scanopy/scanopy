@@ -606,7 +606,7 @@ async fn bulk_create_credentials(
     }
 
     let auth_entity = auth.into_entity();
-    let mut created = Vec::with_capacity(credentials.len());
+    let mut created = Vec::new();
     for mut credential in credentials {
         credential.base.organization_id = org_id;
         let assigned_site_ids = credential.base.assigned_site_ids.clone();

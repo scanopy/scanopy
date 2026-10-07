@@ -333,7 +333,7 @@ pub async fn discovery_upsert_vlans(
         crate::server::shared::services::scan_context::ScanContext::new(daemon_id)
     });
 
-    let mut response_items = Vec::with_capacity(request.vlans.len());
+    let mut response_items = Vec::new();
 
     for item in request.vlans {
         let vlan = state

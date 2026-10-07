@@ -618,7 +618,7 @@ impl EntityTagService {
 
         // Validate all tags, then refuse a list naming two tags of one tag group: which of
         // them should win is the caller's call, not ours.
-        let mut tags = Vec::with_capacity(tag_ids.len());
+        let mut tags = Vec::new();
         for tag_id in &tag_ids {
             tags.push(self.validate_tag_full(*tag_id, organization_id).await?);
         }
