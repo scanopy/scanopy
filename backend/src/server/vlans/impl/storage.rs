@@ -95,6 +95,7 @@ impl Storable for Vlan {
                     // Hydrated from the `subnet_vlans` junction on read; not a
                     // column, so nothing sent by a client is persisted.
                     subnet_ids: _,
+                    tags: _, // Stored in entity_tags junction table
                 },
         } = self.clone();
 
@@ -158,6 +159,7 @@ impl Storable for Vlan {
                     .map_err(|e| anyhow::anyhow!("Failed to deserialize source: {}", e))?,
                 // Populated by `VlanService` from the junction, not from this row.
                 subnet_ids: Vec::new(),
+                tags: Vec::new(), // Hydrated from entity_tags junction table
             },
         })
     }
@@ -289,6 +291,14 @@ impl Entity for Vlan {
         self.updated_at = time;
     }
 
+    fn get_tags(&self) -> Option<&Vec<Uuid>> {
+        Some(&self.base.tags)
+    }
+
+    fn set_tags(&mut self, tags: Vec<Uuid>) {
+        self.base.tags = tags;
+    }
+
     fn preserve_immutable_fields(&mut self, existing: &Self) {
         // A VLAN is identified by (site_id, vlan_number). Create enforces that pair is unique
         // per site; an update has no such check, so neither half may move on update.
@@ -321,6 +331,7 @@ mod tests {
         let mut request = existing.clone();
         request.base.name = "Server farm".to_string();
         request.base.description = Some("Rack A".to_string());
+        request.base.tags = vec![Uuid::new_v4()];
         request.base.vlan_number = 30;
         request.base.site_id = Uuid::new_v4();
         request.base.organization_id = Uuid::new_v4();
@@ -329,6 +340,7 @@ mod tests {
 
         assert_eq!(request.base.name, "Server farm");
         assert_eq!(request.base.description.as_deref(), Some("Rack A"));
+        assert_ne!(request.base.tags, existing.base.tags, "tags stay editable");
         assert_eq!(request.base.vlan_number, 20);
         assert_eq!(request.base.site_id, existing.base.site_id);
         assert_eq!(request.base.organization_id, existing.base.organization_id);

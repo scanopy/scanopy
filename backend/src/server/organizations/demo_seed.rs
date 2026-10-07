@@ -362,11 +362,12 @@ pub(crate) async fn insert_demo_data(
     collect_entity_tags(&created_subnets, &mut all_entity_tags);
 
     // 4.5. VLANs (depends on sites)
-    services
+    let created_vlans = services
         .vlan_service
         .storage()
         .create_many(&demo_data.vlans)
         .await?;
+    collect_entity_tags(&created_vlans, &mut all_entity_tags);
 
     // 4.6. Subnet↔VLAN junction rows (depend on subnets + VLANs). One bulk
     // insert, no per-subnet lock (fresh org). Derived to mirror the discovery

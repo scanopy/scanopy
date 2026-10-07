@@ -20,6 +20,8 @@
 	import type { TabProps } from '$lib/shared/types';
 	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
+	import { tagNames } from '$lib/features/tags/columns';
+	import { useTagsQuery } from '$lib/features/tags/queries';
 	import { discoveryRunIds, discoveryRunItems } from '$lib/features/discovery/columns';
 	import type { Vlan, VlanOrderField } from '../types/base';
 	import type { components } from '$lib/api/schema';
@@ -36,6 +38,7 @@
 		common_noEntityYet,
 		common_source,
 		common_subnets,
+		common_tags,
 		common_unknownSite,
 		common_updated,
 		common_vlans,
@@ -77,12 +80,14 @@
 	// Shared full-list subnets cache — used to resolve the hydrated `subnet_ids`
 	// on each VLAN into names.
 	const subnetsQuery = useSubnetsQuery();
+	const tagsQuery = useTagsQuery();
 	const discoveryRunsQuery = useDiscoveriesByIds(() => discoveryRunIds(vlansQuery.data ?? []));
 
 	// Derived data
 	let vlansData = $derived(vlansQuery.data ?? []);
 	let sitesData = $derived(sitesQuery.data ?? []);
 	let discoveryRunsData = $derived(discoveryRunsQuery.data ?? []);
+	let tagsData = $derived(tagsQuery.data ?? []);
 	let subnetsById = $derived(
 		new Map((subnetsQuery.data ?? []).filter(isUserManagedSubnet).map((s) => [s.id, s]))
 	);
@@ -121,6 +126,10 @@
 
 	function getSubnetNames(vlan: Vlan): string[] {
 		return getSubnets(vlan).map((s) => s.name);
+	}
+
+	function getVlanTags(vlan: Vlan): string[] {
+		return vlan.tags;
 	}
 
 	// CSV export handler
@@ -225,6 +234,14 @@
 						hiddenByDefault: true,
 						getItems: (item) => discoveryRunItems(item.last_discovery_id, discoveryRunsData)
 					}
+				},
+				{
+					key: 'tags',
+					label: common_tags(),
+					type: 'array',
+					searchable: true,
+					filterable: true,
+					getValue: (entity) => tagNames(entity.tags, tagsData)
 				}
 			]
 		)
@@ -252,6 +269,8 @@
 			fields={vlanFields}
 			storageKey="scanopy-vlans-table-state"
 			defaults={tableDefaults}
+			entityType={isReadOnly ? undefined : 'Vlan'}
+			getItemTags={getVlanTags}
 			getItemId={(item) => item.id}
 			onCsvExport={handleCsvExport}
 			getActions={vlanActions}

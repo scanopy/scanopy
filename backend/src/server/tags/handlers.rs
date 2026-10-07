@@ -463,7 +463,7 @@ pub struct SetTagsRequest {
 ///
 /// ### Validation
 ///
-/// - Entity type must be taggable (Host, Service, Subnet, Group, Site, Discovery, Daemon, DaemonApiKey, UserApiKey)
+/// - Entity type must be taggable (Host, Service, Subnet, Vlan, Dependency, Site, Discovery, Daemon, DaemonApiKey, UserApiKey, Credential)
 /// - Tag must exist and belong to your organization
 /// - Entities that already have the tag are silently skipped
 #[utoipa::path(
@@ -533,7 +533,7 @@ pub async fn bulk_add_tag(
 ///
 /// ### Validation
 ///
-/// - Entity type must be taggable (Host, Service, Subnet, Group, Site, Discovery, Daemon, DaemonApiKey, UserApiKey)
+/// - Entity type must be taggable (Host, Service, Subnet, Vlan, Dependency, Site, Discovery, Daemon, DaemonApiKey, UserApiKey, Credential)
 /// - Entities that don't have the tag are silently skipped
 #[utoipa::path(
     post,
@@ -595,7 +595,7 @@ pub async fn bulk_remove_tag(
 ///
 /// ### Validation
 ///
-/// - Entity type must be taggable (Host, Service, Subnet, Group, Site, Discovery, Daemon, DaemonApiKey, UserApiKey)
+/// - Entity type must be taggable (Host, Service, Subnet, Vlan, Dependency, Site, Discovery, Daemon, DaemonApiKey, UserApiKey, Credential)
 /// - All tags must exist and belong to your organization
 #[utoipa::path(
     put,
