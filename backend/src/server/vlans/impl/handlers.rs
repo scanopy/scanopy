@@ -12,4 +12,8 @@ impl CrudHandlers for Vlan {
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.vlan_service
     }
+
+    fn search_order() -> Option<Self::OrderField> {
+        Some(Self::OrderField::VlanNumber)
+    }
 }

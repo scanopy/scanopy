@@ -8,8 +8,10 @@ use crate::server::{
     shared::{
         api_key_common::ApiKeyService,
         events::bus::EventBus,
+        handlers::ordering::OrderField,
+        services::search::{SearchQuery, SearchScope},
         services::traits::{CrudService, EventBusService},
-        storage::generic::GenericPostgresStorage,
+        storage::{filter::StorableFilter, generic::GenericPostgresStorage, traits::Storage},
     },
     tags::entity_tags::EntityTagService,
     user_api_keys::r#impl::{base::UserApiKey, site_access::UserApiKeySiteAccessStorage},
@@ -54,6 +56,28 @@ impl CrudService<UserApiKey> for UserApiKeyService {
     fn entity_tag_service(&self) -> Option<&Arc<EntityTagService>> {
         Some(&self.entity_tag_service)
     }
+
+    /// Only the signed-in user's own keys, as their list shows them. An API key caller lists
+    /// none, so it finds none.
+    async fn search<O: OrderField>(
+        &self,
+        scope: &SearchScope,
+        query: &SearchQuery,
+        _order_by: Option<O>,
+    ) -> Result<Vec<UserApiKey>> {
+        let Some(user_id) = scope.session_user_id else {
+            return Ok(Vec::new());
+        };
+        let Some(filter) = query.narrow(StorableFilter::<UserApiKey>::new_from_user_id(&user_id))
+        else {
+            return Ok(Vec::new());
+        };
+        let keys = self
+            .storage
+            .get_all_ordered(filter.limit(query.limit), "user_api_keys.name ASC")
+            .await?;
+        self.hydrate(keys).await
+    }
 }
 
 impl UserApiKeyService {
@@ -78,8 +102,6 @@ impl UserApiKeyService {
 
     /// Get a user API key by its hashed key value
     pub async fn get_by_key(&self, hashed_key: &str) -> Result<Option<UserApiKey>> {
-        use crate::server::shared::storage::{filter::StorableFilter, traits::Storage};
-
         let filter = StorableFilter::<UserApiKey>::new_from_api_key(hashed_key.to_string());
         if let Some(mut key) = self.storage.get_unique(filter).await?.at_most_one()? {
             // Hydrate site_ids from junction table
@@ -95,8 +117,12 @@ impl UserApiKeyService {
         use crate::server::shared::storage::{filter::StorableFilter, traits::Storage};
 
         let filter = StorableFilter::<UserApiKey>::new_from_user_id(user_id);
-        let mut keys = self.storage.get_all(filter).await?;
+        let keys = self.storage.get_all(filter).await?;
+        self.hydrate(keys).await
+    }
 
+    /// Fill in the site access and tags `storage` reads leave empty.
+    async fn hydrate(&self, mut keys: Vec<UserApiKey>) -> Result<Vec<UserApiKey>> {
         // Batch hydrate site_ids
         let key_ids: Vec<Uuid> = keys.iter().map(|k| k.id).collect();
         let site_map = self.site_access_storage.get_for_keys(&key_ids).await?;

@@ -2497,6 +2497,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search every entity type
+         * @description Returns up to five matches of each entity type the caller can list, on the sites and in the
+         *     organization they can access. Each type matches the text against its own fields; tags narrow
+         *     every type to entities carrying all of them.
+         */
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/services": {
         parameters: {
             query?: never;
@@ -3491,7 +3513,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.17.21"
+         *       "server_version": "0.17.22"
          *     }
          */
         ApiMeta: {
@@ -3502,7 +3524,7 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.17.21
+             * @example 0.17.22
              */
             server_version: string;
         };
@@ -3531,19 +3553,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-06T15:39:34.040006Z",
+             *       "created_at": "2026-10-07T01:29:20.142991Z",
              *       "first_discovery_id": null,
-             *       "id": "cf5c3aaf-9a8f-4ad8-bd03-ed83ba40a27d",
+             *       "id": "6f52d98c-c9c7-4f55-b8ba-f9808e47695e",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-06T15:39:34.040006Z",
+             *       "last_seen_at": "2026-10-07T01:29:20.142991Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-10-06T15:39:34.040006Z",
-             *       "valid_from": "2026-10-06T15:39:34.040006Z",
+             *       "updated_at": "2026-10-07T01:29:20.142991Z",
+             *       "valid_from": "2026-10-07T01:29:20.142991Z",
              *       "valid_to": null
              *     }
              */
@@ -4245,6 +4267,25 @@ export interface components {
          * @description Envelope for a successful response. Failures are sent with a non-2xx status
          *     and an `ApiErrorResponse` body instead.
          */
+        ApiResponse_GlobalSearchResponse: {
+            /** @description Matches grouped by entity type, in registry order. Types with no matches are left out. */
+            data?: {
+                groups: components["schemas"]["GlobalSearchGroup"][];
+            };
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_HostResponse: {
             /**
              * @description Response type for host endpoints.
@@ -4376,19 +4417,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-06T15:39:34.017834Z",
+             *               "created_at": "2026-10-07T01:29:20.114928Z",
              *               "first_discovery_id": null,
-             *               "id": "a4bc1757-af37-45a6-a4e7-eb684371baec",
+             *               "id": "d5145e55-44cf-4bea-ad38-2d3f8713388a",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-06T15:39:34.017834Z",
+             *               "last_seen_at": "2026-10-07T01:29:20.114928Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-10-06T15:39:34.017834Z",
-             *               "valid_from": "2026-10-06T15:39:34.017834Z",
+             *               "updated_at": "2026-10-07T01:29:20.114928Z",
+             *               "valid_from": "2026-10-07T01:29:20.114928Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4401,7 +4442,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Prometheus Node Exporter",
+             *           "service_definition": "Mendelson AS2",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -5307,19 +5348,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-06T15:39:34.035171Z",
+             *           "created_at": "2026-10-07T01:29:20.138310Z",
              *           "first_discovery_id": null,
-             *           "id": "6f47c035-6df7-426c-b2d0-14f176be3a53",
+             *           "id": "00448f87-2658-4a4c-ad83-10a02f618bdd",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-06T15:39:34.035171Z",
+             *           "last_seen_at": "2026-10-07T01:29:20.138310Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-10-06T15:39:34.035171Z",
-             *           "valid_from": "2026-10-06T15:39:34.035171Z",
+             *           "updated_at": "2026-10-07T01:29:20.138310Z",
+             *           "valid_from": "2026-10-07T01:29:20.138310Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5332,7 +5373,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Prometheus Node Exporter",
+             *       "service_definition": "Mendelson AS2",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -6526,19 +6567,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-06T15:39:34.018464Z",
+         *       "created_at": "2026-10-07T01:29:20.115554Z",
          *       "first_discovery_id": null,
-         *       "id": "3c5a0c26-edc8-44fd-a920-d2b5fc4bc6fc",
+         *       "id": "a2c117f7-4a8b-48be-9411-75a6285d710e",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-06T15:39:34.018464Z",
+         *       "last_seen_at": "2026-10-07T01:29:20.115554Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-10-06T15:39:34.018464Z",
-         *       "valid_from": "2026-10-06T15:39:34.018464Z",
+         *       "updated_at": "2026-10-07T01:29:20.115554Z",
+         *       "valid_from": "2026-10-07T01:29:20.115554Z",
          *       "valid_to": null
          *     }
          */
@@ -6885,7 +6926,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Prometheus Node Exporter",
+         *           "service_definition": "Mendelson AS2",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8948,6 +8989,51 @@ export interface components {
              */
             entitlement: string;
         };
+        Entity: {
+            Organization: components["schemas"]["Organization"];
+        } | {
+            Invite: components["schemas"]["Invite"];
+        } | {
+            Share: components["schemas"]["Share"];
+        } | {
+            Site: components["schemas"]["Site"];
+        } | {
+            DaemonApiKey: components["schemas"]["DaemonApiKey"];
+        } | {
+            UserApiKey: components["schemas"]["UserApiKey"];
+        } | {
+            User: components["schemas"]["User"];
+        } | {
+            Tag: components["schemas"]["Tag"];
+        } | {
+            Discovery: components["schemas"]["Discovery"];
+        } | {
+            Daemon: components["schemas"]["Daemon"];
+        } | {
+            Host: components["schemas"]["Host"];
+        } | {
+            Service: components["schemas"]["Service"];
+        } | {
+            Port: components["schemas"]["Port"];
+        } | {
+            Binding: components["schemas"]["Binding"];
+        } | {
+            IPAddress: components["schemas"]["IPAddress"];
+        } | {
+            Interface: components["schemas"]["Interface"];
+        } | {
+            Credential: components["schemas"]["Credential"];
+        } | {
+            Subnet: components["schemas"]["Subnet"];
+        } | {
+            Vlan: components["schemas"]["Vlan"];
+        } | {
+            Dependency: components["schemas"]["Dependency"];
+        } | {
+            Topology: components["schemas"]["Topology"];
+        } | {
+            Snapshot: components["schemas"]["Snapshot"];
+        } | "Unknown";
         /** @enum {string} */
         EntityDiscriminants: "Organization" | "Invite" | "Share" | "Site" | "DaemonApiKey" | "UserApiKey" | "User" | "Tag" | "Discovery" | "Daemon" | "Host" | "Service" | "Port" | "Binding" | "IPAddress" | "Interface" | "Credential" | "Subnet" | "Vlan" | "Dependency" | "Topology" | "Snapshot" | "Unknown";
         /**
@@ -9120,6 +9206,16 @@ export interface components {
              * @description Email address to send the password-reset link to.
              */
             email: string;
+        };
+        /** @description One entity type's matches. */
+        GlobalSearchGroup: {
+            entity_type: components["schemas"]["EntityDiscriminants"];
+            /** @description Each match, tagged with its entity type. */
+            items: components["schemas"]["Entity"][];
+        };
+        /** @description Matches grouped by entity type, in registry order. Types with no matches are left out. */
+        GlobalSearchResponse: {
+            groups: components["schemas"]["GlobalSearchGroup"][];
         };
         /** @description Size of one group in a grouped list, across every page. */
         GroupCount: {
@@ -9501,19 +9597,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-06T15:39:34.017138Z",
+         *               "created_at": "2026-10-07T01:29:20.114240Z",
          *               "first_discovery_id": null,
-         *               "id": "8cc66767-7ac0-4deb-a04a-99be4e9d1e6a",
+         *               "id": "bd6b947b-4093-4606-b367-0a20857eca81",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-06T15:39:34.017138Z",
+         *               "last_seen_at": "2026-10-07T01:29:20.114240Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-10-06T15:39:34.017138Z",
-         *               "valid_from": "2026-10-06T15:39:34.017138Z",
+         *               "updated_at": "2026-10-07T01:29:20.114240Z",
+         *               "valid_from": "2026-10-07T01:29:20.114240Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9526,7 +9622,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Prometheus Node Exporter",
+         *           "service_definition": "Mendelson AS2",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -11094,7 +11190,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.17.21"
+         *       "server_version": "0.17.22"
          *     }
          */
         PaginatedApiMeta: {
@@ -11107,7 +11203,7 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.17.21
+             * @example 0.17.22
              */
             server_version: string;
         };
@@ -12611,19 +12707,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-06T15:39:34.018279Z",
+         *           "created_at": "2026-10-07T01:29:20.115373Z",
          *           "first_discovery_id": null,
-         *           "id": "d20ea006-326f-4bc4-9c9c-b69618fec01d",
+         *           "id": "a8130aa3-7f62-4473-a5e9-80117e7b52a6",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-06T15:39:34.018279Z",
+         *           "last_seen_at": "2026-10-07T01:29:20.115373Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-10-06T15:39:34.018279Z",
-         *           "valid_from": "2026-10-06T15:39:34.018279Z",
+         *           "updated_at": "2026-10-07T01:29:20.115373Z",
+         *           "valid_from": "2026-10-07T01:29:20.115373Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12636,7 +12732,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Prometheus Node Exporter",
+         *       "service_definition": "Mendelson AS2",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -13539,7 +13635,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "3c98ba28-95e0-4f65-bb56-fd5b18947ea7",
+             *           "id": "3c7cc1f3-c75e-4416-b3e5-d7c9f2bbb042",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13549,23 +13645,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "18d3a4a7-28dc-40d7-86ac-9d503399be3a",
+             *           "id": "fa546cff-d13c-4060-80d4-a7efbcf8c200",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "81d8ab16-2a26-414f-850e-2f720e915c68",
+             *           "id": "3bcae6a3-cae3-4ea7-9501-599798c92886",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "fe85c512-7111-4d32-8894-9059736c74f1",
+             *           "id": "08d0ab52-22ca-4586-8ff1-118815791f8c",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "18d3a4a7-28dc-40d7-86ac-9d503399be3a",
+             *           "id": "fa546cff-d13c-4060-80d4-a7efbcf8c200",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13578,19 +13674,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "4002b718-3845-4261-ad7f-42f63a0d62b8",
+             *         "id": "f03aacf9-e154-49e7-b10a-3d21c4beafeb",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "a43c7bfb-5bfe-4874-97be-bd49d92daee7",
+             *         "id": "e743068e-a5c8-47cb-ba9f-80c45012d632",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "d65c252b-5c3d-4c83-acf9-f4b138fcd19b",
+             *         "id": "a0a9a33d-f6a7-47b5-b3a0-6d00523ac6b8",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "4fa2336b-7c87-4a64-b983-95e2d9cfbb9c",
+             *         "id": "f040a4f1-07ab-4e94-bf76-c73e815e171e",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13609,7 +13705,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "2bda7691-1e19-4d9a-8c83-f48580ed5e31",
+             *         "id": "36d58ba4-e6bb-41d9-8e53-d1aba2a90af4",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13618,15 +13714,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "35054879-9ee4-4777-b79b-d9b9a8ca2919",
+             *         "id": "0ad19b22-6721-4a4e-aec7-0098e269954b",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "c2eb8dd7-df55-4042-9ff3-287769e3e7f3",
+             *         "id": "db324a29-f6ff-41ee-a5dc-ada9c8c49dbf",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "e56059a8-e2cd-4a5c-bcc1-05916a5fc6d0",
+             *         "id": "b7a31046-1682-4afe-af3b-80d7dc0c044c",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -20077,6 +20173,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    search: {
+        parameters: {
+            query?: {
+                /** @description Free text. Case-insensitive substring match against each entity type's searchable fields. */
+                q?: string | null;
+                /** @description Only entities carrying every one of these tags. Repeat for several. */
+                tag_ids?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matches grouped by entity type */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_GlobalSearchResponse"];
                 };
             };
         };

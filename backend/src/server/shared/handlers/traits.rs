@@ -50,6 +50,12 @@ where
     /// Use `NoOrderField` for entities without server-side ordering.
     type OrderField: OrderField + DeserializeOwned + ToSchema;
 
+    /// The order global search lists this entity's matches in. `None` lists them in creation
+    /// order.
+    fn search_order() -> Option<Self::OrderField> {
+        None
+    }
+
     /// Get entity name for error messages (e.g., "Group", "Site")
     fn entity_name() -> &'static str {
         Self::table_name()
@@ -138,14 +144,7 @@ where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
     EntityEnum: From<T>,
 {
-    let mut base_filter = if T::is_site_keyed() {
-        StorableFilter::<T>::new_from_site_ids(site_ids)
-    } else if T::table_name() == "sites" {
-        // Sites are org-scoped but should be filtered to only those the user has access to
-        StorableFilter::<T>::new_from_entity_ids(site_ids)
-    } else {
-        StorableFilter::<T>::new_from_org_id(&organization_id)
-    };
+    let mut base_filter = StorableFilter::<T>::new_for_access(site_ids, &organization_id);
 
     // SCD2 entities: hide closed historical copies from frontend-facing GETs.
     // When the query carries an `at` timestamp (snapshot view), read as-of that

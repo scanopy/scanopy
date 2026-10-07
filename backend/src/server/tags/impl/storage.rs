@@ -38,6 +38,10 @@ impl Storable for Tag {
         "tags"
     }
 
+    fn search_predicates() -> &'static [&'static str] {
+        &["tags.name ILIKE {}", "tags.description ILIKE {}"]
+    }
+
     const HAS_SCD2: bool = true;
 
     fn is_live_row(&self) -> bool {

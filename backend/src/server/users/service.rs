@@ -4,6 +4,8 @@ use crate::server::{
     shared::{
         entities::ChangeTriggersTopologyStaleness,
         events::{bus::EventBus, types::EntityOperation},
+        handlers::ordering::OrderField,
+        services::search::{SearchQuery, SearchScope},
         services::traits::{CrudService, EventBusService},
         storage::{
             filter::StorableFilter,
@@ -50,6 +52,32 @@ impl CrudService<User> for UserService {
 
     fn entity_tag_service(&self) -> Option<&Arc<EntityTagService>> {
         None // Users are not taggable entities
+    }
+
+    /// The users list's rule: admins and owners only, and only the users that list shows them.
+    /// Filtered after the query, as the list is, so the limit applies to what the caller sees.
+    async fn search<O: OrderField>(
+        &self,
+        scope: &SearchScope,
+        query: &SearchQuery,
+        _order_by: Option<O>,
+    ) -> Result<Vec<User>, Error> {
+        if scope.permissions < UserOrgPermissions::Admin {
+            return Ok(Vec::new());
+        }
+        let Some(filter) = query.narrow(StorableFilter::<User>::new_from_org_id(
+            &scope.organization_id,
+        )) else {
+            return Ok(Vec::new());
+        };
+        Ok(self
+            .user_storage
+            .get_all_ordered(filter, "users.email ASC")
+            .await?
+            .into_iter()
+            .filter(|user| user.is_listed_for(scope.permissions, scope.user_id))
+            .take(query.limit as usize)
+            .collect())
     }
 
     /// Create a new user

@@ -2,10 +2,11 @@ import { get, writable } from 'svelte/store';
 import { SvelteSet } from 'svelte/reactivity';
 import type { EntityDiscriminants } from '$lib/api/entities';
 import { entityModalNames, entityUIConfig, TAB_LABELS } from '$lib/shared/entity-ui-config';
-import { reopenGlobalSearch } from '$lib/features/search/results';
+import { reopenGlobalSearch, type GlobalSearchState } from '$lib/features/search/results';
 
-/** Return-URL parameter carrying the global search query an entity was opened from. */
+/** Return-URL parameters carrying the global search an entity was opened from: its text and tag chips. */
 const RETURN_SEARCH_PARAM = 'search';
+const RETURN_SEARCH_TAGS_PARAM = 'searchTags';
 
 export interface ModalState {
 	name: string | null;
@@ -96,7 +97,8 @@ export function goBack(): void {
 	const returnSearch = target.searchParams.get(RETURN_SEARCH_PARAM);
 	if (returnSearch !== null) {
 		closeModal();
-		reopenGlobalSearch(returnSearch);
+		const tags = target.searchParams.get(RETURN_SEARCH_TAGS_PARAM);
+		reopenGlobalSearch({ text: returnSearch, tagIds: tags ? tags.split(',') : [] });
 		return;
 	}
 
@@ -152,8 +154,8 @@ export function navigateToEntity(
 	entityId: string,
 	data?: Record<string, unknown>,
 	opts?: {
-		/** The global search query this was opened from, so the back button reopens the palette on it. */
-		returnSearch?: string;
+		/** The global search this was opened from, so the back button reopens the palette on it. */
+		returnSearch?: GlobalSearchState;
 	}
 ): void {
 	const typeConfig = entityUIConfig[entityType];
@@ -164,7 +166,10 @@ export function navigateToEntity(
 	let returnUrl = typeof window !== 'undefined' ? window.location.href : undefined;
 	if (returnUrl && opts?.returnSearch !== undefined) {
 		const url = new URL(returnUrl);
-		url.searchParams.set(RETURN_SEARCH_PARAM, opts.returnSearch);
+		url.searchParams.set(RETURN_SEARCH_PARAM, opts.returnSearch.text);
+		if (opts.returnSearch.tagIds.length > 0) {
+			url.searchParams.set(RETURN_SEARCH_TAGS_PARAM, opts.returnSearch.tagIds.join(','));
+		}
 		returnUrl = url.toString();
 	}
 	const returnTitle = captureReturnTitle();

@@ -43,6 +43,10 @@ impl CrudHandlers for Credential {
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.credential_service
     }
+
+    fn search_order() -> Option<Self::OrderField> {
+        Some(Self::OrderField::Name)
+    }
 }
 
 // ============================================================================

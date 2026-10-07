@@ -167,6 +167,10 @@ impl Storable for Site {
         "sites"
     }
 
+    fn search_predicates() -> &'static [&'static str] {
+        &["sites.name ILIKE {}"]
+    }
+
     fn new(base: Self::BaseData) -> Self {
         let now = chrono::Utc::now();
         Self {

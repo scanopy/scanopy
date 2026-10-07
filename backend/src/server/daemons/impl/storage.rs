@@ -37,6 +37,10 @@ impl Storable for Daemon {
         "daemons"
     }
 
+    fn search_predicates() -> &'static [&'static str] {
+        &["daemons.name ILIKE {}", "daemons.url ILIKE {}"]
+    }
+
     fn new(base: Self::BaseData) -> Self {
         let now = chrono::Utc::now();
 

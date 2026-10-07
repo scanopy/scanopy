@@ -21,6 +21,8 @@ import { UserDisplay } from '$lib/shared/components/forms/selection/display/User
 import { DiscoveryDisplay } from '$lib/shared/components/forms/selection/display/DiscoveryDisplay.svelte';
 import { PortDisplay } from '$lib/shared/components/forms/selection/display/PortDisplay.svelte';
 import { VlanDisplay } from '$lib/shared/components/forms/selection/display/VlanDisplay.svelte';
+import { TagDisplay } from '$lib/shared/components/forms/selection/display/TagDisplay.svelte';
+import { UserApiKeyDisplay } from '$lib/shared/components/forms/selection/display/UserApiKeyDisplay.svelte';
 
 export interface EntityUIConfig {
 	tabId: string;
@@ -108,11 +110,8 @@ export const entityUIConfig: Record<EntityDiscriminants, EntityUIConfig | null> 
 		modalName: 'daemon-api-key',
 		displayComponent: DaemonApiKeyDisplay
 	},
-	Dependency: {
-		tabId: 'dependencies',
-		modalName: 'dependency-editor',
-		displayComponent: DependencyDisplay
-	},
+	// No modal opens a dependency by URL.
+	Dependency: { tabId: 'dependencies', displayComponent: DependencyDisplay },
 	Site: { tabId: 'sites', modalName: 'site-editor', displayComponent: SiteDisplay },
 	Credential: {
 		tabId: 'credentials',
@@ -129,12 +128,18 @@ export const entityUIConfig: Record<EntityDiscriminants, EntityUIConfig | null> 
 				: undefined,
 		variants: [HISTORICAL_DISCOVERY]
 	},
-	Tag: { tabId: 'tags', modalName: 'tag-editor' },
-	Share: { tabId: 'shares', modalName: 'share-editor' },
-	Topology: { tabId: 'topology', modalName: 'topology-editor', displayComponent: TopologyDisplay },
+	Tag: { tabId: 'tags', modalName: 'tag-editor', displayComponent: TagDisplay },
+	// Shares are edited in SharesModal, which no URL opens.
+	Share: { tabId: 'shares' },
+	// No modal opens a topology by URL; it shows in its tab.
+	Topology: { tabId: 'topology', displayComponent: TopologyDisplay },
 	Snapshot: { tabId: 'topology' },
 	User: { tabId: 'users', modalName: 'user-editor', displayComponent: UserDisplay },
-	UserApiKey: { tabId: 'api-keys', modalName: 'user-api-key' },
+	UserApiKey: {
+		tabId: 'api-keys',
+		modalName: 'user-api-key',
+		displayComponent: UserApiKeyDisplay
+	},
 	Organization: null,
 	Invite: null,
 	Unknown: null

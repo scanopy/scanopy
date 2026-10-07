@@ -126,11 +126,7 @@ pub async fn get_all_users(
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?
         .into_iter()
-        .filter(|u| {
-            permissions == UserOrgPermissions::Owner
-                || u.base.permissions < permissions
-                || u.id == user_id
-        })
+        .filter(|u| u.is_listed_for(permissions, user_id))
         .collect();
 
     // Apply pagination in-memory after filtering

@@ -191,6 +191,11 @@ export const queryKeys = {
 		all: ['dashboard'] as const,
 		summary: () => [...queryKeys.dashboard.all, 'summary'] as const
 	},
+	globalSearch: {
+		all: ['global-search'] as const,
+		results: (text: string, tagIds: string[]) =>
+			[...queryKeys.globalSearch.all, text, tagIds] as const
+	},
 	config: {
 		all: ['config'] as const
 	},

@@ -36,6 +36,13 @@ impl Storable for Credential {
         "credentials"
     }
 
+    fn search_predicates() -> &'static [&'static str] {
+        &[
+            "credentials.name ILIKE {}",
+            "credentials.description ILIKE {}",
+        ]
+    }
+
     fn new(base: Self::BaseData) -> Self {
         let now = Utc::now();
         Self {

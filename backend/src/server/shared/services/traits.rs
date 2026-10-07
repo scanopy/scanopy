@@ -12,6 +12,8 @@ use crate::server::{
     shared::{
         entities::{ChangeTriggersTopologyStaleness, Entity as EntityEnum},
         events::{bus::EventBus, types::EntityOperation},
+        handlers::ordering::{OrderField, apply_ordering},
+        services::search::{SearchQuery, SearchScope},
         storage::{
             child::ChildStorableEntity,
             filter::StorableFilter,
@@ -193,6 +195,31 @@ where
         let mut paginated = self.storage().get_paginated(filter, order_by).await?;
         self.bulk_hydrate_tags(&mut paginated.items, None).await?;
         Ok(paginated)
+    }
+
+    /// This entity's answer to the global search: up to `query.limit` rows the caller could list,
+    /// matching the query, ordered by `order_by` (creation order when `None`).
+    ///
+    /// Scoped like the generic list (`new_for_access`). An entity whose list applies a narrower
+    /// rule (by permission or owner) overrides this with that rule.
+    async fn search<O: OrderField>(
+        &self,
+        scope: &SearchScope,
+        query: &SearchQuery,
+        order_by: Option<O>,
+    ) -> Result<Vec<T>, anyhow::Error> {
+        let base = StorableFilter::<T>::new_for_access(&scope.site_ids, &scope.organization_id);
+        let Some(filter) = query.narrow(base) else {
+            return Ok(Vec::new());
+        };
+        let default_order = format!("{}.created_at ASC", T::table_name());
+        let (filter, order) = apply_ordering(None, order_by, None, filter, &default_order);
+        let mut hits = self
+            .storage()
+            .get_all_ordered(filter.limit(query.limit), &order)
+            .await?;
+        self.bulk_hydrate_tags(&mut hits, None).await?;
+        Ok(hits)
     }
 
     /// Count rows for the given sites. Scope is standardized here (not built
