@@ -4,7 +4,7 @@
 	import { isBillingPlanActive, isPlanLapsed } from '$lib/features/organizations/types';
 	import SettingsModal from '$lib/features/settings/SettingsModal.svelte';
 	import SupportModal from '$lib/features/support/SupportModal.svelte';
-	import { billingPlans, entities } from '$lib/shared/stores/metadata';
+	import { billingPlans, entities, entityCategories } from '$lib/shared/stores/metadata';
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
 	import { useApiKeysQuery } from '$lib/features/daemon_api_keys/queries';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
@@ -269,6 +269,131 @@
 	const SIDEBAR_STORAGE_KEY = 'scanopy-sidebar-collapsed';
 
 	// Base navigation config (before filtering)
+	/**
+	 * The sidebar item each entity type gets inside its section. Which section it sits in, and where,
+	 * comes from the entity metadata (`category` and declaration order), the same order the global
+	 * search lists its groups in. An entity with no item here (a host's ports, say) has no tab.
+	 */
+	const entityNavItems: Partial<Record<EntityDiscriminants, NavItem>> = {
+		Site: {
+			id: entityUIConfig.Site!.tabId,
+			label: TAB_LABELS[entityUIConfig.Site!.tabId],
+			icon: entities.getIconComponent('Site'),
+			entityType: 'Site',
+			component: SitesTab
+		},
+		Vlan: {
+			id: entityUIConfig.Vlan!.tabId,
+			label: TAB_LABELS[entityUIConfig.Vlan!.tabId],
+			icon: entities.getIconComponent('Vlan'),
+			entityType: 'Vlan',
+			component: VlanTab
+		},
+		Subnet: {
+			id: entityUIConfig.Subnet!.tabId,
+			label: TAB_LABELS[entityUIConfig.Subnet!.tabId],
+			icon: entities.getIconComponent('Subnet'),
+			entityType: 'Subnet',
+			component: SubnetTab
+		},
+		Host: {
+			id: entityUIConfig.Host!.tabId,
+			label: TAB_LABELS[entityUIConfig.Host!.tabId],
+			icon: entities.getIconComponent('Host'),
+			entityType: 'Host',
+			component: HostTab
+		},
+		Service: {
+			id: entityUIConfig.Service!.tabId,
+			label: TAB_LABELS[entityUIConfig.Service!.tabId],
+			icon: entities.getIconComponent('Service'),
+			entityType: 'Service',
+			component: ServiceTab
+		},
+		Discovery: {
+			id: 'discovery',
+			label: TAB_LABELS['discovery'],
+			icon: entities.getIconComponent('Discovery'),
+			subTabs: [
+				{
+					id: entityUIConfig.Discovery!.tabId,
+					label: TAB_LABELS[entityUIConfig.Discovery!.tabId],
+					icon: entities.getIconComponent('Discovery'),
+					component: DiscoveryScheduledTab
+				},
+				{
+					id: 'discovery-history',
+					label: TAB_LABELS['discovery-history'],
+					icon: History as IconComponent,
+					component: DiscoveryHistoryTab
+				}
+			]
+		},
+		// Legacy daemon API keys are a sub-tab of Daemons, not an item of their own.
+		Daemon: {
+			id: 'daemons-group',
+			label: TAB_LABELS[entityUIConfig.Daemon!.tabId],
+			icon: entities.getIconComponent('Daemon'),
+			subTabs: [
+				{
+					id: entityUIConfig.Daemon!.tabId,
+					label: TAB_LABELS[entityUIConfig.Daemon!.tabId],
+					icon: entities.getIconComponent('Daemon'),
+					component: DaemonTab
+				},
+				{
+					id: entityUIConfig.DaemonApiKey!.tabId,
+					label: TAB_LABELS[entityUIConfig.DaemonApiKey!.tabId],
+					subtitle: daemons_legacyKeyHelp(),
+					icon: entities.getIconComponent('DaemonApiKey'),
+					component: ApiKeyTab,
+					requiredPermissions: ['Member', 'Admin', 'Owner'] as UserOrgPermissions[]
+				}
+			]
+		},
+		Tag: {
+			id: entityUIConfig.Tag!.tabId,
+			label: TAB_LABELS[entityUIConfig.Tag!.tabId],
+			icon: entities.getIconComponent('Tag'),
+			entityType: 'Tag',
+			component: TagTab
+		},
+		User: {
+			id: entityUIConfig.User!.tabId,
+			label: TAB_LABELS[entityUIConfig.User!.tabId],
+			icon: entities.getIconComponent('User'),
+			entityType: 'User',
+			component: UserTab,
+			requiredPermissions: ['Admin', 'Owner']
+		},
+		UserApiKey: {
+			id: entityUIConfig.UserApiKey!.tabId,
+			label: TAB_LABELS[entityUIConfig.UserApiKey!.tabId],
+			icon: entities.getIconComponent('UserApiKey'),
+			entityType: 'UserApiKey',
+			component: UserApiKeyTab,
+			requiredPermissions: ['Member', 'Admin', 'Owner']
+		},
+		Credential: {
+			id: entityUIConfig.Credential!.tabId,
+			label: TAB_LABELS[entityUIConfig.Credential!.tabId],
+			icon: entities.getIconComponent('Credential'),
+			entityType: 'Credential',
+			component: CredentialsTab
+		}
+	};
+
+	/** One section per entity category that has items, in category order, items in entity order. */
+	const entitySections: NavSection[] = entityCategories.getItems().flatMap((category) => {
+		const items = entities
+			.getItems()
+			.filter((entity) => entity.category === category.id)
+			.flatMap((entity) => entityNavItems[entity.id as EntityDiscriminants] ?? []);
+		return items.length > 0
+			? [{ id: category.id, label: entityCategories.getName(category.id), items }]
+			: [];
+	});
+
 	const baseNavConfig: NavConfig = [
 		{
 			id: 'home',
@@ -283,129 +408,7 @@
 			entityType: 'Topology',
 			component: TopologyTab
 		},
-		{
-			id: 'discover',
-			label: 'Discover',
-			items: [
-				{
-					id: 'discovery',
-					label: TAB_LABELS['discovery'],
-					icon: entities.getIconComponent('Discovery'),
-					subTabs: [
-						{
-							id: entityUIConfig.Discovery!.tabId,
-							label: TAB_LABELS[entityUIConfig.Discovery!.tabId],
-							icon: entities.getIconComponent('Discovery'),
-							component: DiscoveryScheduledTab
-						},
-						{
-							id: 'discovery-history',
-							label: TAB_LABELS['discovery-history'],
-							icon: History as IconComponent,
-							component: DiscoveryHistoryTab
-						}
-					]
-				},
-				{
-					id: 'daemons-group',
-					label: TAB_LABELS[entityUIConfig.Daemon!.tabId],
-					icon: entities.getIconComponent('Daemon'),
-					subTabs: [
-						{
-							id: entityUIConfig.Daemon!.tabId,
-							label: TAB_LABELS[entityUIConfig.Daemon!.tabId],
-							icon: entities.getIconComponent('Daemon'),
-							component: DaemonTab
-						},
-						{
-							id: entityUIConfig.DaemonApiKey!.tabId,
-							label: TAB_LABELS[entityUIConfig.DaemonApiKey!.tabId],
-							subtitle: daemons_legacyKeyHelp(),
-							icon: entities.getIconComponent('DaemonApiKey'),
-							component: ApiKeyTab,
-							requiredPermissions: ['Member', 'Admin', 'Owner'] as UserOrgPermissions[]
-						}
-					]
-				}
-			]
-		},
-		{
-			id: 'assets',
-			label: 'Assets',
-			items: [
-				{
-					id: entityUIConfig.Site!.tabId,
-					label: TAB_LABELS[entityUIConfig.Site!.tabId],
-					icon: entities.getIconComponent('Site'),
-					entityType: 'Site',
-					component: SitesTab
-				},
-				{
-					id: entityUIConfig.Vlan!.tabId,
-					label: TAB_LABELS[entityUIConfig.Vlan!.tabId],
-					icon: entities.getIconComponent('Vlan'),
-					entityType: 'Vlan',
-					component: VlanTab
-				},
-				{
-					id: entityUIConfig.Subnet!.tabId,
-					label: TAB_LABELS[entityUIConfig.Subnet!.tabId],
-					icon: entities.getIconComponent('Subnet'),
-					entityType: 'Subnet',
-					component: SubnetTab
-				},
-				{
-					id: entityUIConfig.Host!.tabId,
-					label: TAB_LABELS[entityUIConfig.Host!.tabId],
-					icon: entities.getIconComponent('Host'),
-					entityType: 'Host',
-					component: HostTab
-				},
-				{
-					id: entityUIConfig.Service!.tabId,
-					label: TAB_LABELS[entityUIConfig.Service!.tabId],
-					icon: entities.getIconComponent('Service'),
-					entityType: 'Service',
-					component: ServiceTab
-				}
-			]
-		},
-		{
-			id: 'platform',
-			label: 'Platform',
-			items: [
-				{
-					id: entityUIConfig.Tag!.tabId,
-					label: TAB_LABELS[entityUIConfig.Tag!.tabId],
-					icon: entities.getIconComponent('Tag'),
-					entityType: 'Tag',
-					component: TagTab
-				},
-				{
-					id: entityUIConfig.User!.tabId,
-					label: TAB_LABELS[entityUIConfig.User!.tabId],
-					icon: entities.getIconComponent('User'),
-					entityType: 'User',
-					component: UserTab,
-					requiredPermissions: ['Admin', 'Owner']
-				},
-				{
-					id: entityUIConfig.UserApiKey!.tabId,
-					label: TAB_LABELS[entityUIConfig.UserApiKey!.tabId],
-					icon: entities.getIconComponent('UserApiKey'),
-					entityType: 'UserApiKey',
-					component: UserApiKeyTab,
-					requiredPermissions: ['Member', 'Admin', 'Owner']
-				},
-				{
-					id: entityUIConfig.Credential!.tabId,
-					label: TAB_LABELS[entityUIConfig.Credential!.tabId],
-					icon: entities.getIconComponent('Credential'),
-					entityType: 'Credential',
-					component: CredentialsTab
-				}
-			]
-		},
+		...entitySections,
 		{
 			id: 'settings',
 			label: 'Settings',

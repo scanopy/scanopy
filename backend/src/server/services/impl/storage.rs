@@ -308,7 +308,7 @@ impl Entity for Service {
     const ENTITY_DESCRIPTION: &'static str = "Services running on hosts. Detected or manually added services like databases, web servers, etc.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::NetworkInfrastructure
+        EntityCategory::Assets
     }
 
     fn site_id(&self) -> Option<Uuid> {

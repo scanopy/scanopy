@@ -444,7 +444,7 @@ impl Entity for User {
         "User account management. Manage user profiles and permissions within organizations.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::OrganizationsAndUsers
+        EntityCategory::Platform
     }
 
     fn site_id(&self) -> Option<Uuid> {

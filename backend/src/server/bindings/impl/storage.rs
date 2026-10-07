@@ -277,7 +277,7 @@ impl Entity for Binding {
     const ENTITY_DESCRIPTION: &'static str = "Service bindings linking services to IP addresses and/or ports. Defines where a service is accessible.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::NetworkInfrastructure
+        EntityCategory::Assets
     }
 
     fn site_id(&self) -> Option<Uuid> {

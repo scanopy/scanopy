@@ -307,7 +307,7 @@ impl Entity for Interface {
         "SNMP ifTable entries. Physical and logical interfaces discovered via SNMP on hosts.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::NetworkInfrastructure
+        EntityCategory::Assets
     }
 
     fn site_id(&self) -> Option<Uuid> {

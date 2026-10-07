@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use strum_macros::{AsRefStr, Display, EnumDiscriminants, EnumIter, IntoStaticStr, VariantNames};
 use utoipa::ToSchema;
 
+use crate::server::shared::entity_metadata::EntityCategory;
 use crate::server::{
     daemon_api_keys::r#impl::base::DaemonApiKey,
     daemons::r#impl::base::Daemon,
@@ -58,34 +59,41 @@ pub trait ChangeTriggersTopologyStaleness<T> {
 // the widest variant would cost an allocation on a value that is only ever pattern-matched, to
 // even out a size difference nothing pays for. The gap became visible when `Interface` shrank; it
 // was always here.
+//
+// Variant order is display order: grouped by `EntityCategory` in that enum's order, and within a
+// category in the order the sidebar and the global search list them. A test holds the grouping.
 #[allow(clippy::large_enum_variant)]
 pub enum Entity {
-    Organization(Organization),
-    Invite(Invite),
-    Share(Share),
+    // EntityCategory::Assets
     Site(Site),
-    DaemonApiKey(DaemonApiKey),
-    UserApiKey(UserApiKey),
-    User(User),
-    Tag(Tag),
-
-    Discovery(Discovery),
-    Daemon(Daemon),
-
+    Vlan(Vlan),
+    Subnet(Subnet),
     #[strum_discriminants(default)]
     Host(Host),
     Service(Service),
-    Port(Port),
-    Binding(Binding),
     IPAddress(IPAddress),
     Interface(Interface),
+    Port(Port),
+    Binding(Binding),
 
+    // EntityCategory::Discover
+    Discovery(Discovery),
+    Daemon(Daemon),
+    DaemonApiKey(DaemonApiKey),
+
+    // EntityCategory::Platform
+    Tag(Tag),
+    User(User),
+    UserApiKey(UserApiKey),
     Credential(Credential),
-    Subnet(Subnet),
-    Vlan(Vlan),
-    Dependency(Dependency),
+    Organization(Organization),
+    Invite(Invite),
+
+    // EntityCategory::Visualization
     Topology(Topology),
     Snapshot(Snapshot),
+    Share(Share),
+    Dependency(Dependency),
 }
 
 impl HasId for EntityDiscriminants {
@@ -193,7 +201,42 @@ impl Entity {
     }
 }
 
+impl Entity {
+    /// The part of the product this entity belongs to, as its storage declares it.
+    fn category(&self) -> EntityCategory {
+        match self {
+            Entity::Site(_) => <Site as EntityTrait>::entity_category(),
+            Entity::Vlan(_) => <Vlan as EntityTrait>::entity_category(),
+            Entity::Subnet(_) => <Subnet as EntityTrait>::entity_category(),
+            Entity::Host(_) => <Host as EntityTrait>::entity_category(),
+            Entity::Service(_) => <Service as EntityTrait>::entity_category(),
+            Entity::IPAddress(_) => <IPAddress as EntityTrait>::entity_category(),
+            Entity::Interface(_) => <Interface as EntityTrait>::entity_category(),
+            Entity::Port(_) => <Port as EntityTrait>::entity_category(),
+            Entity::Binding(_) => <Binding as EntityTrait>::entity_category(),
+            Entity::Discovery(_) => <Discovery as EntityTrait>::entity_category(),
+            Entity::Daemon(_) => <Daemon as EntityTrait>::entity_category(),
+            Entity::DaemonApiKey(_) => <DaemonApiKey as EntityTrait>::entity_category(),
+            Entity::Tag(_) => <Tag as EntityTrait>::entity_category(),
+            Entity::User(_) => <User as EntityTrait>::entity_category(),
+            Entity::UserApiKey(_) => <UserApiKey as EntityTrait>::entity_category(),
+            Entity::Credential(_) => <Credential as EntityTrait>::entity_category(),
+            Entity::Organization(_) => <Organization as EntityTrait>::entity_category(),
+            Entity::Invite(_) => <Invite as EntityTrait>::entity_category(),
+            Entity::Topology(_) => <Topology as EntityTrait>::entity_category(),
+            Entity::Snapshot(_) => <Snapshot as EntityTrait>::entity_category(),
+            Entity::Share(_) => <Share as EntityTrait>::entity_category(),
+            Entity::Dependency(_) => <Dependency as EntityTrait>::entity_category(),
+        }
+    }
+}
+
 impl EntityDiscriminants {
+    /// The part of the product this entity type belongs to.
+    pub fn category(&self) -> EntityCategory {
+        Entity::from(*self).category()
+    }
+
     /// Title-case singular name, e.g. "Host", "IP Address". Delegates to
     /// `Entity::entity_names` via the existing `From<EntityDiscriminants> for Entity`.
     pub fn entity_name_singular(&self) -> &'static str {
@@ -338,6 +381,10 @@ impl EntityMetadataProvider for EntityDiscriminants {
 impl TypeMetadataProvider for EntityDiscriminants {
     fn name(&self) -> &'static str {
         self.into()
+    }
+
+    fn category(&self) -> &'static str {
+        EntityDiscriminants::category(self).into()
     }
 
     fn metadata(&self) -> serde_json::Value {
@@ -552,5 +599,25 @@ impl From<EntityDiscriminants> for Entity {
             EntityDiscriminants::Topology => Entity::Topology(Topology::default()),
             EntityDiscriminants::Snapshot => Entity::Snapshot(Snapshot::default()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use strum::IntoEnumIterator;
+
+    /// The sidebar's sections and the search's group order both read `EntityDiscriminants` in
+    /// declaration order, so an entity declared outside its category's run would show out of
+    /// place in both.
+    #[test]
+    fn entity_types_are_declared_grouped_by_category_in_category_order() {
+        let categories: Vec<(EntityDiscriminants, EntityCategory)> = EntityDiscriminants::iter()
+            .map(|entity| (entity, entity.category()))
+            .collect();
+        assert!(
+            categories.is_sorted_by_key(|(_, category)| *category),
+            "declare each entity among its category, categories in EntityCategory order: {categories:?}"
+        );
     }
 }

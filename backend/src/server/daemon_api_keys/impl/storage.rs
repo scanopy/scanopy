@@ -170,7 +170,7 @@ impl Entity for DaemonApiKey {
     const ENTITY_DESCRIPTION: &'static str = "API keys for daemon authentication. Create and manage keys that allow daemons to communicate with the server.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::DiscoveryAndDaemons
+        EntityCategory::Discover
     }
 
     fn site_id(&self) -> Option<Uuid> {

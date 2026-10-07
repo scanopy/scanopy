@@ -272,7 +272,7 @@ impl Entity for Vlan {
     const ENTITY_DESCRIPTION: &'static str = "VLANs (802.1Q virtual LANs) defined or discovered on the network. Each VLAN has a number (1-4094), a name, and an optional description, and is referenced by interfaces that participate in it.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::NetworkInfrastructure
+        EntityCategory::Assets
     }
 
     fn site_id(&self) -> Option<Uuid> {

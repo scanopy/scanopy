@@ -242,7 +242,7 @@ impl Entity for Invite {
         "Organization invitations. Invite users to join your organization.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::OrganizationsAndUsers
+        EntityCategory::Platform
     }
 
     fn site_id(&self) -> Option<Uuid> {
