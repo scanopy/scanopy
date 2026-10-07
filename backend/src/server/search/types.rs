@@ -34,6 +34,13 @@ pub struct GlobalSearchQuery {
     pub q: Option<String>,
     /// Only entities carrying every one of these tags. Repeat for several.
     pub tag_ids: Option<Vec<Uuid>>,
+    /// Search only this entity type, for its later pages. Omit for the first page of every type.
+    pub entity_type: Option<EntityDiscriminants>,
+    /// Matches per type (1-50, default 5).
+    #[param(minimum = 1, maximum = 50)]
+    pub limit: Option<u32>,
+    /// Matches to skip in each type.
+    pub offset: Option<u32>,
 }
 
 /// One match, in the shape its entity's list endpoint returns it (a host as a `HostResponse`,
@@ -64,10 +71,12 @@ pub enum SearchHit {
     Snapshot(Snapshot),
 }
 
-/// One entity type's matches.
+/// One page of an entity type's matches.
 #[derive(Serialize, Debug, Clone, ToSchema)]
 pub struct GlobalSearchGroup {
     pub entity_type: EntityDiscriminants,
+    /// Matches of this type in all, across every page.
+    pub total_count: u64,
     pub items: Vec<SearchHit>,
 }
 

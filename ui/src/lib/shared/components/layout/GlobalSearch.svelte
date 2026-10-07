@@ -38,18 +38,25 @@
 		removeChip,
 		removeSelectedChip,
 		responseGroups,
+		withMorePages,
 		tagCompletion,
 		type GlobalSearchState,
 		type SearchItem,
 		type SearchRow
 	} from '$lib/features/search/results';
-	import { useGlobalSearch } from '$lib/features/search/queries';
+	import {
+		fetchMoreMatches,
+		GLOBAL_SEARCH_MORE_PAGE,
+		useGlobalSearch
+	} from '$lib/features/search/queries';
 	import {
 		common_loading,
 		common_search,
 		globalSearch_noResults,
 		globalSearch_noTaggedResults,
-		globalSearch_placeholder
+		globalSearch_placeholder,
+		globalSearch_resultCount,
+		globalSearch_showMore
 	} from '$lib/paraglide/messages';
 
 	/** Same pause RichSelect gives a server-side search, so a burst of keystrokes costs one request. */
@@ -86,16 +93,32 @@
 
 	let hasSearch = $derived(hasSearchTerms(search));
 
+	/**
+	 * Pages "Show more" loaded, per type, for the search they were loaded under. Tied to that search
+	 * rather than cleared on change, so every path that sets `search` drops them without a reset.
+	 */
+	let morePages = $state<{
+		for: GlobalSearchState;
+		pages: Partial<Record<EntityDiscriminants, SearchItem[]>>;
+	}>({ for: EMPTY_SEARCH, pages: {} });
+	let loadingMore = $state<EntityDiscriminants | null>(null);
+	let currentMore = $derived(morePages.for === search ? morePages.pages : {});
+
 	// Only types a row can show and open; anything else never gets a section.
 	let groups = $derived(
 		hasSearch && searchQuery.data
-			? responseGroups(searchQuery.data).filter((group) => {
-					const config = entityUIConfig[group.type];
-					return !!config?.displayComponent && !!(config.modalName || config.parentType);
-				})
+			? withMorePages(
+					responseGroups(searchQuery.data).filter((group) => {
+						const config = entityUIConfig[group.type];
+						return !!config?.displayComponent && !!(config.modalName || config.parentType);
+					}),
+					currentMore
+				)
 			: []
 	);
 	let rows = $derived(flattenGroups(groups));
+	/** Matches across every section, loaded or not. */
+	let totalResults = $derived(groups.reduce((sum, group) => sum + group.total, 0));
 
 	let isLoading = $derived(hasSearch && searchQuery.isPending);
 
@@ -142,7 +165,33 @@
 		globalSearchOpen.set(false);
 	}
 
-	function openRow(row: SearchRow<SearchItem>) {
+	/** Appends the next page of `type`'s matches to its section. */
+	async function loadMore(type: EntityDiscriminants) {
+		if (loadingMore) return;
+		const group = groups.find((g) => g.type === type);
+		if (!group) return;
+		const forSearch = search;
+		loadingMore = type;
+		try {
+			const page = await fetchMoreMatches(forSearch, type, group.items.length);
+			if (forSearch !== search) return;
+			const pages = morePages.for === forSearch ? morePages.pages : {};
+			morePages = {
+				for: forSearch,
+				pages: { ...pages, [type]: [...(pages[type] ?? []), ...page] }
+			};
+		} finally {
+			loadingMore = null;
+		}
+	}
+
+	/** Enter or a click on a row: open the match, or load the section's next page. */
+	function activateRow(row: SearchRow<SearchItem>) {
+		if ('more' in row) loadMore(row.type);
+		else openRow(row);
+	}
+
+	function openRow(row: { type: EntityDiscriminants; item: SearchItem }) {
 		const returnSearch = { text: query, tagIds };
 		close();
 		navigateToEntity(row.type, row.item.id, row.item as unknown as Record<string, unknown>, {
@@ -209,7 +258,7 @@
 				?.scrollIntoView({ block: 'nearest' });
 		} else if (event.key === 'Enter' && highlighted >= 0 && rows[highlighted]) {
 			event.preventDefault();
-			openRow(rows[highlighted]);
+			activateRow(rows[highlighted]);
 		}
 	}
 
@@ -240,6 +289,7 @@
 				id="global-search"
 				bind:inputEl
 				placeholder={globalSearch_placeholder()}
+				hidePlaceholder={tagIds.length > 0}
 				onInput={handleInput}
 				onkeydown={handleInputKeydown}
 			>
@@ -306,62 +356,93 @@
 						? globalSearch_noResults({ query: search.text })
 						: globalSearch_noTaggedResults()}
 				</p>
+			{:else}
+				<p class="text-tertiary px-2 py-1 text-xs tabular-nums">
+					{globalSearch_resultCount({ count: totalResults })}
+				</p>
 			{/if}
 
 			{#each groups as group (group.type)}
 				<div class="mb-2">
-					<h3 class="text-tertiary px-2 py-1 text-xs font-semibold uppercase tracking-wide">
+					<h3
+						class="text-tertiary flex items-baseline gap-1.5 px-2 py-1 text-xs font-semibold uppercase tracking-wide"
+					>
 						{groupLabel(group.type)}
+						<span class="font-normal tabular-nums">{group.total}</span>
 					</h3>
-					{#each rows.filter((row) => row.type === group.type) as row (row.item.id)}
-						{@const index = rowIndex(row)}
-						<!-- Keys reach rows through the input (arrows, Enter); a row is clicked, not focused. -->
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<div
-							id="global-search-row-{index}"
-							role="option"
-							tabindex="-1"
-							aria-selected={index === highlighted}
-							class="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors {index ===
-							highlighted
-								? 'bg-gray-100 dark:bg-gray-800'
-								: 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}"
-							onmousemove={() => (highlighted = index)}
-							onclick={() => openRow(row)}
-						>
-							<div class="min-w-0 flex-1">
-								<EntityDisplayWrapper
-									item={row.item}
-									context={{}}
-									displayComponent={entityUIConfig[row.type]!.displayComponent!}
-								/>
-							</div>
-							{#if tagsOf(row.item).length > 0}
-								<div class="flex shrink-0 flex-wrap justify-end gap-1">
-									{#each tagsOf(row.item) as tag (tag.id)}
-										<Tag
-											label={tag.name}
-											color={tag.color}
-											icon={tagIcon(tag)}
-											title={tagTooltip(tag)}
-											isShiny={isApplicationTag(tag)}
-											onclick={(event) => {
-												event.stopPropagation();
-												applySearch(addChip({ text: query, tagIds }, tag.id));
-												inputEl?.focus();
-											}}
+					<!-- Hairlines between matches, so each row's tags read as its own. -->
+					<div class="divide-y divide-gray-100 dark:divide-gray-800">
+						{#each rows.filter((row) => row.type === group.type) as row ('more' in row ? 'more' : row.item.id)}
+							{@const index = rowIndex(row)}
+							{#if 'more' in row}
+								<button
+									id="global-search-row-{index}"
+									type="button"
+									role="option"
+									tabindex="-1"
+									aria-selected={index === highlighted}
+									disabled={loadingMore === row.type}
+									class="text-secondary w-full rounded-lg px-2 py-1.5 text-left text-sm transition-colors {index ===
+									highlighted
+										? 'bg-gray-100 dark:bg-gray-800'
+										: 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}"
+									onmousemove={() => (highlighted = index)}
+									onclick={() => loadMore(row.type)}
+								>
+									{loadingMore === row.type
+										? common_loading()
+										: globalSearch_showMore({ count: Math.min(row.more, GLOBAL_SEARCH_MORE_PAGE) })}
+								</button>
+							{:else}
+								<!-- Keys reach rows through the input (arrows, Enter); a row is clicked, not focused. -->
+								<!-- svelte-ignore a11y_click_events_have_key_events -->
+								<div
+									id="global-search-row-{index}"
+									role="option"
+									tabindex="-1"
+									aria-selected={index === highlighted}
+									class="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors {index ===
+									highlighted
+										? 'bg-gray-100 dark:bg-gray-800'
+										: 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}"
+									onmousemove={() => (highlighted = index)}
+									onclick={() => openRow(row)}
+								>
+									<div class="min-w-0 flex-1">
+										<EntityDisplayWrapper
+											item={row.item}
+											context={{}}
+											displayComponent={entityUIConfig[row.type]!.displayComponent!}
 										/>
-									{/each}
+									</div>
+									{#if tagsOf(row.item).length > 0}
+										<div class="flex shrink-0 flex-wrap justify-end gap-1">
+											{#each tagsOf(row.item) as tag (tag.id)}
+												<Tag
+													label={tag.name}
+													color={tag.color}
+													icon={tagIcon(tag)}
+													title={tagTooltip(tag)}
+													isShiny={isApplicationTag(tag)}
+													onclick={(event) => {
+														event.stopPropagation();
+														applySearch(addChip({ text: query, tagIds }, tag.id));
+														inputEl?.focus();
+													}}
+												/>
+											{/each}
+										</div>
+									{/if}
 								</div>
 							{/if}
-						</div>
-					{/each}
+						{/each}
+					</div>
 				</div>
 			{/each}
 		</div>
 	{/if}
 
 	{#snippet footer()}
-		<SearchHint tabCompletes={completion !== null} chipsSelectable={tagIds.length > 0} />
+		<SearchHint tabCompletes={completion !== null} />
 	{/snippet}
 </GenericModal>

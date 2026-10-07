@@ -14,7 +14,8 @@ import {
 	removeChip,
 	removeSelectedChip,
 	responseGroups,
-	tagCompletion
+	tagCompletion,
+	withMorePages
 } from '$lib/features/search/results';
 import type { Tag } from '$lib/features/tags/types/base';
 import { entityUIConfig } from '$lib/shared/entity-ui-config';
@@ -42,15 +43,39 @@ const element = (tagName: string, isContentEditable = false) =>
 describe('flattenGroups', () => {
 	it('keeps section order, drops empty sections, and tags each row with its type', () => {
 		const rows = flattenGroups([
-			{ type: 'Host', items: ['h1', 'h2'] },
-			{ type: 'Service', items: [] },
-			{ type: 'Subnet', items: ['s1'] }
+			{ type: 'Host', items: ['h1', 'h2'], total: 2 },
+			{ type: 'Service', items: [], total: 0 },
+			{ type: 'Subnet', items: ['s1'], total: 1 }
 		]);
 		expect(rows).toEqual([
 			{ type: 'Host', item: 'h1' },
 			{ type: 'Host', item: 'h2' },
 			{ type: 'Subnet', item: 's1' }
 		]);
+	});
+
+	it('ends a section with matches still to load in a row saying how many remain', () => {
+		expect(flattenGroups([{ type: 'Host', items: ['h1'], total: 8 }])).toEqual([
+			{ type: 'Host', item: 'h1' },
+			{ type: 'Host', more: 7 }
+		]);
+	});
+});
+
+describe('withMorePages', () => {
+	it("appends each type's loaded pages to its section, so its more row shrinks", () => {
+		const groups = withMorePages(
+			[
+				{ type: 'Host', items: ['h1'], total: 3 },
+				{ type: 'Vlan', items: ['v1'], total: 1 }
+			],
+			{ Host: ['h2', 'h3'] }
+		);
+		expect(groups).toEqual([
+			{ type: 'Host', items: ['h1', 'h2', 'h3'], total: 3 },
+			{ type: 'Vlan', items: ['v1'], total: 1 }
+		]);
+		expect(flattenGroups(groups).some((row) => 'more' in row)).toBe(false);
 	});
 });
 
@@ -181,13 +206,13 @@ describe('responseGroups', () => {
 		const vlan = { id: 'v1' };
 		const groups = responseGroups({
 			groups: [
-				{ entity_type: 'Vlan', items: [{ Vlan: vlan }] },
-				{ entity_type: 'Host', items: [{ Host: host }] }
+				{ entity_type: 'Vlan', items: [{ Vlan: vlan }], total_count: 1 },
+				{ entity_type: 'Host', items: [{ Host: host }], total_count: 12 }
 			]
 		} as unknown as Parameters<typeof responseGroups>[0]);
 		expect(groups).toEqual([
-			{ type: 'Vlan', items: [vlan] },
-			{ type: 'Host', items: [host] }
+			{ type: 'Vlan', items: [vlan], total: 1 },
+			{ type: 'Host', items: [host], total: 12 }
 		]);
 	});
 });

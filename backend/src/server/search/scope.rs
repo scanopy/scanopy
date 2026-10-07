@@ -44,14 +44,16 @@ pub struct SearchQuery {
     text: String,
     tag_ids: Vec<Uuid>,
     pub limit: u32,
+    pub offset: u32,
 }
 
 impl SearchQuery {
-    pub fn new(text: &str, tag_ids: Vec<Uuid>, limit: u32) -> Self {
+    pub fn new(text: &str, tag_ids: Vec<Uuid>, limit: u32, offset: u32) -> Self {
         Self {
             text: text.trim().to_string(),
             tag_ids,
             limit,
+            offset,
         }
     }
 
@@ -62,7 +64,7 @@ impl SearchQuery {
 
     /// `filter` narrowed to live rows matching the text and carrying every tag, or `None` when `T`
     /// can't match: it defines no search predicates, or tags were asked for and `T` takes none.
-    /// The caller applies the limit.
+    /// The caller applies the page.
     pub fn narrow<T: Entity>(&self, filter: StorableFilter<T>) -> Option<StorableFilter<T>> {
         if T::search_predicates().is_empty()
             || self.is_empty()

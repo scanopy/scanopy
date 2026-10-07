@@ -21,6 +21,7 @@
 		value,
 		id,
 		placeholder,
+		hidePlaceholder = false,
 		shortcut = undefined,
 		inset = true,
 		inputEl = $bindable(),
@@ -35,6 +36,8 @@
 		id: string;
 		/** Names what the search covers, so it needs no separate help text. */
 		placeholder: string;
+		/** Leave the box blank, as when chips already fill it. The placeholder still labels the input. */
+		hidePlaceholder?: boolean;
 		/** The key that focuses this search, shown as a chip while it is empty. */
 		shortcut?: string;
 		/** Pad the box for a modal or overlay; off where the surrounding toolbar spaces it. */
@@ -73,7 +76,7 @@
 		{onkeydown}
 		type="text"
 		autocomplete="off"
-		{placeholder}
+		placeholder={hidePlaceholder ? '' : placeholder}
 		aria-label={placeholder}
 		aria-keyshortcuts={shortcut}
 		title={placeholder}
