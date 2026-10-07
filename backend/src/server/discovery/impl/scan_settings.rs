@@ -382,7 +382,7 @@ impl ScanSettings {
                 options: None,
                 default_value: Some("21600"),
                 inline_format: None,
-                group: Some("Detection"),
+                group: Some("Port Scanning"),
                 file_name: None,
                 half_width: false,
             },

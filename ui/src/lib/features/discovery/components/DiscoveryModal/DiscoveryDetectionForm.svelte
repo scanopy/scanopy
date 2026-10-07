@@ -35,7 +35,6 @@
 		(f) => f.field_type === 'boolean' && f.id !== 'full_scan_interval'
 	);
 	const fullScanIntervalField = detectionFields.find((f) => f.id === 'full_scan_interval');
-	const maxDiscoveryDurationField = detectionFields.find((f) => f.id === 'max_discovery_duration');
 
 	function serviceNamesWhere(predicate: (metadata: ServicedDefinitionMetadata) => boolean): string {
 		return (serviceDefinitions.getItems() ?? [])
@@ -176,25 +175,5 @@
 				<p class="text-tertiary text-xs">{discovery_forceFullScanHelp()}</p>
 			</div>
 		{/if}
-	{/if}
-
-	{#if maxDiscoveryDurationField}
-		<div class="space-y-2">
-			<label for="scan_max_discovery_duration" class="text-secondary block text-sm font-medium">
-				{maxDiscoveryDurationField.label}
-			</label>
-			<input
-				id="scan_max_discovery_duration"
-				type="number"
-				value={getScanValue('max_discovery_duration')}
-				oninput={(e) => updateScanSetting('max_discovery_duration', Number(e.currentTarget.value))}
-				placeholder={maxDiscoveryDurationField.placeholder ?? ''}
-				disabled={readOnly}
-				class="input-field"
-			/>
-			{#if maxDiscoveryDurationField.help_text}
-				<p class="text-tertiary text-xs">{maxDiscoveryDurationField.help_text}</p>
-			{/if}
-		</div>
 	{/if}
 </div>
