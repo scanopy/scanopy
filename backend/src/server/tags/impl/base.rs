@@ -22,8 +22,10 @@ use validator::Validate;
 #[serde(tag = "type")]
 pub enum TagGroup {
     /// The built-in group of application tags.
+    #[schema(title = "Application")]
     Application,
     /// A group the organization named.
+    #[schema(title = "Named")]
     Named {
         /// The group's name, shared by every tag in it.
         #[serde(deserialize_with = "deserialize_trimmed")]

@@ -48,26 +48,47 @@ pub struct GlobalSearchQuery {
 #[derive(Serialize, Debug, Clone, ToSchema)]
 #[allow(clippy::large_enum_variant)]
 pub enum SearchHit {
+    #[schema(title = "Invite")]
     Invite(Invite),
+    #[schema(title = "Share")]
     Share(Share),
+    #[schema(title = "Site")]
     Site(Site),
+    #[schema(title = "DaemonApiKey")]
     DaemonApiKey(DaemonApiKey),
+    #[schema(title = "UserApiKey")]
     UserApiKey(UserApiKey),
+    #[schema(title = "User")]
     User(User),
+    #[schema(title = "Tag")]
     Tag(Tag),
+    #[schema(title = "Discovery")]
     Discovery(Discovery),
+    #[schema(title = "Daemon")]
     Daemon(DaemonResponse),
+    #[schema(title = "Host")]
     Host(HostResponse),
+    #[schema(title = "Service")]
     Service(Service),
+    #[schema(title = "Port")]
     Port(Port),
+    #[schema(title = "Binding")]
     Binding(Binding),
+    #[schema(title = "IPAddress")]
     IPAddress(IPAddress),
+    #[schema(title = "Interface")]
     Interface(Interface),
+    #[schema(title = "Credential")]
     Credential(Credential),
+    #[schema(title = "Subnet")]
     Subnet(SubnetResponse),
+    #[schema(title = "Vlan")]
     Vlan(Vlan),
+    #[schema(title = "Dependency")]
     Dependency(Dependency),
+    #[schema(title = "Topology")]
     Topology(Topology),
+    #[schema(title = "Snapshot")]
     Snapshot(Snapshot),
 }
 
@@ -77,12 +98,14 @@ pub struct GlobalSearchGroup {
     pub entity_type: EntityDiscriminants,
     /// Matches of this type in all, across every page.
     pub total_count: u64,
+    /// This page of matches, each in its entity's list shape.
     pub items: Vec<SearchHit>,
 }
 
 /// Matches grouped by entity type, in registry order. Types with no matches are left out.
 #[derive(Serialize, Debug, Clone, Default, ToSchema)]
 pub struct GlobalSearchResponse {
+    /// One group per entity type with at least one match.
     pub groups: Vec<GlobalSearchGroup>,
 }
 

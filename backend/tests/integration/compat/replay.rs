@@ -216,14 +216,15 @@ pub async fn replay_exchange(
     });
 
     // A status code says nothing about whether the daemon can read the body: one that predates
-    // the site rename fails to parse an entity without `network_id`.
+    // the site rename fails to parse an entity carrying `site_id`. Fail on the leaked name, not on
+    // a missing `network_id`: a replay can legitimately return no entity where the recording had
+    // one (request-work with no pending session answers `[null, false]`).
     let wire_names = match daemon_version {
-        Some(_) if has_key(&exchange.response_body, "network_id") => {
-            if !has_key(&actual_body, "network_id") || has_key(&actual_body, "site_id") {
-                Err("the recorded response named network_id; this one does not".to_string())
-            } else {
-                Ok(())
-            }
+        Some(_)
+            if has_key(&exchange.response_body, "network_id")
+                && has_key(&actual_body, "site_id") =>
+        {
+            Err("the response sent site_id to a daemon that reads network_id".to_string())
         }
         _ => Ok(()),
     };
