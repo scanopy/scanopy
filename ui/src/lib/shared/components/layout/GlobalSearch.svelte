@@ -21,8 +21,11 @@
 	import type { EntityDiscriminants } from '$lib/api/entities';
 	import { useTagsQuery } from '$lib/features/tags/queries';
 	import { isApplicationTag, tagIcon, tagTooltip } from '$lib/features/tags/groups';
+	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
+	import { keyLabel } from '$lib/shared/utils/shortcuts';
 	import {
 		acceptCompletion,
+		addChip,
 		backspaceChip,
 		EMPTY_SEARCH,
 		flattenGroups,
@@ -31,7 +34,9 @@
 		hasSearchTerms,
 		isGlobalSearchShortcut,
 		moveHighlight,
+		moveChipCursor,
 		removeChip,
+		removeSelectedChip,
 		responseGroups,
 		tagCompletion,
 		type GlobalSearchState,
@@ -59,6 +64,8 @@
 	/** The search as last sent to the server; its text trails `query` by the throttle. */
 	let search = $state<GlobalSearchState>(EMPTY_SEARCH);
 	let highlighted = $state(-1);
+	/** The chip ← → has selected, as an index into the chips; `null` while the text has focus. */
+	let chipCursor = $state<number | null>(null);
 	let inputEl: HTMLInputElement | undefined = $state();
 
 	// Trailing throttle, built once: rebuilding it per keystroke would defeat it.
@@ -74,7 +81,7 @@
 	const tagsQuery = useTagsQuery();
 
 	let tags = $derived(tagsQuery.data ?? []);
-	let chosenTags = $derived(tagIds.flatMap((id) => tags.filter((tag) => tag.id === id)));
+	let tagsById = $derived(new Map(tags.map((tag) => [tag.id, tag])));
 	let completion = $derived(tagCompletion(query, tags, tagIds));
 
 	let hasSearch = $derived(hasSearchTerms(search));
@@ -115,11 +122,18 @@
 		return entities.getMetadata(type)?.entity_name_plural ?? entities.getName(type);
 	}
 
+	/** The tags a result carries, to show on its row and to click into chips. */
+	function tagsOf(item: SearchItem) {
+		const ids = 'tags' in item ? item.tags : [];
+		return ids.flatMap((id) => tagsById.get(id) ?? []);
+	}
+
 	function rowIndex(row: SearchRow<SearchItem>): number {
 		return rows.indexOf(row);
 	}
 
 	function close() {
+		chipCursor = null;
 		sendSearch.cancel();
 		form.reset();
 		query = '';
@@ -139,6 +153,7 @@
 	/** Applies a change of chips (and the text it cleared) at once: a chip is a deliberate act. */
 	function applySearch(next: GlobalSearchState) {
 		sendSearch.cancel();
+		chipCursor = null;
 		if (next.text !== query) form.setFieldValue('query', next.text);
 		query = next.text;
 		tagIds = next.tagIds;
@@ -147,12 +162,36 @@
 	}
 
 	function handleInput(value: string) {
+		chipCursor = null;
 		query = value;
 		highlighted = -1;
 		sendSearch(value);
 	}
 
 	function handleInputKeydown(event: KeyboardEvent) {
+		if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+			const caretAtStart = inputEl?.selectionStart === 0 && inputEl?.selectionEnd === 0;
+			const next = moveChipCursor(
+				chipCursor,
+				event.key === 'ArrowLeft' ? 'left' : 'right',
+				tagIds.length,
+				caretAtStart
+			);
+			if (next !== null || chipCursor !== null) event.preventDefault();
+			chipCursor = next;
+			return;
+		}
+		if (chipCursor !== null) {
+			if (event.key === 'Backspace' || event.key === 'Delete') {
+				event.preventDefault();
+				const next = removeSelectedChip({ text: query, tagIds }, chipCursor);
+				applySearch(next.state);
+				chipCursor = next.cursor;
+				return;
+			}
+			// Typing goes back to the text.
+			if (event.key.length === 1) chipCursor = null;
+		}
 		if (event.key === 'Tab' && !event.shiftKey && completion) {
 			event.preventDefault();
 			applySearch(acceptCompletion({ text: query, tagIds }, completion));
@@ -205,30 +244,52 @@
 				onkeydown={handleInputKeydown}
 			>
 				{#snippet chips()}
-					{#each chosenTags as tag (tag.id)}
-						<Tag
-							label={tag.name}
-							color={tag.color}
-							icon={tagIcon(tag)}
-							title={tagTooltip(tag)}
-							isShiny={isApplicationTag(tag)}
-							removable
-							onRemove={() => {
-								applySearch(removeChip({ text: query, tagIds }, tag.id));
-								inputEl?.focus();
-							}}
-						/>
+					{#each tagIds as id, index (id)}
+						{@const tag = tagsById.get(id)}
+						{#if tag}
+							<span
+								class="rounded-md {index === chipCursor
+									? 'ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-gray-900'
+									: ''}"
+							>
+								<Tag
+									label={tag.name}
+									color={tag.color}
+									icon={tagIcon(tag)}
+									title={tagTooltip(tag)}
+									isShiny={isApplicationTag(tag)}
+									removable
+									onRemove={() => {
+										applySearch(removeChip({ text: query, tagIds }, tag.id));
+										inputEl?.focus();
+									}}
+								/>
+							</span>
+						{/if}
 					{/each}
 				{/snippet}
 				{#snippet ghost()}
 					{#if completion}
-						<Tag
-							label={completion.name}
-							color={completion.color}
-							icon={tagIcon(completion)}
-							isShiny={isApplicationTag(completion)}
-							faded
-						/>
+						{@const tag = completion}
+						<!-- Tab accepts from the keyboard; the click is for the mouse, so it takes no focus. -->
+						<button
+							type="button"
+							tabindex="-1"
+							class="pointer-events-auto ml-1.5 inline-flex items-center gap-1.5 opacity-60 transition-opacity hover:opacity-100"
+							onclick={(event) => {
+								event.stopPropagation();
+								applySearch(acceptCompletion({ text: query, tagIds }, tag));
+								inputEl?.focus();
+							}}
+						>
+							<Tag
+								label={tag.name}
+								color={tag.color}
+								icon={tagIcon(tag)}
+								isShiny={isApplicationTag(tag)}
+							/>
+							<KbdKey key={keyLabel('Tab')} size="sm" />
+						</button>
 					{/if}
 				{/snippet}
 			</SearchInput>
@@ -254,24 +315,46 @@
 					</h3>
 					{#each rows.filter((row) => row.type === group.type) as row (row.item.id)}
 						{@const index = rowIndex(row)}
-						<button
+						<!-- Keys reach rows through the input (arrows, Enter); a row is clicked, not focused. -->
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<div
 							id="global-search-row-{index}"
-							type="button"
 							role="option"
+							tabindex="-1"
 							aria-selected={index === highlighted}
-							class="w-full rounded-lg px-2 py-1.5 text-left transition-colors {index ===
+							class="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors {index ===
 							highlighted
 								? 'bg-gray-100 dark:bg-gray-800'
 								: 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}"
 							onmousemove={() => (highlighted = index)}
 							onclick={() => openRow(row)}
 						>
-							<EntityDisplayWrapper
-								item={row.item}
-								context={{}}
-								displayComponent={entityUIConfig[row.type]!.displayComponent!}
-							/>
-						</button>
+							<div class="min-w-0 flex-1">
+								<EntityDisplayWrapper
+									item={row.item}
+									context={{}}
+									displayComponent={entityUIConfig[row.type]!.displayComponent!}
+								/>
+							</div>
+							{#if tagsOf(row.item).length > 0}
+								<div class="flex shrink-0 flex-wrap justify-end gap-1">
+									{#each tagsOf(row.item) as tag (tag.id)}
+										<Tag
+											label={tag.name}
+											color={tag.color}
+											icon={tagIcon(tag)}
+											title={tagTooltip(tag)}
+											isShiny={isApplicationTag(tag)}
+											onclick={(event) => {
+												event.stopPropagation();
+												applySearch(addChip({ text: query, tagIds }, tag.id));
+												inputEl?.focus();
+											}}
+										/>
+									{/each}
+								</div>
+							{/if}
+						</div>
 					{/each}
 				</div>
 			{/each}
@@ -279,6 +362,6 @@
 	{/if}
 
 	{#snippet footer()}
-		<SearchHint tabCompletes={completion !== null} />
+		<SearchHint tabCompletes={completion !== null} chipsSelectable={tagIds.length > 0} />
 	{/snippet}
 </GenericModal>

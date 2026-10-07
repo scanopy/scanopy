@@ -141,8 +141,7 @@ export const entityUIConfig: Record<EntityDiscriminants, EntityUIConfig | null> 
 		displayComponent: UserApiKeyDisplay
 	},
 	Organization: null,
-	Invite: null,
-	Unknown: null
+	Invite: null
 };
 
 /** Every modal that opens one entity: the modals arrow-key navigation steps between. */

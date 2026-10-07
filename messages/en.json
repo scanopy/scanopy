@@ -1136,6 +1136,7 @@
 	"gettingStarted_stepTopologyLabel": "View your topology",
 	"gettingStarted_title": "Getting Started",
 	"gettingStarted_whileYouWait": "While you wait:",
+	"globalSearch_chipHint": "← → to select a tag, Backspace to remove it",
 	"globalSearch_noResults": "Nothing matches \"{query}\"",
 	"globalSearch_noTaggedResults": "Nothing carries every one of these tags",
 	"globalSearch_openWithShortcut": "Search ({shortcut})",

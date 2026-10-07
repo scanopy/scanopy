@@ -14117,19 +14117,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-07T01:29:20.208195Z",
+              "created_at": "2026-10-07T02:15:08.033918Z",
               "first_discovery_id": null,
-              "id": "bdd93368-ec15-4311-8acd-661ecf8f122f",
+              "id": "d921b996-3689-41b7-a069-29150d83d1ab",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-07T01:29:20.208195Z",
+              "last_seen_at": "2026-10-07T02:15:08.033918Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-07T01:29:20.208195Z",
-              "valid_from": "2026-10-07T01:29:20.208195Z",
+              "updated_at": "2026-10-07T02:15:08.033918Z",
+              "valid_from": "2026-10-07T02:15:08.033918Z",
               "valid_to": null
             }
           },
@@ -15834,19 +15834,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-07T01:29:20.188338Z",
+                      "created_at": "2026-10-07T02:15:08.013826Z",
                       "first_discovery_id": null,
-                      "id": "f5383c3b-fad5-462e-962d-fba2b984829f",
+                      "id": "66ca1b58-ca3f-4021-88e0-7207ec95ab7f",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-07T01:29:20.188338Z",
+                      "last_seen_at": "2026-10-07T02:15:08.013826Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-07T01:29:20.188338Z",
-                      "valid_from": "2026-10-07T01:29:20.188338Z",
+                      "updated_at": "2026-10-07T02:15:08.013826Z",
+                      "valid_from": "2026-10-07T02:15:08.013826Z",
                       "valid_to": null
                     }
                   ],
@@ -15859,7 +15859,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Mendelson AS2",
+                  "service_definition": "MongoDB",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -17185,19 +17185,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-07T01:29:20.204358Z",
+                  "created_at": "2026-10-07T02:15:08.030116Z",
                   "first_discovery_id": null,
-                  "id": "7821afe8-b03a-40f9-86b4-2e8a52b8bf1d",
+                  "id": "f202a72d-000c-456a-9fb4-04e4ea39be07",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-07T01:29:20.204358Z",
+                  "last_seen_at": "2026-10-07T02:15:08.030116Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-07T01:29:20.204358Z",
-                  "valid_from": "2026-10-07T01:29:20.204358Z",
+                  "updated_at": "2026-10-07T02:15:08.030116Z",
+                  "valid_from": "2026-10-07T02:15:08.030116Z",
                   "valid_to": null
                 }
               ],
@@ -17210,7 +17210,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Mendelson AS2",
+              "service_definition": "MongoDB",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -18168,8 +18168,7 @@
                     "Vlan",
                     "Dependency",
                     "Topology",
-                    "Snapshot",
-                    "Unknown"
+                    "Snapshot"
                   ]
                 }
               },
@@ -19847,19 +19846,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-07T01:29:20.188780Z",
+          "created_at": "2026-10-07T02:15:08.014273Z",
           "first_discovery_id": null,
-          "id": "4be29850-5c8e-46ac-aaf0-57e1e0905e80",
+          "id": "838aa1f8-d267-4e6e-aa01-c0cdb41fb466",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-07T01:29:20.188780Z",
+          "last_seen_at": "2026-10-07T02:15:08.014273Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-07T01:29:20.188780Z",
-          "valid_from": "2026-10-07T01:29:20.188780Z",
+          "updated_at": "2026-10-07T02:15:08.014273Z",
+          "valid_from": "2026-10-07T02:15:08.014273Z",
           "valid_to": null
         }
       },
@@ -20625,7 +20624,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Mendelson AS2",
+              "service_definition": "MongoDB",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -25586,258 +25585,6 @@
           }
         }
       },
-      "Entity": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "Organization"
-            ],
-            "properties": {
-              "Organization": {
-                "$ref": "#/components/schemas/Organization"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Invite"
-            ],
-            "properties": {
-              "Invite": {
-                "$ref": "#/components/schemas/Invite"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Share"
-            ],
-            "properties": {
-              "Share": {
-                "$ref": "#/components/schemas/Share"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Site"
-            ],
-            "properties": {
-              "Site": {
-                "$ref": "#/components/schemas/Site"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "DaemonApiKey"
-            ],
-            "properties": {
-              "DaemonApiKey": {
-                "$ref": "#/components/schemas/DaemonApiKey"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "UserApiKey"
-            ],
-            "properties": {
-              "UserApiKey": {
-                "$ref": "#/components/schemas/UserApiKey"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "User"
-            ],
-            "properties": {
-              "User": {
-                "$ref": "#/components/schemas/User"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Tag"
-            ],
-            "properties": {
-              "Tag": {
-                "$ref": "#/components/schemas/Tag"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Discovery"
-            ],
-            "properties": {
-              "Discovery": {
-                "$ref": "#/components/schemas/Discovery"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Daemon"
-            ],
-            "properties": {
-              "Daemon": {
-                "$ref": "#/components/schemas/Daemon"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Host"
-            ],
-            "properties": {
-              "Host": {
-                "$ref": "#/components/schemas/Host"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Service"
-            ],
-            "properties": {
-              "Service": {
-                "$ref": "#/components/schemas/Service"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Port"
-            ],
-            "properties": {
-              "Port": {
-                "$ref": "#/components/schemas/Port"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Binding"
-            ],
-            "properties": {
-              "Binding": {
-                "$ref": "#/components/schemas/Binding"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "IPAddress"
-            ],
-            "properties": {
-              "IPAddress": {
-                "$ref": "#/components/schemas/IPAddress"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Interface"
-            ],
-            "properties": {
-              "Interface": {
-                "$ref": "#/components/schemas/Interface"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Credential"
-            ],
-            "properties": {
-              "Credential": {
-                "$ref": "#/components/schemas/Credential"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Subnet"
-            ],
-            "properties": {
-              "Subnet": {
-                "$ref": "#/components/schemas/Subnet"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Vlan"
-            ],
-            "properties": {
-              "Vlan": {
-                "$ref": "#/components/schemas/Vlan"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Dependency"
-            ],
-            "properties": {
-              "Dependency": {
-                "$ref": "#/components/schemas/Dependency"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Topology"
-            ],
-            "properties": {
-              "Topology": {
-                "$ref": "#/components/schemas/Topology"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "Snapshot"
-            ],
-            "properties": {
-              "Snapshot": {
-                "$ref": "#/components/schemas/Snapshot"
-              }
-            }
-          },
-          {
-            "type": "string",
-            "enum": [
-              "Unknown"
-            ]
-          }
-        ]
-      },
       "EntityDiscriminants": {
         "type": "string",
         "enum": [
@@ -25862,8 +25609,7 @@
           "Vlan",
           "Dependency",
           "Topology",
-          "Snapshot",
-          "Unknown"
+          "Snapshot"
         ]
       },
       "EntityFreshness": {
@@ -26290,9 +26036,8 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Entity"
-            },
-            "description": "Each match, tagged with its entity type."
+              "$ref": "#/components/schemas/SearchHit"
+            }
           }
         }
       },
@@ -27437,19 +27182,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-07T01:29:20.187862Z",
+                  "created_at": "2026-10-07T02:15:08.013348Z",
                   "first_discovery_id": null,
-                  "id": "20676bb8-c165-4553-abd9-25631e107fef",
+                  "id": "22ee2124-d7bc-43a7-9e15-e9fc7e9daf80",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-07T01:29:20.187862Z",
+                  "last_seen_at": "2026-10-07T02:15:08.013348Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-07T01:29:20.187862Z",
-                  "valid_from": "2026-10-07T01:29:20.187862Z",
+                  "updated_at": "2026-10-07T02:15:08.013348Z",
+                  "valid_from": "2026-10-07T02:15:08.013348Z",
                   "valid_to": null
                 }
               ],
@@ -27462,7 +27207,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Mendelson AS2",
+              "service_definition": "MongoDB",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -31231,19 +30976,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-07T01:29:20.180908Z",
+                        "created_at": "2026-10-07T02:15:08.006370Z",
                         "first_discovery_id": null,
-                        "id": "13473821-035b-4a25-95f3-b9c6fe9d91be",
+                        "id": "87b7388d-d215-44d4-9f63-152449c74fec",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-07T01:29:20.180908Z",
+                        "last_seen_at": "2026-10-07T02:15:08.006370Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-07T01:29:20.180908Z",
-                        "valid_from": "2026-10-07T01:29:20.180908Z",
+                        "updated_at": "2026-10-07T02:15:08.006370Z",
+                        "valid_from": "2026-10-07T02:15:08.006370Z",
                         "valid_to": null
                       }
                     ],
@@ -31256,7 +31001,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Mendelson AS2",
+                    "service_definition": "MongoDB",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -31405,19 +31150,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-07T01:29:20.203669Z",
+                    "created_at": "2026-10-07T02:15:08.029436Z",
                     "first_discovery_id": null,
-                    "id": "55700d0e-01bd-4a7a-a286-c722fd953978",
+                    "id": "cb687418-c1d3-42be-89aa-5a7db68b8f64",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-07T01:29:20.203669Z",
+                    "last_seen_at": "2026-10-07T02:15:08.029436Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-07T01:29:20.203669Z",
-                    "valid_from": "2026-10-07T01:29:20.203669Z",
+                    "updated_at": "2026-10-07T02:15:08.029436Z",
+                    "valid_from": "2026-10-07T02:15:08.029436Z",
                     "valid_to": null
                   }
                 ],
@@ -31430,7 +31175,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Mendelson AS2",
+                "service_definition": "MongoDB",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -33433,6 +33178,242 @@
         ],
         "description": "Where an SSH credential's script comes from. One type for the stored credential and the wire:\nboth sides hold the same typed paths, so there is nothing to translate."
       },
+      "SearchHit": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "Invite"
+            ],
+            "properties": {
+              "Invite": {
+                "$ref": "#/components/schemas/Invite"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Share"
+            ],
+            "properties": {
+              "Share": {
+                "$ref": "#/components/schemas/Share"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Site"
+            ],
+            "properties": {
+              "Site": {
+                "$ref": "#/components/schemas/Site"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "DaemonApiKey"
+            ],
+            "properties": {
+              "DaemonApiKey": {
+                "$ref": "#/components/schemas/DaemonApiKey"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "UserApiKey"
+            ],
+            "properties": {
+              "UserApiKey": {
+                "$ref": "#/components/schemas/UserApiKey"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "User"
+            ],
+            "properties": {
+              "User": {
+                "$ref": "#/components/schemas/User"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Tag"
+            ],
+            "properties": {
+              "Tag": {
+                "$ref": "#/components/schemas/Tag"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Discovery"
+            ],
+            "properties": {
+              "Discovery": {
+                "$ref": "#/components/schemas/Discovery"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Daemon"
+            ],
+            "properties": {
+              "Daemon": {
+                "$ref": "#/components/schemas/DaemonResponse"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Host"
+            ],
+            "properties": {
+              "Host": {
+                "$ref": "#/components/schemas/HostResponse"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Service"
+            ],
+            "properties": {
+              "Service": {
+                "$ref": "#/components/schemas/Service"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Port"
+            ],
+            "properties": {
+              "Port": {
+                "$ref": "#/components/schemas/Port"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Binding"
+            ],
+            "properties": {
+              "Binding": {
+                "$ref": "#/components/schemas/Binding"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "IPAddress"
+            ],
+            "properties": {
+              "IPAddress": {
+                "$ref": "#/components/schemas/IPAddress"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Interface"
+            ],
+            "properties": {
+              "Interface": {
+                "$ref": "#/components/schemas/Interface"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Credential"
+            ],
+            "properties": {
+              "Credential": {
+                "$ref": "#/components/schemas/Credential"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Subnet"
+            ],
+            "properties": {
+              "Subnet": {
+                "$ref": "#/components/schemas/SubnetResponse"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Vlan"
+            ],
+            "properties": {
+              "Vlan": {
+                "$ref": "#/components/schemas/Vlan"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Dependency"
+            ],
+            "properties": {
+              "Dependency": {
+                "$ref": "#/components/schemas/Dependency"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Topology"
+            ],
+            "properties": {
+              "Topology": {
+                "$ref": "#/components/schemas/Topology"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Snapshot"
+            ],
+            "properties": {
+              "Snapshot": {
+                "$ref": "#/components/schemas/Snapshot"
+              }
+            }
+          }
+        ],
+        "description": "One match, in the shape its entity's list endpoint returns it (a host as a `HostResponse`,\na daemon as a `DaemonResponse`), keyed by entity type."
+      },
       "SecretValue": {
         "oneOf": [
           {
@@ -33606,19 +33587,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-07T01:29:20.188653Z",
+              "created_at": "2026-10-07T02:15:08.014139Z",
               "first_discovery_id": null,
-              "id": "eb2cc058-a5b4-4b6c-b103-112bfa8cc2fb",
+              "id": "cc0edd4c-eb50-423f-baeb-fa22a38774c0",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-07T01:29:20.188653Z",
+              "last_seen_at": "2026-10-07T02:15:08.014139Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-07T01:29:20.188653Z",
-              "valid_from": "2026-10-07T01:29:20.188653Z",
+              "updated_at": "2026-10-07T02:15:08.014139Z",
+              "valid_from": "2026-10-07T02:15:08.014139Z",
               "valid_to": null
             }
           ],
@@ -33631,7 +33612,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Mendelson AS2",
+          "service_definition": "MongoDB",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -35174,8 +35155,7 @@
                 "Vlan",
                 "Dependency",
                 "Topology",
-                "Snapshot",
-                "Unknown"
+                "Snapshot"
               ]
             }
           },
@@ -35354,7 +35334,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "fdbc7c8b-dbca-44d5-84ea-5d0826e5f703",
+                  "id": "808508b4-0639-4cf7-b12b-6e52ba91066e",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -35364,23 +35344,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "ce7aea6a-c1be-4949-9837-fd05ee04e290",
+                  "id": "5ad7a7ea-34d4-4b59-b1b6-47df60a22993",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "8ba7e5e6-e624-477a-ad65-448f24839933",
+                  "id": "ebbd09cc-9194-49bf-b73c-2b84edd21b59",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "02d174ef-2f47-4438-9de8-587e28d6322f",
+                  "id": "ff7ebcbb-b4dc-4c5c-9e42-2a66d7e16317",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "ce7aea6a-c1be-4949-9837-fd05ee04e290",
+                  "id": "5ad7a7ea-34d4-4b59-b1b6-47df60a22993",
                   "rule": "ByHost"
                 }
               ]
@@ -35410,19 +35390,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "be7511fa-2d3e-4078-acae-e7113cc0073a",
+                "id": "4f5e1f08-da10-4dfc-94a1-c488b1e2016a",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "ce4c2f52-1a51-490f-9cc3-ed511caa43d5",
+                "id": "c5032bc7-5baf-48cf-8fb5-de1f488accc0",
                 "rule": "ByVLAN"
               },
               {
-                "id": "e673561b-e23d-40a6-a9c0-df097fbd846c",
+                "id": "8e3f6082-96b7-496a-9607-9c76096a2819",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "cb5dd5d1-8410-4c69-a31d-baa92b74d8f4",
+                "id": "d4738486-5913-4d2b-82fa-ced0cf78f703",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -35441,7 +35421,7 @@
                 }
               },
               {
-                "id": "e39925b5-a4df-4f73-876b-4f083162814c",
+                "id": "e408cbd9-4063-4778-ae71-ba34c7b2c2d1",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -35450,15 +35430,15 @@
                 }
               },
               {
-                "id": "84d516c4-5a5e-48ff-b316-8d79a85a9325",
+                "id": "20bc3a22-92ec-49c9-90e5-37add3ce181f",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "ca095f3d-d17a-4add-a37f-e1af9173bbb7",
+                "id": "030c5b41-7f95-48ae-b020-64df849052d3",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "e5bc8428-d082-4b2c-a9c0-82e010f97c6f",
+                "id": "72348087-2636-4e99-a8ca-6171e634cfdd",
                 "rule": "ByStack"
               }
             ]
@@ -35586,8 +35566,7 @@
                   "Vlan",
                   "Dependency",
                   "Topology",
-                  "Snapshot",
-                  "Unknown"
+                  "Snapshot"
                 ]
               }
             },
@@ -36330,8 +36309,7 @@
                 "Vlan",
                 "Dependency",
                 "Topology",
-                "Snapshot",
-                "Unknown"
+                "Snapshot"
               ]
             }
           },

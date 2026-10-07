@@ -1,31 +1,39 @@
-//! The global search: every entity type's service asked the same query, side by side.
+//! The global search: one query, answered by every entity type's service side by side.
+//!
+//! Each type's filter is the caller's scope narrowed by the query ([`SearchQuery::narrow`], which
+//! applies the type's search predicates and tags). It is then read through the service method the
+//! type's list endpoint uses, so a match comes back in the shape that list returns.
 
 use std::fmt::Display;
 
 use futures::future::{BoxFuture, FutureExt, try_join_all};
 use strum::IntoEnumIterator;
+use uuid::Uuid;
 
-use crate::server::shared::{
-    entities::{ChangeTriggersTopologyStaleness, Entity, EntityDiscriminants},
-    handlers::traits::CrudHandlers,
-    services::{
-        factory::ServiceFactory,
-        search::{SearchQuery, SearchScope},
-        traits::CrudService,
+use crate::server::{
+    daemons::r#impl::{api::DaemonResponse, base::Daemon, version::DaemonVersionPolicy},
+    hosts::r#impl::base::Host,
+    shared::{
+        entities::{ChangeTriggersTopologyStaleness, Entity, EntityDiscriminants},
+        handlers::{ordering::apply_ordering, traits::CrudHandlers},
+        services::{factory::ServiceFactory, traits::CrudService},
+        storage::filter::StorableFilter,
     },
+    subnets::r#impl::base::Subnet,
+    user_api_keys::r#impl::base::UserApiKey,
+    users::r#impl::{base::User, permissions::UserOrgPermissions},
 };
 
-use super::types::{GlobalSearchGroup, GlobalSearchResponse};
+use super::{
+    scope::{SearchQuery, SearchScope},
+    types::{GlobalSearchGroup, GlobalSearchResponse, SearchHit},
+};
 
 /// Matches returned per entity type. The palette jumps to a match; browsing belongs to the
 /// entity's own list.
 pub const GLOBAL_SEARCH_LIMIT: u32 = 5;
 
 /// Every entity type's matches for `query`, grouped by type in registry order.
-///
-/// Each type is searched by its own service ([`CrudService::search`]), which applies that type's
-/// list scope. A type takes part once its storage defines search predicates; until then its
-/// service answers with nothing.
 pub async fn global_search(
     services: &ServiceFactory,
     scope: &SearchScope,
@@ -44,38 +52,40 @@ pub async fn global_search(
     Ok(GlobalSearchResponse { groups })
 }
 
-/// One entity type's matches, from that type's service.
+/// One entity type's matches. A type takes part once its storage defines search predicates;
+/// until then [`SearchQuery::narrow`] leaves it nothing to read.
 fn search_type<'a>(
     services: &'a ServiceFactory,
     entity_type: EntityDiscriminants,
     scope: &'a SearchScope,
     query: &'a SearchQuery,
 ) -> BoxFuture<'a, anyhow::Result<GlobalSearchGroup>> {
+    use EntityDiscriminants as E;
     let s = services;
     let items = match entity_type {
-        EntityDiscriminants::Organization => search_in(&*s.organization_service, scope, query),
-        EntityDiscriminants::Invite => search_in(&*s.invite_service, scope, query),
-        EntityDiscriminants::Share => search_in(&*s.share_service, scope, query),
-        EntityDiscriminants::Site => search_in(&*s.site_service, scope, query),
-        EntityDiscriminants::DaemonApiKey => search_in(&*s.daemon_api_key_service, scope, query),
-        EntityDiscriminants::UserApiKey => search_in(&*s.user_api_key_service, scope, query),
-        EntityDiscriminants::User => search_in(&*s.user_service, scope, query),
-        EntityDiscriminants::Tag => search_in(&*s.tag_service, scope, query),
-        EntityDiscriminants::Discovery => search_in(&*s.discovery_service, scope, query),
-        EntityDiscriminants::Daemon => search_in(&*s.daemon_service, scope, query),
-        EntityDiscriminants::Host => search_in(&*s.host_service, scope, query),
-        EntityDiscriminants::Service => search_in(&*s.service_service, scope, query),
-        EntityDiscriminants::Port => search_in(&*s.port_service, scope, query),
-        EntityDiscriminants::Binding => search_in(&*s.binding_service, scope, query),
-        EntityDiscriminants::IPAddress => search_in(&*s.ip_address_service, scope, query),
-        EntityDiscriminants::Interface => search_in(&*s.interface_service, scope, query),
-        EntityDiscriminants::Credential => search_in(&*s.credential_service, scope, query),
-        EntityDiscriminants::Subnet => search_in(&*s.subnet_service, scope, query),
-        EntityDiscriminants::Vlan => search_in(&*s.vlan_service, scope, query),
-        EntityDiscriminants::Dependency => search_in(&*s.dependency_service, scope, query),
-        EntityDiscriminants::Topology => search_in(&*s.topology_service, scope, query),
-        EntityDiscriminants::Snapshot => search_in(&*s.snapshot_service, scope, query),
-        EntityDiscriminants::Unknown => async { Ok(Vec::new()) }.boxed(),
+        // The caller's own organization is their scope, not something to find.
+        E::Organization => async { Ok(Vec::new()) }.boxed(),
+        E::Invite => listed(&*s.invite_service, scope, query),
+        E::Share => listed(&*s.share_service, scope, query),
+        E::Site => listed(&*s.site_service, scope, query),
+        E::DaemonApiKey => listed(&*s.daemon_api_key_service, scope, query),
+        E::UserApiKey => user_api_keys(s, scope, query).boxed(),
+        E::User => users(s, scope, query).boxed(),
+        E::Tag => listed(&*s.tag_service, scope, query),
+        E::Discovery => listed(&*s.discovery_service, scope, query),
+        E::Daemon => daemons(s, scope, query).boxed(),
+        E::Host => hosts(s, scope, query).boxed(),
+        E::Service => listed(&*s.service_service, scope, query),
+        E::Port => listed(&*s.port_service, scope, query),
+        E::Binding => listed(&*s.binding_service, scope, query),
+        E::IPAddress => listed(&*s.ip_address_service, scope, query),
+        E::Interface => listed(&*s.interface_service, scope, query),
+        E::Credential => listed(&*s.credential_service, scope, query),
+        E::Subnet => subnets(s, scope, query).boxed(),
+        E::Vlan => listed(&*s.vlan_service, scope, query),
+        E::Dependency => listed(&*s.dependency_service, scope, query),
+        E::Topology => listed(&*s.topology_service, scope, query),
+        E::Snapshot => listed(&*s.snapshot_service, scope, query),
     };
     async move {
         Ok(GlobalSearchGroup {
@@ -86,20 +96,159 @@ fn search_type<'a>(
     .boxed()
 }
 
-/// `service`'s matches, in the order `T`'s list sorts by name, as entities.
-fn search_in<'a, T, S>(
+/// `T`'s filter for this caller and query, limited and with the ORDER BY its list sorts by name,
+/// or `None` when `T` can't match.
+fn search_filter<T>(
+    base: StorableFilter<T>,
+    query: &SearchQuery,
+) -> Option<(StorableFilter<T>, String)>
+where
+    T: CrudHandlers + Display + ChangeTriggersTopologyStaleness<T> + Default,
+    Entity: From<T>,
+{
+    let filter = query.narrow(base)?;
+    let default_order = format!("{}.created_at ASC", T::table_name());
+    let (filter, order) = apply_ordering(None, T::search_order(), None, filter, &default_order);
+    Some((filter.limit(query.limit), order))
+}
+
+/// Matches of an entity whose list is the generic one: scoped to the caller's sites or
+/// organization and read with `get_paginated_ordered`.
+fn listed<'a, T, S>(
     service: &'a S,
     scope: &'a SearchScope,
     query: &'a SearchQuery,
-) -> BoxFuture<'a, anyhow::Result<Vec<Entity>>>
+) -> BoxFuture<'a, anyhow::Result<Vec<SearchHit>>>
 where
     T: CrudHandlers + Display + ChangeTriggersTopologyStaleness<T> + Default + 'static,
     Entity: From<T>,
     S: CrudService<T> + Sync,
 {
     async move {
-        let hits = service.search(scope, query, T::search_order()).await?;
-        Ok(hits.into_iter().map(Entity::from).collect())
+        let base = StorableFilter::<T>::new_for_access(&scope.site_ids, &scope.organization_id);
+        let Some((filter, order)) = search_filter(base, query) else {
+            return Ok(Vec::new());
+        };
+        let found = service.get_paginated_ordered(filter, &order).await?;
+        found
+            .items
+            .into_iter()
+            .map(|item| SearchHit::try_from(Entity::from(item)))
+            .collect()
     }
     .boxed()
+}
+
+/// Hosts as the host list returns them: with their addresses, which their titles can fall back
+/// to, and without the other children.
+async fn hosts(
+    s: &ServiceFactory,
+    scope: &SearchScope,
+    query: &SearchQuery,
+) -> anyhow::Result<Vec<SearchHit>> {
+    let base = StorableFilter::<Host>::new_from_site_ids(&scope.site_ids);
+    let Some((filter, order)) = search_filter(base, query) else {
+        return Ok(Vec::new());
+    };
+    let found = s
+        .host_service
+        .get_all_host_responses_paginated(filter, &order, None, false)
+        .await?;
+    Ok(found.items.into_iter().map(SearchHit::Host).collect())
+}
+
+/// Daemons as the daemon list returns them: with their version status and interfaced subnets.
+async fn daemons(
+    s: &ServiceFactory,
+    scope: &SearchScope,
+    query: &SearchQuery,
+) -> anyhow::Result<Vec<SearchHit>> {
+    let base = StorableFilter::<Daemon>::new_from_site_ids(&scope.site_ids);
+    let Some((filter, order)) = search_filter(base, query) else {
+        return Ok(Vec::new());
+    };
+    let found = s
+        .daemon_service
+        .get_paginated_ordered(filter, &order)
+        .await?;
+    let ids: Vec<Uuid> = found.items.iter().map(|d| d.id).collect();
+    let subnet_ids = s.daemon_service.get_interfaced_subnet_ids_batch(&ids).await;
+    let policy = DaemonVersionPolicy::default();
+    Ok(found
+        .items
+        .into_iter()
+        .map(|d| {
+            SearchHit::Daemon(DaemonResponse {
+                id: d.id,
+                created_at: d.created_at,
+                updated_at: d.updated_at,
+                version_status: policy.evaluate(d.base.version.as_ref()),
+                interfaced_subnet_ids: subnet_ids.get(&d.id).cloned().unwrap_or_default(),
+                base: d.base,
+            })
+        })
+        .collect())
+}
+
+/// Subnets as the subnet list returns them: with their usage.
+async fn subnets(
+    s: &ServiceFactory,
+    scope: &SearchScope,
+    query: &SearchQuery,
+) -> anyhow::Result<Vec<SearchHit>> {
+    let base = StorableFilter::<Subnet>::new_from_site_ids(&scope.site_ids);
+    let Some((filter, order)) = search_filter(base, query) else {
+        return Ok(Vec::new());
+    };
+    let found = s
+        .subnet_service
+        .get_paginated_ordered(filter, &order)
+        .await?;
+    let subnets = s.subnet_service.with_usage(found.items, None).await?;
+    Ok(subnets.into_iter().map(SearchHit::Subnet).collect())
+}
+
+/// Users as the users list shows them: to admins and owners only, and only the users that list
+/// shows the caller. Filtered after the read, as the list is, so the limit counts what is shown.
+async fn users(
+    s: &ServiceFactory,
+    scope: &SearchScope,
+    query: &SearchQuery,
+) -> anyhow::Result<Vec<SearchHit>> {
+    if scope.permissions < UserOrgPermissions::Admin {
+        return Ok(Vec::new());
+    }
+    let base = StorableFilter::<User>::new_from_org_id(&scope.organization_id);
+    let Some(filter) = query.narrow(base) else {
+        return Ok(Vec::new());
+    };
+    let mut found = s.user_service.get_all(filter).await?;
+    found.sort_by(|a, b| a.base.email.as_str().cmp(b.base.email.as_str()));
+    Ok(found
+        .into_iter()
+        .filter(|user| user.is_listed_for(scope.permissions, scope.user_id))
+        .take(query.limit as usize)
+        .map(SearchHit::User)
+        .collect())
+}
+
+/// User API keys as their list shows them: only the signed-in user's own. An API key caller
+/// lists none, so it finds none.
+async fn user_api_keys(
+    s: &ServiceFactory,
+    scope: &SearchScope,
+    query: &SearchQuery,
+) -> anyhow::Result<Vec<SearchHit>> {
+    let Some(user_id) = scope.session_user_id else {
+        return Ok(Vec::new());
+    };
+    let base = StorableFilter::<UserApiKey>::new_from_user_id(&user_id);
+    let Some((filter, order)) = search_filter(base, query) else {
+        return Ok(Vec::new());
+    };
+    let found = s
+        .user_api_key_service
+        .get_paginated_ordered(filter, &order)
+        .await?;
+    Ok(found.items.into_iter().map(SearchHit::UserApiKey).collect())
 }

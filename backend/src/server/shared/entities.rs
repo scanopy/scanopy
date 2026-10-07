@@ -39,16 +39,7 @@ pub trait ChangeTriggersTopologyStaleness<T> {
 }
 
 #[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    EnumDiscriminants,
-    IntoStaticStr,
-    Serialize,
-    Deserialize,
-    Display,
-    Default,
-    ToSchema,
+    Debug, Clone, PartialEq, EnumDiscriminants, IntoStaticStr, Serialize, Deserialize, Display,
 )]
 #[strum_discriminants(derive(
     Display,
@@ -81,6 +72,7 @@ pub enum Entity {
     Discovery(Discovery),
     Daemon(Daemon),
 
+    #[strum_discriminants(default)]
     Host(Host),
     Service(Service),
     Port(Port),
@@ -92,12 +84,8 @@ pub enum Entity {
     Subnet(Subnet),
     Vlan(Vlan),
     Dependency(Dependency),
-    Topology(Box<Topology>),
+    Topology(Topology),
     Snapshot(Snapshot),
-
-    #[default]
-    #[strum_discriminants(default)]
-    Unknown,
 }
 
 impl HasId for EntityDiscriminants {
@@ -201,7 +189,6 @@ impl Entity {
                 <Snapshot as EntityTrait>::ENTITY_NAME_SINGULAR,
                 <Snapshot as EntityTrait>::ENTITY_NAME_PLURAL,
             ),
-            Entity::Unknown => ("Entity", "Entities"),
         }
     }
 }
@@ -245,8 +232,7 @@ impl EntityDiscriminants {
             | EntityDiscriminants::IPAddress
             | EntityDiscriminants::Interface
             | EntityDiscriminants::Topology
-            | EntityDiscriminants::Snapshot
-            | EntityDiscriminants::Unknown => false,
+            | EntityDiscriminants::Snapshot => false,
         }
     }
 
@@ -280,8 +266,7 @@ impl EntityDiscriminants {
             | EntityDiscriminants::Vlan
             | EntityDiscriminants::Dependency
             | EntityDiscriminants::Topology
-            | EntityDiscriminants::Snapshot
-            | EntityDiscriminants::Unknown => None,
+            | EntityDiscriminants::Snapshot => None,
         }
     }
 }
@@ -319,8 +304,6 @@ impl EntityMetadataProvider for EntityDiscriminants {
 
             EntityDiscriminants::Subnet => Color::Indigo,
             EntityDiscriminants::Vlan => Color::Violet,
-
-            EntityDiscriminants::Unknown => Color::Gray,
         }
     }
 
@@ -348,8 +331,6 @@ impl EntityMetadataProvider for EntityDiscriminants {
             EntityDiscriminants::Dependency => Icon::Waypoints,
             EntityDiscriminants::Topology => Icon::ChartBarStacked,
             EntityDiscriminants::Snapshot => Icon::Camera,
-
-            EntityDiscriminants::Unknown => Icon::CircleQuestionMark,
         }
     }
 }
@@ -380,6 +361,36 @@ impl TypeMetadataProvider for EntityDiscriminants {
             serde_json::json!(self.entity_name_plural()),
         );
         serde_json::Value::Object(m)
+    }
+}
+
+impl Entity {
+    /// The id of the entity carried.
+    pub fn id(&self) -> uuid::Uuid {
+        match self {
+            Self::Organization(e) => e.id(),
+            Self::Invite(e) => e.id(),
+            Self::Share(e) => e.id(),
+            Self::Site(e) => e.id(),
+            Self::DaemonApiKey(e) => e.id(),
+            Self::UserApiKey(e) => e.id(),
+            Self::User(e) => e.id(),
+            Self::Tag(e) => e.id(),
+            Self::Discovery(e) => e.id(),
+            Self::Daemon(e) => e.id(),
+            Self::Host(e) => e.id(),
+            Self::Service(e) => e.id(),
+            Self::Port(e) => e.id(),
+            Self::Binding(e) => e.id(),
+            Self::IPAddress(e) => e.id(),
+            Self::Interface(e) => e.id(),
+            Self::Credential(e) => e.id(),
+            Self::Subnet(e) => e.id(),
+            Self::Vlan(e) => e.id(),
+            Self::Dependency(e) => e.id(),
+            Self::Topology(e) => e.id(),
+            Self::Snapshot(e) => e.id(),
+        }
     }
 }
 
@@ -487,7 +498,7 @@ impl From<Dependency> for Entity {
 
 impl From<Topology> for Entity {
     fn from(value: Topology) -> Self {
-        Self::Topology(Box::new(value))
+        Self::Topology(value)
     }
 }
 
@@ -538,9 +549,8 @@ impl From<EntityDiscriminants> for Entity {
             EntityDiscriminants::DaemonApiKey => Entity::DaemonApiKey(DaemonApiKey::default()),
             EntityDiscriminants::UserApiKey => Entity::UserApiKey(UserApiKey::default()),
             EntityDiscriminants::Credential => Entity::Credential(Credential::default()),
-            EntityDiscriminants::Topology => Entity::Topology(Box::default()),
+            EntityDiscriminants::Topology => Entity::Topology(Topology::default()),
             EntityDiscriminants::Snapshot => Entity::Snapshot(Snapshot::default()),
-            EntityDiscriminants::Unknown => Entity::Unknown,
         }
     }
 }
