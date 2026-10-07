@@ -172,3 +172,18 @@ impl<T: Storable> StorableFilter<T> {
         Self::new().standby(false).is_unreachable(false)
     }
 }
+
+impl<T: crate::server::shared::storage::traits::Entity> StorableFilter<T> {
+    /// Every row of `T` the caller may list: site-keyed entities on the caller's sites, the sites
+    /// themselves narrowed to those sites, and everything else across the caller's organization.
+    pub fn new_for_access(site_ids: &[Uuid], organization_id: &Uuid) -> Self {
+        if T::is_site_keyed() {
+            Self::new_from_site_ids(site_ids)
+        } else if T::table_name() == "sites" {
+            // Sites are org-scoped but should be filtered to only those the user has access to
+            Self::new_from_entity_ids(site_ids)
+        } else {
+            Self::new_from_org_id(organization_id)
+        }
+    }
+}

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scanopy API",
-    "description": "\nSite topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.21\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.21\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.17.21)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **site(s)**:\n\n- You can only access entities within your organization\n- Site-level entities (hosts, services, etc.) are filtered to sites you have access to\n- Use `?site_id=<UUID>` to filter list endpoints to a specific site\n- API keys can be scoped to a subset of your accessible sites\n",
+    "description": "\nSite topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.22\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.22\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.17.22)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **site(s)**:\n\n- You can only access entities within your organization\n- Site-level entities (hosts, services, etc.) are filtered to sites you have access to\n- Use `?site_id=<UUID>` to filter list endpoints to a specific site\n- API keys can be scoped to a subset of your accessible sites\n",
     "license": {
       "name": "Dual (AGPL3.0, Commercial License Available)"
     },
@@ -13980,12 +13980,12 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.17.21"
+            "example": "0.17.22"
           }
         },
         "example": {
           "api_version": 1,
-          "server_version": "0.17.21"
+          "server_version": "0.17.22"
         }
       },
       "ApiResponse": {
@@ -14117,19 +14117,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-06T15:39:34.098991Z",
+              "created_at": "2026-10-07T01:29:20.208195Z",
               "first_discovery_id": null,
-              "id": "5754068d-c025-4546-8cb0-7f78106769ec",
+              "id": "bdd93368-ec15-4311-8acd-661ecf8f122f",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-06T15:39:34.098991Z",
+              "last_seen_at": "2026-10-07T01:29:20.208195Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-06T15:39:34.098991Z",
-              "valid_from": "2026-10-06T15:39:34.098991Z",
+              "updated_at": "2026-10-07T01:29:20.208195Z",
+              "valid_from": "2026-10-07T01:29:20.208195Z",
               "valid_to": null
             }
           },
@@ -15273,6 +15273,46 @@
           }
         }
       },
+      "ApiResponse_GlobalSearchResponse": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Matches grouped by entity type, in registry order. Types with no matches are left out.",
+            "required": [
+              "groups"
+            ],
+            "properties": {
+              "groups": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/GlobalSearchGroup"
+                }
+              }
+            }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
       "ApiResponse_HostResponse": {
         "type": "object",
         "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
@@ -15794,19 +15834,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-06T15:39:34.083349Z",
+                      "created_at": "2026-10-07T01:29:20.188338Z",
                       "first_discovery_id": null,
-                      "id": "c2e35c2a-2120-4406-8f15-a373879496ca",
+                      "id": "f5383c3b-fad5-462e-962d-fba2b984829f",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-06T15:39:34.083349Z",
+                      "last_seen_at": "2026-10-07T01:29:20.188338Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-06T15:39:34.083349Z",
-                      "valid_from": "2026-10-06T15:39:34.083349Z",
+                      "updated_at": "2026-10-07T01:29:20.188338Z",
+                      "valid_from": "2026-10-07T01:29:20.188338Z",
                       "valid_to": null
                     }
                   ],
@@ -15819,7 +15859,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Prometheus Node Exporter",
+                  "service_definition": "Mendelson AS2",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -17145,19 +17185,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-06T15:39:34.095176Z",
+                  "created_at": "2026-10-07T01:29:20.204358Z",
                   "first_discovery_id": null,
-                  "id": "a7f9853a-d47f-4f39-85e0-490d51afcb87",
+                  "id": "7821afe8-b03a-40f9-86b4-2e8a52b8bf1d",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-06T15:39:34.095176Z",
+                  "last_seen_at": "2026-10-07T01:29:20.204358Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-06T15:39:34.095176Z",
-                  "valid_from": "2026-10-06T15:39:34.095176Z",
+                  "updated_at": "2026-10-07T01:29:20.204358Z",
+                  "valid_from": "2026-10-07T01:29:20.204358Z",
                   "valid_to": null
                 }
               ],
@@ -17170,7 +17210,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Prometheus Node Exporter",
+              "service_definition": "Mendelson AS2",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -19807,19 +19847,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-06T15:39:34.083783Z",
+          "created_at": "2026-10-07T01:29:20.188780Z",
           "first_discovery_id": null,
-          "id": "75f26afb-f538-4689-9c41-4206c3b9bb0d",
+          "id": "4be29850-5c8e-46ac-aaf0-57e1e0905e80",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-06T15:39:34.083783Z",
+          "last_seen_at": "2026-10-07T01:29:20.188780Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-06T15:39:34.083783Z",
-          "valid_from": "2026-10-06T15:39:34.083783Z",
+          "updated_at": "2026-10-07T01:29:20.188780Z",
+          "valid_from": "2026-10-07T01:29:20.188780Z",
           "valid_to": null
         }
       },
@@ -20585,7 +20625,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Prometheus Node Exporter",
+              "service_definition": "Mendelson AS2",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -25546,6 +25586,258 @@
           }
         }
       },
+      "Entity": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "Organization"
+            ],
+            "properties": {
+              "Organization": {
+                "$ref": "#/components/schemas/Organization"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Invite"
+            ],
+            "properties": {
+              "Invite": {
+                "$ref": "#/components/schemas/Invite"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Share"
+            ],
+            "properties": {
+              "Share": {
+                "$ref": "#/components/schemas/Share"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Site"
+            ],
+            "properties": {
+              "Site": {
+                "$ref": "#/components/schemas/Site"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "DaemonApiKey"
+            ],
+            "properties": {
+              "DaemonApiKey": {
+                "$ref": "#/components/schemas/DaemonApiKey"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "UserApiKey"
+            ],
+            "properties": {
+              "UserApiKey": {
+                "$ref": "#/components/schemas/UserApiKey"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "User"
+            ],
+            "properties": {
+              "User": {
+                "$ref": "#/components/schemas/User"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Tag"
+            ],
+            "properties": {
+              "Tag": {
+                "$ref": "#/components/schemas/Tag"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Discovery"
+            ],
+            "properties": {
+              "Discovery": {
+                "$ref": "#/components/schemas/Discovery"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Daemon"
+            ],
+            "properties": {
+              "Daemon": {
+                "$ref": "#/components/schemas/Daemon"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Host"
+            ],
+            "properties": {
+              "Host": {
+                "$ref": "#/components/schemas/Host"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Service"
+            ],
+            "properties": {
+              "Service": {
+                "$ref": "#/components/schemas/Service"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Port"
+            ],
+            "properties": {
+              "Port": {
+                "$ref": "#/components/schemas/Port"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Binding"
+            ],
+            "properties": {
+              "Binding": {
+                "$ref": "#/components/schemas/Binding"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "IPAddress"
+            ],
+            "properties": {
+              "IPAddress": {
+                "$ref": "#/components/schemas/IPAddress"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Interface"
+            ],
+            "properties": {
+              "Interface": {
+                "$ref": "#/components/schemas/Interface"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Credential"
+            ],
+            "properties": {
+              "Credential": {
+                "$ref": "#/components/schemas/Credential"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Subnet"
+            ],
+            "properties": {
+              "Subnet": {
+                "$ref": "#/components/schemas/Subnet"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Vlan"
+            ],
+            "properties": {
+              "Vlan": {
+                "$ref": "#/components/schemas/Vlan"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Dependency"
+            ],
+            "properties": {
+              "Dependency": {
+                "$ref": "#/components/schemas/Dependency"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Topology"
+            ],
+            "properties": {
+              "Topology": {
+                "$ref": "#/components/schemas/Topology"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Snapshot"
+            ],
+            "properties": {
+              "Snapshot": {
+                "$ref": "#/components/schemas/Snapshot"
+              }
+            }
+          },
+          {
+            "type": "string",
+            "enum": [
+              "Unknown"
+            ]
+          }
+        ]
+      },
       "EntityDiscriminants": {
         "type": "string",
         "enum": [
@@ -25981,6 +26273,41 @@
             "type": "string",
             "format": "email",
             "description": "Email address to send the password-reset link to."
+          }
+        }
+      },
+      "GlobalSearchGroup": {
+        "type": "object",
+        "description": "One entity type's matches.",
+        "required": [
+          "entity_type",
+          "items"
+        ],
+        "properties": {
+          "entity_type": {
+            "$ref": "#/components/schemas/EntityDiscriminants"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Entity"
+            },
+            "description": "Each match, tagged with its entity type."
+          }
+        }
+      },
+      "GlobalSearchResponse": {
+        "type": "object",
+        "description": "Matches grouped by entity type, in registry order. Types with no matches are left out.",
+        "required": [
+          "groups"
+        ],
+        "properties": {
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GlobalSearchGroup"
+            }
           }
         }
       },
@@ -27110,19 +27437,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-06T15:39:34.082870Z",
+                  "created_at": "2026-10-07T01:29:20.187862Z",
                   "first_discovery_id": null,
-                  "id": "65a44fd3-bd62-4e86-bd71-d1fdab4e9504",
+                  "id": "20676bb8-c165-4553-abd9-25631e107fef",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-06T15:39:34.082870Z",
+                  "last_seen_at": "2026-10-07T01:29:20.187862Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-06T15:39:34.082870Z",
-                  "valid_from": "2026-10-06T15:39:34.082870Z",
+                  "updated_at": "2026-10-07T01:29:20.187862Z",
+                  "valid_from": "2026-10-07T01:29:20.187862Z",
                   "valid_to": null
                 }
               ],
@@ -27135,7 +27462,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Prometheus Node Exporter",
+              "service_definition": "Mendelson AS2",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -30029,7 +30356,7 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.17.21"
+            "example": "0.17.22"
           }
         },
         "example": {
@@ -30040,7 +30367,7 @@
             "offset": 0,
             "total_count": 142
           },
-          "server_version": "0.17.21"
+          "server_version": "0.17.22"
         }
       },
       "PaginatedApiResponse_Credential": {
@@ -30904,19 +31231,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-06T15:39:34.075896Z",
+                        "created_at": "2026-10-07T01:29:20.180908Z",
                         "first_discovery_id": null,
-                        "id": "76306505-c77b-42e9-8ada-d8edd91d9e69",
+                        "id": "13473821-035b-4a25-95f3-b9c6fe9d91be",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-06T15:39:34.075896Z",
+                        "last_seen_at": "2026-10-07T01:29:20.180908Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-06T15:39:34.075896Z",
-                        "valid_from": "2026-10-06T15:39:34.075896Z",
+                        "updated_at": "2026-10-07T01:29:20.180908Z",
+                        "valid_from": "2026-10-07T01:29:20.180908Z",
                         "valid_to": null
                       }
                     ],
@@ -30929,7 +31256,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Prometheus Node Exporter",
+                    "service_definition": "Mendelson AS2",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -31078,19 +31405,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-06T15:39:34.094426Z",
+                    "created_at": "2026-10-07T01:29:20.203669Z",
                     "first_discovery_id": null,
-                    "id": "cd3209df-d989-418e-879a-9220bfb022d3",
+                    "id": "55700d0e-01bd-4a7a-a286-c722fd953978",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-06T15:39:34.094426Z",
+                    "last_seen_at": "2026-10-07T01:29:20.203669Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-06T15:39:34.094426Z",
-                    "valid_from": "2026-10-06T15:39:34.094426Z",
+                    "updated_at": "2026-10-07T01:29:20.203669Z",
+                    "valid_from": "2026-10-07T01:29:20.203669Z",
                     "valid_to": null
                   }
                 ],
@@ -31103,7 +31430,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Prometheus Node Exporter",
+                "service_definition": "Mendelson AS2",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -33279,19 +33606,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-06T15:39:34.083656Z",
+              "created_at": "2026-10-07T01:29:20.188653Z",
               "first_discovery_id": null,
-              "id": "04f8d88f-9c80-4909-8d9a-6c0ab0d0bb89",
+              "id": "eb2cc058-a5b4-4b6c-b103-112bfa8cc2fb",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-06T15:39:34.083656Z",
+              "last_seen_at": "2026-10-07T01:29:20.188653Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-06T15:39:34.083656Z",
-              "valid_from": "2026-10-06T15:39:34.083656Z",
+              "updated_at": "2026-10-07T01:29:20.188653Z",
+              "valid_from": "2026-10-07T01:29:20.188653Z",
               "valid_to": null
             }
           ],
@@ -33304,7 +33631,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Prometheus Node Exporter",
+          "service_definition": "Mendelson AS2",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -35027,7 +35354,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "1c174a9e-b6bf-4ac5-8e1a-d76148a9f18f",
+                  "id": "fdbc7c8b-dbca-44d5-84ea-5d0826e5f703",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -35037,23 +35364,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "d23821d0-198d-4be8-aa81-7d0ba57feba4",
+                  "id": "ce7aea6a-c1be-4949-9837-fd05ee04e290",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "5cfbfb11-61b6-49e2-a8bd-0936c8726c07",
+                  "id": "8ba7e5e6-e624-477a-ad65-448f24839933",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "92d1c7f3-382a-4689-ae75-2f6ece498729",
+                  "id": "02d174ef-2f47-4438-9de8-587e28d6322f",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "d23821d0-198d-4be8-aa81-7d0ba57feba4",
+                  "id": "ce7aea6a-c1be-4949-9837-fd05ee04e290",
                   "rule": "ByHost"
                 }
               ]
@@ -35083,19 +35410,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "bcb6f2e1-6b9f-43d7-978e-e8c472e804f2",
+                "id": "be7511fa-2d3e-4078-acae-e7113cc0073a",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "5370747c-ad76-4af2-9f57-a57988e7324f",
+                "id": "ce4c2f52-1a51-490f-9cc3-ed511caa43d5",
                 "rule": "ByVLAN"
               },
               {
-                "id": "123705c9-6515-432f-b53e-1d546ed810e8",
+                "id": "e673561b-e23d-40a6-a9c0-df097fbd846c",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "528b4d43-f4b2-412d-8173-656deaa8d122",
+                "id": "cb5dd5d1-8410-4c69-a31d-baa92b74d8f4",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -35114,7 +35441,7 @@
                 }
               },
               {
-                "id": "9fc6be4f-3db5-42a3-9099-8d8f18b85e99",
+                "id": "e39925b5-a4df-4f73-876b-4f083162814c",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -35123,15 +35450,15 @@
                 }
               },
               {
-                "id": "e22c3850-7cd3-4faf-ac15-fd77e3248db3",
+                "id": "84d516c4-5a5e-48ff-b316-8d79a85a9325",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "eb02f20f-c38d-4f67-bbab-5134501f9b03",
+                "id": "ca095f3d-d17a-4add-a37f-e1af9173bbb7",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "09b43007-dabf-4161-84ab-47b31b66e077",
+                "id": "e5bc8428-d082-4b2c-a9c0-82e010f97c6f",
                 "rule": "ByStack"
               }
             ]
@@ -36444,6 +36771,10 @@
     {
       "name": "metadata",
       "description": "Entity metadata registry. Schema information for all entity types in the system."
+    },
+    {
+      "name": "search",
+      "description": "Search every entity type the caller can list, by text and tags."
     },
     {
       "name": "system",

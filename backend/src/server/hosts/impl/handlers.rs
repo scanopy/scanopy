@@ -12,4 +12,8 @@ impl CrudHandlers for Host {
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.host_service
     }
+
+    fn search_order() -> Option<Self::OrderField> {
+        Some(Self::OrderField::Name)
+    }
 }

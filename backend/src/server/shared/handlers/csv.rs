@@ -45,14 +45,7 @@ where
     let user_id = auth.user_id();
 
     // Build base filter based on entity scoping (same as get_all_handler)
-    let base_filter = if T::is_site_keyed() {
-        StorableFilter::<T>::new_from_site_ids(&site_ids)
-    } else if T::table_name() == "sites" {
-        // Sites are org-scoped but should be filtered to only those the user has access to
-        StorableFilter::<T>::new_from_entity_ids(&site_ids)
-    } else {
-        StorableFilter::<T>::new_from_org_id(&organization_id)
-    };
+    let base_filter = StorableFilter::<T>::new_for_access(&site_ids, &organization_id);
 
     // Apply entity-specific filters (but NOT pagination - we want all records)
     let filter = query.apply_to_filter(base_filter, &site_ids, organization_id);

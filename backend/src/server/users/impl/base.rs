@@ -216,6 +216,14 @@ pub struct User {
 }
 
 impl User {
+    /// Whether a member with `viewer_permissions` sees this user in the users list: an owner sees
+    /// everyone, anyone else sees the users below them and themselves.
+    pub fn is_listed_for(&self, viewer_permissions: UserOrgPermissions, viewer_id: Uuid) -> bool {
+        viewer_permissions == UserOrgPermissions::Owner
+            || self.base.permissions < viewer_permissions
+            || self.id == viewer_id
+    }
+
     pub fn set_password(&mut self, password_hash: String) {
         self.base.password_hash = Some(password_hash);
         self.base.has_password = true;
@@ -241,6 +249,10 @@ impl Storable for User {
 
     fn table_name() -> &'static str {
         "users"
+    }
+
+    fn search_predicates() -> &'static [&'static str] {
+        &["users.email ILIKE {}"]
     }
 
     fn new(base: Self::BaseData) -> Self {

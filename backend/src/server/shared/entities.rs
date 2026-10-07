@@ -48,6 +48,7 @@ pub trait ChangeTriggersTopologyStaleness<T> {
     Deserialize,
     Display,
     Default,
+    ToSchema,
 )]
 #[strum_discriminants(derive(
     Display,

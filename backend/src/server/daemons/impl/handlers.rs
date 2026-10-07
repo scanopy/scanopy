@@ -12,4 +12,8 @@ impl CrudHandlers for Daemon {
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.daemon_service
     }
+
+    fn search_order() -> Option<Self::OrderField> {
+        Some(Self::OrderField::Name)
+    }
 }
