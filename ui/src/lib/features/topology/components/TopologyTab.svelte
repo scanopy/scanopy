@@ -12,6 +12,7 @@
 	import ExportButton from './ExportButton.svelte';
 	import ExportModal from './ExportModal.svelte';
 	import SharesModal from '$lib/features/shares/components/SharesModal.svelte';
+	import { modalState, openModal, closeModal } from '$lib/shared/stores/modal-registry';
 	import { tooltip } from '$lib/shared/actions/tooltip';
 	import { SvelteFlowProvider } from '@xyflow/svelte';
 	import { SvelteSet } from 'svelte/reactivity';
@@ -461,8 +462,10 @@
 		}
 	});
 
-	let isShareModalOpen = $state(false);
-	let isExportModalOpen = $state(false);
+	// Share and Export open through the modal registry, so the Share button, the Home "Create Share"
+	// nudge and a deep link all reach the same modal.
+	let isShareModalOpen = $derived($modalState.name === 'topology-share');
+	let isExportModalOpen = $derived($modalState.name === 'topology-export');
 
 	let topologyViewer: TopologyViewer | null = $state(null);
 
@@ -683,7 +686,7 @@
 			>
 				{#if currentTopology}
 					<div class="flex items-center gap-2">
-						<ExportButton onclick={() => (isExportModalOpen = true)} />
+						<ExportButton onclick={() => openModal('topology-export')} />
 						<!-- A share always renders the LIVE view (the backend builds the share
 						     graph from live entities + options), so the button stays available
 						     while viewing a snapshot; the share modal shows an inline notice
@@ -698,7 +701,7 @@
 							{:else}
 								<button
 									class="btn-secondary"
-									onclick={() => (isShareModalOpen = true)}
+									onclick={() => openModal('topology-share')}
 									title={common_share()}
 								>
 									<Share2 class="my-1 h-5 w-5" />
@@ -865,7 +868,11 @@
 		</div>
 
 		{#if currentTopology}
-			<ExportModal topologyId={currentTopology.id} bind:isOpen={isExportModalOpen} />
+			<ExportModal
+				name="topology-export"
+				topologyId={currentTopology.id}
+				isOpen={isExportModalOpen}
+			/>
 		{/if}
 	{/if}
 </SvelteFlowProvider>
@@ -878,6 +885,6 @@
 		topologyId={currentTopology.id}
 		siteId={currentTopology.site_id}
 		isSnapshotView={$selectedSnapshotId != null}
-		onClose={() => (isShareModalOpen = false)}
+		onClose={closeModal}
 	/>
 {/if}

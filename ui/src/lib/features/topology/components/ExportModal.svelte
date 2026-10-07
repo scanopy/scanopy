@@ -62,13 +62,16 @@
 		topologyName = '',
 		isOpen = $bindable(false),
 		isShareView = false,
-		exportFeatures = undefined
+		exportFeatures = undefined,
+		name = undefined
 	}: {
 		topologyId: string;
 		topologyName?: string;
 		isOpen: boolean;
 		isShareView?: boolean;
 		exportFeatures?: ExportFeatures;
+		/** Modal-registry slug; threaded into GenericModal so closing clears the registry. */
+		name?: string;
 	} = $props();
 
 	const { getNodes, getNodesBounds, getViewport, setViewport } = useSvelteFlow();
@@ -664,7 +667,7 @@
 	}
 </script>
 
-<GenericModal title={topology_export()} {isOpen} onClose={() => (isOpen = false)} size="sm">
+<GenericModal title={topology_export()} {name} {isOpen} onClose={() => (isOpen = false)} size="sm">
 	<div class="p-6">
 		<div class="space-y-4">
 			<RichSelect
