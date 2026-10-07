@@ -18,7 +18,8 @@
 </script>
 
 {#snippet hint()}
-	{search_navigateHint()}{#if tabCompletes}{' · '}{globalSearch_tabHint()}{/if}
+	{search_navigateHint()}{#if tabCompletes}
+		· {globalSearch_tabHint()}{/if}
 {/snippet}
 
 {#if inline}
