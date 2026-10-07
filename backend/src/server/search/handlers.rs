@@ -4,12 +4,12 @@ use crate::server::{
     config::AppState,
     shared::{
         extractors::Query,
-        services::search::{SearchQuery, SearchScope},
         types::api::{ApiError, ApiResponse, ApiResult},
     },
 };
 
 use super::{
+    scope::{SearchQuery, SearchScope},
     service::{GLOBAL_SEARCH_LIMIT, global_search},
     types::{GlobalSearchQuery, GlobalSearchResponse},
 };

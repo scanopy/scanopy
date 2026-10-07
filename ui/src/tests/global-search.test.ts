@@ -3,13 +3,16 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
 	acceptCompletion,
+	addChip,
 	backspaceChip,
 	flattenGroups,
 	hasSearchTerms,
+	moveChipCursor,
 	moveHighlight,
 	isFindShortcut,
 	isGlobalSearchShortcut,
 	removeChip,
+	removeSelectedChip,
 	responseGroups,
 	tagCompletion
 } from '$lib/features/search/results';
@@ -147,6 +150,12 @@ describe('tag chips', () => {
 		});
 	});
 
+	it('clicking a tag on a result adds its chip once and keeps the text', () => {
+		const state = addChip({ text: 'web', tagIds: ['a'] }, 'b');
+		expect(state).toEqual({ text: 'web', tagIds: ['a', 'b'] });
+		expect(addChip(state, 'b')).toEqual(state);
+	});
+
 	it("a chip's x removes that chip and keeps the text", () => {
 		expect(removeChip({ text: 'web', tagIds: ['a', 'b', 'c'] }, 'b')).toEqual({
 			text: 'web',
@@ -173,7 +182,7 @@ describe('responseGroups', () => {
 		const groups = responseGroups({
 			groups: [
 				{ entity_type: 'Vlan', items: [{ Vlan: vlan }] },
-				{ entity_type: 'Host', items: [{ Host: host }, 'Unknown'] }
+				{ entity_type: 'Host', items: [{ Host: host }] }
 			]
 		} as unknown as Parameters<typeof responseGroups>[0]);
 		expect(groups).toEqual([
@@ -211,5 +220,37 @@ describe('every entity modal a search result can open', () => {
 	it('has a display, so its search row renders', () => {
 		const ownModals = modals.filter((c) => configs.find((o) => o.type === c.type) === c);
 		expect(ownModals.filter((c) => !c.displayComponent).map((c) => c.type)).toEqual([]);
+	});
+});
+
+describe('selecting chips with the arrow keys', () => {
+	it('Left from the text selects the last chip only with the caret at the start', () => {
+		expect(moveChipCursor(null, 'left', 3, true)).toBe(2);
+		expect(moveChipCursor(null, 'left', 3, false)).toBeNull();
+		expect(moveChipCursor(null, 'left', 0, true)).toBeNull();
+	});
+
+	it('Left walks back to the first chip and stops there', () => {
+		expect(moveChipCursor(2, 'left', 3, true)).toBe(1);
+		expect(moveChipCursor(0, 'left', 3, true)).toBe(0);
+	});
+
+	it('Right walks forward and returns to the text past the last chip', () => {
+		expect(moveChipCursor(0, 'right', 3, true)).toBe(1);
+		expect(moveChipCursor(2, 'right', 3, true)).toBeNull();
+		expect(moveChipCursor(null, 'right', 3, true)).toBeNull();
+	});
+
+	it('removing the selected chip selects its neighbour, then the text once none are left', () => {
+		const state = { text: 'web', tagIds: ['a', 'b', 'c'] };
+		expect(removeSelectedChip(state, 1)).toEqual({
+			state: { text: 'web', tagIds: ['a', 'c'] },
+			cursor: 0
+		});
+		expect(removeSelectedChip(state, 0).cursor).toBe(0);
+		expect(removeSelectedChip({ text: '', tagIds: ['a'] }, 0)).toEqual({
+			state: { text: '', tagIds: [] },
+			cursor: null
+		});
 	});
 });

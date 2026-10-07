@@ -7,9 +7,12 @@ use email_address::EmailAddress;
 use uuid::Uuid;
 
 use crate::server::hosts::r#impl::name::{HostName, HostNameSources};
-use crate::server::search::{service::global_search, types::GlobalSearchResponse};
+use crate::server::search::scope::{SearchQuery, SearchScope};
+use crate::server::search::{
+    service::global_search,
+    types::{GlobalSearchResponse, SearchHit},
+};
 use crate::server::shared::entities::{Entity, EntityDiscriminants};
-use crate::server::shared::services::search::{SearchQuery, SearchScope};
 use crate::server::shared::storage::traits::{Storable, Storage};
 use crate::server::tags::r#impl::base::{Tag, TagBase};
 use crate::server::user_api_keys::r#impl::base::{UserApiKey, UserApiKeyBase};
@@ -43,20 +46,10 @@ fn hits(response: &GlobalSearchResponse) -> Vec<(EntityDiscriminants, Uuid)> {
         .groups
         .iter()
         .flat_map(|group| {
-            group.items.iter().map(move |item| {
-                let id = match item {
-                    Entity::Host(e) => e.id,
-                    Entity::Service(e) => e.id,
-                    Entity::Subnet(e) => e.id,
-                    Entity::Vlan(e) => e.id,
-                    Entity::Site(e) => e.id,
-                    Entity::Tag(e) => e.id,
-                    Entity::User(e) => e.id,
-                    Entity::UserApiKey(e) => e.id,
-                    other => panic!("unexpected hit {other}"),
-                };
-                (group.entity_type, id)
-            })
+            group
+                .items
+                .iter()
+                .map(move |hit| (group.entity_type, Entity::from(hit.clone()).id()))
         })
         .collect()
 }
@@ -127,6 +120,18 @@ async fn returns_matches_of_several_types_within_the_callers_sites_and_org() {
     let response = global_search(&services, &caller, &query("lisbon", vec![]))
         .await
         .unwrap();
+
+    // Hits come in their list's shape: a host carries the title the UI shows.
+    let host_titles: Vec<Option<String>> = response
+        .groups
+        .iter()
+        .flat_map(|group| &group.items)
+        .filter_map(|hit| match hit {
+            SearchHit::Host(host) => Some(host.display_name.clone()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(host_titles, vec![Some("lisbon-core".to_string())]);
 
     assert_eq!(
         hits(&response).into_iter().collect::<HashSet<_>>(),

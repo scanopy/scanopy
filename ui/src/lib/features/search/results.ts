@@ -56,22 +56,22 @@ export interface SearchRow<T = unknown> {
 }
 
 type GlobalSearchResponse = components['schemas']['GlobalSearchResponse'];
-type SearchEntity = components['schemas']['Entity'];
-/** The payload of each `Entity` variant (`{ Host: Host }` → `Host`), distributed over the union. */
-type EntityPayload<E> = E extends Record<string, infer P> ? P : never;
-/** Any entity a match can carry. */
-export type SearchItem = EntityPayload<Exclude<SearchEntity, string>>;
+type SearchHit = components['schemas']['SearchHit'];
+/** The payload of each hit variant (`{ Host: HostResponse }` → the host), distributed over the union. */
+type HitPayload<H> = H extends Record<string, infer P> ? P : never;
+/** Any entity a match can carry, in the shape its list returns it. */
+export type SearchItem = HitPayload<SearchHit>;
 
-/** The payload inside one `Entity` (`{ Host: {...} }` → the host). */
-function entityPayload(entity: SearchEntity): SearchItem[] {
-	return typeof entity === 'string' ? [] : (Object.values(entity) as SearchItem[]);
+/** The payload inside one hit (`{ Host: {...} }` → the host). */
+function hitPayload(hit: SearchHit): SearchItem {
+	return Object.values(hit)[0] as SearchItem;
 }
 
-/** The server's groups as sections, each match unwrapped from its entity variant. */
+/** The server's groups as sections, each match unwrapped from its hit variant. */
 export function responseGroups(response: GlobalSearchResponse): SearchGroup<SearchItem>[] {
 	return response.groups.map((group) => ({
 		type: group.entity_type,
-		items: group.items.flatMap(entityPayload)
+		items: group.items.map(hitPayload)
 	}));
 }
 
@@ -100,14 +100,56 @@ export function tagCompletion(text: string, tags: Tag[], chosenIds: string[]): T
 	return candidates[0] ?? null;
 }
 
+/** A click on a tag a result carries: it becomes a chip, keeping the text. Once only. */
+export function addChip(state: GlobalSearchState, tagId: string): GlobalSearchState {
+	if (state.tagIds.includes(tagId)) return state;
+	return { ...state, tagIds: [...state.tagIds, tagId] };
+}
+
 /** Tab on a completion: the tag becomes a chip and the text it completed is cleared. */
 export function acceptCompletion(state: GlobalSearchState, tag: Tag): GlobalSearchState {
-	return { text: '', tagIds: [...state.tagIds, tag.id] };
+	return addChip({ ...state, text: '' }, tag.id);
 }
 
 /** The chip's x. */
 export function removeChip(state: GlobalSearchState, tagId: string): GlobalSearchState {
 	return { ...state, tagIds: state.tagIds.filter((id) => id !== tagId) };
+}
+
+/**
+ * Where the chip selection lands after Left or Right, as an index into the chips; `null` is the
+ * text. Left from the text selects the last chip, but only with the caret at the start of the
+ * text, so Left still moves through what was typed. Left stops at the first chip; Right past the
+ * last chip returns to the text.
+ */
+export function moveChipCursor(
+	cursor: number | null,
+	direction: 'left' | 'right',
+	chipCount: number,
+	caretAtStart: boolean
+): number | null {
+	if (chipCount === 0) return null;
+	if (direction === 'left') {
+		if (cursor === null) return caretAtStart ? chipCount - 1 : null;
+		return Math.max(cursor - 1, 0);
+	}
+	if (cursor === null) return null;
+	return cursor + 1 < chipCount ? cursor + 1 : null;
+}
+
+/**
+ * Backspace or Delete on a selected chip: it is removed and the selection moves to the chip before
+ * it (or the new first chip), back to the text once none are left.
+ */
+export function removeSelectedChip(
+	state: GlobalSearchState,
+	cursor: number
+): { state: GlobalSearchState; cursor: number | null } {
+	const tagIds = state.tagIds.filter((_, index) => index !== cursor);
+	return {
+		state: { ...state, tagIds },
+		cursor: tagIds.length === 0 ? null : Math.min(Math.max(cursor - 1, 0), tagIds.length - 1)
+	};
 }
 
 /**

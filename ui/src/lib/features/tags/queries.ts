@@ -154,8 +154,7 @@ const entityTypeToQueryKeyName: Record<EntityDiscriminants, keyof typeof queryKe
 	IPAddress: null,
 	Interface: null,
 	Topology: null,
-	Snapshot: null,
-	Unknown: null
+	Snapshot: null
 };
 
 /**

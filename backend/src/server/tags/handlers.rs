@@ -356,7 +356,6 @@ async fn resolve_entity_scope(
         EntityDiscriminants::Vlan => resolve_scope(s.vlan_service.as_ref(), entity_id).await,
         // Snapshots aren't user-taggable, but the match must be exhaustive.
         EntityDiscriminants::Snapshot => (None, None),
-        EntityDiscriminants::Unknown => (None, None),
     }
 }
 

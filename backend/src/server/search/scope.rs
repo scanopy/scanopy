@@ -1,8 +1,5 @@
-//! What the global search asks each entity service: the caller it searches for, and the text and
-//! tags it searches with. Each service answers through [`CrudService::search`], whose default
-//! covers every entity listed under the generic site/organization rule.
-//!
-//! [`CrudService::search`]: super::traits::CrudService::search
+//! Whom the global search searches for, and what with: the caller's scope, and the text and tags
+//! that narrow each entity's filter before its service is asked.
 
 use uuid::Uuid;
 
