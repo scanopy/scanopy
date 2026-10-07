@@ -55,6 +55,7 @@
 		globalSearch_noResults,
 		globalSearch_noTaggedResults,
 		globalSearch_placeholder,
+		globalSearch_resultCount,
 		globalSearch_showMore
 	} from '$lib/paraglide/messages';
 
@@ -116,6 +117,8 @@
 			: []
 	);
 	let rows = $derived(flattenGroups(groups));
+	/** Matches across every section, loaded or not. */
+	let totalResults = $derived(groups.reduce((sum, group) => sum + group.total, 0));
 
 	let isLoading = $derived(hasSearch && searchQuery.isPending);
 
@@ -286,6 +289,7 @@
 				id="global-search"
 				bind:inputEl
 				placeholder={globalSearch_placeholder()}
+				hidePlaceholder={tagIds.length > 0}
 				onInput={handleInput}
 				onkeydown={handleInputKeydown}
 			>
@@ -352,6 +356,10 @@
 						? globalSearch_noResults({ query: search.text })
 						: globalSearch_noTaggedResults()}
 				</p>
+			{:else}
+				<p class="text-tertiary px-2 py-1 text-xs tabular-nums">
+					{globalSearch_resultCount({ count: totalResults })}
+				</p>
 			{/if}
 
 			{#each groups as group (group.type)}
@@ -362,76 +370,79 @@
 						{groupLabel(group.type)}
 						<span class="font-normal tabular-nums">{group.total}</span>
 					</h3>
-					{#each rows.filter((row) => row.type === group.type) as row ('more' in row ? 'more' : row.item.id)}
-						{@const index = rowIndex(row)}
-						{#if 'more' in row}
-							<button
-								id="global-search-row-{index}"
-								type="button"
-								role="option"
-								tabindex="-1"
-								aria-selected={index === highlighted}
-								disabled={loadingMore === row.type}
-								class="text-secondary w-full rounded-lg px-2 py-1.5 text-left text-sm transition-colors {index ===
-								highlighted
-									? 'bg-gray-100 dark:bg-gray-800'
-									: 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}"
-								onmousemove={() => (highlighted = index)}
-								onclick={() => loadMore(row.type)}
-							>
-								{loadingMore === row.type
-									? common_loading()
-									: globalSearch_showMore({ count: Math.min(row.more, GLOBAL_SEARCH_MORE_PAGE) })}
-							</button>
-						{:else}
-							<!-- Keys reach rows through the input (arrows, Enter); a row is clicked, not focused. -->
-							<!-- svelte-ignore a11y_click_events_have_key_events -->
-							<div
-								id="global-search-row-{index}"
-								role="option"
-								tabindex="-1"
-								aria-selected={index === highlighted}
-								class="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors {index ===
-								highlighted
-									? 'bg-gray-100 dark:bg-gray-800'
-									: 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}"
-								onmousemove={() => (highlighted = index)}
-								onclick={() => openRow(row)}
-							>
-								<div class="min-w-0 flex-1">
-									<EntityDisplayWrapper
-										item={row.item}
-										context={{}}
-										displayComponent={entityUIConfig[row.type]!.displayComponent!}
-									/>
-								</div>
-								{#if tagsOf(row.item).length > 0}
-									<div class="flex shrink-0 flex-wrap justify-end gap-1">
-										{#each tagsOf(row.item) as tag (tag.id)}
-											<Tag
-												label={tag.name}
-												color={tag.color}
-												icon={tagIcon(tag)}
-												title={tagTooltip(tag)}
-												isShiny={isApplicationTag(tag)}
-												onclick={(event) => {
-													event.stopPropagation();
-													applySearch(addChip({ text: query, tagIds }, tag.id));
-													inputEl?.focus();
-												}}
-											/>
-										{/each}
+					<!-- Hairlines between matches, so each row's tags read as its own. -->
+					<div class="divide-y divide-gray-100 dark:divide-gray-800">
+						{#each rows.filter((row) => row.type === group.type) as row ('more' in row ? 'more' : row.item.id)}
+							{@const index = rowIndex(row)}
+							{#if 'more' in row}
+								<button
+									id="global-search-row-{index}"
+									type="button"
+									role="option"
+									tabindex="-1"
+									aria-selected={index === highlighted}
+									disabled={loadingMore === row.type}
+									class="text-secondary w-full rounded-lg px-2 py-1.5 text-left text-sm transition-colors {index ===
+									highlighted
+										? 'bg-gray-100 dark:bg-gray-800'
+										: 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}"
+									onmousemove={() => (highlighted = index)}
+									onclick={() => loadMore(row.type)}
+								>
+									{loadingMore === row.type
+										? common_loading()
+										: globalSearch_showMore({ count: Math.min(row.more, GLOBAL_SEARCH_MORE_PAGE) })}
+								</button>
+							{:else}
+								<!-- Keys reach rows through the input (arrows, Enter); a row is clicked, not focused. -->
+								<!-- svelte-ignore a11y_click_events_have_key_events -->
+								<div
+									id="global-search-row-{index}"
+									role="option"
+									tabindex="-1"
+									aria-selected={index === highlighted}
+									class="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors {index ===
+									highlighted
+										? 'bg-gray-100 dark:bg-gray-800'
+										: 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}"
+									onmousemove={() => (highlighted = index)}
+									onclick={() => openRow(row)}
+								>
+									<div class="min-w-0 flex-1">
+										<EntityDisplayWrapper
+											item={row.item}
+											context={{}}
+											displayComponent={entityUIConfig[row.type]!.displayComponent!}
+										/>
 									</div>
-								{/if}
-							</div>
-						{/if}
-					{/each}
+									{#if tagsOf(row.item).length > 0}
+										<div class="flex shrink-0 flex-wrap justify-end gap-1">
+											{#each tagsOf(row.item) as tag (tag.id)}
+												<Tag
+													label={tag.name}
+													color={tag.color}
+													icon={tagIcon(tag)}
+													title={tagTooltip(tag)}
+													isShiny={isApplicationTag(tag)}
+													onclick={(event) => {
+														event.stopPropagation();
+														applySearch(addChip({ text: query, tagIds }, tag.id));
+														inputEl?.focus();
+													}}
+												/>
+											{/each}
+										</div>
+									{/if}
+								</div>
+							{/if}
+						{/each}
+					</div>
 				</div>
 			{/each}
 		</div>
 	{/if}
 
 	{#snippet footer()}
-		<SearchHint tabCompletes={completion !== null} chipsSelectable={tagIds.length > 0} />
+		<SearchHint tabCompletes={completion !== null} />
 	{/snippet}
 </GenericModal>
