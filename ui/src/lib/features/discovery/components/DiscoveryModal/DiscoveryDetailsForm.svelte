@@ -18,12 +18,10 @@
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
 	import { ArrowUpCircle } from 'lucide-svelte';
 	import CollapsibleCard from '$lib/shared/components/data/CollapsibleCard.svelte';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
 	import {
 		common_daemon,
-		common_details,
 		common_ipAddress,
 		discovery_adHoc,
 		discovery_adHocDescription,
@@ -128,11 +126,6 @@
 			}
 		}
 	}
-
-	// Scan info is the second card; without it the details are this tab's only group.
-	let hasScanInfo = $derived(
-		formData.discovery_type.type === 'Unified' && formData.scan_count !== undefined
-	);
 </script>
 
 <div class="space-y-4">
@@ -143,7 +136,7 @@
 		/>
 	{/if}
 
-	{#snippet detailsFields()}
+	<div class="space-y-3">
 		<form.Field
 			name="name"
 			validators={{
@@ -184,63 +177,60 @@
 		</div>
 
 		<!-- Run Type Selection -->
-		<form.Field
-			name="run_type_type"
-			listeners={{
-				onChange: ({ value }: { value: string }) => handleRunTypeChange(value)
-			}}
-		>
-			{#snippet children(field: AnyFieldApi)}
-				<RichSelect
-					label={discovery_runType()}
-					selectedValue={field.state.value}
-					options={runTypeOptions}
-					onSelect={(value) => field.handleChange(value)}
-					onDisabledClick={() =>
-						triggerUpgrade({
-							feature: 'scheduled_discovery',
-							source: 'discovery_form',
-							surface: 'discovery_form'
-						})}
-					displayComponent={SimpleOptionDisplay}
-					disabled={readOnly}
-				/>
-				<p class="text-tertiary mt-1 text-xs">
-					{field.state.value === 'AdHoc'
-						? discovery_adHocDescription()
-						: discovery_scheduledDescription()}
-				</p>
-			{/snippet}
-		</form.Field>
+		<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+			<div>
+				<form.Field
+					name="run_type_type"
+					listeners={{
+						onChange: ({ value }: { value: string }) => handleRunTypeChange(value)
+					}}
+				>
+					{#snippet children(field: AnyFieldApi)}
+						<RichSelect
+							label={discovery_runType()}
+							selectedValue={field.state.value}
+							options={runTypeOptions}
+							onSelect={(value) => field.handleChange(value)}
+							onDisabledClick={() =>
+								triggerUpgrade({
+									feature: 'scheduled_discovery',
+									source: 'discovery_form',
+									surface: 'discovery_form'
+								})}
+							displayComponent={SimpleOptionDisplay}
+							disabled={readOnly}
+						/>
+						<p class="text-tertiary mt-1 text-xs">
+							{field.state.value === 'AdHoc'
+								? discovery_adHocDescription()
+								: discovery_scheduledDescription()}
+						</p>
+					{/snippet}
+				</form.Field>
+			</div>
+			{#if formData.discovery_type.type == 'Docker' || formData.discovery_type.type == 'Network' || formData.discovery_type.type == 'Unified'}
+				<form.Field
+					name="host_naming_fallback"
+					listeners={{
+						onChange: ({ value }: { value: string }) => handleHostNameFallbackChange(value)
+					}}
+				>
+					{#snippet children(field: AnyFieldApi)}
+						<SelectInput
+							label={discovery_hostNameFallback()}
+							id="host_name_fallback"
+							options={hostNameFallbackOptions}
+							{field}
+							disabled={readOnly}
+							helpText={discovery_hostNameFallbackHelp()}
+						/>
+					{/snippet}
+				</form.Field>
+			{/if}
+		</div>
+	</div>
 
-		{#if formData.discovery_type.type == 'Docker' || formData.discovery_type.type == 'Network' || formData.discovery_type.type == 'Unified'}
-			<form.Field
-				name="host_naming_fallback"
-				listeners={{
-					onChange: ({ value }: { value: string }) => handleHostNameFallbackChange(value)
-				}}
-			>
-				{#snippet children(field: AnyFieldApi)}
-					<SelectInput
-						label={discovery_hostNameFallback()}
-						id="host_name_fallback"
-						options={hostNameFallbackOptions}
-						{field}
-						disabled={readOnly}
-						helpText={discovery_hostNameFallbackHelp()}
-					/>
-				{/snippet}
-			</form.Field>
-		{/if}
-	{/snippet}
-
-	{#if hasScanInfo}
-		<InfoCard title={common_details()}>{@render detailsFields()}</InfoCard>
-	{:else}
-		<div class="space-y-3">{@render detailsFields()}</div>
-	{/if}
-
-	{#if hasScanInfo && formData.discovery_type.type === 'Unified'}
+	{#if formData.discovery_type.type === 'Unified' && formData.scan_count !== undefined}
 		{@const scanCount = formData.scan_count ?? 0}
 		{@const interval = formData.discovery_type.scan_settings?.full_scan_interval ?? 3}
 		{@const nextScanNumber = scanCount + 1}

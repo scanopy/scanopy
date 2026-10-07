@@ -232,7 +232,7 @@
 	title={common_editName({ name: daemon?.name ?? '' })}
 	entityId={daemon?.id}
 	form={detailsForm}
-	hasUnsavedChanges={() => keyForm.state.isDirty && !keyForm.state.isDefaultValue}
+	unsavedState={() => keyForm.state.values}
 	size="xl"
 	{onClose}
 	onOpen={handleOpen}

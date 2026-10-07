@@ -75,7 +75,7 @@
 		name = undefined,
 		entityId = undefined,
 		form = undefined,
-		hasUnsavedChanges = undefined,
+		unsavedState = undefined,
 		headerIcon,
 		banners,
 		children,
@@ -118,8 +118,8 @@
 		 * leaving when it holds unsaved changes.
 		 */
 		form?: AnyFormApi;
-		/** Unsaved state the editor keeps outside `form`, such as a host's interface list. */
-		hasUnsavedChanges?: () => boolean;
+		/** Editable state the editor keeps outside `form`, such as a host's interface list. */
+		unsavedState?: () => unknown;
 		headerIcon?: Snippet;
 		/**
 		 * Rendered inside the panel frame, above the title. Opt-in: this component
@@ -172,10 +172,27 @@
 	/** The entity a step has asked the registry for, until the parent hands it over. */
 	let navigatingToId: string | null = null;
 
+	/**
+	 * The editor's state as it stood when the user first touched it. Taken at the first pointer
+	 * or key press inside the panel rather than at open, because editors keep settling after they
+	 * open: fields normalise their values on mount and queries fill in data. Comparing against a
+	 * snapshot from open flagged those as edits nobody made.
+	 */
+	let baseline: string | null = null;
+
+	function editableSnapshot(): string {
+		return JSON.stringify({
+			form: form ? $state.snapshot(form.state.values) : null,
+			other: unsavedState ? $state.snapshot(unsavedState()) : null
+		});
+	}
+
+	function captureBaseline() {
+		if (baseline === null && (form || unsavedState)) baseline = editableSnapshot();
+	}
+
 	function isDirty(): boolean {
-		// Dirty alone stays true after an edit is typed back to the loaded value.
-		const formDirty = !!form && form.state.isDirty && !form.state.isDefaultValue;
-		return formDirty || (hasUnsavedChanges?.() ?? false);
+		return baseline !== null && editableSnapshot() !== baseline;
 	}
 
 	function requestNavigation(targetId: string) {
@@ -212,9 +229,14 @@
 			navigatingToId = null;
 			untrack(() => {
 				const tab = activeTab;
+				baseline = null;
 				instanceKey++;
 				onOpen?.();
-				if (tab && tabs.some((t) => t.id === tab)) activeTab = tab;
+				// onOpen resets the parent's tab; hand the user's tab back to it.
+				if (tab && tabs.some((t) => t.id === tab)) {
+					activeTab = tab;
+					onTabChange?.(tab);
+				}
 			});
 		}
 	});
@@ -240,6 +262,7 @@
 	// Sync modal state with URL on open/close transitions
 	$effect(() => {
 		if (isOpen && !wasOpen) {
+			baseline = null;
 			instanceKey++;
 
 			// Let the parent initialize first (e.g. reset form, set default tab)
@@ -402,6 +425,8 @@
 				: size === 'full' || size === 'wide' || fixedHeight
 					? 'h-[calc(100vh-2rem)] sm:h-[calc(100vh-8rem)]'
 					: 'max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-8rem)]'} flex w-full flex-col"
+			onpointerdowncapture={captureBaseline}
+			onkeydowncapture={captureBaseline}
 		>
 			<!-- Floating close button (absolute positioned within modal container) -->
 			{#if floatingCloseButton && onClose}
