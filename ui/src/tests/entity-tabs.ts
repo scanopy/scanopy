@@ -132,6 +132,7 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				site_id: 'site_id',
 				source: 'source',
 				subnet_ids: 'subnet_ids',
+				tags: 'tags',
 				updated_at: 'updated_at',
 				vlan_number: 'vlan_number',
 				...FOUND_BY,

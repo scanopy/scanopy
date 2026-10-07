@@ -3027,7 +3027,7 @@ export interface paths {
          *
          *     ### Validation
          *
-         *     - Entity type must be taggable (Host, Service, Subnet, Group, Site, Discovery, Daemon, DaemonApiKey, UserApiKey)
+         *     - Entity type must be taggable (Host, Service, Subnet, Vlan, Dependency, Site, Discovery, Daemon, DaemonApiKey, UserApiKey, Credential)
          *     - All tags must exist and belong to your organization
          */
         put: operations["set_entity_tags"];
@@ -3053,7 +3053,7 @@ export interface paths {
          *
          *     ### Validation
          *
-         *     - Entity type must be taggable (Host, Service, Subnet, Group, Site, Discovery, Daemon, DaemonApiKey, UserApiKey)
+         *     - Entity type must be taggable (Host, Service, Subnet, Vlan, Dependency, Site, Discovery, Daemon, DaemonApiKey, UserApiKey, Credential)
          *     - Tag must exist and belong to your organization
          *     - Entities that already have the tag are silently skipped
          */
@@ -3079,7 +3079,7 @@ export interface paths {
          *
          *     ### Validation
          *
-         *     - Entity type must be taggable (Host, Service, Subnet, Group, Site, Discovery, Daemon, DaemonApiKey, UserApiKey)
+         *     - Entity type must be taggable (Host, Service, Subnet, Vlan, Dependency, Site, Discovery, Daemon, DaemonApiKey, UserApiKey, Credential)
          *     - Entities that don't have the tag are silently skipped
          */
         post: operations["bulk_remove_tag"];
@@ -14171,6 +14171,8 @@ export interface components {
              *     here on create/update is ignored by `to_params`.
              */
             subnet_ids?: string[];
+            /** @description Tags assigned to this entity. */
+            tags: string[];
             /**
              * Format: int32
              * @description The 802.1Q VLAN number (1-4094)

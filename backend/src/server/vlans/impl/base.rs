@@ -38,6 +38,10 @@ pub struct VlanBase {
     #[serde(default)]
     #[schema(read_only)]
     pub subnet_ids: Vec<Uuid>,
+    /// Tags assigned to this entity.
+    #[serde(default)]
+    #[schema(required)]
+    pub tags: Vec<Uuid>,
 }
 
 impl Default for VlanBase {
@@ -50,6 +54,7 @@ impl Default for VlanBase {
             organization_id: Uuid::nil(),
             source: EntitySource::Manual,
             subnet_ids: Vec::new(),
+            tags: Vec::new(),
         }
     }
 }

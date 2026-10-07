@@ -310,6 +310,15 @@
 		border-top: 1px solid var(--color-border);
 	}
 
+	/* The JSON toggle (EntityMetadataSection) floats over the bottom-left corner of whatever
+	   precedes it. Room at the bottom of that element lets its content scroll clear of the
+	   toggle, so the toggle never covers anything. */
+	*:has(+ .entity-metadata-toggle),
+	/* ListConfigEditor's panes are absolutely positioned and scroll on their own. */
+	*:has(+ .entity-metadata-toggle) .list-config-pane {
+		padding-bottom: 2.5rem !important;
+	}
+
 	/* Form inputs */
 	.input-field {
 		@apply w-full rounded-md px-3 py-2;

@@ -232,7 +232,8 @@ impl EntityDiscriminants {
             | EntityDiscriminants::Daemon
             | EntityDiscriminants::DaemonApiKey
             | EntityDiscriminants::UserApiKey
-            | EntityDiscriminants::Credential => true,
+            | EntityDiscriminants::Credential
+            | EntityDiscriminants::Vlan => true,
             EntityDiscriminants::Organization
             | EntityDiscriminants::Invite
             | EntityDiscriminants::Share
@@ -242,7 +243,6 @@ impl EntityDiscriminants {
             | EntityDiscriminants::Binding
             | EntityDiscriminants::IPAddress
             | EntityDiscriminants::Interface
-            | EntityDiscriminants::Vlan
             | EntityDiscriminants::Topology
             | EntityDiscriminants::Snapshot
             | EntityDiscriminants::Unknown => false,

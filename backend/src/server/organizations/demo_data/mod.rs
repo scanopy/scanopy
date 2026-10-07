@@ -231,7 +231,7 @@ impl DemoData {
             .flat_map(|h| h.ip_addresses.iter())
             .collect();
 
-        let vlans = generate_vlans(&sites, organization_id, now);
+        let vlans = generate_vlans(&sites, &tags, organization_id, now);
         let (interfaces, neighbor_updates) =
             generate_interfaces(&sites, &hosts, &ip_addresses, &vlans, now);
         let subnet_vlan_records =

@@ -9,6 +9,7 @@ use crate::server::{
         },
         types::entities::EntitySource,
     },
+    tags::entity_tags::EntityTagService,
     vlans::r#impl::{base::Vlan, subnet_vlans::SubnetVlanStorage},
 };
 use anyhow::Result;
@@ -19,6 +20,7 @@ use uuid::Uuid;
 pub struct VlanService {
     storage: Arc<GenericPostgresStorage<Vlan>>,
     event_bus: Arc<EventBus>,
+    entity_tag_service: Arc<EntityTagService>,
     pub subnet_vlan_storage: Arc<SubnetVlanStorage>,
 }
 
@@ -58,10 +60,8 @@ impl CrudService<Vlan> for VlanService {
         &self.storage
     }
 
-    fn entity_tag_service(
-        &self,
-    ) -> Option<&Arc<crate::server::tags::entity_tags::EntityTagService>> {
-        None
+    fn entity_tag_service(&self) -> Option<&Arc<EntityTagService>> {
+        Some(&self.entity_tag_service)
     }
 
     async fn get_by_id(&self, id: &Uuid) -> Result<Option<Vlan>, anyhow::Error> {
@@ -71,6 +71,7 @@ impl CrudService<Vlan> for VlanService {
                     .subnet_vlan_storage
                     .get_subnet_ids_for_vlan(&vlan.id)
                     .await?;
+                self.hydrate_tags(&mut vlan).await?;
                 Ok(Some(vlan))
             }
             None => Ok(None),
@@ -80,6 +81,7 @@ impl CrudService<Vlan> for VlanService {
     async fn get_all(&self, filter: StorableFilter<Vlan>) -> Result<Vec<Vlan>, anyhow::Error> {
         let mut vlans = self.storage().get_all(filter).await?;
         hydrate_subnet_ids_for_batch(&self.subnet_vlan_storage, &mut vlans).await?;
+        self.bulk_hydrate_tags(&mut vlans, None).await?;
         Ok(vlans)
     }
 
@@ -93,6 +95,7 @@ impl CrudService<Vlan> for VlanService {
                     .subnet_vlan_storage
                     .get_subnet_ids_for_vlan(&vlan.id)
                     .await?;
+                self.hydrate_tags(&mut vlan).await?;
                 Ok(Unique::One(vlan))
             }
             Unique::None => Ok(Unique::None),
@@ -114,6 +117,7 @@ impl CrudService<Vlan> for VlanService {
     ) -> Result<PaginatedResult<Vlan>, anyhow::Error> {
         let mut paginated = self.storage().get_paginated(filter, order_by).await?;
         hydrate_subnet_ids_for_batch(&self.subnet_vlan_storage, &mut paginated.items).await?;
+        self.bulk_hydrate_tags(&mut paginated.items, None).await?;
         Ok(paginated)
     }
 }
@@ -122,11 +126,13 @@ impl VlanService {
     pub fn new(
         storage: Arc<GenericPostgresStorage<Vlan>>,
         event_bus: Arc<EventBus>,
+        entity_tag_service: Arc<EntityTagService>,
         subnet_vlan_storage: Arc<SubnetVlanStorage>,
     ) -> Self {
         Self {
             storage,
             event_bus,
+            entity_tag_service,
             subnet_vlan_storage,
         }
     }
@@ -178,6 +184,7 @@ impl VlanService {
             organization_id,
             source: EntitySource::Discovery,
             subnet_ids: Vec::new(),
+            tags: Vec::new(),
         });
         if let Some(ctx) = scan_ctx {
             vlan.originate_scan_timestamps(ctx.scan_time);

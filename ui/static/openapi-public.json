@@ -12009,7 +12009,7 @@
           "Tags"
         ],
         "summary": "Set all tags for an entity",
-        "description": "Replaces all tags on an entity with the provided list.\n\n### Validation\n\n- Entity type must be taggable (Host, Service, Subnet, Group, Site, Discovery, Daemon, DaemonApiKey, UserApiKey)\n- All tags must exist and belong to your organization",
+        "description": "Replaces all tags on an entity with the provided list.\n\n### Validation\n\n- Entity type must be taggable (Host, Service, Subnet, Vlan, Dependency, Site, Discovery, Daemon, DaemonApiKey, UserApiKey, Credential)\n- All tags must exist and belong to your organization",
         "operationId": "set_entity_tags",
         "requestBody": {
           "content": {
@@ -12069,7 +12069,7 @@
           "Tags"
         ],
         "summary": "Bulk add a tag to multiple entities",
-        "description": "Adds a single tag to multiple entities of the same type. This is useful for batch tagging operations.\n\n### Validation\n\n- Entity type must be taggable (Host, Service, Subnet, Group, Site, Discovery, Daemon, DaemonApiKey, UserApiKey)\n- Tag must exist and belong to your organization\n- Entities that already have the tag are silently skipped",
+        "description": "Adds a single tag to multiple entities of the same type. This is useful for batch tagging operations.\n\n### Validation\n\n- Entity type must be taggable (Host, Service, Subnet, Vlan, Dependency, Site, Discovery, Daemon, DaemonApiKey, UserApiKey, Credential)\n- Tag must exist and belong to your organization\n- Entities that already have the tag are silently skipped",
         "operationId": "bulk_add_tag",
         "requestBody": {
           "content": {
@@ -12129,7 +12129,7 @@
           "Tags"
         ],
         "summary": "Bulk remove a tag from multiple entities",
-        "description": "Removes a single tag from multiple entities of the same type.\n\n### Validation\n\n- Entity type must be taggable (Host, Service, Subnet, Group, Site, Discovery, Daemon, DaemonApiKey, UserApiKey)\n- Entities that don't have the tag are silently skipped",
+        "description": "Removes a single tag from multiple entities of the same type.\n\n### Validation\n\n- Entity type must be taggable (Host, Service, Subnet, Vlan, Dependency, Site, Discovery, Daemon, DaemonApiKey, UserApiKey, Credential)\n- Entities that don't have the tag are silently skipped",
         "operationId": "bulk_remove_tag",
         "requestBody": {
           "content": {
@@ -36141,7 +36141,8 @@
           "vlan_number",
           "name",
           "site_id",
-          "organization_id"
+          "organization_id",
+          "tags"
         ],
         "properties": {
           "description": {
@@ -36177,6 +36178,14 @@
               "readOnly": true
             },
             "description": "Subnets associated with this VLAN, derived from discovered interface\nnative-VLAN data via the `subnet_vlans` junction. Hydrated by\n`VlanService` on read; it is not a column on `vlans`, so anything sent\nhere on create/update is ignored by `to_params`."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Tags assigned to this entity."
           },
           "vlan_number": {
             "type": "integer",

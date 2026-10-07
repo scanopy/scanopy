@@ -213,6 +213,7 @@ impl ServiceFactory {
         let vlan_service = Arc::new(VlanService::new(
             storage.vlans.clone(),
             event_bus.clone(),
+            entity_tag_service.clone(),
             storage.subnet_vlan.clone(),
         ));
 

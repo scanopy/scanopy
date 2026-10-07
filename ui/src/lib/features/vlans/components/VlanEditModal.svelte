@@ -6,12 +6,16 @@
 	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
 	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
 	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
+	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
+	import SelectSite from '$lib/features/sites/components/SelectSite.svelte';
+	import TagPicker from '$lib/features/tags/components/TagPicker.svelte';
 	import { entities } from '$lib/shared/stores/metadata';
 	import type { Vlan } from '../types/base';
 	import {
 		common_cancel,
 		common_description,
 		common_editName,
+		common_name,
 		common_saving,
 		common_update,
 		vlans_descriptionPlaceholder,
@@ -41,12 +45,16 @@
 	);
 
 	const form = createForm(() => ({
-		defaultValues: { description: '' },
+		defaultValues: { name: '', description: '', tags: [] as string[] },
 		onSubmit: async ({ value }) => {
 			if (!vlan) return;
 			loading = true;
 			try {
-				await onUpdate({ ...vlan, description: value.description.trim() || null });
+				await onUpdate({
+					...vlan,
+					description: value.description.trim() || null,
+					tags: value.tags
+				});
 			} finally {
 				loading = false;
 			}
@@ -54,7 +62,11 @@
 	}));
 
 	function handleOpen() {
-		form.reset({ description: vlan?.description ?? '' });
+		form.reset({
+			name: vlan?.name ?? '',
+			description: vlan?.description ?? '',
+			tags: vlan?.tags ?? []
+		});
 	}
 
 	const colorHelper = entities.getColorHelper('Vlan');
@@ -84,21 +96,44 @@
 		class="flex min-h-0 flex-1 flex-col"
 	>
 		<div class="min-h-0 flex-1 overflow-auto p-6">
-			<form.Field
-				name="description"
-				validators={{
-					onBlur: ({ value }) => max(500)(value)
-				}}
-			>
-				{#snippet children(field)}
-					<TextArea
-						label={common_description()}
-						id="description"
-						{field}
-						placeholder={vlans_descriptionPlaceholder()}
-					/>
-				{/snippet}
-			</form.Field>
+			<div class="space-y-4">
+				<!-- Read-only: discovery rewrites the name on every scan, and the site is part of
+				     the VLAN's identity (the server keeps both on update). -->
+				<form.Field name="name">
+					{#snippet children(field)}
+						<TextInput label={common_name()} id="name" {field} disabled />
+					{/snippet}
+				</form.Field>
+
+				{#if vlan}
+					<SelectSite selectedSiteId={vlan.site_id} disabled onSiteChange={() => {}} />
+				{/if}
+
+				<form.Field
+					name="description"
+					validators={{
+						onBlur: ({ value }) => max(500)(value)
+					}}
+				>
+					{#snippet children(field)}
+						<TextArea
+							label={common_description()}
+							id="description"
+							{field}
+							placeholder={vlans_descriptionPlaceholder()}
+						/>
+					{/snippet}
+				</form.Field>
+
+				<form.Field name="tags">
+					{#snippet children(field)}
+						<TagPicker
+							selectedTagIds={field.state.value || []}
+							onChange={(tags) => field.handleChange(tags)}
+						/>
+					{/snippet}
+				</form.Field>
+			</div>
 		</div>
 
 		{#if vlan}

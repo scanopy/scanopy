@@ -142,6 +142,7 @@ const entityTypeToQueryKeyName: Record<EntityDiscriminants, keyof typeof queryKe
 	DaemonApiKey: 'apiKeys',
 	UserApiKey: 'userApiKeys',
 	Credential: 'credentials',
+	Vlan: 'vlans',
 	// Non-taggable entities (null = no cache invalidation needed)
 	Organization: null,
 	Invite: null,
@@ -152,7 +153,6 @@ const entityTypeToQueryKeyName: Record<EntityDiscriminants, keyof typeof queryKe
 	Binding: null,
 	IPAddress: null,
 	Interface: null,
-	Vlan: null,
 	Topology: null,
 	Snapshot: null,
 	Unknown: null
@@ -175,13 +175,6 @@ function getQueryKeyForEntityType(entityType: EntityDiscriminants): readonly str
 	}
 	return undefined;
 }
-
-/**
- * List of taggable entity types (derived from the mapping above)
- */
-export const TAGGABLE_ENTITY_TYPES = (
-	Object.keys(entityTypeToQueryKeyName) as EntityDiscriminants[]
-).filter((key) => entityTypeToQueryKeyName[key] !== null);
 
 /**
  * Mutation hook for bulk adding a tag to multiple entities

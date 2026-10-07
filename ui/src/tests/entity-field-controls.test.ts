@@ -360,6 +360,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			source: YES,
 			site_id: YES,
 			subnet_ids: SHARED_ARRAY,
+			tags: SHARED_ARRAY,
 			first_found_by: FOUND_BY,
 			last_found_by: FOUND_BY
 		}

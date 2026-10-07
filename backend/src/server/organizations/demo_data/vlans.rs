@@ -4,33 +4,44 @@ use super::*;
 
 pub(super) fn generate_vlans(
     sites: &[Site],
+    tags: &[Tag],
     organization_id: Uuid,
     now: DateTime<Utc>,
 ) -> Vec<Vlan> {
     let mut vlans = Vec::new();
 
-    let vlan_defs: Vec<(u16, &str, &str)> = vec![
+    let tag_id = |name: &str| tags.iter().find(|t| t.base.name == name).map(|t| t.id);
+
+    let vlan_defs: Vec<(u16, &str, &str, Option<&str>)> = vec![
         (
             1,
             "Default",
             "Untagged native VLAN on trunk ports. Nothing should live here.",
+            None,
         ),
         (
             10,
             "Management",
             "Switch, firewall and hypervisor management interfaces.",
+            Some("Critical"),
         ),
-        (20, "Servers", "Production servers and the NAS."),
-        (30, "Users", "Staff workstations and printers."),
+        (
+            20,
+            "Servers",
+            "Production servers and the NAS.",
+            Some("Production"),
+        ),
+        (30, "Users", "Staff workstations and printers.", None),
         (
             100,
             "Guest",
             "Visitor Wi-Fi. Internet access only, isolated from internal VLANs.",
+            None,
         ),
     ];
 
     for site in sites {
-        for &(vlan_number, name, description) in &vlan_defs {
+        for &(vlan_number, name, description, tag) in &vlan_defs {
             vlans.push(Vlan {
                 id: Uuid::new_v4(),
                 created_at: now,
@@ -49,6 +60,7 @@ pub(super) fn generate_vlans(
                     organization_id,
                     source: EntitySource::Discovery,
                     subnet_ids: Vec::new(),
+                    tags: tag.and_then(tag_id).into_iter().collect(),
                 },
             });
         }
