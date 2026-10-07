@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { isApplicationTag } from '$lib/features/tags/groups';
+	import { isApplicationTag, tagIcon, tagTooltip } from '$lib/features/tags/groups';
 	import { get } from 'svelte/store';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { Eye, EyeOff, X, Crosshair, ArrowDown } from 'lucide-svelte';
@@ -899,7 +899,13 @@
 					<span>{inspector_createGroupingRuleFromTag()}</span>
 					{#each recentlyAddedTags as tag (tag?.id)}
 						{#if tag}
-							<Tag label={tag.name} color={tag.color} />
+							<Tag
+								label={tag.name}
+								color={tag.color}
+								icon={tagIcon(tag)}
+								title={tagTooltip(tag)}
+								isShiny={isApplicationTag(tag)}
+							/>
 						{/if}
 					{/each}
 				</button>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { isApplicationTag } from '$lib/features/tags/groups';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
+	import { tagIcon, tagTooltip } from '$lib/features/tags/groups';
 	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
 	import { AVAILABLE_COLORS, type Color } from '$lib/shared/utils/styling';
 	import { createDefaultTag } from '$lib/features/tags/types/base';
@@ -163,7 +164,13 @@
 						onclick={() => convertToApp(tag)}
 						disabled={isConverting}
 					>
-						<Tag label={tag.name} color={tag.color} pill={true} />
+						<Tag
+							label={tag.name}
+							color={tag.color}
+							icon={tagIcon(tag)}
+							title={tagTooltip(tag)}
+							pill={true}
+						/>
 					</button>
 				{/each}
 			</div>
