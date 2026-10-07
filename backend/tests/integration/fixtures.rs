@@ -327,20 +327,12 @@ impl EntityMetadataEntry {
             name_singular: E::ENTITY_NAME_SINGULAR,
             name_plural: E::ENTITY_NAME_PLURAL,
             description: E::ENTITY_DESCRIPTION,
-            category: category_to_snake_case(category),
-            category_display: category.display_name(),
+            category: category.into(),
+            category_display: <EntityCategory as scanopy::server::shared::types::metadata::TypeMetadataProvider>::name(
+                &category,
+            ),
             table_name: E::table_name(),
         }
-    }
-}
-
-fn category_to_snake_case(category: EntityCategory) -> &'static str {
-    match category {
-        EntityCategory::OrganizationsAndUsers => "organizations_and_users",
-        EntityCategory::NetworkInfrastructure => "network_infrastructure",
-        EntityCategory::DiscoveryAndDaemons => "discovery_and_daemons",
-        EntityCategory::Visualization => "visualization",
-        EntityCategory::Metadata => "metadata",
     }
 }
 
