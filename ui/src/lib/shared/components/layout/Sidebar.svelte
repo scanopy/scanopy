@@ -34,7 +34,6 @@
 	import type { UserOrgPermissions } from '$lib/features/users/types';
 	import type { SubTab } from '$lib/shared/components/layout/ContentSubTabs.svelte';
 	import {
-		common_demo,
 		common_upgrade,
 		billing_trialPill,
 		billing_trialPillOneDay,
@@ -70,7 +69,6 @@
 	import UserApiKeyTab from '$lib/features/user_api_keys/components/UserApiKeyTab.svelte';
 	import TagTab from '$lib/features/tags/components/TagTab.svelte';
 	import CredentialsTab from '$lib/features/credentials/components/CredentialsTab.svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
 
 	import HomeTab from '$lib/features/home/components/HomeTab.svelte';
 
@@ -738,11 +736,6 @@
 					<h1 class="text-primary ml-1.5 text-sm font-bold">Scanopy</h1>
 				{/if}
 			</button>
-			{#if !collapsed && isDemoOrg}
-				<div class="mt-2 flex justify-center">
-					<Tag label={common_demo()} color="Yellow" />
-				</div>
-			{/if}
 			<!-- Global search. Collapsed, the bar shrinks to its icon and the shortcut moves to the
 			     tooltip, the way every other collapsed sidebar item keeps its label. -->
 			{#if mainAppAvailable && !mainAppLocked}
