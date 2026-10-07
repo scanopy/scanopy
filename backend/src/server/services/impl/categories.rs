@@ -5,6 +5,7 @@ use strum_macros::{Display, EnumDiscriminants, EnumIter, IntoStaticStr};
 use utoipa::ToSchema;
 
 use crate::server::{
+    hosts::r#impl::virtualization::HostVirtualizationState,
     organizations::r#impl::base::UseCase,
     services::r#impl::base::Service,
     shared::{
@@ -101,6 +102,8 @@ pub enum ServiceCategory {
     Custom,
     Scanopy,
     OpenPorts,
+    /// Addresses and MACs a host presents beyond its own NICs (the Network Identities service).
+    NetworkIdentities,
 }
 
 /// Deserialize a list of service categories, dropping any this build does not know.
@@ -202,6 +205,7 @@ impl EntityMetadataProvider for ServiceCategory {
             ServiceCategory::Scanopy => Icon::Zap,
             ServiceCategory::Custom => Icon::Sparkle,
             ServiceCategory::OpenPorts => EntityDiscriminants::Port.icon(),
+            ServiceCategory::NetworkIdentities => Icon::FingerprintPattern,
             ServiceCategory::Unknown => Icon::CircleQuestionMark,
         }
     }
@@ -263,6 +267,7 @@ impl EntityMetadataProvider for ServiceCategory {
             ServiceCategory::Scanopy => Color::Purple,
             ServiceCategory::Custom => Color::Rose,
             ServiceCategory::OpenPorts => EntityDiscriminants::Port.color(),
+            ServiceCategory::NetworkIdentities => Concept::Virtualization.color(),
             ServiceCategory::Unknown => Color::Gray,
         }
     }
@@ -311,6 +316,7 @@ impl TypeMetadataProvider for ServiceCategory {
             Custom => "Custom",
             Scanopy => "Scanopy",
             OpenPorts => "Open Ports",
+            NetworkIdentities => "Network Identities",
         }
     }
 
@@ -358,6 +364,7 @@ impl TypeMetadataProvider for ServiceCategory {
             Custom => "User-defined custom services",
             Scanopy => "Scanopy platform services",
             OpenPorts => "Unclaimed open ports without a matched service",
+            NetworkIdentities => "Addresses and MACs a host presents beyond its own NICs",
         }
     }
 
@@ -377,7 +384,7 @@ impl ServiceCategory {
         match self {
             // Infrastructure plumbing — never application-relevant
             NetworkCore | NetworkAccess | RemoteAccess | Workstation | Mobile | Printer
-            | OpenPorts => vec![],
+            | OpenPorts | NetworkIdentities => vec![],
 
             // Network appliances: infra for most, but MSPs manage these
             NetworkAppliance => vec![UseCase::Msp],
@@ -399,6 +406,14 @@ impl HasFilterValues for Service {
         // which carries a separate `category() -> &str`.
         let category = ServiceDefinition::category(&*self.base.service_definition);
         values.insert(MetadataFilterType::Category, category.id().to_string());
+        // Every service virtualization is a container runtime; a service with none carries no value
+        // rather than Bare metal, which describes hosts.
+        if self.base.virtualization_metadata.is_some() {
+            values.insert(
+                MetadataFilterType::Virtualization,
+                HostVirtualizationState::Containerized.id().to_string(),
+            );
+        }
         values
     }
 }

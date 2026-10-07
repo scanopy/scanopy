@@ -13,6 +13,8 @@
 		hosts_virtualization_noVmsYet,
 		inspector_hypervisorHost
 	} from '$lib/paraglide/messages';
+	import { entities } from '$lib/shared/stores/metadata';
+	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	let { edge, hypervisorServiceId }: { edge: Edge; hypervisorServiceId: string } = $props();
 
@@ -40,67 +42,87 @@
 	);
 </script>
 
-<div class="space-y-3">
+<div class="space-y-4">
 	{#if hypervisorService}
-		<span class="text-secondary mb-2 block text-sm font-medium"
-			>{hosts_virtualization_hypervisorService()}</span
+		<InspectorSection
+			id="edge:Hypervisor:service"
+			title={hosts_virtualization_hypervisorService()}
+			icon={entities.getIconComponent('Service')}
+			iconClass={entities.getColorHelper('Service').icon}
+			description={null}
 		>
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={{
-					ipAddressId: null,
-					ports: topology?.ports ?? [],
-					showEntityTagPicker: true,
-					tagPickerDisabled: !editState.isEditable,
-					entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
-					compact: true
-				}}
-				item={hypervisorService}
-				displayComponent={ServiceDisplay}
-			/>
-		</div>
-	{/if}
-
-	{#if hypervisorHost}
-		<span class="text-secondary mb-2 block text-sm font-medium">{inspector_hypervisorHost()}</span>
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={{
-					services:
-						topology?.services.filter((s) =>
-							hypervisorHost ? s.host_id == hypervisorHost.id : false
-						) ?? [],
-					showEntityTagPicker: true,
-					tagPickerDisabled: !editState.isEditable,
-					entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
-					compact: true
-				}}
-				item={hypervisorHost}
-				displayComponent={HostDisplay}
-			/>
-		</div>
-	{/if}
-
-	<span class="text-secondary mb-2 block text-sm font-medium"
-		>{hosts_virtualization_virtualMachines()}</span
-	>
-	{#if managedVms.length === 0}
-		<p class="text-secondary text-sm">{hosts_virtualization_noVmsYet()}</p>
-	{:else}
-		{#each managedVms as vmHost (vmHost.id)}
 			<div class="card card-static">
 				<EntityDisplayWrapper
 					context={{
-						services: topology?.services.filter((s) => s.host_id == vmHost.id) ?? [],
+						ipAddressId: null,
+						ports: topology?.ports ?? [],
 						showEntityTagPicker: true,
 						tagPickerDisabled: !editState.isEditable,
 						entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
 						compact: true
 					}}
-					item={vmHost}
+					item={hypervisorService}
+					displayComponent={ServiceDisplay}
+				/>
+			</div>
+		</InspectorSection>
+	{/if}
+
+	{#if hypervisorHost}
+		<InspectorSection
+			id="edge:Hypervisor:host"
+			title={inspector_hypervisorHost()}
+			icon={entities.getIconComponent('Host')}
+			iconClass={entities.getColorHelper('Host').icon}
+			description={null}
+		>
+			<div class="card card-static">
+				<EntityDisplayWrapper
+					context={{
+						services:
+							topology?.services.filter((s) =>
+								hypervisorHost ? s.host_id == hypervisorHost.id : false
+							) ?? [],
+						showEntityTagPicker: true,
+						tagPickerDisabled: !editState.isEditable,
+						entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
+						compact: true
+					}}
+					item={hypervisorHost}
 					displayComponent={HostDisplay}
 				/>
 			</div>
-		{/each}
+		</InspectorSection>
 	{/if}
+
+	<InspectorSection
+		id="edge:Hypervisor:guests"
+		title={hosts_virtualization_virtualMachines()}
+		icon={entities.getIconComponent('Host')}
+		iconClass={entities.getColorHelper('Host').icon}
+		description={null}
+		count={managedVms.length}
+	>
+		{#if managedVms.length === 0}
+			<p class="text-secondary text-sm">{hosts_virtualization_noVmsYet()}</p>
+		{:else}
+			<div class="space-y-1">
+				{#each managedVms as vmHost (vmHost.id)}
+					<div class="card card-static">
+						<EntityDisplayWrapper
+							context={{
+								services: topology?.services.filter((s) => s.host_id == vmHost.id) ?? [],
+								showEntityTagPicker: true,
+								tagPickerDisabled: !editState.isEditable,
+								entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
+								compact: true
+							}}
+							item={vmHost}
+							displayComponent={HostDisplay}
+						/>
+					</div>
+				{/each}
+			</div>
+		{/if}
+	</InspectorSection>
 </div>

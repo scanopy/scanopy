@@ -10,8 +10,12 @@
 	// import { NodeResizeControl } from '@xyflow/svelte';
 	import { createColorHelper } from '$lib/shared/utils/styling';
 	import type { Color, ColorStyle } from '$lib/shared/utils/styling';
-	import { serviceDefinitions, containerTypes } from '$lib/shared/stores/metadata';
-	import { findInfraRuleId } from '../../queries';
+	import {
+		serviceCategories,
+		serviceDefinitions,
+		containerTypes
+	} from '$lib/shared/stores/metadata';
+	import { findInfraRuleId, getInfrastructureRuleIdForTopology } from '../../queries';
 	import { formatElementSummary, tallyContainerElements, tallyDirectElements } from '../../labels';
 	import {
 		// useUpdateNodeResizeMutation — DISABLED (container resize is not persisted)
@@ -23,11 +27,12 @@
 	import { useTopology, selectedTopologyId } from '../../context';
 	import type { RenderableTopology, TopologyNode } from '../../types/base';
 	import { containerEntity, resolveContainerNode } from '../../resolvers';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { getFreshnessTag } from '$lib/shared/utils/freshness';
 	import { entities } from '$lib/shared/stores/metadata';
 	import { queryClient, queryKeys } from '$lib/api/query-client';
 	import type { Tag } from '$lib/features/tags/types/base';
+	import { tagTooltip } from '$lib/features/tags/groups';
 	import type { Writable } from 'svelte/store';
 	import { getContext } from 'svelte';
 	import { editModeEnabled } from '../../state';
@@ -37,7 +42,7 @@
 	import type { Node, Edge } from '@xyflow/svelte';
 	import { createIconComponent } from '$lib/shared/utils/styling';
 	import type { IconComponent } from '$lib/shared/utils/types';
-	import ContainerHeader, { type SubgroupRow } from './ContainerHeader.svelte';
+	import ContainerHeader, { type GroupPill, type SubgroupRow } from './ContainerHeader.svelte';
 	import { CONTAINER_HANDLE_SIZE_PX } from '../../pipeline/build-flow-nodes';
 	import { nodeDetail } from '../../pipeline/render-mode';
 
@@ -129,22 +134,27 @@
 
 	// The entity this container stands for (a host box, a subnet box). Grouping containers
 	// (categories, tags, stacks) have none, so they get no stale pill and no filter-hover ring.
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	let entity = $derived(topology ? containerEntity(data as TopologyNode, topology) : undefined);
-	let entityNetwork = $derived((networksQuery.data ?? []).find((n) => n.id === entity?.network_id));
+	let entitySite = $derived((sitesQuery.data ?? []).find((n) => n.id === entity?.site_id));
 
 	// Staleness pill, judged on that entity alone with `getFreshnessTag`, the same helper element
 	// cards and inventory badges use.
 	let staleTag = $derived(
 		entity
-			? getFreshnessTag(entity, entityNetwork, {
+			? getFreshnessTag(entity, entitySite, {
 					entityTypeLabel: entities.getName(containerType) || undefined
 				})
 			: null
 	);
 
 	let childSummary = $derived(
-		topology ? formatElementSummary(tallyContainerElements(id, topology), $activeView) : ''
+		topology
+			? formatElementSummary(
+					tallyContainerElements(id, topology, getInfrastructureRuleIdForTopology(topology)),
+					$activeView
+				)
+			: ''
 	);
 	let ungroupedSummary = $derived(
 		topology ? formatElementSummary(tallyDirectElements(id, topology), $activeView) : ''
@@ -218,7 +228,7 @@
 	let elementRuleId = $derived(
 		(data as Record<string, unknown>)?.element_rule_id as string | undefined
 	);
-	// Reactive to $topologyOptions so a network switch (which re-hydrates the
+	// Reactive to $topologyOptions so a site switch (which re-hydrates the
 	// options store) re-derives the infra rule id, unlike a non-reactive get().
 	let infraRuleId = $derived(findInfraRuleId($topologyOptions.request.element_rules));
 	let isInfraRule = $derived(elementRuleId != null && elementRuleId === infraRuleId);
@@ -234,28 +244,30 @@
 	// id→name flicker while the bundle catches up); fall back to the topology
 	// bundle, which is the only source in the unauthenticated share viewer (no
 	// cache there — the backend ships rule tags on the bundle for that case).
-	function resolveTagPill(tagId: string): { label: string; color: Color } {
+	function resolveTagPill(tagId: string): GroupPill {
 		const tag =
 			queryClient.getQueryData<Tag[]>(queryKeys.tags.all)?.find((t) => t.id === tagId) ??
 			topology?.entity_tags?.find((t) => t.id === tagId);
-		return { label: tag?.name ?? tagId, color: (tag?.color as Color) ?? 'Gray' };
+		return {
+			label: tag?.name ?? tagId,
+			color: (tag?.color as Color) ?? 'Gray',
+			title: tagTooltip(tag) || undefined
+		};
 	}
 
-	let groupLabels = $derived.by((): { label: string; color: Color }[] => {
+	// A category group's pill: the category's name and colour, and its description as the tooltip.
+	function categoryPill(category: string): GroupPill {
+		const { label, color, title } = serviceCategories.getTag(category);
+		return { label, color: color ?? 'Gray', title };
+	}
+
+	let groupLabels = $derived.by((): GroupPill[] => {
 		if (isInfraRule) return [];
 		if (!elementRule?.rule) return [];
 		const rule = elementRule.rule;
 		if (typeof rule === 'string') return [];
 		if ('ByServiceCategory' in rule) {
-			return (rule.ByServiceCategory.categories ?? []).map((cat: string) => {
-				const svc = topology?.services?.find(
-					(s) => serviceDefinitions.getCategory(s.service_definition) === cat
-				);
-				const color = svc
-					? serviceDefinitions.getColorHelper(svc.service_definition).color
-					: ('Gray' as Color);
-				return { label: cat, color };
-			});
+			return (rule.ByServiceCategory.categories ?? []).map(categoryPill);
 		}
 		if ('ByTag' in rule) {
 			return (rule.ByTag.tag_ids ?? []).map((tagId: string) => resolveTagPill(tagId));
@@ -268,8 +280,7 @@
 		// the same ring element cards get.
 		if (
 			currentHoveredMetadata &&
-			currentHoveredMetadata.entityType === containerType &&
-			matchesHoveredMetadata(entity, currentHoveredMetadata, entityNetwork, topology)
+			matchesHoveredMetadata(entity, containerType, currentHoveredMetadata, entitySite, topology)
 		) {
 			const ch = createColorHelper(
 				currentHoveredMetadata.color as Parameters<typeof createColorHelper>[0]
@@ -277,6 +288,21 @@
 			return `box-shadow: 0 0 0 3px ${ch.rgb};`;
 		}
 		if (!currentHoveredTag) return '';
+		// An Application box stands for the app tag it is named after, so hovering that tag's chip
+		// rings the box as well as the services it rings inside it.
+		if (
+			containerType === 'Application' &&
+			currentHoveredTag.tagId !== null &&
+			(data as TopologyNode).node_type === 'Container' &&
+			currentHoveredTag.tagId ===
+				(data as Extract<TopologyNode, { node_type: 'Container' }>).entity_id &&
+			currentHoveredTag.color
+		) {
+			const ch = createColorHelper(
+				currentHoveredTag.color as Parameters<typeof createColorHelper>[0]
+			);
+			return `box-shadow: 0 0 0 3px ${ch.rgb};`;
+		}
 		// Only highlight when the hovered entity type matches this container's
 		// entity type. containerType here is the container_type discriminant
 		// (e.g. 'Subnet', 'Host'), which matches EntityDiscriminants casing.
@@ -318,23 +344,13 @@
 					? serviceDefinitions.getIconComponent(groupServiceDef)
 					: null;
 
-				const labels: { label: string; color: Color }[] = (() => {
+				const labels: GroupPill[] = (() => {
 					if (!rule) return [];
 					const r = (rule as { rule: Record<string, unknown> }).rule;
 					if (typeof r === 'string') return [];
 					if ('ByServiceCategory' in r) {
 						return ((r.ByServiceCategory as { categories?: string[] }).categories ?? []).map(
-							(cat) => {
-								const svc = topology?.services?.find(
-									(s) => serviceDefinitions.getCategory(s.service_definition) === cat
-								);
-								return {
-									label: cat,
-									color: (svc
-										? serviceDefinitions.getColorHelper(svc.service_definition).color
-										: 'Gray') as Color
-								};
-							}
+							categoryPill
 						);
 					}
 					if ('ByTag' in r) {
@@ -393,7 +409,7 @@
 			// DISABLED: no mechanism to persist container resize.
 			// await updateNodeResizeMutation.mutateAsync({
 			// 	topologyId: topology.id,
-			// 	networkId: topology.network_id,
+			// 	siteId: topology.site_id,
 			// 	view: $activeView,
 			// 	nodeId: node.id,
 			// 	size: { x: roundedWidth, y: roundedHeight },

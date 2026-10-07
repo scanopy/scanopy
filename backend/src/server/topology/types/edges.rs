@@ -15,13 +15,62 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 /// Protocol that discovered the physical link between network devices
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, PartialEq, Hash, Default, ToSchema)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Serialize,
+    Deserialize,
+    Eq,
+    PartialEq,
+    Hash,
+    Default,
+    ToSchema,
+    IntoStaticStr,
+    EnumIter,
+)]
 pub enum DiscoveryProtocol {
     /// Link Layer Discovery Protocol (IEEE 802.1AB)
     #[default]
     LLDP,
     /// Cisco Discovery Protocol (Cisco proprietary)
     CDP,
+}
+
+impl HasId for DiscoveryProtocol {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for DiscoveryProtocol {
+    fn color(&self) -> Color {
+        match self {
+            DiscoveryProtocol::LLDP => Color::Green,
+            DiscoveryProtocol::CDP => Color::Blue,
+        }
+    }
+    fn icon(&self) -> Icon {
+        EntityDiscriminants::Interface.icon()
+    }
+}
+
+impl TypeMetadataProvider for DiscoveryProtocol {
+    fn name(&self) -> &'static str {
+        match self {
+            DiscoveryProtocol::LLDP => "LLDP",
+            DiscoveryProtocol::CDP => "CDP",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        match self {
+            DiscoveryProtocol::LLDP => {
+                "A device's LLDP (Link Layer Discovery Protocol) neighbor table"
+            }
+            DiscoveryProtocol::CDP => "A device's CDP (Cisco Discovery Protocol) neighbor table",
+        }
+    }
 }
 
 /// Whether an edge is visible by default or hidden behind a toggle
@@ -179,6 +228,33 @@ pub enum EdgeStyle {
     Bezier,
 }
 
+/// Read a saved list of edge types, dropping any this binary doesn't know.
+///
+/// A topology's options persist the edge types a user chose to hide. Read strictly, one unknown
+/// value (an edge type added by a newer release, met by an older one during a rollback or a
+/// mixed-version window) failed the whole topology. Same reasoning and same narrow scope as
+/// `deserialize_known_categories`: only stored lists are lenient, the enum itself stays strict.
+pub fn deserialize_known_edge_types<'de, D>(
+    deserializer: D,
+) -> Result<Vec<EdgeTypeDiscriminants>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let raw = Vec::<serde_json::Value>::deserialize(deserializer)?;
+    Ok(raw
+        .into_iter()
+        .filter_map(
+            |value| match serde_json::from_value::<EdgeTypeDiscriminants>(value.clone()) {
+                Ok(edge_type) => Some(edge_type),
+                Err(_) => {
+                    tracing::warn!(%value, "Unrecognized edge type in topology options; dropping it");
+                    None
+                }
+            },
+        )
+        .collect())
+}
+
 #[derive(
     Debug,
     Clone,
@@ -205,6 +281,13 @@ pub enum EdgeType {
         /// The hypervisor service running the guest.
         hypervisor_service_id: Uuid,
     },
+    /// A guest's own address to one of its network identities on the same subnet: an address
+    /// and MAC the guest presents from an interface of its own beyond its configured NICs.
+    #[schema(title = "NetworkIdentity")]
+    NetworkIdentity {
+        /// The guest's Network Identities service, which owns the identity host.
+        identities_service_id: Uuid,
+    },
     #[schema(title = "ContainerRuntime")]
     ContainerRuntime {
         /// The host running the container runtime.
@@ -213,9 +296,11 @@ pub enum EdgeType {
         service_id: Uuid,
         /// The bridge subnet(s) this edge reaches: one when they render as their own boxes,
         /// all of them when merged into a single box. Resolved here rather than in the
-        /// inspector, which cannot tell which subnet an elevated edge landed on.
+        /// inspector, which cannot tell which subnet an elevated edge landed on. For an edge to a
+        /// container host (macvlan, ipvlan), the subnet holding the address it ends on.
         subnet_ids: Vec<Uuid>,
-        /// The containerized services this edge stands for — the ones on those subnets.
+        /// The containerized services this edge stands for — the ones on those subnets. Empty on
+        /// an edge to a container host.
         containerized_service_ids: Vec<Uuid>,
     },
     /// One container reachable at several of its host's container-bridge subnets. Ties the
@@ -294,6 +379,7 @@ impl EdgeType {
             // link is likewise the whole relationship, not a segment of one.
             EdgeType::ContainerRuntime { .. }
             | EdgeType::Hypervisor { .. }
+            | EdgeType::NetworkIdentity { .. }
             | EdgeType::PhysicalLink { .. }
             | EdgeType::NeighborLink { .. } => Segment,
         }
@@ -344,7 +430,9 @@ impl EdgeType {
             // between the same pair of boxes land on identical endpoints and draw as one line
             // over another. Merging them into a single counted line is the only way to show
             // there is more than one; expanding the bundle fans them back out.
-            EdgeType::Hypervisor { .. } | EdgeType::ContainerRuntime { .. } => None,
+            EdgeType::Hypervisor { .. }
+            | EdgeType::NetworkIdentity { .. }
+            | EdgeType::ContainerRuntime { .. } => None,
         }
     }
 }
@@ -356,6 +444,9 @@ impl EntityMetadataProvider for EdgeType {
             EdgeType::HubAndSpoke { .. } => EntityDiscriminants::Dependency.color(),
             EdgeType::SameHost { .. } => EntityDiscriminants::Host.color(),
             EdgeType::Hypervisor { .. } => Concept::Virtualization.color(),
+            // An identity is one interface the guest presents. Virtualization's colour is the
+            // host's, which would draw it like the SameHost and Hypervisor edges beside it.
+            EdgeType::NetworkIdentity { .. } => EntityDiscriminants::Interface.color(),
             EdgeType::ContainerRuntime { .. } => Concept::Containerization.color(),
             EdgeType::SameContainer { .. } => Concept::Containerization.color(),
             EdgeType::PhysicalLink { .. } => EntityDiscriminants::Interface.color(),
@@ -371,6 +462,7 @@ impl EntityMetadataProvider for EdgeType {
             EdgeType::HubAndSpoke { .. } => DependencyTypeDiscriminants::HubAndSpoke.icon(),
             EdgeType::SameHost { .. } => EntityDiscriminants::Host.icon(),
             EdgeType::Hypervisor { .. } => Concept::Virtualization.icon(),
+            EdgeType::NetworkIdentity { .. } => Icon::FingerprintPattern,
             EdgeType::ContainerRuntime { .. } => Concept::Containerization.icon(),
             EdgeType::SameContainer { .. } => Concept::Containerization.icon(),
             EdgeType::PhysicalLink { .. } => EntityDiscriminants::Interface.icon(),
@@ -386,6 +478,7 @@ impl TypeMetadataProvider for EdgeType {
             EdgeType::HubAndSpoke { .. } => DependencyTypeDiscriminants::HubAndSpoke.name(),
             EdgeType::SameHost { .. } => "Same Host",
             EdgeType::Hypervisor { .. } => "Hypervisor",
+            EdgeType::NetworkIdentity { .. } => "Network Identity",
             EdgeType::ContainerRuntime { .. } => "Container Runtime",
             EdgeType::SameContainer { .. } => "Same Container",
             EdgeType::PhysicalLink { .. } => "Physical Link",
@@ -399,6 +492,7 @@ impl TypeMetadataProvider for EdgeType {
             EdgeType::HubAndSpoke { .. } => EdgeStyle::Bezier.into(),
             EdgeType::SameHost { .. } => EdgeStyle::Bezier.into(),
             EdgeType::Hypervisor { .. } => EdgeStyle::Bezier.into(),
+            EdgeType::NetworkIdentity { .. } => EdgeStyle::Bezier.into(),
             EdgeType::ContainerRuntime { .. } => EdgeStyle::Bezier.into(),
             EdgeType::SameContainer { .. } => EdgeStyle::Bezier.into(),
             EdgeType::PhysicalLink { .. } => EdgeStyle::Bezier.into(),
@@ -412,6 +506,7 @@ impl TypeMetadataProvider for EdgeType {
             EdgeType::HubAndSpoke { .. } => true,
             EdgeType::SameHost { .. } => false,
             EdgeType::Hypervisor { .. } => false,
+            EdgeType::NetworkIdentity { .. } => false,
             EdgeType::ContainerRuntime { .. } => false,
             EdgeType::SameContainer { .. } => false,
             EdgeType::PhysicalLink { .. } => false, // No markers - bidirectional link

@@ -3,10 +3,12 @@ use strum::{EnumIter, IntoStaticStr};
 use utoipa::ToSchema;
 
 use crate::server::{
+    hosts::r#impl::virtualization::HostVirtualizationDiscriminants,
     services::{
         definitions::{
-            docker_daemon::Docker, gnmi::Gnmi, instant_on::InstantOn, podman::Podman, snmp::Snmp,
-            ssh::Ssh, unifi_controller::UnifiController, wake_on_lan::WakeOnLan,
+            docker_daemon::Docker, gnmi::Gnmi, instant_on::InstantOn, podman::Podman,
+            proxmox::Proxmox, snmp::Snmp, ssh::Ssh, unifi_controller::UnifiController,
+            wake_on_lan::WakeOnLan,
         },
         r#impl::definitions::{ServiceDefinition, ServiceDefinitionExt},
     },
@@ -51,6 +53,7 @@ pub enum CredentialIntegration {
     InstantOn,
     Ssh,
     WakeOnLan,
+    Proxmox,
 }
 
 impl CredentialTypeDiscriminants {
@@ -66,6 +69,7 @@ impl CredentialTypeDiscriminants {
             Self::InstantOnAccount => CredentialIntegration::InstantOn,
             Self::SshPassword | Self::SshKey => CredentialIntegration::Ssh,
             Self::WakeOnLan => CredentialIntegration::WakeOnLan,
+            Self::ProxmoxApiToken => CredentialIntegration::Proxmox,
         }
     }
 }
@@ -82,13 +86,16 @@ impl CredentialIntegration {
             Self::InstantOn => Box::new(InstantOn),
             Self::Ssh => Box::new(Ssh),
             Self::WakeOnLan => Box::new(WakeOnLan),
+            Self::Proxmox => Box::new(Proxmox),
         }
     }
 
     pub fn credential_category(&self) -> CredentialCategory {
         match self {
             Self::Snmp | Self::Gnmi => CredentialCategory::NetworkMonitoring,
-            Self::Docker | Self::Podman => CredentialCategory::ContainerVirtualization,
+            Self::Docker | Self::Podman | Self::Proxmox => {
+                CredentialCategory::ContainerVirtualization
+            }
             Self::UnifiController | Self::InstantOn => CredentialCategory::NetworkController,
             Self::Ssh | Self::WakeOnLan => CredentialCategory::HostManagement,
         }
@@ -138,6 +145,33 @@ impl CredentialIntegration {
                 "Run your own script on a host and record the system details and interfaces it reports."
             }
             Self::WakeOnLan => "Wake sleeping hosts before a scan so they are discovered.",
+            Self::Proxmox => {
+                "Discover Proxmox VE nodes and the VMs and LXC containers on each, with their addresses."
+            }
+        }
+    }
+
+    /// The kinds of host virtualization this integration reports: the relationships it records
+    /// between a host and what runs it.
+    ///
+    /// Exhaustive (no wildcard), so a new integration cannot compile without answering. Every
+    /// host an integration submits is checked against this (`undeclared_virtualization`), which
+    /// fails tests and debug builds when the two disagree. The docs list which integrations
+    /// report which relationship from it, through the integrations fixture.
+    pub fn host_virtualizations(&self) -> &'static [HostVirtualizationDiscriminants] {
+        match self {
+            Self::Proxmox => &[
+                HostVirtualizationDiscriminants::Proxmox,
+                HostVirtualizationDiscriminants::NetworkIdentity,
+            ],
+            Self::Docker => &[HostVirtualizationDiscriminants::Docker],
+            Self::Podman => &[HostVirtualizationDiscriminants::Podman],
+            Self::Snmp
+            | Self::Gnmi
+            | Self::UnifiController
+            | Self::InstantOn
+            | Self::Ssh
+            | Self::WakeOnLan => &[],
         }
     }
 
@@ -161,6 +195,7 @@ impl CredentialIntegration {
             Self::Gnmi => "/docs/guides/integrations/gnmi/",
             Self::Ssh => "/docs/guides/integrations/ssh/",
             Self::WakeOnLan => "/docs/guides/integrations/wake-on-lan/",
+            Self::Proxmox => "/docs/guides/integrations/proxmox/",
         }
     }
 
@@ -196,6 +231,7 @@ impl EntityMetadataProvider for CredentialIntegration {
             Self::Snmp => Concept::SNMP.icon(),
             Self::Gnmi | Self::UnifiController | Self::InstantOn => Concept::L2.icon(),
             Self::Docker | Self::Podman => Concept::Containerization.icon(),
+            Self::Proxmox => Concept::Virtualization.icon(),
             Self::Ssh => Icon::SquareTerminal,
             Self::WakeOnLan => Icon::Power,
         }

@@ -19,6 +19,7 @@ pub use resolvable::*;
 // Re-export type-specific types so external imports don't break
 pub use super::types::container_proxy::ContainerProxyQueryCredential;
 pub use super::types::instant_on::InstantOnQueryCredential;
+pub use super::types::proxmox::ProxmoxQueryCredential;
 pub use super::types::ssh::{ScriptSource, SshAuth, SshQueryCredential};
 pub use super::types::unifi::{UnifiAuth, UnifiQueryCredential};
 pub use super::types::wake_on_lan::WakeOnLanQueryCredential;
@@ -53,7 +54,7 @@ pub use super::types::snmp::{
 // Generic Credential Mapping
 // ============================================================================
 
-/// Generic credential mapping: a default credential for the network
+/// Generic credential mapping: a default credential for the site
 /// plus per-IP overrides for specific hosts.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct CredentialMapping<T> {
@@ -146,8 +147,8 @@ impl<T> CredentialMapping<T> {
 
 /// A credential payload paired with its server-side ID (if host-assignable).
 /// `credential_id` is Some for host-scoped credentials (IP overrides from host assignments).
-/// None for network-level defaults and fallbacks — those don't get auto-assigned
-/// to discovered hosts because they're already available network-wide.
+/// None for site-level defaults and fallbacks — those don't get auto-assigned
+/// to discovered hosts because they're already available site-wide.
 #[derive(Debug, Clone)]
 pub struct ResolvedCredential<T> {
     pub credential: T,
@@ -167,7 +168,7 @@ pub struct ResolvedCredential<T> {
     Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, ToSchema, EnumDiscriminants,
 )]
 // `Target` is the capability enum returned by `CredentialType::targets()`: where a credential
-// can apply (DaemonHost / Network / Hosts). It's the strum discriminant of `IntegrationTarget`.
+// can apply (DaemonHost / Site / Hosts). It's the strum discriminant of `IntegrationTarget`.
 #[strum_discriminants(
     name(Target),
     derive(Serialize, Deserialize, Hash, ToSchema, strum::VariantNames)
@@ -181,10 +182,12 @@ pub enum IntegrationTarget {
         /// Credential to use on the daemon host.
         credential_id: Uuid,
     },
-    /// All hosts on the network — a broadcast default credential.
-    #[schema(title = "Network")]
-    Network {
-        /// Credential to use across the network.
+    /// All hosts on the site, as a broadcast default credential. Daemons at or below
+    /// `last_network_wire` call this scope `"Network"`; the wire rewrite in
+    /// `server/shared/legacy.rs` translates it both ways.
+    #[schema(title = "Site")]
+    Site {
+        /// Credential to use across the site.
         credential_id: Uuid,
     },
     /// Specific host IPs — one IP-override per address.
@@ -203,7 +206,7 @@ impl IntegrationTarget {
     pub fn credential_id(&self) -> Uuid {
         match self {
             Self::DaemonHost { credential_id }
-            | Self::Network { credential_id }
+            | Self::Site { credential_id }
             | Self::Hosts { credential_id, .. } => *credential_id,
         }
     }
@@ -217,7 +220,7 @@ impl std::fmt::Display for IntegrationTarget {
         match self {
             // A sole loopback target *is* the daemon-host scope, per the parser.
             Self::DaemonHost { credential_id } => write!(f, "{credential_id}@127.0.0.1"),
-            Self::Network { credential_id } => write!(f, "{credential_id}"),
+            Self::Site { credential_id } => write!(f, "{credential_id}"),
             Self::Hosts { credential_id, ips } => {
                 write!(f, "{credential_id}@")?;
                 for (i, ip) in ips.iter().enumerate() {
@@ -278,6 +281,8 @@ pub enum CredentialQueryPayload {
     Ssh(SshQueryCredential),
     /// Wake-on-LAN: wake the assigned hosts before the sweep. Never probed or executed per host.
     WakeOnLan(WakeOnLanQueryCredential),
+    /// Proxmox VE API token: the node's API reports every node and guest in its cluster.
+    Proxmox(ProxmoxQueryCredential),
     /// Forward-compat fallback: a credential type from a newer server that this
     /// daemon doesn't recognize. `#[serde(other)]` deserializes any unknown `type`
     /// tag here (a unit variant, the only shape allowed for `other` on an
@@ -308,6 +313,7 @@ impl From<CredentialQueryPayloadDiscriminants> for super::types::CredentialTypeD
             CredentialQueryPayloadDiscriminants::InstantOn => Self::InstantOnAccount,
             CredentialQueryPayloadDiscriminants::Ssh => Self::SshKey,
             CredentialQueryPayloadDiscriminants::WakeOnLan => Self::WakeOnLan,
+            CredentialQueryPayloadDiscriminants::Proxmox => Self::ProxmoxApiToken,
             // `Unknown` is the daemon-side forward-compat sentinel; the server only
             // ever builds `CredentialQueryPayload` from a known `CredentialType`, so
             // this reverse conversion never sees it. Fall back to the SNMP default to
@@ -342,6 +348,7 @@ impl CredentialQueryPayload {
             Self::Ssh(s) => vec![s.port],
             // The packet is UDP to a broadcast address; a sleeping host has no port to find open.
             Self::WakeOnLan(_) => vec![],
+            Self::Proxmox(p) => vec![p.port],
             Self::Unknown => vec![],
         }
     }
@@ -385,6 +392,7 @@ impl CredentialQueryPayload {
                     }
             }
             Self::WakeOnLan(w) => w.secure_on_password.as_ref().is_some_and(secret),
+            Self::Proxmox(p) => secret(&p.token_secret),
             Self::Unknown => false,
         }
     }
@@ -401,6 +409,7 @@ impl CredentialQueryPayload {
             Self::InstantOn(_) => "Instant On portal connection",
             Self::Ssh(_) => "SSH script",
             Self::WakeOnLan(_) => "Wake-on-LAN",
+            Self::Proxmox(_) => "Proxmox VE API connection",
             Self::Unknown => "unknown credential",
         }
     }
@@ -447,6 +456,7 @@ impl TypeMetadataProvider for CredentialQueryPayloadDiscriminants {
             Self::Gnmi => "gNMI",
             Self::Ssh => "SSH",
             Self::WakeOnLan => "Wake-on-LAN",
+            Self::Proxmox => "Proxmox VE API",
             // Reachable only from a warning written by a newer binary than this one.
             Self::Unknown => "unrecognised",
         }
@@ -597,6 +607,11 @@ impl CredentialQueryPayload {
                     ..w.clone()
                 }))
             }
+            // No format validation: a token secret is an opaque string.
+            Self::Proxmox(p) => Ok(Self::Proxmox(ProxmoxQueryCredential {
+                token_secret: p.token_secret.resolve_to_value("token_secret", label)?,
+                ..p.clone()
+            })),
             Self::Unknown => Ok(Self::Unknown),
         }
     }
@@ -611,6 +626,7 @@ impl CredentialQueryPayload {
             Self::InstantOn(i) => i.banner_lines(),
             Self::Ssh(s) => s.banner_lines(),
             Self::WakeOnLan(w) => w.banner_lines(),
+            Self::Proxmox(p) => p.banner_lines(),
             Self::Unknown => vec![],
         }
     }

@@ -97,6 +97,8 @@ const server = (param: string): ColumnDecision => ({ sort: true, group: true, fi
 const serverIdentity = (group: string): ColumnDecision => ({ sort: true, group, filter: SEARCH });
 
 const RUN_RESULT = none('Run result; a scan configuration has none');
+/** The run that first or last found an entity: one chip, and Created and Last seen already say when. */
+const FOUND_BY = none('A scan run; Created and Last seen order by when');
 
 /** Keyed by tab path relative to `src/lib/features`. */
 const DECISIONS: Record<string, TabDecisions> = {
@@ -108,7 +110,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			virtualized_by: server('virtualization_service_ids'),
 			interface_ip: serverIdentity('Unique per host'),
 			mac_address: serverIdentity('Unique per host'),
-			network_id: server('network_ids'),
+			site_id: server('site_ids'),
 			created_at: DATE,
 			updated_at: DATE,
 			last_seen_at: LAST_SEEN,
@@ -120,6 +122,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			hidden: server('hidden'),
 			description: TEXT,
 			serial_number: none('Identifier, unique per device; search finds one'),
+			asset_tag: none('Identifier, unique per device; search finds one'),
 			chassis_id: none('Identifier, unique per device; search finds one'),
 			sys_name: none('Identifier, unique per device; search finds one'),
 			management_url: none('Identifier, unique per device; search finds one'),
@@ -143,7 +146,11 @@ const DECISIONS: Record<string, TabDecisions> = {
 			tags: { ...SHARED_ARRAY, filter: { param: 'tag_ids' } },
 			credentials: { ...SHARED_ARRAY, filter: { param: 'credential_ids' } },
 			interfaces: ownedArray('Interface names are unique per host; search finds them'),
-			services: { ...SHARED_ARRAY, filter: { param: 'service_names' } }
+			ports: ownedArray('No port filter on the hosts list; Services filters by port'),
+			services: { ...SHARED_ARRAY, filter: { param: 'service_names' } },
+			presented_by: none('Set on site identities only; Virtualized by groups and filters them'),
+			first_found_by: FOUND_BY,
+			last_found_by: FOUND_BY
 		}
 	},
 	'services/components/ServiceTab.svelte': {
@@ -151,7 +158,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 		columns: {
 			name: serverIdentity('Type groups the same values'),
 			host: server('host_ids'),
-			network_id: server('network_ids'),
+			site_id: server('site_ids'),
 			service_definition: server('service_definitions'),
 			position: { sort: true, group: 'Per-host ordinal', filter: 'Per-host ordinal' },
 			created_at: DATE,
@@ -167,7 +174,9 @@ const DECISIONS: Record<string, TabDecisions> = {
 				group: 'Derived in code; no SQL column',
 				filter: { param: 'exclude_categories' }
 			},
-			tags: { ...SHARED_ARRAY, filter: { param: 'tag_ids' } }
+			tags: { ...SHARED_ARRAY, filter: { param: 'tag_ids' } },
+			first_found_by: FOUND_BY,
+			last_found_by: FOUND_BY
 		}
 	},
 	'discovery/components/tabs/DiscoveryHistoryTab.svelte': {
@@ -176,7 +185,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			// Runs of one scan share its name, so grouping gathers a scan's history.
 			name: { sort: true, group: true, filter: SEARCH },
 			daemon_id: server('daemon_ids'),
-			network_id: server('network_ids'),
+			site_id: server('site_ids'),
 			discovery_type: server('discovery_types'),
 			created_at: DATE,
 			updated_at: DATE,
@@ -188,7 +197,8 @@ const DECISIONS: Record<string, TabDecisions> = {
 				sort: true,
 				group: COUNT,
 				filter: 'Sorting brings runs with warnings to the top'
-			}
+			},
+			tags: ownedArray('No server tag filter; runs are untagged unless tagged through the API')
 		}
 	},
 	'discovery/components/tabs/DiscoveryScheduledTab.svelte': {
@@ -197,7 +207,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			created_at: DATE,
 			updated_at: DATE,
 			daemon_id: YES,
-			network_id: YES,
+			site_id: YES,
 			discovery_type: YES,
 			phase: RUN_RESULT,
 			started_at: RUN_RESULT,
@@ -217,7 +227,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 	'daemons/components/DaemonTab.svelte': {
 		columns: {
 			name: IDENTITY,
-			network_id: YES,
+			site_id: YES,
 			last_seen: DATE,
 			created_at: DATE,
 			updated_at: DATE,
@@ -226,6 +236,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			os: YES,
 			mode: YES,
 			version: YES,
+			maintainer: YES,
 			url: none('Unique per daemon'),
 			interfaced_subnet_ids: SHARED_ARRAY,
 			tags: SHARED_ARRAY
@@ -234,7 +245,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 	'daemon_api_keys/components/ApiKeyTab.svelte': {
 		columns: {
 			name: IDENTITY,
-			network_id: YES,
+			site_id: YES,
 			is_enabled: BOOLEAN,
 			last_used: DATE,
 			expires_at: DATE,
@@ -247,20 +258,21 @@ const DECISIONS: Record<string, TabDecisions> = {
 		columns: {
 			name: IDENTITY,
 			color: YES,
-			// An orderable boolean: the order field sorts it as a side effect of grouping.
-			is_application: YES,
+			// One group per tag: Application or a named group.
+			tag_group: YES,
 			created_at: DATE,
 			updated_at: DATE,
-			description: TEXT
+			description: TEXT,
+			icon: { sort: 'An icon name has no useful order', group: true, filter: true }
 		}
 	},
-	'networks/components/NetworksTab.svelte': {
+	'sites/components/SitesTab.svelte': {
 		columns: {
 			name: IDENTITY,
-			vlans: ownedArray('Each belongs to one network'),
-			daemons: ownedArray('Each belongs to one network'),
-			subnets: ownedArray('Each belongs to one network'),
-			// Credentials are shared across networks.
+			vlans: ownedArray('Each belongs to one site'),
+			daemons: ownedArray('Each belongs to one site'),
+			subnets: ownedArray('Each belongs to one site'),
+			// Credentials are shared across sites.
 			credentials: SHARED_ARRAY,
 			tags: SHARED_ARRAY,
 			created_at: DATE,
@@ -273,7 +285,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			email: IDENTITY,
 			invite_status: YES,
 			permissions: YES,
-			network_ids: SHARED_ARRAY,
+			site_ids: SHARED_ARRAY,
 			oidc_provider: YES,
 			invited_by: YES,
 			invite_url: none('Unique per invite'),
@@ -289,7 +301,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 		columns: {
 			name: IDENTITY,
 			permissions: YES,
-			network_ids: SHARED_ARRAY,
+			site_ids: SHARED_ARRAY,
 			is_enabled: BOOLEAN,
 			last_used: DATE,
 			expires_at: DATE,
@@ -301,15 +313,24 @@ const DECISIONS: Record<string, TabDecisions> = {
 	'subnets/components/SubnetTab.svelte': {
 		columns: {
 			name: IDENTITY,
-			cidr: IDENTITY,
+			// Groups each range with the ranges nested inside it, not one group per CIDR.
+			cidr: { sort: true, group: true, filter: SEARCH },
 			subnet_type: YES,
-			network_id: YES,
+			site_id: YES,
 			created_at: DATE,
 			updated_at: DATE,
 			last_seen_at: DATE,
 			description: TEXT,
 			source: YES,
-			tags: SHARED_ARRAY
+			managed_by: YES,
+			first_found_by: FOUND_BY,
+			last_found_by: FOUND_BY,
+			tags: SHARED_ARRAY,
+			utilization: {
+				sort: true,
+				group: 'A percentage; every value would be its own group',
+				filter: 'A percentage; sort finds the fullest'
+			}
 		}
 	},
 	'credentials/components/CredentialsTab.svelte': {
@@ -322,7 +343,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			beta: BOOLEAN,
 			unofficial_api: BOOLEAN,
 			description: TEXT,
-			assigned_networks: SHARED_ARRAY,
+			assigned_sites: SHARED_ARRAY,
 			assigned_hosts: ownedArray(SEARCH),
 			target: SHARED_ARRAY,
 			tags: SHARED_ARRAY
@@ -330,15 +351,18 @@ const DECISIONS: Record<string, TabDecisions> = {
 	},
 	'vlans/components/VlanTab.svelte': {
 		columns: {
-			vlan_number: { sort: true, group: 'Unique per network', filter: SEARCH },
+			vlan_number: { sort: true, group: 'Unique per site', filter: SEARCH },
 			name: IDENTITY,
 			created_at: DATE,
 			updated_at: DATE,
 			last_seen_at: DATE,
 			description: TEXT,
 			source: YES,
-			network_id: YES,
-			subnet_ids: SHARED_ARRAY
+			site_id: YES,
+			subnet_ids: SHARED_ARRAY,
+			tags: SHARED_ARRAY,
+			first_found_by: FOUND_BY,
+			last_found_by: FOUND_BY
 		}
 	}
 };
@@ -489,7 +513,9 @@ function parseField(src: string, open: number, orderable: boolean): ParsedField 
 
 /** The `<script>` blocks of a Svelte file: the template's text would derail the brace matcher. */
 function scriptOf(source: string): string {
-	return [...source.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join('\n');
+	return [...source.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\b[^>]*>/gi)]
+		.map((m) => m[1])
+		.join('\n');
 }
 
 /**

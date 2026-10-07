@@ -1,4 +1,4 @@
-//! Email subscriber for entity (Host/Network/User Created/Deleted) and
+//! Email subscriber for entity (Host/Site/User Created/Deleted) and
 //! onboarding (FirstDaemonRegistered, FirstDiscoveryCompleted) events.
 //!
 //! Triggers transactional emails: plan-limit notifications on entity
@@ -20,7 +20,10 @@ use crate::server::{
         entities::{Entity, EntityDiscriminants},
         events::{
             registry::SubscriberRegistration,
-            traits::{EntityEventFilter, Event, EventFilter, NonRetryable, Subscriber},
+            traits::{
+                EntityEventFilter, Event, EventFilter, EventScope, NonRetryable, ScopeOrganization,
+                Subscriber,
+            },
             types::{
                 AuthOperation, AuthOperationDiscriminants, BillingOperation,
                 BillingOperationDiscriminants, EntityOperation, EntityOperationDiscriminants,
@@ -51,6 +54,17 @@ impl EmailService {
             .map(|at| at.format("%B %-d, %Y").to_string())
             .unwrap_or_else(|| "the end of the period you paid for".to_string()))
     }
+}
+
+/// Records a billing email left unsent because the customer pays nothing, so
+/// "why didn't I get an email" can be answered from the logs. The event itself
+/// was published and every other subscriber saw it.
+fn skip_zero_dollar(email: &str, organization_id: uuid::Uuid) {
+    tracing::debug!(
+        email,
+        organization_id = %organization_id,
+        "Skipping billing email for a customer paying nothing"
+    );
 }
 
 #[async_trait]
@@ -96,6 +110,7 @@ impl Subscriber<BillingOperation> for EmailService {
                     ))
                 })?;
 
+            let zero_dollar = event.operation.is_zero_dollar_notice();
             match event.operation {
                 BillingOperation::TrialStarted {
                     plan, trial_days, ..
@@ -116,34 +131,12 @@ impl Subscriber<BillingOperation> for EmailService {
                 }
                 BillingOperation::TrialEnded {
                     plan,
-                    converted,
                     next_renewal_at: _,
                 } => {
-                    if converted {
-                        self.send_trial_converted_email(
-                            org_owner,
-                            plan.name(),
-                            plan.billing_period(),
-                        )
-                        .await?;
-                    } else if plan.license_plan().is_some() {
-                        // Air-gapped keys are not issued during a trial.
-                        let key_expires = self
-                            .license_key_expires(event.scope.organization_id)
-                            .await?;
-                        // A trial that ran out was never invoiced, so there is
-                        // nothing to have defaulted on.
-                        self.send_self_hosted_license_ended_email(
-                            org_owner,
-                            plan.name(),
-                            true,
-                            false,
-                            &key_expires,
-                            false,
-                        )
-                        .await?;
+                    if zero_dollar {
+                        skip_zero_dollar("trial_converted", event.scope.organization_id);
                     } else {
-                        self.send_trial_expired_email(
+                        self.send_trial_converted_email(
                             org_owner,
                             plan.name(),
                             plan.billing_period(),
@@ -193,7 +186,7 @@ impl Subscriber<BillingOperation> for EmailService {
                     plan,
                     has_payment_method,
                 } => {
-                    // The cloud email recaps hosts, networks, daemons and
+                    // The cloud email recaps hosts, sites, daemons and
                     // services found during the trial. A self-hosted trial's
                     // are on the customer's own server, so the recap would be
                     // four zeros.
@@ -368,6 +361,9 @@ impl Subscriber<BillingOperation> for EmailService {
                     // usage to summarize.
                     if invoice.billing_reason == BillingReason::SubscriptionCycle {
                         match invoice.license_paid_through() {
+                            None if zero_dollar => {
+                                skip_zero_dollar("usage_summary", event.scope.organization_id);
+                            }
                             None => self.send_usage_summary_email(org_owner, &invoice).await?,
                             // A renewed self-hosted licence. An online key
                             // picks this up at its next check-in; an
@@ -472,10 +468,13 @@ impl Subscriber<BillingOperation> for EmailService {
                             plan.features().onboarding_call,
                         )
                         .await?;
-                    } else if !is_trialing {
+                    } else if is_trialing {
                         // A cloud trial gets `trial_started` instead; "your
                         // subscription is active" arrives as `trial_converted`
                         // once a card is charged.
+                    } else if zero_dollar {
+                        skip_zero_dollar("checkout_completed", event.scope.organization_id);
+                    } else {
                         self.send_checkout_completed_email(org_owner, plan.name())
                             .await?;
                     }
@@ -593,7 +592,7 @@ impl Subscriber<EntityOperation> for EmailService {
         ]);
         EntityEventFilter::by_entity(HashMap::from([
             (EntityDiscriminants::Host, create_or_delete.clone()),
-            (EntityDiscriminants::Network, create_or_delete.clone()),
+            (EntityDiscriminants::Site, create_or_delete.clone()),
             (EntityDiscriminants::User, create_or_delete.clone()),
             // Organization deletion sends a confirmation email to the
             // initiating user.
@@ -612,15 +611,14 @@ impl Subscriber<EntityOperation> for EmailService {
         let mut plan_limit_failures = Vec::new();
         let mut send_failure = None;
         for event in events {
-            let org_id = if let Some(org_id) = event.scope.organization_id() {
-                Some(org_id)
-            } else if let Some(network_id) = event.scope.network_id() {
-                self.network_service
-                    .get_by_id(&network_id)
+            let org_id = match event.scope.organization() {
+                Some(ScopeOrganization::Org(org_id)) => Some(org_id),
+                Some(ScopeOrganization::Site(site_id)) => self
+                    .site_service
+                    .get_by_id(&site_id)
                     .await?
-                    .map(|n| n.base.organization_id)
-            } else {
-                None
+                    .map(|n| n.base.organization_id),
+                None => None,
             };
 
             if let Some(org_id) = org_id
@@ -669,10 +667,10 @@ impl Subscriber<OnboardingOperation> for EmailService {
             let org_id = event.scope.organization_id;
             if let OnboardingOperation::FirstDaemonRegistered {
                 daemon_name,
-                network_name,
+                site_name,
             } = &event.operation
             {
-                self.send_discovery_guide_for_org(org_id, daemon_name, network_name)
+                self.send_discovery_guide_for_org(org_id, daemon_name, site_name)
                     .await
                     .map_err(|e| e.context(format!("send discovery guide for org {org_id}")))?;
             }

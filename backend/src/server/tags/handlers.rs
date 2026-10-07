@@ -43,7 +43,8 @@ pub enum TagOrderField {
     Name,
     Color,
     UpdatedAt,
-    IsApplication,
+    /// The tag group: "Application" for application tags, the group name for a named group.
+    TagGroup,
 }
 
 impl OrderField for TagOrderField {
@@ -53,7 +54,9 @@ impl OrderField for TagOrderField {
             Self::Name => "tags.name",
             Self::Color => "tags.color",
             Self::UpdatedAt => "tags.updated_at",
-            Self::IsApplication => "tags.is_application",
+            Self::TagGroup => {
+                "CASE WHEN tags.is_application THEN 'Application' ELSE tags.tag_group END"
+            }
         }
     }
 }
@@ -99,7 +102,7 @@ impl FilterQueryExtractor for TagFilterQuery {
     fn apply_to_filter<T: Storable>(
         &self,
         filter: StorableFilter<T>,
-        _user_network_ids: &[Uuid],
+        _user_site_ids: &[Uuid],
         _user_organization_id: Uuid,
     ) -> StorableFilter<T> {
         filter
@@ -263,7 +266,7 @@ pub async fn create_tag(
                     .await?;
             }
 
-            if created_tag.base.is_application
+            if created_tag.is_application()
                 && organization
                     .not_onboarded(&OnboardingOperationDiscriminants::FirstApplicationTagCreated)
             {
@@ -284,7 +287,7 @@ pub async fn create_tag(
     Ok(response)
 }
 
-/// Resolve network_id and organization_id for an entity by looking it up via its service.
+/// Resolve site_id and organization_id for an entity by looking it up via its service.
 async fn resolve_scope<T>(
     service: &(impl CrudService<T> + Sync),
     id: &Uuid,
@@ -300,11 +303,11 @@ where
         .await
         .ok()
         .flatten()
-        .map(|e| (e.network_id(), e.organization_id()))
+        .map(|e| (e.site_id(), e.organization_id()))
         .unwrap_or((None, None))
 }
 
-/// Resolve network_id and organization_id for any entity type.
+/// Resolve site_id and organization_id for any entity type.
 async fn resolve_entity_scope(
     state: &AppState,
     entity_id: &Uuid,
@@ -318,7 +321,7 @@ async fn resolve_entity_scope(
         EntityDiscriminants::Dependency => {
             resolve_scope(s.dependency_service.as_ref(), entity_id).await
         }
-        EntityDiscriminants::Network => resolve_scope(s.network_service.as_ref(), entity_id).await,
+        EntityDiscriminants::Site => resolve_scope(s.site_service.as_ref(), entity_id).await,
         EntityDiscriminants::Discovery => {
             resolve_scope(s.discovery_service.as_ref(), entity_id).await
         }
@@ -353,7 +356,6 @@ async fn resolve_entity_scope(
         EntityDiscriminants::Vlan => resolve_scope(s.vlan_service.as_ref(), entity_id).await,
         // Snapshots aren't user-taggable, but the match must be exhaustive.
         EntityDiscriminants::Snapshot => (None, None),
-        EntityDiscriminants::Unknown => (None, None),
     }
 }
 
@@ -361,7 +363,7 @@ async fn resolve_entity_scope(
 /// write tag-junction rows for it. Tag-org is validated separately by the
 /// service (`validate_tag_full`); this guards the *target entities*, which are
 /// otherwise caller-supplied ids written straight to the junction. Resolves each
-/// id's `(network_id, organization_id)` and requires a match on whichever axis
+/// id's `(site_id, organization_id)` and requires a match on whichever axis
 /// the entity is scoped by; an id that can't be resolved (missing / foreign) is
 /// rejected with the same error as a cross-tenant id (no existence oracle).
 async fn validate_entities_in_tenant(
@@ -371,11 +373,11 @@ async fn validate_entities_in_tenant(
     entity_type: EntityDiscriminants,
 ) -> Result<(), ApiError> {
     let org_id = auth.require_organization_id()?;
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     for entity_id in entity_ids {
         let (net, org) = resolve_entity_scope(state, entity_id, entity_type).await;
         let org_ok = org == Some(org_id);
-        let net_ok = net.is_some_and(|n| network_ids.contains(&n));
+        let net_ok = net.is_some_and(|n| site_ids.contains(&n));
         if !(org_ok || net_ok) {
             return Err(ApiError::forbidden(
                 "Cannot modify tags on an entity outside your organization",
@@ -388,7 +390,7 @@ async fn validate_entities_in_tenant(
 /// Emit EntityEvent::Updated for each entity whose tags changed.
 /// This triggers subscribers (like topology) to refresh their snapshots.
 ///
-/// When `trigger_stale` is true, the topology subscriber marks the network's
+/// When `trigger_stale` is true, the topology subscriber marks the site's
 /// topology stale — used when an application tag is added or removed, since
 /// that changes the Application-perspective container structure.
 async fn emit_tag_change_events(
@@ -401,13 +403,12 @@ async fn emit_tag_change_events(
     let default_entity: EntityEnum = entity_type.into();
 
     for entity_id in entity_ids {
-        let (network_id, organization_id) =
-            resolve_entity_scope(state, entity_id, entity_type).await;
+        let (site_id, organization_id) = resolve_entity_scope(state, entity_id, entity_type).await;
 
         if let Some(scope) = EntityScope::from_ids(
             *entity_id,
             default_entity.clone(),
-            network_id,
+            site_id,
             organization_id.or(auth.organization_id()),
         ) {
             let _ = state
@@ -461,7 +462,7 @@ pub struct SetTagsRequest {
 ///
 /// ### Validation
 ///
-/// - Entity type must be taggable (Host, Service, Subnet, Group, Network, Discovery, Daemon, DaemonApiKey, UserApiKey)
+/// - Entity type must be taggable (Host, Service, Subnet, Vlan, Dependency, Site, Discovery, Daemon, DaemonApiKey, UserApiKey, Credential)
 /// - Tag must exist and belong to your organization
 /// - Entities that already have the tag are silently skipped
 #[utoipa::path(
@@ -509,7 +510,7 @@ pub async fn bulk_add_tag(
     if affected_count > 0 {
         // Topology staleness model is gone — fire tag-change events
         // unconditionally; the topology subscriber broadcasts a live-update
-        // ping for the affected network(s) on receipt.
+        // ping for the affected site(s) on receipt.
         emit_tag_change_events(
             &state,
             &auth.entity,
@@ -531,7 +532,7 @@ pub async fn bulk_add_tag(
 ///
 /// ### Validation
 ///
-/// - Entity type must be taggable (Host, Service, Subnet, Group, Network, Discovery, Daemon, DaemonApiKey, UserApiKey)
+/// - Entity type must be taggable (Host, Service, Subnet, Vlan, Dependency, Site, Discovery, Daemon, DaemonApiKey, UserApiKey, Credential)
 /// - Entities that don't have the tag are silently skipped
 #[utoipa::path(
     post,
@@ -593,7 +594,7 @@ pub async fn bulk_remove_tag(
 ///
 /// ### Validation
 ///
-/// - Entity type must be taggable (Host, Service, Subnet, Group, Network, Discovery, Daemon, DaemonApiKey, UserApiKey)
+/// - Entity type must be taggable (Host, Service, Subnet, Vlan, Dependency, Site, Discovery, Daemon, DaemonApiKey, UserApiKey, Credential)
 /// - All tags must exist and belong to your organization
 #[utoipa::path(
     put,
@@ -645,7 +646,7 @@ pub async fn set_entity_tags(
 
     // Topology staleness model is gone — emit tag-change events
     // unconditionally; the topology subscriber broadcasts a live-update
-    // ping for the affected network(s) on receipt.
+    // ping for the affected site(s) on receipt.
     emit_tag_change_events(
         &state,
         &auth.entity,

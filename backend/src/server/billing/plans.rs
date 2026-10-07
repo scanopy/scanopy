@@ -6,12 +6,12 @@ pub const YEARLY_DISCOUNT: f32 = 0.2;
 // Self-hosted commercial tier pricing and caps. Founder-set; edit here.
 // Prices are the full annual charge in cents (these tiers are annual-only).
 pub const SELF_HOSTED_STANDARD_ANNUAL_CENTS: i64 = 400_000; // $4,000/yr
-pub const SELF_HOSTED_STANDARD_NETWORKS: u64 = 50;
+pub const SELF_HOSTED_STANDARD_SITES: u64 = 50;
 pub const SELF_HOSTED_STANDARD_SEATS: u64 = 25;
 pub const SELF_HOSTED_STANDARD_ORGS: u64 = 1;
 
 pub const SELF_HOSTED_PLUS_ANNUAL_CENTS: i64 = 600_000; // $6,000/yr
-pub const SELF_HOSTED_PLUS_NETWORKS: u64 = 100;
+pub const SELF_HOSTED_PLUS_SITES: u64 = 100;
 pub const SELF_HOSTED_PLUS_SEATS: u64 = 50;
 pub const SELF_HOSTED_PLUS_ORGS: u64 = 5;
 
@@ -31,10 +31,10 @@ fn get_default_plans() -> Vec<BillingPlan> {
             rate: BillingRate::Month,
             trial_days: 14,
             seat_cents: None,
-            network_cents: Some(2500),
+            site_cents: Some(2500),
             host_cents: None,
             included_seats: Some(1),
-            included_networks: Some(3),
+            included_sites: Some(3),
             included_hosts: None,
             included_orgs: None,
         }),
@@ -43,10 +43,10 @@ fn get_default_plans() -> Vec<BillingPlan> {
             rate: BillingRate::Month,
             trial_days: 14,
             seat_cents: Some(1500),
-            network_cents: Some(1500),
+            site_cents: Some(1500),
             host_cents: None,
             included_seats: Some(5),
-            included_networks: Some(15),
+            included_sites: Some(15),
             included_hosts: None,
             included_orgs: None,
         }),
@@ -59,10 +59,10 @@ pub fn get_enterprise_plan() -> BillingPlan {
         rate: BillingRate::Month,
         trial_days: 0,
         seat_cents: None,
-        network_cents: None,
+        site_cents: None,
         host_cents: None,
         included_seats: None,
-        included_networks: None,
+        included_sites: None,
         included_hosts: None,
         included_orgs: None,
     })
@@ -74,10 +74,10 @@ pub fn get_free_plan() -> BillingPlan {
         rate: BillingRate::Month,
         trial_days: 0,
         seat_cents: None,
-        network_cents: None,
+        site_cents: None,
         host_cents: None,
         included_seats: Some(1),
-        included_networks: Some(1),
+        included_sites: Some(1),
         included_hosts: Some(25),
         included_orgs: None,
     })
@@ -89,10 +89,10 @@ pub fn get_community_plan() -> BillingPlan {
         rate: BillingRate::Month,
         trial_days: 0,
         seat_cents: None,
-        network_cents: None,
+        site_cents: None,
         host_cents: None,
         included_seats: Some(1),
-        included_networks: Some(1),
+        included_sites: Some(1),
         included_hosts: None,
         included_orgs: Some(1),
     })
@@ -104,10 +104,10 @@ pub fn get_commercial_self_hosted_plan() -> BillingPlan {
         rate: BillingRate::Month,
         trial_days: 0,
         seat_cents: None,
-        network_cents: None,
+        site_cents: None,
         host_cents: None,
         included_seats: None,
-        included_networks: None,
+        included_sites: None,
         included_hosts: None,
         included_orgs: None,
     })
@@ -121,10 +121,10 @@ pub fn get_self_hosted_standard_plan() -> BillingPlan {
         rate: BillingRate::Year,
         trial_days: SELF_HOSTED_TRIAL_DAYS,
         seat_cents: None,
-        network_cents: None,
+        site_cents: None,
         host_cents: None,
         included_seats: Some(SELF_HOSTED_STANDARD_SEATS),
-        included_networks: Some(SELF_HOSTED_STANDARD_NETWORKS),
+        included_sites: Some(SELF_HOSTED_STANDARD_SITES),
         included_hosts: None,
         included_orgs: Some(SELF_HOSTED_STANDARD_ORGS),
     })
@@ -138,10 +138,10 @@ pub fn get_self_hosted_plus_plan() -> BillingPlan {
         rate: BillingRate::Year,
         trial_days: SELF_HOSTED_TRIAL_DAYS,
         seat_cents: None,
-        network_cents: None,
+        site_cents: None,
         host_cents: None,
         included_seats: Some(SELF_HOSTED_PLUS_SEATS),
-        included_networks: Some(SELF_HOSTED_PLUS_NETWORKS),
+        included_sites: Some(SELF_HOSTED_PLUS_SITES),
         included_hosts: None,
         included_orgs: Some(SELF_HOSTED_PLUS_ORGS),
     })

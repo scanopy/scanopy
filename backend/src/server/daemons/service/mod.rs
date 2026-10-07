@@ -52,8 +52,6 @@ use crate::server::hosts::r#impl::base::{Host, HostBase};
 use crate::server::hosts::r#impl::name::HostName;
 use crate::server::hosts::r#impl::name::HostNameSources;
 use crate::server::hosts::service::{HostLimitContext, HostService};
-use crate::server::networks::r#impl::Network;
-use crate::server::networks::service::NetworkService;
 use crate::server::organizations::service::OrganizationService;
 use crate::server::shared::api_key_common::{ApiKeyType, generate_api_key_for_storage};
 use crate::server::shared::entities::ChangeTriggersTopologyStaleness;
@@ -70,6 +68,8 @@ use crate::server::shared::storage::traits::{Entity, Storable, Storage};
 use crate::server::shared::trusted_ca::TrustedCaBundle;
 use crate::server::shared::types::api::{ApiError, ApiResponse};
 use crate::server::shared::types::entities::EntitySource;
+use crate::server::sites::r#impl::Site;
+use crate::server::sites::service::SiteService;
 use crate::server::subnets::r#impl::base::Subnet;
 use crate::server::subnets::service::SubnetService;
 use crate::server::tags::entity_tags::EntityTagService;
@@ -116,7 +116,7 @@ pub struct DaemonService {
     pub(super) discovery_service: Arc<DiscoveryService>,
     credential_service: Arc<CredentialService>,
     subnet_service: Arc<SubnetService>,
-    network_service: Arc<NetworkService>,
+    site_service: Arc<SiteService>,
     organization_service: Arc<OrganizationService>,
     user_service: Arc<UserService>,
     daemon_api_key_service: Arc<DaemonApiKeyService>,
@@ -137,8 +137,8 @@ impl EventBusService<Daemon> for DaemonService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, entity: &Daemon) -> Option<Uuid> {
-        Some(entity.base.network_id)
+    fn get_site_id(&self, entity: &Daemon) -> Option<Uuid> {
+        Some(entity.base.site_id)
     }
 
     fn get_organization_id(&self, _entity: &Daemon) -> Option<Uuid> {
@@ -192,7 +192,7 @@ impl CrudService<Daemon> for DaemonService {
         if let Some(scope) = EntityScope::from_ids(
             *id,
             entity.clone().into(),
-            self.get_network_id(&entity),
+            self.get_site_id(&entity),
             self.get_organization_id(&entity),
         ) {
             self.event_bus()

@@ -30,7 +30,7 @@ describe('isUserManagedSubnet', () => {
 	});
 
 	it('omits the rows Scanopy fabricates for itself', () => {
-		// The per-network 0.0.0.0/0 supernets seeded by `seed_data`...
+		// The per-site 0.0.0.0/0 supernets seeded by `seed_data`...
 		expect(isUserManagedSubnet(subnet('Internet', { type: 'System' }))).toBe(false);
 		expect(isUserManagedSubnet(subnet('Remote', { type: 'System' }))).toBe(false);
 		// ...and the loopback row seeded per daemon host.

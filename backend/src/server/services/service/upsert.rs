@@ -84,11 +84,33 @@ impl ServiceService {
             }
         }
 
-        if let Some(virtualization_metadata) = &new_service_data.base.virtualization_metadata {
-            existing_service.base.virtualization_metadata = Some(virtualization_metadata.clone())
+        // A service never runs inside itself. The server's container safety net once copied an API
+        // proxy's container identity onto the runtime the proxy fronts, leaving the runtime owned
+        // by itself. Such a stored row is cleared here, and incoming container details naming the
+        // service as its own owner are not taken, since that identity is another container's.
+        if existing_service.base.virtualization_service_id == Some(existing_service.id) {
+            tracing::warn!(
+                service_id = %existing_service.id,
+                service_name = %existing_service.base.name,
+                "Clearing container details that name the service as its own owner"
+            );
+            existing_service.base.virtualization_service_id = None;
+            existing_service.base.virtualization_metadata = None;
         }
-        if let Some(virtualization_service_id) = new_service_data.base.virtualization_service_id {
-            existing_service.base.virtualization_service_id = Some(virtualization_service_id)
+        if new_service_data.base.virtualization_service_id == Some(existing_service.id) {
+            tracing::warn!(
+                service_id = %existing_service.id,
+                service_name = %existing_service.base.name,
+                "Ignoring container details whose owner is the service itself"
+            );
+        } else {
+            if let Some(virtualization_metadata) = &new_service_data.base.virtualization_metadata {
+                existing_service.base.virtualization_metadata =
+                    Some(virtualization_metadata.clone())
+            }
+            if let Some(owner) = new_service_data.base.virtualization_service_id {
+                existing_service.base.virtualization_service_id = Some(owner);
+            }
         }
 
         existing_service.base.source = match (
@@ -140,13 +162,13 @@ impl ServiceService {
 
         self.storage.update(&mut existing_service).await?;
 
-        // Save bindings to separate table with correct service_id and network_id
+        // Save bindings to separate table with correct service_id and site_id
         let bindings_with_ids: Vec<Binding> = existing_service
             .base
             .bindings
             .iter()
             .cloned()
-            .map(|b| b.with_service(existing_service.id, existing_service.base.network_id))
+            .map(|b| b.with_service(existing_service.id, existing_service.base.site_id))
             .collect();
 
         let saved_bindings = self
@@ -173,7 +195,7 @@ impl ServiceService {
             if let Some(scope) = EntityScope::from_ids(
                 existing_service.id,
                 existing_service.clone().into(),
-                self.get_network_id(&existing_service),
+                self.get_site_id(&existing_service),
                 self.get_organization_id(&existing_service),
             ) {
                 self.event_bus()

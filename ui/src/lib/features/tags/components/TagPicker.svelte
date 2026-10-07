@@ -5,7 +5,8 @@
 	import { createDefaultTag } from '$lib/features/tags/types/base';
 	import { createColorHelper, AVAILABLE_COLORS, type Color } from '$lib/shared/utils/styling';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { concepts, permissions, billingPlans } from '$lib/shared/stores/metadata';
+	import { permissions, billingPlans } from '$lib/shared/stores/metadata';
+	import { isApplicationTag, tagIcon, tagTooltip, withTagAdded } from '$lib/features/tags/groups';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 
 	/**
@@ -115,7 +116,9 @@
 
 	function addTag(tagId: string) {
 		if (!selectedTagIds.includes(tagId)) {
-			updateTags([...selectedTagIds, tagId]);
+			// A tag from a tag group replaces the one of that group already selected, as the
+			// server would on save.
+			updateTags(withTagAdded(selectedTagIds, tagId, tags));
 		}
 		inputValue = '';
 		inputElement?.focus();
@@ -178,8 +181,9 @@
 						<Tag
 							label={tag?.name}
 							color={tag?.color}
-							icon={tag?.is_application ? concepts.getIconComponent('Application') : null}
-							isShiny={tag?.is_application ?? false}
+							icon={tagIcon(tag)}
+							title={tagTooltip(tag)}
+							isShiny={isApplicationTag(tag)}
 							pill={true}
 							removable={!disabled}
 							onRemove={() => removeTag(tagId)}

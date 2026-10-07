@@ -17,7 +17,7 @@ use super::*;
 /// row pointing at a chunk-2 row fail deterministically — at which point the
 /// insert needs one shared transaction with the FK deferred, not smaller chunks.
 pub(super) fn generate_interfaces(
-    networks: &[Network],
+    sites: &[Site],
     hosts: &[&Host],
     ip_addresses: &[&IPAddress],
     vlans: &[Vlan],
@@ -41,17 +41,17 @@ pub(super) fn generate_interfaces(
             .copied()
     };
 
-    // VLAN lookup: (network_id, vlan_number) → VLAN entity UUID
-    let find_vlan = |network_id: Uuid, vlan_number: u16| -> Option<Uuid> {
+    // VLAN lookup: (site_id, vlan_number) → VLAN entity UUID
+    let find_vlan = |site_id: Uuid, vlan_number: u16| -> Option<Uuid> {
         vlans
             .iter()
-            .find(|v| v.base.network_id == network_id && v.base.vlan_number == vlan_number)
+            .find(|v| v.base.site_id == site_id && v.base.vlan_number == vlan_number)
             .map(|v| v.id)
     };
-    let find_vlans = |network_id: Uuid, vlan_numbers: &[u16]| -> Option<Vec<Uuid>> {
+    let find_vlans = |site_id: Uuid, vlan_numbers: &[u16]| -> Option<Vec<Uuid>> {
         let ids: Vec<Uuid> = vlan_numbers
             .iter()
-            .filter_map(|&n| find_vlan(network_id, n))
+            .filter_map(|&n| find_vlan(site_id, n))
             .collect();
         if ids.is_empty() { None } else { Some(ids) }
     };
@@ -60,10 +60,7 @@ pub(super) fn generate_interfaces(
     // HQ: pfSense firewall — multiple ip_addresses
     // ========================================================================
     if let Some(host) = find_host("pfsense-fw01") {
-        let network = networks
-            .iter()
-            .find(|n| n.id == host.base.network_id)
-            .unwrap();
+        let site = sites.iter().find(|n| n.id == host.base.site_id).unwrap();
         let ip_address = find_ip_address(host.id);
 
         // WAN interface
@@ -81,7 +78,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(1),
                 if_descr: Some("igb0".to_string()),
                 if_name: None,
@@ -117,7 +114,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(2),
                 if_descr: Some("igb1".to_string()),
                 if_name: None,
@@ -133,8 +130,8 @@ pub(super) fn generate_interfaces(
                 ip_address_id: ip_address.map(|i| i.id),
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 1),
-                vlan_ids: find_vlans(network.id, &[10, 20, 30, 100]),
+                native_vlan_id: find_vlan(site.id, 1),
+                vlan_ids: find_vlans(site.id, &[10, 20, 30, 100]),
             },
         });
         neighbor_updates.push(NeighborUpdate {
@@ -159,7 +156,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(3),
                 if_descr: Some("igb2".to_string()),
                 if_name: None,
@@ -185,10 +182,7 @@ pub(super) fn generate_interfaces(
     // HQ: TrueNAS — bonded ip_addresses, connected to switch port 2
     // ========================================================================
     if let Some(host) = find_host("truenas-primary") {
-        let network = networks
-            .iter()
-            .find(|n| n.id == host.base.network_id)
-            .unwrap();
+        let site = sites.iter().find(|n| n.id == host.base.site_id).unwrap();
         let ip_address = find_ip_address(host.id);
 
         interfaces.push(Interface {
@@ -205,7 +199,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(1),
                 if_descr: Some("lagg0".to_string()),
                 if_name: None,
@@ -221,7 +215,7 @@ pub(super) fn generate_interfaces(
                 ip_address_id: ip_address.map(|i| i.id),
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 20),
+                native_vlan_id: find_vlan(site.id, 20),
                 vlan_ids: None,
             },
         });
@@ -237,10 +231,7 @@ pub(super) fn generate_interfaces(
     // HQ: Proxmox HV01 — with loopback, connected to switch port 3
     // ========================================================================
     if let Some(host) = find_host("proxmox-hv01") {
-        let network = networks
-            .iter()
-            .find(|n| n.id == host.base.network_id)
-            .unwrap();
+        let site = sites.iter().find(|n| n.id == host.base.site_id).unwrap();
         let ip_address = find_ip_address(host.id);
 
         interfaces.push(Interface {
@@ -257,7 +248,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(1),
                 if_descr: Some("eno1".to_string()),
                 if_name: None,
@@ -273,7 +264,7 @@ pub(super) fn generate_interfaces(
                 ip_address_id: ip_address.map(|i| i.id),
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 20),
+                native_vlan_id: find_vlan(site.id, 20),
                 vlan_ids: None,
             },
         });
@@ -299,7 +290,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(2),
                 if_descr: Some("lo".to_string()),
                 if_name: None,
@@ -322,10 +313,7 @@ pub(super) fn generate_interfaces(
     // HQ: Proxmox HV02 — connected to switch port 4
     // ========================================================================
     if let Some(host) = find_host("proxmox-hv02") {
-        let network = networks
-            .iter()
-            .find(|n| n.id == host.base.network_id)
-            .unwrap();
+        let site = sites.iter().find(|n| n.id == host.base.site_id).unwrap();
         let ip_address = find_ip_address(host.id);
 
         interfaces.push(Interface {
@@ -342,7 +330,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(1),
                 if_descr: Some("eno1".to_string()),
                 if_name: None,
@@ -358,7 +346,7 @@ pub(super) fn generate_interfaces(
                 ip_address_id: ip_address.map(|i| i.id),
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 20),
+                native_vlan_id: find_vlan(site.id, 20),
                 vlan_ids: None,
             },
         });
@@ -374,10 +362,7 @@ pub(super) fn generate_interfaces(
     // HQ: docker-prod01 — connected to switch port 5
     // ========================================================================
     if let Some(host) = find_host("docker-prod01") {
-        let network = networks
-            .iter()
-            .find(|n| n.id == host.base.network_id)
-            .unwrap();
+        let site = sites.iter().find(|n| n.id == host.base.site_id).unwrap();
         let ip_address = find_ip_address(host.id);
 
         interfaces.push(Interface {
@@ -394,7 +379,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(1),
                 if_descr: Some("eth0".to_string()),
                 if_name: None,
@@ -410,7 +395,7 @@ pub(super) fn generate_interfaces(
                 ip_address_id: ip_address.map(|i| i.id),
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 20),
+                native_vlan_id: find_vlan(site.id, 20),
                 vlan_ids: None,
             },
         });
@@ -426,10 +411,7 @@ pub(super) fn generate_interfaces(
     // HQ Switch — unifi-usw-48 (48 ports)
     // ========================================================================
     if let Some(host) = find_host("unifi-usw-48") {
-        let network = networks
-            .iter()
-            .find(|n| n.id == host.base.network_id)
-            .unwrap();
+        let site = sites.iter().find(|n| n.id == host.base.site_id).unwrap();
         let ip_address = find_ip_address(host.id);
 
         // Port 1 ↔ pfsense-fw01
@@ -447,7 +429,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(1),
                 if_descr: Some("Port 1/0/1".to_string()),
                 if_name: None,
@@ -463,8 +445,8 @@ pub(super) fn generate_interfaces(
                 ip_address_id: ip_address.map(|i| i.id),
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 1),
-                vlan_ids: find_vlans(network.id, &[10, 20, 30, 100]),
+                native_vlan_id: find_vlan(site.id, 1),
+                vlan_ids: find_vlans(site.id, &[10, 20, 30, 100]),
             },
         });
         neighbor_updates.push(NeighborUpdate {
@@ -489,7 +471,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(2),
                 if_descr: Some("Port 1/0/2".to_string()),
                 if_name: None,
@@ -505,7 +487,7 @@ pub(super) fn generate_interfaces(
                 ip_address_id: None,
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 20),
+                native_vlan_id: find_vlan(site.id, 20),
                 vlan_ids: None,
             },
         });
@@ -531,7 +513,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(3),
                 if_descr: Some("Port 1/0/3".to_string()),
                 if_name: None,
@@ -547,7 +529,7 @@ pub(super) fn generate_interfaces(
                 ip_address_id: None,
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 20),
+                native_vlan_id: find_vlan(site.id, 20),
                 vlan_ids: None,
             },
         });
@@ -573,7 +555,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(4),
                 if_descr: Some("Port 1/0/4".to_string()),
                 if_name: None,
@@ -589,7 +571,7 @@ pub(super) fn generate_interfaces(
                 ip_address_id: None,
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 20),
+                native_vlan_id: find_vlan(site.id, 20),
                 vlan_ids: None,
             },
         });
@@ -615,7 +597,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(5),
                 if_descr: Some("Port 1/0/5".to_string()),
                 if_name: None,
@@ -631,7 +613,7 @@ pub(super) fn generate_interfaces(
                 ip_address_id: None,
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 20),
+                native_vlan_id: find_vlan(site.id, 20),
                 vlan_ids: None,
             },
         });
@@ -657,7 +639,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(6),
                 if_descr: Some("Port 1/0/6".to_string()),
                 if_name: None,
@@ -673,8 +655,8 @@ pub(super) fn generate_interfaces(
                 ip_address_id: None,
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 1),
-                vlan_ids: find_vlans(network.id, &[10, 20, 30, 100]),
+                native_vlan_id: find_vlan(site.id, 1),
+                vlan_ids: find_vlans(site.id, &[10, 20, 30, 100]),
             },
         });
         neighbor_updates.push(NeighborUpdate {
@@ -700,7 +682,7 @@ pub(super) fn generate_interfaces(
                 base: InterfaceBase {
                     neighbor_candidates: Default::default(),
                     host_id: host.id,
-                    network_id: network.id,
+                    site_id: site.id,
                     if_index: Some(port_num),
                     if_descr: Some(format!("Port 1/0/{}", port_num)),
                     if_name: None,
@@ -734,10 +716,7 @@ pub(super) fn generate_interfaces(
     // HQ: unifi-ap-lobby — single Interface for LLDP neighbor with switch port 6
     // ========================================================================
     if let Some(host) = find_host("unifi-ap-lobby") {
-        let network = networks
-            .iter()
-            .find(|n| n.id == host.base.network_id)
-            .unwrap();
+        let site = sites.iter().find(|n| n.id == host.base.site_id).unwrap();
         let ip_address = find_ip_address(host.id);
 
         interfaces.push(Interface {
@@ -754,7 +733,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(1),
                 if_descr: Some("eth0".to_string()),
                 if_name: None,
@@ -770,8 +749,8 @@ pub(super) fn generate_interfaces(
                 ip_address_id: ip_address.map(|i| i.id),
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 1),
-                vlan_ids: find_vlans(network.id, &[10, 20, 30, 100]),
+                native_vlan_id: find_vlan(site.id, 1),
+                vlan_ids: find_vlans(site.id, &[10, 20, 30, 100]),
             },
         });
         neighbor_updates.push(NeighborUpdate {
@@ -787,10 +766,7 @@ pub(super) fn generate_interfaces(
     // scanned directly, so ifIndex/ifType/status are unknown rather than absent-and-zero.
     // ========================================================================
     if let Some(host) = find_host("hq-annex-uplink") {
-        let network = networks
-            .iter()
-            .find(|n| n.id == host.base.network_id)
-            .unwrap();
+        let site = sites.iter().find(|n| n.id == host.base.site_id).unwrap();
         let ip_address = find_ip_address(host.id);
 
         interfaces.push(Interface {
@@ -807,7 +783,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: None,
                 if_descr: Some("Uplink".to_string()),
                 if_name: None,
@@ -830,10 +806,7 @@ pub(super) fn generate_interfaces(
     // DC: dc-fw01 — connected to DC switch port 1
     // ========================================================================
     if let Some(host) = find_host("dc-fw01") {
-        let network = networks
-            .iter()
-            .find(|n| n.id == host.base.network_id)
-            .unwrap();
+        let site = sites.iter().find(|n| n.id == host.base.site_id).unwrap();
         let ip_address = find_ip_address(host.id);
 
         interfaces.push(Interface {
@@ -850,7 +823,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(1),
                 if_descr: Some("port1".to_string()),
                 if_name: None,
@@ -866,8 +839,8 @@ pub(super) fn generate_interfaces(
                 ip_address_id: ip_address.map(|i| i.id),
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 1),
-                vlan_ids: find_vlans(network.id, &[10, 20, 30, 100]),
+                native_vlan_id: find_vlan(site.id, 1),
+                vlan_ids: find_vlans(site.id, &[10, 20, 30, 100]),
             },
         });
         neighbor_updates.push(NeighborUpdate {
@@ -882,10 +855,7 @@ pub(super) fn generate_interfaces(
     // DC: dc-proxmox-hv01 — connected to DC switch port 2
     // ========================================================================
     if let Some(host) = find_host("dc-proxmox-hv01") {
-        let network = networks
-            .iter()
-            .find(|n| n.id == host.base.network_id)
-            .unwrap();
+        let site = sites.iter().find(|n| n.id == host.base.site_id).unwrap();
         let ip_address = find_ip_address(host.id);
 
         interfaces.push(Interface {
@@ -902,7 +872,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(1),
                 if_descr: Some("eno1".to_string()),
                 if_name: None,
@@ -918,7 +888,7 @@ pub(super) fn generate_interfaces(
                 ip_address_id: ip_address.map(|i| i.id),
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 20),
+                native_vlan_id: find_vlan(site.id, 20),
                 vlan_ids: None,
             },
         });
@@ -934,10 +904,7 @@ pub(super) fn generate_interfaces(
     // DC: dc-docker01 — connected to DC switch port 3
     // ========================================================================
     if let Some(host) = find_host("dc-docker01") {
-        let network = networks
-            .iter()
-            .find(|n| n.id == host.base.network_id)
-            .unwrap();
+        let site = sites.iter().find(|n| n.id == host.base.site_id).unwrap();
         let ip_address = find_ip_address(host.id);
 
         interfaces.push(Interface {
@@ -954,7 +921,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(1),
                 if_descr: Some("eth0".to_string()),
                 if_name: None,
@@ -970,7 +937,7 @@ pub(super) fn generate_interfaces(
                 ip_address_id: ip_address.map(|i| i.id),
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 20),
+                native_vlan_id: find_vlan(site.id, 20),
                 vlan_ids: None,
             },
         });
@@ -986,10 +953,7 @@ pub(super) fn generate_interfaces(
     // DC: haproxy-lb01 — connected to DC switch port 4
     // ========================================================================
     if let Some(host) = find_host("haproxy-lb01") {
-        let network = networks
-            .iter()
-            .find(|n| n.id == host.base.network_id)
-            .unwrap();
+        let site = sites.iter().find(|n| n.id == host.base.site_id).unwrap();
         let ip_address = find_ip_address(host.id);
 
         interfaces.push(Interface {
@@ -1006,7 +970,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(1),
                 if_descr: Some("eth0".to_string()),
                 if_name: None,
@@ -1022,7 +986,7 @@ pub(super) fn generate_interfaces(
                 ip_address_id: ip_address.map(|i| i.id),
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 20),
+                native_vlan_id: find_vlan(site.id, 20),
                 vlan_ids: None,
             },
         });
@@ -1038,10 +1002,7 @@ pub(super) fn generate_interfaces(
     // DC Switch — dc-switch-01 (24 ports)
     // ========================================================================
     if let Some(host) = find_host("dc-switch-01") {
-        let network = networks
-            .iter()
-            .find(|n| n.id == host.base.network_id)
-            .unwrap();
+        let site = sites.iter().find(|n| n.id == host.base.site_id).unwrap();
         let ip_address = find_ip_address(host.id);
 
         // Port 1 ↔ dc-fw01
@@ -1059,7 +1020,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(1),
                 if_descr: Some("Port 1/0/1".to_string()),
                 if_name: None,
@@ -1075,8 +1036,8 @@ pub(super) fn generate_interfaces(
                 ip_address_id: ip_address.map(|i| i.id),
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 1),
-                vlan_ids: find_vlans(network.id, &[10, 20, 30, 100]),
+                native_vlan_id: find_vlan(site.id, 1),
+                vlan_ids: find_vlans(site.id, &[10, 20, 30, 100]),
             },
         });
         neighbor_updates.push(NeighborUpdate {
@@ -1101,7 +1062,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(2),
                 if_descr: Some("Port 1/0/2".to_string()),
                 if_name: None,
@@ -1117,7 +1078,7 @@ pub(super) fn generate_interfaces(
                 ip_address_id: None,
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 20),
+                native_vlan_id: find_vlan(site.id, 20),
                 vlan_ids: None,
             },
         });
@@ -1143,7 +1104,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(3),
                 if_descr: Some("Port 1/0/3".to_string()),
                 if_name: None,
@@ -1159,7 +1120,7 @@ pub(super) fn generate_interfaces(
                 ip_address_id: None,
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 20),
+                native_vlan_id: find_vlan(site.id, 20),
                 vlan_ids: None,
             },
         });
@@ -1185,7 +1146,7 @@ pub(super) fn generate_interfaces(
             base: InterfaceBase {
                 neighbor_candidates: Default::default(),
                 host_id: host.id,
-                network_id: network.id,
+                site_id: site.id,
                 if_index: Some(4),
                 if_descr: Some("Port 1/0/4".to_string()),
                 if_name: None,
@@ -1201,7 +1162,7 @@ pub(super) fn generate_interfaces(
                 ip_address_id: None,
                 ip_configured: false,
                 fdb_macs: None,
-                native_vlan_id: find_vlan(network.id, 20),
+                native_vlan_id: find_vlan(site.id, 20),
                 vlan_ids: None,
             },
         });
@@ -1228,7 +1189,7 @@ pub(super) fn generate_interfaces(
                 base: InterfaceBase {
                     neighbor_candidates: Default::default(),
                     host_id: host.id,
-                    network_id: network.id,
+                    site_id: site.id,
                     if_index: Some(port_num),
                     if_descr: Some(format!("Port 1/0/{}", port_num)),
                     if_name: None,

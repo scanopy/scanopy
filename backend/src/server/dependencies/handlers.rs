@@ -40,7 +40,7 @@ pub enum DependencyOrderField {
     Name,
     DependencyType,
     UpdatedAt,
-    NetworkId,
+    SiteId,
 }
 
 impl OrderField for DependencyOrderField {
@@ -50,7 +50,7 @@ impl OrderField for DependencyOrderField {
             Self::Name => "dependencies.name",
             Self::DependencyType => "dependencies.dependency_type",
             Self::UpdatedAt => "dependencies.updated_at",
-            Self::NetworkId => "dependencies.network_id",
+            Self::SiteId => "dependencies.site_id",
         }
     }
 }
@@ -62,8 +62,8 @@ impl OrderField for DependencyOrderField {
 /// Query parameters for filtering and ordering dependencies.
 #[derive(Deserialize, Default, Debug, Clone, IntoParams)]
 pub struct DependencyFilterQuery {
-    /// Filter by network ID
-    pub network_id: Option<Uuid>,
+    /// Filter by site ID
+    pub site_id: Option<Uuid>,
     /// Primary ordering field (used for grouping). Always sorts ASC to keep groups together.
     pub group_by: Option<DependencyOrderField>,
     /// Secondary ordering field (sorting within groups or standalone sort).
@@ -101,13 +101,13 @@ impl FilterQueryExtractor for DependencyFilterQuery {
     fn apply_to_filter<T: Storable>(
         &self,
         filter: StorableFilter<T>,
-        user_network_ids: &[Uuid],
+        user_site_ids: &[Uuid],
         _user_organization_id: Uuid,
     ) -> StorableFilter<T> {
-        match self.network_id {
-            Some(id) if user_network_ids.contains(&id) => filter.network_ids(&[id]),
-            Some(_) => filter.network_ids(&[]), // User doesn't have access - return empty
-            None => filter.network_ids(user_network_ids),
+        match self.site_id {
+            Some(id) if user_site_ids.contains(&id) => filter.site_ids(&[id]),
+            Some(_) => filter.site_ids(&[]), // User doesn't have access - return empty
+            None => filter.site_ids(user_site_ids),
         }
     }
 
@@ -160,14 +160,14 @@ async fn get_all_dependencies(
     auth: Authorized<Viewer>,
     Query(query): Query<DependencyFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<Dependency>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(|| ApiError::forbidden("Organization context required"))?;
 
-    let base_filter = StorableFilter::<Dependency>::new_from_network_ids(&network_ids);
+    let base_filter = StorableFilter::<Dependency>::new_from_site_ids(&site_ids);
     let filter = query
-        .apply_to_filter(base_filter, &network_ids, organization_id)
+        .apply_to_filter(base_filter, &site_ids, organization_id)
         .live_or_as_of(query.at);
 
     // Apply pagination
@@ -288,10 +288,10 @@ async fn validate_dependency_members(state: &AppState, dependency: &Dependency) 
                     .ok_or_else(|| {
                         ApiError::bad_request(&format!("Service {} not found", service_id))
                     })?;
-                if service.base.network_id != dependency.base.network_id {
+                if service.base.site_id != dependency.base.site_id {
                     return Err(ApiError::bad_request(&format!(
-                        "Dependency is on network {}, can't add service on network {}",
-                        dependency.base.network_id, service.base.network_id
+                        "Dependency is on site {}, can't add service on site {}",
+                        dependency.base.site_id, service.base.site_id
                     )));
                 }
             }
@@ -309,10 +309,10 @@ async fn validate_dependency_members(state: &AppState, dependency: &Dependency) 
                     .ok_or_else(|| {
                         ApiError::bad_request(&format!("Binding {} not found", binding_id))
                     })?;
-                if binding.base.network_id != dependency.base.network_id {
+                if binding.base.site_id != dependency.base.site_id {
                     return Err(ApiError::bad_request(&format!(
-                        "Dependency is on network {}, can't add binding on network {}",
-                        dependency.base.network_id, binding.base.network_id
+                        "Dependency is on site {}, can't add binding on site {}",
+                        dependency.base.site_id, binding.base.site_id
                     )));
                 }
             }

@@ -5,6 +5,7 @@
 	import AppBanners from '$lib/shared/components/feedback/AppBanners.svelte';
 	import TrialExpiryModal from '$lib/shared/components/feedback/TrialExpiryModal.svelte';
 	import Sidebar from '$lib/shared/components/layout/Sidebar.svelte';
+	import GlobalSearch from '$lib/shared/components/layout/GlobalSearch.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import { discoverySSEManager } from '$lib/features/discovery/queries';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
@@ -16,6 +17,7 @@
 	} from '$lib/features/topology/queries';
 	import { get } from 'svelte/store';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import BillingPlanModal from '$lib/features/billing/BillingPlanModal.svelte';
 	import DaemonPromptModal from '$lib/features/daemons/components/DaemonPromptModal.svelte';
 	import { useConfigQuery, isLicenseSigningAvailable } from '$lib/shared/stores/config-query';
@@ -93,6 +95,14 @@
 		billingEnabled &&
 			((needsPlanSelection && !planJustActivated) || $modalState.name === 'billing-plan')
 	);
+
+	// A self-hosted signup that picks a cloud plan gets its site from the plan
+	// webhook, so the daemon prompt waits (polling) until that site exists.
+	const sitesQuery = useSitesQuery({
+		enabled: () => isAuthenticated && mainAppAvailable,
+		pollWhileEmpty: () => planJustActivated
+	});
+	let hasSite = $derived((sitesQuery.data?.length ?? 0) > 0);
 
 	// Daemon prompt: driven by modal registry
 	let showDaemonPrompt = $derived($modalState.name === 'daemon-prompt');
@@ -242,6 +252,7 @@
 			organization?.onboarding?.includes('OrgCreated') &&
 			!organization?.onboarding?.includes('FirstDaemonRegistered') &&
 			!daemonPromptResponded &&
+			hasSite &&
 			daemonsQuery.isSuccess &&
 			daemonsQuery.data?.length === 0
 		) {
@@ -388,6 +399,11 @@
 
 	<TrialExpiryModal />
 
+	<!-- Searches routes a locked org is rejected from, so only with the main app. -->
+	{#if mainAppAvailable}
+		<GlobalSearch />
+	{/if}
+
 	<!-- Billing modal rendered last so it stacks on top of other modals -->
 	<BillingPlanModal
 		isOpen={showBillingModal}
@@ -412,7 +428,12 @@
 			} else if ($reopenSettingsAfterBilling) {
 				reopenSettingsAfterBilling.set(false);
 				openModal('settings', { tab: 'billing' });
-			} else if (!isViewer && !daemonPromptResponded && daemonsQuery.data?.length === 0) {
+			} else if (
+				!isViewer &&
+				!daemonPromptResponded &&
+				hasSite &&
+				daemonsQuery.data?.length === 0
+			) {
 				// Mark as shown here too so the first Skip click sticks — otherwise the
 				// auto-open $effect re-fires on close (its guard was never set on this path).
 				daemonPromptShown = true;

@@ -26,6 +26,7 @@
 		useDaemonInstallCommandQuery
 	} from '$lib/features/daemons/queries';
 	import CodeContainer from '$lib/shared/components/data/CodeContainer.svelte';
+	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import OsSelector from './OsSelector.svelte';
 	import {
 		useApiKeysQuery,
@@ -230,6 +231,8 @@
 	{name}
 	title={common_editName({ name: daemon?.name ?? '' })}
 	entityId={daemon?.id}
+	form={detailsForm}
+	unsavedState={() => keyForm.state.values}
 	size="xl"
 	{onClose}
 	onOpen={handleOpen}
@@ -254,96 +257,106 @@
 			<div class="min-h-0 flex-1 overflow-auto p-6">
 				<!-- Details -->
 				<div class="space-y-4" class:hidden={activeTab !== 'details'}>
-					<!-- Name and mode are both read-only, so they share a row. Name is the
-					     server-authoritative label (reaches the daemon via its handshake, not a
-					     command); mode is fixed at install and decides how daemon and server reach
-					     each other. Neither is a form value the user can change here. -->
-					<div class="grid grid-cols-2 gap-4">
-						<detailsForm.Field name="name">
-							{#snippet children(field)}
-								<TextInput
-									label={common_name()}
-									id="daemon-name"
-									{field}
-									disabled
-									helpText={daemons_readOnlyFieldHelp()}
-								/>
-							{/snippet}
-						</detailsForm.Field>
-
-						<div class="space-y-2">
-							<label for="daemon-mode" class="text-secondary block text-sm font-medium">
-								{daemons_config_mode()}
-							</label>
-							<select id="daemon-mode" class="input-field" disabled value={daemon.mode}>
-								<option value="daemon_poll">daemon_poll</option>
-								<option value="server_poll">server_poll</option>
-							</select>
-							<p class="text-tertiary text-xs">{daemons_readOnlyFieldHelp()}</p>
-						</div>
-					</div>
-
-					{#if isServerPoll}
-						<div class="grid grid-cols-[1fr_auto] gap-4">
-							<detailsForm.Field name="url" validators={{ onBlur: ({ value }) => required(value) }}>
+					{#snippet detailsFields()}
+						<!-- Name and mode are both read-only, so they share a row. Name is the
+						     server-authoritative label (reaches the daemon via its handshake, not a
+						     command); mode is fixed at install and decides how daemon and server reach
+						     each other. Neither is a form value the user can change here. -->
+						<div class="grid grid-cols-2 gap-4">
+							<detailsForm.Field name="name">
 								{#snippet children(field)}
 									<TextInput
-										label={daemons_config_daemonUrl()}
-										id="daemon-url"
+										label={common_name()}
+										id="daemon-name"
 										{field}
-										helpText={daemons_config_daemonUrlHelpNoPort()}
-										required
+										disabled
+										helpText={daemons_readOnlyFieldHelp()}
 									/>
 								{/snippet}
 							</detailsForm.Field>
 
-							<div class="w-48">
-								<detailsForm.Field name="port">
+							<div class="space-y-2">
+								<label for="daemon-mode" class="text-secondary block text-sm font-medium">
+									{daemons_config_mode()}
+								</label>
+								<select id="daemon-mode" class="input-field" disabled value={daemon.mode}>
+									<option value="daemon_poll">daemon_poll</option>
+									<option value="server_poll">server_poll</option>
+								</select>
+								<p class="text-tertiary text-xs">{daemons_readOnlyFieldHelp()}</p>
+							</div>
+						</div>
+
+						{#if isServerPoll}
+							<div class="grid grid-cols-[1fr_auto] gap-4">
+								<detailsForm.Field
+									name="url"
+									validators={{ onBlur: ({ value }) => required(value) }}
+								>
 									{#snippet children(field)}
 										<TextInput
-											label={common_port()}
-											id="daemon-port"
-											type="number"
+											label={daemons_config_daemonUrl()}
+											id="daemon-url"
 											{field}
-											helpText={daemons_config_portHelpServerPoll()}
+											helpText={daemons_config_daemonUrlHelpNoPort()}
+											required
 										/>
 									{/snippet}
 								</detailsForm.Field>
+
+								<div class="w-48">
+									<detailsForm.Field name="port">
+										{#snippet children(field)}
+											<TextInput
+												label={common_port()}
+												id="daemon-port"
+												type="number"
+												{field}
+												helpText={daemons_config_portHelpServerPoll()}
+											/>
+										{/snippet}
+									</detailsForm.Field>
+								</div>
 							</div>
-						</div>
+						{/if}
+
+						<detailsForm.Field name="user_id">
+							{#snippet children(field)}
+								<RichSelect
+									label={common_maintainer()}
+									selectedValue={field.state.value}
+									options={usersData}
+									onSelect={(value) => field.handleChange(value)}
+									displayComponent={UserDisplay}
+									getOptionContext={() => ({ hideTags: ['permission' as const] })}
+									showSearch={true}
+									helpText={common_maintainerHelp()}
+								/>
+							{/snippet}
+						</detailsForm.Field>
+
+						<detailsForm.Field name="tags">
+							{#snippet children(field)}
+								<TagPicker
+									label={common_tags()}
+									selectedTagIds={field.state.value || []}
+									onChange={(tags) => field.handleChange(tags)}
+								/>
+							{/snippet}
+						</detailsForm.Field>
+					{/snippet}
+					{#if hasReconfigure}
+						<InfoCard title={common_details()}>{@render detailsFields()}</InfoCard>
+					{:else}
+						<div class="space-y-3">{@render detailsFields()}</div>
 					{/if}
-
-					<detailsForm.Field name="user_id">
-						{#snippet children(field)}
-							<RichSelect
-								label={common_maintainer()}
-								selectedValue={field.state.value}
-								options={usersData}
-								onSelect={(value) => field.handleChange(value)}
-								displayComponent={UserDisplay}
-								showSearch={true}
-								helpText={common_maintainerHelp()}
-							/>
-						{/snippet}
-					</detailsForm.Field>
-
-					<detailsForm.Field name="tags">
-						{#snippet children(field)}
-							<TagPicker
-								label={common_tags()}
-								selectedTagIds={field.state.value || []}
-								onChange={(tags) => field.handleChange(tags)}
-							/>
-						{/snippet}
-					</detailsForm.Field>
 
 					<!-- Server-held config the daemon may have drifted from — most usefully the
 					     ServerPoll port, which the server dials but the daemon must bind. The
 					     command carries no credential, so it is safe to show here and to run
 					     repeatedly. -->
 					{#if hasReconfigure}
-						<div class="card space-y-3">
-							<p class="text-primary text-sm">{daemons_reconfigureSectionTitle()}</p>
+						<InfoCard title={daemons_reconfigureSectionTitle()}>
 							<p class="text-tertiary text-sm">{daemons_reconfigureSectionHelp()}</p>
 							<OsSelector
 								selectedOS={syncOs}
@@ -371,7 +384,7 @@
 									/>
 								{/if}
 							</OsSelector>
-						</div>
+						</InfoCard>
 					{/if}
 				</div>
 
@@ -387,10 +400,9 @@
 							{loading}
 							onGenerate={() => {}}
 							onRotate={handleRotateKey}
-							showNetwork={false}
+							showSite={false}
 							showName={false}
 							showTags={false}
-							showHeading={false}
 						/>
 					{:else}
 						<DaemonKeyAssociation {daemon} />

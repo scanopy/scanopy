@@ -1,10 +1,10 @@
 use crate::server::credentials::r#impl::types::CredentialAssignment;
 use crate::server::hosts::r#impl::attributes::{
-    HostChassisIdAttributed, HostFirmwareRevisionAttributed, HostHostnameAttributed,
-    HostManagementUrlAttributed, HostManufacturerAttributed, HostModelAttributed, HostOsAttributed,
-    HostOsValue, HostSerialNumberAttributed, HostSoftwareRevisionAttributed,
-    HostSysContactAttributed, HostSysDescrAttributed, HostSysLocationAttributed,
-    HostSysNameAttributed, HostSysObjectIdAttributed,
+    HostAssetTagAttributed, HostChassisIdAttributed, HostFirmwareRevisionAttributed,
+    HostHostnameAttributed, HostManagementUrlAttributed, HostManufacturerAttributed,
+    HostModelAttributed, HostOsAttributed, HostOsValue, HostSerialNumberAttributed,
+    HostSoftwareRevisionAttributed, HostSysContactAttributed, HostSysDescrAttributed,
+    HostSysLocationAttributed, HostSysNameAttributed, HostSysObjectIdAttributed,
 };
 use crate::server::hosts::r#impl::name::{HostName, HostNameSources};
 use crate::server::hosts::r#impl::os::recog::RecogDatabase;
@@ -13,6 +13,7 @@ use crate::server::shared::attribution::{self, AttributeSource, Attributed};
 use crate::server::shared::entities::ChangeTriggersTopologyStaleness;
 use crate::server::shared::types::api::deserialize_empty_string_as_none;
 use crate::server::shared::types::entities::EntitySource;
+use crate::server::shared::types::metadata::HasId;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -46,8 +47,8 @@ pub struct HostBase {
     #[schema(value_type = HostName)]
     #[validate(custom(function = "validate_host_name"))]
     pub name: HostName,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// The host's hostname, with the source that produced it.
     ///
     /// An identifier rather than a name, so it is never copied into `name`: see the placement rule
@@ -80,6 +81,13 @@ pub struct HostBase {
     /// hypervisor service goes away (GH #650).
     #[schema(required)]
     pub virtualization_service_id: Option<Uuid>,
+    /// The interface on the virtualizing host that presents this one, for a host whose
+    /// virtualizer presents it from an interface of its own (a network identity). Its own column
+    /// with a foreign key for the same reason as `virtualization_service_id`; `ON DELETE SET NULL`
+    /// clears it when the interface goes away.
+    #[serde(default)]
+    #[schema(required)]
+    pub virtualization_interface_id: Option<Uuid>,
     /// Whether the host is hidden from topology views.
     pub hidden: bool,
     /// Tags assigned to this entity.
@@ -129,6 +137,10 @@ pub struct HostBase {
     #[serde(flatten, deserialize_with = "attribution::optional")]
     #[schema(value_type = HostSerialNumberAttributed)]
     pub serial_number: Option<HostSerialNumberAttributed>,
+    /// The organization's asset tag: ENTITY-MIB entPhysicalAssetID, or typed in by a person.
+    #[serde(flatten, deserialize_with = "attribution::optional")]
+    #[schema(value_type = HostAssetTagAttributed)]
+    pub asset_tag: Option<HostAssetTagAttributed>,
     /// Firmware revision of the device as a whole — ENTITY-MIB `entPhysicalFirmwareRev`.
     ///
     /// Written by whichever source read it — a controller's REST inventory, an industrial probe's
@@ -165,12 +177,13 @@ impl Default for HostBase {
     fn default() -> Self {
         Self {
             name: HostName::unnamed(),
-            network_id: Uuid::nil(),
+            site_id: Uuid::nil(),
             hostname: None,
             description: None,
             source: EntitySource::Unknown,
             virtualization_metadata: None,
             virtualization_service_id: None,
+            virtualization_interface_id: None,
             hidden: false,
             tags: Vec::new(),
             sys_descr: None,
@@ -183,6 +196,7 @@ impl Default for HostBase {
             manufacturer: None,
             model: None,
             serial_number: None,
+            asset_tag: None,
             firmware_revision: None,
             software_revision: None,
             os: None,
@@ -290,12 +304,14 @@ impl HostBase {
     pub fn apply_attributes_from(&mut self, incoming: &HostBase) -> bool {
         let HostBase {
             // Not attributes: owned by the naming ladder, by the user, or by the row itself.
+            // Virtualization has its own fill-when-empty entry point below.
             name: _,
-            network_id: _,
+            site_id: _,
             description: _,
             source: _,
             virtualization_metadata: _,
             virtualization_service_id: _,
+            virtualization_interface_id: _,
             hidden: _,
             tags: _,
             credential_assignments: _,
@@ -311,6 +327,7 @@ impl HostBase {
             manufacturer,
             model,
             serial_number,
+            asset_tag,
             firmware_revision,
             software_revision,
             os,
@@ -342,11 +359,70 @@ impl HostBase {
             manufacturer,
             model,
             serial_number,
+            asset_tag,
             firmware_revision,
             software_revision,
             os,
         );
         changed
+    }
+
+    /// Take the incoming hypervisor link when this host has none, returning whether it changed.
+    ///
+    /// Fill-when-empty rather than rank-merged: the owner carries no provenance, and a hypervisor
+    /// assigned through the UI must survive every rescan. When the incoming report names the
+    /// owner the host already has, its metadata refreshes (a renamed guest).
+    ///
+    /// A different owner moves the link only for the same guest moving: the stored metadata and
+    /// the report name the same manager's guest id, which survives a live migration (a Proxmox
+    /// VMID is cluster-wide and follows the guest from node to node; a container ID is the same
+    /// container whichever runtime service reports it). A hand assignment never carries a guest
+    /// id (the UI writes `vm_id: null`), so it is never moved.
+    pub fn fill_virtualization_from(&mut self, incoming: &HostBase) -> bool {
+        let Some(incoming_owner) = incoming.virtualization_service_id else {
+            return false;
+        };
+        let take = match self.virtualization_service_id {
+            None => true,
+            Some(owner) if owner == incoming_owner => {
+                (incoming.virtualization_metadata.is_some()
+                    && self.virtualization_metadata != incoming.virtualization_metadata)
+                    || (incoming.virtualization_interface_id.is_some()
+                        && self.virtualization_interface_id != incoming.virtualization_interface_id)
+            }
+            Some(_) => {
+                // Keyed by variant too, so a VMID never matches a container ID.
+                let guest_id = |v: &Option<HostVirtualization>| {
+                    let v = v.as_ref()?;
+                    let id = match v {
+                        HostVirtualization::Proxmox(p) => p.vm_id.as_ref(),
+                        HostVirtualization::Docker(c) | HostVirtualization::Podman(c) => {
+                            c.container_id.as_ref()
+                        }
+                        // A network identity names no guest id: its interface is the owner's, so an
+                        // owned identity never moves.
+                        HostVirtualization::VCenter(_)
+                        | HostVirtualization::ESXi(_)
+                        | HostVirtualization::NetworkIdentity(_) => None,
+                    }?;
+                    Some((v.id(), id.clone()))
+                };
+                guest_id(&self.virtualization_metadata)
+                    .is_some_and(|id| Some(id) == guest_id(&incoming.virtualization_metadata))
+            }
+        };
+        if take {
+            // The presenting interface belongs to the owner: a new owner brings its own (or none),
+            // and the same owner keeps the stored one unless the report names another.
+            if self.virtualization_service_id != Some(incoming_owner)
+                || incoming.virtualization_interface_id.is_some()
+            {
+                self.virtualization_interface_id = incoming.virtualization_interface_id;
+            }
+            self.virtualization_service_id = Some(incoming_owner);
+            self.virtualization_metadata = incoming.virtualization_metadata.clone();
+        }
+        take
     }
 
     /// Name an OS from the SNMP system strings this payload carries, matched against Recog.
@@ -431,7 +507,7 @@ pub struct Host {
     pub updated_at: DateTime<Utc>,
     /// SCD2: when this row version became live. Equal to `created_at` for
     /// rows that have never ridden a snapshot; advanced to the snapshot's
-    /// `taken_at` for live rows after a network snapshot fires.
+    /// `taken_at` for live rows after a site snapshot fires.
     #[serde(default)]
     #[schema(read_only)]
     pub valid_from: DateTime<Utc>,
@@ -511,6 +587,8 @@ impl ChangeTriggersTopologyStaleness<Host> for Host {
                 != attribution::text_of(&other_host.base.hostname)
                 || self.base.virtualization_metadata != other_host.base.virtualization_metadata
                 || self.base.virtualization_service_id != other_host.base.virtualization_service_id
+                || self.base.virtualization_interface_id
+                    != other_host.base.virtualization_interface_id
                 || self.base.hidden != other_host.base.hidden
         } else {
             true
@@ -519,256 +597,5 @@ impl ChangeTriggersTopologyStaleness<Host> for Host {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::server::hosts::r#impl::attributes::{
-        HostChassisIdValue, HostHostnameValue, HostModelValue, HostSysNameValue,
-    };
-    use crate::server::hosts::r#impl::name_ladder::HostNameRung;
-    use crate::server::services::r#impl::patterns::ClientProbe;
-
-    fn controller_name(name: &str) -> HostName {
-        HostName::from_controller(name.to_string(), ClientProbe::UnifiController)
-    }
-
-    /// A host carrying nothing but the rungs under test, so a fall-through cannot be masked by a
-    /// leftover value from a fuller fixture.
-    fn nameless_host() -> Host {
-        let mut host = crate::server::shared::types::examples::host();
-        host.base.name = HostName::unnamed();
-        host.base.hostname = None;
-        host
-    }
-
-    fn probed<V>(value: V) -> Attributed<V>
-    where
-        V: crate::server::shared::attribution::AttributeValue,
-    {
-        Attributed::new(value, AttributeSource::Probe(ClientProbe::Snmp))
-    }
-
-    /// The ladder descends only as far as it has to.
-    ///
-    /// Written as one walk down rather than a case per rung: what matters is the *ordering* between
-    /// them — that a sysName never displaces a hostname, and an address never displaces either —
-    /// and an assertion per rung in isolation would pass even if the `or_else` chain were shuffled.
-    ///
-    /// Each step also asserts the rung. The editor tells a person which piece of evidence named the
-    /// host, so a rung that disagreed with the value would explain the title wrongly.
-    #[test]
-    fn display_name_stops_at_the_highest_rung_the_host_carries() {
-        let addresses = [crate::server::shared::types::examples::ip_address()];
-        let mut host = nameless_host();
-        let titled = |value: &str, rung| Some((value.to_string(), rung));
-
-        // Nothing at all: absence, not `Some("")`. This is what every caller's fallback hangs on —
-        // a blank title would be read as a name the host actually has.
-        assert_eq!(host.display_name(&addresses[..0]), None);
-        assert_eq!(host.resolved_name(&addresses[..0]), None);
-
-        // The bottom rung, reached only because the four above are empty.
-        assert_eq!(
-            host.resolved_name(&addresses),
-            titled("192.168.1.100", HostNameRung::Address)
-        );
-
-        host.base.chassis_id = Some(probed(HostChassisIdValue("00:1a:2b:3c:4d:5e".to_string())));
-        assert_eq!(
-            host.resolved_name(&addresses),
-            titled("00:1a:2b:3c:4d:5e", HostNameRung::ChassisId)
-        );
-
-        host.base.sys_name = Some(probed(HostSysNameValue("core-sw-01".to_string())));
-        assert_eq!(
-            host.resolved_name(&addresses),
-            titled("core-sw-01", HostNameRung::SysName)
-        );
-
-        host.base.hostname = Some(Attributed::new(
-            HostHostnameValue("switch.lan".to_string()),
-            AttributeSource::ReverseDns,
-        ));
-        assert_eq!(
-            host.resolved_name(&addresses),
-            titled("switch.lan", HostNameRung::Hostname)
-        );
-
-        host.base.name = HostName::manual("Core Switch".to_string());
-        assert_eq!(
-            host.resolved_name(&addresses),
-            titled("Core Switch", HostNameRung::Name)
-        );
-        assert_eq!(
-            host.display_name(&addresses),
-            Some("Core Switch".to_string())
-        );
-
-        // A person clearing the name hands the title back to the evidence below it.
-        assert!(host.base.clear_name());
-        assert_eq!(host.base.name.source(), AttributeSource::Unspecified);
-        assert_eq!(
-            host.resolved_name(&addresses),
-            titled("switch.lan", HostNameRung::Hostname)
-        );
-    }
-
-    /// A rung holding whitespace is not a rung.
-    ///
-    /// SNMP agents and controllers return `" "` and `""` for fields they don't populate, and a
-    /// host titled with a space is indistinguishable on screen from one titled with nothing —
-    /// except that it silently outranks the real evidence below it.
-    #[test]
-    fn display_name_treats_a_blank_rung_as_absent() {
-        let addresses = [crate::server::shared::types::examples::ip_address()];
-        let mut host = nameless_host();
-        host.base.hostname = Some(Attributed::new(
-            HostHostnameValue("   ".to_string()),
-            AttributeSource::ReverseDns,
-        ));
-        host.base.sys_name = Some(probed(HostSysNameValue(String::new())));
-        host.base.chassis_id = Some(probed(HostChassisIdValue("  ".to_string())));
-
-        assert_eq!(
-            host.resolved_name(&addresses),
-            Some(("192.168.1.100".to_string(), HostNameRung::Address))
-        );
-    }
-
-    /// `apply_name`'s return value is what `upsert_host` uses to decide whether the host actually
-    /// changed, and an Updated event (and a topology rebuild) rides on that. A re-sync that
-    /// reports the same name must be silent, not a no-op write that still looks like a change.
-    #[test]
-    fn reapplying_an_unchanged_name_reports_no_change() {
-        let mut base = HostBase::default();
-        assert!(base.apply_name(controller_name("Core Switch")));
-        assert!(!base.apply_name(controller_name("Core Switch")));
-        assert!(base.apply_name(controller_name("Core Switch 2")));
-    }
-
-    /// The same value arriving from a *better* source is still a change worth recording: the name
-    /// reads the same, but the host is now protected from the rungs in between.
-    #[test]
-    fn the_same_name_from_a_higher_rung_is_recorded() {
-        let mut base = HostBase::default();
-        base.apply_name(HostName::from_service("switch.lan".to_string()));
-        assert!(base.apply_name(controller_name("switch.lan")));
-        assert_eq!(
-            base.name.source(),
-            AttributeSource::Authored(ClientProbe::UnifiController)
-        );
-    }
-
-    /// What a person typed into Scanopy survives every subsequent scan. This used to be the
-    /// `is_none()` gate — first writer wins, whoever they were — and is now `Manual` outranking
-    /// everything discovery can produce, which is what makes a refreshable `model` safe.
-    #[test]
-    fn a_manually_entered_value_is_never_displaced() {
-        let mut existing = HostBase {
-            model: Some(Attributed::new(
-                HostModelValue("typed-by-a-person".to_string()),
-                AttributeSource::Manual,
-            )),
-            ..Default::default()
-        };
-        let incoming = HostBase {
-            model: Some(Attributed::new(
-                HostModelValue("read-over-snmp".to_string()),
-                AttributeSource::Probe(ClientProbe::Snmp),
-            )),
-            serial_number: Some(Attributed::new(
-                crate::server::hosts::r#impl::attributes::HostSerialNumberValue(
-                    "FOC1234X5YZ".to_string(),
-                ),
-                AttributeSource::Probe(ClientProbe::Snmp),
-            )),
-            ..Default::default()
-        };
-
-        assert!(existing.apply_attributes_from(&incoming));
-
-        assert_eq!(
-            attribution::text_of(&existing.model).as_deref(),
-            Some("typed-by-a-person")
-        );
-        assert_eq!(
-            attribution::text_of(&existing.serial_number).as_deref(),
-            Some("FOC1234X5YZ")
-        );
-    }
-
-    /// The behaviour the `is_none()` gate could not express: a value already present is displaced
-    /// when a better source reads it. Under first-write-wins the model below stayed "Cisco Switch"
-    /// for the life of the host, whatever SNMP later said.
-    #[test]
-    fn a_weak_value_is_displaced_by_a_stronger_source() {
-        let mut existing = HostBase {
-            model: Some(Attributed::new(
-                HostModelValue("Cisco Switch".to_string()),
-                AttributeSource::Probe(ClientProbe::UnifiController),
-            )),
-            ..Default::default()
-        };
-        let incoming = HostBase {
-            model: Some(Attributed::new(
-                HostModelValue("WS-C2960X-48FPD-L".to_string()),
-                AttributeSource::Probe(ClientProbe::Snmp),
-            )),
-            ..Default::default()
-        };
-
-        assert!(existing.apply_attributes_from(&incoming));
-        assert_eq!(
-            attribution::text_of(&existing.model).as_deref(),
-            Some("WS-C2960X-48FPD-L")
-        );
-    }
-
-    /// The ordering this item exists to establish, on the field that prompted it. ENTITY-MIB is
-    /// Track 2's reader, but its rung is decided here: a device answering SNMP outranks a
-    /// controller describing a device it manages, so a firmware revision from the MIB displaces
-    /// one a controller reported rather than losing to whichever probe finished first.
-    #[test]
-    fn firmware_from_the_device_displaces_firmware_from_a_controller() {
-        use crate::server::hosts::r#impl::attributes::HostFirmwareRevisionValue;
-
-        let mut existing = HostBase {
-            firmware_revision: Some(Attributed::new(
-                HostFirmwareRevisionValue("6.5.59".to_string()),
-                AttributeSource::Probe(ClientProbe::UnifiController),
-            )),
-            ..Default::default()
-        };
-        let incoming = HostBase {
-            firmware_revision: Some(Attributed::new(
-                HostFirmwareRevisionValue("17.03.01".to_string()),
-                AttributeSource::Probe(ClientProbe::Snmp),
-            )),
-            ..Default::default()
-        };
-
-        assert!(existing.apply_attributes_from(&incoming));
-        assert_eq!(
-            attribution::text_of(&existing.firmware_revision).as_deref(),
-            Some("17.03.01")
-        );
-    }
-
-    /// `upsert_host` publishes an Updated event and triggers a topology rebuild off this return
-    /// value, so a scan that learns nothing new must report no change.
-    #[test]
-    fn learning_nothing_new_reports_no_change() {
-        let snmp = AttributeSource::Probe(ClientProbe::Snmp);
-        let model = |v: &str| Some(Attributed::new(HostModelValue(v.to_string()), snmp));
-        let mut existing = HostBase {
-            model: model("WS-C2960X"),
-            ..Default::default()
-        };
-        let incoming = HostBase {
-            model: model("WS-C2960X"),
-            ..Default::default()
-        };
-
-        assert!(!existing.apply_attributes_from(&incoming));
-        assert!(!existing.apply_attributes_from(&HostBase::default()));
-    }
-}
+#[path = "tests/base_tests.rs"]
+mod tests;

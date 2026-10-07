@@ -7,7 +7,7 @@ import type { Daemon } from './types/base';
  *
  * Several entities reference a `daemon_id` and surface it as a column; building
  * the chip here keeps the colour and the entity link identical wherever it
- * appears, and matches what the cards render.
+ * appears.
  */
 export function daemonItems(
 	daemonId: string | null | undefined,

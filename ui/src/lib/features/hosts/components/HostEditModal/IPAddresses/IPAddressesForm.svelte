@@ -3,6 +3,7 @@
 	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
 	import IPAddressConfigPanel from './IPAddressConfigPanel.svelte';
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { type HostFormData, type IPAddress } from '$lib/features/hosts/types/base';
 	import { SubnetDisplay } from '$lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
 	import { IPAddressDisplay } from '$lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
@@ -47,6 +48,8 @@
 	// TanStack Query for subnets
 	const subnetsQuery = useSubnetsQuery();
 	let subnetsData = $derived(subnetsQuery.data ?? []);
+	const sitesQuery = useSitesQuery();
+	let sitesData = $derived(sitesQuery.data ?? []);
 
 	// Confirmation dialog state
 	let showDeleteConfirmation = $state(false);
@@ -80,7 +83,7 @@
 	// Computed values
 	let interfaces = $derived(formData.ip_addresses || []);
 
-	let availableSubnets = $derived(subnetsData.filter((s) => s.network_id == formData.network_id));
+	let availableSubnets = $derived(subnetsData.filter((s) => s.site_id == formData.site_id));
 
 	// Helper function to find subnet by ID
 	function findSubnetById(subnetId: string) {
@@ -96,7 +99,7 @@
 			const newInterface: IPAddress = {
 				id: uuidv4(), // Temp ID for form - store will detect as new since it's not in interfaces store
 				host_id: formData.id,
-				network_id: formData.network_id,
+				site_id: formData.site_id,
 				name: subnet.name,
 				subnet_id: subnetId,
 				ip_address: '203.0.113.' + (Math.floor(Math.random() * 255) + 1).toString(),
@@ -111,7 +114,7 @@
 			const newInterface: IPAddress = {
 				id: uuidv4(), // Temp ID for form - store will detect as new since it's not in interfaces store
 				host_id: formData.id,
-				network_id: formData.network_id,
+				site_id: formData.site_id,
 				name: null,
 				subnet_id: subnetId,
 				ip_address: '',
@@ -204,7 +207,7 @@
 				{items}
 				optionDisplayComponent={SubnetDisplay}
 				itemDisplayComponent={IPAddressDisplay}
-				getItemContext={() => ({ subnets: subnetsData })}
+				getItemContext={() => ({ subnets: subnetsData, sites: sitesData })}
 				onAdd={handleAddInterface}
 				onRemove={handleRemoveInterface}
 				{onMoveUp}
@@ -229,6 +232,7 @@
 							{index}
 							{form}
 							{isEditing}
+							site={sitesData.find((n) => n.id === iface.site_id)}
 							onChange={(updatedInterface) => handleInterfaceChange(updatedInterface, index)}
 						/>
 					</div>

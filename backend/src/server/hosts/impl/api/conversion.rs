@@ -16,19 +16,26 @@ impl HostResponse {
             created_at,
             updated_at,
             last_seen_at,
+            first_discovery_id,
+            last_discovery_id,
             name,
             // Derived from the fields below on the way out; nothing to carry back in.
             display_name: _,
             display_name_rung: _,
             name_ladder: _,
             name_source,
-            network_id,
+            site_id,
             hostname,
             hostname_source,
             description,
             source,
             virtualization_metadata,
             virtualization_service_id,
+            virtualization_interface_id,
+            // Derived from the virtualization links of other rows; nothing to carry back in.
+            virtualization_parent_host_id: _,
+            virtualization_root_host_id: _,
+            virtualization_depth: _,
             hidden,
             tags,
             sys_descr,
@@ -51,6 +58,8 @@ impl HostResponse {
             model_source,
             serial_number,
             serial_number_source,
+            asset_tag,
+            asset_tag_source,
             firmware_revision,
             firmware_revision_source,
             software_revision,
@@ -76,11 +85,11 @@ impl HostResponse {
             valid_to: None,
             lineage_id: None,
             last_seen_at: *last_seen_at,
-            last_discovery_id: None,
-            first_discovery_id: None,
+            last_discovery_id: *last_discovery_id,
+            first_discovery_id: *first_discovery_id,
             base: HostBase {
                 name: host_name_from_parts(name.clone(), *name_source),
-                network_id: *network_id,
+                site_id: *site_id,
                 hostname: hostname
                     .clone()
                     .map(|v| Attributed::new(HostHostnameValue(v), *hostname_source)),
@@ -88,6 +97,7 @@ impl HostResponse {
                 source: source.clone(),
                 virtualization_metadata: virtualization_metadata.clone(),
                 virtualization_service_id: *virtualization_service_id,
+                virtualization_interface_id: *virtualization_interface_id,
                 hidden: *hidden,
                 tags: tags.clone(),
                 sys_descr: sys_descr
@@ -120,6 +130,9 @@ impl HostResponse {
                 serial_number: serial_number
                     .clone()
                     .map(|v| Attributed::new(HostSerialNumberValue(v), *serial_number_source)),
+                asset_tag: asset_tag
+                    .clone()
+                    .map(|v| Attributed::new(HostAssetTagValue(v), *asset_tag_source)),
                 firmware_revision: firmware_revision.clone().map(|v| {
                     Attributed::new(HostFirmwareRevisionValue(v), *firmware_revision_source)
                 }),
@@ -174,16 +187,15 @@ impl HostResponse {
             id,
             created_at,
             updated_at,
-            // `last_seen_at` IS part of the response shape: it drives the
-            // "Last seen" column and the stale badge. The remaining SCD2/audit
-            // fields stay internal — an audit-trail UX can surface those later
-            // via the historical Discovery row + lineage queries.
+            // `last_seen_at` and the discovery runs that first and last found the host are part
+            // of the response shape: they drive the "Last seen", "First found by" and "Last found
+            // by" columns. The version-history fields stay internal.
             last_seen_at,
             valid_from: _,
             valid_to: _,
             lineage_id: _,
-            last_discovery_id: _,
-            first_discovery_id: _,
+            last_discovery_id,
+            first_discovery_id,
             base,
         } = host;
 
@@ -191,12 +203,13 @@ impl HostResponse {
         // If a field is added to HostBase, this will fail to compile
         let crate::server::hosts::r#impl::base::HostBase {
             name,
-            network_id,
+            site_id,
             hostname,
             description,
             source,
             virtualization_metadata,
             virtualization_service_id,
+            virtualization_interface_id,
             hidden,
             tags,
             sys_descr,
@@ -209,6 +222,7 @@ impl HostResponse {
             manufacturer,
             model,
             serial_number,
+            asset_tag,
             firmware_revision,
             software_revision,
             os,
@@ -220,18 +234,25 @@ impl HostResponse {
             created_at,
             updated_at,
             last_seen_at,
+            first_discovery_id,
+            last_discovery_id,
             display_name,
             display_name_rung,
             name_ladder: name_ladder.to_vec(),
             name_source: name.source(),
             name: name.value().to_string(),
-            network_id,
+            site_id,
             hostname_source: hostname.as_ref().map(|v| v.source()).unwrap_or_default(),
             hostname: attribution::text_of(&hostname),
             description,
             source,
             virtualization_metadata,
             virtualization_service_id,
+            virtualization_interface_id,
+            // Placed by `HostService::place_in_virtualization_trees`, which reads other rows.
+            virtualization_parent_host_id: None,
+            virtualization_root_host_id: None,
+            virtualization_depth: 0,
             hidden,
             tags,
             sys_descr_source: sys_descr.as_ref().map(|v| v.source()).unwrap_or_default(),
@@ -269,6 +290,8 @@ impl HostResponse {
                 .map(|v| v.source())
                 .unwrap_or_default(),
             serial_number: attribution::text_of(&serial_number),
+            asset_tag_source: asset_tag.as_ref().map(|v| v.source()).unwrap_or_default(),
+            asset_tag: attribution::text_of(&asset_tag),
             firmware_revision_source: firmware_revision
                 .as_ref()
                 .map(|v| v.source())

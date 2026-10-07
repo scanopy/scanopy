@@ -9,6 +9,7 @@
 		pemPrivateKey,
 		sshPrivateKey,
 		macAddress,
+		proxmoxTokenId,
 		ipAddressFormat
 	} from '$lib/shared/components/forms/validators';
 	import SegmentedControl from '$lib/shared/components/forms/SegmentedControl.svelte';
@@ -24,6 +25,7 @@
 	import { entityRef } from '$lib/shared/components/data/types';
 	import { credentialTypes, entities } from '$lib/shared/stores/metadata';
 	import { DAEMON_HOST_IP } from '../utils/credentialTargets';
+	import { fieldRows } from '../utils/fieldRows';
 	import { translateFieldDefinitions } from '$lib/i18n/metadata';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
@@ -41,6 +43,7 @@
 		type OsFamily
 	} from '../utils/placeholders';
 	import {
+		credentialFieldValues,
 		defaultFieldValue,
 		parseScriptSource,
 		scriptSourceText,
@@ -51,7 +54,9 @@
 	} from '../utils/fieldValues';
 	import {
 		common_description,
+		common_details,
 		common_name,
+		common_options,
 		credentials_credentialType,
 		credentials_daemonOs,
 		credentials_daemonOsHelp,
@@ -168,8 +173,8 @@
 	let fieldValues = $state<Record<string, string>>({});
 
 	// Where the credential applies: 'per_host' (Hosts — the daemon's own host
-	// and/or remote hosts by IP) or 'broadcast' (Networks — all hosts on the
-	// network). The available modes and per-host buttons are gated by `targets()`.
+	// and/or remote hosts by IP) or 'broadcast' (Sites — all hosts on the
+	// site). The available modes and per-host buttons are gated by `targets()`.
 	let targetMode = $state<'per_host' | 'broadcast'>('per_host');
 
 	function isDaemonHostValue(value: string): boolean {
@@ -180,7 +185,7 @@
 	let supportedTargets = $derived(
 		(credentialTypes.getMetadata(selectedTypeId)?.targets ?? []) as string[]
 	);
-	let supportsNetworks = $derived(supportedTargets.includes('Network'));
+	let supportsSites = $derived(supportedTargets.includes('Site'));
 	let supportsDaemonHost = $derived(supportedTargets.includes('DaemonHost'));
 	let supportsRemoteHosts = $derived(supportedTargets.includes('Hosts'));
 	let supportsHosts = $derived(supportsDaemonHost || supportsRemoteHosts);
@@ -192,8 +197,8 @@
 	// Guide for the selected type's integration. Comes from the credential metadata rather than a
 	// branch per type, so every credential type links its guide instead of the two that had one.
 	let integrationDocsPath = $derived(credentialTypes.getMetadata(selectedTypeId)?.docs_path ?? '');
-	// Show the Hosts | Networks toggle only when both modes are available.
-	let showTargetModeToggle = $derived(supportsHosts && supportsNetworks);
+	// Show the Hosts | Sites toggle only when both modes are available.
+	let showTargetModeToggle = $derived(supportsHosts && supportsSites);
 
 	// Get field definitions for the currently selected type (labels/placeholders/
 	// help text resolved via meta_* i18n keys with fixture-string fallback)
@@ -233,6 +238,67 @@
 		return groups;
 	});
 
+	let visibleFieldGroups = $derived(fieldGroups.filter((g) => g.fields.length > 0));
+
+	type FieldGroup = (typeof fieldGroups)[number];
+	interface FieldCard {
+		key: string;
+		title: string;
+		/** Holds the name/description/type fields (standard mode only). */
+		identity: boolean;
+		groups: FieldGroup[];
+	}
+
+	// Ungrouped fields (e.g. SNMPv3's context name) need a title once they sit beside named groups.
+	function groupTitle(name: string | null): string {
+		return name ?? common_options();
+	}
+
+	// A card holds two or more fields: a group with one field joins the card before it (the
+	// Details card for the first group), or the next card when nothing precedes it.
+	function buildFieldCards(withIdentity: boolean, groups: FieldGroup[]): FieldCard[] {
+		const cards: FieldCard[] = [];
+		if (withIdentity) {
+			cards.push({ key: '_identity', title: common_details(), identity: true, groups: [] });
+		}
+		let pending: FieldGroup[] = [];
+		for (const group of groups) {
+			const last = cards.at(-1);
+			if (group.fields.length === 1) {
+				if (last) last.groups.push(group);
+				else pending.push(group);
+				continue;
+			}
+			cards.push({
+				key: group.name ?? '_ungrouped',
+				title: groupTitle(group.name),
+				identity: false,
+				groups: [...pending, group]
+			});
+			pending = [];
+		}
+		if (pending.length > 0) {
+			cards.push({
+				key: pending[0].name ?? '_ungrouped',
+				title: groupTitle(pending[0].name),
+				identity: false,
+				groups: pending
+			});
+		}
+		return cards;
+	}
+
+	// Standard mode: the identity fields and each field group. Compact mode keeps the name on the
+	// surface above the groups.
+	let fieldCards = $derived(
+		compact
+			? buildFieldCards(false, visibleFieldGroups)
+			: buildFieldCards(section !== 'fields', section !== 'identity' ? visibleFieldGroups : [])
+	);
+
+	// One card's worth of fields sits on the modal surface; two or more cards each get a title.
+	let useGroupCards = $derived(fieldCards.length > 1);
+
 	// Track target IPs as local $state for reactivity (TanStack Form doesn't drive Svelte 5 reactivity)
 	let targetIpValues = $state<string[]>(['']);
 	let hasDaemonHostTarget = $derived(targetIpValues.some(isDaemonHostValue));
@@ -264,27 +330,8 @@
 	}
 
 	function initFieldValues(ct: CredentialType) {
-		const values: Record<string, string> = {};
-		const raw = ct as unknown as Record<string, unknown>;
-		const fields = credentialTypes.getMetadata(raw.type as string)?.fields ?? [];
-		const fieldMap = new Map(fields.map((f) => [f.id, f]));
-		for (const [key, val] of Object.entries(raw)) {
-			if (key === 'type') continue;
-			const fieldDef = fieldMap.get(key);
-			if (
-				(fieldDef?.field_type === 'secretpathorinline' ||
-					fieldDef?.field_type === 'pathorinline' ||
-					fieldDef?.field_type === 'scriptsource') &&
-				val != null &&
-				typeof val === 'object'
-			) {
-				values[key] = JSON.stringify(val);
-			} else {
-				values[key] = val != null ? String(val) : '';
-			}
-		}
-		fieldValues = values;
-		syncFieldsToForm(raw.type as string, 'all');
+		fieldValues = credentialFieldValues(ct, credentialTypes.getMetadata(ct.type)?.fields ?? []);
+		syncFieldsToForm(ct.type, 'all');
 	}
 
 	function initDefaultFieldValues(typeId: string) {
@@ -397,13 +444,13 @@
 	 *
 	 * Reads `targets` inline rather than through the `supportedTargets` derived, which is
 	 * still stale at this point in the update (same reason `reset()` computes it inline).
-	 * Without this a broadcast mode chosen for a Network-capable type would survive a switch
-	 * to one that excludes Network: the toggle hides, but the mode — and the scope it emits —
+	 * Without this a broadcast mode chosen for a Site-capable type would survive a switch
+	 * to one that excludes Site: the toggle hides, but the mode — and the scope it emits —
 	 * stays broadcast, producing a target the server discards.
 	 */
 	function applyDefaultTargetForType(typeId: string) {
 		const supported = (credentialTypes.getMetadata(typeId)?.targets ?? []) as string[];
-		targetMode = supported.includes('Network') ? 'broadcast' : 'per_host';
+		targetMode = supported.includes('Site') ? 'broadcast' : 'per_host';
 		// When the daemon host is the only per-host target, preselect it (the disabled
 		// 127.0.0.1 row) so there's nothing for the user to add.
 		targetIpValues =
@@ -715,7 +762,7 @@
 	// `validateTarget()`. This avoids a stale empty row (e.g. added then removed)
 	// failing field validation. Only the IP format of non-empty rows is checked.
 	// Broadcast credentials always pass (stale targetIps fields left after toggling
-	// Hosts -> Networks can't block submission). Reads the live, reactive `targetMode`.
+	// Hosts -> Sites can't block submission). Reads the live, reactive `targetMode`.
 	// `value` can be undefined: TanStack keeps a field registered after its row is removed,
 	// and `validateAllFields` on submit then runs it against an index the array no longer
 	// has. An absent value is an empty row, which is valid here.
@@ -794,14 +841,18 @@
 			if (field.inline_format === 'macaddress' && effectiveValue !== '********') {
 				return macAddress(effectiveValue);
 			}
+			if (field.inline_format === 'proxmoxtokenid') {
+				return proxmoxTokenId(effectiveValue);
+			}
 			return undefined;
 		};
 		return { onBlur: validate, onSubmit: validate };
 	}
 </script>
 
-<!-- The selected type's integration guide. One rendering for the dedicated modal (below the
-     type picker) and the daemon/discovery wizards (top of each compact row). -->
+<!-- The selected type's integration guide. One rendering for the dedicated modal (top of the
+     identity section, with the other feedback boxes) and the daemon/discovery wizards (top of each
+     compact row). -->
 {#snippet integrationDocsHint()}
 	{#if integrationDocsPath}
 		<DocsHint
@@ -818,7 +869,7 @@
 
 		{#if !hideTargets}
 			<!-- Hosts this credential already reaches through the host/credential junction.
-			     Informational, like the network-wide credential line in the wizard — these are
+			     Informational, like the site-wide credential line in the wizard — these are
 			     owned elsewhere, so they are listed rather than offered as editable rows.
 			     Shown in both modes: it is a fact about the credential, not about the choice
 			     being made here. -->
@@ -955,17 +1006,7 @@
 					{/snippet}
 				</form.Field>
 
-				{#each fieldGroups as group (group.name ?? '_ungrouped')}
-					{#if group.name}
-						<InfoCard title={group.name}>
-							{@render fieldList(group.fields)}
-						</InfoCard>
-					{:else if group.fields.length > 0}
-						<InfoCard title={null}>
-							{@render fieldList(group.fields)}
-						</InfoCard>
-					{/if}
-				{/each}
+				{@render fieldCardList()}
 			</fieldset>
 		{/if}
 	</div>
@@ -978,86 +1019,107 @@
 		}}
 		class="flex flex-col gap-4"
 	>
-		<!-- Standard mode: card wrapper for name/type, separate cards for fields. A caller showing one
-		     section unmounts the other's fields, so validation only reaches what is on screen; the
+		<!-- Standard mode: name/type and the field groups, laid out by `fieldCards`. A caller showing
+		     one section unmounts the other's fields, so validation only reaches what is on screen; the
 		     values and modes live in this component and the form, and survive. -->
 		{#if section !== 'fields'}
-			<div class="card card-static space-y-4 p-4">
-				{#if showName}
-					<form.Field
-						name={nameFieldName}
-						validators={{
-							onBlur: ({ value }: { value: string }) => required(value) || max(100)(value),
-							onSubmit: ({ value }: { value: string }) => required(value) || max(100)(value)
-						}}
-					>
-						{#snippet children(field: AnyFieldApi)}
-							<TextInput
-								label={common_name()}
-								id="credential-name"
-								{field}
-								placeholder={credentials_namePlaceholderExample()}
-								required
-							/>
-						{/snippet}
-					</form.Field>
-
-					<form.Field
-						name="description"
-						validators={{
-							onBlur: ({ value }: { value: string | null }) => max(500)(value || '')
-						}}
-					>
-						{#snippet children(field: AnyFieldApi)}
-							<TextArea
-								label={common_description()}
-								id="credential-description"
-								{field}
-								placeholder={credentials_descriptionPlaceholder()}
-							/>
-						{/snippet}
-					</form.Field>
-				{/if}
-
-				{#if showTypeSelector}
-					<div class="space-y-2">
-						<RichSelect
-							label={credentials_credentialType()}
-							selectedValue={selectedTypeId}
-							options={typeOptions}
-							displayComponent={CredentialTypeDisplay}
-							showSearch={true}
-							disabled={isEditing}
-							onSelect={handleTypeChange}
-						/>
-						{#if !isEditing}
-							<p class="text-muted mt-1 text-xs">{credentials_typeImmutableWarning()}</p>
-						{/if}
-					</div>
-				{/if}
-
-				{@render integrationDocsHint()}
-			</div>
+			{@render integrationDocsHint()}
 		{/if}
 
-		{#if section !== 'identity'}
-			{#each fieldGroups as group (group.name ?? '_ungrouped')}
-				{#if group.name}
-					<InfoCard title={group.name}>
-						{@render fieldList(group.fields)}
-					</InfoCard>
-				{:else if group.fields.length > 0}
-					<div class="card card-static space-y-4 p-4">
-						{@render fieldList(group.fields)}
-					</div>
-				{/if}
-			{/each}
-		{/if}
+		{@render fieldCardList()}
 
 		<!-- Hidden submit button for Enter-to-submit -->
 		<button type="submit" class="hidden" aria-hidden="true" tabindex={-1}></button>
 	</form>
 {/if}
+
+{#snippet fieldCardList()}
+	{#each fieldCards as card (card.key)}
+		{#if useGroupCards}
+			<InfoCard title={card.title}>
+				{@render fieldCardContents(card)}
+			</InfoCard>
+		{:else}
+			{@render fieldCardContents(card)}
+		{/if}
+	{/each}
+{/snippet}
+
+{#snippet fieldCardContents(card: FieldCard)}
+	{#if card.identity}
+		<div class="space-y-4">
+			{@render identityFields()}
+		</div>
+	{/if}
+	{#each card.groups as group (group.name ?? '_ungrouped')}
+		{@render fieldList(group.fields)}
+	{/each}
+{/snippet}
+
+{#snippet identityFields()}
+	{#if showName}
+		{@render nameField()}
+		{@render descriptionField()}
+	{/if}
+	{#if showTypeSelector}
+		{@render typeField()}
+	{/if}
+{/snippet}
+
+{#snippet nameField()}
+	<form.Field
+		name={nameFieldName}
+		validators={{
+			onBlur: ({ value }: { value: string }) => required(value) || max(100)(value),
+			onSubmit: ({ value }: { value: string }) => required(value) || max(100)(value)
+		}}
+	>
+		{#snippet children(field: AnyFieldApi)}
+			<TextInput
+				label={common_name()}
+				id="credential-name"
+				{field}
+				placeholder={credentials_namePlaceholderExample()}
+				required
+			/>
+		{/snippet}
+	</form.Field>
+{/snippet}
+
+{#snippet descriptionField()}
+	<form.Field
+		name="description"
+		validators={{
+			onBlur: ({ value }: { value: string | null }) => max(500)(value || '')
+		}}
+	>
+		{#snippet children(field: AnyFieldApi)}
+			<TextArea
+				label={common_description()}
+				id="credential-description"
+				{field}
+				placeholder={credentials_descriptionPlaceholder()}
+			/>
+		{/snippet}
+	</form.Field>
+{/snippet}
+
+{#snippet typeField()}
+	<div class="space-y-2">
+		<RichSelect
+			label={credentials_credentialType()}
+			selectedValue={selectedTypeId}
+			options={typeOptions}
+			displayComponent={CredentialTypeDisplay}
+			showSearch={true}
+			disabled={isEditing}
+			onSelect={handleTypeChange}
+		/>
+		{#if !isEditing}
+			<p class="text-muted mt-1 text-xs">{credentials_typeImmutableWarning()}</p>
+		{/if}
+	</div>
+{/snippet}
 
 {#snippet daemonOsPicker()}
 	<form.Field name="{fieldPrefix}{DAEMON_OS_FIELD}">
@@ -1441,12 +1503,20 @@
 {/snippet}
 
 {#snippet fieldList(fields: FieldDefinition[])}
-	{#each fields as field (field.id)}
+	{#each fieldRows(fields) as row (row[0].id)}
 		<!-- An OS choice several fields depend on comes once, above the first of them. -->
-		{#if showDaemonOsPicker && daemonOsDependents.length > 1 && daemonOsDependents[0] === field.id}
+		{#if showDaemonOsPicker && daemonOsDependents.length > 1 && row.some((field) => daemonOsDependents[0] === field.id)}
 			{@render daemonOsPicker()}
 		{/if}
-		{@render fieldRenderer(field, field.secret)}
+		{#if row.length === 2}
+			<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+				{#each row as field (field.id)}
+					{@render fieldRenderer(field, field.secret)}
+				{/each}
+			</div>
+		{:else}
+			{@render fieldRenderer(row[0], row[0].secret)}
+		{/if}
 	{/each}
 {/snippet}
 

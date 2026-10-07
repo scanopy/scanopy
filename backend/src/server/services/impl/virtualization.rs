@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
-use strum_macros::{EnumDiscriminants, IntoStaticStr, VariantNames};
+use strum_macros::{EnumDiscriminants, EnumIter, IntoStaticStr, VariantNames};
 use utoipa::ToSchema;
 use validator::Validate;
 
@@ -25,7 +25,7 @@ use crate::server::shared::{
     VariantNames,
     ToSchema,
 )]
-#[strum_discriminants(derive(IntoStaticStr))]
+#[strum_discriminants(derive(IntoStaticStr, EnumIter))]
 #[schema(title = "ServiceVirtualization")]
 #[serde(tag = "type", content = "details")]
 pub enum ServiceVirtualization {
@@ -94,13 +94,13 @@ impl ServiceVirtualization {
     }
 }
 
-impl HasId for ServiceVirtualization {
+impl HasId for ServiceVirtualizationDiscriminants {
     fn id(&self) -> &'static str {
         self.into()
     }
 }
 
-impl EntityMetadataProvider for ServiceVirtualization {
+impl EntityMetadataProvider for ServiceVirtualizationDiscriminants {
     fn color(&self) -> Color {
         Concept::Containerization.color()
     }
@@ -109,18 +109,18 @@ impl EntityMetadataProvider for ServiceVirtualization {
     }
 }
 
-impl TypeMetadataProvider for ServiceVirtualization {
+impl TypeMetadataProvider for ServiceVirtualizationDiscriminants {
     fn name(&self) -> &'static str {
         match self {
-            Self::Docker(_) => "Docker",
-            Self::Podman(_) => "Podman",
+            Self::Docker => "Docker",
+            Self::Podman => "Podman",
         }
     }
 
     fn description(&self) -> &'static str {
         match self {
-            Self::Docker(_) => "A service running in a docker container",
-            Self::Podman(_) => "A service running in a podman container",
+            Self::Docker => "Runs in a Docker container",
+            Self::Podman => "Runs in a Podman container",
         }
     }
 }

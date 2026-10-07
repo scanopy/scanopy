@@ -18,12 +18,7 @@
 		},
 		getTags: (credential) => {
 			const typeId = credential.credential_type.type;
-			return [
-				{
-					label: credentialTypes.getName(typeId),
-					color: credentialTypes.getColorHelper(typeId).color
-				}
-			];
+			return [credentialTypes.getTag(typeId)];
 		},
 		getCategory: (credential) => {
 			const typeId = credential.credential_type.type;

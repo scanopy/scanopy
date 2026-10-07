@@ -6,25 +6,29 @@
 	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
 	import PermissionSelect from '$lib/shared/components/api-keys/PermissionSelect.svelte';
 	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import { NetworkDisplay } from '$lib/shared/components/forms/selection/display/NetworkDisplay.svelte';
+	import { SiteDisplay } from '$lib/shared/components/forms/selection/display/SiteDisplay.svelte';
 	import { entities, permissions, metadata } from '$lib/shared/stores/metadata';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { useUpdateUserAsAdminMutation } from '$lib/features/users/queries';
 	import { pushSuccess } from '$lib/shared/stores/feedback';
 	import type { User, UserOrgPermissions } from '../types';
-	import type { Network } from '$lib/features/networks/types';
+	import type { Site } from '$lib/features/sites/types';
+	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
+	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
 	import {
+		common_access,
+		common_account,
 		common_authentication,
 		common_cancel,
 		common_email,
 		common_emailAndPassword,
-		common_networks,
+		common_sites,
 		common_saveChanges,
 		common_saving,
 		users_editUser,
 		users_editUserTitle,
-		users_hasAllNetworks,
-		users_networkAccessHelp,
+		users_hasAllSites,
+		users_siteAccessHelp,
 		users_permissionsLevel,
 		users_permissionsLevelHelp,
 		users_updateSuccess
@@ -42,8 +46,8 @@
 		name?: string;
 	} = $props();
 
-	const networksQuery = useNetworksQuery();
-	let networksData = $derived(networksQuery.data ?? []);
+	const sitesQuery = useSitesQuery();
+	let sitesData = $derived(sitesQuery.data ?? []);
 
 	// TanStack Query mutation for updating user
 	const updateUserMutation = useUpdateUserAsAdminMutation();
@@ -55,19 +59,17 @@
 
 	let loading = $derived(updateUserMutation.isPending);
 
-	// Permission levels that don't need network assignment
-	const networksNotNeeded: string[] = permissions
+	// Permission levels that don't need site assignment
+	const sitesNotNeeded: string[] = permissions
 		.getItems()
 		.filter((p) => p.metadata.manage_org_entities)
 		.map((p) => p.id);
 
-	// Selected networks state
-	let selectedNetworks: Network[] = $state([]);
+	// Selected sites state
+	let selectedSites: Site[] = $state([]);
 
-	// Available networks for selection
-	let networkOptions = $derived(
-		networksData.filter((n) => !selectedNetworks.some((sn) => sn.id === n.id))
-	);
+	// Available sites for selection
+	let siteOptions = $derived(sitesData.filter((n) => !selectedSites.some((sn) => sn.id === n.id)));
 
 	function getDefaultValues() {
 		return {
@@ -85,9 +87,9 @@
 				const updatedUser: User = {
 					...user,
 					permissions: value.permissions as UserOrgPermissions,
-					network_ids: networksNotNeeded.includes(value.permissions as UserOrgPermissions)
+					site_ids: sitesNotNeeded.includes(value.permissions as UserOrgPermissions)
 						? []
-						: selectedNetworks.map((n) => n.id)
+						: selectedSites.map((n) => n.id)
 				};
 
 				await updateUserMutation.mutateAsync(updatedUser);
@@ -99,29 +101,35 @@
 		}
 	}));
 
-	let permissionsValue = $derived(form.state.values.permissions);
+	// Mirrored from the form store: form.state.values is not tracked by $derived.
+	let permissionsValue = $state<string>(getDefaultValues().permissions);
+	$effect(() => {
+		return form.store.subscribe(() => {
+			permissionsValue = form.state.values.permissions;
+		});
+	});
 
 	// Reset form when modal opens
 	function handleOpen() {
 		form.reset(getDefaultValues());
 		if (user) {
-			selectedNetworks = user.network_ids
-				.map((id) => networksData.find((n) => n.id === id))
-				.filter((n): n is Network => n !== undefined);
+			selectedSites = user.site_ids
+				.map((id) => sitesData.find((n) => n.id === id))
+				.filter((n): n is Site => n !== undefined);
 		} else {
-			selectedNetworks = [];
+			selectedSites = [];
 		}
 	}
 
-	function handleAddNetwork(id: string) {
-		const network = networksData.find((n) => n.id === id);
-		if (network) {
-			selectedNetworks = [...selectedNetworks, network];
+	function handleAddSite(id: string) {
+		const site = sitesData.find((n) => n.id === id);
+		if (site) {
+			selectedSites = [...selectedSites, site];
 		}
 	}
 
-	function handleRemoveNetwork(index: number) {
-		selectedNetworks = selectedNetworks.filter((_, i) => i !== index);
+	function handleRemoveSite(index: number) {
+		selectedSites = selectedSites.filter((_, i) => i !== index);
 	}
 
 	async function handleSubmit() {
@@ -142,6 +150,7 @@
 	{title}
 	{name}
 	entityId={user?.id}
+	{form}
 	size="xl"
 	onClose={handleClose}
 	onOpen={handleOpen}
@@ -165,64 +174,60 @@
 		<div class="flex-1 overflow-auto p-6">
 			{#if user}
 				<div class="space-y-6">
-					<!-- User Info (read-only) -->
-					<div class="card card-static">
-						<div class="space-y-2">
-							<div class="flex items-center justify-between">
-								<span class="text-secondary text-sm">{common_email()}</span>
-								<span class="text-primary text-sm font-medium">{user.email}</span>
+					<InfoCard title={common_account()}>
+						<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+							<div class="space-y-1">
+								<span class="text-secondary block text-sm">{common_email()}</span>
+								<span class="text-primary block break-all text-sm font-medium">{user.email}</span>
 							</div>
-							<div class="flex items-center justify-between">
-								<span class="text-secondary text-sm">{common_authentication()}</span>
-								<span class="text-primary text-sm"
+							<div class="space-y-1">
+								<span class="text-secondary block text-sm">{common_authentication()}</span>
+								<span class="text-primary block text-sm"
 									>{user.oidc_provider || common_emailAndPassword()}</span
 								>
 							</div>
 						</div>
-					</div>
+					</InfoCard>
 
-					<!-- Permissions Selection -->
-					<form.Field
-						name="permissions"
-						validators={{
-							onChange: ({ value }) => required(value)
-						}}
-					>
-						{#snippet children(field)}
-							<PermissionSelect
-								{field}
-								label={users_permissionsLevel()}
-								context="user"
-								helpText={users_permissionsLevelHelp()}
+					<InfoCard title={common_access()}>
+						<form.Field
+							name="permissions"
+							validators={{
+								onChange: ({ value }) => required(value)
+							}}
+						>
+							{#snippet children(field)}
+								<PermissionSelect
+									{field}
+									label={users_permissionsLevel()}
+									context="user"
+									helpText={users_permissionsLevelHelp()}
+								/>
+							{/snippet}
+						</form.Field>
+
+						<!-- Site Assignment (only for Member/Viewer) -->
+						{#if !sitesNotNeeded.includes(permissionsValue as UserOrgPermissions)}
+							<ListManager
+								label={common_sites()}
+								helpText={users_siteAccessHelp()}
+								required={true}
+								allowReorder={false}
+								allowAddFromOptions={true}
+								allowCreateNew={false}
+								allowItemEdit={() => false}
+								disableCreateNewButton={false}
+								onAdd={handleAddSite}
+								onRemove={handleRemoveSite}
+								options={siteOptions}
+								optionDisplayComponent={SiteDisplay}
+								items={selectedSites}
+								itemDisplayComponent={SiteDisplay}
 							/>
-						{/snippet}
-					</form.Field>
-
-					<!-- Network Assignment (only for Member/Viewer) -->
-					{#if !networksNotNeeded.includes(permissionsValue as UserOrgPermissions)}
-						<ListManager
-							label={common_networks()}
-							helpText={users_networkAccessHelp()}
-							required={true}
-							allowReorder={false}
-							allowAddFromOptions={true}
-							allowCreateNew={false}
-							allowItemEdit={() => false}
-							disableCreateNewButton={false}
-							onAdd={handleAddNetwork}
-							onRemove={handleRemoveNetwork}
-							options={networkOptions}
-							optionDisplayComponent={NetworkDisplay}
-							items={selectedNetworks}
-							itemDisplayComponent={NetworkDisplay}
-						/>
-					{:else}
-						<div class="card card-static">
-							<p class="text-secondary text-sm">
-								{users_hasAllNetworks({ permissions: permissionsValue })}
-							</p>
-						</div>
-					{/if}
+						{:else}
+							<InlineInfo body={users_hasAllSites({ permissions: permissionsValue })} />
+						{/if}
+					</InfoCard>
 				</div>
 			{/if}
 		</div>

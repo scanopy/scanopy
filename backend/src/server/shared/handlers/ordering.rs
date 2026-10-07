@@ -39,12 +39,45 @@ pub trait OrderField: Clone + Copy + Default + Send + Sync + 'static {
         false
     }
 
+    /// The expression rows are grouped on when the list is grouped by this field, and the key the
+    /// response's `group_counts` carry. Defaults to [`Self::to_sql`].
+    ///
+    /// Separate because a field can group on something other than what it sorts and filters on:
+    /// "Virtualized By" sorts, and lists filter options, by the virtualizing service's name, but
+    /// groups each host under the top of its virtualization chain.
+    fn group_sql(&self) -> &'static str {
+        self.to_sql()
+    }
+
+    /// The JOIN [`Self::group_sql`] reads from. Defaults to [`Self::join_sql`].
+    fn group_join_sql(&self) -> Option<&'static str> {
+        self.join_sql()
+    }
+
+    /// The order inside each group when the list is grouped by this field, if the field
+    /// prescribes one. It takes precedence over the user's sort, which still breaks its ties.
+    ///
+    /// For a group that is a tree: the rows have to arrive parent first for the indentation to
+    /// mean anything, and a paginated list can't reorder rows it hasn't received.
+    fn group_order_sql(&self) -> Option<&'static str> {
+        None
+    }
+
     /// The field's ORDER BY term in the given direction.
     fn order_term(&self, dir: &str) -> String {
         if self.nulls_last() {
             format!("{} {} NULLS LAST", self.to_sql(), dir)
         } else {
             format!("{} {}", self.to_sql(), dir)
+        }
+    }
+
+    /// The ORDER BY term that keeps this field's groups together.
+    fn group_term(&self) -> String {
+        if self.nulls_last() {
+            format!("{} ASC NULLS LAST", self.group_sql())
+        } else {
+            format!("{} ASC", self.group_sql())
         }
     }
 }
@@ -99,16 +132,19 @@ where
 
     // Primary: group_by field (always ASC to keep groups together)
     if let Some(group_field) = group_by {
-        if let Some(join) = group_field.join_sql() {
+        if let Some(join) = group_field.group_join_sql() {
             filter = filter.join(join);
         }
-        order_parts.push(group_field.order_term("ASC"));
+        order_parts.push(group_field.group_term());
+        if let Some(within_group) = group_field.group_order_sql() {
+            order_parts.push(format!("{within_group} ASC"));
+        }
     }
 
     // Secondary: order_by field with specified direction
     if let Some(order_field) = order_by {
         // Only add JOIN if not already added by group_by
-        let group_join = group_by.and_then(|g| g.join_sql());
+        let group_join = group_by.and_then(|g| g.group_join_sql());
         let order_join = order_field.join_sql();
         if let Some(join) = order_join
             && group_join != order_join

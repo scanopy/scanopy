@@ -1,6 +1,6 @@
 //! Credential junction table types and storage.
 //!
-//! Models the `network_credentials` and `host_credentials` junction tables
+//! Models the `site_credentials` and `host_credentials` junction tables
 //! using `Storable` + `GenericPostgresStorage` instead of raw SQL.
 
 use anyhow::Result;
@@ -23,50 +23,50 @@ use crate::server::{
 };
 
 // =============================================================================
-// NetworkCredential (Junction Table)
+// SiteCredential (Junction Table)
 // =============================================================================
 
-/// A junction record linking a network to a credential.
+/// A junction record linking a site to a credential.
 #[derive(Debug, Clone, Default)]
-pub struct NetworkCredential {
-    pub network_id: Uuid,
+pub struct SiteCredential {
+    pub site_id: Uuid,
     pub credential_id: Uuid,
 }
 
-impl Display for NetworkCredential {
+impl Display for SiteCredential {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "NetworkCredential(network={}, credential={})",
-            self.network_id, self.credential_id
+            "SiteCredential(site={}, credential={})",
+            self.site_id, self.credential_id
         )
     }
 }
 
-impl Storable for NetworkCredential {
+impl Storable for SiteCredential {
     const HAS_SCD2: bool = false;
     type BaseData = (Uuid, Uuid);
 
     fn table_name() -> &'static str {
-        "network_credentials"
+        "site_credentials"
     }
 
     fn new(base: Self::BaseData) -> Self {
         Self {
-            network_id: base.0,
+            site_id: base.0,
             credential_id: base.1,
         }
     }
 
     fn get_base(&self) -> Self::BaseData {
-        (self.network_id, self.credential_id)
+        (self.site_id, self.credential_id)
     }
 
     fn to_params(&self) -> Result<(Vec<&'static str>, Vec<SqlValue>)> {
         Ok((
-            vec!["network_id", "credential_id"],
+            vec!["site_id", "credential_id"],
             vec![
-                SqlValue::Uuid(self.network_id),
+                SqlValue::Uuid(self.site_id),
                 SqlValue::Uuid(self.credential_id),
             ],
         ))
@@ -74,7 +74,7 @@ impl Storable for NetworkCredential {
 
     fn from_row(row: &PgRow) -> Result<Self> {
         Ok(Self {
-            network_id: row.get("network_id"),
+            site_id: row.get("site_id"),
             credential_id: row.get("credential_id"),
         })
     }
@@ -147,25 +147,24 @@ impl Storable for HostCredential {
 }
 
 // =============================================================================
-// NetworkCredentialStorage
+// SiteCredentialStorage
 // =============================================================================
 
-/// Storage operations for `network_credentials` junction table.
-pub struct NetworkCredentialStorage {
-    storage: GenericPostgresStorage<NetworkCredential>,
+/// Storage operations for `site_credentials` junction table.
+pub struct SiteCredentialStorage {
+    storage: GenericPostgresStorage<SiteCredential>,
 }
 
-impl NetworkCredentialStorage {
+impl SiteCredentialStorage {
     pub fn new(pool: PgPool) -> Self {
         Self {
             storage: GenericPostgresStorage::new(pool),
         }
     }
 
-    /// Get credential IDs for a network.
-    pub async fn get_credential_ids_for_network(&self, network_id: &Uuid) -> Result<Vec<Uuid>> {
-        let filter =
-            StorableFilter::<NetworkCredential>::new_from_uuid_column("network_id", network_id);
+    /// Get credential IDs for a site.
+    pub async fn get_credential_ids_for_site(&self, site_id: &Uuid) -> Result<Vec<Uuid>> {
+        let filter = StorableFilter::<SiteCredential>::new_from_uuid_column("site_id", site_id);
         let records = self
             .storage
             .get_all_ordered(filter, "credential_id ASC")
@@ -173,35 +172,31 @@ impl NetworkCredentialStorage {
         Ok(records.into_iter().map(|r| r.credential_id).collect())
     }
 
-    /// Get credential IDs for multiple networks (batch).
-    pub async fn get_credential_ids_for_networks(
+    /// Get credential IDs for multiple sites (batch).
+    pub async fn get_credential_ids_for_sites(
         &self,
-        network_ids: &[Uuid],
+        site_ids: &[Uuid],
     ) -> Result<HashMap<Uuid, Vec<Uuid>>> {
-        if network_ids.is_empty() {
+        if site_ids.is_empty() {
             return Ok(HashMap::new());
         }
-        let filter =
-            StorableFilter::<NetworkCredential>::new_from_uuids_column("network_id", network_ids);
-        let records = self
-            .storage
-            .get_all_ordered(filter, "network_id ASC")
-            .await?;
+        let filter = StorableFilter::<SiteCredential>::new_from_uuids_column("site_id", site_ids);
+        let records = self.storage.get_all_ordered(filter, "site_id ASC").await?;
 
         let mut map: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
         for record in records {
-            map.entry(record.network_id)
+            map.entry(record.site_id)
                 .or_default()
                 .push(record.credential_id);
         }
         Ok(map)
     }
 
-    /// Replace all credentials for a network (atomic).
-    /// Bulk-insert network↔credential rows in a single INSERT, with no
-    /// per-network lock or delete-first pass. For seed paths (demo populate) on
+    /// Replace all credentials for a site (atomic).
+    /// Bulk-insert site↔credential rows in a single INSERT, with no
+    /// per-site lock or delete-first pass. For seed paths (demo populate) on
     /// a freshly reset org where there are no existing rows to replace.
-    pub async fn create_many(&self, records: &[NetworkCredential]) -> Result<()> {
+    pub async fn create_many(&self, records: &[SiteCredential]) -> Result<()> {
         if records.is_empty() {
             return Ok(());
         }
@@ -209,25 +204,24 @@ impl NetworkCredentialStorage {
         Ok(())
     }
 
-    pub async fn save_for_network(&self, network_id: &Uuid, credential_ids: &[Uuid]) -> Result<()> {
+    pub async fn save_for_site(&self, site_id: &Uuid, credential_ids: &[Uuid]) -> Result<()> {
         let mut tx = self.storage.begin_transaction().await?;
-        // Serialize concurrent delete-all + re-insert syncs for one network.
+        // Serialize concurrent delete-all + re-insert syncs for one site.
         tx.lock(
             LockKey::JunctionSync {
-                parent: EntityDiscriminants::Network,
-                parent_id: *network_id,
+                parent: EntityDiscriminants::Site,
+                parent_id: *site_id,
             },
             DEFAULT_LOCK_TIMEOUT,
         )
         .await?;
 
-        let filter =
-            StorableFilter::<NetworkCredential>::new_from_uuid_column("network_id", network_id);
+        let filter = StorableFilter::<SiteCredential>::new_from_uuid_column("site_id", site_id);
         tx.delete_by_filter(filter).await?;
 
         for cred_id in credential_ids {
-            let record = NetworkCredential {
-                network_id: *network_id,
+            let record = SiteCredential {
+                site_id: *site_id,
                 credential_id: *cred_id,
             };
             tx.create(&record).await?;
@@ -237,28 +231,23 @@ impl NetworkCredentialStorage {
         Ok(())
     }
 
-    /// Get the network IDs a credential is assigned to (reverse lookup).
-    pub async fn get_network_ids_for_credential(&self, credential_id: &Uuid) -> Result<Vec<Uuid>> {
-        let filter = StorableFilter::<NetworkCredential>::new_from_uuid_column(
-            "credential_id",
-            credential_id,
-        );
-        let records = self
-            .storage
-            .get_all_ordered(filter, "network_id ASC")
-            .await?;
-        Ok(records.into_iter().map(|r| r.network_id).collect())
+    /// Get the site IDs a credential is assigned to (reverse lookup).
+    pub async fn get_site_ids_for_credential(&self, credential_id: &Uuid) -> Result<Vec<Uuid>> {
+        let filter =
+            StorableFilter::<SiteCredential>::new_from_uuid_column("credential_id", credential_id);
+        let records = self.storage.get_all_ordered(filter, "site_id ASC").await?;
+        Ok(records.into_iter().map(|r| r.site_id).collect())
     }
 
-    /// Get the network IDs for multiple credentials (batch, reverse lookup).
-    pub async fn get_network_ids_for_credentials(
+    /// Get the site IDs for multiple credentials (batch, reverse lookup).
+    pub async fn get_site_ids_for_credentials(
         &self,
         credential_ids: &[Uuid],
     ) -> Result<HashMap<Uuid, Vec<Uuid>>> {
         if credential_ids.is_empty() {
             return Ok(HashMap::new());
         }
-        let filter = StorableFilter::<NetworkCredential>::new_from_uuids_column(
+        let filter = StorableFilter::<SiteCredential>::new_from_uuids_column(
             "credential_id",
             credential_ids,
         );
@@ -271,18 +260,18 @@ impl NetworkCredentialStorage {
         for record in records {
             map.entry(record.credential_id)
                 .or_default()
-                .push(record.network_id);
+                .push(record.site_id);
         }
         Ok(map)
     }
 
-    /// Replace the full set of networks a credential is assigned to (atomic).
+    /// Replace the full set of sites a credential is assigned to (atomic).
     /// Only touches rows for this credential, so other credentials on the same
-    /// networks are left untouched.
-    pub async fn save_networks_for_credential(
+    /// sites are left untouched.
+    pub async fn save_sites_for_credential(
         &self,
         credential_id: &Uuid,
-        network_ids: &[Uuid],
+        site_ids: &[Uuid],
     ) -> Result<()> {
         let mut tx = self.storage.begin_transaction().await?;
         // Serialize concurrent delete-all + re-insert syncs for one credential.
@@ -295,15 +284,13 @@ impl NetworkCredentialStorage {
         )
         .await?;
 
-        let filter = StorableFilter::<NetworkCredential>::new_from_uuid_column(
-            "credential_id",
-            credential_id,
-        );
+        let filter =
+            StorableFilter::<SiteCredential>::new_from_uuid_column("credential_id", credential_id);
         tx.delete_by_filter(filter).await?;
 
-        for network_id in network_ids {
-            let record = NetworkCredential {
-                network_id: *network_id,
+        for site_id in site_ids {
+            let record = SiteCredential {
+                site_id: *site_id,
                 credential_id: *credential_id,
             };
             tx.create(&record).await?;

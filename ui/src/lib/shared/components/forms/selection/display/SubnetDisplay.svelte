@@ -1,7 +1,9 @@
 <script lang="ts" module>
 	import { isContainerSubnet } from '$lib/features/subnets/queries';
 
-	export interface SubnetDisplayContext {
+	export type SubnetTagRole = 'subnetType';
+
+	export interface SubnetDisplayContext extends DisplayTagContext<SubnetTagRole> {
 		showEntityTagPicker?: boolean;
 		tagPickerDisabled?: boolean;
 		entityTags?: import('$lib/features/tags/types/base').Tag[];
@@ -9,7 +11,6 @@
 		entityDescription?: string | null;
 		entityDescriptionDisabled?: boolean;
 		onEntityDescriptionSave?: (value: string | null) => void;
-		compact?: boolean;
 	}
 
 	export const SubnetDisplay: EntityDisplayComponent<Subnet, SubnetDisplayContext> = {
@@ -21,13 +22,13 @@
 		},
 		getIcon: (subnet: Subnet) => subnetTypes.getIconComponent(subnet.subnet_type),
 		getIconColor: (subnet: Subnet) => subnetTypes.getColorHelper(subnet.subnet_type).icon,
-		getTags: (subnet: Subnet, context: SubnetDisplayContext) => {
-			if (context?.compact) return [];
+		compactHides: ['subnetType'] satisfies SubnetTagRole[],
+		getTags: (subnet: Subnet) => {
 			if (!subnetTypes.getMetadata(subnet.subnet_type).show_label) return [];
 			return [
 				{
-					label: subnet.subnet_type,
-					color: subnetTypes.getColorHelper(subnet.subnet_type).color
+					...subnetTypes.getTag(subnet.subnet_type),
+					role: 'subnetType' satisfies SubnetTagRole
 				}
 			];
 		},
@@ -46,7 +47,7 @@
 
 <script lang="ts">
 	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
-	import type { EntityDisplayComponent } from '../types';
+	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
 	import { subnetTypes } from '$lib/shared/stores/metadata';
 	import type { Subnet } from '$lib/features/subnets/types/base';
 

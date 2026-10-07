@@ -214,7 +214,7 @@ jq -n --arg org "<organization id>" --arg host "<target host id>" --arg relay "<
     secure_on_password: null,
     wait_seconds: 120
   },
-  assigned_network_ids: [],
+  assigned_site_ids: [],
   host_assignments: [{host_id: $host, ip_address_ids: null}],
   tags: []
 }' |

@@ -47,8 +47,8 @@ pub struct LegacyCapabilities {
 pub struct DaemonRegistrationRequest {
     /// The daemon this entity refers to.
     pub daemon_id: Uuid,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// Name the daemon reports for itself.
     pub name: String,
     /// URL is ignored by server - kept for backwards compat with old daemons.
@@ -108,7 +108,7 @@ pub struct DaemonDiscoveryRequest {
     /// The discovery configuration this session belongs to. Old daemons ignore this field.
     #[serde(default)]
     pub discovery_id: Uuid,
-    /// The network's subnets as the server holds them.
+    /// The site's subnets as the server holds them.
     ///
     /// A scan that names specific subnets knows them by id, and the CIDR behind each id lives on
     /// the server. A DaemonPoll daemon can ask for them; a ServerPoll daemon has no server URL to
@@ -201,10 +201,51 @@ pub struct ScannedEntityIds {
     /// Service bindings touched by this discovery.
     #[serde(default)]
     pub binding_ids: Vec<Uuid>,
+    /// Subnets this discovery found without sweeping: ranges riding in a host request, ranges the
+    /// server inferred or placed addresses into, and ranges holding an address the scan saw.
+    ///
+    /// Filled by the server, never by a daemon. Kept apart from `subnet_ids` because the digest
+    /// reads that list as the ranges the scan *swept*, and counting a range it only found evidence
+    /// in would report every unobserved host there as stale. The discovery FKs take both.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub found_subnet_ids: Vec<Uuid>,
     // No `subnet_vlan_ids`: SubnetVlan is Snapshotable but not
     // DiscoveryTracked. Per-link discovery FKs aren't tracked; SCD2
     // `valid_from` / `valid_to` (soft-close on `unlink`) capture when the
     // link existed.
+}
+
+impl ScannedEntityIds {
+    /// Fold `other` in, keeping each list free of duplicates.
+    pub fn merge(&mut self, other: ScannedEntityIds) {
+        fn extend(into: &mut Vec<Uuid>, from: Vec<Uuid>) {
+            for id in from {
+                if !into.contains(&id) {
+                    into.push(id);
+                }
+            }
+        }
+        let ScannedEntityIds {
+            host_ids,
+            subnet_ids,
+            vlan_ids,
+            ip_address_ids,
+            port_ids,
+            service_ids,
+            interface_ids,
+            binding_ids,
+            found_subnet_ids,
+        } = other;
+        extend(&mut self.host_ids, host_ids);
+        extend(&mut self.subnet_ids, subnet_ids);
+        extend(&mut self.vlan_ids, vlan_ids);
+        extend(&mut self.ip_address_ids, ip_address_ids);
+        extend(&mut self.port_ids, port_ids);
+        extend(&mut self.service_ids, service_ids);
+        extend(&mut self.interface_ids, interface_ids);
+        extend(&mut self.binding_ids, binding_ids);
+        extend(&mut self.found_subnet_ids, found_subnet_ids);
+    }
 }
 
 /// Progress update from daemon to server during discovery
@@ -214,8 +255,8 @@ pub struct DiscoveryUpdatePayload {
     pub session_id: Uuid,
     /// The daemon this entity refers to.
     pub daemon_id: Uuid,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// Which stage of the run is in progress.
     pub phase: DiscoveryPhase,
     /// What type of discovery is running.
@@ -302,7 +343,7 @@ impl DiscoveryUpdatePayload {
     ) -> Event<DiscoveryPhase> {
         Event::new(
             DiscoveryScope {
-                network_id: self.network_id,
+                site_id: self.site_id,
                 session_id: self.session_id,
                 daemon_id: self.daemon_id,
                 discovery_type: self.discovery_type.clone(),
@@ -317,14 +358,14 @@ impl DiscoveryUpdatePayload {
     pub fn new(
         session_id: Uuid,
         daemon_id: Uuid,
-        network_id: Uuid,
+        site_id: Uuid,
         discovery_type: DiscoveryType,
         discovery_id: Option<Uuid>,
     ) -> Self {
         Self {
             session_id,
             daemon_id,
-            network_id,
+            site_id,
             phase: DiscoveryPhase::Queued,
             progress: 0,
             discovery_type,
@@ -351,7 +392,7 @@ impl DiscoveryUpdatePayload {
         Self {
             session_id: info.session_id,
             discovery_type,
-            network_id: info.network_id,
+            site_id: info.site_id,
             daemon_id: info.daemon_id,
             phase: update.phase,
             progress: update.progress,
@@ -467,10 +508,10 @@ impl ServerCapabilities {
 pub struct FirstContactRequest {
     /// The daemon's server-assigned ID
     pub daemon_id: Uuid,
-    /// The network the daemon belongs to (server-provisioned identity). Additive:
+    /// The site the daemon belongs to (server-provisioned identity). Additive:
     /// an older daemon that ignores this field still works off its cached id.
     #[serde(default)]
-    pub network_id: Option<Uuid>,
+    pub site_id: Option<Uuid>,
     /// The daemon's server-assigned name.
     #[serde(default)]
     pub name: Option<String>,
@@ -508,10 +549,10 @@ pub struct ProvisionDaemonRequest {
     /// the existing record's name is kept.
     #[serde(default)]
     pub name: Option<String>,
-    /// Network this daemon will be associated with. Required unless `daemon_id` is set, in
-    /// which case the existing record's network is kept.
+    /// Site this daemon will be associated with. Required unless `daemon_id` is set, in
+    /// which case the existing record's site is kept.
     #[serde(default)]
-    pub network_id: Option<Uuid>,
+    pub site_id: Option<Uuid>,
     /// How the daemon communicates with the server. Defaults to DaemonPoll
     /// (the daemon dials out) for forward-compat with older clients.
     #[serde(default)]
@@ -531,7 +572,7 @@ pub struct ProvisionDaemonRequest {
     pub os: Option<DaemonOs>,
     /// Mint a fresh 1:1 key for this existing daemon instead of creating a new record,
     /// keeping its host, discovery jobs and history. Used to give a legacy daemon (no bound
-    /// key) a dedicated one. When set, `name`/`network_id`/`mode`/`url` are ignored — those
+    /// key) a dedicated one. When set, `name`/`site_id`/`mode`/`url` are ignored — those
     /// come from the existing record.
     ///
     /// Only accepted for a daemon that has never checked in or has no bound key; a live
@@ -586,6 +627,30 @@ pub struct TestReachabilityResponse {
 mod scanned_payload_tests {
     use super::*;
     use crate::server::discovery::r#impl::types::{DiscoveryType, RunType};
+
+    /// A range the server found evidence in must not become one the scan swept: the digest reads
+    /// `subnet_ids` as coverage and would report every unobserved host in it as stale.
+    #[test]
+    fn merging_found_subnets_leaves_swept_coverage_alone() {
+        let swept = Uuid::new_v4();
+        let found = Uuid::new_v4();
+        let mut scanned = ScannedEntityIds {
+            subnet_ids: vec![swept],
+            ..Default::default()
+        };
+
+        scanned.merge(ScannedEntityIds {
+            found_subnet_ids: vec![found, found],
+            ..Default::default()
+        });
+        scanned.merge(ScannedEntityIds {
+            found_subnet_ids: vec![found],
+            ..Default::default()
+        });
+
+        assert_eq!(scanned.subnet_ids, vec![swept]);
+        assert_eq!(scanned.found_subnet_ids, vec![found]);
+    }
 
     fn payload_with_scanned(scanned: Option<ScannedEntityIds>) -> DiscoveryUpdatePayload {
         let mut p = DiscoveryUpdatePayload::new(

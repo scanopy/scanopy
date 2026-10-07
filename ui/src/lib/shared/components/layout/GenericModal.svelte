@@ -13,12 +13,28 @@
 		count?: number;
 		disabled?: boolean;
 	}
+
+	/** Open modals, oldest first. Only the last one answers keys shared by every modal. */
+	const openModals: symbol[] = [];
 </script>
 
 <script lang="ts">
-	import type { Snippet } from 'svelte';
-	import { ArrowLeft, X } from 'lucide-svelte';
-	import { common_closeModal, common_modal, common_modalTabs } from '$lib/paraglide/messages';
+	import { untrack, type Snippet } from 'svelte';
+	import { ArrowLeft, ChevronLeft, ChevronRight, X } from 'lucide-svelte';
+	import type { AnyFormApi } from '@tanstack/form-core';
+	import {
+		common_closeModal,
+		common_discard,
+		common_discardChangesMessage,
+		common_discardChangesTitle,
+		common_keepEditing,
+		common_modal,
+		common_modalTabs,
+		common_next,
+		common_previous
+	} from '$lib/paraglide/messages';
+	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
+	import { isEditableTarget } from '$lib/shared/utils/shortcuts';
 	import ModalStepper from './ModalStepper.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import { toColor } from '$lib/shared/utils/styling';
@@ -27,6 +43,8 @@
 		modalState,
 		openModal,
 		closeModal,
+		adjacentEntityId,
+		entityListOrderFor,
 		restoreModal,
 		setModalTab,
 		goBack
@@ -41,6 +59,7 @@
 		anchor = 'viewport',
 		preventCloseOnClickOutside = false,
 		showCloseButton = true,
+		showTitleRow = true,
 		showBackdrop = true,
 		borderless = false,
 		floatingCloseButton = false,
@@ -55,6 +74,8 @@
 		instanceKey = $bindable(0),
 		name = undefined,
 		entityId = undefined,
+		form = undefined,
+		unsavedState = undefined,
 		headerIcon,
 		banners,
 		children,
@@ -64,7 +85,7 @@
 		centerTitle?: boolean;
 		isOpen?: boolean;
 		onClose?: (() => void) | null;
-		size?: 'sm' | 'md' | 'lg' | 'xl' | 'full' | 'max';
+		size?: 'sm' | 'md' | 'lg' | 'xl' | 'wide' | 'full' | 'max';
 		/**
 		 * What the modal is positioned against. `viewport` covers the whole window; `container`
 		 * fills the nearest positioned ancestor instead, for a modal that belongs to one region of
@@ -73,6 +94,11 @@
 		anchor?: 'viewport' | 'container';
 		preventCloseOnClickOutside?: boolean;
 		showCloseButton?: boolean;
+		/**
+		 * False drops the title row, leaving the title for screen readers only: the search palette,
+		 * and Settings while it gates the app (its banners take the row's place).
+		 */
+		showTitleRow?: boolean;
 		showBackdrop?: boolean;
 		borderless?: boolean;
 		floatingCloseButton?: boolean;
@@ -87,6 +113,13 @@
 		instanceKey?: number;
 		name?: string;
 		entityId?: string;
+		/**
+		 * The editor's form. Arrow-key navigation to the previous or next entity asks before
+		 * leaving when it holds unsaved changes.
+		 */
+		form?: AnyFormApi;
+		/** Editable state the editor keeps outside `form`, such as a host's interface list. */
+		unsavedState?: () => unknown;
 		headerIcon?: Snippet;
 		/**
 		 * Rendered inside the panel frame, above the title. Opt-in: this component
@@ -99,17 +132,10 @@
 		footer?: Snippet;
 	} = $props();
 
-	// With banners in the frame above, the icon and title only compete with them,
-	// so the title row stands down. Guarded on `showCloseButton` because the close
-	// button lives in that row: a gated modal has none today, and this makes sure
-	// no future caller can lose its only way out. The heading itself survives as
-	// sr-only below, since `aria-labelledby` points at it.
-	let hideTitleRow = $derived(banners != null && !showCloseButton);
-
 	// Tabs and steppers share the title row, between the title and the close button, whenever
 	// that row shows a left-aligned title. Otherwise they keep their own row below. In the row,
 	// tabs never shrink below their full width; a long title truncates instead.
-	let inlineTabs = $derived(tabs.length > 0 && !hideTitleRow && !centerTitle);
+	let inlineTabs = $derived(tabs.length > 0 && showTitleRow && !centerTitle);
 
 	let showBackButton = $derived(
 		name != null && $modalState.name === name && $modalState.returnUrl != null
@@ -120,6 +146,100 @@
 
 	// Track previous open state to detect open transition
 	let wasOpen = $state(false);
+
+	// Stacking order: a dialog opened over this one takes Escape and the arrow keys, not both.
+	const stackToken = Symbol();
+	$effect(() => {
+		if (!isOpen) return;
+		openModals.push(stackToken);
+		return () => {
+			openModals.splice(openModals.indexOf(stackToken), 1);
+		};
+	});
+
+	function isTopmost(): boolean {
+		return openModals.at(-1) === stackToken;
+	}
+
+	// Left and Right step to the previous and next entity of the on-screen list this modal's
+	// entity belongs to. The ends stop rather than wrap.
+	let listOrder = $derived(isOpen && name && entityId ? entityListOrderFor(name, entityId) : null);
+	let previousId = $derived(entityId ? adjacentEntityId(listOrder, entityId, -1) : null);
+	let nextId = $derived(entityId ? adjacentEntityId(listOrder, entityId, 1) : null);
+
+	/** The entity a step is waiting to reach while the discard-changes dialog is up. */
+	let pendingNavigationId = $state<string | null>(null);
+	/** The entity a step has asked the registry for, until the parent hands it over. */
+	let navigatingToId: string | null = null;
+
+	/**
+	 * The editor's state as it stood when the user first touched it. Taken at the first pointer
+	 * or key press inside the panel rather than at open, because editors keep settling after they
+	 * open: fields normalise their values on mount and queries fill in data. Comparing against a
+	 * snapshot from open flagged those as edits nobody made.
+	 */
+	let baseline: string | null = null;
+
+	function editableSnapshot(): string {
+		return JSON.stringify({
+			form: form ? $state.snapshot(form.state.values) : null,
+			other: unsavedState ? $state.snapshot(unsavedState()) : null
+		});
+	}
+
+	function captureBaseline() {
+		if (baseline === null && (form || unsavedState)) baseline = editableSnapshot();
+	}
+
+	function isDirty(): boolean {
+		return baseline !== null && editableSnapshot() !== baseline;
+	}
+
+	function requestNavigation(targetId: string) {
+		if (isDirty()) {
+			pendingNavigationId = targetId;
+		} else {
+			navigateTo(targetId);
+		}
+	}
+
+	function navigateTo(targetId: string) {
+		if (!name) return;
+		const state = get(modalState);
+		navigatingToId = targetId;
+		// The parent's deep-link effect answers the registry by handing this modal the new entity.
+		openModal(name, {
+			id: targetId,
+			tab: activeTab || undefined,
+			returnUrl: state.returnUrl ?? undefined,
+			returnTitle: state.returnTitle ?? undefined
+		});
+	}
+
+	function confirmPendingNavigation() {
+		const targetId = pendingNavigationId;
+		pendingNavigationId = null;
+		if (targetId) navigateTo(targetId);
+	}
+
+	// Once the parent has swapped in the stepped-to entity, reload the editor as a fresh open
+	// would, keeping the tab the user was on.
+	$effect(() => {
+		if (isOpen && entityId && entityId === navigatingToId) {
+			navigatingToId = null;
+			untrack(() => {
+				const tab = activeTab;
+				baseline = null;
+				instanceKey++;
+				onOpen?.();
+				// onOpen resets the parent's tab; hand the user's tab back to it.
+				if (tab && tabs.some((t) => t.id === tab)) {
+					activeTab = tab;
+					onTabChange?.(tab);
+				}
+			});
+		}
+	});
 
 	function handleTabClick(tabId: string) {
 		activeTab = tabId;
@@ -142,6 +262,7 @@
 	// Sync modal state with URL on open/close transitions
 	$effect(() => {
 		if (isOpen && !wasOpen) {
+			baseline = null;
 			instanceKey++;
 
 			// Let the parent initialize first (e.g. reset form, set default tab)
@@ -219,6 +340,7 @@
 		md: 'max-w-lg',
 		lg: 'max-w-2xl',
 		xl: 'max-w-4xl',
+		wide: 'max-w-6xl',
 		full: 'max-w-7xl',
 		max: 'max-w-none w-full'
 	};
@@ -238,8 +360,23 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape' && isOpen) {
+		if (!isOpen || !isTopmost()) return;
+		if (event.key === 'Escape') {
 			handleClose();
+			return;
+		}
+		if (
+			(event.key === 'ArrowLeft' || event.key === 'ArrowRight') &&
+			!event.altKey &&
+			!event.ctrlKey &&
+			!event.metaKey &&
+			!event.shiftKey &&
+			!isEditableTarget(event.target)
+		) {
+			const targetId = event.key === 'ArrowLeft' ? previousId : nextId;
+			if (!targetId) return;
+			event.preventDefault();
+			requestNavigation(targetId);
 		}
 	}
 </script>
@@ -251,12 +388,12 @@
 	<div
 		class="{showBackdrop ? 'modal-page modal-background' : 'modal-page'} {anchor === 'container'
 			? 'modal-page-anchored'
-			: ''} {compactPadding ? '!px-2 !py-1 sm:!px-4 sm:!py-4' : ''}"
+			: ''} {compactPadding ? '!px-2 !py-1 sm:!px-4 sm:!py-4' : ''} {listOrder ? 'sm:!px-16' : ''}"
 		onclick={handleBackdropClick}
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="modal-title"
-		onkeydown={(e) => e.key === 'Escape' && handleClose()}
+		onkeydown={(e) => e.key === 'Escape' && isTopmost() && handleClose()}
 		tabindex="-1"
 	>
 		<!-- Floating back button (upper-left of viewport, over backdrop) -->
@@ -272,15 +409,24 @@
 			</button>
 		{/if}
 
+		<!-- Previous / next entity, over the backdrop either side of the panel. The backdrop's
+		     side gutter (below) keeps the panel clear of them at every size. -->
+		{#if listOrder}
+			{@render entityStep('ArrowLeft', previousId, common_previous(), 'left-3')}
+			{@render entityStep('ArrowRight', nextId, common_next(), 'right-3')}
+		{/if}
+
 		<!-- Modal content -->
 		<div
 			class="relative {borderless ? '' : 'modal-container'} {sizeClasses[size]} {compactPadding
-				? size === 'full' || fixedHeight
+				? size === 'full' || size === 'wide' || fixedHeight
 					? 'h-[calc(100vh-1rem)] sm:h-[calc(100vh-2rem)]'
 					: 'max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-2rem)]'
-				: size === 'full' || fixedHeight
+				: size === 'full' || size === 'wide' || fixedHeight
 					? 'h-[calc(100vh-2rem)] sm:h-[calc(100vh-8rem)]'
 					: 'max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-8rem)]'} flex w-full flex-col"
+			onpointerdowncapture={captureBaseline}
+			onkeydowncapture={captureBaseline}
 		>
 			<!-- Floating close button (absolute positioned within modal container) -->
 			{#if floatingCloseButton && onClose}
@@ -301,15 +447,15 @@
 					{@render banners()}
 				</div>
 			{/if}
-			{#if hideTitleRow}
-				<!-- Keeps the dialog's accessible name while the row is stood down. -->
+			{#if !showTitleRow}
+				<!-- Keeps the dialog's accessible name, which `aria-labelledby` points at, while the row is hidden. -->
 				<h2 id="modal-title" class="sr-only">{title}</h2>
 			{/if}
-			<!-- Header (hidden when no title, no close button, and no tabs) -->
-			{#if title || showCloseButton || tabs.length > 0}
+			<!-- Header (hidden when it would hold nothing: no title row and no tabs) -->
+			{#if (showTitleRow && (title || showCloseButton)) || tabs.length > 0}
 				<div class="modal-header flex-col gap-0 {tabs.length > 0 && !inlineTabs ? 'pb-0' : ''}">
 					<!-- Title row -->
-					{#if !hideTitleRow}
+					{#if showTitleRow}
 						<div class="flex w-full items-center justify-between {inlineTabs ? 'gap-6' : ''}">
 							{#if centerTitle}
 								{@render headerIcon?.()}
@@ -404,4 +550,41 @@
 			{@render footer?.()}
 		</div>
 	</div>
+{/if}
+
+{#snippet entityStep(key: string, targetId: string | null, label: string, side: string)}
+	<button
+		type="button"
+		disabled={!targetId}
+		onclick={() => targetId && requestNavigation(targetId)}
+		class="fixed {side} top-1/2 z-50 hidden -translate-y-1/2 rounded-full p-1 text-gray-200 transition-colors hover:text-white disabled:cursor-default disabled:opacity-30 sm:flex"
+		aria-label={label}
+		title={label}
+	>
+		<span
+			class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20"
+		>
+			{#if key === 'ArrowLeft'}
+				<ChevronLeft class="h-6 w-6" />
+			{:else}
+				<ChevronRight class="h-6 w-6" />
+			{/if}
+		</span>
+	</button>
+{/snippet}
+
+<!-- Only entity modals step between entities, so only they mount the discard dialog. The guard
+     also ends the recursion: ConfirmationDialog is itself a GenericModal, with no entity. -->
+{#if entityId}
+	<ConfirmationDialog
+		isOpen={pendingNavigationId !== null}
+		title={common_discardChangesTitle()}
+		message={common_discardChangesMessage()}
+		confirmLabel={common_discard()}
+		cancelLabel={common_keepEditing()}
+		variant="warning"
+		onConfirm={confirmPendingNavigation}
+		onCancel={() => (pendingNavigationId = null)}
+		onClose={() => (pendingNavigationId = null)}
+	/>
 {/if}

@@ -6,12 +6,12 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
- * Entity pickers use `RichSelect` with the entity's `*Display` component, so a picked network,
+ * Entity pickers use `RichSelect` with the entity's `*Display` component, so a picked site,
  * IP address or port shows its icon, tags and context like everywhere else in the app. A plain
  * `<select>` or `SelectInput` shows a bare name.
  *
  * Two rules:
- * - No plain dropdown is bound to an entity id (`network_id`, `selectedNetworkId`, ...).
+ * - No plain dropdown is bound to an entity id (`site_id`, `selectedSiteId`, ...).
  * - Every plain dropdown lives in a file listed in ALLOWED_PLAIN_DROPDOWNS, with the reason it
  *   stays plain. A new one needs an entry, which is the moment to ask whether it picks an entity.
  */
@@ -57,7 +57,6 @@ const ALLOWED_PLAIN_DROPDOWNS = new Map<string, string>([
 		'Cancellation reason: short static list.'
 	],
 	['lib/features/billing/PlanInquiryModal.svelte', 'Inquiry answers: short static lists.'],
-	['lib/shared/components/data/controls/ControlsBar.svelte', 'Group-by and sort-by column keys.'],
 	['lib/shared/components/data/controls/PaginationBar.svelte', 'Page size.']
 ]);
 
@@ -67,7 +66,7 @@ const PRIMITIVES = new Set([
 	'lib/shared/components/forms/input/MultiSelect.svelte'
 ]);
 
-/** An identifier ending in `_id(s)` or `Id(s)`: `network_id`, `selectedNetworkId`, `tag_ids`. */
+/** An identifier ending in `_id(s)` or `Id(s)`: `site_id`, `selectedSiteId`, `tag_ids`. */
 const ENTITY_ID = /(?:\w_ids?|[a-z]Ids?)\b/;
 
 export interface PlainDropdown {
@@ -117,7 +116,7 @@ function attribute(attrs: string, name: string): string | null {
  *  `<select>`'s `value`, or the `name` of the form field a `SelectInput` sits in. */
 export function findPlainDropdowns(source: string): PlainDropdown[] {
 	const markup = source
-		.replace(/<script\b[\s\S]*?<\/script>/g, blank)
+		.replace(/<script\b[\s\S]*?<\/script\b[^>]*>/gi, blank)
 		.replace(/<!--[\s\S]*?-->/g, blank);
 
 	const found: PlainDropdown[] = [];
@@ -158,17 +157,17 @@ function findSvelteFiles(dir: string): string[] {
 describe('findPlainDropdowns', () => {
 	it('flags a <select> bound to an entity id', () => {
 		const found = findPlainDropdowns(
-			'<div>\n<select value={networkId} onchange={(e) => pick(e)}>\n</select>\n</div>'
+			'<div>\n<select value={siteId} onchange={(e) => pick(e)}>\n</select>\n</div>'
 		);
-		expect(found).toEqual([{ line: 2, binding: 'networkId' }]);
+		expect(found).toEqual([{ line: 2, binding: 'siteId' }]);
 		expect(ENTITY_ID.test(found[0].binding)).toBe(true);
 	});
 
 	it('takes a SelectInput binding from its enclosing form field', () => {
 		const found = findPlainDropdowns(
-			'<form.Field name="network_id">\n{#snippet children(field)}\n<SelectInput {field} options={o} />\n{/snippet}\n</form.Field>'
+			'<form.Field name="site_id">\n{#snippet children(field)}\n<SelectInput {field} options={o} />\n{/snippet}\n</form.Field>'
 		);
-		expect(found).toEqual([{ line: 3, binding: 'network_id' }]);
+		expect(found).toEqual([{ line: 3, binding: 'site_id' }]);
 		expect(ENTITY_ID.test(found[0].binding)).toBe(true);
 	});
 
@@ -202,7 +201,7 @@ describe('plain entity dropdowns', () => {
 			expect.fail(
 				`Found ${violations.length} plain dropdown(s) picking an entity:\n\n${violations.join('\n')}\n\n` +
 					`Use RichSelect with the entity's Display component from ` +
-					`lib/shared/components/forms/selection/display/ (see SelectNetwork.svelte).`
+					`lib/shared/components/forms/selection/display/ (see SelectSite.svelte).`
 			);
 		}
 	});

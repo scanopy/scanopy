@@ -30,7 +30,7 @@ use crate::server::{
     hosts::r#impl::{
         base::Host,
         os::{HostOs, HostOsFamily},
-        virtualization::HostVirtualization,
+        virtualization::{ContainerNetworkType, HostVirtualization, ProxmoxGuestType},
     },
     interfaces::r#impl::base::Interface,
     ip_addresses::r#impl::base::IPAddress,
@@ -178,6 +178,15 @@ pub trait Storage<T: Storable>: Send + Sync {
         filter: StorableFilter<T>,
         group_sql: &str,
     ) -> Result<Vec<(Option<String>, u64)>, anyhow::Error>;
+    /// [`Self::count_by_group`], counting distinct values of `distinct_sql` per group instead of
+    /// rows. For tallies where two rows can stand for one thing, such as an address two hosts both
+    /// hold.
+    async fn count_distinct_by_group(
+        &self,
+        filter: StorableFilter<T>,
+        group_sql: &str,
+        distinct_sql: &str,
+    ) -> Result<Vec<(Option<String>, u64)>, anyhow::Error>;
     async fn update(&self, entity: &mut T) -> Result<T, anyhow::Error>;
     async fn delete(&self, id: &Uuid) -> Result<(), anyhow::Error>;
     async fn create_many(&self, entities: &[T]) -> Result<Vec<T>, anyhow::Error>;
@@ -287,15 +296,15 @@ pub trait Entity: Storable {
         Self::ENTITY_NAME_PLURAL
     }
 
-    /// Tenant scoping - network context
-    fn network_id(&self) -> Option<Uuid>;
+    /// Tenant scoping - site context
+    fn site_id(&self) -> Option<Uuid>;
 
     /// Tenant scoping - organization context
     fn organization_id(&self) -> Option<Uuid>;
 
-    /// Whether entities of this type are scoped to a network
-    fn is_network_keyed() -> bool {
-        Self::default().network_id().is_some()
+    /// Whether entities of this type are scoped to a site
+    fn is_site_keyed() -> bool {
+        Self::default().site_id().is_some()
     }
 
     /// Whether entities of this type are scoped to an organization
@@ -554,6 +563,25 @@ impl DbEnumContributor for AttributeSource {
     }
 }
 
+/// `HostVirtualization` is a third: a Proxmox guest's `guest_type` is a [`ProxmoxGuestType`] and a
+/// container host's `network_type` a [`ContainerNetworkType`], both written into
+/// `hosts.virtualization_metadata`, which `VariantNames` on the outer enum cannot see.
+impl DbEnumContributor for HostVirtualization {
+    fn contribute(out: &mut std::collections::BTreeMap<&'static str, Vec<String>>) {
+        let variants: Vec<String> = <HostVirtualization as ::strum::VariantNames>::VARIANTS
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        out.insert(db_enum_key_for::<HostVirtualization>(), variants);
+
+        ProxmoxGuestType::contribute(out);
+        ContainerNetworkType::contribute(out);
+    }
+}
+
+impl_db_enum_contributor_via_variant_names!(ProxmoxGuestType);
+impl_db_enum_contributor_via_variant_names!(ContainerNetworkType);
+
 /// `DisplaySettings` holds nested enums that nothing else reaches, but they stay out of the
 /// coexistence catalog on purpose. `User::from_row` falls back to `DisplaySettings::default()`
 /// when the stored JSON doesn't decode, so a binary that meets a variant it doesn't know shows
@@ -616,7 +644,6 @@ impl_db_enum_contributor_via_variant_names!(
 impl_db_enum_contributor_via_variant_names!(
     EntitySource,
     ClientProbe,
-    HostVirtualization,
     ServiceVirtualization,
     DiscoveryType,
     BillingPlan,

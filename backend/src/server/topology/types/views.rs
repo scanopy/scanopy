@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::server::{
     hosts::r#impl::virtualization::HostVirtualizationState,
-    interfaces::r#impl::base::InterfaceLinkState,
+    interfaces::r#impl::base::{IfOperStatus, InterfaceLinkState},
     services::r#impl::categories::ServiceCategory,
     shared::{
         concepts::Concept,
@@ -77,7 +77,7 @@ pub struct TopologyViewSupport {
     /// L2Physical requires interface-level neighbor discovery (LLDP/CDP).
     pub l2_physical: bool,
     /// Application requires at least one application-flagged tag to be
-    /// assigned to an entity in the topology's network.
+    /// assigned to an entity in the topology's site.
     pub application: bool,
 }
 
@@ -112,13 +112,13 @@ pub struct ViewElementConfig {
     /// Host elements inline services but Service elements inline nothing — can
     /// be expressed correctly.
     pub element_entities: Vec<ViewElementEntityConfig>,
-    /// Generic metadata filters keyed by the entity they apply to in this
-    /// view. Applied regardless of the entity's role (container/element/
-    /// inline) — a Service metadata filter renders under the Services
-    /// section whether Service is an element entity (Workloads/Application)
-    /// or an inline entity (L3).
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub metadata_filters: HashMap<EntityDiscriminants, Vec<MetadataFilter>>,
+    /// The metadata filters this view offers, each naming the entities it reads and hides.
+    /// Applied regardless of an entity's role (container/element/inline): a Service filter
+    /// renders under the Services section whether Service is an element entity
+    /// (Workloads/Application) or an inline entity (L3). A filter naming several entities renders
+    /// in a section of its own.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub metadata_filters: Vec<MetadataFilter>,
     /// Filter values this view hides out of the box, keyed the same way as the
     /// hide-set in request options.
     ///
@@ -137,6 +137,54 @@ pub struct ViewElementConfig {
     /// the UI pluralizes as needed.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub collective_noun: Option<String>,
+    /// The colours this view paints on its element cards, each tied to the filter value that
+    /// explains it. A card shows a classification colour only through one of these, so every
+    /// colour has a chip in the filter panel whose hover rings the same cards. Per channel, earlier
+    /// marks win.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub element_marks: Vec<ElementMark>,
+}
+
+/// Where on an element card a mark paints.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, ToSchema, EnumIter)]
+pub enum MarkChannel {
+    /// The card's header text.
+    Title,
+    /// The dot beside a port's speed.
+    StatusDot,
+    /// The whole card, when it draws as a bare box below the detail threshold.
+    StateFill,
+}
+
+/// A colour a view paints on its element cards, named by the filter value that decodes it.
+///
+/// The colour is that value's `FilterValue::color`; the mark carries none of its own, so the card
+/// and the chip cannot disagree. A card is marked when its own entity, or its host, carries
+/// `value` under `filter_type`, judged by the extractor the filter's hover uses.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
+pub struct ElementMark {
+    pub channel: MarkChannel,
+    /// The entity whose filter value is read: the card's own, or `Host` for the card's host.
+    pub entity: EntityDiscriminants,
+    pub filter_type: MetadataFilterType,
+    /// The `FilterValue::id` that paints.
+    pub value: String,
+}
+
+impl ElementMark {
+    fn new(
+        channel: MarkChannel,
+        entity: EntityDiscriminants,
+        filter_type: MetadataFilterType,
+        value: &impl HasId,
+    ) -> Self {
+        Self {
+            channel,
+            entity,
+            filter_type,
+            value: value.id().to_string(),
+        }
+    }
 }
 
 /// Entities the topology can filter by staleness: those with a stale badge in the inventory or
@@ -179,26 +227,46 @@ impl ViewElementConfig {
             if !is_container(entity) && !is_element(entity) && !is_inline(entity) {
                 continue;
             }
-            self.metadata_filters
-                .entry(entity)
-                .or_default()
-                .push(MetadataFilter {
-                    filter_type: MetadataFilterType::Staleness,
-                    label: "By staleness".to_string(),
-                    // `New` is a digest-only bucket — it means "created during
-                    // the scan window being reported on" and has no meaning in
-                    // a live topology — so the values are enumerated rather
-                    // than taken from the whole enum.
-                    values: [EntityFreshness::Current, EntityFreshness::Stale]
-                        .into_iter()
-                        .map(|f| {
-                            <EntityFreshness as MetadataProvider<TypeMetadata>>::to_metadata(&f)
-                                .into()
-                        })
-                        .collect(),
-                    applies: FilterApplication::Client,
-                });
+            self.metadata_filters.push(MetadataFilter {
+                filter_type: MetadataFilterType::Staleness,
+                // One per entity: each is judged on its own `last_seen_at`, so hiding stale
+                // services leaves stale hosts alone.
+                entities: vec![entity],
+                label: "By staleness".to_string(),
+                // `New` is a digest-only bucket — it means "created during
+                // the scan window being reported on" and has no meaning in
+                // a live topology — so the values are enumerated rather
+                // than taken from the whole enum.
+                values: [EntityFreshness::Current, EntityFreshness::Stale]
+                    .into_iter()
+                    .map(|f| {
+                        <EntityFreshness as MetadataProvider<TypeMetadata>>::to_metadata(&f).into()
+                    })
+                    .collect(),
+                applies: FilterApplication::Client,
+            });
         }
+    }
+
+    /// The filters that read and hide `entity`.
+    pub fn filters_for(
+        &self,
+        entity: EntityDiscriminants,
+    ) -> impl Iterator<Item = &MetadataFilter> {
+        self.metadata_filters
+            .iter()
+            .filter(move |f| f.entities.contains(&entity))
+    }
+
+    /// The filter of `filter_type` covering `entity`. At most one exists per view (tested), which
+    /// is what lets the hide-set be keyed by entity and filter type.
+    pub fn filter(
+        &self,
+        entity: EntityDiscriminants,
+        filter_type: MetadataFilterType,
+    ) -> Option<&MetadataFilter> {
+        self.filters_for(entity)
+            .find(|f| f.filter_type == filter_type)
     }
 }
 
@@ -247,9 +315,12 @@ pub enum MetadataFilterType {
     LinkState,
     /// How recently discovery observed the entity. Unlike the others, this
     /// value is not intrinsic to the entity — it depends on the entity's
-    /// network staleness window and the current time — so the frontend
-    /// extractor for it takes the network as context.
+    /// site staleness window and the current time — so the frontend
+    /// extractor for it takes the site as context.
     Staleness,
+    /// A port's ifOperStatus. Declared on Interface in L2, where it is what the card's status dot
+    /// and zoomed-out fill show.
+    OperStatus,
 }
 
 impl HasId for MetadataFilterType {
@@ -306,6 +377,9 @@ impl HasId for FilterApplication {
 pub struct MetadataFilter {
     /// What the filter narrows by.
     pub filter_type: MetadataFilterType,
+    /// The entities this filter reads and hides. Hovering a value rings every listed entity
+    /// carrying it; hiding one writes it into the hide-set under each listed entity.
+    pub entities: Vec<EntityDiscriminants>,
     /// User-facing sub-section label (e.g. "By Category", "By Virtualization").
     pub label: String,
     /// The choices offered for this filter.
@@ -356,7 +430,7 @@ where
 
 /// Cross-entity state a filter value may depend on.
 ///
-/// Deliberately carries topology-build state only — no network and no clock. A filter that needs
+/// Deliberately carries topology-build state only — no site and no clock. A filter that needs
 /// either is a filter that cannot run on the server (see `FilterApplication`), so admitting them
 /// here would only make it easy to build something that returns different answers over time.
 #[derive(Debug, Default)]
@@ -422,7 +496,7 @@ pub enum DependencyMemberType {
 )]
 pub enum InspectorSection {
     Identity,
-    IfEntryData,
+    InterfaceData,
     Services,
     Dependencies,
     HostDetail,
@@ -433,6 +507,96 @@ pub enum InspectorSection {
     ElementSummary,
     DependencySummary,
     Application,
+}
+
+impl HasId for InspectorSection {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+/// Each section's heading in the inspector: what it holds, drawn with the entity or concept it
+/// is about.
+impl EntityMetadataProvider for InspectorSection {
+    fn color(&self) -> Color {
+        match self {
+            InspectorSection::Identity | InspectorSection::ElementSummary => Color::Gray,
+            InspectorSection::InterfaceData => EntityDiscriminants::Interface.color(),
+            InspectorSection::Services => EntityDiscriminants::Service.color(),
+            InspectorSection::Dependencies | InspectorSection::DependencySummary => {
+                EntityDiscriminants::Dependency.color()
+            }
+            InspectorSection::HostDetail => EntityDiscriminants::Host.color(),
+            InspectorSection::Virtualization => Concept::Virtualization.color(),
+            InspectorSection::OtherInterfaces => EntityDiscriminants::IPAddress.color(),
+            InspectorSection::PortBindings => EntityDiscriminants::Port.color(),
+            InspectorSection::SubnetDetail => EntityDiscriminants::Subnet.color(),
+            InspectorSection::Application => Concept::Application.color(),
+        }
+    }
+
+    fn icon(&self) -> Icon {
+        match self {
+            InspectorSection::Identity => Icon::Crosshair,
+            InspectorSection::ElementSummary => Icon::PackageOpen,
+            InspectorSection::InterfaceData => EntityDiscriminants::Interface.icon(),
+            InspectorSection::Services => EntityDiscriminants::Service.icon(),
+            InspectorSection::Dependencies | InspectorSection::DependencySummary => {
+                EntityDiscriminants::Dependency.icon()
+            }
+            InspectorSection::HostDetail => EntityDiscriminants::Host.icon(),
+            InspectorSection::Virtualization => Concept::Virtualization.icon(),
+            InspectorSection::OtherInterfaces => EntityDiscriminants::IPAddress.icon(),
+            InspectorSection::PortBindings => EntityDiscriminants::Port.icon(),
+            InspectorSection::SubnetDetail => EntityDiscriminants::Subnet.icon(),
+            InspectorSection::Application => Concept::Application.icon(),
+        }
+    }
+}
+
+impl TypeMetadataProvider for InspectorSection {
+    fn name(&self) -> &'static str {
+        match self {
+            InspectorSection::Identity => "Selected",
+            InspectorSection::InterfaceData => "Interface data",
+            InspectorSection::Services => "Services",
+            InspectorSection::Dependencies => "Dependencies",
+            InspectorSection::HostDetail => "Host",
+            InspectorSection::Virtualization => "Runs on",
+            InspectorSection::OtherInterfaces => "IP addresses",
+            InspectorSection::PortBindings => "Port bindings",
+            InspectorSection::SubnetDetail => "Subnet",
+            InspectorSection::ElementSummary => "Contents",
+            InspectorSection::DependencySummary => "Crossing dependencies",
+            InspectorSection::Application => "Application",
+        }
+    }
+
+    /// One line under the heading saying what the section holds and why it is here.
+    fn description(&self) -> &'static str {
+        match self {
+            InspectorSection::Identity => "The entity you selected",
+            InspectorSection::InterfaceData => {
+                "Status and counters the device reports for this port"
+            }
+            InspectorSection::Services => {
+                "Services on this host, and on the hosts it presents or runs"
+            }
+            InspectorSection::Dependencies => "Dependencies this service is part of",
+            InspectorSection::HostDetail => "The host this element belongs to",
+            InspectorSection::Virtualization => {
+                "The hypervisor, container runtime or guest that this host runs under"
+            }
+            InspectorSection::OtherInterfaces => "Every address this host holds",
+            InspectorSection::PortBindings => "Ports this service listens on",
+            InspectorSection::SubnetDetail => "The subnet this box draws",
+            InspectorSection::ElementSummary => "What this box holds, counted by type",
+            InspectorSection::DependencySummary => {
+                "Dependencies with members both inside and outside this box"
+            }
+            InspectorSection::Application => "The application this service belongs to",
+        }
+    }
 }
 
 /// View-specific inspector panel configuration.
@@ -521,7 +685,52 @@ impl TopologyView {
         let mut config = self.base_element_config();
         config.add_staleness_filters();
         config.default_hidden_values = self.default_hidden_values();
+        config.element_marks = self.element_marks(&config);
         config
+    }
+
+    /// The colours this view paints on element cards, in priority order per channel.
+    ///
+    /// Every view fills a zoomed-out card amber when its element is stale. L2 adds port status
+    /// (down above stale, up below it, so a dead link is never hidden behind a quiet one) and
+    /// colours each port's dot. Workloads colours a guest card's title by what kind of guest it
+    /// is. L3 and Application colour no titles: neither declares a Host filter to explain one.
+    fn element_marks(&self, config: &ViewElementConfig) -> Vec<ElementMark> {
+        use EntityDiscriminants::{Host, Interface};
+        use MarkChannel::*;
+        use MetadataFilterType::{OperStatus, Staleness, Virtualization};
+
+        let stale_fill: Vec<ElementMark> = config
+            .element_entities
+            .iter()
+            .filter(|e| STALENESS_FILTERED_ENTITIES.contains(&e.entity_type))
+            .map(|e| ElementMark::new(StateFill, e.entity_type, Staleness, &EntityFreshness::Stale))
+            .collect();
+        let status = |channel, status: IfOperStatus| {
+            ElementMark::new(channel, Interface, OperStatus, &status)
+        };
+
+        match self {
+            Self::L2Physical => [
+                status(StateFill, IfOperStatus::Down),
+                status(StateFill, IfOperStatus::LowerLayerDown),
+            ]
+            .into_iter()
+            .chain(stale_fill)
+            .chain([
+                status(StateFill, IfOperStatus::Up),
+                status(StatusDot, IfOperStatus::Up),
+                status(StatusDot, IfOperStatus::Down),
+                status(StatusDot, IfOperStatus::LowerLayerDown),
+            ])
+            .collect(),
+            Self::Workloads => HostVirtualizationState::iter()
+                .filter(|s| *s != HostVirtualizationState::BareMetal)
+                .map(|s| ElementMark::new(Title, Host, Virtualization, &s))
+                .chain(stale_fill)
+                .collect(),
+            Self::L3Logical | Self::Application => stale_fill,
+        }
     }
 
     /// Filter values hidden out of the box in this view.
@@ -574,20 +783,17 @@ impl TopologyView {
                     // so order is irrelevant there.
                     inline_entities: vec![EntityDiscriminants::Port, EntityDiscriminants::Service],
                 }],
-                metadata_filters: [(
-                    EntityDiscriminants::Service,
-                    vec![MetadataFilter {
-                        filter_type: MetadataFilterType::Category,
-                        label: "By category".to_string(),
-                        values: filter_values_from_enum::<ServiceCategory>(),
-                        applies: FilterApplication::Client,
-                    }],
-                )]
-                .into_iter()
-                .collect(),
+                metadata_filters: vec![MetadataFilter {
+                    filter_type: MetadataFilterType::Category,
+                    entities: vec![EntityDiscriminants::Service],
+                    label: "By category".to_string(),
+                    values: filter_values_from_enum::<ServiceCategory>(),
+                    applies: FilterApplication::Client,
+                }],
                 // Populated by `element_config`, which is the only public constructor.
                 default_hidden_values: HashMap::new(),
                 collective_noun: None,
+                element_marks: Vec::new(),
             },
             Self::L2Physical => ViewElementConfig {
                 container_entity: Some(EntityDiscriminants::Host),
@@ -595,10 +801,10 @@ impl TopologyView {
                     entity_type: EntityDiscriminants::Interface,
                     inline_entities: vec![],
                 }],
-                metadata_filters: [(
-                    EntityDiscriminants::Interface,
-                    vec![MetadataFilter {
+                metadata_filters: vec![
+                    MetadataFilter {
                         filter_type: MetadataFilterType::LinkState,
+                        entities: vec![EntityDiscriminants::Interface],
                         label: "By link".to_string(),
                         values: filter_values_from_enum::<InterfaceLinkState>(),
                         // The only server-side filter. It hides ~16,000 of L2's 19,095 interfaces —
@@ -606,13 +812,20 @@ impl TopologyView {
                         // loads and one that exhausts browser memory. Link state is derivable from the
                         // topology being built, so it qualifies.
                         applies: FilterApplication::Server,
-                    }],
-                )]
-                .into_iter()
-                .collect(),
+                    },
+                    // Decodes the port status dot and zoomed-out fill (see `element_marks`).
+                    MetadataFilter {
+                        filter_type: MetadataFilterType::OperStatus,
+                        entities: vec![EntityDiscriminants::Interface],
+                        label: "By status".to_string(),
+                        values: filter_values_from_enum::<IfOperStatus>(),
+                        applies: FilterApplication::Client,
+                    },
+                ],
                 // Populated by `element_config`, which is the only public constructor.
                 default_hidden_values: HashMap::new(),
                 collective_noun: None,
+                element_marks: Vec::new(),
             },
             Self::Workloads => ViewElementConfig {
                 container_entity: Some(EntityDiscriminants::Host),
@@ -626,31 +839,28 @@ impl TopologyView {
                         inline_entities: vec![EntityDiscriminants::Service],
                     },
                 ],
-                metadata_filters: [
-                    (
-                        EntityDiscriminants::Service,
-                        vec![MetadataFilter {
-                            filter_type: MetadataFilterType::Category,
-                            label: "By category".to_string(),
-                            values: filter_values_from_enum::<ServiceCategory>(),
-                            applies: FilterApplication::Client,
-                        }],
-                    ),
-                    (
-                        EntityDiscriminants::Host,
-                        vec![MetadataFilter {
-                            filter_type: MetadataFilterType::Virtualization,
-                            label: "By virtualization".to_string(),
-                            values: filter_values_from_enum::<HostVirtualizationState>(),
-                            applies: FilterApplication::Client,
-                        }],
-                    ),
-                ]
-                .into_iter()
-                .collect(),
+                metadata_filters: vec![
+                    MetadataFilter {
+                        filter_type: MetadataFilterType::Category,
+                        entities: vec![EntityDiscriminants::Service],
+                        label: "By category".to_string(),
+                        values: filter_values_from_enum::<ServiceCategory>(),
+                        applies: FilterApplication::Client,
+                    },
+                    // Both workload kinds: a guest or macvlan container is a Host card, a container
+                    // on a bridge network is a Service card, and Containerized covers both.
+                    MetadataFilter {
+                        filter_type: MetadataFilterType::Virtualization,
+                        entities: vec![EntityDiscriminants::Host, EntityDiscriminants::Service],
+                        label: "By virtualization".to_string(),
+                        values: filter_values_from_enum::<HostVirtualizationState>(),
+                        applies: FilterApplication::Client,
+                    },
+                ],
                 // Populated by `element_config`, which is the only public constructor.
                 default_hidden_values: HashMap::new(),
                 collective_noun: Some("workload".to_string()),
+                element_marks: Vec::new(),
             },
             Self::Application => ViewElementConfig {
                 container_entity: None,
@@ -658,20 +868,17 @@ impl TopologyView {
                     entity_type: EntityDiscriminants::Service,
                     inline_entities: vec![],
                 }],
-                metadata_filters: [(
-                    EntityDiscriminants::Service,
-                    vec![MetadataFilter {
-                        filter_type: MetadataFilterType::Category,
-                        label: "By category".to_string(),
-                        values: filter_values_from_enum::<ServiceCategory>(),
-                        applies: FilterApplication::Client,
-                    }],
-                )]
-                .into_iter()
-                .collect(),
+                metadata_filters: vec![MetadataFilter {
+                    filter_type: MetadataFilterType::Category,
+                    entities: vec![EntityDiscriminants::Service],
+                    label: "By category".to_string(),
+                    values: filter_values_from_enum::<ServiceCategory>(),
+                    applies: FilterApplication::Client,
+                }],
                 // Populated by `element_config`, which is the only public constructor.
                 default_hidden_values: HashMap::new(),
                 collective_noun: None,
+                element_marks: Vec::new(),
             },
         }
     }
@@ -708,6 +915,9 @@ impl TopologyView {
                 RequestPath => active(false, Visible, Dashed, WhenVisible, false, true),
                 HubAndSpoke => active(false, Visible, Dashed, WhenVisible, false, true),
                 Hypervisor => active(false, Hidden, Dashed, WhenVisible, true, false),
+                // Hypervisor's stroke and highlight, shown by default: without it an identity
+                // host has no visible tie to the guest that presents it.
+                NetworkIdentity => active(false, Visible, Dashed, WhenVisible, true, false),
                 PhysicalLink => EdgeViewConfig::Disabled,
                 // Connects two hosts, and this view has no host node to land on — its
                 // elements are IP addresses.
@@ -724,9 +934,8 @@ impl TopologyView {
                 // drawn beside the device it neighbours.
                 NeighborLink => active(true, Visible, Dashed, WhenVisible, false, false),
                 SameHost => active(false, Hidden, Dashed, WhenVisible, false, false),
-                Hypervisor | ContainerRuntime | RequestPath | HubAndSpoke | SameContainer => {
-                    EdgeViewConfig::Disabled
-                }
+                Hypervisor | NetworkIdentity | ContainerRuntime | RequestPath | HubAndSpoke
+                | SameContainer => EdgeViewConfig::Disabled,
             },
             Self::Workloads => match edge_type {
                 PhysicalLink => active(false, Hidden, Dashed, WhenVisible, false, false),
@@ -734,7 +943,8 @@ impl TopologyView {
                 RequestPath | HubAndSpoke => {
                     active(false, Hidden, Dashed, WhenVisible, false, true)
                 }
-                Hypervisor | ContainerRuntime | SameHost | SameContainer => {
+                // Identities nest inside their guest's stack here; the nesting is the relationship.
+                Hypervisor | NetworkIdentity | ContainerRuntime | SameHost | SameContainer => {
                     EdgeViewConfig::Disabled
                 }
             },
@@ -742,9 +952,8 @@ impl TopologyView {
                 RequestPath => active(true, Visible, Solid, WhenVisible, false, true),
                 HubAndSpoke => active(true, Visible, Solid, WhenVisible, false, true),
                 ContainerRuntime => active(true, Hidden, Dashed, Always, true, false),
-                SameHost | Hypervisor | PhysicalLink | SameContainer | NeighborLink => {
-                    EdgeViewConfig::Disabled
-                }
+                SameHost | Hypervisor | NetworkIdentity | PhysicalLink | SameContainer
+                | NeighborLink => EdgeViewConfig::Disabled,
             },
         }
     }
@@ -756,7 +965,7 @@ impl TopologyView {
                 element_sections: vec![
                     InspectorSection::Identity,
                     InspectorSection::HostDetail,
-                    InspectorSection::IfEntryData,
+                    InspectorSection::InterfaceData,
                     InspectorSection::Services,
                     InspectorSection::OtherInterfaces,
                 ],
@@ -797,7 +1006,7 @@ impl TopologyView {
                 show_application_picker: false,
             },
             Self::L2Physical => ViewInspectorConfig {
-                element_sections: vec![InspectorSection::Identity, InspectorSection::IfEntryData],
+                element_sections: vec![InspectorSection::Identity, InspectorSection::InterfaceData],
                 container_sections: vec![
                     InspectorSection::Identity,
                     InspectorSection::ElementSummary,
@@ -816,7 +1025,133 @@ impl TopologyView {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Every section a view shows gets a heading that says what it holds, since the inspector
+    /// draws the heading and description from this metadata rather than from each component.
+    #[test]
+    fn every_shown_inspector_section_has_a_heading_and_description() {
+        for view in TopologyView::iter() {
+            let config = view.inspector_config();
+            for section in config
+                .element_sections
+                .iter()
+                .chain(&config.container_sections)
+            {
+                assert!(!section.name().is_empty(), "{section:?} has no name");
+                assert!(
+                    !section.description().is_empty(),
+                    "{section:?} has no description"
+                );
+            }
+        }
+    }
     use strum::IntoEnumIterator;
+
+    /// A view can only paint a colour its filter panel explains: every element mark names a value
+    /// of a filter the view declares for that entity.
+    #[test]
+    fn every_element_mark_names_a_declared_filter_value() {
+        for view in TopologyView::iter() {
+            let config = view.element_config();
+            for mark in &config.element_marks {
+                let declared = config
+                    .filter(mark.entity, mark.filter_type)
+                    .is_some_and(|f| f.values.iter().any(|v| v.id == mark.value));
+                assert!(
+                    declared,
+                    "{view:?} paints {mark:?} with no filter value to decode it"
+                );
+            }
+        }
+    }
+
+    /// The hide-set is keyed by entity and filter type, so a view may cover each pair with at most
+    /// one filter, and every filter has to name what it covers.
+    #[test]
+    fn each_entity_and_filter_type_has_at_most_one_filter() {
+        for view in TopologyView::iter() {
+            let config = view.element_config();
+            let mut seen = HashSet::new();
+            for filter in &config.metadata_filters {
+                assert!(
+                    !filter.entities.is_empty(),
+                    "{view:?} {:?} covers no entity",
+                    filter.filter_type
+                );
+                for entity in &filter.entities {
+                    assert!(
+                        seen.insert((*entity, filter.filter_type)),
+                        "{view:?} covers {entity:?}.{:?} twice",
+                        filter.filter_type
+                    );
+                }
+            }
+        }
+    }
+
+    /// Workloads' Containerized value covers both kinds of container: a macvlan host and a
+    /// service on a bridge network.
+    #[test]
+    fn workloads_containerized_covers_container_hosts_and_services() {
+        use crate::server::hosts::r#impl::base::{Host, HostBase};
+        use crate::server::hosts::r#impl::virtualization::{
+            ContainerHostVirtualization, ContainerNetworkType, HostVirtualization,
+        };
+        use crate::server::services::r#impl::base::{Service, ServiceBase};
+        use crate::server::services::r#impl::virtualization::{
+            DockerVirtualization, ServiceVirtualization,
+        };
+        use crate::server::shared::storage::traits::Storable;
+
+        let config = TopologyView::Workloads.element_config();
+        let filter = config
+            .filter(
+                EntityDiscriminants::Service,
+                MetadataFilterType::Virtualization,
+            )
+            .expect("Workloads filters services by virtualization");
+        assert_eq!(
+            config
+                .filter(
+                    EntityDiscriminants::Host,
+                    MetadataFilterType::Virtualization
+                )
+                .map(|f| &f.entities),
+            Some(&filter.entities),
+            "hosts and services share one virtualization filter"
+        );
+
+        let ctx = FilterValueContext::default();
+        let containerized = HostVirtualizationState::Containerized.id();
+        let host = Host::new(HostBase {
+            virtualization_metadata: Some(HostVirtualization::Docker(
+                ContainerHostVirtualization {
+                    container_name: None,
+                    container_id: None,
+                    compose_project: None,
+                    network_type: ContainerNetworkType::MacVlan,
+                },
+            )),
+            ..Default::default()
+        });
+        let service = Service::new(ServiceBase {
+            virtualization_metadata: Some(ServiceVirtualization::Docker(DockerVirtualization {
+                container_name: None,
+                container_id: None,
+                compose_project: None,
+            })),
+            ..Default::default()
+        });
+        assert_eq!(
+            host.filter_values(&ctx)[&MetadataFilterType::Virtualization],
+            containerized
+        );
+        assert_eq!(
+            service.filter_values(&ctx)[&MetadataFilterType::Virtualization],
+            containerized
+        );
+        assert!(filter.values.iter().any(|v| v.id == containerized));
+    }
 
     #[test]
     fn topology_view_serde_round_trip() {

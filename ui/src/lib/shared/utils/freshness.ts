@@ -3,9 +3,9 @@
  *
  * This is the frontend half of one shared rule — the backend derives the same
  * verdict in `DiscoveryTracked::freshness` for the discovery digest email, and
- * the same predicate again in `StorableFilter::stale_by_network` for the
+ * the same predicate again in `StorableFilter::stale_by_site` for the
  * server-side "Stale only" filter. All three read the same two persisted
- * inputs (`last_seen_at` and the entity's network `stale_after_hours`), so a
+ * inputs (`last_seen_at` and the entity's site `stale_after_hours`), so a
  * host reported stale in the digest is the host badged stale in the app.
  * Change one, change all three.
  *
@@ -20,7 +20,7 @@
 
 import { Clock } from 'lucide-svelte';
 import type { components } from '$lib/api/schema';
-import type { Network } from '$lib/features/networks/types';
+import type { Site } from '$lib/features/sites/types';
 import type { CardFieldItem, TagProps } from '$lib/shared/components/data/types';
 import type { EntityDiscriminants } from '$lib/api/entities';
 import { entities } from '$lib/shared/stores/metadata';
@@ -71,19 +71,16 @@ function isDiscoveryManaged(source: EntitySource | undefined): boolean {
 
 /**
  * `Current` unless discovery manages this entity and hasn't observed it within
- * its network's window. Never returns `New` — that bucket exists only for the
+ * its site's window. Never returns `New` — that bucket exists only for the
  * digest's per-scan framing; the inventory surfaces `created_at` directly.
  *
  * The window comes from `effective_stale_after_hours`, which the server has
  * already resolved against its own default — the frontend deliberately holds no
- * default of its own, so it cannot drift from the digest. With no network in
+ * default of its own, so it cannot drift from the digest. With no site in
  * hand we make no claim rather than guessing.
  */
-export function entityFreshness(
-	entity: FreshnessSubject,
-	network: Network | undefined
-): EntityFreshness {
-	const windowHours = network?.effective_stale_after_hours;
+export function entityFreshness(entity: FreshnessSubject, site: Site | undefined): EntityFreshness {
+	const windowHours = site?.effective_stale_after_hours;
 	if (!windowHours || !entity.last_seen_at || !isDiscoveryManaged(entity.source)) return 'current';
 	const cutoff = Date.now() - windowHours * 60 * 60 * 1000;
 	return new Date(entity.last_seen_at).getTime() < cutoff ? 'stale' : 'current';
@@ -104,9 +101,9 @@ export function entityFreshness(
  */
 export function neighborEvidenceFreshness(
 	iface: { neighbor_seen_at?: string | null },
-	network: Network | undefined
+	site: Site | undefined
 ): EntityFreshness {
-	return entityFreshness(neighborEvidenceSubject(iface), network);
+	return entityFreshness(neighborEvidenceSubject(iface), site);
 }
 
 /**
@@ -140,9 +137,9 @@ export function neighborEvidenceLabel(iface: { neighbor_seen_at?: string | null 
  */
 export function neighborEvidenceTag(
 	iface: { neighbor_seen_at?: string | null },
-	network: Network | undefined
+	site: Site | undefined
 ): TagProps | null {
-	const tag = getFreshnessTag(neighborEvidenceSubject(iface), network);
+	const tag = getFreshnessTag(neighborEvidenceSubject(iface), site);
 	return tag && { ...tag, title: neighborEvidenceLabel(iface) };
 }
 
@@ -156,7 +153,7 @@ export function neighborEvidenceTag(
  */
 export function getFreshnessTag(
 	entity: FreshnessSubject,
-	network: Network | undefined,
+	site: Site | undefined,
 	opts: {
 		/**
 		 * Display name of the entity's type ("IP Address", "Service", …), from
@@ -166,7 +163,7 @@ export function getFreshnessTag(
 		entityTypeLabel?: string;
 	} = {}
 ): TagProps | null {
-	if (entityFreshness(entity, network) !== 'stale') return null;
+	if (entityFreshness(entity, site) !== 'stale') return null;
 	return {
 		label: common_stale(),
 		color: toColor('amber'),
@@ -192,7 +189,7 @@ export function lastSeenLabel(entity: FreshnessSubject, entityTypeLabel?: string
  *
  * Staleness is a qualifier on when something was last seen, not a status of its
  * own — a host, subnet, VLAN or service has no status. Given a Status column of
- * its own, `getFreshnessTag` returns a tag only for rows past their network's
+ * its own, `getFreshnessTag` returns a tag only for rows past their site's
  * window, so the column sat empty on every healthy row while the date beside it
  * said the same thing less precisely.
  *
@@ -206,13 +203,13 @@ export function lastSeenLabel(entity: FreshnessSubject, entityTypeLabel?: string
  * `entityType` names the thing the verdict is about in the tag's tooltip, since
  * these lists sit side by side.
  */
-export function lastSeenItems<T extends FreshnessSubject & { network_id?: string | null }>(
-	networks: () => Network[],
+export function lastSeenItems<T extends FreshnessSubject & { site_id?: string | null }>(
+	sites: () => Site[],
 	entityType: EntityDiscriminants
 ): (entity: T) => CardFieldItem[] | undefined {
 	return (entity) => {
-		const network = networks().find((n) => n.id === entity.network_id);
-		const tag = getFreshnessTag(entity, network, {
+		const site = sites().find((n) => n.id === entity.site_id);
+		const tag = getFreshnessTag(entity, site, {
 			entityTypeLabel: entities.getName(entityType) || undefined
 		});
 		if (!tag || !entity.last_seen_at) return undefined;

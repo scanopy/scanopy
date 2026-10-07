@@ -26,7 +26,7 @@
 	import { concepts, entities, serviceDefinitions } from '$lib/shared/stores/metadata';
 	import type { Service } from '$lib/features/services/types/base';
 	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import PortsForm from './Ports/PortsForm.svelte';
 	import VirtualizationForm from './Virtualization/VirtualizationForm.svelte';
 	import SnmpForm from './Snmp/SnmpForm.svelte';
@@ -83,9 +83,9 @@
 
 	// TanStack Query hooks
 	const queryClient = useQueryClient();
-	const networksQuery = useNetworksQuery();
-	let networksData = $derived(networksQuery.data ?? []);
-	let defaultNetworkId = $derived(networksData[0]?.id ?? '');
+	const sitesQuery = useSitesQuery();
+	let sitesData = $derived(sitesQuery.data ?? []);
+	let defaultSiteId = $derived(sitesData[0]?.id ?? '');
 
 	// Subscribe to interfaces cache for this host - reactive to cache updates
 	// Since interfaces are read-only (populated by SNMP discovery), we bypass formData
@@ -112,7 +112,7 @@
 		isEditing ? common_editName({ name: host ? hostDisplayName(host) : '' }) : hosts_createHost()
 	);
 
-	// formData holds structural data (ids, network_id, tags, etc.)
+	// formData holds structural data (ids, site_id, tags, etc.)
 	// Form fields (name, hostname, description, interface IPs, port numbers) are synced at submission
 	let formData = $state<HostFormData>(createEmptyHostFormData());
 
@@ -292,8 +292,8 @@
 	function handleSubEntityNavigation(subEntityId: string) {
 		pendingSubEntityId = subEntityId;
 	}
-	// Get network for passing to SNMP form
-	let currentNetwork = $derived(networksData.find((n) => n.id === formData.network_id) ?? null);
+	// Get site for passing to SNMP form
+	let currentSite = $derived(sitesData.find((n) => n.id === formData.site_id) ?? null);
 
 	let tabs = $derived([
 		{
@@ -371,7 +371,7 @@
 		// Hydrate host to HostFormData for form editing (includes interfaces, ports, services)
 		formData = host
 			? hydrateHostToFormData(host, queryClient)
-			: createEmptyHostFormData(defaultNetworkId);
+			: createEmptyHostFormData(defaultSiteId);
 
 		// Sort services by position
 		if (formData.services) {
@@ -482,10 +482,12 @@
 	{title}
 	{name}
 	entityId={host?.id}
+	{form}
+	unsavedState={() => formData}
 	onClose={handleClose}
 	onOpen={handleOpen}
 	onSubEntityNavigation={handleSubEntityNavigation}
-	size="full"
+	size="wide"
 	showCloseButton={true}
 	{tabs}
 	{activeTab}
@@ -574,7 +576,7 @@
 			<!-- SNMP Tab -->
 			{#if activeTab === 'snmp'}
 				<div class="flex h-full flex-col">
-					<SnmpForm bind:formData network={currentNetwork} />
+					<SnmpForm bind:formData site={currentSite} />
 				</div>
 			{/if}
 

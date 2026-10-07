@@ -41,10 +41,11 @@
 		daemons_upgradeRestartService,
 		daemons_upgradeStartService,
 		daemons_upgradeStopService,
-		daemons_upgradeVolumeMountCheckLabel,
-		daemons_upgradeVolumeMountFixStep,
-		daemons_upgradeVolumeMountWarningBody,
-		daemons_upgradeVolumeMountWarningTitle,
+		daemons_docsUpgradeDockerConfigLost,
+		daemons_docsUpgradeDockerConfigLostLinkText,
+		daemons_upgradeDockerConfigCopyStep,
+		daemons_upgradeDockerConfigWarningBody,
+		daemons_upgradeDockerConfigWarningTitle,
 		daemons_sunsetDeprecatedTitle,
 		daemons_sunsetDeprecatedBody,
 		daemons_sunsetUnsupportedTitle,
@@ -94,7 +95,7 @@
 	let freebsdRestartCommand = $derived(`sudo service ${serviceId} restart`);
 
 	// Commands to list daemon config directories (each subdirectory = a daemon name)
-	const linuxConfigListCommand = 'ls ~/.config/scanopy/daemon/';
+	const linuxConfigListCommand = 'ls /etc/scanopy/daemon/ ~/.config/daemon/';
 	const macosConfigListCommand = 'ls ~/Library/Application\\ Support/com.scanopy.daemon/';
 	const windowsConfigListCommand = 'dir %APPDATA%\\scanopy\\daemon\\';
 
@@ -108,6 +109,10 @@
 
 	const dockerComposeLatestPull = `docker compose pull
 docker compose up -d`;
+	// Daemons up to 0.17.21 wrote config.json to /root/.config/daemon, outside the volume. Copying
+	// it onto the volume before the upgrade recreate lets the new image (which symlinks that path
+	// onto the volume) pick it up. `-n` never overwrites a config already on the volume.
+	const dockerConfigCopyCommand = `docker compose exec daemon sh -c 'mkdir -p /root/.config/scanopy/daemon && cp -rn /root/.config/daemon/. /root/.config/scanopy/daemon/'`;
 	let dockerComposeImageLine = $derived(`image: ghcr.io/scanopy/scanopy/daemon:v${VERSION}`);
 
 	function handleOsSelect(os: DaemonOS) {
@@ -203,32 +208,33 @@ docker compose up -d`;
 						{:else if linuxMethod === 'docker'}
 							<!-- Linux Docker Compose -->
 							<div class="space-y-3">
-								{#if daemon.version_status?.has_correct_docker_volume_mount === false}
+								{#if daemon.version_status?.persists_docker_config === false}
 									<InlineWarning
-										title={daemons_upgradeVolumeMountWarningTitle()}
-										body={daemons_upgradeVolumeMountWarningBody()}
+										title={daemons_upgradeDockerConfigWarningTitle()}
+										body={daemons_upgradeDockerConfigWarningBody()}
 									/>
 									<div class="text-secondary">
 										<b>{common_stepNumber({ number: '1' })}</b>
-										{daemons_upgradeVolumeMountCheckLabel()}
+										{daemons_upgradeDockerConfigCopyStep()}
 									</div>
 									<CodeContainer
 										language="bash"
 										expandable={false}
-										code="docker compose config | grep daemon-config"
+										code={dockerConfigCopyCommand}
 									/>
 									<div class="text-secondary">
 										<b>{common_stepNumber({ number: '2' })}</b>
-										{daemons_upgradeVolumeMountFixStep()}
-									</div>
-									<div class="text-secondary">
-										<b>{common_stepNumber({ number: '3' })}</b>
 										{daemons_dockerLatestTag()}
 									</div>
 									<CodeContainer
 										language="bash"
 										expandable={false}
 										code={dockerComposeLatestPull}
+									/>
+									<DocsHint
+										text={daemons_docsUpgradeDockerConfigLost()}
+										href="https://scanopy.net/docs/self-hosted-server/troubleshooting/#daemon-waits-for-apiinitialize-after-a-restart-or-recreate"
+										linkText={daemons_docsUpgradeDockerConfigLostLinkText()}
 									/>
 								{:else}
 									<div class="space-y-2">

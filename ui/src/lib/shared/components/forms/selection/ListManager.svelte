@@ -5,7 +5,8 @@
 	import ListSelectItem from './ListSelectItem.svelte';
 	import type { EntityDisplayComponent } from './types';
 	import type { Snippet } from 'svelte';
-	import { common_edit, common_remove } from '$lib/paraglide/messages';
+	import { common_edit, common_noEntityAddedYet, common_remove } from '$lib/paraglide/messages';
+	import { lowercasePreservingAcronyms } from '$lib/shared/utils/formatting';
 	import { tooltip } from '$lib/shared/actions/tooltip';
 
 	interface Props {
@@ -186,7 +187,9 @@
 		}
 	});
 
-	let computedEmptyMessage = $derived(emptyMessage || `No ${label.toLowerCase()} added yet`);
+	let computedEmptyMessage = $derived(
+		emptyMessage || common_noEntityAddedYet({ entity: lowercasePreservingAcronyms(label) })
+	);
 
 	function addItem() {
 		if (selectedOptionId) {

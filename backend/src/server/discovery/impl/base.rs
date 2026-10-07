@@ -24,8 +24,8 @@ pub struct DiscoveryBase {
     pub name: String,
     /// The daemon this entity refers to.
     pub daemon_id: Uuid,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// Tags assigned to this entity.
     #[serde(default)]
     #[schema(required)]
@@ -66,27 +66,27 @@ pub struct Discovery {
     /// One-shot: a target is offered to the daemon until a scan completes successfully, then
     /// dropped by [`Discovery::apply_successful_scan`]. Credentials that earned a durable home
     /// during the scan keep being retried from there — `host_credentials` for one that probed
-    /// successfully, `network_credentials` for a broadcast one (see
-    /// [`Discovery::take_network_scope_credential_ids`]).
+    /// successfully, `site_credentials` for a broadcast one (see
+    /// [`Discovery::take_site_scope_credential_ids`]).
     #[serde(default)]
     #[schema(required)]
     pub integration_targets: Vec<IntegrationTarget>,
 }
 
 impl Discovery {
-    /// Remove the `Network`-scope integration targets and return their credential ids.
+    /// Remove the `Site`-scope integration targets and return their credential ids.
     ///
     /// Broadcast targets are the one scope discovery never promotes: the daemon only reports a
     /// credential assignment for a probe it can attribute to a stored credential, and a
     /// broadcast default reaches the probe with no id at all (`daemon/discovery/credentials.rs`
     /// → `dispatch.rs`, which skips `None`). Pruning one outright would silently stop a
-    /// network-wide credential — typically an SNMP community seeded by the install command —
-    /// after a single scan. So the caller migrates these into the `network_credentials`
-    /// junction, which is the durable network-wide channel, before dropping them.
-    pub fn take_network_scope_credential_ids(&mut self) -> Vec<Uuid> {
+    /// site-wide credential — typically an SNMP community seeded by the install command —
+    /// after a single scan. So the caller migrates these into the `site_credentials`
+    /// junction, which is the durable site-wide channel, before dropping them.
+    pub fn take_site_scope_credential_ids(&mut self) -> Vec<Uuid> {
         let mut credential_ids = Vec::new();
         self.integration_targets.retain(|target| match target {
-            IntegrationTarget::Network { credential_id } => {
+            IntegrationTarget::Site { credential_id } => {
                 credential_ids.push(*credential_id);
                 false
             }
@@ -150,7 +150,7 @@ mod tests {
     }
 
     /// Broadcast targets are lifted out for the caller to migrate into the
-    /// `network_credentials` junction; the scopes discovery can promote on its own are left for
+    /// `site_credentials` junction; the scopes discovery can promote on its own are left for
     /// the prune to take.
     #[test]
     fn only_broadcast_targets_are_taken_for_migration() {
@@ -161,7 +161,7 @@ mod tests {
             IntegrationTarget::DaemonHost {
                 credential_id: socket,
             },
-            IntegrationTarget::Network {
+            IntegrationTarget::Site {
                 credential_id: broadcast,
             },
             IntegrationTarget::Hosts {
@@ -170,10 +170,7 @@ mod tests {
             },
         ]);
 
-        assert_eq!(
-            discovery.take_network_scope_credential_ids(),
-            vec![broadcast]
-        );
+        assert_eq!(discovery.take_site_scope_credential_ids(), vec![broadcast]);
         assert_eq!(
             discovery
                 .integration_targets

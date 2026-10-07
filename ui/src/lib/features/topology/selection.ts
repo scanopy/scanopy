@@ -10,7 +10,10 @@ import {
 import { clearSearch } from './interactions';
 
 /**
- * Any user-initiated selection change on the canvas abandons dep-edit mode.
+ * A user-initiated selection change that leaves the multi-selection abandons dep-edit mode:
+ * picking a single node or edge, or clearing. Adding or removing a member (modifier click,
+ * box select) while two or more nodes stay selected is how an edit changes members, so it
+ * keeps the mode; cancelling there showed "Create Dependency" and restored the saved edge.
  * startEditing() writes selectedNodes/selectedEdge directly via their raw
  * setters — it does not route through these wrappers — so clearing here is
  * safe and won't cancel the edit flow as it starts up.
@@ -59,7 +62,6 @@ export function clearSelection(stores: SelectionStores = defaultStores) {
 }
 
 export function handleModifierNodeClick(node: Node, stores: SelectionStores = defaultStores) {
-	cancelDependencyEdit();
 	const nodeData = node.data as TopologyNode;
 	if (nodeData.node_type !== 'Element') return;
 
@@ -71,6 +73,7 @@ export function handleModifierNodeClick(node: Node, stores: SelectionStores = de
 		// Deselect: remove from multi-selection
 		const remaining = current.filter((_, i) => i !== idx);
 		if (remaining.length < 2) {
+			cancelDependencyEdit();
 			stores.selectedNodes.set([]);
 			if (remaining.length === 1) {
 				stores.selectedNode.set(remaining[0]);
@@ -98,7 +101,6 @@ export function handleModifierNodeClick(node: Node, stores: SelectionStores = de
 }
 
 export function handleBoxSelect(newNodes: Node[], stores: SelectionStores = defaultStores) {
-	cancelDependencyEdit();
 	const interfaceNodes = newNodes.filter((n) => {
 		const nodeData = n.data as TopologyNode;
 		return nodeData.node_type === 'Element';
@@ -115,6 +117,7 @@ export function handleBoxSelect(newNodes: Node[], stores: SelectionStores = defa
 		stores.selectedNode.set(null);
 		stores.selectedEdge.set(null);
 	} else if (newNodes.length > 0) {
+		cancelDependencyEdit();
 		stores.selectedNodes.set([]);
 	}
 }

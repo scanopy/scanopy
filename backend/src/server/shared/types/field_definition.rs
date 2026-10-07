@@ -81,6 +81,9 @@ pub struct FieldDefinition {
     /// form joins to the Daemon OS's example directory for the path placeholder.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file_name: Option<&'static str>,
+    /// Whether the field is short enough to share a row. The form puts two adjacent half-width
+    /// fields of the same group side by side.
+    pub half_width: bool,
 }
 
 /// A placeholder that applies while `depends_on` holds `value`.
@@ -119,6 +122,8 @@ pub enum InlineFormat {
     SshPrivateKey,
     /// Six bytes written as a MAC address (e.g. a Wake-on-LAN SecureOn password).
     MacAddress,
+    /// A Proxmox VE API token ID: `user@realm!tokenname`.
+    ProxmoxTokenId,
 }
 
 /// PEM block tag — the label between `-----BEGIN` and `-----`.
@@ -147,7 +152,7 @@ impl InlineFormat {
     /// PEM tags accepted by this format, or empty for non-PEM formats.
     pub fn allowed_pem_tags(&self) -> &'static [PemTag] {
         match self {
-            Self::Plain | Self::MacAddress => &[],
+            Self::Plain | Self::MacAddress | Self::ProxmoxTokenId => &[],
             Self::PemCertificate => &[PemTag::Certificate],
             Self::PemPrivateKey => &[
                 PemTag::PrivateKey,
@@ -176,12 +181,40 @@ impl InlineFormat {
             }
             return Ok(());
         }
+        if let Self::ProxmoxTokenId = self {
+            let trimmed = value.trim();
+            if !trimmed.is_empty() && !is_proxmox_token_id(trimmed) {
+                crate::bail_validation!(
+                    "{} must be written as user@realm!tokenname, e.g. scanopy@pve!discovery",
+                    field_name
+                );
+            }
+            return Ok(());
+        }
         let tags = self.allowed_pem_tags();
         if tags.is_empty() {
             return Ok(());
         }
         validate_pem(value, field_name, tags)
     }
+}
+
+/// `user@realm!tokenname`, as Proxmox VE prints it on token creation. The token name follows
+/// Proxmox's own rule: a letter, then letters, digits, `.`, `-` or `_`.
+fn is_proxmox_token_id(value: &str) -> bool {
+    let Some((userid, token)) = value.split_once('!') else {
+        return false;
+    };
+    let Some((user, realm)) = userid.split_once('@') else {
+        return false;
+    };
+    let plain =
+        |s: &str| !s.is_empty() && !s.contains(['@', '!']) && !s.contains(char::is_whitespace);
+    let mut token_chars = token.chars();
+    plain(user)
+        && plain(realm)
+        && token_chars.next().is_some_and(|c| c.is_ascii_alphabetic())
+        && token_chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_'))
 }
 
 /// Parse PEM and verify at least one entry has a tag in `allowed_tags`.

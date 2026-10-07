@@ -3,6 +3,7 @@ use crate::server::hosts::r#impl::virtualization::HostVirtualizationDiscriminant
 use crate::server::services::definitions::ServiceDefinitionRegistry;
 use crate::server::services::definitions::docker_daemon::Docker;
 use crate::server::services::definitions::esxi::Esxi;
+use crate::server::services::definitions::network_identities::NetworkIdentities;
 use crate::server::services::definitions::podman::Podman;
 use crate::server::services::definitions::proxmox::Proxmox;
 use crate::server::services::definitions::vcenter::VCenter;
@@ -164,27 +165,42 @@ impl ServiceDefinition for Box<dyn ServiceDefinition> {
 
 // Helper methods to be used in rest of codebase, not overridable by definition implementations
 /// The virtualization role a manager service definition plays, paired with the
-/// backing `HostVirtualization` / `ServiceVirtualization` enum variant it
+/// backing `HostVirtualization` / `ServiceVirtualization` enum variants it
 /// produces. The variant strings (type + serde tag) are derived from the actual
 /// enum discriminants, so they cannot drift from the persisted/deserialized
 /// variants.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, IntoStaticStr)]
-#[strum(serialize_all = "snake_case")]
 pub enum VirtualizationRole {
     /// Manages VM hosts (Proxmox, vCenter, ESXi, …) -> "vms".
-    Vms(HostVirtualizationDiscriminants),
-    /// Manages containers (Docker, Podman, …) -> "containers".
-    Containers(ServiceVirtualizationDiscriminants),
+    #[strum(serialize = "vms")]
+    Hypervisor {
+        hosts: HostVirtualizationDiscriminants,
+    },
+    /// Manages containers (Docker, Podman, …) -> "containers". A container on a bridge network
+    /// is a service (`services`); one with its own LAN address (macvlan, ipvlan) is a host
+    /// (`hosts`).
+    #[strum(serialize = "containers")]
+    ContainerRuntime {
+        services: ServiceVirtualizationDiscriminants,
+        hosts: HostVirtualizationDiscriminants,
+    },
+    /// Holds the addresses and MACs a host presents beyond its own NICs (Network Identities) ->
+    /// "identities". Each identity is a host (`hosts`).
+    #[strum(serialize = "identities")]
+    IdentityHost {
+        hosts: HostVirtualizationDiscriminants,
+    },
 }
 
 impl VirtualizationRole {
-    /// Serde "type" discriminant of the backing virtualization enum variant
-    /// (e.g. "Proxmox", "VCenter", "Podman"). This is what the manual-assignment
-    /// UI sends and what the host/service virtualization field deserializes to.
+    /// Serde "type" discriminant of the variant manual assignment writes (e.g. "Proxmox",
+    /// "VCenter", "Podman"): the host variant for a hypervisor, the service variant for a
+    /// container runtime, the host variant for an identity host. Container hosts and network
+    /// identities are never assigned by hand.
     pub fn variant_tag(&self) -> &'static str {
         match self {
-            Self::Vms(d) => (*d).into(),
-            Self::Containers(d) => (*d).into(),
+            Self::Hypervisor { hosts } | Self::IdentityHost { hosts } => (*hosts).into(),
+            Self::ContainerRuntime { services, .. } => (*services).into(),
         }
     }
 }
@@ -204,7 +220,9 @@ impl ServiceDefinitionExt for Box<dyn ServiceDefinition> {
     fn can_be_manually_added(&self) -> bool {
         !matches!(
             ServiceDefinition::category(self),
-            ServiceCategory::Scanopy | ServiceCategory::OpenPorts
+            ServiceCategory::Scanopy
+                | ServiceCategory::OpenPorts
+                | ServiceCategory::NetworkIdentities
         )
     }
 
@@ -237,26 +255,31 @@ impl ServiceDefinitionExt for Box<dyn ServiceDefinition> {
 
     /// Single source of truth mapping a manager service definition to the
     /// virtualization role + backing enum variant it produces. The "vms"/
-    /// "containers" type and the serde variant tag are both derived from this
+    /// "containers"/"identities" type and the serde variant tag are both derived from this
     /// (see `VirtualizationRole`), so they cannot drift apart or from the enums.
     fn virtualization_role(&self) -> Option<VirtualizationRole> {
         let id = self.id();
         match id {
-            _ if id == Proxmox.id() => Some(VirtualizationRole::Vms(
-                HostVirtualizationDiscriminants::Proxmox,
-            )),
-            _ if id == VCenter.id() => Some(VirtualizationRole::Vms(
-                HostVirtualizationDiscriminants::VCenter,
-            )),
-            _ if id == Esxi.id() => Some(VirtualizationRole::Vms(
-                HostVirtualizationDiscriminants::ESXi,
-            )),
-            _ if id == Docker.id() => Some(VirtualizationRole::Containers(
-                ServiceVirtualizationDiscriminants::Docker,
-            )),
-            _ if id == Podman.id() => Some(VirtualizationRole::Containers(
-                ServiceVirtualizationDiscriminants::Podman,
-            )),
+            _ if id == Proxmox.id() => Some(VirtualizationRole::Hypervisor {
+                hosts: HostVirtualizationDiscriminants::Proxmox,
+            }),
+            _ if id == VCenter.id() => Some(VirtualizationRole::Hypervisor {
+                hosts: HostVirtualizationDiscriminants::VCenter,
+            }),
+            _ if id == Esxi.id() => Some(VirtualizationRole::Hypervisor {
+                hosts: HostVirtualizationDiscriminants::ESXi,
+            }),
+            _ if id == Docker.id() => Some(VirtualizationRole::ContainerRuntime {
+                services: ServiceVirtualizationDiscriminants::Docker,
+                hosts: HostVirtualizationDiscriminants::Docker,
+            }),
+            _ if id == Podman.id() => Some(VirtualizationRole::ContainerRuntime {
+                services: ServiceVirtualizationDiscriminants::Podman,
+                hosts: HostVirtualizationDiscriminants::Podman,
+            }),
+            _ if id == NetworkIdentities.id() => Some(VirtualizationRole::IdentityHost {
+                hosts: HostVirtualizationDiscriminants::NetworkIdentity,
+            }),
             _ => None,
         }
     }
@@ -413,13 +436,14 @@ mod tests {
 
     #[test]
     fn virtualization_managers_declare_role_and_variant() {
-        // (service id, role type == "vms"/"containers", variant serde tag)
+        // (service id, role type == "vms"/"containers"/"identities", variant serde tag)
         let cases = [
             ("Proxmox VE", "vms", "Proxmox"),
             ("vCenter", "vms", "VCenter"),
             ("ESXi", "vms", "ESXi"),
             ("Docker", "containers", "Docker"),
             ("Podman", "containers", "Podman"),
+            ("Network Identities", "identities", "NetworkIdentity"),
         ];
         for (id, role_type, variant) in cases {
             let def = ServiceDefinitionRegistry::find_by_id(id)
@@ -429,6 +453,14 @@ mod tests {
                 .unwrap_or_else(|| panic!("{id} should declare a virtualization role"));
             assert_eq!(<&'static str>::from(&role), role_type, "{id} role type");
             assert_eq!(role.variant_tag(), variant, "{id} variant");
+            // A runtime's container services and container hosts name the same runtime.
+            if let VirtualizationRole::ContainerRuntime { services, hosts } = role {
+                assert_eq!(
+                    <&'static str>::from(services),
+                    <&'static str>::from(hosts),
+                    "{id} runtime variants"
+                );
+            }
         }
     }
 

@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use axum::body::Body;
 use axum::extract::State;
-use axum::http::{Request, StatusCode};
+use axum::http::{HeaderMap, Request, StatusCode};
 use axum::middleware::{self, Next};
 use axum::routing::{get, put};
 use axum::{Json, Router};
@@ -111,10 +111,14 @@ fn whole_seconds_from_now(days: i64) -> DateTime<Utc> {
 }
 
 async fn request_entitlement(state: &Arc<AppState>, key: String) -> Result<String, StatusCode> {
-    get_entitlement(State(state.clone()), ApiJson(EntitlementRequest { key }))
-        .await
-        .map(|Json(response)| response.into_data().unwrap().entitlement)
-        .map_err(|error| error.status)
+    get_entitlement(
+        State(state.clone()),
+        HeaderMap::new(),
+        ApiJson(EntitlementRequest { key }),
+    )
+    .await
+    .map(|Json(response)| response.into_data().unwrap().entitlement)
+    .map_err(|error| error.status)
 }
 
 #[test]
@@ -381,7 +385,7 @@ async fn billing_middleware_makes_a_lapsed_cloud_org_read_only() {
         user_id: Uuid::new_v4(),
         organization_id: org.id,
         permissions: UserOrgPermissions::Owner,
-        network_ids: vec![],
+        site_ids: vec![],
         email: EmailAddress::new_unchecked("owner@example.com"),
         email_verified: true,
     };
@@ -438,7 +442,7 @@ async fn billing_middleware_locks_main_app_routes_for_self_hosted_plans() {
         user_id: Uuid::new_v4(),
         organization_id: org.id,
         permissions: UserOrgPermissions::Owner,
-        network_ids: vec![],
+        site_ids: vec![],
         email: EmailAddress::new_unchecked("owner@example.com"),
         email_verified: true,
     };
@@ -679,7 +683,7 @@ async fn a_stranded_air_gapped_organization_heals_on_read() {
         user_id: Uuid::new_v4(),
         organization_id: org.id,
         permissions: UserOrgPermissions::Owner,
-        network_ids: vec![],
+        site_ids: vec![],
         email: EmailAddress::new_unchecked("owner@example.com"),
         email_verified: true,
     };

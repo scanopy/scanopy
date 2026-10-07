@@ -67,8 +67,8 @@ impl Topology {
 
 #[derive(Debug, Clone, Validate, Serialize, Deserialize, Eq, PartialEq, Default, ToSchema)]
 pub struct TopologyBase {
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// Saved layout and view settings for this topology.
     pub options: TopologyOptions,
     // The per-view node/edge graph is no longer persisted — it's a pure
@@ -79,9 +79,9 @@ pub struct TopologyBase {
 }
 
 impl TopologyBase {
-    pub fn new(network_id: Uuid) -> Self {
+    pub fn new(site_id: Uuid) -> Self {
         Self {
-            network_id,
+            site_id,
             options: TopologyOptions::default(),
         }
     }
@@ -140,7 +140,11 @@ pub struct TopologyTagFilter {
 pub struct TopologyLocalOptions {
     /// Keep unrelated edges at full opacity when something is selected.
     pub no_fade_edges: bool,
-    /// Edge types to leave out of the drawing.
+    /// Edge types to leave out of the drawing. Unknown values are dropped on read rather than
+    /// failing the topology — see [`deserialize_known_edge_types`](crate::server::topology::types::edges::deserialize_known_edge_types).
+    #[serde(
+        deserialize_with = "crate::server::topology::types::edges::deserialize_known_edge_types"
+    )]
     pub hide_edge_types: Vec<EdgeTypeDiscriminants>,
     /// Restrict the view to entities carrying these tags.
     #[serde(default)]
@@ -302,8 +306,8 @@ impl Default for TopologyRequestOptions {
 /// Fixes HTTP 413 errors on drag operations.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct TopologyNodePositionUpdate {
-    /// Network ID for authorization
-    pub network_id: Uuid,
+    /// Site ID for authorization
+    pub site_id: Uuid,
     /// View whose node/edge slice this update targets
     pub view: TopologyView,
     /// ID of the node to update
@@ -319,8 +323,8 @@ pub struct TopologyNodePositionUpdate {
 /// Fixes HTTP 413 errors on edge reconnect operations.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct TopologyEdgeHandleUpdate {
-    /// Network ID for authorization
-    pub network_id: Uuid,
+    /// Site ID for authorization
+    pub site_id: Uuid,
     /// View whose node/edge slice this update targets
     pub view: TopologyView,
     /// ID of the edge to update
@@ -338,8 +342,8 @@ pub struct TopologyEdgeHandleUpdate {
 /// Fixes HTTP 413 errors on resize operations.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct TopologyNodeResizeUpdate {
-    /// Network ID for authorization
-    pub network_id: Uuid,
+    /// Site ID for authorization
+    pub site_id: Uuid,
     /// View whose node/edge slice this update targets
     pub view: TopologyView,
     /// ID of the node to update
@@ -353,6 +357,20 @@ pub struct TopologyNodeResizeUpdate {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A saved view that hides an edge type this binary doesn't know still loads, keeping the
+    /// edge types it does know.
+    #[test]
+    fn an_unknown_hidden_edge_type_is_dropped_not_fatal() {
+        let options: TopologyLocalOptions = serde_json::from_value(serde_json::json!({
+            "hide_edge_types": ["Hypervisor", "SomeFutureEdgeType"]
+        }))
+        .expect("an unknown edge type must not fail the options");
+        assert_eq!(
+            options.hide_edge_types,
+            vec![EdgeTypeDiscriminants::Hypervisor]
+        );
+    }
 
     /// A stored map that predates a filter must adopt its default, or every existing topology
     /// keeps rendering as though the filter were switched off. This is the whole reason the merge
@@ -432,10 +450,7 @@ mod tests {
             let config = view.element_config();
             for (entity, by_filter) in &config.default_hidden_values {
                 for (filter_type, values) in by_filter {
-                    let declared = config
-                        .metadata_filters
-                        .get(entity)
-                        .and_then(|filters| filters.iter().find(|f| f.filter_type == *filter_type));
+                    let declared = config.filter(*entity, *filter_type);
 
                     // Service.Category is declared in every view but only *rendered* where
                     // Service has an element or inline role, so a view without that role is

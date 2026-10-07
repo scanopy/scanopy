@@ -46,7 +46,7 @@ use crate::server::lldp::{
 ///
 /// This is both the wire shape a daemon submits (nested under
 /// `InterfaceBase::neighbor_candidates`) and `InterfaceNeighborCandidate`'s stored field set — see
-/// `InterfaceNeighborCandidateBase`, which pairs this with the `(network_id, interface_id)` the
+/// `InterfaceNeighborCandidateBase`, which pairs this with the `(site_id, interface_id)` the
 /// wire submission does not need to repeat per candidate.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 pub struct InterfaceNeighborEvidence {
@@ -267,17 +267,17 @@ mod evidence_tests {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 pub struct InterfaceNeighborCandidateBase {
-    /// The network the reporting interface belongs to.
-    pub network_id: Uuid,
+    /// The site the reporting interface belongs to.
+    pub site_id: Uuid,
     /// The local interface that heard this neighbour advertisement.
     pub interface_id: Uuid,
     pub evidence: InterfaceNeighborEvidence,
 }
 
 impl InterfaceNeighborCandidateBase {
-    pub fn new(network_id: Uuid, interface_id: Uuid, evidence: InterfaceNeighborEvidence) -> Self {
+    pub fn new(site_id: Uuid, interface_id: Uuid, evidence: InterfaceNeighborEvidence) -> Self {
         Self {
-            network_id,
+            site_id,
             interface_id,
             evidence,
         }
@@ -323,7 +323,7 @@ impl Display for InterfaceNeighborCandidate {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct InterfaceNeighborInterfaceBase {
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub interface_id: Uuid,
     pub neighbor_interface_id: Uuid,
     pub neighbor_seen_at: Option<DateTime<Utc>>,
@@ -392,7 +392,7 @@ impl Display for InterfaceNeighborInterface {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct InterfaceNeighborHostBase {
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub interface_id: Uuid,
     pub neighbor_host_id: Uuid,
     pub neighbor_seen_at: Option<DateTime<Utc>>,
@@ -488,7 +488,7 @@ impl Neighbor {
 }
 
 /// One row of the merged read model: an interface's adjacency to one neighbour, whichever of the
-/// two resolved tables it lives in. `TopologyContext` loads a `Vec` of these per network
+/// two resolved tables it lives in. `TopologyContext` loads a `Vec` of these per site
 /// (`live_or_as_of`-pinned the same way `interfaces` is) instead of reading a scalar field —
 /// `InterfaceNeighborRow` is what every topology file downstream of resolution actually iterates.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 8e8NnV2aakZSPeai2O3I1HLpjHHverJ8MWmNbPhO8EUpkCeZMcGT8qmbssc2B8Q
+\restrict VQKOkbau2U5vWSnscLh2LL81voHS78KjweKAuibukh1KSVtS64MIf5ZY913vWma
 
 -- Dumped from database version 17.11
 -- Dumped by pg_dump version 17.11
@@ -20,109 +20,110 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 ALTER TABLE IF EXISTS ONLY public.vlans DROP CONSTRAINT IF EXISTS vlans_snapshot_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.vlans DROP CONSTRAINT IF EXISTS vlans_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.vlans DROP CONSTRAINT IF EXISTS vlans_organization_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.vlans DROP CONSTRAINT IF EXISTS vlans_network_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.vlans DROP CONSTRAINT IF EXISTS vlans_last_discovery_fk;
 ALTER TABLE IF EXISTS ONLY public.vlans DROP CONSTRAINT IF EXISTS vlans_first_discovery_fk;
 ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS users_organization_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.user_network_access DROP CONSTRAINT IF EXISTS user_network_access_user_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.user_network_access DROP CONSTRAINT IF EXISTS user_network_access_network_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.user_site_access DROP CONSTRAINT IF EXISTS user_site_access_user_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.user_site_access DROP CONSTRAINT IF EXISTS user_site_access_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.user_api_keys DROP CONSTRAINT IF EXISTS user_api_keys_user_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.user_api_keys DROP CONSTRAINT IF EXISTS user_api_keys_organization_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.user_api_key_network_access DROP CONSTRAINT IF EXISTS user_api_key_network_access_network_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.user_api_key_network_access DROP CONSTRAINT IF EXISTS user_api_key_network_access_api_key_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.topologies DROP CONSTRAINT IF EXISTS topologies_network_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.user_api_key_site_access DROP CONSTRAINT IF EXISTS user_api_key_site_access_site_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.user_api_key_site_access DROP CONSTRAINT IF EXISTS user_api_key_site_access_api_key_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.topologies DROP CONSTRAINT IF EXISTS topologies_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.tags DROP CONSTRAINT IF EXISTS tags_snapshot_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.tags DROP CONSTRAINT IF EXISTS tags_organization_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.subnets DROP CONSTRAINT IF EXISTS subnets_virtualization_service_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.subnets DROP CONSTRAINT IF EXISTS subnets_snapshot_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.subnets DROP CONSTRAINT IF EXISTS subnets_network_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.subnets DROP CONSTRAINT IF EXISTS subnets_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.subnets DROP CONSTRAINT IF EXISTS subnets_last_discovery_fk;
 ALTER TABLE IF EXISTS ONLY public.subnets DROP CONSTRAINT IF EXISTS subnets_first_discovery_fk;
 ALTER TABLE IF EXISTS ONLY public.subnet_vlans DROP CONSTRAINT IF EXISTS subnet_vlans_vlan_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.subnet_vlans DROP CONSTRAINT IF EXISTS subnet_vlans_subnet_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.subnet_vlans DROP CONSTRAINT IF EXISTS subnet_vlans_snapshot_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.snapshots DROP CONSTRAINT IF EXISTS snapshots_network_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.snapshots DROP CONSTRAINT IF EXISTS snapshots_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.snapshots DROP CONSTRAINT IF EXISTS snapshots_created_by_user_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.site_credentials DROP CONSTRAINT IF EXISTS site_credentials_site_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.site_credentials DROP CONSTRAINT IF EXISTS site_credentials_credential_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.shares DROP CONSTRAINT IF EXISTS shares_topology_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.shares DROP CONSTRAINT IF EXISTS shares_network_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.shares DROP CONSTRAINT IF EXISTS shares_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.shares DROP CONSTRAINT IF EXISTS shares_created_by_fkey;
 ALTER TABLE IF EXISTS ONLY public.services DROP CONSTRAINT IF EXISTS services_virtualization_service_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.services DROP CONSTRAINT IF EXISTS services_snapshot_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.services DROP CONSTRAINT IF EXISTS services_network_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.services DROP CONSTRAINT IF EXISTS services_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.services DROP CONSTRAINT IF EXISTS services_last_discovery_fk;
 ALTER TABLE IF EXISTS ONLY public.services DROP CONSTRAINT IF EXISTS services_host_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.services DROP CONSTRAINT IF EXISTS services_first_discovery_fk;
 ALTER TABLE IF EXISTS ONLY public.ports DROP CONSTRAINT IF EXISTS ports_snapshot_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.ports DROP CONSTRAINT IF EXISTS ports_network_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.ports DROP CONSTRAINT IF EXISTS ports_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.ports DROP CONSTRAINT IF EXISTS ports_last_discovery_fk;
 ALTER TABLE IF EXISTS ONLY public.ports DROP CONSTRAINT IF EXISTS ports_host_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.ports DROP CONSTRAINT IF EXISTS ports_first_discovery_fk;
-ALTER TABLE IF EXISTS ONLY public.networks DROP CONSTRAINT IF EXISTS organization_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.network_credentials DROP CONSTRAINT IF EXISTS network_credentials_network_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.network_credentials DROP CONSTRAINT IF EXISTS network_credentials_credential_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.sites DROP CONSTRAINT IF EXISTS organization_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.ip_addresses DROP CONSTRAINT IF EXISTS ip_addresses_subnet_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.ip_addresses DROP CONSTRAINT IF EXISTS ip_addresses_snapshot_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.ip_addresses DROP CONSTRAINT IF EXISTS ip_addresses_network_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.ip_addresses DROP CONSTRAINT IF EXISTS ip_addresses_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.ip_addresses DROP CONSTRAINT IF EXISTS ip_addresses_last_discovery_fk;
 ALTER TABLE IF EXISTS ONLY public.ip_addresses DROP CONSTRAINT IF EXISTS ip_addresses_host_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.ip_addresses DROP CONSTRAINT IF EXISTS ip_addresses_first_discovery_fk;
 ALTER TABLE IF EXISTS ONLY public.invites DROP CONSTRAINT IF EXISTS invites_organization_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.invites DROP CONSTRAINT IF EXISTS invites_created_by_fkey;
 ALTER TABLE IF EXISTS ONLY public.interfaces DROP CONSTRAINT IF EXISTS interfaces_snapshot_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.interfaces DROP CONSTRAINT IF EXISTS interfaces_network_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.interfaces DROP CONSTRAINT IF EXISTS interfaces_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.interfaces DROP CONSTRAINT IF EXISTS interfaces_native_vlan_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.interfaces DROP CONSTRAINT IF EXISTS interfaces_last_discovery_fk;
 ALTER TABLE IF EXISTS ONLY public.interfaces DROP CONSTRAINT IF EXISTS interfaces_ip_address_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.interfaces DROP CONSTRAINT IF EXISTS interfaces_host_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.interfaces DROP CONSTRAINT IF EXISTS interfaces_first_discovery_fk;
 ALTER TABLE IF EXISTS ONLY public.interface_neighbor_interfaces DROP CONSTRAINT IF EXISTS interface_neighbor_interfaces_snapshot_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.interface_neighbor_interfaces DROP CONSTRAINT IF EXISTS interface_neighbor_interfaces_network_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.interface_neighbor_interfaces DROP CONSTRAINT IF EXISTS interface_neighbor_interfaces_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.interface_neighbor_interfaces DROP CONSTRAINT IF EXISTS interface_neighbor_interfaces_neighbor_interface_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.interface_neighbor_interfaces DROP CONSTRAINT IF EXISTS interface_neighbor_interfaces_interface_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.interface_neighbor_hosts DROP CONSTRAINT IF EXISTS interface_neighbor_hosts_snapshot_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.interface_neighbor_hosts DROP CONSTRAINT IF EXISTS interface_neighbor_hosts_network_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.interface_neighbor_hosts DROP CONSTRAINT IF EXISTS interface_neighbor_hosts_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.interface_neighbor_hosts DROP CONSTRAINT IF EXISTS interface_neighbor_hosts_neighbor_host_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.interface_neighbor_hosts DROP CONSTRAINT IF EXISTS interface_neighbor_hosts_interface_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.interface_neighbor_candidates DROP CONSTRAINT IF EXISTS interface_neighbor_candidates_network_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.interface_neighbor_candidates DROP CONSTRAINT IF EXISTS interface_neighbor_candidates_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.interface_neighbor_candidates DROP CONSTRAINT IF EXISTS interface_neighbor_candidates_interface_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.hosts DROP CONSTRAINT IF EXISTS hosts_virtualization_service_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.hosts DROP CONSTRAINT IF EXISTS hosts_virtualization_interface_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.hosts DROP CONSTRAINT IF EXISTS hosts_snapshot_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.hosts DROP CONSTRAINT IF EXISTS hosts_network_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.hosts DROP CONSTRAINT IF EXISTS hosts_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.hosts DROP CONSTRAINT IF EXISTS hosts_last_discovery_fk;
 ALTER TABLE IF EXISTS ONLY public.hosts DROP CONSTRAINT IF EXISTS hosts_first_discovery_fk;
 ALTER TABLE IF EXISTS ONLY public.host_credentials DROP CONSTRAINT IF EXISTS host_credentials_host_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.host_credentials DROP CONSTRAINT IF EXISTS host_credentials_credential_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.dependencies DROP CONSTRAINT IF EXISTS groups_network_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.dependency_members DROP CONSTRAINT IF EXISTS group_bindings_group_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.dependency_members DROP CONSTRAINT IF EXISTS group_bindings_binding_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.entity_tags DROP CONSTRAINT IF EXISTS entity_tags_tag_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.entity_tags DROP CONSTRAINT IF EXISTS entity_tags_snapshot_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.discovery DROP CONSTRAINT IF EXISTS discovery_network_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.discovery DROP CONSTRAINT IF EXISTS discovery_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.discovery DROP CONSTRAINT IF EXISTS discovery_daemon_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.dependency_members DROP CONSTRAINT IF EXISTS dependency_members_snapshot_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.dependency_members DROP CONSTRAINT IF EXISTS dependency_members_service_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.dependencies DROP CONSTRAINT IF EXISTS dependencies_snapshot_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.dependencies DROP CONSTRAINT IF EXISTS dependencies_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.daemons DROP CONSTRAINT IF EXISTS daemons_user_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.daemons DROP CONSTRAINT IF EXISTS daemons_network_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.daemons DROP CONSTRAINT IF EXISTS daemons_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.daemons DROP CONSTRAINT IF EXISTS daemons_api_key_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.daemon_interfaced_subnets DROP CONSTRAINT IF EXISTS daemon_interfaced_subnets_subnet_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.daemon_interfaced_subnets DROP CONSTRAINT IF EXISTS daemon_interfaced_subnets_daemon_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.credentials DROP CONSTRAINT IF EXISTS credentials_organization_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.bindings DROP CONSTRAINT IF EXISTS bindings_snapshot_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.bindings DROP CONSTRAINT IF EXISTS bindings_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.bindings DROP CONSTRAINT IF EXISTS bindings_service_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.bindings DROP CONSTRAINT IF EXISTS bindings_port_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.bindings DROP CONSTRAINT IF EXISTS bindings_network_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.bindings DROP CONSTRAINT IF EXISTS bindings_last_discovery_fk;
 ALTER TABLE IF EXISTS ONLY public.bindings DROP CONSTRAINT IF EXISTS bindings_ip_address_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.bindings DROP CONSTRAINT IF EXISTS bindings_first_discovery_fk;
-ALTER TABLE IF EXISTS ONLY public.api_keys DROP CONSTRAINT IF EXISTS api_keys_network_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.api_keys DROP CONSTRAINT IF EXISTS api_keys_site_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.api_keys DROP CONSTRAINT IF EXISTS api_keys_daemon_id_fkey;
 DROP TRIGGER IF EXISTS reassign_daemons_before_user_delete ON public.users;
 DROP INDEX IF EXISTS public.idx_vlans_snapshot_id;
+DROP INDEX IF EXISTS public.idx_vlans_site_number_live;
+DROP INDEX IF EXISTS public.idx_vlans_site;
 DROP INDEX IF EXISTS public.idx_vlans_organization;
-DROP INDEX IF EXISTS public.idx_vlans_network_number_live;
-DROP INDEX IF EXISTS public.idx_vlans_network;
 DROP INDEX IF EXISTS public.idx_vlans_live;
 DROP INDEX IF EXISTS public.idx_vlans_lineage;
 DROP INDEX IF EXISTS public.idx_vlans_as_of;
@@ -131,14 +132,14 @@ DROP INDEX IF EXISTS public.idx_users_organization;
 DROP INDEX IF EXISTS public.idx_users_oidc_provider_subject;
 DROP INDEX IF EXISTS public.idx_users_email_verification_token;
 DROP INDEX IF EXISTS public.idx_users_email_lower;
-DROP INDEX IF EXISTS public.idx_user_network_access_user;
-DROP INDEX IF EXISTS public.idx_user_network_access_network;
+DROP INDEX IF EXISTS public.idx_user_site_access_user;
+DROP INDEX IF EXISTS public.idx_user_site_access_site;
 DROP INDEX IF EXISTS public.idx_user_api_keys_user;
 DROP INDEX IF EXISTS public.idx_user_api_keys_org;
 DROP INDEX IF EXISTS public.idx_user_api_keys_key;
-DROP INDEX IF EXISTS public.idx_user_api_key_network_access_network;
-DROP INDEX IF EXISTS public.idx_user_api_key_network_access_key;
-DROP INDEX IF EXISTS public.idx_topologies_network;
+DROP INDEX IF EXISTS public.idx_user_api_key_site_access_site;
+DROP INDEX IF EXISTS public.idx_user_api_key_site_access_key;
+DROP INDEX IF EXISTS public.idx_topologies_site;
 DROP INDEX IF EXISTS public.idx_tags_snapshot_id;
 DROP INDEX IF EXISTS public.idx_tags_organization;
 DROP INDEX IF EXISTS public.idx_tags_org_name_live;
@@ -147,7 +148,7 @@ DROP INDEX IF EXISTS public.idx_tags_lineage;
 DROP INDEX IF EXISTS public.idx_tags_as_of;
 DROP INDEX IF EXISTS public.idx_subnets_virtualization_service_id;
 DROP INDEX IF EXISTS public.idx_subnets_snapshot_id;
-DROP INDEX IF EXISTS public.idx_subnets_network;
+DROP INDEX IF EXISTS public.idx_subnets_site;
 DROP INDEX IF EXISTS public.idx_subnets_live;
 DROP INDEX IF EXISTS public.idx_subnets_lineage;
 DROP INDEX IF EXISTS public.idx_subnets_as_of;
@@ -158,13 +159,14 @@ DROP INDEX IF EXISTS public.idx_subnet_vlans_snapshot_id;
 DROP INDEX IF EXISTS public.idx_subnet_vlans_live;
 DROP INDEX IF EXISTS public.idx_subnet_vlans_lineage;
 DROP INDEX IF EXISTS public.idx_subnet_vlans_as_of;
-DROP INDEX IF EXISTS public.idx_snapshots_network_taken_at;
+DROP INDEX IF EXISTS public.idx_snapshots_site_taken_at;
+DROP INDEX IF EXISTS public.idx_sites_owner_organization;
 DROP INDEX IF EXISTS public.idx_shares_topology;
-DROP INDEX IF EXISTS public.idx_shares_network;
+DROP INDEX IF EXISTS public.idx_shares_site;
 DROP INDEX IF EXISTS public.idx_shares_enabled;
 DROP INDEX IF EXISTS public.idx_services_virtualization_service_id;
 DROP INDEX IF EXISTS public.idx_services_snapshot_id;
-DROP INDEX IF EXISTS public.idx_services_network;
+DROP INDEX IF EXISTS public.idx_services_site;
 DROP INDEX IF EXISTS public.idx_services_live;
 DROP INDEX IF EXISTS public.idx_services_lineage;
 DROP INDEX IF EXISTS public.idx_services_host_position;
@@ -172,19 +174,18 @@ DROP INDEX IF EXISTS public.idx_services_host_id;
 DROP INDEX IF EXISTS public.idx_services_as_of;
 DROP INDEX IF EXISTS public.idx_ports_unique_live;
 DROP INDEX IF EXISTS public.idx_ports_snapshot_id;
+DROP INDEX IF EXISTS public.idx_ports_site;
 DROP INDEX IF EXISTS public.idx_ports_number;
-DROP INDEX IF EXISTS public.idx_ports_network;
 DROP INDEX IF EXISTS public.idx_ports_live;
 DROP INDEX IF EXISTS public.idx_ports_lineage;
 DROP INDEX IF EXISTS public.idx_ports_host;
 DROP INDEX IF EXISTS public.idx_ports_as_of;
 DROP INDEX IF EXISTS public.idx_organizations_stripe_customer;
-DROP INDEX IF EXISTS public.idx_networks_owner_organization;
 DROP INDEX IF EXISTS public.idx_ip_addresses_unique_live;
 DROP INDEX IF EXISTS public.idx_ip_addresses_subnet;
 DROP INDEX IF EXISTS public.idx_ip_addresses_snapshot_id;
-DROP INDEX IF EXISTS public.idx_ip_addresses_network_mac;
-DROP INDEX IF EXISTS public.idx_ip_addresses_network;
+DROP INDEX IF EXISTS public.idx_ip_addresses_site_mac;
+DROP INDEX IF EXISTS public.idx_ip_addresses_site;
 DROP INDEX IF EXISTS public.idx_ip_addresses_live;
 DROP INDEX IF EXISTS public.idx_ip_addresses_lineage;
 DROP INDEX IF EXISTS public.idx_ip_addresses_host_mac;
@@ -193,7 +194,7 @@ DROP INDEX IF EXISTS public.idx_ip_addresses_as_of;
 DROP INDEX IF EXISTS public.idx_invites_organization;
 DROP INDEX IF EXISTS public.idx_invites_expires_at;
 DROP INDEX IF EXISTS public.idx_interfaces_snapshot_id;
-DROP INDEX IF EXISTS public.idx_interfaces_network;
+DROP INDEX IF EXISTS public.idx_interfaces_site;
 DROP INDEX IF EXISTS public.idx_interfaces_mac_address;
 DROP INDEX IF EXISTS public.idx_interfaces_live;
 DROP INDEX IF EXISTS public.idx_interfaces_lineage;
@@ -214,16 +215,16 @@ DROP INDEX IF EXISTS public.idx_interface_neighbor_hosts_natural_key;
 DROP INDEX IF EXISTS public.idx_interface_neighbor_hosts_live;
 DROP INDEX IF EXISTS public.idx_interface_neighbor_hosts_lineage;
 DROP INDEX IF EXISTS public.idx_interface_neighbor_hosts_as_of;
-DROP INDEX IF EXISTS public.idx_interface_neighbor_candidates_network;
+DROP INDEX IF EXISTS public.idx_interface_neighbor_candidates_site;
 DROP INDEX IF EXISTS public.idx_interface_neighbor_candidates_interface;
 DROP INDEX IF EXISTS public.idx_hosts_virtualization_service_id;
+DROP INDEX IF EXISTS public.idx_hosts_virtualization_interface_id;
 DROP INDEX IF EXISTS public.idx_hosts_snapshot_id;
-DROP INDEX IF EXISTS public.idx_hosts_network;
+DROP INDEX IF EXISTS public.idx_hosts_site;
 DROP INDEX IF EXISTS public.idx_hosts_live;
 DROP INDEX IF EXISTS public.idx_hosts_lineage;
 DROP INDEX IF EXISTS public.idx_hosts_chassis_id;
 DROP INDEX IF EXISTS public.idx_hosts_as_of;
-DROP INDEX IF EXISTS public.idx_groups_network;
 DROP INDEX IF EXISTS public.idx_entity_tags_unique_live;
 DROP INDEX IF EXISTS public.idx_entity_tags_tag_id;
 DROP INDEX IF EXISTS public.idx_entity_tags_snapshot_id;
@@ -231,7 +232,7 @@ DROP INDEX IF EXISTS public.idx_entity_tags_live;
 DROP INDEX IF EXISTS public.idx_entity_tags_lineage;
 DROP INDEX IF EXISTS public.idx_entity_tags_entity;
 DROP INDEX IF EXISTS public.idx_entity_tags_as_of;
-DROP INDEX IF EXISTS public.idx_discovery_network;
+DROP INDEX IF EXISTS public.idx_discovery_site;
 DROP INDEX IF EXISTS public.idx_discovery_daemon;
 DROP INDEX IF EXISTS public.idx_dependency_members_unique_live;
 DROP INDEX IF EXISTS public.idx_dependency_members_snapshot_id;
@@ -242,46 +243,47 @@ DROP INDEX IF EXISTS public.idx_dependency_members_dependency;
 DROP INDEX IF EXISTS public.idx_dependency_members_binding;
 DROP INDEX IF EXISTS public.idx_dependency_members_as_of;
 DROP INDEX IF EXISTS public.idx_dependencies_snapshot_id;
+DROP INDEX IF EXISTS public.idx_dependencies_site;
 DROP INDEX IF EXISTS public.idx_dependencies_live;
 DROP INDEX IF EXISTS public.idx_dependencies_lineage;
 DROP INDEX IF EXISTS public.idx_dependencies_as_of;
-DROP INDEX IF EXISTS public.idx_daemons_network;
+DROP INDEX IF EXISTS public.idx_daemons_site;
 DROP INDEX IF EXISTS public.idx_daemons_api_key;
 DROP INDEX IF EXISTS public.idx_daemon_interfaced_subnets_subnet_id;
 DROP INDEX IF EXISTS public.idx_daemon_host_id;
 DROP INDEX IF EXISTS public.idx_credentials_type;
 DROP INDEX IF EXISTS public.idx_credentials_org;
 DROP INDEX IF EXISTS public.idx_bindings_snapshot_id;
+DROP INDEX IF EXISTS public.idx_bindings_site;
 DROP INDEX IF EXISTS public.idx_bindings_service;
 DROP INDEX IF EXISTS public.idx_bindings_port;
-DROP INDEX IF EXISTS public.idx_bindings_network;
 DROP INDEX IF EXISTS public.idx_bindings_live;
 DROP INDEX IF EXISTS public.idx_bindings_lineage;
 DROP INDEX IF EXISTS public.idx_bindings_ip_address;
 DROP INDEX IF EXISTS public.idx_bindings_as_of;
-DROP INDEX IF EXISTS public.idx_api_keys_network;
+DROP INDEX IF EXISTS public.idx_api_keys_site;
 DROP INDEX IF EXISTS public.idx_api_keys_key;
 DROP INDEX IF EXISTS public.idx_api_keys_daemon_id;
 ALTER TABLE IF EXISTS ONLY tower_sessions.session DROP CONSTRAINT IF EXISTS session_pkey;
 ALTER TABLE IF EXISTS ONLY public.vlans DROP CONSTRAINT IF EXISTS vlans_pkey;
 ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS users_pkey;
-ALTER TABLE IF EXISTS ONLY public.user_network_access DROP CONSTRAINT IF EXISTS user_network_access_user_id_network_id_key;
-ALTER TABLE IF EXISTS ONLY public.user_network_access DROP CONSTRAINT IF EXISTS user_network_access_pkey;
+ALTER TABLE IF EXISTS ONLY public.user_site_access DROP CONSTRAINT IF EXISTS user_site_access_user_id_site_id_key;
+ALTER TABLE IF EXISTS ONLY public.user_site_access DROP CONSTRAINT IF EXISTS user_site_access_pkey;
 ALTER TABLE IF EXISTS ONLY public.user_api_keys DROP CONSTRAINT IF EXISTS user_api_keys_pkey;
 ALTER TABLE IF EXISTS ONLY public.user_api_keys DROP CONSTRAINT IF EXISTS user_api_keys_key_key;
-ALTER TABLE IF EXISTS ONLY public.user_api_key_network_access DROP CONSTRAINT IF EXISTS user_api_key_network_access_pkey;
-ALTER TABLE IF EXISTS ONLY public.user_api_key_network_access DROP CONSTRAINT IF EXISTS user_api_key_network_access_api_key_id_network_id_key;
+ALTER TABLE IF EXISTS ONLY public.user_api_key_site_access DROP CONSTRAINT IF EXISTS user_api_key_site_access_pkey;
+ALTER TABLE IF EXISTS ONLY public.user_api_key_site_access DROP CONSTRAINT IF EXISTS user_api_key_site_access_api_key_id_site_id_key;
 ALTER TABLE IF EXISTS ONLY public.topologies DROP CONSTRAINT IF EXISTS topologies_pkey;
 ALTER TABLE IF EXISTS ONLY public.tags DROP CONSTRAINT IF EXISTS tags_pkey;
 ALTER TABLE IF EXISTS ONLY public.subnets DROP CONSTRAINT IF EXISTS subnets_pkey;
 ALTER TABLE IF EXISTS ONLY public.subnet_vlans DROP CONSTRAINT IF EXISTS subnet_vlans_pkey;
 ALTER TABLE IF EXISTS ONLY public.snapshots DROP CONSTRAINT IF EXISTS snapshots_pkey;
+ALTER TABLE IF EXISTS ONLY public.sites DROP CONSTRAINT IF EXISTS sites_pkey;
+ALTER TABLE IF EXISTS ONLY public.site_credentials DROP CONSTRAINT IF EXISTS site_credentials_pkey;
 ALTER TABLE IF EXISTS ONLY public.shares DROP CONSTRAINT IF EXISTS shares_pkey;
 ALTER TABLE IF EXISTS ONLY public.services DROP CONSTRAINT IF EXISTS services_pkey;
 ALTER TABLE IF EXISTS ONLY public.ports DROP CONSTRAINT IF EXISTS ports_pkey;
 ALTER TABLE IF EXISTS ONLY public.organizations DROP CONSTRAINT IF EXISTS organizations_pkey;
-ALTER TABLE IF EXISTS ONLY public.networks DROP CONSTRAINT IF EXISTS networks_pkey;
-ALTER TABLE IF EXISTS ONLY public.network_credentials DROP CONSTRAINT IF EXISTS network_credentials_pkey;
 ALTER TABLE IF EXISTS ONLY public.ip_addresses DROP CONSTRAINT IF EXISTS ip_addresses_pkey;
 ALTER TABLE IF EXISTS ONLY public.invites DROP CONSTRAINT IF EXISTS invites_pkey;
 ALTER TABLE IF EXISTS ONLY public.interfaces DROP CONSTRAINT IF EXISTS interfaces_pkey;
@@ -304,20 +306,20 @@ ALTER TABLE IF EXISTS ONLY public._sqlx_migrations DROP CONSTRAINT IF EXISTS _sq
 DROP TABLE IF EXISTS tower_sessions.session;
 DROP TABLE IF EXISTS public.vlans;
 DROP TABLE IF EXISTS public.users;
-DROP TABLE IF EXISTS public.user_network_access;
+DROP TABLE IF EXISTS public.user_site_access;
 DROP TABLE IF EXISTS public.user_api_keys;
-DROP TABLE IF EXISTS public.user_api_key_network_access;
+DROP TABLE IF EXISTS public.user_api_key_site_access;
 DROP TABLE IF EXISTS public.topologies;
 DROP TABLE IF EXISTS public.tags;
 DROP TABLE IF EXISTS public.subnets;
 DROP TABLE IF EXISTS public.subnet_vlans;
 DROP TABLE IF EXISTS public.snapshots;
+DROP TABLE IF EXISTS public.sites;
+DROP TABLE IF EXISTS public.site_credentials;
 DROP TABLE IF EXISTS public.shares;
 DROP TABLE IF EXISTS public.services;
 DROP TABLE IF EXISTS public.ports;
 DROP TABLE IF EXISTS public.organizations;
-DROP TABLE IF EXISTS public.networks;
-DROP TABLE IF EXISTS public.network_credentials;
 DROP TABLE IF EXISTS public.ip_addresses;
 DROP TABLE IF EXISTS public.invites;
 DROP TABLE IF EXISTS public.interfaces;
@@ -420,7 +422,7 @@ ALTER TABLE public._sqlx_migrations OWNER TO postgres;
 CREATE TABLE public.api_keys (
     id uuid NOT NULL,
     key text NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     name text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -440,7 +442,7 @@ ALTER TABLE public.api_keys OWNER TO postgres;
 
 CREATE TABLE public.bindings (
     id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     service_id uuid NOT NULL,
     binding_type text NOT NULL,
     ip_address_id uuid,
@@ -497,7 +499,7 @@ ALTER TABLE public.daemon_interfaced_subnets OWNER TO postgres;
 
 CREATE TABLE public.daemons (
     id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     host_id uuid NOT NULL,
     created_at timestamp with time zone NOT NULL,
     last_seen timestamp with time zone,
@@ -523,7 +525,7 @@ ALTER TABLE public.daemons OWNER TO postgres;
 
 CREATE TABLE public.dependencies (
     id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     name text NOT NULL,
     description text,
     created_at timestamp with time zone NOT NULL,
@@ -568,7 +570,7 @@ ALTER TABLE public.dependency_members OWNER TO postgres;
 
 CREATE TABLE public.discovery (
     id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     daemon_id uuid NOT NULL,
     run_type jsonb NOT NULL,
     discovery_type jsonb NOT NULL,
@@ -621,7 +623,7 @@ ALTER TABLE public.host_credentials OWNER TO postgres;
 
 CREATE TABLE public.hosts (
     id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     name text NOT NULL,
     hostname text,
     description text,
@@ -665,7 +667,10 @@ CREATE TABLE public.hosts (
     software_revision_source jsonb DEFAULT '"Unspecified"'::jsonb NOT NULL,
     hostname_source jsonb DEFAULT '"Unspecified"'::jsonb NOT NULL,
     os jsonb,
-    os_source jsonb DEFAULT '"Unspecified"'::jsonb NOT NULL
+    os_source jsonb DEFAULT '"Unspecified"'::jsonb NOT NULL,
+    virtualization_interface_id uuid,
+    asset_tag text,
+    asset_tag_source jsonb DEFAULT '"Unspecified"'::jsonb NOT NULL
 );
 
 
@@ -719,7 +724,7 @@ COMMENT ON COLUMN public.hosts.chassis_id IS 'LLDP lldpLocChassisId - globally u
 
 CREATE TABLE public.interface_neighbor_candidates (
     id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     interface_id uuid NOT NULL,
     lldp_chassis_id jsonb,
     lldp_port_id jsonb,
@@ -743,7 +748,7 @@ ALTER TABLE public.interface_neighbor_candidates OWNER TO postgres;
 
 CREATE TABLE public.interface_neighbor_hosts (
     id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     interface_id uuid NOT NULL,
     neighbor_host_id uuid NOT NULL,
     neighbor_seen_at timestamp with time zone,
@@ -767,7 +772,7 @@ ALTER TABLE public.interface_neighbor_hosts OWNER TO postgres;
 
 CREATE TABLE public.interface_neighbor_interfaces (
     id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     interface_id uuid NOT NULL,
     neighbor_interface_id uuid NOT NULL,
     neighbor_seen_at timestamp with time zone,
@@ -792,7 +797,7 @@ ALTER TABLE public.interface_neighbor_interfaces OWNER TO postgres;
 CREATE TABLE public.interfaces (
     id uuid NOT NULL,
     host_id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     if_index integer,
@@ -893,7 +898,7 @@ CREATE TABLE public.invites (
     id uuid NOT NULL,
     organization_id uuid NOT NULL,
     permissions text NOT NULL,
-    network_ids uuid[] NOT NULL,
+    site_ids uuid[] NOT NULL,
     url text NOT NULL,
     created_by uuid NOT NULL,
     created_at timestamp with time zone NOT NULL,
@@ -911,7 +916,7 @@ ALTER TABLE public.invites OWNER TO postgres;
 
 CREATE TABLE public.ip_addresses (
     id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     host_id uuid NOT NULL,
     subnet_id uuid NOT NULL,
     ip_address inet NOT NULL,
@@ -938,41 +943,6 @@ ALTER TABLE public.ip_addresses OWNER TO postgres;
 --
 
 COMMENT ON TABLE public.ip_addresses IS 'IP addresses assigned to hosts on subnets';
-
-
---
--- Name: network_credentials; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.network_credentials (
-    network_id uuid NOT NULL,
-    credential_id uuid NOT NULL
-);
-
-
-ALTER TABLE public.network_credentials OWNER TO postgres;
-
---
--- Name: networks; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.networks (
-    id uuid NOT NULL,
-    name text NOT NULL,
-    created_at timestamp with time zone NOT NULL,
-    updated_at timestamp with time zone NOT NULL,
-    organization_id uuid NOT NULL,
-    stale_after_hours bigint
-);
-
-
-ALTER TABLE public.networks OWNER TO postgres;
-
---
--- Name: COLUMN networks.organization_id; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN public.networks.organization_id IS 'The organization that owns and pays for this network';
 
 
 --
@@ -1008,7 +978,8 @@ CREATE TABLE public.organizations (
     license_entitlement_at timestamp with time zone,
     license_key_issued_at timestamp with time zone,
     license_key_type text,
-    bills_by_invoice boolean DEFAULT false NOT NULL
+    bills_by_invoice boolean DEFAULT false NOT NULL,
+    license_server_version text
 );
 
 
@@ -1018,7 +989,7 @@ ALTER TABLE public.organizations OWNER TO postgres;
 -- Name: TABLE organizations; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON TABLE public.organizations IS 'Organizations that own networks and have Stripe subscriptions';
+COMMENT ON TABLE public.organizations IS 'Organizations that own sites and have Stripe subscriptions';
 
 
 --
@@ -1034,7 +1005,7 @@ COMMENT ON COLUMN public.organizations.plan IS 'The current billing plan for the
 
 CREATE TABLE public.ports (
     id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     host_id uuid NOT NULL,
     port_number integer NOT NULL,
     protocol text NOT NULL,
@@ -1061,7 +1032,7 @@ ALTER TABLE public.ports OWNER TO postgres;
 
 CREATE TABLE public.services (
     id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     created_at timestamp with time zone NOT NULL,
     updated_at timestamp with time zone NOT NULL,
     name text NOT NULL,
@@ -1090,7 +1061,7 @@ ALTER TABLE public.services OWNER TO postgres;
 CREATE TABLE public.shares (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     topology_id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     created_by uuid NOT NULL,
     name text NOT NULL,
     is_enabled boolean DEFAULT true NOT NULL,
@@ -1107,12 +1078,47 @@ CREATE TABLE public.shares (
 ALTER TABLE public.shares OWNER TO postgres;
 
 --
+-- Name: site_credentials; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.site_credentials (
+    site_id uuid NOT NULL,
+    credential_id uuid NOT NULL
+);
+
+
+ALTER TABLE public.site_credentials OWNER TO postgres;
+
+--
+-- Name: sites; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.sites (
+    id uuid NOT NULL,
+    name text NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    organization_id uuid NOT NULL,
+    stale_after_hours bigint
+);
+
+
+ALTER TABLE public.sites OWNER TO postgres;
+
+--
+-- Name: COLUMN sites.organization_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.sites.organization_id IS 'The organization that owns and pays for this site';
+
+
+--
 -- Name: snapshots; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.snapshots (
     id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     taken_at timestamp with time zone NOT NULL,
     created_by_user_id uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -1146,7 +1152,7 @@ ALTER TABLE public.subnet_vlans OWNER TO postgres;
 
 CREATE TABLE public.subnets (
     id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     created_at timestamp with time zone NOT NULL,
     updated_at timestamp with time zone NOT NULL,
     cidr text NOT NULL,
@@ -1184,7 +1190,9 @@ CREATE TABLE public.tags (
     valid_from timestamp with time zone DEFAULT now() NOT NULL,
     valid_to timestamp with time zone,
     lineage_id uuid,
-    snapshot_id uuid
+    snapshot_id uuid,
+    tag_group text,
+    icon text
 );
 
 
@@ -1196,7 +1204,7 @@ ALTER TABLE public.tags OWNER TO postgres;
 
 CREATE TABLE public.topologies (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     options jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
@@ -1206,18 +1214,18 @@ CREATE TABLE public.topologies (
 ALTER TABLE public.topologies OWNER TO postgres;
 
 --
--- Name: user_api_key_network_access; Type: TABLE; Schema: public; Owner: postgres
+-- Name: user_api_key_site_access; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.user_api_key_network_access (
+CREATE TABLE public.user_api_key_site_access (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     api_key_id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
-ALTER TABLE public.user_api_key_network_access OWNER TO postgres;
+ALTER TABLE public.user_api_key_site_access OWNER TO postgres;
 
 --
 -- Name: user_api_keys; Type: TABLE; Schema: public; Owner: postgres
@@ -1241,18 +1249,18 @@ CREATE TABLE public.user_api_keys (
 ALTER TABLE public.user_api_keys OWNER TO postgres;
 
 --
--- Name: user_network_access; Type: TABLE; Schema: public; Owner: postgres
+-- Name: user_site_access; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.user_network_access (
+CREATE TABLE public.user_site_access (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
-ALTER TABLE public.user_network_access OWNER TO postgres;
+ALTER TABLE public.user_site_access OWNER TO postgres;
 
 --
 -- Name: users; Type: TABLE; Schema: public; Owner: postgres
@@ -1308,7 +1316,7 @@ CREATE TABLE public.vlans (
     vlan_number smallint NOT NULL,
     name text NOT NULL,
     description text,
-    network_id uuid NOT NULL,
+    site_id uuid NOT NULL,
     organization_id uuid NOT NULL,
     source jsonb DEFAULT '"Manual"'::jsonb NOT NULL,
     created_at timestamp with time zone NOT NULL,
@@ -1343,144 +1351,153 @@ ALTER TABLE tower_sessions.session OWNER TO postgres;
 --
 
 COPY public._sqlx_migrations (version, description, installed_on, success, checksum, execution_time) FROM stdin;
-20251006215000	users	2026-10-03 03:54:00.473395+00	t	\\x4f13ce14ff67ef0b7145987c7b22b588745bf9fbb7b673450c26a0f2f9a36ef8ca980e456c8d77cfb1b2d7a4577a64d7	-1
-20251006215100	networks	2026-10-03 03:54:00.478209+00	t	\\xeaa5a07a262709f64f0c59f31e25519580c79e2d1a523ce72736848946a34b17dd9adc7498eaf90551af6b7ec6d4e0e3	-1
-20251006215151	create_hosts	2026-10-03 03:54:00.481517+00	t	\\x6ec7487074c0724932d21df4cf1ed66645313cf62c159a7179e39cbc261bcb81a24f7933a0e3cf58504f2a90fc5c1962	-1
-20251006215155	create_subnets	2026-10-03 03:54:00.484893+00	t	\\xefb5b25742bd5f4489b67351d9f2494a95f307428c911fd8c5f475bfb03926347bdc269bbd048d2ddb06336945b27926	-1
-20251006215201	create_groups	2026-10-03 03:54:00.48837+00	t	\\x0a7032bf4d33a0baf020e905da865cde240e2a09dda2f62aa535b2c5d4b26b20be30a3286f1b5192bd94cd4a5dbb5bcd	-1
-20251006215204	create_daemons	2026-10-03 03:54:00.492002+00	t	\\xcfea93403b1f9cf9aac374711d4ac72d8a223e3c38a1d2a06d9edb5f94e8a557debac3668271f8176368eadc5105349f	-1
-20251006215212	create_services	2026-10-03 03:54:00.496256+00	t	\\xd5b07f82fc7c9da2782a364d46078d7d16b5c08df70cfbf02edcfe9b1b24ab6024ad159292aeea455f15cfd1f4740c1d	-1
-20251029193448	user-auth	2026-10-03 03:54:00.502338+00	t	\\xfde8161a8db89d51eeade7517d90a41d560f19645620f2298f78f116219a09728b18e91251ae31e46a47f6942d5a9032	-1
-20251030044828	daemon_api	2026-10-03 03:54:00.503883+00	t	\\x181eb3541f51ef5b038b2064660370775d1b364547a214a20dde9c9d4bb95a1c273cd4525ef29e61fa65a3eb4fee0400	-1
-20251030170438	host-hide	2026-10-03 03:54:00.505079+00	t	\\x87c6fda7f8456bf610a78e8e98803158caa0e12857c5bab466a5bb0004d41b449004a68e728ca13f17e051f662a15454	-1
-20251102224919	create_discovery	2026-10-03 03:54:00.514518+00	t	\\xb32a04abb891aba48f92a059fae7341442355ca8e4af5d109e28e2a4f79ee8e11b2a8f40453b7f6725c2dd6487f26573	-1
-20251106235621	normalize-daemon-cols	2026-10-03 03:54:00.516277+00	t	\\x5b137118d506e2708097c432358bf909265b3cf3bacd662b02e2c81ba589a9e0100631c7801cffd9c57bb10a6674fb3b	-1
-20251107034459	api_keys	2026-10-03 03:54:00.523482+00	t	\\x3133ec043c0c6e25b6e55f7da84cae52b2a72488116938a2c669c8512c2efe72a74029912bcba1f2a2a0a8b59ef01dde	-1
-20251107222650	oidc-auth	2026-10-03 03:54:00.546353+00	t	\\xd349750e0298718cbcd98eaff6e152b3fb45c3d9d62d06eedeb26c75452e9ce1af65c3e52c9f2de4bd532939c2f31096	-1
-20251110181948	orgs-billing	2026-10-03 03:54:00.555273+00	t	\\x5bbea7a2dfc9d00213bd66b473289ddd66694eff8a4f3eaab937c985b64c5f8c3ad2d64e960afbb03f335ac6766687aa	-1
-20251113223656	group-enhancements	2026-10-03 03:54:00.556372+00	t	\\xbe0699486d85df2bd3edc1f0bf4f1f096d5b6c5070361702c4d203ec2bb640811be88bb1979cfe51b40805ad84d1de65	-1
-20251117032720	daemon-mode	2026-10-03 03:54:00.557507+00	t	\\xdd0d899c24b73d70e9970e54b2c748d6b6b55c856ca0f8590fe990da49cc46c700b1ce13f57ff65abd6711f4bd8a6481	-1
-20251118143058	set-default-plan	2026-10-03 03:54:00.558818+00	t	\\xd19142607aef84aac7cfb97d60d29bda764d26f513f2c72306734c03cec2651d23eee3ce6cacfd36ca52dbddc462f917	-1
-20251118225043	save-topology	2026-10-03 03:54:00.565899+00	t	\\x011a594740c69d8d0f8b0149d49d1b53cfbf948b7866ebd84403394139cb66a44277803462846b06e762577adc3e61a3	-1
-20251123232748	network-permissions	2026-10-03 03:54:00.568339+00	t	\\x161be7ae5721c06523d6488606f1a7b1f096193efa1183ecdd1c2c9a4a9f4cad4884e939018917314aaf261d9a3f97ae	-1
-20251125001342	billing-updates	2026-10-03 03:54:00.569272+00	t	\\xa235d153d95aeb676e3310a52ccb69dfbd7ca36bba975d5bbca165ceeec7196da12119f23597ea5276c364f90f23db1e	-1
-20251128035448	org-onboarding-status	2026-10-03 03:54:00.570699+00	t	\\x1d7a7e9bf23b5078250f31934d1bc47bbaf463ace887e7746af30946e843de41badfc2b213ed64912a18e07b297663d8	-1
-20251129180942	nfs-consolidate	2026-10-03 03:54:00.571948+00	t	\\xb38f41d30699a475c2b967f8e43156f3b49bb10341bddbde01d9fb5ba805f6724685e27e53f7e49b6c8b59e29c74f98e	-1
-20251206052641	discovery-progress	2026-10-03 03:54:00.573478+00	t	\\x9d433b7b8c58d0d5437a104497e5e214febb2d1441a3ad7c28512e7497ed14fb9458e0d4ff786962a59954cb30da1447	-1
-20251206202200	plan-fix	2026-10-03 03:54:00.574393+00	t	\\x242f6699dbf485cf59a8d1b8cd9d7c43aeef635a9316be815a47e15238c5e4af88efaa0daf885be03572948dc0c9edac	-1
-20251207061341	daemon-url	2026-10-03 03:54:00.576455+00	t	\\x01172455c4f2d0d57371d18ef66d2ab3b7a8525067ef8a86945c616982e6ce06f5ea1e1560a8f20dadcd5be2223e6df1	-1
-20251210045929	tags	2026-10-03 03:54:00.583076+00	t	\\xe3dde83d39f8552b5afcdc1493cddfeffe077751bf55472032bc8b35fc8fc2a2caa3b55b4c2354ace7de03c3977982db	-1
-20251210175035	terms	2026-10-03 03:54:00.584119+00	t	\\xe47f0cf7aba1bffa10798bede953da69fd4bfaebf9c75c76226507c558a3595c6bfc6ac8920d11398dbdf3b762769992	-1
-20251213025048	hash-keys	2026-10-03 03:54:00.590777+00	t	\\xfc7cbb8ce61f0c225322297f7459dcbe362242b9001c06cb874b7f739cea7ae888d8f0cfaed6623bcbcb9ec54c8cd18b	-1
-20251214050638	scanopy	2026-10-03 03:54:00.592084+00	t	\\x0108bb39832305f024126211710689adc48d973ff66e5e59ff49468389b75c1ff95d1fbbb7bdb50e33ec1333a1f29ea6	-1
-20251215215724	topo-scanopy-fix	2026-10-03 03:54:00.592867+00	t	\\xed88a4b71b3c9b61d46322b5053362e5a25a9293cd3c420c9df9fcaeb3441254122b8a18f58c297f535c842b8a8b0a38	-1
-20251217153736	category_rename	2026-10-03 03:54:00.594414+00	t	\\x03af7ec905e11a77e25038a3c272645da96014da7c50c585a25cea3f9a7579faba3ff45114a5e589d144c9550ba42421	-1
-20251218053111	invite-persistence	2026-10-03 03:54:00.598576+00	t	\\x21d12f48b964acfd600f88e70ceb14abd9cf2a8a10db2eae2a6d8f44cf7d20749f93293631e6123e92b7c3c1793877c2	-1
-20251219211216	create_shares	2026-10-03 03:54:00.60402+00	t	\\x036485debd3536f9e58ead728f461b925585911acf565970bf3b2ab295b12a2865606d6a56d334c5641dcd42adeb3d68	-1
-20251220170928	permissions-cleanup	2026-10-03 03:54:00.605282+00	t	\\x632f7b6702b494301e0d36fd3b900686b1a7f9936aef8c084b5880f1152b8256a125566e2b5ac40216eaadd3c4c64a03	-1
-20251220180000	commercial-to-community	2026-10-03 03:54:00.606059+00	t	\\x26fc298486c225f2f01271d611418377c403183ae51daf32fef104ec07c027f2017d138910c4fbfb5f49819a5f4194d6	-1
-20251221010000	cleanup_subnet_type	2026-10-03 03:54:00.606978+00	t	\\xb521121f3fd3a10c0de816977ac2a2ffb6118f34f8474ffb9058722abc0dc4cf5cbec83bc6ee49e79a68e6b715087f40	-1
-20251221020000	remove_host_target	2026-10-03 03:54:00.608024+00	t	\\x77b5f8872705676ca81a5704bd1eaee90b9a52b404bdaa27a23da2ffd4858d3e131680926a5a00ad2a0d7a24ba229046	-1
-20251221030000	user_network_access	2026-10-03 03:54:00.613766+00	t	\\x5c23f5bb6b0b8ca699a17eee6730c4197a006ca21fecc79136a5e5697b9211a81b4cd08ceda70dace6a26408d021ff3a	-1
-20251221040000	interfaces_table	2026-10-03 03:54:00.621244+00	t	\\xf7977b6f1e7e5108c614397d03a38c9bd9243fdc422575ec29610366a0c88f443de2132185878d8e291f06a50a8c3244	-1
-20251221050000	ports_table	2026-10-03 03:54:00.628236+00	t	\\xdf72f9306b405be7be62c39003ef38408115e740b120f24e8c78b8e136574fff7965c52023b3bc476899613fa5f4fe35	-1
-20251221060000	bindings_table	2026-10-03 03:54:00.636597+00	t	\\x933648a724bd179c7f47305e4080db85342d48712cde39374f0f88cde9d7eba8fe5fafba360937331e2a8178dec420c4	-1
-20251221070000	group_bindings	2026-10-03 03:54:00.641846+00	t	\\x697475802f6c42e38deee6596f4ba786b09f7b7cd91742fbc5696dd0f9b3ddfce90dd905153f2b1a9e82f959f5a88302	-1
-20251222020000	tag_cascade_delete	2026-10-03 03:54:00.643144+00	t	\\xabfb48c0da8522f5c8ea6d482eb5a5f4562ed41f6160a5915f0fd477c7dd0517aa84760ef99ab3a5db3e0f21b0c69b5f	-1
-20251223232524	network_remove_default	2026-10-03 03:54:00.644233+00	t	\\x7099fe4e52405e46269d7ce364050da930b481e72484ad3c4772fd2911d2d505476d659fa9f400c63bc287512d033e18	-1
-20251225100000	color_enum	2026-10-03 03:54:00.645435+00	t	\\x62cecd9d79a49835a3bea68a7959ab62aa0c1aaa7e2940dec6a7f8a714362df3649f0c1f9313672d9268295ed5a1cfa9	-1
-20251227010000	topology_snapshot_migration	2026-10-03 03:54:00.649381+00	t	\\xc042591d254869c0e79c8b52a9ede680fd26f094e2c385f5f017e115f5e3f31ad155f4885d095344f2642ebb70755d54	-1
-20251228010000	user_api_keys	2026-10-03 03:54:00.658299+00	t	\\xa41adb558a5b9d94a4e17af3f16839b83f7da072dbeac9251b12d8a84c7bec6df008009acf246468712a975bb36bb5f5	-1
-20251230160000	daemon_version_and_maintainer	2026-10-03 03:54:00.660616+00	t	\\xafed3d9f00adb8c1b0896fb663af801926c218472a0a197f90ecdaa13305a78846a9e15af0043ec010328ba533fca68f	-1
-20260103000000	service_position	2026-10-03 03:54:00.662311+00	t	\\x19d00e8c8b300d1c74d721931f4d771ec7bc4e06db0d6a78126e00785586fdc4bcff5b832eeae2fce0cb8d01e12a7fb5	-1
-20260106000000	interface_mac_index	2026-10-03 03:54:00.663876+00	t	\\xa26248372a1e31af46a9c6fbdaef178982229e2ceeb90cc6a289d5764f87a38747294b3adf5f21276b5d171e42bdb6ac	-1
-20260106204402	entity_tags_junction	2026-10-03 03:54:00.673523+00	t	\\xf73c604f9f0b8db065d990a861684b0dbd62c3ef9bead120c68431c933774de56491a53f021e79f09801680152f5a08a	-1
-20260108033856	fix_entity_tags_json_format	2026-10-03 03:54:00.674843+00	t	\\x197eaa063d4f96dd0e897ad8fd96cc1ba9a54dda40a93a5c12eac14597e4dea4c806dd0a527736fb5807b7a8870d9916	-1
-20260110000000	email_verification	2026-10-03 03:54:00.677592+00	t	\\xb8da8433f58ba4ce846b9fa0c2551795747a8473ad10266b19685504847458ea69d27a0ce430151cfb426f5f5fb6ac3a	-1
-20260114145808	daemon_user_fk_set_null	2026-10-03 03:54:00.678718+00	t	\\x57b060be9fc314d7c5851c75661ca8269118feea6cf7ee9c61b147a0e117c4d39642cf0d1acdf7a723a9a76066c1b8ff	-1
-20260116010000	snmp_credentials	2026-10-03 03:54:00.684026+00	t	\\x6f3971cf194d56883c61fa795406a8ab568307ed86544920d098b32a6a1ebb7effcb5ec38a70fdc9b617eff92d63d51e	-1
-20260116020000	host_snmp_fields	2026-10-03 03:54:00.687344+00	t	\\xf2f088c13ab0dd34e1cb1e5327b0b4137440b0146e5ce1e78b8d2dfa05d9b5a12a328eeb807988453a8a43ad8a1c95ba	-1
-20260116030000	if_entries	2026-10-03 03:54:00.697427+00	t	\\xa58391708f8b21901ab9250af528f638a6055462f70ffddfd7c451433aacdabd62825546fa8be108f23a3cae78b8ae28	-1
-20260116100000	daemon_api_key_link	2026-10-03 03:54:00.700118+00	t	\\x41088aa314ab173344a6b416280721806b2f296a32a8d8cae58c7e5717f389fe599134ed03980ed97e4b7659e99c4f82	-1
-20260131190000	add_hubspot_company_id	2026-10-03 03:54:00.701056+00	t	\\x4326f95f4954e176157c1c3e034074a3e5c44da4d60bbd7a9e4b6238c9ef52a30f8b38d3c887864b6e4c1163dc062beb	-1
-20260201021238	fix_service_acronym_capitalization	2026-10-03 03:54:00.702249+00	t	\\x88b010ac8f0223d880ea6a730f11dc6d27fa5de9d8747de3431e46d59f1dbf2f72ae4a87c2e52c32152549f5c1f96bb2	-1
-20260204004436	add_entity_tags_to_topology	2026-10-03 03:54:00.703369+00	t	\\x3eff1a1490e77065ec861ef1b9aad8c55de0170106a42720f7931b3929b179122b16e44390b2652771bf91bba32a7757	-1
-20260205120000	billing_overhaul	2026-10-03 03:54:00.705347+00	t	\\xbf850cfa0c40a3c65f574efd15fd55a4b702296203d28077a09d1c22076fee8601f2b78345aef370ab9163657de767ab	-1
-20260205183207	rename_hubspot_to_brevo	2026-10-03 03:54:00.706409+00	t	\\x4678a7d80215e5eafb5e80af0daa20e2868a3b4f2112e88cb1b2b9efc87d63de3fb96c133f359b224c658789ae4b0d13	-1
-20260221120000	add_plan_limit_notifications	2026-10-03 03:54:00.707773+00	t	\\xef770dac07e1d80888832f33184dc46c1d3b8185b91c507cb404468d6ad8c29cacf455178801c67aa27b6a626d3ad82d	-1
-20260222120000	add_pending_email	2026-10-03 03:54:00.708781+00	t	\\xddd220f7602c44548d56849c0a8d081ecd1da1383374a11e3e227c7d9becb73a49f5e5bb09ed65901c16df4c16e913e5	-1
-20260301120000	add_if_name_to_if_entries	2026-10-03 03:54:00.709901+00	t	\\xc9fc0a2b77ecbf0e1d5ab292c4fe162a26113468c878dfd26a3c63d89c0ee1957ca328ecfe25c611867a0e73780f0cb6	-1
-20260306002816	cleanup_standby	2026-10-03 03:54:00.71085+00	t	\\x01b0c236a8a4d0d97f0f633b18f8cbdb92b6d72063289989b90a1b7b6b303e65e0557eb09927b2580dcb7e8ee5966c75	-1
-20260309120000	add_org_use_case	2026-10-03 03:54:00.711839+00	t	\\xdb8c8a2f0f9416ba3b687fc75453d7c12c50a6f386b4784d21bd6adfc4a4a7556c637c25cf116118402bbd12c0d5aafe	-1
-20260313120000	snmp_extended_discovery	2026-10-03 03:54:00.71348+00	t	\\xc4e72539099de1b830d87a169bfbabba4b8fb378a3c4c4a1dfca698adf3e403d750040d784c26d9fa343be2908064c9d	-1
-20260315120000	universal_credentials	2026-10-03 03:54:00.727912+00	t	\\x87dc6f39202e81d5555df78a9d056b143f11bd22e6d7f483065f605e242a360902c72c4d5a49717e7fcc24a366bb5ff5	-1
-20260315120001	discovery_scan_settings	2026-10-03 03:54:00.728926+00	t	\\xe9da183fdd8e04e574f553f61f6f33efa046cdae38c846c8077b06c5260446fb4aa39da2449bda7f1d8cf3aa9f16e158	-1
-20260315120002	backfill_org_created_milestone	2026-10-03 03:54:00.72972+00	t	\\x14f886a19773cd2263d86f88479be460d21f071d5212e3789c5c40b6415c293fc7d06c7b138351cc42108f89a14fe745	-1
-20260316120000	fix_jsonb_null_if_entries	2026-10-03 03:54:00.731077+00	t	\\x65c358069710f7f86d6a3e257e658c2f241cc376433c3a0317b0ec9e1876a66f9738cb65c6ab1a5c197fe40d5aa2aa2b	-1
-20260319120000	rename_snmp_to_snmpv2c	2026-10-03 03:54:00.732062+00	t	\\xdce5c9461f402e1672607078b2c571f0eb30b51d46f8e9414d8909efb40693f543e49e560cb7d703db274515043aa08e	-1
-20260321120000	add_discovery_scan_count	2026-10-03 03:54:00.733713+00	t	\\x6c8201ab453a51632176d534c6604e0818e28a8a4a153e33e254f4dac0f9b67c9db394082cb663ff1b25941229cf96fc	-1
-20260329120000	backfill_subnet_virtualization	2026-10-03 03:54:00.73544+00	t	\\xeac50ded27603dbb5e8773604a52143c9fa8654263e7dd12d3d128ce972c2feed84600e36b2e7a79525b58c44d2ad9d3	-1
-20260402120000	rename_topology_node_types	2026-10-03 03:54:00.736251+00	t	\\xc4ba06868add823f83ff1948091bdfe17dbdde80bbec6fe2cf8da2b3689aeeebbe9e9de01b1292bff3c98a74d9e6279f	-1
-20260403120000	topology_grouping_rules	2026-10-03 03:54:00.737774+00	t	\\x00799da1206d7c3b3c3db90b7d14437cc054ed2d7273020342e562c619a671e008ff4fdf0365170440b392956949e730	-1
-20260405120000	rename_groups_to_dependencies	2026-10-03 03:54:00.744286+00	t	\\x9ce895b456366bf6e54316b22cabd2803aa542dd3733fffa680f0a3af5c4c55a612c5ee511371206921869b7f271c35b	-1
-20260406120000	add_tag_is_application_group	2026-10-03 03:54:00.745426+00	t	\\xb7a71e5fdd96ca46c9c7577003309050a93bc53ad192ac5df78e7621f3ed64f07fb29b4658f17af55732cf6dfb7958c2	-1
-20260406130000	add_vlans	2026-10-03 03:54:00.754056+00	t	\\x5b3e5d10578d90b5175e5718a28d7147a21b99af2fb3e0ed171d20ee8fd8838c290f648dafdd3b72ef60ff487f7f2494	-1
-20260409000000	add_vlans_to_topologies	2026-10-03 03:54:00.755343+00	t	\\x5e0b9dc670580ceec3aa6eae005a39f98733fc27dc574b7f3922f4297813facd5d610af953dfec13e09d0b99eceb3865	-1
-20260410000000	rename_interfaces_and_if_entries	2026-10-03 03:54:00.760749+00	t	\\x07f54a59869f458f41f45d75f250aee26b20a426f1ec29930606841770194d6aea0e9e6253a6375fbeebcf9b49121224	-1
-20260414000000	add_share_enabled_views	2026-10-03 03:54:00.76175+00	t	\\xc56514355a5977c3242e728e7f5a2533e7b4a5cf8a7ce7757e412e51f1ad85e96d65c13ccd96d050be4a07799b9aef57	-1
-20260415120000	rename_onboarding_first_group_created	2026-10-03 03:54:00.762536+00	t	\\x2c17035835d3ead105b76d98688c0b7bd328abdaf9f721d70d057c8afdf438819e93da56707deea5b469b81a7b84d5d7	-1
-20260417000000	reindex_interfaces_identity	2026-10-03 03:54:00.765569+00	t	\\x10701e13bc3d838e2ec4a856555ebf338173792f220c405996d3c77e7987e9806798ca0328eb6259e4a62b7e05665b25	-1
-20260418000000	add_standby_cleared_at_to_daemons	2026-10-03 03:54:00.766483+00	t	\\x547807de451d015a4ce1438796d5b95e2b98043c521015a21239f6778d10a8d3bf7d8b14e278e09aa0105f1935ad4181	-1
-20260501000000	add_organization_billing_flags	2026-10-03 03:54:00.768355+00	t	\\x2de34c4af667d4cd8bc263c27f0526a4a2132022e2eb71ae94fd89edebbfb40cda840055a94e89a21925a317cdff285f	-1
-20260502000000	scd2_add_columns	2026-10-03 03:54:00.779786+00	t	\\xe78a73574d86320c0de7fcd43682ee3cdd436dc64d1371f98cb67ef0cdf33097df6e8a92c9a26c5702795144103b085e	-1
-20260502000001	scd2_add_discovery_fks_not_valid	2026-10-03 03:54:00.788832+00	t	\\xb49114eb6f8d77cb0c5062619da5c829e5bd65898710efb6207d2804be3677a95eebe88d41d21ae8cba21344fcd63f97	-1
-20260502000002	scd2_validate_discovery_fks	2026-10-03 03:54:00.795699+00	t	\\x500201842b9f486d1397c0f0f3ee1a36bc101440d4d97fe0f0bfc971672f1f53f7945aed93c34e2e53d2d9cb913419f1	-1
-20260502000003	scd2_backfill_with_metadata	2026-10-03 03:54:00.798927+00	t	\\xd299c1dbf7ec284995dc8a5fcf4b264e4f1ff970085a8631e6d00aa0bc6d6708a5e41d515bb9299c22ef128a958e68e9	-1
-20260502000004	scd2_partial_unique_indexes	2026-10-03 03:54:00.817118+00	t	\\xbc30e554c37ec3ca72baa7fc634920257909944dc841231a966845fd4c5bc27ae20606c98867934c872e8883bd56efa1	-1
-20260502000005	scd2_drop_old_unique_constraints	2026-10-03 03:54:00.819956+00	t	\\x660c0237299796c6e70a21780d529453a2ac8645f7b122a0b8aa4f362ff780de8849f53a66b71b3ea29ecc66877f47ad	-1
-20260502000006	scd2_supporting_indexes	2026-10-03 03:54:00.876449+00	t	\\x4394aaf6951c4b7048f66334fb8c550c55d4cdc06beb29eb7f086a717ee9f26ddeb28e73a7b298633ef517f6c0f84ee0	-1
-20260502000007	entitysource_metadata_strip	2026-10-03 03:54:00.878982+00	t	\\x1cfd1a00b100ca0b007be6e8b55f67dde412108f299f94b419a80af45b74b75fdead95637dccb13fdd57fed2f1132446	-1
-20260502100000	add_user_email_settings	2026-10-03 03:54:00.880196+00	t	\\xe886b44ca9d3d6461d82b573f617391b8b5f22f18b8113a333aa8c275545ec6455060f68ecbfdd17af86fccc9a500d7a	-1
-20260502120000	create_snapshots_table	2026-10-03 03:54:00.88364+00	t	\\x18f829b255b8e11e385903e51182f04fb835aa78ef0090865ce7743f747e4aaaa7b1a7b806a377e9b12af6205aed527a	-1
-20260502120001	add_snapshot_id_fks	2026-10-03 03:54:00.892103+00	t	\\x0a080ceaa2922301464b30ea7f25e1f0de5493d15424d07a8dd1f2b4bf1880cf2d25f64d5bf1863f705a1557d867afa2	-1
-20260502120002	add_snapshot_id_indexes	2026-10-03 03:54:00.911136+00	t	\\xb7514ff0cf637241d21e90b48214a3a3a5076d0142c99aca39479d2a82cf35e1abdbce8ad5663ca8272d5f74004ae5f9	-1
-20260502120003	topology_snapshots_backfill	2026-10-03 03:54:00.915326+00	t	\\x5435da11acf8a9fc37e0520a5b2a959fce84b16080b2a5b67adcf249dea07ae533f858c56f87542152cfc271933c1428	-1
-20260502120004	drop_legacy_topology_columns	2026-10-03 03:54:00.92334+00	t	\\xfe45e73be308e6267840664a662cd679fb43469a11f06a168b8b8cfc64b6e86eb10d948271b67a0541481dcc60447769	-1
-20260627120000	add_discovery_integration_targets	2026-10-03 03:54:00.924523+00	t	\\x9adf9ea4c36868a3b86067214f8550b8e866aff5d3d6c6ab3d71d1a15ea5e4be0b4349db6d15308fefbceca8403f0cbb	-1
-20260703120000	daemon_interfaced_subnets_junction	2026-10-03 03:54:00.927988+00	t	\\xf1399bf8104b1d9cff6a7f66c6040829f01dd64614294295f0ecc27412acc19fd6dd20eff66ce9eadf0cf0c0e8c4353e	-1
-20260703120001	drop_discovery_pending_credential_ids	2026-10-03 03:54:00.929285+00	t	\\xc2cfe6f450d000ae36149b042ebcfed938c01487d78ca56a125d72bbeca0de0548824a2396761b3dc647dc80e2e43e80	-1
-20260705120000	add_user_session_epoch	2026-10-03 03:54:00.930448+00	t	\\xb296babe8e50ecdd1f50770e12d4234b47ed41cdd826c545debf5f94226672cc2d6fd28eef0483a5fdc8837f5d280d88	-1
-20260706120000	drop_credentials_target_ips_and_daemons_capabilities	2026-10-03 03:54:00.931892+00	t	\\xc544c88df68334ac0b3ec180da7ba2030837707f9e3cf2b75b4d56012646c24f8f60f094cc00f05c0f446a2a845e5e98	-1
-20260716120000	api_keys_daemon_id	2026-10-03 03:54:00.933688+00	t	\\x484c3b2553bcf81c95aabce4be70b1e2048e097529e04a176a0b75c2edf28ecd0892c959bbd8e8166f621a9dc2dba0dc	-1
-20260716120001	api_keys_daemon_id_validate	2026-10-03 03:54:00.935036+00	t	\\x723190451e98f9394b2134dccb89f8eeeb15f6a5644fb88cb24e9e0e7a4ebf5a0c455659930ce2d3096e20c004d7da89	-1
-20260716120002	api_keys_daemon_id_unique	2026-10-03 03:54:00.937049+00	t	\\xf788be5a414917ec5c8b9040f85acd352ae3f580dab7e8833db5df19b7d2cf3b43b8a021c03a5082da27eca3bb7a07f0	-1
-20260722120000	add_networks_stale_after_hours	2026-10-03 03:54:00.93799+00	t	\\x308d9e04ef943560d3e420c59a3c8017064d59bd28cb63f99c4b562124e2fa038630e71405171901d731420bd9de4e2f	-1
-20260727120000	rename_plan_limit_notifications_to_notifications	2026-10-03 03:54:00.939405+00	t	\\x2447c735b8ac6885ae4341738294392f367abcc7c0f5e857bb08523dc5d5a8eccf77db5462b531370a0795135757098d	-1
-20260728120000	rename_stale_if_entries_constraints	2026-10-03 03:54:00.941905+00	t	\\x577c54966f8c146a6e5101eb8a2f7f006ef7899ba95ec876be10970b3483b622b254d00dc9c9582efb1862404315764b	-1
-20260803120000	drop_organizations_plan_limit_notifications	2026-10-03 03:54:00.943282+00	t	\\xc4c9b44a4cce6cf419cffcbbeade3d5eb119b51f321bdcd3c51a1046d8ec8df81d32f6e76c6472eefdcfae9899ef3107	-1
-20260803120001	virtualization_service_id_column	2026-10-03 03:54:00.949439+00	t	\\xe07f6fee751430c94141be6d7ba17390f08f60bdcd01a65072708382b27e9543a9f27fb0cc76bb824940794d6ea67553	-1
-20260819120000	hosts_name_source	2026-10-03 03:54:00.953198+00	t	\\x6526859d261bf724e6ac3bb2a51c8588764aab15ecdfad964e06e98bb59f05a753ea2950bdce40cbf7f945d157a230aa	-1
-20260824120000	interfaces_neighbor_seen_at	2026-10-03 03:54:00.954478+00	t	\\x70a26934dcc110484dc95100cbc96879504a9bc0ae0fb12ca0effe032816e3282e255d90145c4d2c6bfe2eea351cb4c3	-1
-20260826120000	subnets_cidr_source	2026-10-03 03:54:00.956715+00	t	\\x1d8c6a9258f1fd07a08a268cddf5f164bb3b8bb0af34d6d167e480d50b649cbdc5a7b89aa419a218266e9aa1b3d3b497	-1
-20260827120000	hosts_firmware_revision	2026-10-03 03:54:00.958664+00	t	\\xa9b3a89986c699c70232d37f5909ab5fecd9c4d2c8708a11b2cad4775494a12080c6664964f942b0079a883f3ecd6ea2	-1
-20260827130000	interfaces_unknown_port_facts	2026-10-03 03:54:00.960081+00	t	\\xfa35944166a6c60219a07a6792cd3abbaf909ba78e5494482d73d3d10ddacea618845822dc3dc875542772af742ac38d	-1
-20260828120000	hosts_attribute_sources	2026-10-03 03:54:00.976362+00	t	\\x29220b8fb99e5ffb55ca71ea3c05f375214dd77d247d4a54dc7855c5654dbfbbbefceafeb5ddf10710c27085f0a866c4	-1
-20260828120001	mac_address_sources	2026-10-03 03:54:00.97806+00	t	\\x39ea28fed133ae2c317bd5fad54e4d16f402ee895b75a6290322e75b434f5502aeddc9f6359d7e95625bb0c0d4ca1d4e	-1
-20260828130000	hosts_software_revision	2026-10-03 03:54:00.979484+00	t	\\x83cdafd5691f1bc5fc2345a696ec9fd5c75700693f0011c65d352276d806a6f207f335189153ee8e0fa3fb7e60c18234	-1
-20260828140000	ip_addresses_network_mac_index	2026-10-03 03:54:00.981875+00	t	\\x838b853bbb63bcfe0d0976f1c7289960e3133563151c47904ddda0ce5a0078bdc4af9ce07de63d3c024d89b831995535	-1
-20260903120000	interfaces_if_descr_optional	2026-10-03 03:54:00.983006+00	t	\\x54495748b0271deebaf7cb06e9e4da9241563e83a162e4bfffaa9e571516223565ab239fcc8bb51fac9e37cbb7625757	-1
-20260903120001	interface_neighbor_tables	2026-10-03 03:54:01.003196+00	t	\\xa8352a3ed9b845d96229adcb3e3eb8e796d22a8b6aa794bbc0d2ecafcbf76d68aa59a6e7713f134a57af0acceca3865a	-1
-20260908120000	interfaces_ip_configured	2026-10-03 03:54:01.00459+00	t	\\x2467c0b912e78e9cac3818ffdec4157356f6b4a3c96e87a0171d88496439943eacbafefc7a4b51a2b68cc08bbbd29656	-1
-20260914120000	hosts_hostname_source	2026-10-03 03:54:01.007+00	t	\\xa57a5dc26c000ec5b0b4aaf66486018f637b1f1228ae994dafa06a653b5afae3d8dd2bb1264f5695c50053d656bccdc2	-1
-20260915120000	organization_license_columns	2026-10-03 03:54:01.008575+00	t	\\xd46a3e083f8179128aae52f68541627b57131d66c93d84c2ad0002a7bf6c025f757345490b47d810511d49cd9528525d	-1
-20260915120001	organizations_license_entitlement	2026-10-03 03:54:01.009795+00	t	\\x1da434d08d6afb9f0bbe4165f112cae53d3046c8578d4feb88d5f3ea0fa0649cd4bf2a69ac6c2c24978a561a6333fcb9	-1
-20260916120000	organization_license_key_issued_at	2026-10-03 03:54:01.010783+00	t	\\x99d66ef126e64532e4e87c1a99b0ac630a2031b1b4c9ba41cbe257b8e3a83e47ec0fe1360a409b5cbb57401326d7a9d3	-1
-20260917120000	organization_license_key_type	2026-10-03 03:54:01.011764+00	t	\\xac327476c465df672532ce71bfbe03a0d92ff5cc3053fae9a15fa24100308cda6b08e118267c3c1009118eeb90f46038	-1
-20260917130000	organization_bills_by_invoice	2026-10-03 03:54:01.013053+00	t	\\x33bf32d3b3edce4fe6803c326785210f322b9cdfd065440098b53424df7042ba90da1ac6f99ade774f894da1b67b0979	-1
-20260930120000	clear_zero_mac_addresses	2026-10-03 03:54:01.016223+00	t	\\xef8416f55b61953f00f1fd249a04c82d63d0d8d510e9db6cae96f79db7a70a61dfc5a22029a6878e74da05e60b63b7dd	-1
-20261001120000	add_user_display_settings	2026-10-03 03:54:01.017486+00	t	\\xd7f9afb0762c40085ced713496cf39e9778c4257196e1ba02a0feec1af67eab309df78ce5b753ebde6d250f6fbf3ef32	-1
-20261002120000	daemon_os	2026-10-03 03:54:01.020334+00	t	\\x931ef66a80cd751db47512b5f9397a5d7df21aff77cbf28c5a190c69b27ce6040d2e2f2ed3c08e85faf13d28e5cba25f	-1
-20261003120000	hosts_os	2026-10-03 03:54:01.022321+00	t	\\xb8a3b3a3e6ec9e21cc64468fa5b691dba7d39556aab7cd28fee01a21fcbde0782952b4b73cbdbd334a17c554769fbdce	-1
+20251006215000	users	2026-10-07 13:08:08.098202+00	t	\\x4f13ce14ff67ef0b7145987c7b22b588745bf9fbb7b673450c26a0f2f9a36ef8ca980e456c8d77cfb1b2d7a4577a64d7	-1
+20251006215100	networks	2026-10-07 13:08:08.10387+00	t	\\xeaa5a07a262709f64f0c59f31e25519580c79e2d1a523ce72736848946a34b17dd9adc7498eaf90551af6b7ec6d4e0e3	-1
+20251006215151	create_hosts	2026-10-07 13:08:08.107322+00	t	\\x6ec7487074c0724932d21df4cf1ed66645313cf62c159a7179e39cbc261bcb81a24f7933a0e3cf58504f2a90fc5c1962	-1
+20251006215155	create_subnets	2026-10-07 13:08:08.110598+00	t	\\xefb5b25742bd5f4489b67351d9f2494a95f307428c911fd8c5f475bfb03926347bdc269bbd048d2ddb06336945b27926	-1
+20251006215201	create_groups	2026-10-07 13:08:08.114241+00	t	\\x0a7032bf4d33a0baf020e905da865cde240e2a09dda2f62aa535b2c5d4b26b20be30a3286f1b5192bd94cd4a5dbb5bcd	-1
+20251006215204	create_daemons	2026-10-07 13:08:08.117859+00	t	\\xcfea93403b1f9cf9aac374711d4ac72d8a223e3c38a1d2a06d9edb5f94e8a557debac3668271f8176368eadc5105349f	-1
+20251006215212	create_services	2026-10-07 13:08:08.122139+00	t	\\xd5b07f82fc7c9da2782a364d46078d7d16b5c08df70cfbf02edcfe9b1b24ab6024ad159292aeea455f15cfd1f4740c1d	-1
+20251029193448	user-auth	2026-10-07 13:08:08.132524+00	t	\\xfde8161a8db89d51eeade7517d90a41d560f19645620f2298f78f116219a09728b18e91251ae31e46a47f6942d5a9032	-1
+20251030044828	daemon_api	2026-10-07 13:08:08.134047+00	t	\\x181eb3541f51ef5b038b2064660370775d1b364547a214a20dde9c9d4bb95a1c273cd4525ef29e61fa65a3eb4fee0400	-1
+20251030170438	host-hide	2026-10-07 13:08:08.135228+00	t	\\x87c6fda7f8456bf610a78e8e98803158caa0e12857c5bab466a5bb0004d41b449004a68e728ca13f17e051f662a15454	-1
+20251102224919	create_discovery	2026-10-07 13:08:08.14441+00	t	\\xb32a04abb891aba48f92a059fae7341442355ca8e4af5d109e28e2a4f79ee8e11b2a8f40453b7f6725c2dd6487f26573	-1
+20251106235621	normalize-daemon-cols	2026-10-07 13:08:08.146167+00	t	\\x5b137118d506e2708097c432358bf909265b3cf3bacd662b02e2c81ba589a9e0100631c7801cffd9c57bb10a6674fb3b	-1
+20251107034459	api_keys	2026-10-07 13:08:08.15356+00	t	\\x3133ec043c0c6e25b6e55f7da84cae52b2a72488116938a2c669c8512c2efe72a74029912bcba1f2a2a0a8b59ef01dde	-1
+20251107222650	oidc-auth	2026-10-07 13:08:08.176259+00	t	\\xd349750e0298718cbcd98eaff6e152b3fb45c3d9d62d06eedeb26c75452e9ce1af65c3e52c9f2de4bd532939c2f31096	-1
+20251110181948	orgs-billing	2026-10-07 13:08:08.185838+00	t	\\x5bbea7a2dfc9d00213bd66b473289ddd66694eff8a4f3eaab937c985b64c5f8c3ad2d64e960afbb03f335ac6766687aa	-1
+20251113223656	group-enhancements	2026-10-07 13:08:08.186956+00	t	\\xbe0699486d85df2bd3edc1f0bf4f1f096d5b6c5070361702c4d203ec2bb640811be88bb1979cfe51b40805ad84d1de65	-1
+20251117032720	daemon-mode	2026-10-07 13:08:08.188132+00	t	\\xdd0d899c24b73d70e9970e54b2c748d6b6b55c856ca0f8590fe990da49cc46c700b1ce13f57ff65abd6711f4bd8a6481	-1
+20251118143058	set-default-plan	2026-10-07 13:08:08.189372+00	t	\\xd19142607aef84aac7cfb97d60d29bda764d26f513f2c72306734c03cec2651d23eee3ce6cacfd36ca52dbddc462f917	-1
+20251118225043	save-topology	2026-10-07 13:08:08.196308+00	t	\\x011a594740c69d8d0f8b0149d49d1b53cfbf948b7866ebd84403394139cb66a44277803462846b06e762577adc3e61a3	-1
+20251123232748	network-permissions	2026-10-07 13:08:08.198938+00	t	\\x161be7ae5721c06523d6488606f1a7b1f096193efa1183ecdd1c2c9a4a9f4cad4884e939018917314aaf261d9a3f97ae	-1
+20251125001342	billing-updates	2026-10-07 13:08:08.199846+00	t	\\xa235d153d95aeb676e3310a52ccb69dfbd7ca36bba975d5bbca165ceeec7196da12119f23597ea5276c364f90f23db1e	-1
+20251128035448	org-onboarding-status	2026-10-07 13:08:08.201363+00	t	\\x1d7a7e9bf23b5078250f31934d1bc47bbaf463ace887e7746af30946e843de41badfc2b213ed64912a18e07b297663d8	-1
+20251129180942	nfs-consolidate	2026-10-07 13:08:08.202605+00	t	\\xb38f41d30699a475c2b967f8e43156f3b49bb10341bddbde01d9fb5ba805f6724685e27e53f7e49b6c8b59e29c74f98e	-1
+20251206052641	discovery-progress	2026-10-07 13:08:08.20412+00	t	\\x9d433b7b8c58d0d5437a104497e5e214febb2d1441a3ad7c28512e7497ed14fb9458e0d4ff786962a59954cb30da1447	-1
+20251206202200	plan-fix	2026-10-07 13:08:08.205023+00	t	\\x242f6699dbf485cf59a8d1b8cd9d7c43aeef635a9316be815a47e15238c5e4af88efaa0daf885be03572948dc0c9edac	-1
+20251207061341	daemon-url	2026-10-07 13:08:08.207145+00	t	\\x01172455c4f2d0d57371d18ef66d2ab3b7a8525067ef8a86945c616982e6ce06f5ea1e1560a8f20dadcd5be2223e6df1	-1
+20251210045929	tags	2026-10-07 13:08:08.213932+00	t	\\xe3dde83d39f8552b5afcdc1493cddfeffe077751bf55472032bc8b35fc8fc2a2caa3b55b4c2354ace7de03c3977982db	-1
+20251210175035	terms	2026-10-07 13:08:08.214961+00	t	\\xe47f0cf7aba1bffa10798bede953da69fd4bfaebf9c75c76226507c558a3595c6bfc6ac8920d11398dbdf3b762769992	-1
+20251213025048	hash-keys	2026-10-07 13:08:08.223037+00	t	\\xfc7cbb8ce61f0c225322297f7459dcbe362242b9001c06cb874b7f739cea7ae888d8f0cfaed6623bcbcb9ec54c8cd18b	-1
+20251214050638	scanopy	2026-10-07 13:08:08.224715+00	t	\\x0108bb39832305f024126211710689adc48d973ff66e5e59ff49468389b75c1ff95d1fbbb7bdb50e33ec1333a1f29ea6	-1
+20251215215724	topo-scanopy-fix	2026-10-07 13:08:08.225501+00	t	\\xed88a4b71b3c9b61d46322b5053362e5a25a9293cd3c420c9df9fcaeb3441254122b8a18f58c297f535c842b8a8b0a38	-1
+20251217153736	category_rename	2026-10-07 13:08:08.226957+00	t	\\x03af7ec905e11a77e25038a3c272645da96014da7c50c585a25cea3f9a7579faba3ff45114a5e589d144c9550ba42421	-1
+20251218053111	invite-persistence	2026-10-07 13:08:08.230986+00	t	\\x21d12f48b964acfd600f88e70ceb14abd9cf2a8a10db2eae2a6d8f44cf7d20749f93293631e6123e92b7c3c1793877c2	-1
+20251219211216	create_shares	2026-10-07 13:08:08.236312+00	t	\\x036485debd3536f9e58ead728f461b925585911acf565970bf3b2ab295b12a2865606d6a56d334c5641dcd42adeb3d68	-1
+20251220170928	permissions-cleanup	2026-10-07 13:08:08.237582+00	t	\\x632f7b6702b494301e0d36fd3b900686b1a7f9936aef8c084b5880f1152b8256a125566e2b5ac40216eaadd3c4c64a03	-1
+20251220180000	commercial-to-community	2026-10-07 13:08:08.238404+00	t	\\x26fc298486c225f2f01271d611418377c403183ae51daf32fef104ec07c027f2017d138910c4fbfb5f49819a5f4194d6	-1
+20251221010000	cleanup_subnet_type	2026-10-07 13:08:08.239247+00	t	\\xb521121f3fd3a10c0de816977ac2a2ffb6118f34f8474ffb9058722abc0dc4cf5cbec83bc6ee49e79a68e6b715087f40	-1
+20251221020000	remove_host_target	2026-10-07 13:08:08.240298+00	t	\\x77b5f8872705676ca81a5704bd1eaee90b9a52b404bdaa27a23da2ffd4858d3e131680926a5a00ad2a0d7a24ba229046	-1
+20251221030000	user_network_access	2026-10-07 13:08:08.246046+00	t	\\x5c23f5bb6b0b8ca699a17eee6730c4197a006ca21fecc79136a5e5697b9211a81b4cd08ceda70dace6a26408d021ff3a	-1
+20251221040000	interfaces_table	2026-10-07 13:08:08.253688+00	t	\\xf7977b6f1e7e5108c614397d03a38c9bd9243fdc422575ec29610366a0c88f443de2132185878d8e291f06a50a8c3244	-1
+20251221050000	ports_table	2026-10-07 13:08:08.260995+00	t	\\xdf72f9306b405be7be62c39003ef38408115e740b120f24e8c78b8e136574fff7965c52023b3bc476899613fa5f4fe35	-1
+20251221060000	bindings_table	2026-10-07 13:08:08.26969+00	t	\\x933648a724bd179c7f47305e4080db85342d48712cde39374f0f88cde9d7eba8fe5fafba360937331e2a8178dec420c4	-1
+20251221070000	group_bindings	2026-10-07 13:08:08.2753+00	t	\\x697475802f6c42e38deee6596f4ba786b09f7b7cd91742fbc5696dd0f9b3ddfce90dd905153f2b1a9e82f959f5a88302	-1
+20251222020000	tag_cascade_delete	2026-10-07 13:08:08.27687+00	t	\\xabfb48c0da8522f5c8ea6d482eb5a5f4562ed41f6160a5915f0fd477c7dd0517aa84760ef99ab3a5db3e0f21b0c69b5f	-1
+20251223232524	network_remove_default	2026-10-07 13:08:08.278176+00	t	\\x7099fe4e52405e46269d7ce364050da930b481e72484ad3c4772fd2911d2d505476d659fa9f400c63bc287512d033e18	-1
+20251225100000	color_enum	2026-10-07 13:08:08.27952+00	t	\\x62cecd9d79a49835a3bea68a7959ab62aa0c1aaa7e2940dec6a7f8a714362df3649f0c1f9313672d9268295ed5a1cfa9	-1
+20251227010000	topology_snapshot_migration	2026-10-07 13:08:08.283706+00	t	\\xc042591d254869c0e79c8b52a9ede680fd26f094e2c385f5f017e115f5e3f31ad155f4885d095344f2642ebb70755d54	-1
+20251228010000	user_api_keys	2026-10-07 13:08:08.293319+00	t	\\xa41adb558a5b9d94a4e17af3f16839b83f7da072dbeac9251b12d8a84c7bec6df008009acf246468712a975bb36bb5f5	-1
+20251230160000	daemon_version_and_maintainer	2026-10-07 13:08:08.295849+00	t	\\xafed3d9f00adb8c1b0896fb663af801926c218472a0a197f90ecdaa13305a78846a9e15af0043ec010328ba533fca68f	-1
+20260103000000	service_position	2026-10-07 13:08:08.297786+00	t	\\x19d00e8c8b300d1c74d721931f4d771ec7bc4e06db0d6a78126e00785586fdc4bcff5b832eeae2fce0cb8d01e12a7fb5	-1
+20260106000000	interface_mac_index	2026-10-07 13:08:08.299596+00	t	\\xa26248372a1e31af46a9c6fbdaef178982229e2ceeb90cc6a289d5764f87a38747294b3adf5f21276b5d171e42bdb6ac	-1
+20260106204402	entity_tags_junction	2026-10-07 13:08:08.310109+00	t	\\xf73c604f9f0b8db065d990a861684b0dbd62c3ef9bead120c68431c933774de56491a53f021e79f09801680152f5a08a	-1
+20260108033856	fix_entity_tags_json_format	2026-10-07 13:08:08.311529+00	t	\\x197eaa063d4f96dd0e897ad8fd96cc1ba9a54dda40a93a5c12eac14597e4dea4c806dd0a527736fb5807b7a8870d9916	-1
+20260110000000	email_verification	2026-10-07 13:08:08.314565+00	t	\\xb8da8433f58ba4ce846b9fa0c2551795747a8473ad10266b19685504847458ea69d27a0ce430151cfb426f5f5fb6ac3a	-1
+20260114145808	daemon_user_fk_set_null	2026-10-07 13:08:08.315916+00	t	\\x57b060be9fc314d7c5851c75661ca8269118feea6cf7ee9c61b147a0e117c4d39642cf0d1acdf7a723a9a76066c1b8ff	-1
+20260116010000	snmp_credentials	2026-10-07 13:08:08.321592+00	t	\\x6f3971cf194d56883c61fa795406a8ab568307ed86544920d098b32a6a1ebb7effcb5ec38a70fdc9b617eff92d63d51e	-1
+20260116020000	host_snmp_fields	2026-10-07 13:08:08.325088+00	t	\\xf2f088c13ab0dd34e1cb1e5327b0b4137440b0146e5ce1e78b8d2dfa05d9b5a12a328eeb807988453a8a43ad8a1c95ba	-1
+20260116030000	if_entries	2026-10-07 13:08:08.33579+00	t	\\xa58391708f8b21901ab9250af528f638a6055462f70ffddfd7c451433aacdabd62825546fa8be108f23a3cae78b8ae28	-1
+20260116100000	daemon_api_key_link	2026-10-07 13:08:08.33882+00	t	\\x41088aa314ab173344a6b416280721806b2f296a32a8d8cae58c7e5717f389fe599134ed03980ed97e4b7659e99c4f82	-1
+20260131190000	add_hubspot_company_id	2026-10-07 13:08:08.339831+00	t	\\x4326f95f4954e176157c1c3e034074a3e5c44da4d60bbd7a9e4b6238c9ef52a30f8b38d3c887864b6e4c1163dc062beb	-1
+20260201021238	fix_service_acronym_capitalization	2026-10-07 13:08:08.341155+00	t	\\x88b010ac8f0223d880ea6a730f11dc6d27fa5de9d8747de3431e46d59f1dbf2f72ae4a87c2e52c32152549f5c1f96bb2	-1
+20260204004436	add_entity_tags_to_topology	2026-10-07 13:08:08.342301+00	t	\\x3eff1a1490e77065ec861ef1b9aad8c55de0170106a42720f7931b3929b179122b16e44390b2652771bf91bba32a7757	-1
+20260205120000	billing_overhaul	2026-10-07 13:08:08.344209+00	t	\\xbf850cfa0c40a3c65f574efd15fd55a4b702296203d28077a09d1c22076fee8601f2b78345aef370ab9163657de767ab	-1
+20260205183207	rename_hubspot_to_brevo	2026-10-07 13:08:08.34539+00	t	\\x4678a7d80215e5eafb5e80af0daa20e2868a3b4f2112e88cb1b2b9efc87d63de3fb96c133f359b224c658789ae4b0d13	-1
+20260221120000	add_plan_limit_notifications	2026-10-07 13:08:08.346745+00	t	\\xef770dac07e1d80888832f33184dc46c1d3b8185b91c507cb404468d6ad8c29cacf455178801c67aa27b6a626d3ad82d	-1
+20260222120000	add_pending_email	2026-10-07 13:08:08.347693+00	t	\\xddd220f7602c44548d56849c0a8d081ecd1da1383374a11e3e227c7d9becb73a49f5e5bb09ed65901c16df4c16e913e5	-1
+20260301120000	add_if_name_to_if_entries	2026-10-07 13:08:08.348699+00	t	\\xc9fc0a2b77ecbf0e1d5ab292c4fe162a26113468c878dfd26a3c63d89c0ee1957ca328ecfe25c611867a0e73780f0cb6	-1
+20260306002816	cleanup_standby	2026-10-07 13:08:08.349656+00	t	\\x01b0c236a8a4d0d97f0f633b18f8cbdb92b6d72063289989b90a1b7b6b303e65e0557eb09927b2580dcb7e8ee5966c75	-1
+20260309120000	add_org_use_case	2026-10-07 13:08:08.35074+00	t	\\xdb8c8a2f0f9416ba3b687fc75453d7c12c50a6f386b4784d21bd6adfc4a4a7556c637c25cf116118402bbd12c0d5aafe	-1
+20260313120000	snmp_extended_discovery	2026-10-07 13:08:08.352402+00	t	\\xc4e72539099de1b830d87a169bfbabba4b8fb378a3c4c4a1dfca698adf3e403d750040d784c26d9fa343be2908064c9d	-1
+20260315120000	universal_credentials	2026-10-07 13:08:08.367935+00	t	\\x87dc6f39202e81d5555df78a9d056b143f11bd22e6d7f483065f605e242a360902c72c4d5a49717e7fcc24a366bb5ff5	-1
+20260315120001	discovery_scan_settings	2026-10-07 13:08:08.368938+00	t	\\xe9da183fdd8e04e574f553f61f6f33efa046cdae38c846c8077b06c5260446fb4aa39da2449bda7f1d8cf3aa9f16e158	-1
+20260315120002	backfill_org_created_milestone	2026-10-07 13:08:08.369751+00	t	\\x14f886a19773cd2263d86f88479be460d21f071d5212e3789c5c40b6415c293fc7d06c7b138351cc42108f89a14fe745	-1
+20260316120000	fix_jsonb_null_if_entries	2026-10-07 13:08:08.371219+00	t	\\x65c358069710f7f86d6a3e257e658c2f241cc376433c3a0317b0ec9e1876a66f9738cb65c6ab1a5c197fe40d5aa2aa2b	-1
+20260319120000	rename_snmp_to_snmpv2c	2026-10-07 13:08:08.372257+00	t	\\xdce5c9461f402e1672607078b2c571f0eb30b51d46f8e9414d8909efb40693f543e49e560cb7d703db274515043aa08e	-1
+20260321120000	add_discovery_scan_count	2026-10-07 13:08:08.373914+00	t	\\x6c8201ab453a51632176d534c6604e0818e28a8a4a153e33e254f4dac0f9b67c9db394082cb663ff1b25941229cf96fc	-1
+20260329120000	backfill_subnet_virtualization	2026-10-07 13:08:08.375836+00	t	\\xeac50ded27603dbb5e8773604a52143c9fa8654263e7dd12d3d128ce972c2feed84600e36b2e7a79525b58c44d2ad9d3	-1
+20260402120000	rename_topology_node_types	2026-10-07 13:08:08.376735+00	t	\\xc4ba06868add823f83ff1948091bdfe17dbdde80bbec6fe2cf8da2b3689aeeebbe9e9de01b1292bff3c98a74d9e6279f	-1
+20260403120000	topology_grouping_rules	2026-10-07 13:08:08.378097+00	t	\\x00799da1206d7c3b3c3db90b7d14437cc054ed2d7273020342e562c619a671e008ff4fdf0365170440b392956949e730	-1
+20260405120000	rename_groups_to_dependencies	2026-10-07 13:08:08.384887+00	t	\\x9ce895b456366bf6e54316b22cabd2803aa542dd3733fffa680f0a3af5c4c55a612c5ee511371206921869b7f271c35b	-1
+20260406120000	add_tag_is_application_group	2026-10-07 13:08:08.386066+00	t	\\xb7a71e5fdd96ca46c9c7577003309050a93bc53ad192ac5df78e7621f3ed64f07fb29b4658f17af55732cf6dfb7958c2	-1
+20260406130000	add_vlans	2026-10-07 13:08:08.394617+00	t	\\x5b3e5d10578d90b5175e5718a28d7147a21b99af2fb3e0ed171d20ee8fd8838c290f648dafdd3b72ef60ff487f7f2494	-1
+20260409000000	add_vlans_to_topologies	2026-10-07 13:08:08.39592+00	t	\\x5e0b9dc670580ceec3aa6eae005a39f98733fc27dc574b7f3922f4297813facd5d610af953dfec13e09d0b99eceb3865	-1
+20260410000000	rename_interfaces_and_if_entries	2026-10-07 13:08:08.401402+00	t	\\x07f54a59869f458f41f45d75f250aee26b20a426f1ec29930606841770194d6aea0e9e6253a6375fbeebcf9b49121224	-1
+20260414000000	add_share_enabled_views	2026-10-07 13:08:08.402436+00	t	\\xc56514355a5977c3242e728e7f5a2533e7b4a5cf8a7ce7757e412e51f1ad85e96d65c13ccd96d050be4a07799b9aef57	-1
+20260415120000	rename_onboarding_first_group_created	2026-10-07 13:08:08.403221+00	t	\\x2c17035835d3ead105b76d98688c0b7bd328abdaf9f721d70d057c8afdf438819e93da56707deea5b469b81a7b84d5d7	-1
+20260417000000	reindex_interfaces_identity	2026-10-07 13:08:08.40638+00	t	\\x10701e13bc3d838e2ec4a856555ebf338173792f220c405996d3c77e7987e9806798ca0328eb6259e4a62b7e05665b25	-1
+20260418000000	add_standby_cleared_at_to_daemons	2026-10-07 13:08:08.407356+00	t	\\x547807de451d015a4ce1438796d5b95e2b98043c521015a21239f6778d10a8d3bf7d8b14e278e09aa0105f1935ad4181	-1
+20260501000000	add_organization_billing_flags	2026-10-07 13:08:08.409274+00	t	\\x2de34c4af667d4cd8bc263c27f0526a4a2132022e2eb71ae94fd89edebbfb40cda840055a94e89a21925a317cdff285f	-1
+20260502000000	scd2_add_columns	2026-10-07 13:08:08.420914+00	t	\\xe78a73574d86320c0de7fcd43682ee3cdd436dc64d1371f98cb67ef0cdf33097df6e8a92c9a26c5702795144103b085e	-1
+20260502000001	scd2_add_discovery_fks_not_valid	2026-10-07 13:08:08.430135+00	t	\\xb49114eb6f8d77cb0c5062619da5c829e5bd65898710efb6207d2804be3677a95eebe88d41d21ae8cba21344fcd63f97	-1
+20260502000002	scd2_validate_discovery_fks	2026-10-07 13:08:08.437359+00	t	\\x500201842b9f486d1397c0f0f3ee1a36bc101440d4d97fe0f0bfc971672f1f53f7945aed93c34e2e53d2d9cb913419f1	-1
+20260502000003	scd2_backfill_with_metadata	2026-10-07 13:08:08.440795+00	t	\\xd299c1dbf7ec284995dc8a5fcf4b264e4f1ff970085a8631e6d00aa0bc6d6708a5e41d515bb9299c22ef128a958e68e9	-1
+20260502000004	scd2_partial_unique_indexes	2026-10-07 13:08:08.459623+00	t	\\xbc30e554c37ec3ca72baa7fc634920257909944dc841231a966845fd4c5bc27ae20606c98867934c872e8883bd56efa1	-1
+20260502000005	scd2_drop_old_unique_constraints	2026-10-07 13:08:08.462592+00	t	\\x660c0237299796c6e70a21780d529453a2ac8645f7b122a0b8aa4f362ff780de8849f53a66b71b3ea29ecc66877f47ad	-1
+20260502000006	scd2_supporting_indexes	2026-10-07 13:08:08.519583+00	t	\\x4394aaf6951c4b7048f66334fb8c550c55d4cdc06beb29eb7f086a717ee9f26ddeb28e73a7b298633ef517f6c0f84ee0	-1
+20260502000007	entitysource_metadata_strip	2026-10-07 13:08:08.522315+00	t	\\x1cfd1a00b100ca0b007be6e8b55f67dde412108f299f94b419a80af45b74b75fdead95637dccb13fdd57fed2f1132446	-1
+20260502100000	add_user_email_settings	2026-10-07 13:08:08.523596+00	t	\\xe886b44ca9d3d6461d82b573f617391b8b5f22f18b8113a333aa8c275545ec6455060f68ecbfdd17af86fccc9a500d7a	-1
+20260502120000	create_snapshots_table	2026-10-07 13:08:08.527088+00	t	\\x18f829b255b8e11e385903e51182f04fb835aa78ef0090865ce7743f747e4aaaa7b1a7b806a377e9b12af6205aed527a	-1
+20260502120001	add_snapshot_id_fks	2026-10-07 13:08:08.535582+00	t	\\x0a080ceaa2922301464b30ea7f25e1f0de5493d15424d07a8dd1f2b4bf1880cf2d25f64d5bf1863f705a1557d867afa2	-1
+20260502120002	add_snapshot_id_indexes	2026-10-07 13:08:08.554622+00	t	\\xb7514ff0cf637241d21e90b48214a3a3a5076d0142c99aca39479d2a82cf35e1abdbce8ad5663ca8272d5f74004ae5f9	-1
+20260502120003	topology_snapshots_backfill	2026-10-07 13:08:08.55898+00	t	\\x5435da11acf8a9fc37e0520a5b2a959fce84b16080b2a5b67adcf249dea07ae533f858c56f87542152cfc271933c1428	-1
+20260502120004	drop_legacy_topology_columns	2026-10-07 13:08:08.567145+00	t	\\xfe45e73be308e6267840664a662cd679fb43469a11f06a168b8b8cfc64b6e86eb10d948271b67a0541481dcc60447769	-1
+20260627120000	add_discovery_integration_targets	2026-10-07 13:08:08.56835+00	t	\\x9adf9ea4c36868a3b86067214f8550b8e866aff5d3d6c6ab3d71d1a15ea5e4be0b4349db6d15308fefbceca8403f0cbb	-1
+20260703120000	daemon_interfaced_subnets_junction	2026-10-07 13:08:08.571884+00	t	\\xf1399bf8104b1d9cff6a7f66c6040829f01dd64614294295f0ecc27412acc19fd6dd20eff66ce9eadf0cf0c0e8c4353e	-1
+20260703120001	drop_discovery_pending_credential_ids	2026-10-07 13:08:08.57319+00	t	\\xc2cfe6f450d000ae36149b042ebcfed938c01487d78ca56a125d72bbeca0de0548824a2396761b3dc647dc80e2e43e80	-1
+20260705120000	add_user_session_epoch	2026-10-07 13:08:08.574331+00	t	\\xb296babe8e50ecdd1f50770e12d4234b47ed41cdd826c545debf5f94226672cc2d6fd28eef0483a5fdc8837f5d280d88	-1
+20260706120000	drop_credentials_target_ips_and_daemons_capabilities	2026-10-07 13:08:08.575737+00	t	\\xc544c88df68334ac0b3ec180da7ba2030837707f9e3cf2b75b4d56012646c24f8f60f094cc00f05c0f446a2a845e5e98	-1
+20260716120000	api_keys_daemon_id	2026-10-07 13:08:08.577678+00	t	\\x484c3b2553bcf81c95aabce4be70b1e2048e097529e04a176a0b75c2edf28ecd0892c959bbd8e8166f621a9dc2dba0dc	-1
+20260716120001	api_keys_daemon_id_validate	2026-10-07 13:08:08.578936+00	t	\\x723190451e98f9394b2134dccb89f8eeeb15f6a5644fb88cb24e9e0e7a4ebf5a0c455659930ce2d3096e20c004d7da89	-1
+20260716120002	api_keys_daemon_id_unique	2026-10-07 13:08:08.580993+00	t	\\xf788be5a414917ec5c8b9040f85acd352ae3f580dab7e8833db5df19b7d2cf3b43b8a021c03a5082da27eca3bb7a07f0	-1
+20260722120000	add_networks_stale_after_hours	2026-10-07 13:08:08.58189+00	t	\\x308d9e04ef943560d3e420c59a3c8017064d59bd28cb63f99c4b562124e2fa038630e71405171901d731420bd9de4e2f	-1
+20260727120000	rename_plan_limit_notifications_to_notifications	2026-10-07 13:08:08.583291+00	t	\\x2447c735b8ac6885ae4341738294392f367abcc7c0f5e857bb08523dc5d5a8eccf77db5462b531370a0795135757098d	-1
+20260728120000	rename_stale_if_entries_constraints	2026-10-07 13:08:08.585741+00	t	\\x577c54966f8c146a6e5101eb8a2f7f006ef7899ba95ec876be10970b3483b622b254d00dc9c9582efb1862404315764b	-1
+20260803120000	drop_organizations_plan_limit_notifications	2026-10-07 13:08:08.587089+00	t	\\xc4c9b44a4cce6cf419cffcbbeade3d5eb119b51f321bdcd3c51a1046d8ec8df81d32f6e76c6472eefdcfae9899ef3107	-1
+20260803120001	virtualization_service_id_column	2026-10-07 13:08:08.593334+00	t	\\xe07f6fee751430c94141be6d7ba17390f08f60bdcd01a65072708382b27e9543a9f27fb0cc76bb824940794d6ea67553	-1
+20260819120000	hosts_name_source	2026-10-07 13:08:08.597324+00	t	\\x6526859d261bf724e6ac3bb2a51c8588764aab15ecdfad964e06e98bb59f05a753ea2950bdce40cbf7f945d157a230aa	-1
+20260824120000	interfaces_neighbor_seen_at	2026-10-07 13:08:08.598772+00	t	\\x70a26934dcc110484dc95100cbc96879504a9bc0ae0fb12ca0effe032816e3282e255d90145c4d2c6bfe2eea351cb4c3	-1
+20260826120000	subnets_cidr_source	2026-10-07 13:08:08.601206+00	t	\\x1d8c6a9258f1fd07a08a268cddf5f164bb3b8bb0af34d6d167e480d50b649cbdc5a7b89aa419a218266e9aa1b3d3b497	-1
+20260827120000	hosts_firmware_revision	2026-10-07 13:08:08.60325+00	t	\\xa9b3a89986c699c70232d37f5909ab5fecd9c4d2c8708a11b2cad4775494a12080c6664964f942b0079a883f3ecd6ea2	-1
+20260827130000	interfaces_unknown_port_facts	2026-10-07 13:08:08.604746+00	t	\\xfa35944166a6c60219a07a6792cd3abbaf909ba78e5494482d73d3d10ddacea618845822dc3dc875542772af742ac38d	-1
+20260828120000	hosts_attribute_sources	2026-10-07 13:08:08.621383+00	t	\\x29220b8fb99e5ffb55ca71ea3c05f375214dd77d247d4a54dc7855c5654dbfbbbefceafeb5ddf10710c27085f0a866c4	-1
+20260828120001	mac_address_sources	2026-10-07 13:08:08.623072+00	t	\\x39ea28fed133ae2c317bd5fad54e4d16f402ee895b75a6290322e75b434f5502aeddc9f6359d7e95625bb0c0d4ca1d4e	-1
+20260828130000	hosts_software_revision	2026-10-07 13:08:08.624442+00	t	\\x83cdafd5691f1bc5fc2345a696ec9fd5c75700693f0011c65d352276d806a6f207f335189153ee8e0fa3fb7e60c18234	-1
+20260828140000	ip_addresses_network_mac_index	2026-10-07 13:08:08.626817+00	t	\\x838b853bbb63bcfe0d0976f1c7289960e3133563151c47904ddda0ce5a0078bdc4af9ce07de63d3c024d89b831995535	-1
+20260903120000	interfaces_if_descr_optional	2026-10-07 13:08:08.627911+00	t	\\x54495748b0271deebaf7cb06e9e4da9241563e83a162e4bfffaa9e571516223565ab239fcc8bb51fac9e37cbb7625757	-1
+20260903120001	interface_neighbor_tables	2026-10-07 13:08:08.648265+00	t	\\xa8352a3ed9b845d96229adcb3e3eb8e796d22a8b6aa794bbc0d2ecafcbf76d68aa59a6e7713f134a57af0acceca3865a	-1
+20260908120000	interfaces_ip_configured	2026-10-07 13:08:08.649655+00	t	\\x2467c0b912e78e9cac3818ffdec4157356f6b4a3c96e87a0171d88496439943eacbafefc7a4b51a2b68cc08bbbd29656	-1
+20261005120001	rename_networks_to_sites_backfill	2026-10-07 13:08:08.69025+00	t	\\x085c1f2e6ec6b548e7f47fb092519f5f8889629e6198b30bd4a91e4e1d6b5e502513efb213c0601abf444d1f39183f81	-1
+20261006120000	host_asset_tag	2026-10-07 13:08:08.691668+00	t	\\x1a9ef01df34f62321f6fdc26f4f75d952000cc366b54217a3107132643258e44957033c5f37b3618ff8d895d01eae918	-1
+20261006120100	tag_group_and_icon	2026-10-07 13:08:08.692772+00	t	\\x3bad6e7e42b3a23b29a94462ddefba434ba2e7e92d1d9464db16644d40e45b97d01a83716203f5cda27d7bb5623dd436	-1
+20260914120000	hosts_hostname_source	2026-10-07 13:08:08.652179+00	t	\\xa57a5dc26c000ec5b0b4aaf66486018f637b1f1228ae994dafa06a653b5afae3d8dd2bb1264f5695c50053d656bccdc2	-1
+20260915120000	organization_license_columns	2026-10-07 13:08:08.653802+00	t	\\xd46a3e083f8179128aae52f68541627b57131d66c93d84c2ad0002a7bf6c025f757345490b47d810511d49cd9528525d	-1
+20260915120001	organizations_license_entitlement	2026-10-07 13:08:08.654991+00	t	\\x1da434d08d6afb9f0bbe4165f112cae53d3046c8578d4feb88d5f3ea0fa0649cd4bf2a69ac6c2c24978a561a6333fcb9	-1
+20260916120000	organization_license_key_issued_at	2026-10-07 13:08:08.656069+00	t	\\x99d66ef126e64532e4e87c1a99b0ac630a2031b1b4c9ba41cbe257b8e3a83e47ec0fe1360a409b5cbb57401326d7a9d3	-1
+20260917120000	organization_license_key_type	2026-10-07 13:08:08.657034+00	t	\\xac327476c465df672532ce71bfbe03a0d92ff5cc3053fae9a15fa24100308cda6b08e118267c3c1009118eeb90f46038	-1
+20260917130000	organization_bills_by_invoice	2026-10-07 13:08:08.658376+00	t	\\x33bf32d3b3edce4fe6803c326785210f322b9cdfd065440098b53424df7042ba90da1ac6f99ade774f894da1b67b0979	-1
+20260930120000	clear_zero_mac_addresses	2026-10-07 13:08:08.661742+00	t	\\xef8416f55b61953f00f1fd249a04c82d63d0d8d510e9db6cae96f79db7a70a61dfc5a22029a6878e74da05e60b63b7dd	-1
+20261001120000	add_user_display_settings	2026-10-07 13:08:08.662993+00	t	\\xd7f9afb0762c40085ced713496cf39e9778c4257196e1ba02a0feec1af67eab309df78ce5b753ebde6d250f6fbf3ef32	-1
+20261001120001	credential_daemon_os	2026-10-07 13:08:08.664866+00	t	\\xe679b2c2caea51e608200d064b81b02f1f4cee20cfa60a929db29b87666ba8a5d01e5d0739a2b9953f401f4171c11c9d	-1
+20261002120000	daemon_os	2026-10-07 13:08:08.665945+00	t	\\x931ef66a80cd751db47512b5f9397a5d7df21aff77cbf28c5a190c69b27ce6040d2e2f2ed3c08e85faf13d28e5cba25f	-1
+20261003120000	hosts_os	2026-10-07 13:08:08.667296+00	t	\\xb8a3b3a3e6ec9e21cc64468fa5b691dba7d39556aab7cd28fee01a21fcbde0782952b4b73cbdbd334a17c554769fbdce	-1
+20261003130000	organization_license_server_version	2026-10-07 13:08:08.668273+00	t	\\xe2f1bf9692ed8bb1a08a1ae13b53f632fd5f2112d53225bbf13332af26639b9518edb28daa4b3ed98bf71ed4b1002d34	-1
+20261004120000	host_virtualization_interface	2026-10-07 13:08:08.670359+00	t	\\x79224f29c669331336f577a5c9f7e5f674dec637f1a879e9c4016e8705af2e921e63cf4ab178cb21af1026317d6e57be	-1
+20261004120001	host_virtualization_interface_validate	2026-10-07 13:08:08.672014+00	t	\\xf03d5b6826e7aca5a5efe1ab57878591bfd12ac5c097b1d71e5539348cf9a5e794c2ef19c5fa3ee8aac039920b9f1f4e	-1
+20261004120002	host_virtualization_interface_index	2026-10-07 13:08:08.674126+00	t	\\x64e39691a98e9ed761812e1bfdeaa7b8d9aa13eb0401a39fb40dd36f21222ac47dad7f1b4ff9465a3cd0da1af42039ee	-1
+20261005120000	rename_networks_to_sites	2026-10-07 13:08:08.684935+00	t	\\x5e08911ddc549e9d522eece781caa57fe42ee4cb6f7d16fb25b63bf6c7f95e897d2cbd12db345040f5a4035d420ace43	-1
 \.
 
 
@@ -1488,10 +1505,10 @@ COPY public._sqlx_migrations (version, description, installed_on, success, check
 -- Data for Name: api_keys; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.api_keys (id, key, network_id, name, created_at, updated_at, last_used, expires_at, is_enabled, plaintext, daemon_id) FROM stdin;
-84e73713-a74c-41a1-a68e-48c2a763a422	eb04bbfd108917592bbe58584c2938f57b5d93d4007bebb4844e0a7aab1e75f3	7eb98070-8e88-4434-b534-e3edc542498c	Compat Test API Key	2026-10-03 04:02:02.263489+00	2026-10-03 04:02:02.263489+00	2026-10-03 04:02:12.553507+00	\N	t	\N	\N
-bebf4068-f6c8-45d5-b336-4faee874696f	3328e8cbe0071ef423b6a7a5233645f506eff40f00c07679b2146a09ca311a85	7eb98070-8e88-4434-b534-e3edc542498c	scanopy-daemon-serverpoll API Key	2026-10-03 03:55:08.585981+00	2026-10-03 03:55:08.585981+00	2026-10-03 04:02:31.699234+00	\N	t	scp_d_K3gsq0RUSLHZsjamvFWV1ImFu39c2Qba	e57f0924-f8b4-4d16-a1f8-72ab44cac81c
-1fce6414-0768-48fc-bde6-aaecba27cc90	000dcc6d1811a999b6e057c4adc8ff942213edeeaacb2606fd89f4981da4a354	7eb98070-8e88-4434-b534-e3edc542498c	scanopy-daemon API Key	2026-10-03 03:54:04.457399+00	2026-10-03 03:54:04.457399+00	2026-10-03 04:02:33.281523+00	\N	t	\N	375b4992-3f56-446f-ad5b-16002023b0dc
+COPY public.api_keys (id, key, site_id, name, created_at, updated_at, last_used, expires_at, is_enabled, plaintext, daemon_id) FROM stdin;
+374d974c-226c-4934-a893-7a0e1bf43833	138b9d29e97e221b273d38595da8c6547abb1578a687074471cf59a652e95887	4d37a500-a91f-4b1e-918e-f2b03934d17b	Compat Test API Key	2026-10-07 13:16:09.881663+00	2026-10-07 13:16:09.881663+00	2026-10-07 13:16:20.140251+00	\N	t	\N	\N
+7b103ca3-cd3c-48a3-be73-0d462a90446d	77fd48b7f1f5f74626fb4c36e5fd5c7d90f885aa3c9cb2e229c3a2095081b4c4	4d37a500-a91f-4b1e-918e-f2b03934d17b	scanopy-daemon-serverpoll API Key	2026-10-07 13:09:30.788412+00	2026-10-07 13:09:30.788412+00	2026-10-07 13:16:40.350443+00	\N	t	scp_d_EtumkI8KIR8WMHP6HPVs18pN70BjxIpP	00a7c32e-a804-44b5-936b-9d542e799a9e
+85987895-bc26-4dd7-86c8-5b8b3c7b2b43	42b8d7959e76c31c10a625ce382163ee3e430914a4d0bd50d7a1e448b488e0a7	4d37a500-a91f-4b1e-918e-f2b03934d17b	scanopy-daemon API Key	2026-10-07 13:08:11.676245+00	2026-10-07 13:08:11.676245+00	2026-10-07 13:16:44.061612+00	\N	t	\N	69995842-ebeb-4232-910c-866d0c0febe8
 \.
 
 
@@ -1499,8 +1516,8 @@ bebf4068-f6c8-45d5-b336-4faee874696f	3328e8cbe0071ef423b6a7a5233645f506eff40f00c
 -- Data for Name: bindings; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.bindings (id, network_id, service_id, binding_type, ip_address_id, port_id, created_at, updated_at, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id) FROM stdin;
-252b1078-0d64-4cbd-a889-00d02445629d	7eb98070-8e88-4434-b534-e3edc542498c	0b62457e-a3d6-4712-b086-b55ab8eceb97	Port	618bc887-da03-48ca-8c41-542c0d06e3fa	fda4149b-1b8f-4143-a8fd-6326626f2c98	2026-03-06 07:04:08.184024+00	2026-03-06 07:04:08.184024+00	2026-10-03 04:02:20.78009+00	\N	\N	2026-10-03 04:02:20.780091+00	\N	\N	\N
+COPY public.bindings (id, site_id, service_id, binding_type, ip_address_id, port_id, created_at, updated_at, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id) FROM stdin;
+252b1078-0d64-4cbd-a889-00d02445629d	4d37a500-a91f-4b1e-918e-f2b03934d17b	0b62457e-a3d6-4712-b086-b55ab8eceb97	Port	618bc887-da03-48ca-8c41-542c0d06e3fa	fda4149b-1b8f-4143-a8fd-6326626f2c98	2026-03-06 07:04:08.184024+00	2026-03-06 07:04:08.184024+00	2026-10-07 13:16:29.404575+00	\N	\N	2026-10-07 13:16:29.404575+00	\N	\N	\N
 \.
 
 
@@ -1517,10 +1534,10 @@ COPY public.credentials (id, organization_id, name, credential_type, created_at,
 --
 
 COPY public.daemon_interfaced_subnets (daemon_id, subnet_id) FROM stdin;
-e57f0924-f8b4-4d16-a1f8-72ab44cac81c	a6b79870-25da-448f-830a-9e928cfd9a83
-e57f0924-f8b4-4d16-a1f8-72ab44cac81c	a764172f-790f-4870-b9fe-aac03274c53c
-375b4992-3f56-446f-ad5b-16002023b0dc	a6b79870-25da-448f-830a-9e928cfd9a83
-375b4992-3f56-446f-ad5b-16002023b0dc	a764172f-790f-4870-b9fe-aac03274c53c
+00a7c32e-a804-44b5-936b-9d542e799a9e	a764172f-790f-4870-b9fe-aac03274c53c
+00a7c32e-a804-44b5-936b-9d542e799a9e	ac4856a4-23a5-46c7-9547-87b07d2bca54
+69995842-ebeb-4232-910c-866d0c0febe8	ac4856a4-23a5-46c7-9547-87b07d2bca54
+69995842-ebeb-4232-910c-866d0c0febe8	a764172f-790f-4870-b9fe-aac03274c53c
 \.
 
 
@@ -1528,9 +1545,9 @@ e57f0924-f8b4-4d16-a1f8-72ab44cac81c	a764172f-790f-4870-b9fe-aac03274c53c
 -- Data for Name: daemons; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.daemons (id, network_id, host_id, created_at, last_seen, updated_at, mode, url, name, version, user_id, api_key_id, is_unreachable, standby, standby_cleared_at, os) FROM stdin;
-375b4992-3f56-446f-ad5b-16002023b0dc	7eb98070-8e88-4434-b534-e3edc542498c	0e0131ba-ba9b-4828-813f-4a8c181f5836	2026-10-03 03:54:04.469515+00	2026-10-03 04:02:33.288193+00	2026-10-03 03:54:04.469515+00	"daemon_poll"		scanopy-daemon	0.17.20	6e67e88c-3c75-4170-b898-e87d8f1c18c4	1fce6414-0768-48fc-bde6-aaecba27cc90	f	f	\N	"linux"
-e57f0924-f8b4-4d16-a1f8-72ab44cac81c	7eb98070-8e88-4434-b534-e3edc542498c	8cbf3b63-69a1-4338-ad0d-29660d89568d	2026-10-03 03:55:08.591709+00	2026-10-03 04:02:35.024371+00	2026-10-03 03:55:08.591709+00	"server_poll"	http://daemon-serverpoll:60074	scanopy-daemon-serverpoll	0.17.20	6e67e88c-3c75-4170-b898-e87d8f1c18c4	bebf4068-f6c8-45d5-b336-4faee874696f	f	f	2026-10-03 04:02:35.024372+00	"linux"
+COPY public.daemons (id, site_id, host_id, created_at, last_seen, updated_at, mode, url, name, version, user_id, api_key_id, is_unreachable, standby, standby_cleared_at, os) FROM stdin;
+69995842-ebeb-4232-910c-866d0c0febe8	4d37a500-a91f-4b1e-918e-f2b03934d17b	1be4e31e-a229-440d-b0f4-20c31ee11254	2026-10-07 13:08:11.68761+00	2026-10-07 13:16:44.067632+00	2026-10-07 13:08:11.68761+00	"daemon_poll"		scanopy-daemon	0.17.22	e737527c-dbd1-43cd-907c-6fe50e731348	85987895-bc26-4dd7-86c8-5b8b3c7b2b43	f	f	\N	"linux"
+00a7c32e-a804-44b5-936b-9d542e799a9e	4d37a500-a91f-4b1e-918e-f2b03934d17b	bd485d9c-d591-4aae-a253-1eca3ff34bbb	2026-10-07 13:09:30.79454+00	2026-10-07 13:16:46.242322+00	2026-10-07 13:09:30.79454+00	"server_poll"	http://daemon-serverpoll:60074	scanopy-daemon-serverpoll	0.17.22	e737527c-dbd1-43cd-907c-6fe50e731348	7b103ca3-cd3c-48a3-be73-0d462a90446d	f	f	2026-10-07 13:16:46.242322+00	"linux"
 \.
 
 
@@ -1538,8 +1555,8 @@ e57f0924-f8b4-4d16-a1f8-72ab44cac81c	7eb98070-8e88-4434-b534-e3edc542498c	8cbf3b
 -- Data for Name: dependencies; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.dependencies (id, network_id, name, description, created_at, updated_at, source, color, edge_style, dependency_type, member_type, valid_from, valid_to, lineage_id, snapshot_id) FROM stdin;
-d8509bb0-1e48-45db-a187-36a558ba2861	7eb98070-8e88-4434-b534-e3edc542498c		\N	2026-10-03 04:02:01.647919+00	2026-10-03 04:02:01.647919+00	{"type": "Manual"}	Yellow	"SmoothStep"	RequestPath	Services	2026-10-03 04:02:01.647919+00	\N	\N	\N
+COPY public.dependencies (id, site_id, name, description, created_at, updated_at, source, color, edge_style, dependency_type, member_type, valid_from, valid_to, lineage_id, snapshot_id) FROM stdin;
+d4367bb1-d024-4ec5-8be8-0dd42f839ad8	4d37a500-a91f-4b1e-918e-f2b03934d17b		\N	2026-10-07 13:16:09.360596+00	2026-10-07 13:16:09.360596+00	{"type": "Manual"}	Yellow	"SmoothStep"	RequestPath	Services	2026-10-07 13:16:09.360596+00	\N	\N	\N
 \.
 
 
@@ -1555,35 +1572,34 @@ COPY public.dependency_members (id, dependency_id, binding_id, "position", creat
 -- Data for Name: discovery; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.discovery (id, network_id, daemon_id, run_type, discovery_type, name, created_at, updated_at, scan_count, force_full_scan, integration_targets) FROM stdin;
-3e7e3fae-dd8b-454e-9200-244cbdd51f38	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 0, "warnings": [], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "969d115c-0112-4ba3-8757-bb1ece340112", "started_at": "2026-03-11T06:32:27.172078644Z", "finished_at": "2026-03-11T06:32:27.172135060Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:04.112571783Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Network	2026-03-11 06:32:27.172078+00	2026-10-03 04:02:04.11399+00	0	f	[]
-ab72799c-9b11-4aa4-8614-f53571b761d7	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Scheduled", "enabled": true, "last_run": "2026-10-03T03:54:08.679267463Z", "timezone": null, "cron_schedule": "0 0 0 * * 0"}	{"type": "Unified", "host_id": "0e0131ba-ba9b-4828-813f-4a8c181f5836", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}	Discovery	2026-10-03 03:54:04.471961+00	2026-10-03 03:55:08.317895+00	1	f	[]
-b420d24a-4840-4ff0-ad4e-c318b019b5ab	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Complete", "reason": "Completed", "progress": 100, "warnings": [], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "a8a4a82b-01b9-4d9b-9bf2-cc44f54ff1d3", "started_at": "2026-10-03T03:54:08.695159586Z", "finished_at": "2026-10-03T03:55:08.298062328Z", "discovery_id": "ab72799c-9b11-4aa4-8614-f53571b761d7", "daemon_version": "0.17.20", "discovery_type": {"type": "Unified", "host_id": "0e0131ba-ba9b-4828-813f-4a8c181f5836", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T03:55:08.311733191Z", "hosts_discovered": 6, "estimated_remaining_secs": 30}}	{"type": "Unified", "host_id": "0e0131ba-ba9b-4828-813f-4a8c181f5836", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}	Discovery	2026-10-03 03:54:08.695159+00	2026-10-03 03:55:08.316669+00	0	f	[]
-c08af550-956e-426a-a631-aaa9039c7092	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 0, "warnings": [], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "10fdd8f4-03b6-44ea-adb6-27e74136b365", "started_at": "2026-03-11T06:32:27.440078826Z", "finished_at": "2026-03-11T06:32:27.440151903Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:04.118570543Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Network	2026-03-11 06:32:27.440078+00	2026-10-03 04:02:04.120046+00	0	f	[]
-fe48f84e-092f-4be1-999c-f7d010c5de57	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 0, "warnings": [], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "4273fe18-d031-4977-950e-ad5a49d2ea8e", "started_at": "2026-03-11T06:32:27.708165946Z", "finished_at": "2026-03-11T06:32:27.708228433Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:04.124298763Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Network	2026-03-11 06:32:27.708165+00	2026-10-03 04:02:04.125812+00	0	f	[]
-158b85c7-d2e0-45d3-8b55-6b2d8831a9d1	7eb98070-8e88-4434-b534-e3edc542498c	e57f0924-f8b4-4d16-a1f8-72ab44cac81c	{"type": "Scheduled", "enabled": true, "last_run": "2026-10-03T03:55:31.054160598Z", "timezone": null, "cron_schedule": "0 0 0 * * 0"}	{"type": "Unified", "host_id": "8cbf3b63-69a1-4338-ad0d-29660d89568d", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}	Discovery	2026-10-03 03:55:08.593987+00	2026-10-03 03:58:31.604223+00	1	f	[]
-e67c54a7-f162-4432-a21a-8c953a5435b5	7eb98070-8e88-4434-b534-e3edc542498c	e57f0924-f8b4-4d16-a1f8-72ab44cac81c	{"type": "AdHoc", "last_run": "2026-10-03T03:55:32.954821817Z"}	{"type": "Unified", "host_id": "8cbf3b63-69a1-4338-ad0d-29660d89568d", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}	ServerPoll Integration Test Discovery	2026-10-03 03:55:32.949101+00	2026-10-03 04:02:01.5885+00	1	f	[]
-0c38b4aa-cb72-4bf7-9e98-917be583b655	7eb98070-8e88-4434-b534-e3edc542498c	e57f0924-f8b4-4d16-a1f8-72ab44cac81c	{"type": "Historical", "results": {"error": null, "phase": "Complete", "reason": "Completed", "progress": 100, "warnings": [], "daemon_id": "e57f0924-f8b4-4d16-a1f8-72ab44cac81c", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "485c7d46-bc1d-4c32-a425-5904751efe34", "started_at": "2026-10-03T03:55:31.060040280Z", "finished_at": "2026-10-03T03:58:31.581858665Z", "discovery_id": "158b85c7-d2e0-45d3-8b55-6b2d8831a9d1", "daemon_version": "0.17.20", "discovery_type": {"type": "Unified", "host_id": "8cbf3b63-69a1-4338-ad0d-29660d89568d", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T03:58:31.600376166Z", "hosts_discovered": 6, "estimated_remaining_secs": 30}}	{"type": "Unified", "host_id": "8cbf3b63-69a1-4338-ad0d-29660d89568d", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}	Discovery	2026-10-03 03:55:31.06004+00	2026-10-03 03:58:31.603702+00	0	f	[]
-8075b722-a0d4-45a5-b471-7a23ba7945fe	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 0, "warnings": [], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "0ffe5496-d64e-41a0-ab86-ff28eed28819", "started_at": "2026-03-11T06:32:26.369555086Z", "finished_at": "2026-03-11T06:32:26.369642510Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:04.104462079Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Network	2026-03-11 06:32:26.369555+00	2026-10-03 04:02:04.105794+00	0	f	[]
-6a2f6c9f-e7e1-497e-a4a1-b4c325c6174b	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Complete", "reason": "Completed", "progress": 100, "warnings": [{"code": "OutdatedDaemonFormat", "daemon_version": "0.14.4"}], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "f2d5414b-3369-4280-929d-5422dd11a4b4", "started_at": "2026-01-23T03:55:10.297725045Z", "finished_at": "2026-01-23T03:55:10.328241754Z", "discovery_id": null, "daemon_version": "0.14.4", "discovery_type": {"type": "SelfReport", "host_id": "8f6b3991-b3ef-4d1d-9708-d2f57289a34f"}, "last_update_at": "2026-10-03T04:02:04.834371105Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "SelfReport", "host_id": "8f6b3991-b3ef-4d1d-9708-d2f57289a34f"}	Self Report — My Network	2026-01-23 03:55:10.297725+00	2026-10-03 04:02:04.836229+00	0	f	[]
-6bd3ad31-958a-4ac5-8c76-8567aeb3abe6	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Complete", "reason": "Completed", "progress": 100, "warnings": [{"code": "OutdatedDaemonFormat", "daemon_version": "0.17.19"}], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "b64df0ca-f173-4ba8-a48b-edf7e372974a", "started_at": "2026-01-07T19:14:20.155782339Z", "finished_at": "2026-01-07T19:14:20.224698505Z", "discovery_id": null, "daemon_version": "0.17.19", "discovery_type": {"type": "SelfReport", "host_id": "09900acc-93fd-4af9-8a9b-9f45ace7475c"}, "last_update_at": "2026-10-03T04:02:17.497926356Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "SelfReport", "host_id": "09900acc-93fd-4af9-8a9b-9f45ace7475c"}	Self Report — My Network	2026-01-07 19:14:20.155782+00	2026-10-03 04:02:17.499847+00	0	f	[]
-b1b25885-cedd-4984-a376-bcac482b6a20	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 5, "warnings": [{"code": "OutdatedDaemonFormat", "daemon_version": "0.14.14"}], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "fe678d3a-c2b0-4ee1-a912-7c07b0b6e1d7", "started_at": "2026-10-03T04:02:30.905210797Z", "finished_at": "2026-10-03T04:02:30.910236735Z", "discovery_id": "0d1e4e0c-1af6-4603-84af-69f5a81e19a3", "daemon_version": "0.14.14", "discovery_type": {"type": "Unified", "host_id": "28b6b18e-69b9-450c-a795-d14a671bb34f", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:31.043532166Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Unified", "host_id": "28b6b18e-69b9-450c-a795-d14a671bb34f", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}	Discovery	2026-10-03 04:02:30.90521+00	2026-10-03 04:02:31.045173+00	0	f	[]
-5e3645aa-9431-4d2f-afb5-2e52710c3772	7eb98070-8e88-4434-b534-e3edc542498c	e57f0924-f8b4-4d16-a1f8-72ab44cac81c	{"type": "Historical", "results": {"error": null, "phase": "Complete", "reason": "Completed", "progress": 100, "warnings": [], "daemon_id": "e57f0924-f8b4-4d16-a1f8-72ab44cac81c", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "20717e93-7bdb-4413-9112-9ba79c38289f", "started_at": "2026-10-03T03:59:01.064308022Z", "finished_at": "2026-10-03T04:02:01.562704406Z", "discovery_id": "e67c54a7-f162-4432-a21a-8c953a5435b5", "daemon_version": "0.17.20", "discovery_type": {"type": "Unified", "host_id": "8cbf3b63-69a1-4338-ad0d-29660d89568d", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:01.583578890Z", "hosts_discovered": 6, "estimated_remaining_secs": 30}}	{"type": "Unified", "host_id": "8cbf3b63-69a1-4338-ad0d-29660d89568d", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}	Discovery	2026-10-03 03:59:01.064308+00	2026-10-03 04:02:01.587484+00	0	f	[]
-72f89cb9-ba65-4a20-abe7-477c11b70c80	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 0, "warnings": [{"code": "OutdatedDaemonFormat", "daemon_version": "0.14.18"}], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "c10d2eae-1267-4023-997e-5a51fdf97281", "started_at": "2026-03-11T06:32:25.836913871Z", "finished_at": "2026-03-11T06:32:25.836988451Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:04.095672542Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Network	2026-03-11 06:32:25.836913+00	2026-10-03 04:02:04.097496+00	0	f	[]
-f2f04048-96cd-400e-9528-fd128798daab	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 0, "warnings": [], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "3b0868af-d558-45e3-b688-2cf55472b6ee", "started_at": "2026-03-11T06:32:30.393154209Z", "finished_at": "2026-03-11T06:32:30.393220914Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:04.179774599Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Network	2026-03-11 06:32:30.393154+00	2026-10-03 04:02:04.181319+00	0	f	[]
-df5c00f8-2b5d-4dfc-8f7d-dae484207df4	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Complete", "reason": "Completed", "progress": 100, "warnings": [{"code": "OutdatedDaemonFormat", "daemon_version": "0.15.2"}], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "7f54ecab-3771-4583-a7d0-f12569030e17", "started_at": "2026-01-23T03:48:00.469451847Z", "finished_at": "2026-01-23T03:48:00.553983097Z", "discovery_id": null, "daemon_version": "0.15.2", "discovery_type": {"type": "SelfReport", "host_id": "f738b076-a24e-4db2-800c-a0f10bb44b16"}, "last_update_at": "2026-10-03T04:02:07.441894364Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "SelfReport", "host_id": "f738b076-a24e-4db2-800c-a0f10bb44b16"}	Self Report — My Network	2026-01-23 03:48:00.469451+00	2026-10-03 04:02:07.443371+00	0	f	[]
-bb661040-b8fa-427b-92ec-ac5d1fc8bbf0	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 0, "warnings": [], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "5bd5e93e-a606-4c6e-b159-b04879bdd801", "started_at": "2026-03-15T19:48:14.853886058Z", "finished_at": "2026-03-15T19:48:14.853942173Z", "discovery_id": null, "daemon_version": "0.14.19", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:12.648951339Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Network	2026-03-15 19:48:14.853886+00	2026-10-03 04:02:12.650286+00	0	f	[]
-e9b15c67-1d1b-4884-b244-2a3d89c8be5e	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 0, "warnings": [], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "e0ea6622-5f78-4cc3-b1f9-257946754dd8", "started_at": "2026-03-09T05:29:17.642983004Z", "finished_at": "2026-03-09T05:29:17.643045281Z", "discovery_id": null, "daemon_version": "0.14.17", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:16.232915727Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Network	2026-03-09 05:29:17.642983+00	2026-10-03 04:02:16.234449+00	0	f	[]
-94d6ed15-7be0-4b9f-a71a-c291d8761fe7	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 0, "warnings": [], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "abba33fb-bf1f-4e8b-985f-6a2d0b5d0380", "started_at": "2026-03-11T06:32:27.975947389Z", "finished_at": "2026-03-11T06:32:27.976013693Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:04.130134979Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Network	2026-03-11 06:32:27.975947+00	2026-10-03 04:02:04.131596+00	0	f	[]
-529884f2-1480-4978-82dc-69cf3fdff3e4	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 0, "warnings": [], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "27ff5779-08b0-4970-aebd-04649d27c725", "started_at": "2026-03-11T06:32:28.243891377Z", "finished_at": "2026-03-11T06:32:28.243957151Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:04.136172239Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Network	2026-03-11 06:32:28.243891+00	2026-10-03 04:02:04.137674+00	0	f	[]
-ee4c07c2-7e7b-422a-8288-c085ae5e70fb	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 0, "warnings": [], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "857fbace-0358-4642-8ca0-b14bb999f353", "started_at": "2026-03-11T06:32:28.512463426Z", "finished_at": "2026-03-11T06:32:28.512545810Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:04.141854347Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Network	2026-03-11 06:32:28.512463+00	2026-10-03 04:02:04.143164+00	0	f	[]
-4463d744-4038-45d1-9954-b39212f46fd1	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 0, "warnings": [], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "22ea697f-065c-4d2e-a81f-0809764aad01", "started_at": "2026-03-11T06:32:28.783225595Z", "finished_at": "2026-03-11T06:32:28.783284155Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:04.147605130Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Network	2026-03-11 06:32:28.783225+00	2026-10-03 04:02:04.149207+00	0	f	[]
-f352f9bd-88f6-4ac2-adad-307a021decbe	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 0, "warnings": [], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "bbe36108-56c4-4d82-9087-e577842ff202", "started_at": "2026-03-11T06:32:29.052254842Z", "finished_at": "2026-03-11T06:32:29.052318772Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:04.153460736Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Network	2026-03-11 06:32:29.052254+00	2026-10-03 04:02:04.155103+00	0	f	[]
-2e215ed8-3650-44db-95e7-19cee61039af	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 0, "warnings": [], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "59fba01e-fefd-4c66-9ef2-a85c0e76a811", "started_at": "2026-03-11T06:32:29.322736685Z", "finished_at": "2026-03-11T06:32:29.322811406Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:04.159423352Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Network	2026-03-11 06:32:29.322736+00	2026-10-03 04:02:04.161052+00	0	f	[]
-2f240f38-3b9d-4e6e-8490-3ee6def33f83	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 0, "warnings": [], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "ec9dc330-67d0-4ce5-94d8-506859c74940", "started_at": "2026-03-11T06:32:29.590854940Z", "finished_at": "2026-03-11T06:32:29.590913560Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:04.165340625Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Network	2026-03-11 06:32:29.590854+00	2026-10-03 04:02:04.166944+00	0	f	[]
-a9e2b727-ad39-4858-a418-dcf77a402a0a	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "progress": 0, "warnings": [], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "5e741620-3de9-476c-86e7-7ce656d0a5a8", "started_at": "2026-03-11T06:32:29.860793225Z", "finished_at": "2026-03-11T06:32:29.860865761Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-03T04:02:04.171351405Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Network	2026-03-11 06:32:29.860793+00	2026-10-03 04:02:04.172992+00	0	f	[]
-f38e140b-031c-4ff7-90ea-890e05307108	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Complete", "reason": "Completed", "progress": 100, "warnings": [{"code": "OutdatedDaemonFormat", "daemon_version": "0.17.17"}], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "6845dcc8-6ea0-47af-9ce3-054b8cf1f667", "started_at": "2026-01-23T03:40:38.920476295Z", "finished_at": "2026-01-23T03:40:38.980206587Z", "discovery_id": null, "daemon_version": "0.17.17", "discovery_type": {"type": "SelfReport", "host_id": "1438e666-92b6-4fad-bc37-aa2717d9ba42"}, "last_update_at": "2026-10-03T04:02:13.489236415Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "SelfReport", "host_id": "1438e666-92b6-4fad-bc37-aa2717d9ba42"}	Self Report — My Network	2026-01-23 03:40:38.920476+00	2026-10-03 04:02:13.490739+00	0	f	[]
-d107eea8-427f-42ad-8255-be0f4fd48980	7eb98070-8e88-4434-b534-e3edc542498c	375b4992-3f56-446f-ad5b-16002023b0dc	{"type": "Historical", "results": {"error": null, "phase": "Complete", "reason": "Completed", "progress": 100, "warnings": [{"code": "OutdatedDaemonFormat", "daemon_version": "0.17.2"}], "daemon_id": "375b4992-3f56-446f-ad5b-16002023b0dc", "network_id": "7eb98070-8e88-4434-b534-e3edc542498c", "session_id": "c8c6530c-aaff-4d7c-a872-ba4457906d77", "started_at": "2026-01-05T04:59:56.611843173Z", "finished_at": "2026-01-05T04:59:56.687605923Z", "discovery_id": null, "daemon_version": "0.17.2", "discovery_type": {"type": "SelfReport", "host_id": "cc741d90-bcc0-4653-b38b-52b23f9e6a61"}, "last_update_at": "2026-10-03T04:02:19.896155436Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "SelfReport", "host_id": "cc741d90-bcc0-4653-b38b-52b23f9e6a61"}	Self Report — My Network	2026-01-05 04:59:56.611843+00	2026-10-03 04:02:19.897898+00	0	f	[]
+COPY public.discovery (id, site_id, daemon_id, run_type, discovery_type, name, created_at, updated_at, scan_count, force_full_scan, integration_targets) FROM stdin;
+9df3da84-f304-4204-881f-6a19c44eff57	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 0, "warnings": [{"code": "OutdatedDaemonFormat", "daemon_version": "0.14.18"}], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "c10d2eae-1267-4023-997e-5a51fdf97281", "started_at": "2026-03-11T06:32:25.836913871Z", "finished_at": "2026-03-11T06:32:25.836988451Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:11.714562905Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Site	2026-03-11 06:32:25.836913+00	2026-10-07 13:16:11.7163+00	0	f	[]
+4b0e74ec-cf90-4dc6-83e5-83a5ae245fac	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Scheduled", "enabled": true, "last_run": "2026-10-07T13:08:30.839892617Z", "timezone": null, "cron_schedule": "0 0 0 * * 0"}	{"type": "Unified", "host_id": "1be4e31e-a229-440d-b0f4-20c31ee11254", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}	Discovery	2026-10-07 13:08:11.690295+00	2026-10-07 13:09:30.502442+00	1	f	[]
+f4cf28d0-32f3-42d0-a20b-13683e4a2bc6	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Complete", "reason": "Completed", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 100, "warnings": [], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "56d2df9f-197b-49f8-b4ac-e9d4674dca7a", "started_at": "2026-10-07T13:08:30.855227146Z", "finished_at": "2026-10-07T13:09:30.481943497Z", "discovery_id": "4b0e74ec-cf90-4dc6-83e5-83a5ae245fac", "daemon_version": "0.17.22", "discovery_type": {"type": "Unified", "host_id": "1be4e31e-a229-440d-b0f4-20c31ee11254", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:09:30.496707839Z", "hosts_discovered": 6, "estimated_remaining_secs": 30}}	{"type": "Unified", "host_id": "1be4e31e-a229-440d-b0f4-20c31ee11254", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}	Discovery	2026-10-07 13:08:30.855227+00	2026-10-07 13:09:30.50166+00	0	f	[]
+e1bf5e8d-6c7d-4732-bff9-943aa73d0f28	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 0, "warnings": [], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "0ffe5496-d64e-41a0-ab86-ff28eed28819", "started_at": "2026-03-11T06:32:26.369555086Z", "finished_at": "2026-03-11T06:32:26.369642510Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:11.726839971Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Site	2026-03-11 06:32:26.369555+00	2026-10-07 13:16:11.728663+00	0	f	[]
+3bfed5ce-cb81-4ca0-9e26-3236bc68ade9	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 0, "warnings": [], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "10fdd8f4-03b6-44ea-adb6-27e74136b365", "started_at": "2026-03-11T06:32:27.440078826Z", "finished_at": "2026-03-11T06:32:27.440151903Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:11.742143224Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Site	2026-03-11 06:32:27.440078+00	2026-10-07 13:16:11.743897+00	0	f	[]
+8d6d07df-d672-4717-95cd-c4507ba3c66d	4d37a500-a91f-4b1e-918e-f2b03934d17b	00a7c32e-a804-44b5-936b-9d542e799a9e	{"type": "Scheduled", "enabled": true, "last_run": "2026-10-07T13:09:38.725148762Z", "timezone": null, "cron_schedule": "0 0 0 * * 0"}	{"type": "Unified", "host_id": "bd485d9c-d591-4aae-a253-1eca3ff34bbb", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}	Discovery	2026-10-07 13:09:30.798995+00	2026-10-07 13:12:39.25788+00	1	f	[]
+b34fc545-7791-4e07-84b9-0fa1347a985d	4d37a500-a91f-4b1e-918e-f2b03934d17b	00a7c32e-a804-44b5-936b-9d542e799a9e	{"type": "AdHoc", "last_run": "2026-10-07T13:09:39.121680683Z"}	{"type": "Unified", "host_id": "bd485d9c-d591-4aae-a253-1eca3ff34bbb", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}	ServerPoll Integration Test Discovery	2026-10-07 13:09:39.115565+00	2026-10-07 13:16:09.328609+00	1	f	[]
+5bc16637-3285-431b-b1a9-f626c0b32343	4d37a500-a91f-4b1e-918e-f2b03934d17b	00a7c32e-a804-44b5-936b-9d542e799a9e	{"type": "Historical", "results": {"error": null, "phase": "Complete", "reason": "Completed", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 100, "warnings": [], "daemon_id": "00a7c32e-a804-44b5-936b-9d542e799a9e", "session_id": "e903943a-3b77-43c1-a9ad-824cb543557b", "started_at": "2026-10-07T13:09:38.731246701Z", "finished_at": "2026-10-07T13:12:39.238913363Z", "discovery_id": "8d6d07df-d672-4717-95cd-c4507ba3c66d", "daemon_version": "0.17.22", "discovery_type": {"type": "Unified", "host_id": "bd485d9c-d591-4aae-a253-1eca3ff34bbb", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:12:39.254551217Z", "hosts_discovered": 6, "estimated_remaining_secs": 30}}	{"type": "Unified", "host_id": "bd485d9c-d591-4aae-a253-1eca3ff34bbb", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}	Discovery	2026-10-07 13:09:38.731246+00	2026-10-07 13:12:39.257364+00	0	f	[]
+a61a4983-711e-4bcd-9c47-f7cedd2b2b6f	4d37a500-a91f-4b1e-918e-f2b03934d17b	00a7c32e-a804-44b5-936b-9d542e799a9e	{"type": "Historical", "results": {"error": null, "phase": "Complete", "reason": "Completed", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 100, "warnings": [], "daemon_id": "00a7c32e-a804-44b5-936b-9d542e799a9e", "session_id": "0400691f-2af1-4b20-bade-e50044271bfe", "started_at": "2026-10-07T13:13:08.735400435Z", "finished_at": "2026-10-07T13:16:09.307615478Z", "discovery_id": "b34fc545-7791-4e07-84b9-0fa1347a985d", "daemon_version": "0.17.22", "discovery_type": {"type": "Unified", "host_id": "bd485d9c-d591-4aae-a253-1eca3ff34bbb", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:09.325358446Z", "hosts_discovered": 6, "estimated_remaining_secs": 30}}	{"type": "Unified", "host_id": "bd485d9c-d591-4aae-a253-1eca3ff34bbb", "subnet_ids": null, "scan_settings": {"arp_retries": null, "arp_rate_pps": null, "is_full_scan": false, "scan_rate_pps": null, "use_npcap_arp": false, "arp_scan_cutoff": null, "full_scan_interval": null, "port_scan_batch_size": null, "max_discovery_duration": null, "probe_raw_socket_ports": false, "trust_port_only_detections": false}, "host_naming_fallback": "BestService"}	Discovery	2026-10-07 13:13:08.7354+00	2026-10-07 13:16:09.328048+00	0	f	[]
+ce95debc-7d18-4c24-9466-ecd388008793	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 0, "warnings": [], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "969d115c-0112-4ba3-8757-bb1ece340112", "started_at": "2026-03-11T06:32:27.172078644Z", "finished_at": "2026-03-11T06:32:27.172135060Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:11.735827483Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Site	2026-03-11 06:32:27.172078+00	2026-10-07 13:16:11.737474+00	0	f	[]
+e7f506ae-9dfc-47ce-9bcc-3ca27946f490	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 0, "warnings": [], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "abba33fb-bf1f-4e8b-985f-6a2d0b5d0380", "started_at": "2026-03-11T06:32:27.975947389Z", "finished_at": "2026-03-11T06:32:27.976013693Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:11.754389884Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Site	2026-03-11 06:32:27.975947+00	2026-10-07 13:16:11.756025+00	0	f	[]
+913e07ba-1db8-44ae-8098-17c61ad2b651	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 0, "warnings": [], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "22ea697f-065c-4d2e-a81f-0809764aad01", "started_at": "2026-03-11T06:32:28.783225595Z", "finished_at": "2026-03-11T06:32:28.783284155Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:11.772512784Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Site	2026-03-11 06:32:28.783225+00	2026-10-07 13:16:11.774093+00	0	f	[]
+f8689149-5533-49d3-9c30-e4bfe863794d	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 0, "warnings": [], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "ec9dc330-67d0-4ce5-94d8-506859c74940", "started_at": "2026-03-11T06:32:29.590854940Z", "finished_at": "2026-03-11T06:32:29.590913560Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:11.790148863Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Site	2026-03-11 06:32:29.590854+00	2026-10-07 13:16:11.791742+00	0	f	[]
+fc756fd7-be73-4bfd-8fe1-1225b7faaa84	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 0, "warnings": [], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "4273fe18-d031-4977-950e-ad5a49d2ea8e", "started_at": "2026-03-11T06:32:27.708165946Z", "finished_at": "2026-03-11T06:32:27.708228433Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:11.748310405Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Site	2026-03-11 06:32:27.708165+00	2026-10-07 13:16:11.749684+00	0	f	[]
+3bfa9af1-470f-4cc0-92d5-c11367c459dd	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 0, "warnings": [], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "857fbace-0358-4642-8ca0-b14bb999f353", "started_at": "2026-03-11T06:32:28.512463426Z", "finished_at": "2026-03-11T06:32:28.512545810Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:11.766496306Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Site	2026-03-11 06:32:28.512463+00	2026-10-07 13:16:11.768153+00	0	f	[]
+1a883bd6-d58b-4ae7-8343-c78279720d4e	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 0, "warnings": [], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "59fba01e-fefd-4c66-9ef2-a85c0e76a811", "started_at": "2026-03-11T06:32:29.322736685Z", "finished_at": "2026-03-11T06:32:29.322811406Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:11.784238956Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Site	2026-03-11 06:32:29.322736+00	2026-10-07 13:16:11.785741+00	0	f	[]
+c2d07e57-5986-4015-95ef-9e4782fea1b9	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 0, "warnings": [], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "27ff5779-08b0-4970-aebd-04649d27c725", "started_at": "2026-03-11T06:32:28.243891377Z", "finished_at": "2026-03-11T06:32:28.243957151Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:11.760509543Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Site	2026-03-11 06:32:28.243891+00	2026-10-07 13:16:11.762026+00	0	f	[]
+08b7ab7d-ebf9-4aa0-a6ce-2025567c63f9	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 0, "warnings": [], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "bbe36108-56c4-4d82-9087-e577842ff202", "started_at": "2026-03-11T06:32:29.052254842Z", "finished_at": "2026-03-11T06:32:29.052318772Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:11.778373136Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Site	2026-03-11 06:32:29.052254+00	2026-10-07 13:16:11.779871+00	0	f	[]
+fecf827c-4a3b-4707-a921-370be912ef8f	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 0, "warnings": [], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "5e741620-3de9-476c-86e7-7ce656d0a5a8", "started_at": "2026-03-11T06:32:29.860793225Z", "finished_at": "2026-03-11T06:32:29.860865761Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:11.796394344Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Site	2026-03-11 06:32:29.860793+00	2026-10-07 13:16:11.798042+00	0	f	[]
+a4de2797-0f71-4a59-87c0-e258df2b3c0c	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 0, "warnings": [], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "3b0868af-d558-45e3-b688-2cf55472b6ee", "started_at": "2026-03-11T06:32:30.393154209Z", "finished_at": "2026-03-11T06:32:30.393220914Z", "discovery_id": null, "daemon_version": "0.14.18", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:11.804716376Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Site	2026-03-11 06:32:30.393154+00	2026-10-07 13:16:11.806318+00	0	f	[]
+325673cb-925d-4957-b0c7-c8962827dbff	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Complete", "reason": "Completed", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 100, "warnings": [{"code": "OutdatedDaemonFormat", "daemon_version": "0.14.4"}], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "f2d5414b-3369-4280-929d-5422dd11a4b4", "started_at": "2026-01-23T03:55:10.297725045Z", "finished_at": "2026-01-23T03:55:10.328241754Z", "discovery_id": null, "daemon_version": "0.14.4", "discovery_type": {"type": "SelfReport", "host_id": "8f6b3991-b3ef-4d1d-9708-d2f57289a34f"}, "last_update_at": "2026-10-07T13:16:12.413881954Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "SelfReport", "host_id": "8f6b3991-b3ef-4d1d-9708-d2f57289a34f"}	Self Report — My Site	2026-01-23 03:55:10.297725+00	2026-10-07 13:16:12.415396+00	0	f	[]
+af403e08-6f71-41e1-ac6e-7017ef921542	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 0, "warnings": [], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "5bd5e93e-a606-4c6e-b159-b04879bdd801", "started_at": "2026-03-15T19:48:14.853886058Z", "finished_at": "2026-03-15T19:48:14.853942173Z", "discovery_id": null, "daemon_version": "0.14.19", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:20.538937061Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Site	2026-03-15 19:48:14.853886+00	2026-10-07 13:16:20.540806+00	0	f	[]
+02f33299-742f-44a1-a054-0da7e4f24365	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Complete", "reason": "Completed", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 100, "warnings": [{"code": "OutdatedDaemonFormat", "daemon_version": "0.15.2"}], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "7f54ecab-3771-4583-a7d0-f12569030e17", "started_at": "2026-01-23T03:48:00.469451847Z", "finished_at": "2026-01-23T03:48:00.553983097Z", "discovery_id": null, "daemon_version": "0.15.2", "discovery_type": {"type": "SelfReport", "host_id": "f738b076-a24e-4db2-800c-a0f10bb44b16"}, "last_update_at": "2026-10-07T13:16:15.014799338Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "SelfReport", "host_id": "f738b076-a24e-4db2-800c-a0f10bb44b16"}	Self Report — My Site	2026-01-23 03:48:00.469451+00	2026-10-07 13:16:15.016401+00	0	f	[]
+5812bbf4-4292-4b47-a05a-2b3e41e58fb6	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Complete", "reason": "Completed", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 100, "warnings": [{"code": "OutdatedDaemonFormat", "daemon_version": "0.17.17"}], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "6845dcc8-6ea0-47af-9ce3-054b8cf1f667", "started_at": "2026-01-23T03:40:38.920476295Z", "finished_at": "2026-01-23T03:40:38.980206587Z", "discovery_id": null, "daemon_version": "0.17.17", "discovery_type": {"type": "SelfReport", "host_id": "1438e666-92b6-4fad-bc37-aa2717d9ba42"}, "last_update_at": "2026-10-07T13:16:21.436129715Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "SelfReport", "host_id": "1438e666-92b6-4fad-bc37-aa2717d9ba42"}	Self Report — My Site	2026-01-23 03:40:38.920476+00	2026-10-07 13:16:21.437935+00	0	f	[]
+a1071249-0551-4b63-bf79-fabb5be9c471	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Cancelled", "reason": "UserCancelled", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 0, "warnings": [], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "e0ea6622-5f78-4cc3-b1f9-257946754dd8", "started_at": "2026-03-09T05:29:17.642983004Z", "finished_at": "2026-03-09T05:29:17.643045281Z", "discovery_id": null, "daemon_version": "0.14.17", "discovery_type": {"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}, "last_update_at": "2026-10-07T13:16:24.434908069Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "Network", "subnet_ids": null, "snmp_credentials": {"daemon_os": null, "ip_overrides": [], "default_credential": null, "default_credential_id": null}, "host_naming_fallback": "BestService"}	Network Discovery — My Site	2026-03-09 05:29:17.642983+00	2026-10-07 13:16:24.436757+00	0	f	[]
+05b21fdc-4e2b-4c89-a057-928b8de81c2c	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Complete", "reason": "Completed", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 100, "warnings": [{"code": "OutdatedDaemonFormat", "daemon_version": "0.17.19"}], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "b64df0ca-f173-4ba8-a48b-edf7e372974a", "started_at": "2026-01-07T19:14:20.155782339Z", "finished_at": "2026-01-07T19:14:20.224698505Z", "discovery_id": null, "daemon_version": "0.17.19", "discovery_type": {"type": "SelfReport", "host_id": "09900acc-93fd-4af9-8a9b-9f45ace7475c"}, "last_update_at": "2026-10-07T13:16:26.011791962Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "SelfReport", "host_id": "09900acc-93fd-4af9-8a9b-9f45ace7475c"}	Self Report — My Site	2026-01-07 19:14:20.155782+00	2026-10-07 13:16:26.013364+00	0	f	[]
+fc80134c-54b6-4cbe-86df-9dc36c24bd23	4d37a500-a91f-4b1e-918e-f2b03934d17b	69995842-ebeb-4232-910c-866d0c0febe8	{"type": "Historical", "results": {"error": null, "phase": "Complete", "reason": "Completed", "site_id": "4d37a500-a91f-4b1e-918e-f2b03934d17b", "progress": 100, "warnings": [{"code": "OutdatedDaemonFormat", "daemon_version": "0.17.2"}], "daemon_id": "69995842-ebeb-4232-910c-866d0c0febe8", "session_id": "c8c6530c-aaff-4d7c-a872-ba4457906d77", "started_at": "2026-01-05T04:59:56.611843173Z", "finished_at": "2026-01-05T04:59:56.687605923Z", "discovery_id": null, "daemon_version": "0.17.2", "discovery_type": {"type": "SelfReport", "host_id": "cc741d90-bcc0-4653-b38b-52b23f9e6a61"}, "last_update_at": "2026-10-07T13:16:28.482743457Z", "hosts_discovered": null, "estimated_remaining_secs": null}}	{"type": "SelfReport", "host_id": "cc741d90-bcc0-4653-b38b-52b23f9e6a61"}	Self Report — My Site	2026-01-05 04:59:56.611843+00	2026-10-07 13:16:28.484357+00	0	f	[]
 \.
 
 
@@ -1592,7 +1608,7 @@ d107eea8-427f-42ad-8255-be0f4fd48980	7eb98070-8e88-4434-b534-e3edc542498c	375b49
 --
 
 COPY public.entity_tags (id, entity_id, entity_type, tag_id, created_at, valid_from, valid_to, lineage_id, snapshot_id) FROM stdin;
-dba0e434-2ef6-409f-bc9b-1f5b20a49a22	99484d2a-3ec5-434d-a095-3277577ef66c	"Service"	522e023b-e451-4509-809f-9014c5ca8489	2026-10-03 04:02:01.643861+00	2026-10-03 04:02:01.643861+00	\N	\N	\N
+84467676-fc08-4cff-9070-0907bebd7ad4	fe8f4ac2-b86b-4290-86f3-9e4b95aa38eb	"Service"	c0bafe49-1dee-4f8e-bab8-f4880ca79b33	2026-10-07 13:16:09.35697+00	2026-10-07 13:16:09.35697+00	\N	\N	\N
 \.
 
 
@@ -1608,8 +1624,8 @@ COPY public.host_credentials (host_id, credential_id, ip_address_ids) FROM stdin
 -- Data for Name: hosts; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.hosts (id, network_id, name, hostname, description, source, virtualization_metadata, created_at, updated_at, hidden, sys_descr, sys_object_id, sys_location, sys_contact, management_url, chassis_id, manufacturer, model, serial_number, sys_name, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id, virtualization_service_id, firmware_revision, sys_descr_source, sys_object_id_source, sys_location_source, sys_contact_source, management_url_source, chassis_id_source, sys_name_source, manufacturer_source, model_source, serial_number_source, firmware_revision_source, name_source, software_revision, software_revision_source, hostname_source, os, os_source) FROM stdin;
-07ca9676-4995-4fd4-b0a3-c60b0b356658	7eb98070-8e88-4434-b534-e3edc542498c	a955a2a0d33b	a955a2a0d33b	Scanopy daemon	{"type": "Discovery"}	null	2026-10-03 04:02:20.781539+00	2026-10-03 04:02:20.781539+00	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-03 04:02:20.781539+00	\N	\N	2026-10-03 04:02:20.781539+00	\N	\N	\N	\N	\N	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	\N	"Unspecified"	"Unspecified"	\N	"Unspecified"
+COPY public.hosts (id, site_id, name, hostname, description, source, virtualization_metadata, created_at, updated_at, hidden, sys_descr, sys_object_id, sys_location, sys_contact, management_url, chassis_id, manufacturer, model, serial_number, sys_name, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id, virtualization_service_id, firmware_revision, sys_descr_source, sys_object_id_source, sys_location_source, sys_contact_source, management_url_source, chassis_id_source, sys_name_source, manufacturer_source, model_source, serial_number_source, firmware_revision_source, name_source, software_revision, software_revision_source, hostname_source, os, os_source, virtualization_interface_id, asset_tag, asset_tag_source) FROM stdin;
+07ca9676-4995-4fd4-b0a3-c60b0b356658	4d37a500-a91f-4b1e-918e-f2b03934d17b	a955a2a0d33b	a955a2a0d33b	Scanopy daemon	{"type": "Discovery"}	null	2026-10-07 13:16:29.405822+00	2026-10-07 13:16:29.405822+00	f	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-07 13:16:29.405822+00	\N	\N	2026-10-07 13:16:29.405822+00	\N	\N	\N	\N	\N	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	"Unspecified"	\N	"Unspecified"	"Unspecified"	\N	"Unspecified"	\N	\N	"Unspecified"
 \.
 
 
@@ -1617,7 +1633,7 @@ COPY public.hosts (id, network_id, name, hostname, description, source, virtuali
 -- Data for Name: interface_neighbor_candidates; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.interface_neighbor_candidates (id, network_id, interface_id, lldp_chassis_id, lldp_port_id, lldp_sys_name, lldp_port_desc, lldp_mgmt_addr, lldp_sys_desc, cdp_device_id, cdp_port_id, cdp_platform, cdp_address, created_at) FROM stdin;
+COPY public.interface_neighbor_candidates (id, site_id, interface_id, lldp_chassis_id, lldp_port_id, lldp_sys_name, lldp_port_desc, lldp_mgmt_addr, lldp_sys_desc, cdp_device_id, cdp_port_id, cdp_platform, cdp_address, created_at) FROM stdin;
 \.
 
 
@@ -1625,7 +1641,7 @@ COPY public.interface_neighbor_candidates (id, network_id, interface_id, lldp_ch
 -- Data for Name: interface_neighbor_hosts; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.interface_neighbor_hosts (id, network_id, interface_id, neighbor_host_id, neighbor_seen_at, created_at, updated_at, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id) FROM stdin;
+COPY public.interface_neighbor_hosts (id, site_id, interface_id, neighbor_host_id, neighbor_seen_at, created_at, updated_at, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id) FROM stdin;
 \.
 
 
@@ -1633,7 +1649,7 @@ COPY public.interface_neighbor_hosts (id, network_id, interface_id, neighbor_hos
 -- Data for Name: interface_neighbor_interfaces; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.interface_neighbor_interfaces (id, network_id, interface_id, neighbor_interface_id, neighbor_seen_at, created_at, updated_at, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id) FROM stdin;
+COPY public.interface_neighbor_interfaces (id, site_id, interface_id, neighbor_interface_id, neighbor_seen_at, created_at, updated_at, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id) FROM stdin;
 \.
 
 
@@ -1641,7 +1657,7 @@ COPY public.interface_neighbor_interfaces (id, network_id, interface_id, neighbo
 -- Data for Name: interfaces; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.interfaces (id, host_id, network_id, created_at, updated_at, if_index, if_descr, if_alias, if_type, speed_bps, admin_status, oper_status, mac_address, ip_address_id, if_name, fdb_macs, native_vlan_id, vlan_ids, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id, mac_address_source, ip_configured) FROM stdin;
+COPY public.interfaces (id, host_id, site_id, created_at, updated_at, if_index, if_descr, if_alias, if_type, speed_bps, admin_status, oper_status, mac_address, ip_address_id, if_name, fdb_macs, native_vlan_id, vlan_ids, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id, mac_address_source, ip_configured) FROM stdin;
 \.
 
 
@@ -1649,7 +1665,7 @@ COPY public.interfaces (id, host_id, network_id, created_at, updated_at, if_inde
 -- Data for Name: invites; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.invites (id, organization_id, permissions, network_ids, url, created_by, created_at, updated_at, expires_at, send_to) FROM stdin;
+COPY public.invites (id, organization_id, permissions, site_ids, url, created_by, created_at, updated_at, expires_at, send_to) FROM stdin;
 \.
 
 
@@ -1657,25 +1673,8 @@ COPY public.invites (id, organization_id, permissions, network_ids, url, created
 -- Data for Name: ip_addresses; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.ip_addresses (id, network_id, host_id, subnet_id, ip_address, mac_address, name, "position", created_at, updated_at, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id, mac_address_source) FROM stdin;
-618bc887-da03-48ca-8c41-542c0d06e3fa	7eb98070-8e88-4434-b534-e3edc542498c	07ca9676-4995-4fd4-b0a3-c60b0b356658	a764172f-790f-4870-b9fe-aac03274c53c	172.25.0.4	b2:2b:55:c5:16:3d	eth0	0	2026-10-03 04:02:20.781539+00	2026-10-03 04:02:20.781539+00	2026-10-03 04:02:20.781539+00	\N	\N	2026-10-03 04:02:20.781539+00	\N	\N	\N	"Unspecified"
-\.
-
-
---
--- Data for Name: network_credentials; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.network_credentials (network_id, credential_id) FROM stdin;
-\.
-
-
---
--- Data for Name: networks; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.networks (id, name, created_at, updated_at, organization_id, stale_after_hours) FROM stdin;
-7eb98070-8e88-4434-b534-e3edc542498c	My Network	2026-10-03 03:54:04.443556+00	2026-10-03 03:54:04.443556+00	8d3ee348-700c-461b-a54d-832889fe3f98	\N
+COPY public.ip_addresses (id, site_id, host_id, subnet_id, ip_address, mac_address, name, "position", created_at, updated_at, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id, mac_address_source) FROM stdin;
+618bc887-da03-48ca-8c41-542c0d06e3fa	4d37a500-a91f-4b1e-918e-f2b03934d17b	07ca9676-4995-4fd4-b0a3-c60b0b356658	a764172f-790f-4870-b9fe-aac03274c53c	172.25.0.4	b2:2b:55:c5:16:3d	eth0	0	2026-10-07 13:16:29.405822+00	2026-10-07 13:16:29.405822+00	2026-10-07 13:16:29.405822+00	\N	\N	2026-10-07 13:16:29.405822+00	\N	\N	\N	"Unspecified"
 \.
 
 
@@ -1683,8 +1682,8 @@ COPY public.networks (id, name, created_at, updated_at, organization_id, stale_a
 -- Data for Name: organizations; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.organizations (id, name, stripe_customer_id, plan, plan_status, created_at, updated_at, onboarding, brevo_company_id, has_payment_method, trial_end_date, use_case, last_paused_at, trial_extended_used, last_downgrade_at, last_downgrade_from_plan, last_discount_at, discount_save_offer_percent_off, discount_save_offer_active_until, next_renewal_at, notifications, license_paid_through, license_checkin_at, license_key_version, license_entitlement, license_entitlement_at, license_key_issued_at, license_key_type, bills_by_invoice) FROM stdin;
-8d3ee348-700c-461b-a54d-832889fe3f98	My Organization	\N	{"rate": "Month", "type": "Community", "base_cents": 0, "host_cents": null, "seat_cents": null, "trial_days": 0, "included_orgs": null, "network_cents": null, "included_hosts": null, "included_seats": null, "included_networks": null}	active	2026-10-03 03:54:04.435476+00	2026-10-03 03:54:04.435476+00	["OnboardingModalCompleted", "OrgCreated", "FirstDaemonRegistered", "FirstHostDiscovered", "FirstDiscoveryCompleted", "FirstTagCreated", "FirstDependencyCreated", "FirstUserApiKeyCreated", "SecondNetworkCreated"]	\N	f	\N	other	\N	f	\N	null	\N	\N	\N	\N	{"hosts": "None", "seats": "None", "networks": "None", "sunset_notified_floor": null, "airgap_expiry_notified_through": null}	\N	\N	0	\N	\N	\N	\N	f
+COPY public.organizations (id, name, stripe_customer_id, plan, plan_status, created_at, updated_at, onboarding, brevo_company_id, has_payment_method, trial_end_date, use_case, last_paused_at, trial_extended_used, last_downgrade_at, last_downgrade_from_plan, last_discount_at, discount_save_offer_percent_off, discount_save_offer_active_until, next_renewal_at, notifications, license_paid_through, license_checkin_at, license_key_version, license_entitlement, license_entitlement_at, license_key_issued_at, license_key_type, bills_by_invoice, license_server_version) FROM stdin;
+75d054e6-d254-4b9f-b9cd-095316706128	My Organization	\N	{"rate": "Month", "type": "Community", "base_cents": 0, "host_cents": null, "seat_cents": null, "site_cents": null, "trial_days": 0, "included_orgs": null, "included_hosts": null, "included_seats": null, "included_sites": null}	active	2026-10-07 13:08:11.644882+00	2026-10-07 13:08:11.644882+00	["OnboardingModalCompleted", "OrgCreated", "FirstDaemonRegistered", "FirstHostDiscovered", "FirstDiscoveryCompleted", "FirstTagCreated", "FirstDependencyCreated", "FirstUserApiKeyCreated", "SecondSiteCreated"]	\N	f	\N	other	\N	f	\N	null	\N	\N	\N	\N	{"hosts": "None", "seats": "None", "sites": "None", "sunset_notified_floor": null, "license_silence_reported_for": null, "airgap_expiry_notified_through": null}	\N	\N	0	\N	\N	\N	\N	f	\N
 \.
 
 
@@ -1692,8 +1691,8 @@ COPY public.organizations (id, name, stripe_customer_id, plan, plan_status, crea
 -- Data for Name: ports; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.ports (id, network_id, host_id, port_number, protocol, port_type, created_at, updated_at, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id) FROM stdin;
-fda4149b-1b8f-4143-a8fd-6326626f2c98	7eb98070-8e88-4434-b534-e3edc542498c	07ca9676-4995-4fd4-b0a3-c60b0b356658	60073	Tcp	Custom	2026-10-03 04:02:20.781539+00	2026-10-03 04:02:20.781539+00	2026-10-03 04:02:20.781539+00	\N	\N	2026-10-03 04:02:20.781539+00	\N	\N	\N
+COPY public.ports (id, site_id, host_id, port_number, protocol, port_type, created_at, updated_at, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id) FROM stdin;
+fda4149b-1b8f-4143-a8fd-6326626f2c98	4d37a500-a91f-4b1e-918e-f2b03934d17b	07ca9676-4995-4fd4-b0a3-c60b0b356658	60073	Tcp	Custom	2026-10-07 13:16:29.405822+00	2026-10-07 13:16:29.405822+00	2026-10-07 13:16:29.405822+00	\N	\N	2026-10-07 13:16:29.405822+00	\N	\N	\N
 \.
 
 
@@ -1701,8 +1700,8 @@ fda4149b-1b8f-4143-a8fd-6326626f2c98	7eb98070-8e88-4434-b534-e3edc542498c	07ca96
 -- Data for Name: services; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.services (id, network_id, created_at, updated_at, name, host_id, service_definition, virtualization_metadata, source, "position", valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id, virtualization_service_id) FROM stdin;
-0b62457e-a3d6-4712-b086-b55ab8eceb97	7eb98070-8e88-4434-b534-e3edc542498c	2026-10-03 04:02:20.781539+00	2026-10-03 04:02:20.781539+00	Scanopy Daemon	07ca9676-4995-4fd4-b0a3-c60b0b356658	"Scanopy Daemon"	null	{"type": "DiscoveryWithMatch", "details": {"reason": {"data": "Scanopy Daemon self-report", "type": "reason"}, "confidence": "Certain"}}	0	2026-10-03 04:02:20.781539+00	\N	\N	2026-10-03 04:02:20.781539+00	\N	\N	\N	\N
+COPY public.services (id, site_id, created_at, updated_at, name, host_id, service_definition, virtualization_metadata, source, "position", valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id, virtualization_service_id) FROM stdin;
+0b62457e-a3d6-4712-b086-b55ab8eceb97	4d37a500-a91f-4b1e-918e-f2b03934d17b	2026-10-07 13:16:29.405822+00	2026-10-07 13:16:29.405822+00	Scanopy Daemon	07ca9676-4995-4fd4-b0a3-c60b0b356658	"Scanopy Daemon"	null	{"type": "DiscoveryWithMatch", "details": {"reason": {"data": "Scanopy Daemon self-report", "type": "reason"}, "confidence": "Certain"}}	0	2026-10-07 13:16:29.405822+00	\N	\N	2026-10-07 13:16:29.405822+00	\N	\N	\N	\N
 \.
 
 
@@ -1710,7 +1709,24 @@ COPY public.services (id, network_id, created_at, updated_at, name, host_id, ser
 -- Data for Name: shares; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.shares (id, topology_id, network_id, created_by, name, is_enabled, expires_at, password_hash, allowed_domains, options, created_at, updated_at, enabled_views) FROM stdin;
+COPY public.shares (id, topology_id, site_id, created_by, name, is_enabled, expires_at, password_hash, allowed_domains, options, created_at, updated_at, enabled_views) FROM stdin;
+\.
+
+
+--
+-- Data for Name: site_credentials; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.site_credentials (site_id, credential_id) FROM stdin;
+\.
+
+
+--
+-- Data for Name: sites; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.sites (id, name, created_at, updated_at, organization_id, stale_after_hours) FROM stdin;
+4d37a500-a91f-4b1e-918e-f2b03934d17b	My Site	2026-10-07 13:08:11.654876+00	2026-10-07 13:08:11.654876+00	75d054e6-d254-4b9f-b9cd-095316706128	\N
 \.
 
 
@@ -1718,7 +1734,7 @@ COPY public.shares (id, topology_id, network_id, created_by, name, is_enabled, e
 -- Data for Name: snapshots; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.snapshots (id, network_id, taken_at, created_by_user_id, created_at, updated_at) FROM stdin;
+COPY public.snapshots (id, site_id, taken_at, created_by_user_id, created_at, updated_at) FROM stdin;
 \.
 
 
@@ -1734,10 +1750,10 @@ COPY public.subnet_vlans (id, subnet_id, vlan_id, created_at, valid_from, valid_
 -- Data for Name: subnets; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.subnets (id, network_id, created_at, updated_at, cidr, name, description, subnet_type, source, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id, virtualization_service_id, cidr_source) FROM stdin;
-a6b79870-25da-448f-830a-9e928cfd9a83	7eb98070-8e88-4434-b534-e3edc542498c	2026-10-03 04:02:31.034396+00	2026-10-03 04:02:31.034396+00	"127.0.0.0/8"	127.0.0.0/8	\N	Loopback	{"type": "Discovery"}	2026-10-03 04:02:31.034396+00	\N	\N	2026-10-03 04:02:33.278507+00	\N	\N	\N	\N	"DaemonSelfReport"
-a764172f-790f-4870-b9fe-aac03274c53c	7eb98070-8e88-4434-b534-e3edc542498c	1970-01-01 00:00:00+00	2026-03-06 07:04:08.161423+00	"172.25.0.0/28"	172.25.0.0/28	\N	Lan	{"type": "Discovery"}	1970-01-01 00:00:00+00	\N	\N	2026-10-03 04:02:33.278537+00	\N	\N	\N	\N	"DaemonSelfReport"
-f7feb7be-c688-4ed0-9119-3d7edbd47e9b	7eb98070-8e88-4434-b534-e3edc542498c	2026-10-03 04:02:34.442124+00	2026-10-03 04:02:34.442124+00	"10.1.0.0/24"	Blocked Subnet	\N	Lan	{"type": "Manual"}	2026-10-03 04:02:34.442124+00	\N	\N	2026-10-03 04:02:34.442124+00	\N	\N	\N	\N	"Manual"
+COPY public.subnets (id, site_id, created_at, updated_at, cidr, name, description, subnet_type, source, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id, virtualization_service_id, cidr_source) FROM stdin;
+ac4856a4-23a5-46c7-9547-87b07d2bca54	4d37a500-a91f-4b1e-918e-f2b03934d17b	2026-10-07 13:16:38.716312+00	2026-10-07 13:16:38.716312+00	"127.0.0.0/8"	127.0.0.0/8	\N	Loopback	{"type": "Discovery"}	2026-10-07 13:16:38.716312+00	\N	\N	2026-10-07 13:16:44.058528+00	\N	\N	\N	\N	"DaemonSelfReport"
+a764172f-790f-4870-b9fe-aac03274c53c	4d37a500-a91f-4b1e-918e-f2b03934d17b	1970-01-01 00:00:00+00	2026-03-06 07:04:08.161423+00	"172.25.0.0/28"	172.25.0.0/28	\N	Lan	{"type": "Discovery"}	1970-01-01 00:00:00+00	\N	\N	2026-10-07 13:16:44.058555+00	\N	\N	\N	\N	"DaemonSelfReport"
+b1322d07-1d23-4108-9967-0d259dc081ba	4d37a500-a91f-4b1e-918e-f2b03934d17b	2026-10-07 13:16:45.609582+00	2026-10-07 13:16:45.609582+00	"10.1.0.0/24"	Blocked Subnet	\N	Lan	{"type": "Manual"}	2026-10-07 13:16:45.609582+00	\N	\N	2026-10-07 13:16:45.609582+00	\N	\N	\N	\N	"Manual"
 \.
 
 
@@ -1745,10 +1761,14 @@ f7feb7be-c688-4ed0-9119-3d7edbd47e9b	7eb98070-8e88-4434-b534-e3edc542498c	2026-1
 -- Data for Name: tags; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.tags (id, organization_id, name, description, created_at, updated_at, color, is_application, valid_from, valid_to, lineage_id, snapshot_id) FROM stdin;
-522e023b-e451-4509-809f-9014c5ca8489	8d3ee348-700c-461b-a54d-832889fe3f98	Integration Test Tag	\N	2026-10-03 04:02:01.611599+00	2026-10-03 04:02:01.611599+00	Yellow	f	2026-10-03 04:02:01.611599+00	\N	\N	\N
-3dc21c50-0461-4881-add9-ec871a13447f	8d3ee348-700c-461b-a54d-832889fe3f98	Test Tag	\N	2026-10-03 04:02:33.762591+00	2026-10-03 04:02:33.762591+00	Yellow	f	2026-10-03 04:02:33.762591+00	2026-10-03 04:02:33.77737+00	ff40af07-3dc5-4a58-b56e-21b60f23a6e0	\N
-ff40af07-3dc5-4a58-b56e-21b60f23a6e0	8d3ee348-700c-461b-a54d-832889fe3f98	Updated Tag	\N	2026-10-03 04:02:33.762591+00	2026-10-03 04:02:33.762591+00	Yellow	f	2026-10-03 04:02:33.77737+00	2026-10-03 04:02:33.786136+00	\N	\N
+COPY public.tags (id, organization_id, name, description, created_at, updated_at, color, is_application, valid_from, valid_to, lineage_id, snapshot_id, tag_group, icon) FROM stdin;
+3bd46fbb-6475-4b15-961b-74aeeedaa8a1	75d054e6-d254-4b9f-b9cd-095316706128	Planned	Ordered or scheduled, not yet in service	2026-10-07 13:08:11.66645+00	2026-10-07 13:08:11.66645+00	Blue	f	2026-10-07 13:08:11.66645+00	\N	\N	\N	Status	calendar-clock
+69eede87-59e6-4942-885c-7fce505fadee	75d054e6-d254-4b9f-b9cd-095316706128	Active	In service	2026-10-07 13:08:11.666454+00	2026-10-07 13:08:11.666454+00	Green	f	2026-10-07 13:08:11.666454+00	\N	\N	\N	Status	circle-check
+7ac3491c-bd0f-4224-b2fc-27f529121d52	75d054e6-d254-4b9f-b9cd-095316706128	Decommissioning	Being retired; still on the network	2026-10-07 13:08:11.666455+00	2026-10-07 13:08:11.666455+00	Orange	f	2026-10-07 13:08:11.666455+00	\N	\N	\N	Status	hourglass
+2098e5e2-ad2c-447c-8368-dce7fbf56ac8	75d054e6-d254-4b9f-b9cd-095316706128	Decommissioned	Retired from service; kept for the record	2026-10-07 13:08:11.666456+00	2026-10-07 13:08:11.666456+00	Gray	f	2026-10-07 13:08:11.666456+00	\N	\N	\N	Status	archive
+c0bafe49-1dee-4f8e-bab8-f4880ca79b33	75d054e6-d254-4b9f-b9cd-095316706128	Integration Test Tag	\N	2026-10-07 13:16:09.34129+00	2026-10-07 13:16:09.34129+00	Yellow	f	2026-10-07 13:16:09.34129+00	\N	\N	\N	\N	\N
+c8dd1265-3024-4c5e-b357-e42cfd405138	75d054e6-d254-4b9f-b9cd-095316706128	Test Tag	\N	2026-10-07 13:16:44.529714+00	2026-10-07 13:16:44.529714+00	Yellow	f	2026-10-07 13:16:44.529714+00	2026-10-07 13:16:44.542668+00	5187e071-7628-4497-9fa4-1ed7c1970d20	\N	\N	\N
+5187e071-7628-4497-9fa4-1ed7c1970d20	75d054e6-d254-4b9f-b9cd-095316706128	Updated Tag	\N	2026-10-07 13:16:44.529714+00	2026-10-07 13:16:44.529714+00	Yellow	f	2026-10-07 13:16:44.542668+00	2026-10-07 13:16:44.552246+00	\N	\N	\N	\N
 \.
 
 
@@ -1756,16 +1776,16 @@ ff40af07-3dc5-4a58-b56e-21b60f23a6e0	8d3ee348-700c-461b-a54d-832889fe3f98	Update
 -- Data for Name: topologies; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.topologies (id, network_id, options, created_at, updated_at) FROM stdin;
-14bfad23-d8f1-4f84-8db8-5ec59bd1d6f0	7eb98070-8e88-4434-b534-e3edc542498c	{"local": {"tag_filter": {"hidden_host_tag_ids": [], "hidden_subnet_tag_ids": [], "hidden_service_tag_ids": []}, "bundle_edges": true, "show_minimap": true, "no_fade_edges": false, "hide_edge_types": ["Hypervisor"]}, "request": {"element_sort": {}, "element_rules": [{"id": "23e61228-550c-405a-929f-845d35ef2cff", "rule": "ByTrunkPort"}, {"id": "7953812b-0cd8-4d78-966e-075c48f41fbf", "rule": "ByVLAN"}, {"id": "aeb81ec5-9968-4b23-9ad6-0cdeebe4c878", "rule": "ByPortOpStatus"}, {"id": "16dbc978-b44f-42f2-81c4-0d446f0a6562", "rule": {"ByServiceCategory": {"title": "Infrastructure", "categories": ["NetworkCore", "NetworkAccess", "RemoteAccess", "Workstation", "Mobile", "Printer", "OpenPorts"], "is_infra_rule": true}}}, {"id": "a804c7cd-4a94-474d-8a13-fb706c3f1a6d", "rule": {"ByTag": {"title": null, "tag_ids": []}}}, {"id": "fdc2cf86-4a2c-4926-8ece-94517f3af9dc", "rule": "ByHypervisor"}, {"id": "361c29cc-3386-4d3d-b20f-71dff53e2b15", "rule": "ByContainerRuntime"}, {"id": "07fa3684-c465-4133-92a5-737a90391edd", "rule": "ByStack"}], "hide_entities": {}, "container_rules": {"L3Logical": [{"id": "c3fa3fa2-c91e-432d-95cf-5c85978f35e7", "rule": "BySubnet"}, {"id": "ad56211a-6693-40ff-97ee-eaee62c076d2", "rule": "MergeContainerBridges"}], "Workloads": [{"id": "fa8a2fe9-807a-443d-8223-53ff378b50c3", "rule": "ByHost"}], "L2Physical": [{"id": "fa8a2fe9-807a-443d-8223-53ff378b50c3", "rule": "ByHost"}], "Application": [{"id": "fd8bfcf6-c872-4c9d-8c75-eba6b98e8522", "rule": {"ByApplication": {"tag_ids": []}}}]}, "hide_metadata_values": {"L3Logical": {"Service": {"Category": ["OpenPorts"]}}, "Workloads": {"Service": {"Category": ["OpenPorts"]}}, "L2Physical": {"Service": {"Category": ["OpenPorts"]}, "Interface": {"LinkState": ["Unlinked"]}}, "Application": {"Service": {"Category": ["OpenPorts"]}}}}}	2026-10-03 03:54:04.451676+00	2026-10-03 03:54:04.451676+00
+COPY public.topologies (id, site_id, options, created_at, updated_at) FROM stdin;
+e2c26eb8-de3f-4def-88a9-2a544bd44660	4d37a500-a91f-4b1e-918e-f2b03934d17b	{"local": {"tag_filter": {"hidden_host_tag_ids": [], "hidden_subnet_tag_ids": [], "hidden_service_tag_ids": []}, "bundle_edges": true, "show_minimap": true, "no_fade_edges": false, "hide_edge_types": ["Hypervisor"]}, "request": {"element_sort": {}, "element_rules": [{"id": "77d4bef5-18b6-43c0-9634-03eed3e4a416", "rule": "ByTrunkPort"}, {"id": "ec82c153-550d-44dc-9045-58e8d55ab12d", "rule": "ByVLAN"}, {"id": "0d10d81b-7ae7-4d61-8f77-6580995dfab5", "rule": "ByPortOpStatus"}, {"id": "87e5ccae-db2e-4468-820b-1fbf65fd4089", "rule": {"ByServiceCategory": {"title": "Infrastructure", "categories": ["NetworkCore", "NetworkAccess", "RemoteAccess", "Workstation", "Mobile", "Printer", "OpenPorts", "NetworkIdentities"], "is_infra_rule": true}}}, {"id": "3a99eb46-5816-45ea-af34-fdd13d0e0a69", "rule": {"ByTag": {"title": null, "tag_ids": []}}}, {"id": "10d17cea-f37b-4f32-9b0d-cb7798ab5190", "rule": "ByHypervisor"}, {"id": "398fc5ae-09c0-42ff-bace-f664f196467e", "rule": "ByContainerRuntime"}, {"id": "78238b35-f4cc-4097-9940-ed5cee23f4e4", "rule": "ByStack"}], "hide_entities": {}, "container_rules": {"L3Logical": [{"id": "21083437-819f-40a3-9b2a-cb3f34711734", "rule": "BySubnet"}, {"id": "72472d3c-fcd3-4119-abc2-4e9e999c904c", "rule": "MergeContainerBridges"}], "Workloads": [{"id": "fee7fc99-160c-4a71-9178-7c29b968e716", "rule": "ByHost"}], "L2Physical": [{"id": "fee7fc99-160c-4a71-9178-7c29b968e716", "rule": "ByHost"}], "Application": [{"id": "b5c78922-7529-42eb-b4c3-40687d67e9e3", "rule": {"ByApplication": {"tag_ids": []}}}]}, "hide_metadata_values": {"L3Logical": {"Service": {"Category": ["OpenPorts"]}}, "Workloads": {"Service": {"Category": ["OpenPorts"]}}, "L2Physical": {"Service": {"Category": ["OpenPorts"]}, "Interface": {"LinkState": ["Unlinked"]}}, "Application": {"Service": {"Category": ["OpenPorts"]}}}}}	2026-10-07 13:08:11.663658+00	2026-10-07 13:08:11.663658+00
 \.
 
 
 --
--- Data for Name: user_api_key_network_access; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: user_api_key_site_access; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.user_api_key_network_access (id, api_key_id, network_id, created_at) FROM stdin;
+COPY public.user_api_key_site_access (id, api_key_id, site_id, created_at) FROM stdin;
 \.
 
 
@@ -1778,10 +1798,10 @@ COPY public.user_api_keys (id, key, user_id, organization_id, permissions, name,
 
 
 --
--- Data for Name: user_network_access; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: user_site_access; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.user_network_access (id, user_id, network_id, created_at) FROM stdin;
+COPY public.user_site_access (id, user_id, site_id, created_at) FROM stdin;
 \.
 
 
@@ -1790,8 +1810,8 @@ COPY public.user_network_access (id, user_id, network_id, created_at) FROM stdin
 --
 
 COPY public.users (id, created_at, updated_at, password_hash, oidc_provider, oidc_subject, oidc_linked_at, email, organization_id, permissions, tags, terms_accepted_at, email_verified, email_verification_token, email_verification_expires, password_reset_token, password_reset_expires, pending_email, email_settings, session_epoch, display_settings) FROM stdin;
-6e67e88c-3c75-4170-b898-e87d8f1c18c4	2026-10-03 03:54:04.437211+00	2026-10-03 03:54:04.437211+00	$argon2id$v=19$m=19456,t=2,p=1$0EF+NHD0LIjIUPCa0U75Jg$uLIWK5zgW5rrnT9Txt1CPo9qRirfTmCmHa2ldIdIA7g	\N	\N	\N	user@gmail.com	8d3ee348-700c-461b-a54d-832889fe3f98	Owner	{}	\N	t	\N	\N	\N	\N	\N	{"daemon_alerts": true, "trial_and_usage": true, "discovery_digest": true, "product_onboarding": true}	0	{"clock": "browser_default", "time_zone": null, "date_order": "browser_default", "timestamps": "relative", "week_start": "monday"}
-a3895825-913e-40d3-89fd-65fd51c06e47	2026-10-03 04:02:34.217059+00	2026-10-03 04:02:34.217059+00	\N	\N	\N	\N	user@example.com	8d3ee348-700c-461b-a54d-832889fe3f98	Owner	{}	\N	f	\N	\N	\N	\N	\N	{"daemon_alerts": true, "trial_and_usage": true, "discovery_digest": true, "product_onboarding": true}	0	{"clock": "browser_default", "time_zone": null, "date_order": "browser_default", "timestamps": "relative", "week_start": "monday"}
+e737527c-dbd1-43cd-907c-6fe50e731348	2026-10-07 13:08:11.646841+00	2026-10-07 13:08:11.646841+00	$argon2id$v=19$m=19456,t=2,p=1$sGc+FgwCJ+2gtgZaB5l+oQ$HDJX5It9l5rvIA4cpz6OECAF7NPrmmDN/c1GH94UQag	\N	\N	\N	user@gmail.com	75d054e6-d254-4b9f-b9cd-095316706128	Owner	{}	\N	t	\N	\N	\N	\N	\N	{"daemon_alerts": true, "trial_and_usage": true, "discovery_digest": true, "product_onboarding": true}	0	{"clock": "browser_default", "time_zone": null, "date_order": "browser_default", "timestamps": "relative", "week_start": "monday", "table_density": "compact"}
+a2b30c9d-e39f-44f5-9862-b2b31fcc898b	2026-10-07 13:16:45.114202+00	2026-10-07 13:16:45.114202+00	\N	\N	\N	\N	user@example.com	75d054e6-d254-4b9f-b9cd-095316706128	Owner	{}	\N	f	\N	\N	\N	\N	\N	{"daemon_alerts": true, "trial_and_usage": true, "discovery_digest": true, "product_onboarding": true}	0	{"clock": "browser_default", "time_zone": null, "date_order": "browser_default", "timestamps": "relative", "week_start": "monday", "table_density": "compact"}
 \.
 
 
@@ -1799,7 +1819,7 @@ a3895825-913e-40d3-89fd-65fd51c06e47	2026-10-03 04:02:34.217059+00	2026-10-03 04
 -- Data for Name: vlans; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.vlans (id, vlan_number, name, description, network_id, organization_id, source, created_at, updated_at, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id) FROM stdin;
+COPY public.vlans (id, vlan_number, name, description, site_id, organization_id, source, created_at, updated_at, valid_from, valid_to, lineage_id, last_seen_at, last_discovery_id, first_discovery_id, snapshot_id) FROM stdin;
 \.
 
 
@@ -1808,10 +1828,10 @@ COPY public.vlans (id, vlan_number, name, description, network_id, organization_
 --
 
 COPY tower_sessions.session (id, data, expiry_date) FROM stdin;
-x1vNyWUSvKHBXRHUidzMdA	\\x93c41074ccdc89d4115dc1a1bc1265c9cd5bc782ad73657373696f6e5f65706f636800a7757365725f6964d92436653637653838632d336337352d343137302d623839382d65383764386631633138633499cd07eacd011b033604ce1e35b62f000000	2026-10-10 03:54:04.506836+00
-KdKxifmBNV-iAYDRA1lFLw	\\x93c4102f455903d18001a25f3581f989b1d22983ad70656e64696e675f736574757083a76e6574776f726b82a46e616d65aa4d79204e6574776f726baa6e6574776f726b5f6964d92465623538663636392d393938372d343634362d393031622d393835643061353034363563a86f72675f6e616d65af4d79204f7267616e697a6174696f6ea87573655f63617365a56f74686572a7757365725f6964d92436653637653838632d336337352d343137302d623839382d653837643866316331386334ad73657373696f6e5f65706f63680099cd07eacd011b040202ce0f946418000000	2026-10-10 04:02:02.261383+00
-epYgSpXd83-wm_8EtoGa3A	\\x93c410dc9a81b604ff9bb07ff3dd954a20967a83ad70656e64696e675f736574757083a76e6574776f726b82a46e616d65aa4d79204e6574776f726baa6e6574776f726b5f6964d92463373938656539322d346334352d343064322d396662342d383062636136363239383664a86f72675f6e616d65af4d79204f7267616e697a6174696f6ea87573655f63617365a56f74686572ad73657373696f6e5f65706f636800a7757365725f6964d92436653637653838632d336337352d343137302d623839382d65383764386631633138633499cd07eacd011b040215ce0436208a000000	2026-10-10 04:02:21.070656+00
-zwYDQWXLYJzeICYKmNMlpA	\\x93c410a425d3980a2620de9c60cb65410306cf83ad73657373696f6e5f65706f636800a7757365725f6964d92436653637653838632d336337352d343137302d623839382d653837643866316331386334ad70656e64696e675f736574757083a76e6574776f726b82a46e616d65aa4d79204e6574776f726baa6e6574776f726b5f6964d92436643737653238612d343961302d343161342d626635332d313061396163643938363937a86f72675f6e616d65af4d79204f7267616e697a6174696f6ea87573655f63617365a56f7468657299cd07eacd011b040221ce20a80d8b000000	2026-10-10 04:02:33.547884+00
+5ZG07cLGFLfIoYgKNQNLLg	\\x93c4102e4b03350a88a1c8b714c6c2edb491e582a7757365725f6964d92465373337353237632d646264312d343363642d393037632d366665353065373331333438ad73657373696f6e5f65706f63680099cd07eacd011f0d080bce2c5b3bda000000	2026-10-14 13:08:11.744176+00
+PI2tt7heI8EypJxEAMIdWg	\\x93c4105a1dc200449ca432c1235eb8b7ad8d3c83a7757365725f6964d92465373337353237632d646264312d343363642d393037632d366665353065373331333438ad73657373696f6e5f65706f636800ad70656e64696e675f736574757083a86f72675f6e616d65af4d79204f7267616e697a6174696f6ea47369746582a46e616d65a74d792053697465a7736974655f6964d92435323361653365642d323061662d343631612d386331632d386639316538386135656232a87573655f63617365a56f7468657299cd07eacd011f0d1009ce346b2f08000000	2026-10-14 13:16:09.879439+00
+YX0SQnXFZ1qoTlfaCfaPGQ	\\x93c410198ff609da574ea85a67c57542127d6183ad70656e64696e675f736574757083a86f72675f6e616d65af4d79204f7267616e697a6174696f6ea47369746582a46e616d65a74d792053697465a7736974655f6964d92432623965643433342d613732312d343839362d623235352d393464313139326562623261a87573655f63617365a56f74686572ad73657373696f6e5f65706f636800a7757365725f6964d92465373337353237632d646264312d343363642d393037632d36666535306537333133343899cd07eacd011f0d101dce2a9e0590000000	2026-10-14 13:16:29.714999+00
+zlVlGksw1_Gip8wCeEuMug	\\x93c410ba8c4b7802cca7a2f1d7304b1a6555ce83ad73657373696f6e5f65706f636800ad70656e64696e675f736574757083a86f72675f6e616d65af4d79204f7267616e697a6174696f6ea47369746582a46e616d65a74d792053697465a7736974655f6964d92465383363666165622d396664332d343763362d383136352d383134646631616131313632a87573655f63617365a56f74686572a7757365725f6964d92465373337353237632d646264312d343363642d393037632d36666535306537333133343899cd07eacd011f0d102cce1389ae1b000000	2026-10-14 13:16:44.32779+00
 \.
 
 
@@ -1968,22 +1988,6 @@ ALTER TABLE ONLY public.ip_addresses
 
 
 --
--- Name: network_credentials network_credentials_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.network_credentials
-    ADD CONSTRAINT network_credentials_pkey PRIMARY KEY (network_id, credential_id);
-
-
---
--- Name: networks networks_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.networks
-    ADD CONSTRAINT networks_pkey PRIMARY KEY (id);
-
-
---
 -- Name: organizations organizations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2013,6 +2017,22 @@ ALTER TABLE ONLY public.services
 
 ALTER TABLE ONLY public.shares
     ADD CONSTRAINT shares_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: site_credentials site_credentials_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.site_credentials
+    ADD CONSTRAINT site_credentials_pkey PRIMARY KEY (site_id, credential_id);
+
+
+--
+-- Name: sites sites_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sites
+    ADD CONSTRAINT sites_pkey PRIMARY KEY (id);
 
 
 --
@@ -2056,19 +2076,19 @@ ALTER TABLE ONLY public.topologies
 
 
 --
--- Name: user_api_key_network_access user_api_key_network_access_api_key_id_network_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: user_api_key_site_access user_api_key_site_access_api_key_id_site_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.user_api_key_network_access
-    ADD CONSTRAINT user_api_key_network_access_api_key_id_network_id_key UNIQUE (api_key_id, network_id);
+ALTER TABLE ONLY public.user_api_key_site_access
+    ADD CONSTRAINT user_api_key_site_access_api_key_id_site_id_key UNIQUE (api_key_id, site_id);
 
 
 --
--- Name: user_api_key_network_access user_api_key_network_access_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: user_api_key_site_access user_api_key_site_access_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.user_api_key_network_access
-    ADD CONSTRAINT user_api_key_network_access_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.user_api_key_site_access
+    ADD CONSTRAINT user_api_key_site_access_pkey PRIMARY KEY (id);
 
 
 --
@@ -2088,19 +2108,19 @@ ALTER TABLE ONLY public.user_api_keys
 
 
 --
--- Name: user_network_access user_network_access_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: user_site_access user_site_access_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.user_network_access
-    ADD CONSTRAINT user_network_access_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.user_site_access
+    ADD CONSTRAINT user_site_access_pkey PRIMARY KEY (id);
 
 
 --
--- Name: user_network_access user_network_access_user_id_network_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: user_site_access user_site_access_user_id_site_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.user_network_access
-    ADD CONSTRAINT user_network_access_user_id_network_id_key UNIQUE (user_id, network_id);
+ALTER TABLE ONLY public.user_site_access
+    ADD CONSTRAINT user_site_access_user_id_site_id_key UNIQUE (user_id, site_id);
 
 
 --
@@ -2142,17 +2162,17 @@ CREATE INDEX idx_api_keys_key ON public.api_keys USING btree (key);
 
 
 --
--- Name: idx_api_keys_network; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_api_keys_site; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_api_keys_network ON public.api_keys USING btree (network_id);
+CREATE INDEX idx_api_keys_site ON public.api_keys USING btree (site_id);
 
 
 --
 -- Name: idx_bindings_as_of; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_bindings_as_of ON public.bindings USING btree (network_id, valid_from, valid_to);
+CREATE INDEX idx_bindings_as_of ON public.bindings USING btree (site_id, valid_from, valid_to);
 
 
 --
@@ -2173,14 +2193,7 @@ CREATE INDEX idx_bindings_lineage ON public.bindings USING btree (lineage_id) WH
 -- Name: idx_bindings_live; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_bindings_live ON public.bindings USING btree (network_id) WHERE (valid_to IS NULL);
-
-
---
--- Name: idx_bindings_network; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_bindings_network ON public.bindings USING btree (network_id);
+CREATE INDEX idx_bindings_live ON public.bindings USING btree (site_id) WHERE (valid_to IS NULL);
 
 
 --
@@ -2195,6 +2208,13 @@ CREATE INDEX idx_bindings_port ON public.bindings USING btree (port_id);
 --
 
 CREATE INDEX idx_bindings_service ON public.bindings USING btree (service_id);
+
+
+--
+-- Name: idx_bindings_site; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_bindings_site ON public.bindings USING btree (site_id);
 
 
 --
@@ -2240,17 +2260,17 @@ CREATE INDEX idx_daemons_api_key ON public.daemons USING btree (api_key_id) WHER
 
 
 --
--- Name: idx_daemons_network; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_daemons_site; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_daemons_network ON public.daemons USING btree (network_id);
+CREATE INDEX idx_daemons_site ON public.daemons USING btree (site_id);
 
 
 --
 -- Name: idx_dependencies_as_of; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_dependencies_as_of ON public.dependencies USING btree (network_id, valid_from, valid_to);
+CREATE INDEX idx_dependencies_as_of ON public.dependencies USING btree (site_id, valid_from, valid_to);
 
 
 --
@@ -2264,7 +2284,14 @@ CREATE INDEX idx_dependencies_lineage ON public.dependencies USING btree (lineag
 -- Name: idx_dependencies_live; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_dependencies_live ON public.dependencies USING btree (network_id) WHERE (valid_to IS NULL);
+CREATE INDEX idx_dependencies_live ON public.dependencies USING btree (site_id) WHERE (valid_to IS NULL);
+
+
+--
+-- Name: idx_dependencies_site; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_dependencies_site ON public.dependencies USING btree (site_id);
 
 
 --
@@ -2338,10 +2365,10 @@ CREATE INDEX idx_discovery_daemon ON public.discovery USING btree (daemon_id);
 
 
 --
--- Name: idx_discovery_network; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_discovery_site; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_discovery_network ON public.discovery USING btree (network_id);
+CREATE INDEX idx_discovery_site ON public.discovery USING btree (site_id);
 
 
 --
@@ -2394,17 +2421,10 @@ CREATE UNIQUE INDEX idx_entity_tags_unique_live ON public.entity_tags USING btre
 
 
 --
--- Name: idx_groups_network; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_groups_network ON public.dependencies USING btree (network_id);
-
-
---
 -- Name: idx_hosts_as_of; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_hosts_as_of ON public.hosts USING btree (network_id, valid_from, valid_to);
+CREATE INDEX idx_hosts_as_of ON public.hosts USING btree (site_id, valid_from, valid_to);
 
 
 --
@@ -2425,14 +2445,14 @@ CREATE INDEX idx_hosts_lineage ON public.hosts USING btree (lineage_id) WHERE (v
 -- Name: idx_hosts_live; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_hosts_live ON public.hosts USING btree (network_id) WHERE (valid_to IS NULL);
+CREATE INDEX idx_hosts_live ON public.hosts USING btree (site_id) WHERE (valid_to IS NULL);
 
 
 --
--- Name: idx_hosts_network; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_hosts_site; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_hosts_network ON public.hosts USING btree (network_id);
+CREATE INDEX idx_hosts_site ON public.hosts USING btree (site_id);
 
 
 --
@@ -2440,6 +2460,13 @@ CREATE INDEX idx_hosts_network ON public.hosts USING btree (network_id);
 --
 
 CREATE INDEX idx_hosts_snapshot_id ON public.hosts USING btree (snapshot_id) WHERE (snapshot_id IS NOT NULL);
+
+
+--
+-- Name: idx_hosts_virtualization_interface_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_hosts_virtualization_interface_id ON public.hosts USING btree (virtualization_interface_id) WHERE (virtualization_interface_id IS NOT NULL);
 
 
 --
@@ -2457,17 +2484,17 @@ CREATE INDEX idx_interface_neighbor_candidates_interface ON public.interface_nei
 
 
 --
--- Name: idx_interface_neighbor_candidates_network; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_interface_neighbor_candidates_site; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_interface_neighbor_candidates_network ON public.interface_neighbor_candidates USING btree (network_id);
+CREATE INDEX idx_interface_neighbor_candidates_site ON public.interface_neighbor_candidates USING btree (site_id);
 
 
 --
 -- Name: idx_interface_neighbor_hosts_as_of; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_interface_neighbor_hosts_as_of ON public.interface_neighbor_hosts USING btree (network_id, valid_from, valid_to);
+CREATE INDEX idx_interface_neighbor_hosts_as_of ON public.interface_neighbor_hosts USING btree (site_id, valid_from, valid_to);
 
 
 --
@@ -2481,7 +2508,7 @@ CREATE INDEX idx_interface_neighbor_hosts_lineage ON public.interface_neighbor_h
 -- Name: idx_interface_neighbor_hosts_live; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_interface_neighbor_hosts_live ON public.interface_neighbor_hosts USING btree (network_id) WHERE (valid_to IS NULL);
+CREATE INDEX idx_interface_neighbor_hosts_live ON public.interface_neighbor_hosts USING btree (site_id) WHERE (valid_to IS NULL);
 
 
 --
@@ -2509,7 +2536,7 @@ CREATE INDEX idx_interface_neighbor_hosts_snapshot_id ON public.interface_neighb
 -- Name: idx_interface_neighbor_interfaces_as_of; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_interface_neighbor_interfaces_as_of ON public.interface_neighbor_interfaces USING btree (network_id, valid_from, valid_to);
+CREATE INDEX idx_interface_neighbor_interfaces_as_of ON public.interface_neighbor_interfaces USING btree (site_id, valid_from, valid_to);
 
 
 --
@@ -2523,7 +2550,7 @@ CREATE INDEX idx_interface_neighbor_interfaces_lineage ON public.interface_neigh
 -- Name: idx_interface_neighbor_interfaces_live; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_interface_neighbor_interfaces_live ON public.interface_neighbor_interfaces USING btree (network_id) WHERE (valid_to IS NULL);
+CREATE INDEX idx_interface_neighbor_interfaces_live ON public.interface_neighbor_interfaces USING btree (site_id) WHERE (valid_to IS NULL);
 
 
 --
@@ -2551,7 +2578,7 @@ CREATE INDEX idx_interface_neighbor_interfaces_snapshot_id ON public.interface_n
 -- Name: idx_interfaces_as_of; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_interfaces_as_of ON public.interfaces USING btree (network_id, valid_from, valid_to);
+CREATE INDEX idx_interfaces_as_of ON public.interfaces USING btree (site_id, valid_from, valid_to);
 
 
 --
@@ -2593,7 +2620,7 @@ CREATE INDEX idx_interfaces_lineage ON public.interfaces USING btree (lineage_id
 -- Name: idx_interfaces_live; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_interfaces_live ON public.interfaces USING btree (network_id) WHERE (valid_to IS NULL);
+CREATE INDEX idx_interfaces_live ON public.interfaces USING btree (site_id) WHERE (valid_to IS NULL);
 
 
 --
@@ -2604,10 +2631,10 @@ CREATE INDEX idx_interfaces_mac_address ON public.interfaces USING btree (mac_ad
 
 
 --
--- Name: idx_interfaces_network; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_interfaces_site; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_interfaces_network ON public.interfaces USING btree (network_id);
+CREATE INDEX idx_interfaces_site ON public.interfaces USING btree (site_id);
 
 
 --
@@ -2635,7 +2662,7 @@ CREATE INDEX idx_invites_organization ON public.invites USING btree (organizatio
 -- Name: idx_ip_addresses_as_of; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_ip_addresses_as_of ON public.ip_addresses USING btree (network_id, valid_from, valid_to);
+CREATE INDEX idx_ip_addresses_as_of ON public.ip_addresses USING btree (site_id, valid_from, valid_to);
 
 
 --
@@ -2663,21 +2690,21 @@ CREATE INDEX idx_ip_addresses_lineage ON public.ip_addresses USING btree (lineag
 -- Name: idx_ip_addresses_live; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_ip_addresses_live ON public.ip_addresses USING btree (network_id) WHERE (valid_to IS NULL);
+CREATE INDEX idx_ip_addresses_live ON public.ip_addresses USING btree (site_id) WHERE (valid_to IS NULL);
 
 
 --
--- Name: idx_ip_addresses_network; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_ip_addresses_site; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_ip_addresses_network ON public.ip_addresses USING btree (network_id);
+CREATE INDEX idx_ip_addresses_site ON public.ip_addresses USING btree (site_id);
 
 
 --
--- Name: idx_ip_addresses_network_mac; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_ip_addresses_site_mac; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_ip_addresses_network_mac ON public.ip_addresses USING btree (network_id, mac_address) WHERE (mac_address IS NOT NULL);
+CREATE INDEX idx_ip_addresses_site_mac ON public.ip_addresses USING btree (site_id, mac_address) WHERE (mac_address IS NOT NULL);
 
 
 --
@@ -2702,13 +2729,6 @@ CREATE UNIQUE INDEX idx_ip_addresses_unique_live ON public.ip_addresses USING bt
 
 
 --
--- Name: idx_networks_owner_organization; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_networks_owner_organization ON public.networks USING btree (organization_id);
-
-
---
 -- Name: idx_organizations_stripe_customer; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -2719,7 +2739,7 @@ CREATE INDEX idx_organizations_stripe_customer ON public.organizations USING btr
 -- Name: idx_ports_as_of; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_ports_as_of ON public.ports USING btree (network_id, valid_from, valid_to);
+CREATE INDEX idx_ports_as_of ON public.ports USING btree (site_id, valid_from, valid_to);
 
 
 --
@@ -2740,14 +2760,7 @@ CREATE INDEX idx_ports_lineage ON public.ports USING btree (lineage_id) WHERE (v
 -- Name: idx_ports_live; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_ports_live ON public.ports USING btree (network_id) WHERE (valid_to IS NULL);
-
-
---
--- Name: idx_ports_network; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_ports_network ON public.ports USING btree (network_id);
+CREATE INDEX idx_ports_live ON public.ports USING btree (site_id) WHERE (valid_to IS NULL);
 
 
 --
@@ -2755,6 +2768,13 @@ CREATE INDEX idx_ports_network ON public.ports USING btree (network_id);
 --
 
 CREATE INDEX idx_ports_number ON public.ports USING btree (port_number);
+
+
+--
+-- Name: idx_ports_site; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_ports_site ON public.ports USING btree (site_id);
 
 
 --
@@ -2775,7 +2795,7 @@ CREATE UNIQUE INDEX idx_ports_unique_live ON public.ports USING btree (host_id, 
 -- Name: idx_services_as_of; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_services_as_of ON public.services USING btree (network_id, valid_from, valid_to);
+CREATE INDEX idx_services_as_of ON public.services USING btree (site_id, valid_from, valid_to);
 
 
 --
@@ -2803,14 +2823,14 @@ CREATE INDEX idx_services_lineage ON public.services USING btree (lineage_id) WH
 -- Name: idx_services_live; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_services_live ON public.services USING btree (network_id) WHERE (valid_to IS NULL);
+CREATE INDEX idx_services_live ON public.services USING btree (site_id) WHERE (valid_to IS NULL);
 
 
 --
--- Name: idx_services_network; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_services_site; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_services_network ON public.services USING btree (network_id);
+CREATE INDEX idx_services_site ON public.services USING btree (site_id);
 
 
 --
@@ -2835,10 +2855,10 @@ CREATE INDEX idx_shares_enabled ON public.shares USING btree (is_enabled) WHERE 
 
 
 --
--- Name: idx_shares_network; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_shares_site; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_shares_network ON public.shares USING btree (network_id);
+CREATE INDEX idx_shares_site ON public.shares USING btree (site_id);
 
 
 --
@@ -2849,10 +2869,17 @@ CREATE INDEX idx_shares_topology ON public.shares USING btree (topology_id);
 
 
 --
--- Name: idx_snapshots_network_taken_at; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_sites_owner_organization; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_snapshots_network_taken_at ON public.snapshots USING btree (network_id, taken_at DESC);
+CREATE INDEX idx_sites_owner_organization ON public.sites USING btree (organization_id);
+
+
+--
+-- Name: idx_snapshots_site_taken_at; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_snapshots_site_taken_at ON public.snapshots USING btree (site_id, taken_at DESC);
 
 
 --
@@ -2908,7 +2935,7 @@ CREATE INDEX idx_subnet_vlans_vlan ON public.subnet_vlans USING btree (vlan_id);
 -- Name: idx_subnets_as_of; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_subnets_as_of ON public.subnets USING btree (network_id, valid_from, valid_to);
+CREATE INDEX idx_subnets_as_of ON public.subnets USING btree (site_id, valid_from, valid_to);
 
 
 --
@@ -2922,14 +2949,14 @@ CREATE INDEX idx_subnets_lineage ON public.subnets USING btree (lineage_id) WHER
 -- Name: idx_subnets_live; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_subnets_live ON public.subnets USING btree (network_id) WHERE (valid_to IS NULL);
+CREATE INDEX idx_subnets_live ON public.subnets USING btree (site_id) WHERE (valid_to IS NULL);
 
 
 --
--- Name: idx_subnets_network; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_subnets_site; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_subnets_network ON public.subnets USING btree (network_id);
+CREATE INDEX idx_subnets_site ON public.subnets USING btree (site_id);
 
 
 --
@@ -2989,24 +3016,24 @@ CREATE INDEX idx_tags_snapshot_id ON public.tags USING btree (snapshot_id) WHERE
 
 
 --
--- Name: idx_topologies_network; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_topologies_site; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_topologies_network ON public.topologies USING btree (network_id);
-
-
---
--- Name: idx_user_api_key_network_access_key; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_user_api_key_network_access_key ON public.user_api_key_network_access USING btree (api_key_id);
+CREATE INDEX idx_topologies_site ON public.topologies USING btree (site_id);
 
 
 --
--- Name: idx_user_api_key_network_access_network; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_user_api_key_site_access_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_user_api_key_network_access_network ON public.user_api_key_network_access USING btree (network_id);
+CREATE INDEX idx_user_api_key_site_access_key ON public.user_api_key_site_access USING btree (api_key_id);
+
+
+--
+-- Name: idx_user_api_key_site_access_site; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_user_api_key_site_access_site ON public.user_api_key_site_access USING btree (site_id);
 
 
 --
@@ -3031,17 +3058,17 @@ CREATE INDEX idx_user_api_keys_user ON public.user_api_keys USING btree (user_id
 
 
 --
--- Name: idx_user_network_access_network; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_user_site_access_site; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_user_network_access_network ON public.user_network_access USING btree (network_id);
+CREATE INDEX idx_user_site_access_site ON public.user_site_access USING btree (site_id);
 
 
 --
--- Name: idx_user_network_access_user; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_user_site_access_user; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_user_network_access_user ON public.user_network_access USING btree (user_id);
+CREATE INDEX idx_user_site_access_user ON public.user_site_access USING btree (user_id);
 
 
 --
@@ -3083,7 +3110,7 @@ CREATE INDEX idx_users_password_reset_token ON public.users USING btree (passwor
 -- Name: idx_vlans_as_of; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_vlans_as_of ON public.vlans USING btree (network_id, valid_from, valid_to);
+CREATE INDEX idx_vlans_as_of ON public.vlans USING btree (site_id, valid_from, valid_to);
 
 
 --
@@ -3097,21 +3124,7 @@ CREATE INDEX idx_vlans_lineage ON public.vlans USING btree (lineage_id) WHERE (v
 -- Name: idx_vlans_live; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_vlans_live ON public.vlans USING btree (network_id) WHERE (valid_to IS NULL);
-
-
---
--- Name: idx_vlans_network; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_vlans_network ON public.vlans USING btree (network_id);
-
-
---
--- Name: idx_vlans_network_number_live; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE UNIQUE INDEX idx_vlans_network_number_live ON public.vlans USING btree (network_id, vlan_number) WHERE (valid_to IS NULL);
+CREATE INDEX idx_vlans_live ON public.vlans USING btree (site_id) WHERE (valid_to IS NULL);
 
 
 --
@@ -3119,6 +3132,20 @@ CREATE UNIQUE INDEX idx_vlans_network_number_live ON public.vlans USING btree (n
 --
 
 CREATE INDEX idx_vlans_organization ON public.vlans USING btree (organization_id);
+
+
+--
+-- Name: idx_vlans_site; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_vlans_site ON public.vlans USING btree (site_id);
+
+
+--
+-- Name: idx_vlans_site_number_live; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX idx_vlans_site_number_live ON public.vlans USING btree (site_id, vlan_number) WHERE (valid_to IS NULL);
 
 
 --
@@ -3144,11 +3171,11 @@ ALTER TABLE ONLY public.api_keys
 
 
 --
--- Name: api_keys api_keys_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: api_keys api_keys_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.api_keys
-    ADD CONSTRAINT api_keys_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT api_keys_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3176,14 +3203,6 @@ ALTER TABLE ONLY public.bindings
 
 
 --
--- Name: bindings bindings_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.bindings
-    ADD CONSTRAINT bindings_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
-
-
---
 -- Name: bindings bindings_port_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -3197,6 +3216,14 @@ ALTER TABLE ONLY public.bindings
 
 ALTER TABLE ONLY public.bindings
     ADD CONSTRAINT bindings_service_id_fkey FOREIGN KEY (service_id) REFERENCES public.services(id) ON DELETE CASCADE;
+
+
+--
+-- Name: bindings bindings_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bindings
+    ADD CONSTRAINT bindings_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3240,11 +3267,11 @@ ALTER TABLE ONLY public.daemons
 
 
 --
--- Name: daemons daemons_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: daemons daemons_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.daemons
-    ADD CONSTRAINT daemons_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT daemons_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3253,6 +3280,14 @@ ALTER TABLE ONLY public.daemons
 
 ALTER TABLE ONLY public.daemons
     ADD CONSTRAINT daemons_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: dependencies dependencies_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.dependencies
+    ADD CONSTRAINT dependencies_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3288,11 +3323,11 @@ ALTER TABLE ONLY public.discovery
 
 
 --
--- Name: discovery discovery_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: discovery discovery_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.discovery
-    ADD CONSTRAINT discovery_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT discovery_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3328,14 +3363,6 @@ ALTER TABLE ONLY public.dependency_members
 
 
 --
--- Name: dependencies groups_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.dependencies
-    ADD CONSTRAINT groups_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
-
-
---
 -- Name: host_credentials host_credentials_credential_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -3368,11 +3395,11 @@ ALTER TABLE ONLY public.hosts
 
 
 --
--- Name: hosts hosts_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: hosts hosts_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.hosts
-    ADD CONSTRAINT hosts_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT hosts_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3381,6 +3408,14 @@ ALTER TABLE ONLY public.hosts
 
 ALTER TABLE ONLY public.hosts
     ADD CONSTRAINT hosts_snapshot_id_fkey FOREIGN KEY (snapshot_id) REFERENCES public.snapshots(id) ON DELETE CASCADE;
+
+
+--
+-- Name: hosts hosts_virtualization_interface_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.hosts
+    ADD CONSTRAINT hosts_virtualization_interface_id_fkey FOREIGN KEY (virtualization_interface_id) REFERENCES public.interfaces(id) ON DELETE SET NULL;
 
 
 --
@@ -3400,11 +3435,11 @@ ALTER TABLE ONLY public.interface_neighbor_candidates
 
 
 --
--- Name: interface_neighbor_candidates interface_neighbor_candidates_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: interface_neighbor_candidates interface_neighbor_candidates_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.interface_neighbor_candidates
-    ADD CONSTRAINT interface_neighbor_candidates_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT interface_neighbor_candidates_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3424,11 +3459,11 @@ ALTER TABLE ONLY public.interface_neighbor_hosts
 
 
 --
--- Name: interface_neighbor_hosts interface_neighbor_hosts_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: interface_neighbor_hosts interface_neighbor_hosts_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.interface_neighbor_hosts
-    ADD CONSTRAINT interface_neighbor_hosts_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT interface_neighbor_hosts_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3456,11 +3491,11 @@ ALTER TABLE ONLY public.interface_neighbor_interfaces
 
 
 --
--- Name: interface_neighbor_interfaces interface_neighbor_interfaces_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: interface_neighbor_interfaces interface_neighbor_interfaces_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.interface_neighbor_interfaces
-    ADD CONSTRAINT interface_neighbor_interfaces_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT interface_neighbor_interfaces_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3512,11 +3547,11 @@ ALTER TABLE ONLY public.interfaces
 
 
 --
--- Name: interfaces interfaces_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: interfaces interfaces_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.interfaces
-    ADD CONSTRAINT interfaces_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT interfaces_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3568,11 +3603,11 @@ ALTER TABLE ONLY public.ip_addresses
 
 
 --
--- Name: ip_addresses ip_addresses_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: ip_addresses ip_addresses_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.ip_addresses
-    ADD CONSTRAINT ip_addresses_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT ip_addresses_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3592,26 +3627,10 @@ ALTER TABLE ONLY public.ip_addresses
 
 
 --
--- Name: network_credentials network_credentials_credential_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: sites organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.network_credentials
-    ADD CONSTRAINT network_credentials_credential_id_fkey FOREIGN KEY (credential_id) REFERENCES public.credentials(id) ON DELETE CASCADE;
-
-
---
--- Name: network_credentials network_credentials_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.network_credentials
-    ADD CONSTRAINT network_credentials_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
-
-
---
--- Name: networks organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.networks
+ALTER TABLE ONLY public.sites
     ADD CONSTRAINT organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
 
 
@@ -3640,11 +3659,11 @@ ALTER TABLE ONLY public.ports
 
 
 --
--- Name: ports ports_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: ports ports_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.ports
-    ADD CONSTRAINT ports_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT ports_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3680,11 +3699,11 @@ ALTER TABLE ONLY public.services
 
 
 --
--- Name: services services_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: services services_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.services
-    ADD CONSTRAINT services_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT services_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3712,11 +3731,11 @@ ALTER TABLE ONLY public.shares
 
 
 --
--- Name: shares shares_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: shares shares_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.shares
-    ADD CONSTRAINT shares_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT shares_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3728,6 +3747,22 @@ ALTER TABLE ONLY public.shares
 
 
 --
+-- Name: site_credentials site_credentials_credential_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.site_credentials
+    ADD CONSTRAINT site_credentials_credential_id_fkey FOREIGN KEY (credential_id) REFERENCES public.credentials(id) ON DELETE CASCADE;
+
+
+--
+-- Name: site_credentials site_credentials_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.site_credentials
+    ADD CONSTRAINT site_credentials_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
+
+
+--
 -- Name: snapshots snapshots_created_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -3736,11 +3771,11 @@ ALTER TABLE ONLY public.snapshots
 
 
 --
--- Name: snapshots snapshots_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: snapshots snapshots_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.snapshots
-    ADD CONSTRAINT snapshots_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT snapshots_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3784,11 +3819,11 @@ ALTER TABLE ONLY public.subnets
 
 
 --
--- Name: subnets subnets_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: subnets subnets_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.subnets
-    ADD CONSTRAINT subnets_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT subnets_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3824,27 +3859,27 @@ ALTER TABLE ONLY public.tags
 
 
 --
--- Name: topologies topologies_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: topologies topologies_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.topologies
-    ADD CONSTRAINT topologies_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT topologies_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
--- Name: user_api_key_network_access user_api_key_network_access_api_key_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: user_api_key_site_access user_api_key_site_access_api_key_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.user_api_key_network_access
-    ADD CONSTRAINT user_api_key_network_access_api_key_id_fkey FOREIGN KEY (api_key_id) REFERENCES public.user_api_keys(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.user_api_key_site_access
+    ADD CONSTRAINT user_api_key_site_access_api_key_id_fkey FOREIGN KEY (api_key_id) REFERENCES public.user_api_keys(id) ON DELETE CASCADE;
 
 
 --
--- Name: user_api_key_network_access user_api_key_network_access_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: user_api_key_site_access user_api_key_site_access_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.user_api_key_network_access
-    ADD CONSTRAINT user_api_key_network_access_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.user_api_key_site_access
+    ADD CONSTRAINT user_api_key_site_access_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3864,19 +3899,19 @@ ALTER TABLE ONLY public.user_api_keys
 
 
 --
--- Name: user_network_access user_network_access_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: user_site_access user_site_access_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.user_network_access
-    ADD CONSTRAINT user_network_access_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.user_site_access
+    ADD CONSTRAINT user_site_access_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
--- Name: user_network_access user_network_access_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: user_site_access user_site_access_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.user_network_access
-    ADD CONSTRAINT user_network_access_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.user_site_access
+    ADD CONSTRAINT user_site_access_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -3904,19 +3939,19 @@ ALTER TABLE ONLY public.vlans
 
 
 --
--- Name: vlans vlans_network_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.vlans
-    ADD CONSTRAINT vlans_network_id_fkey FOREIGN KEY (network_id) REFERENCES public.networks(id) ON DELETE CASCADE;
-
-
---
 -- Name: vlans vlans_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.vlans
     ADD CONSTRAINT vlans_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+
+--
+-- Name: vlans vlans_site_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.vlans
+    ADD CONSTRAINT vlans_site_id_fkey FOREIGN KEY (site_id) REFERENCES public.sites(id) ON DELETE CASCADE;
 
 
 --
@@ -3931,5 +3966,5 @@ ALTER TABLE ONLY public.vlans
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 8e8NnV2aakZSPeai2O3I1HLpjHHverJ8MWmNbPhO8EUpkCeZMcGT8qmbssc2B8Q
+\unrestrict VQKOkbau2U5vWSnscLh2LL81voHS78KjweKAuibukh1KSVtS64MIf5ZY913vWma
 

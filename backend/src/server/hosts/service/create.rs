@@ -49,11 +49,43 @@ pub(crate) fn resolve_owner_service_id(
 }
 
 impl HostService {
+    /// Keep a discovery-supplied hypervisor service only if it is a real service on the host's
+    /// own site; otherwise drop it and say so.
+    ///
+    /// An integration that reports guests (Proxmox) creates the hypervisor's host first and reads
+    /// the service id back from the create response, so a well-behaved daemon only ever sends a
+    /// stored id. The site check is tenant isolation: the handler has already pinned the host
+    /// to the daemon's site, and the hypervisor must sit on that same site. A daemon-minted
+    /// id (never stored) or one from elsewhere degrades to `None` rather than reaching Postgres as
+    /// a foreign-key failure that would abort the whole host.
+    pub(crate) async fn accept_discovered_virtualization_service(&self, host: &mut Host) {
+        let Some(id) = host.base.virtualization_service_id else {
+            return;
+        };
+        let keep = match self.service_service.get_by_id(&id).await {
+            Ok(Some(service)) => service.base.site_id == host.base.site_id,
+            Ok(None) => false,
+            Err(e) => {
+                tracing::warn!(error = ?e, %id, "Could not look up a discovered hypervisor service");
+                false
+            }
+        };
+        if !keep {
+            host.base.virtualization_service_id = None;
+            tracing::warn!(
+                host_name = %host.base.name,
+                %id,
+                "Discovery payload named a hypervisor service that is not a stored service on \
+                 this host's site; ignoring it"
+            );
+        }
+    }
+
     /// Reject an API-supplied virtualizing service that does not exist.
     ///
-    /// Only the API sets this — discovery's copy is stripped in `discover_host`, since a
-    /// daemon-minted service id cannot be resolved across submissions. Left unchecked, a bad id
-    /// reaches Postgres and comes back as an opaque foreign-key 500.
+    /// Discovery's copy goes through `accept_discovered_virtualization_service` instead, which
+    /// drops a bad id rather than failing the host. Left unchecked, a bad id reaches Postgres and
+    /// comes back as an opaque foreign-key 500.
     pub(crate) async fn validate_virtualization_service(
         &self,
         virtualization_service_id: Option<Uuid>,
@@ -66,6 +98,93 @@ impl HostService {
                 "virtualization_service_id {id} does not match any service"
             ))
             .into());
+        }
+        Ok(())
+    }
+
+    /// Why `interface_id` cannot be the interface that presents a host owned by
+    /// `virtualization_service_id` on `site_id`, or `None` when it can.
+    ///
+    /// The interface must exist, sit on the host's site, and belong to the host that runs the
+    /// owning service: a network identity is presented by its own guest, never by some other host.
+    async fn virtualization_interface_problem(
+        &self,
+        site_id: Uuid,
+        virtualization_service_id: Option<Uuid>,
+        interface_id: Uuid,
+    ) -> Result<Option<String>> {
+        let Some(interface) = self.interface_service.get_by_id(&interface_id).await? else {
+            return Ok(Some(format!(
+                "virtualization_interface_id {interface_id} does not match any interface"
+            )));
+        };
+        if interface.base.site_id != site_id {
+            return Ok(Some(format!(
+                "virtualization_interface_id {interface_id} is on another site"
+            )));
+        }
+        let owner_host = match virtualization_service_id {
+            Some(id) => self
+                .service_service
+                .get_by_id(&id)
+                .await?
+                .map(|s| s.base.host_id),
+            None => None,
+        };
+        if owner_host != Some(interface.base.host_id) {
+            return Ok(Some(format!(
+                "virtualization_interface_id {interface_id} is not an interface of the host running \
+                 the virtualizing service"
+            )));
+        }
+        Ok(None)
+    }
+
+    /// Keep a discovery-supplied presenting interface only if it is valid for this host's owner;
+    /// otherwise drop it and say so. Runs after [`Self::accept_discovered_virtualization_service`],
+    /// so the owner it checks against has already been vetted.
+    pub(crate) async fn accept_discovered_virtualization_interface(&self, host: &mut Host) {
+        let Some(id) = host.base.virtualization_interface_id else {
+            return;
+        };
+        let problem = match self
+            .virtualization_interface_problem(
+                host.base.site_id,
+                host.base.virtualization_service_id,
+                id,
+            )
+            .await
+        {
+            Ok(problem) => problem,
+            Err(e) => Some(format!("could not look it up: {e}")),
+        };
+        if let Some(problem) = problem {
+            host.base.virtualization_interface_id = None;
+            tracing::warn!(
+                host_name = %host.base.name,
+                %id,
+                %problem,
+                "Discovery payload named a presenting interface it cannot use; ignoring it"
+            );
+        }
+    }
+
+    /// Reject an API-supplied presenting interface that is not valid for the host's owner, the
+    /// API counterpart of [`Self::accept_discovered_virtualization_interface`].
+    pub(crate) async fn validate_virtualization_interface(
+        &self,
+        site_id: Uuid,
+        virtualization_service_id: Option<Uuid>,
+        virtualization_interface_id: Option<Uuid>,
+    ) -> Result<()> {
+        let Some(id) = virtualization_interface_id else {
+            return Ok(());
+        };
+        if let Some(problem) = self
+            .virtualization_interface_problem(site_id, virtualization_service_id, id)
+            .await?
+        {
+            return Err(ValidationError::new(problem).into());
         }
         Ok(())
     }
@@ -85,11 +204,12 @@ impl HostService {
         // Destructure request to ensure compile error if fields change
         let CreateHostRequest {
             name,
-            network_id,
+            site_id,
             hostname,
             description,
             virtualization_metadata,
             virtualization_service_id,
+            virtualization_interface_id,
             hidden,
             tags,
             sys_descr,
@@ -124,6 +244,12 @@ impl HostService {
         // bad id and deserves to be told so.
         self.validate_virtualization_service(virtualization_service_id)
             .await?;
+        self.validate_virtualization_interface(
+            site_id,
+            virtualization_service_id,
+            virtualization_interface_id,
+        )
+        .await?;
 
         // Auto-set source to Manual for API-created entities
         let source = EntitySource::Manual;
@@ -132,7 +258,7 @@ impl HostService {
         // here: a person typed it, and that is the top of the ladder.
         let mut host_base = HostBase {
             name: HostName::unnamed(),
-            network_id,
+            site_id,
             hostname: hostname
                 .filter(|v| !v.trim().is_empty())
                 .map(|v| Attributed::new(HostHostnameValue(v), AttributeSource::Manual)),
@@ -140,6 +266,7 @@ impl HostService {
             source: source.clone(),
             virtualization_metadata,
             virtualization_service_id,
+            virtualization_interface_id,
             hidden,
             tags,
             // A person filling in the create form is the definition of `Manual`: nothing discovery
@@ -160,6 +287,7 @@ impl HostService {
             manufacturer: None,
             model: None,
             serial_number: None,
+            asset_tag: None,
             firmware_revision: None,
             software_revision: None,
             os: None,
@@ -171,25 +299,25 @@ impl HostService {
         // Build ip_addresses with client-provided IDs
         let ip_addresses: Vec<IPAddress> = ip_address_inputs
             .into_iter()
-            .map(|input| input.into_ip_address(host.id, network_id))
+            .map(|input| input.into_ip_address(host.id, site_id))
             .collect();
 
         // Build ports with client-provided IDs
         let ports: Vec<Port> = port_inputs
             .into_iter()
-            .map(|input| input.into_port(host.id, network_id))
+            .map(|input| input.into_port(host.id, site_id))
             .collect();
 
         // Build services with client-provided IDs
         let services: Vec<Service> = service_inputs
             .into_iter()
-            .map(|input| input.into_service(host.id, network_id, source.clone()))
+            .map(|input| input.into_service(host.id, site_id, source.clone()))
             .collect();
 
         // Build interfaces (server assigns UUIDs)
         let interfaces: Vec<Interface> = interface_inputs
             .into_iter()
-            .map(|input| input.into_interface(host.id, network_id))
+            .map(|input| input.into_interface(host.id, site_id))
             .collect();
 
         // Use unified creation with Error behavior for API users
@@ -209,6 +337,7 @@ impl HostService {
             InterfaceDataComplete::default(),
         )
         .await
+        .map(|created| created.host)
     }
 
     /// Create-or-upsert body of `CrudService::create`, WITHOUT the
@@ -231,7 +360,7 @@ impl HostService {
         tracing::trace!("Creating host {:?}", host);
 
         // SCD2: only live hosts are eligible for the natural-key match.
-        let filter = StorableFilter::<Host>::new_from_network_ids(&[host.base.network_id]).live();
+        let filter = StorableFilter::<Host>::new_from_site_ids(&[host.base.site_id]).live();
         let all_hosts = self.get_all(filter).await?;
 
         // Find existing host by ID (Host::eq only compares IDs)
@@ -271,13 +400,13 @@ impl HostService {
             _ => {
                 if let Some(existing_host) = self.get_by_id(&host.id).await? {
                     return Err(ValidationError::new(format!(
-                        "Network mismatch: Daemon is trying to update host '{}' (id: {}) but cannot proceed. \
-                        The host belongs to network {} while the daemon is assigned to network {}. \
-                        To resolve this, either reassign the daemon to the correct network or delete the mismatched host.",
+                        "Site mismatch: Daemon is trying to update host '{}' (id: {}) but cannot proceed. \
+                        The host belongs to site {} while the daemon is assigned to site {}. \
+                        To resolve this, either reassign the daemon to the correct site or delete the mismatched host.",
                         existing_host.base.name,
                         host.id,
-                        existing_host.base.network_id,
-                        host.base.network_id
+                        existing_host.base.site_id,
+                        host.base.site_id
                     )).into());
                 }
 
@@ -295,7 +424,7 @@ impl HostService {
                 if let Some(scope) = EntityScope::from_ids(
                     created.id(),
                     created.clone().into(),
-                    self.get_network_id(&created),
+                    self.get_site_id(&created),
                     self.get_organization_id(&created),
                 ) {
                     self.event_bus()
@@ -356,7 +485,7 @@ impl HostService {
         // interfaces and their resolved L2 neighbors (GH #649).
         interfaces_complete: bool,
         interface_data_complete: InterfaceDataComplete,
-    ) -> Result<HostResponse> {
+    ) -> Result<DiscoveredHost> {
         // For advancing `last_seen_at` on matched-existing child rows (see the upsert
         // branches below); mirrors how upsert_host refreshes the host's freshness signal.
         use crate::server::shared::storage::snapshot::DiscoveryTracked;
@@ -372,7 +501,7 @@ impl HostService {
             .storage()
             .session_lock(
                 LockKey::HostDedup {
-                    network_id: host.base.network_id,
+                    site_id: host.base.site_id,
                 },
                 DEFAULT_LOCK_TIMEOUT,
             )
@@ -382,16 +511,45 @@ impl HostService {
         // Compares MAC addresses and subnet+IP to find hosts that represent the same physical machine
         let matching_result = self
             .find_matching_host_by_ip_addresses(
-                &host.base.network_id,
+                &host.base.site_id,
                 &ip_addresses,
                 &interfaces,
                 host.base.chassis_id.as_ref().map(|c| c.value().0.as_str()),
             )
             .await?;
 
-        let is_new_host = matching_result.is_none();
+        // A container report matching a host that also holds another device's addresses takes its
+        // own addresses to a new host instead of adopting that one (`rows_a_container_takes`).
+        let mut detach_from: Option<(Host, HashSet<Uuid>)> = None;
+        let matching_result = match matching_result {
+            Some(m) if matches!(conflict_behavior, ConflictBehavior::Upsert) => {
+                match m.rows_a_container_takes(
+                    host.base.virtualization_metadata.as_ref(),
+                    &ip_addresses,
+                ) {
+                    Some(rows) => {
+                        tracing::debug!(
+                            matched_host_id = %m.host.id,
+                            "Container report matched a host holding another device's addresses"
+                        );
+                        detach_from = Some((m.host, rows));
+                        None
+                    }
+                    None => Some(m),
+                }
+            }
+            other => other,
+        };
 
-        if let Some((existing_host, _)) = matching_result {
+        let is_new_host = matching_result.is_none();
+        let mut same_device: Vec<SameDevice> = Vec::new();
+
+        if let Some(HostMatch {
+            host: existing_host,
+            same_device: proven,
+            ..
+        }) = matching_result
+        {
             match conflict_behavior {
                 ConflictBehavior::Error => {
                     // API users should edit the existing host rather than create a duplicate
@@ -415,6 +573,7 @@ impl HostService {
                         );
                         host.id = existing_host.id;
                     }
+                    same_device = proven;
                 }
             }
         }
@@ -438,7 +597,7 @@ impl HostService {
         if is_new_host && let Some(ctx) = limit_ctx {
             // SCD2: limit applies to live hosts only; closed historical copies
             // don't count toward plan limits.
-            let filter = StorableFilter::<Host>::new_from_network_ids(&ctx.org_network_ids).live();
+            let filter = StorableFilter::<Host>::new_from_site_ids(&ctx.org_site_ids).live();
             let current_hosts = self.get_all(filter).await?.len() as u64;
             if current_hosts >= ctx.limit {
                 return Err(anyhow!(
@@ -460,6 +619,12 @@ impl HostService {
         // If host.id was set to an existing host's ID above, this will trigger upsert_host()
         // Unlocked variant: this task already holds the HostDedup lock.
         let mut created_host = self.create_unlocked(host, authentication.clone()).await?;
+
+        // Before the address loop, so the moved rows are found on this host and refreshed in place.
+        if let Some((from, rows)) = &detach_from {
+            self.detach_addresses(from, &created_host, rows, &authentication)
+                .await?;
+        }
 
         // Capture daemon interface ID → IP mapping before ip_addresses are consumed.
         // Used later to remap credential assignment ip_address_ids to server-assigned IDs.
@@ -485,7 +650,7 @@ impl HostService {
         // even though the FK subscriber advances last_discovery_id.
         let mut ports_to_refresh: Vec<Port> = Vec::new();
         for port in ports {
-            let port_with_host = port.with_host(created_host.id, created_host.base.network_id);
+            let port_with_host = port.with_host(created_host.id, created_host.base.site_id);
 
             if matches!(conflict_behavior, ConflictBehavior::Upsert) {
                 // Check if port already exists by ID
@@ -604,7 +769,7 @@ impl HostService {
 
             let mut probe = svc.clone();
             probe.base.host_id = created_host.id;
-            probe.base.network_id = created_host.base.network_id;
+            probe.base.site_id = created_host.base.site_id;
 
             if let Some(existing) = existing_services_for_match.iter().find(|e| **e == probe) {
                 // Already persisted by an earlier scan — nothing to insert, just make the id
@@ -659,13 +824,16 @@ impl HostService {
         // so the common path skips the live-subnet lookup entirely.
         let mut created_subnet_ids: std::collections::HashSet<Uuid> =
             std::collections::HashSet::new();
+        // Subnets server-side placement filed an address into: the scan saw an address there.
+        let mut placed_subnet_ids: std::collections::HashSet<Uuid> =
+            std::collections::HashSet::new();
         for mut subnet in subnets {
-            // Force the subnet onto the resolved host's network. The daemon's
-            // discovery payload is only authenticated for its own network, but
+            // Force the subnet onto the resolved host's site. The daemon's
+            // discovery payload is only authenticated for its own site, but
             // subnets ride in the host request with a caller-supplied
-            // network_id; without this a daemon could write subnets into any
-            // network. Mirrors how ports/interfaces force host_id + network_id.
-            subnet.base.network_id = created_host.base.network_id;
+            // site_id; without this a daemon could write subnets into any
+            // site. Mirrors how ports/interfaces force host_id + site_id.
+            subnet.base.site_id = created_host.base.site_id;
 
             subnet.base.virtualization_service_id = resolve_owner_service_id(
                 subnet.base.virtualization_service_id,
@@ -699,13 +867,17 @@ impl HostService {
                 *acc.entry(mac).or_insert(0) += 1;
                 acc
             });
+        // Every address this payload reports. A stored row still holding one of them did not move,
+        // so the MAC match below must not take it as the old home of a different address.
+        let incoming_ips: HashSet<IpAddr> =
+            ip_addresses.iter().map(|i| i.base.ip_address).collect();
 
-        // Live subnets for this host's network, loaded lazily to repair any
+        // Live subnets for this host's site, loaded lazily to repair any
         // ip_address whose subnet_id references no live subnet row — e.g. an old
         // daemon reporting the server-seeded loopback subnet under a UUID this
         // server never minted (see HostService::seed_loopback). Resolve-only:
         // never creates a subnet; on no CIDR match the insert error surfaces.
-        let mut network_live_subnets: Option<Vec<Subnet>> = None;
+        let mut site_live_subnets: Option<Vec<Subnet>> = None;
 
         let mut created_ip_addresses = Vec::new();
         // Matched-existing ip_addresses are pushed unchanged below; collect them to
@@ -713,9 +885,9 @@ impl HostService {
         let mut ip_addresses_to_refresh: Vec<IPAddress> = Vec::new();
         for mut ip_address in ip_addresses {
             ip_address.base.host_id = created_host.id;
-            // Force onto the host's network (see subnet loop above): the payload
-            // network_id is caller-supplied and must not be trusted.
-            ip_address.base.network_id = created_host.base.network_id;
+            // Force onto the host's site (see subnet loop above): the payload
+            // site_id is caller-supplied and must not be trusted.
+            ip_address.base.site_id = created_host.base.site_id;
 
             // Remap subnet_id if the subnet was deduped to an existing one
             if let Some(&new_subnet_id) = subnet_id_remap.get(&ip_address.base.subnet_id) {
@@ -723,7 +895,7 @@ impl HostService {
             }
 
             // Repair a dangling subnet_id (one referencing no live subnet row) by
-            // mapping the IP to the most-specific live subnet on the network that
+            // mapping the IP to the most-specific live subnet on the site that
             // contains it. Guards the ip_addresses.subnet_id -> subnets FK against
             // stale references (e.g. an old daemon reporting the server-seeded
             // loopback subnet under a UUID this server re-minted; see seed_loopback).
@@ -732,19 +904,19 @@ impl HostService {
             // common host (every IP references an in-request subnet) skips the
             // live-subnet lookup entirely. The lookup is lazy and loads once.
             if !created_subnet_ids.contains(&ip_address.base.subnet_id) {
-                if network_live_subnets.is_none() {
-                    network_live_subnets = Some(
+                if site_live_subnets.is_none() {
+                    site_live_subnets = Some(
                         self.subnet_service
                             .get_all(
-                                StorableFilter::<Subnet>::new_from_network_ids(&[created_host
+                                StorableFilter::<Subnet>::new_from_site_ids(&[created_host
                                     .base
-                                    .network_id])
+                                    .site_id])
                                 .live(),
                             )
                             .await?,
                     );
                 }
-                let live_subnets = network_live_subnets.as_ref().expect("loaded above");
+                let live_subnets = site_live_subnets.as_ref().expect("loaded above");
 
                 // A daemon that has not upgraded yet still picks the subnet itself, and picks
                 // wrongly: its list includes the `0.0.0.0/0` organizational rows, which contain
@@ -759,7 +931,7 @@ impl HostService {
                 if needs_placement(live_subnets, &ip_address) || names_a_catch_all {
                     match self
                         .subnet_service
-                        .place_address(created_host.base.network_id, ip_address.base.ip_address)
+                        .place_address(created_host.base.site_id, ip_address.base.ip_address)
                         .await?
                     {
                         Placement::Existing(subnet_id) | Placement::Inferred(subnet_id) => {
@@ -770,6 +942,7 @@ impl HostService {
                                 "Placed ip_address server-side"
                             );
                             ip_address.base.subnet_id = subnet_id;
+                            placed_subnet_ids.insert(subnet_id);
                         }
                         // A public address, or IPv6 global unicast — not a segment of this network
                         // to invent. Leave the reference as it came and let the FK insert say so.
@@ -840,14 +1013,20 @@ impl HostService {
                             .live();
                     let existing_by_mac: Vec<IPAddress> =
                         self.ip_address_service.get_all(mac_filter).await?;
-                    if existing_by_mac.len() == 1 {
+                    // A row the payload still reports at its own address is that address, not this
+                    // one before a move: a host with one NIC per address has each answer for the
+                    // other's MAC under ARP flux, and matching on it drops the new address.
+                    let still_reported = existing_by_mac
+                        .first()
+                        .is_some_and(|row| incoming_ips.contains(&row.base.ip_address));
+                    if existing_by_mac.len() == 1 && !still_reported {
                         // Needed to ask whether the old subnet still holds the new address.
-                        if network_live_subnets.is_none() {
-                            network_live_subnets = Some(
+                        if site_live_subnets.is_none() {
+                            site_live_subnets = Some(
                                 self.subnet_service
                                     .get_all(
-                                        StorableFilter::<Subnet>::new_from_network_ids(&[
-                                            created_host.base.network_id,
+                                        StorableFilter::<Subnet>::new_from_site_ids(&[
+                                            created_host.base.site_id,
                                         ])
                                         .live(),
                                     )
@@ -855,20 +1034,23 @@ impl HostService {
                             );
                         }
                         let live_subnets_for_move =
-                            network_live_subnets.as_ref().expect("loaded above");
+                            site_live_subnets.as_ref().expect("loaded above");
 
                         let mut existing_iface = existing_by_mac.into_iter().next().unwrap();
-                        tracing::debug!(
-                            interface_ip = %ip_address.base.ip_address,
-                            interface_mac = %mac,
-                            existing_subnet_id = %existing_iface.base.subnet_id,
-                            incoming_subnet_id = %ip_address.base.subnet_id,
-                            "Found existing ip_address by MAC address (subnet_id differs, 1:1 MAC match)"
-                        );
-                        // The block was written for an interface that *moved*, and then only
-                        // refreshed the timestamp — so the reported address was discarded and the
-                        // row kept its old one, looking freshly confirmed. Carry the move through.
-                        if interface_moved(&existing_iface, &ip_address, live_subnets_for_move) {
+                        // Only a NIC re-homed to a subnet that no longer holds its old address is
+                        // the same row. Within one range, the same MAC at a different address is
+                        // ambiguous (a DHCP renewal, a second NIC answering under ARP flux, a
+                        // secondary IP), and folding it in discarded the reported address; it is
+                        // recorded as its own row below instead. Keeping a stale renewal address
+                        // beside the new one is the cost, where folding lost the live one.
+                        if !interface_moved(&existing_iface, &ip_address, live_subnets_for_move) {
+                            tracing::debug!(
+                                interface_ip = %ip_address.base.ip_address,
+                                interface_mac = %mac,
+                                existing_ip = %existing_iface.base.ip_address,
+                                "Same MAC at another address in range; recording it as its own row"
+                            );
+                        } else {
                             tracing::info!(
                                 host_id = %ip_address.base.host_id,
                                 from = %existing_iface.base.ip_address,
@@ -877,14 +1059,14 @@ impl HostService {
                             );
                             existing_iface.base.ip_address = ip_address.base.ip_address;
                             existing_iface.base.subnet_id = ip_address.base.subnet_id;
+                            existing_iface
+                                .base
+                                .apply_mac_address(ip_address.base.mac_address.clone());
+                            existing_iface.set_last_seen_at(ip_address.last_seen_at);
+                            ip_addresses_to_refresh.push(existing_iface.clone());
+                            created_ip_addresses.push(existing_iface);
+                            continue;
                         }
-                        existing_iface
-                            .base
-                            .apply_mac_address(ip_address.base.mac_address.clone());
-                        existing_iface.set_last_seen_at(ip_address.last_seen_at);
-                        ip_addresses_to_refresh.push(existing_iface.clone());
-                        created_ip_addresses.push(existing_iface);
-                        continue;
                     }
                 }
             }
@@ -954,6 +1136,15 @@ impl HostService {
                 service_id_remap.insert(original_service_id, reassigned.id);
             }
 
+            // Resolve the owner to its stored id now, not just before the insert: the conflict
+            // handling below compares it against the host's stored services, and the daemon's
+            // minted id matches none of them.
+            reassigned.base.virtualization_service_id = resolve_owner_service_id(
+                reassigned.base.virtualization_service_id,
+                &service_id_remap,
+                &live_service_ids,
+            );
+
             // Check for binding conflicts with other services (DB + batch)
             let (valid_bindings, conflicting_bindings) = self
                 .service_service
@@ -1006,11 +1197,15 @@ impl HostService {
                         .filter_map(|b| b.port_id())
                         .collect();
 
-                    // Find non-generic services on this host that claim the conflicting ports
+                    // Find non-generic services on this host that claim the conflicting ports. Never
+                    // the container's own runtime: a container publishing the port its runtime is
+                    // reached on (an API proxy) would otherwise become the runtime's identity, and
+                    // the runtime its own container.
                     let enrichable_services: Vec<&Service> = existing_services_for_match
                         .iter()
                         .filter(|s| {
-                            !ServiceDefinitionExt::is_generic(&s.base.service_definition)
+                            Some(s.id) != reassigned.base.virtualization_service_id
+                                && !ServiceDefinitionExt::is_generic(&s.base.service_definition)
                                 && s.base.virtualization_metadata.is_none()
                                 && s.base.bindings.iter().any(|b| {
                                     b.port_id()
@@ -1041,6 +1236,60 @@ impl HostService {
 
                     // Still drop the generic Docker Container service itself
                     continue;
+                } else if let Some(owner_id) = reassigned.base.virtualization_service_id
+                    && let Some(owner) = existing_services_for_match
+                        .iter()
+                        .find(|s| s.id == owner_id)
+                    && conflicting_bindings.iter().all(|b| {
+                        b.port_id().is_some_and(|pid| {
+                            owner
+                                .base
+                                .bindings
+                                .iter()
+                                .any(|ob| ob.port_id() == Some(pid))
+                        })
+                    })
+                {
+                    // A container claiming ports its own runtime holds: the runtime is reached
+                    // through the container (an API proxy publishing the port the credential
+                    // connects to), so the container owns them and the runtime gives them up.
+                    // Covers bindings the runtime kept from earlier scans, and older daemons.
+                    let claims: Vec<(Uuid, Option<Uuid>)> = conflicting_bindings
+                        .iter()
+                        .filter_map(|b| match &b.base.binding_type {
+                            BindingType::Port {
+                                port_id,
+                                ip_address_id,
+                            } => Some((*port_id, *ip_address_id)),
+                            BindingType::IPAddress { .. } => None,
+                        })
+                        .collect();
+                    tracing::info!(
+                        container_service = %reassigned.base.name,
+                        runtime_service_id = %owner_id,
+                        ports = ?claims,
+                        "Container takes the ports its runtime is reached through"
+                    );
+                    self.service_service
+                        .remove_port_bindings(&owner_id, &claims, authentication.clone())
+                        .await?;
+                    if let Some(owner) = existing_services_for_match
+                        .iter_mut()
+                        .find(|s| s.id == owner_id)
+                    {
+                        owner.base.bindings.retain(|b| {
+                            let Some(port_id) = b.port_id() else {
+                                return true;
+                            };
+                            let bind_iface = b.ip_address_id();
+                            !claims
+                                .iter()
+                                .any(|(cp, ci)| *cp == port_id && bindings_overlap(ci, &bind_iface))
+                        });
+                    }
+                    let mut full_bindings = valid_bindings;
+                    full_bindings.extend(conflicting_bindings);
+                    reassigned.base.bindings = full_bindings;
                 } else {
                     // Check if all conflicts are with the Unclaimed Open Ports service.
                     // When a new service definition is added and a host is re-scanned,
@@ -1204,6 +1453,16 @@ impl HostService {
                 &service_id_remap,
                 &live_service_ids,
             );
+            // Aligned onto its own owner (a container answering as its runtime): a service never
+            // runs inside itself, and the container details are the other container's.
+            if reassigned.base.virtualization_service_id == Some(reassigned.id) {
+                tracing::warn!(
+                    service_name = %reassigned.base.name,
+                    "Dropping container details whose owner is the service itself"
+                );
+                reassigned.base.virtualization_service_id = None;
+                reassigned.base.virtualization_metadata = None;
+            }
 
             let reassigned_id = reassigned.id;
             let created = self
@@ -1239,7 +1498,7 @@ impl HostService {
 
             let open_ports_service = Service::new(ServiceBase {
                 host_id: created_host.id,
-                network_id: created_host.base.network_id,
+                site_id: created_host.base.site_id,
                 service_definition: Box::new(OpenPortsDef),
                 name: "Unclaimed Open Ports".to_string(),
                 bindings: orphaned_bindings,
@@ -1388,7 +1647,7 @@ impl HostService {
         let mut claimed: HashSet<Uuid> = HashSet::new();
         for mut entry in interfaces {
             entry.base.host_id = created_host.id;
-            entry.base.network_id = created_host.base.network_id;
+            entry.base.site_id = created_host.base.site_id;
             let if_index = entry.base.if_index;
 
             match self
@@ -1508,15 +1767,70 @@ impl HostService {
         }
         created_host.base.credential_assignments = remapped_assignments;
 
+        // Hosts this payload proves are the same device (`hosts_proven_same_device`) merge into the
+        // one it matched, now that its children are written, and still under the dedup lock so no
+        // other submission can match the merged-away host halfway through.
+        let mut merged_response = None;
+        for proven in same_device {
+            match self
+                .merge_same_device(&created_host.id, &proven, &authentication)
+                .await
+            {
+                Ok(response) => merged_response = Some(response),
+                Err(e) => tracing::warn!(
+                    host_id = %created_host.id,
+                    other_host_id = %proven.host_id,
+                    error = ?e,
+                    "Could not merge a host this payload proves is the same device; leaving both"
+                ),
+            }
+        }
+
         dedup_guard.release().await?;
 
-        Ok(HostResponse::from_host_with_children(
-            created_host,
-            created_ip_addresses,
-            created_ports,
-            created_services,
-            created_interfaces,
-        ))
+        // The subnets were stored before any merge, so their ids hold either way.
+        let subnet_ids = created_subnet_ids
+            .union(&placed_subnet_ids)
+            .copied()
+            .collect();
+        let host = match merged_response {
+            Some(response) => response,
+            None => HostResponse::from_host_with_children(
+                created_host,
+                created_ip_addresses,
+                created_ports,
+                created_services,
+                created_interfaces,
+            ),
+        };
+        Ok(DiscoveredHost { host, subnet_ids })
+    }
+
+    /// Merge `proven` into `destination` with [`Self::consolidate_hosts`], the same merge a person
+    /// triggers from the API.
+    async fn merge_same_device(
+        &self,
+        destination_id: &Uuid,
+        proven: &SameDevice,
+        authentication: &AuthenticatedEntity,
+    ) -> Result<HostResponse> {
+        let destination = self
+            .get_by_id(destination_id)
+            .await?
+            .ok_or_else(|| anyhow!("host {destination_id} is no longer live"))?;
+        let other = self
+            .get_by_id(&proven.host_id)
+            .await?
+            .ok_or_else(|| anyhow!("host {} is no longer live", proven.host_id))?;
+        tracing::info!(
+            host_id = %destination.id,
+            other_host_id = %other.id,
+            other_host_name = %other.base.name,
+            addresses = ?proven.addresses,
+            "Merging a host this payload proves is the same device"
+        );
+        self.consolidate_hosts(destination, other, authentication.clone())
+            .await
     }
 }
 

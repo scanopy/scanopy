@@ -146,7 +146,13 @@ impl HasFilterValues for Interface {
             ctx.interfaces_with_neighbours.contains(&self.id),
             ctx.interfaces_referenced_as_neighbours.contains(&self.id),
         );
-        BTreeMap::from([(MetadataFilterType::LinkState, state.id().to_string())])
+        let mut values = BTreeMap::from([(MetadataFilterType::LinkState, state.id().to_string())]);
+        // A port whose status was never read (one learned from a neighbour's advertisement) has
+        // no value, rather than borrowing the MIB's own `Unknown`.
+        if let Some(status) = self.base.oper_status {
+            values.insert(MetadataFilterType::OperStatus, status.id().to_string());
+        }
+        values
     }
 }
 
@@ -227,6 +233,8 @@ impl From<IfAdminStatus> for i32 {
     Default,
     ToSchema,
     strum_macros::Display,
+    IntoStaticStr,
+    EnumIter,
 )]
 #[repr(i32)]
 pub enum IfOperStatus {
@@ -261,12 +269,68 @@ impl From<IfOperStatus> for i32 {
     }
 }
 
+impl HasId for IfOperStatus {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+/// One palette for a port's status wherever it shows: the L2 "By status" chips, the card's status
+/// dot and zoomed-out fill (through the view's element marks), the PortOpStatus group boxes and the
+/// inspector tag.
+impl EntityMetadataProvider for IfOperStatus {
+    fn color(&self) -> Color {
+        match self {
+            Self::Up => Color::Green,
+            Self::Down | Self::LowerLayerDown => Color::Red,
+            Self::Testing => Color::Yellow,
+            Self::Dormant => Color::Blue,
+            Self::Unknown | Self::NotPresent => Color::Gray,
+        }
+    }
+    fn icon(&self) -> Icon {
+        match self {
+            Self::Up => Icon::CircleCheck,
+            Self::Down | Self::LowerLayerDown => Icon::CircleX,
+            Self::Testing => Icon::FlaskConical,
+            Self::Dormant => Icon::Moon,
+            Self::Unknown | Self::NotPresent => Icon::CircleQuestionMark,
+        }
+    }
+}
+
+impl TypeMetadataProvider for IfOperStatus {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::Up => "Up",
+            Self::Down => "Down",
+            Self::Testing => "Testing",
+            Self::Unknown => "Unknown",
+            Self::Dormant => "Dormant",
+            Self::NotPresent => "Not present",
+            Self::LowerLayerDown => "Lower layer down",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        match self {
+            Self::Up => "Ports passing traffic",
+            Self::Down => "Ports not passing traffic",
+            Self::Testing => "Ports in a test mode",
+            Self::Unknown => "Ports whose device reports an unknown status",
+            Self::Dormant => "Ports waiting for an external event before passing traffic",
+            Self::NotPresent => "Ports missing a hardware component",
+            Self::LowerLayerDown => "Ports down because an interface beneath them is down",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Validate, Serialize, Deserialize, Eq, PartialEq, Hash, ToSchema)]
 pub struct InterfaceBase {
     /// The host this entity belongs to.
     pub host_id: Uuid,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// SNMP ifIndex — stable identifier within device, where one was read.
     ///
     /// `None` for a port learned from a neighbour's LLDP/CDP advertisement rather than from the
@@ -368,7 +432,7 @@ impl Default for InterfaceBase {
     fn default() -> Self {
         Self {
             host_id: Uuid::nil(),
-            network_id: Uuid::nil(),
+            site_id: Uuid::nil(),
             if_index: None,
             if_descr: None,
             if_name: None,
@@ -433,9 +497,8 @@ pub struct Interface {
     ///
     /// Read-only and computed from [`Interface::display_name`] — the same ladder topology port
     /// labels an interface with, so it cannot be called one thing in a list and another on the
-    /// map. Only set on outbound responses nested under a host (`HostResponse::interfaces`);
-    /// absent on a daemon's own submission and on the standalone `/interfaces` CRUD endpoints,
-    /// which return `Interface` directly without this computation.
+    /// map. Set on every interface read from storage, so every endpoint that returns one carries
+    /// it; absent on a daemon's own submission, and ignored on write.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schema(read_only)]
     pub display_name: Option<String>,

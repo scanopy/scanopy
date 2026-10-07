@@ -9,7 +9,7 @@ import credentialTypes from '../lib/data/credential-types.json';
 
 // Target sets standing in for the three shapes the backend declares, named by what they
 // permit rather than by type so the cases stay readable if a type's targets change.
-const BROADCAST_CAPABLE: CredentialTarget[] = ['DaemonHost', 'Hosts', 'Network']; // SNMP
+const BROADCAST_CAPABLE: CredentialTarget[] = ['DaemonHost', 'Hosts', 'Site']; // SNMP
 const HOST_ONLY: CredentialTarget[] = ['DaemonHost', 'Hosts']; // UniFi, Docker proxy
 const DAEMON_HOST_ONLY: CredentialTarget[] = ['DaemonHost']; // Docker/Podman socket
 
@@ -17,15 +17,15 @@ const CRED_ID = '11111111-1111-4111-8111-111111111111';
 
 describe('pruneAssignmentsForTargets', () => {
 	// The reporter's bug: the assignment surfaces are picked by `targets`, so switching the
-	// credential type hides the Networks picker without clearing it — and the hidden value was
+	// credential type hides the Sites picker without clearing it — and the hidden value was
 	// still submitted, reaching the daemon as a broadcast default for the whole subnet.
-	it('surrenders network assignments when the new type cannot broadcast', () => {
+	it('surrenders site assignments when the new type cannot broadcast', () => {
 		const result = pruneAssignmentsForTargets(HOST_ONLY, {
-			assignedNetworkIds: ['net-a', 'net-b'],
+			assignedSiteIds: ['net-a', 'net-b'],
 			hostAssignments: [{ host_id: 'host-a', ip_address_ids: null }]
 		});
 
-		expect(result.assignedNetworkIds).toEqual([]);
+		expect(result.assignedSiteIds).toEqual([]);
 		// A host assignment is still legitimate for this type and must survive the switch.
 		expect(result.hostAssignments).toHaveLength(1);
 		expect(result.changed).toBe(true);
@@ -35,27 +35,27 @@ describe('pruneAssignmentsForTargets', () => {
 	// every type change between two compatible types.
 	it('reports no change when the new type permits everything already assigned', () => {
 		const assignments = {
-			assignedNetworkIds: ['net-a'],
+			assignedSiteIds: ['net-a'],
 			hostAssignments: [{ host_id: 'host-a', ip_address_ids: null }]
 		};
 
 		const result = pruneAssignmentsForTargets(BROADCAST_CAPABLE, assignments);
 
-		expect(result.assignedNetworkIds).toEqual(['net-a']);
+		expect(result.assignedSiteIds).toEqual(['net-a']);
 		expect(result.hostAssignments).toEqual(assignments.hostAssignments);
 		expect(result.changed).toBe(false);
 	});
 
 	// A daemon host is a host: the local-socket type keeps its host assignment (that is how it
-	// is assigned at all) while still losing any network.
+	// is assigned at all) while still losing any site.
 	it('keeps host assignments for a daemon-host-only type', () => {
 		const result = pruneAssignmentsForTargets(DAEMON_HOST_ONLY, {
-			assignedNetworkIds: ['net-a'],
+			assignedSiteIds: ['net-a'],
 			hostAssignments: [{ host_id: 'daemon-host', ip_address_ids: null }]
 		});
 
 		expect(result.hostAssignments).toHaveLength(1);
-		expect(result.assignedNetworkIds).toEqual([]);
+		expect(result.assignedSiteIds).toEqual([]);
 	});
 
 	// A local socket is reachable over its daemon's loopback and nowhere else, so an ordinary
@@ -64,7 +64,7 @@ describe('pruneAssignmentsForTargets', () => {
 		const result = pruneAssignmentsForTargets(
 			DAEMON_HOST_ONLY,
 			{
-				assignedNetworkIds: [],
+				assignedSiteIds: [],
 				hostAssignments: [
 					{ host_id: 'daemon-host', ip_address_ids: null },
 					{ host_id: 'ordinary-host', ip_address_ids: null }
@@ -84,7 +84,7 @@ describe('pruneAssignmentsForTargets', () => {
 		const hostAssignments = [{ host_id: 'daemon-host', ip_address_ids: null }];
 
 		expect(
-			pruneAssignmentsForTargets(DAEMON_HOST_ONLY, { assignedNetworkIds: [], hostAssignments })
+			pruneAssignmentsForTargets(DAEMON_HOST_ONLY, { assignedSiteIds: [], hostAssignments })
 				.hostAssignments
 		).toHaveLength(1);
 	});
@@ -95,7 +95,7 @@ describe('pruneAssignmentsForTargets', () => {
 		const result = pruneAssignmentsForTargets(
 			HOST_ONLY,
 			{
-				assignedNetworkIds: [],
+				assignedSiteIds: [],
 				hostAssignments: [{ host_id: 'ordinary-host', ip_address_ids: null }]
 			},
 			['daemon-host']
@@ -109,29 +109,29 @@ describe('pruneAssignmentsForTargets', () => {
 	// "anything goes" — the credential would be broadcast on a guess.
 	it('permits nothing when the type has no targets metadata', () => {
 		const result = pruneAssignmentsForTargets(undefined, {
-			assignedNetworkIds: ['net-a'],
+			assignedSiteIds: ['net-a'],
 			hostAssignments: [{ host_id: 'host-a', ip_address_ids: null }]
 		});
 
-		expect(result.assignedNetworkIds).toEqual([]);
+		expect(result.assignedSiteIds).toEqual([]);
 		expect(result.hostAssignments).toEqual([]);
 		expect(result.changed).toBe(true);
 	});
 
 	it('does not mutate the caller’s arrays', () => {
-		const assignedNetworkIds = ['net-a'];
+		const assignedSiteIds = ['net-a'];
 		const hostAssignments = [{ host_id: 'host-a', ip_address_ids: null }];
 
-		pruneAssignmentsForTargets(HOST_ONLY, { assignedNetworkIds, hostAssignments });
+		pruneAssignmentsForTargets(HOST_ONLY, { assignedSiteIds, hostAssignments });
 
-		expect(assignedNetworkIds).toEqual(['net-a']);
+		expect(assignedSiteIds).toEqual(['net-a']);
 		expect(hostAssignments).toHaveLength(1);
 	});
 });
 
 describe('hasExplicitTarget', () => {
 	// The distinction that keeps a credential merely *listed* here (because it is assigned
-	// to a host elsewhere) from being written out as a network-wide target nobody chose:
+	// to a host elsewhere) from being written out as a site-wide target nobody chose:
 	// an empty IP list means "nothing selected", not "everywhere".
 	it('does not treat an empty selection as a target', () => {
 		expect(hasExplicitTarget(undefined, [])).toBe(false);
@@ -158,16 +158,16 @@ describe('hasExplicitTarget', () => {
 
 describe('integrationTargetFor', () => {
 	// The Gap-2 substitution: scope used to come from the IP count alone, so "no target chosen"
-	// on a controller credential serialized as a network-wide broadcast the server then dropped
+	// on a controller credential serialized as a site-wide broadcast the server then dropped
 	// — the credential silently never ran.
 	it('yields no target when a type that cannot broadcast has no IPs', () => {
 		expect(integrationTargetFor(CRED_ID, HOST_ONLY, [])).toBeNull();
 	});
 
-	it('yields a network target when the type can broadcast and no IPs are given', () => {
+	it('yields a site target when the type can broadcast and no IPs are given', () => {
 		expect(integrationTargetFor(CRED_ID, BROADCAST_CAPABLE, [])).toEqual({
 			credential_id: CRED_ID,
-			scope: 'Network'
+			scope: 'Site'
 		});
 	});
 
@@ -177,7 +177,7 @@ describe('integrationTargetFor', () => {
 		expect(integrationTargetFor(CRED_ID, HOST_ONLY, ['', '  '])).toBeNull();
 		expect(integrationTargetFor(CRED_ID, BROADCAST_CAPABLE, ['', '  '])).toEqual({
 			credential_id: CRED_ID,
-			scope: 'Network'
+			scope: 'Site'
 		});
 	});
 

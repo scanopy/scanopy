@@ -38,9 +38,6 @@
 		 * than for looking right beside text, and they are tokens rather than literals so the dark
 		 * theme gets its own — the first cut hard-coded light values and inverted itself at night.
 		 */
-		--color-topology-lod-nominal: #4ade80;
-		--color-topology-lod-down: #f87171;
-		--color-topology-lod-stale: #fbbf24;
 		--color-topology-lod-unknown: #cbd5e1;
 		--color-topology-lod-stroke: #94a3b8;
 		--color-topology-lod-container: rgba(148, 163, 184, 0.14);
@@ -72,9 +69,6 @@
 
 		/* Reduced-detail palette, against the #15131e canvas. Deeper, so a field of these does not
 		 * glare the way the light values would on a dark ground. */
-		--color-topology-lod-nominal: #22c55e;
-		--color-topology-lod-down: #ef4444;
-		--color-topology-lod-stale: #d97706;
 		--color-topology-lod-unknown: #475569;
 		--color-topology-lod-stroke: #64748b;
 		--color-topology-lod-container: rgba(148, 163, 184, 0.16);
@@ -106,6 +100,13 @@
 	/* Larger primary button variant for wizard "Next" actions */
 	.btn-primary-lg {
 		@apply px-5 py-2.5 text-base;
+	}
+
+	/* One height for everything on a page's toolbar row: the filter input, icon buttons and the
+	   page's own actions. Matches an `input-field` at `text-sm`, and the sidebar search, so the
+	   toolbar lines up with it. */
+	.toolbar-control {
+		@apply h-[38px] py-0 text-sm;
 	}
 
 	/* Secondary action button - outlined, less prominent */
@@ -196,6 +197,24 @@
 		@apply transition-colors duration-150;
 		@apply inline-flex items-center justify-center;
 		@apply disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-green-600 dark:disabled:hover:text-green-400;
+	}
+
+	/*
+	 * Entity table density, from the user's display settings. Every cell reads its
+	 * padding from these, so a density is defined here and nowhere else.
+	 */
+	.entity-table {
+		--cell-px: 0.75rem;
+		--cell-py: 0.5rem;
+	}
+
+	.entity-table[data-density='compact'] {
+		--cell-px: 0.5rem;
+		--cell-py: 0.25rem;
+	}
+
+	.entity-table[data-density='compact'] :is(.btn-icon, .btn-icon-danger) {
+		@apply p-1;
 	}
 
 	/* Card component */
@@ -289,6 +308,15 @@
 	.modal-footer {
 		@apply shrink-0 p-6;
 		border-top: 1px solid var(--color-border);
+	}
+
+	/* The JSON toggle (EntityMetadataSection) floats over the bottom-left corner of whatever
+	   precedes it. Room at the bottom of that element lets its content scroll clear of the
+	   toggle, so the toggle never covers anything. */
+	*:has(+ .entity-metadata-toggle),
+	/* ListConfigEditor's panes are absolutely positioned and scroll on their own. */
+	*:has(+ .entity-metadata-toggle) .list-config-pane {
+		padding-bottom: 2.5rem !important;
 	}
 
 	/* Form inputs */

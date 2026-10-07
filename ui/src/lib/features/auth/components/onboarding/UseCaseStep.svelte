@@ -49,7 +49,9 @@
 	function submitAndProceed() {
 		if (!selectedUseCase) return;
 		trackEvent('onboarding_use_case_selected', {
-			use_case: selectedUseCase
+			use_case: selectedUseCase,
+			// Plan-picker tab the signup link asked for (`?hosting=`), or null.
+			hosting: onboardingStore.getState().hosting
 		});
 		onboardingStore.setUseCase(selectedUseCase);
 		onNext();

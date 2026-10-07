@@ -11,12 +11,15 @@ import {
 	buildElementToContainer,
 	computeCollapsedEdges,
 	isScaleCollapsed,
-	scaleCollapseCandidates
+	scaleCollapseCandidates,
+	expandedInlineGroups,
+	allInlineGroupKeys
 } from '../collapse';
 import { elevateEdgesToContainers } from '../layout/edge-elevation';
 import { containerTypes, views } from '$lib/shared/stores/metadata';
 import { activeView, topologyOptions } from '../queries';
 import { tagHiddenNodeIds, hiddenEntityIdsByType } from '../interactions';
+import { changedCardIds } from './execute-layout';
 import { buildTopologyParentIndex } from '../topology-parent-index';
 import { ENTITY_COLLECTIONS } from '../resolvers';
 import { noteRunDetail } from '../diagnostics';
@@ -261,7 +264,7 @@ function applyAutoCollapse(
 		);
 	});
 
-	const userExplicitlyExpandedAll = currentLevel === 4 && state.collapseLevelInferred;
+	const userExplicitlyExpandedAll = currentLevel >= 4 && state.collapseLevelInferred;
 	const autoCollapseIds = userExplicitlyExpandedAll
 		? []
 		: allCandidates
@@ -470,6 +473,11 @@ export function prepareTopologyData(
 		collapsedContainers.set(levelCollapsed);
 		collapsed = levelCollapsed;
 		if (effectiveLevel !== currentLevel) collapseLevel.set(effectiveLevel);
+		// Level 5 opens the manager boxes too; the view being entered has its own.
+		if (effectiveLevel === 5) {
+			const keys = allInlineGroupKeys(topology.nodes);
+			if (keys.length > 0) expandedInlineGroups.update((set) => new Set([...set, ...keys]));
+		}
 	}
 
 	// When topology identity changes, reset tracking and strip stale collapsed IDs
@@ -663,7 +671,20 @@ export function prepareTopologyData(
 	const visibleNodes = state.layoutGraph.getVisibleNodes(layoutNodes);
 
 	const isViewTransition = isNewStructure && viewChanged && topologyChanged;
-	const needsElk = isNewStructure || needsElkForExpand;
+	// Opening or closing a manager box changes that card's height. Re-measuring it in place would
+	// only reflow its own container, and a host container that grew would overlap whatever ELK
+	// placed beside it — so the toggled cards drop their cached size and ELK runs again. Every
+	// other card keeps its cached size (`resolveNodeSizes` measures only what is missing).
+	const expandedBoxes = get(expandedInlineGroups);
+	const toggledCards = changedCardIds(state.prevExpandedInlineGroups, expandedBoxes);
+	state.prevExpandedInlineGroups = new Set(expandedBoxes);
+	const needsElkForCardContent = toggledCards.size > 0;
+	if (needsElkForCardContent) {
+		const viewCache = state.viewSizeCache.get(`${currentView}:${topology.id}`);
+		for (const id of toggledCards) viewCache?.delete(id);
+	}
+
+	const needsElk = isNewStructure || needsElkForExpand || needsElkForCardContent;
 
 	// Clear view size cache on base structure change
 	if (isNewBaseStructure) {

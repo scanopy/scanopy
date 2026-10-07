@@ -2,59 +2,53 @@
 
 use super::*;
 
-pub(super) fn generate_api_keys(networks: &[Network], now: DateTime<Utc>) -> Vec<DaemonApiKey> {
-    let find_network = |name: &str| {
-        networks
-            .iter()
-            .find(|n| n.base.name.contains(name))
-            .unwrap()
-    };
+pub(super) fn generate_api_keys(daemons: &[Daemon], now: DateTime<Utc>) -> Vec<DaemonApiKey> {
+    // One key per daemon, bound 1:1 as server-side provisioning binds them: the key names its
+    // daemon, and `bind_daemon_api_keys` points each daemon back at its key.
+    daemons
+        .iter()
+        .map(|daemon| {
+            let (_plaintext, hashed) = generate_api_key_for_storage(ApiKeyType::Daemon);
+            DaemonApiKey {
+                id: Uuid::new_v4(),
+                created_at: now,
+                updated_at: now,
+                base: DaemonApiKeyBase {
+                    key: hashed,
+                    name: format!("{} API Key", daemon.base.name),
+                    last_used: Some(now),
+                    expires_at: None,
+                    site_id: daemon.base.site_id,
+                    is_enabled: true,
+                    tags: vec![],
+                    daemon_id: Some(daemon.id),
+                    // Both demo daemons poll the server, so the server holds no plaintext.
+                    plaintext: None,
+                },
+            }
+        })
+        .collect()
+}
 
-    vec![
-        DaemonApiKey {
-            id: Uuid::new_v4(),
-            created_at: now,
-            updated_at: now,
-            base: DaemonApiKeyBase {
-                key: format!("demo_hq_{}", Uuid::new_v4().simple()),
-                name: "HQ Daemon Key".to_string(),
-                last_used: Some(now),
-                expires_at: None,
-                network_id: find_network("Headquarters").id,
-                is_enabled: true,
-                tags: vec![],
-                daemon_id: None,
-                plaintext: None,
-            },
-        },
-        DaemonApiKey {
-            id: Uuid::new_v4(),
-            created_at: now,
-            updated_at: now,
-            base: DaemonApiKeyBase {
-                key: format!("demo_dc_{}", Uuid::new_v4().simple()),
-                name: "DC Daemon Key".to_string(),
-                last_used: Some(now),
-                expires_at: None,
-                network_id: find_network("Data Center").id,
-                is_enabled: true,
-                tags: vec![],
-                daemon_id: None,
-                plaintext: None,
-            },
-        },
-    ]
+/// Point each daemon at the key bound to it.
+pub(super) fn bind_daemon_api_keys(daemons: &mut [Daemon], api_keys: &[DaemonApiKey]) {
+    for daemon in daemons {
+        daemon.base.api_key_id = api_keys
+            .iter()
+            .find(|key| key.base.daemon_id == Some(daemon.id))
+            .map(|key| key.id);
+    }
 }
 
 pub(super) fn generate_user_api_keys(
-    networks: &[Network],
+    sites: &[Site],
     organization_id: Uuid,
     now: DateTime<Utc>,
 ) -> Vec<(UserApiKey, Vec<Uuid>)> {
     use super::super::handlers::DEMO_USER_ID;
 
-    let network_ids: Vec<Uuid> = networks.iter().map(|n| n.id).collect();
-    let hq_id = networks
+    let site_ids: Vec<Uuid> = sites.iter().map(|n| n.id).collect();
+    let hq_id = sites
         .iter()
         .find(|n| n.base.name.contains("Headquarters"))
         .map(|n| n.id)
@@ -79,7 +73,7 @@ pub(super) fn generate_user_api_keys(
                     expires_at: Some(now + Duration::days(180)),
                     is_enabled: true,
                     tags: vec![],
-                    network_ids: vec![], // hydrated by create_with_networks
+                    site_ids: vec![], // hydrated by create_with_sites
                 },
             },
             vec![hq_id],
@@ -99,10 +93,10 @@ pub(super) fn generate_user_api_keys(
                     expires_at: None,
                     is_enabled: true,
                     tags: vec![],
-                    network_ids: vec![], // hydrated by create_with_networks
+                    site_ids: vec![], // hydrated by create_with_sites
                 },
             },
-            network_ids,
+            site_ids,
         ),
     ]
 }

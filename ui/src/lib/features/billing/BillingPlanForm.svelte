@@ -16,11 +16,11 @@
 		billing_daysCount,
 		billing_everythingInPlanPlus,
 		billing_firstInvoiceOn,
-		billing_networkUnit,
-		billing_networkUnitPlural,
+		billing_siteUnit,
+		billing_siteUnitPlural,
 		billing_notIncluded,
 		billing_perHostMonthly,
-		billing_perNetworkMonthly,
+		billing_perSiteMonthly,
 		billing_perSeatMonthly,
 		billing_priceBase,
 		billing_rateMonthly,
@@ -47,7 +47,7 @@
 		common_hide,
 		common_hosts,
 		common_monthly,
-		common_networks,
+		common_sites,
 		common_seats,
 		common_unlimited,
 		common_yearly
@@ -182,7 +182,7 @@
 	// ============================================================================
 
 	let extraSeats = $state<Record<string, number>>({});
-	let extraNetworks = $state<Record<string, number>>({});
+	let extraSites = $state<Record<string, number>>({});
 
 	function adjustExtra(
 		store: Record<string, number>,
@@ -198,17 +198,17 @@
 		return extraSeats[planType] ?? 0;
 	}
 
-	function getExtraNetworks(planType: string): number {
-		return extraNetworks[planType] ?? 0;
+	function getExtraSites(planType: string): number {
+		return extraSites[planType] ?? 0;
 	}
 
 	function hasExtras(plan: BillingPlan): boolean {
-		return getExtraSeats(plan.type) > 0 || getExtraNetworks(plan.type) > 0;
+		return getExtraSeats(plan.type) > 0 || getExtraSites(plan.type) > 0;
 	}
 
 	function getEstimatedTotal(plan: BillingPlan): number {
 		const seatExtra = getExtraSeats(plan.type) * (plan.seat_cents ?? 0);
-		const netExtra = getExtraNetworks(plan.type) * (plan.network_cents ?? 0);
+		const netExtra = getExtraSites(plan.type) * (plan.site_cents ?? 0);
 		return plan.base_cents + seatExtra + netExtra;
 	}
 
@@ -223,7 +223,7 @@
 		if (billingPeriod !== prevBillingPeriod) {
 			prevBillingPeriod = billingPeriod;
 			extraSeats = {};
-			extraNetworks = {};
+			extraSites = {};
 		}
 	});
 
@@ -339,10 +339,10 @@
 		return '';
 	}
 
-	function formatNetworkAddonPricing(plan: BillingPlan): string {
-		if (plan.network_cents) {
-			const monthly = plan.rate === 'Year' ? plan.network_cents / 12 : plan.network_cents;
-			return billing_perNetworkMonthly({ amount: String(monthly / 100) });
+	function formatSiteAddonPricing(plan: BillingPlan): string {
+		if (plan.site_cents) {
+			const monthly = plan.rate === 'Year' ? plan.site_cents / 12 : plan.site_cents;
+			return billing_perSiteMonthly({ amount: String(monthly / 100) });
 		}
 		return '';
 	}
@@ -507,12 +507,10 @@
 										{getExtraSeats(plan.type) === 1 ? billing_seatUnit() : billing_seatUnitPlural()}
 										({formatCents(plan.rate === 'Year' ? seatCost / 12 : seatCost)})
 									{/if}
-									{#if getExtraNetworks(plan.type) > 0}
-										{@const netCost = getExtraNetworks(plan.type) * (plan.network_cents ?? 0)}
-										+ {getExtraNetworks(plan.type)}
-										{getExtraNetworks(plan.type) === 1
-											? billing_networkUnit()
-											: billing_networkUnitPlural()} ({formatCents(
+									{#if getExtraSites(plan.type) > 0}
+										{@const netCost = getExtraSites(plan.type) * (plan.site_cents ?? 0)}
+										+ {getExtraSites(plan.type)}
+										{getExtraSites(plan.type) === 1 ? billing_siteUnit() : billing_siteUnitPlural()} ({formatCents(
 											plan.rate === 'Year' ? netCost / 12 : netCost
 										)})
 									{/if}
@@ -624,38 +622,38 @@
 								{/if}
 							</div>
 
-							<!-- Networks -->
+							<!-- Sites -->
 							<div class="flex items-center justify-between text-sm">
 								<div class="flex flex-col">
-									<span class="text-secondary">{common_networks()}</span>
-									{#if plan.network_cents}
-										<span class="text-tertiary text-xs">{formatNetworkAddonPricing(plan)}</span>
+									<span class="text-secondary">{common_sites()}</span>
+									{#if plan.site_cents}
+										<span class="text-tertiary text-xs">{formatSiteAddonPricing(plan)}</span>
 									{/if}
 								</div>
-								{#if plan.network_cents && plan.included_networks !== null}
+								{#if plan.site_cents && plan.included_sites !== null}
 									<div class="stepper">
 										<button
 											type="button"
 											class="stepper-btn"
-											disabled={getExtraNetworks(plan.type) === 0}
-											onclick={() => (extraNetworks = adjustExtra(extraNetworks, plan.type, -1))}
+											disabled={getExtraSites(plan.type) === 0}
+											onclick={() => (extraSites = adjustExtra(extraSites, plan.type, -1))}
 										>
 											<Minus class="h-3 w-3" />
 										</button>
 										<span class="text-primary w-8 text-center text-sm font-medium">
-											{(plan.included_networks ?? 0) + getExtraNetworks(plan.type)}
+											{(plan.included_sites ?? 0) + getExtraSites(plan.type)}
 										</span>
 										<button
 											type="button"
 											class="stepper-btn"
-											onclick={() => (extraNetworks = adjustExtra(extraNetworks, plan.type, 1))}
+											onclick={() => (extraSites = adjustExtra(extraSites, plan.type, 1))}
 										>
 											<Plus class="h-3 w-3" />
 										</button>
 									</div>
 								{:else}
 									<span class="text-primary font-medium">
-										{formatIncludedValue(plan.included_networks, plan)}
+										{formatIncludedValue(plan.included_sites, plan)}
 									</span>
 								{/if}
 							</div>

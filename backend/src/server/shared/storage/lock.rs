@@ -39,10 +39,10 @@ const RETRY_INTERVAL: Duration = Duration::from_millis(50);
 pub enum LockKey {
     /// Serialize update/delete/consolidate of one host.
     Host(Uuid),
-    /// Serialize host discovery dedup within a network. Scope-keyed (not
+    /// Serialize host discovery dedup within a site. Scope-keyed (not
     /// id-keyed) because two concurrent submissions of the same NEW device
     /// carry distinct fresh UUIDs — an id key would never contend.
-    HostDedup { network_id: Uuid },
+    HostDedup { site_id: Uuid },
     /// Serialize update/delete/transfer of one service.
     Service(Uuid),
     /// Serialize service create-dedup and position assignment. Host-scoped:
@@ -50,8 +50,8 @@ pub enum LockKey {
     /// service list.
     ServiceDedup { host_id: Uuid },
     /// Serialize dependency-members read-modify-write loops (replaces the
-    /// old process-global `dependency_update_lock`), per network.
-    DependencyMembers { network_id: Uuid },
+    /// old process-global `dependency_update_lock`), per site.
+    DependencyMembers { site_id: Uuid },
     /// Serialize MAX+1 position assignment for IP addresses on a host
     /// (the row being positioned doesn't exist yet, so `FOR UPDATE`
     /// cannot cover this).
@@ -76,11 +76,11 @@ impl LockKey {
     fn canonical(&self) -> String {
         match self {
             LockKey::Host(id) => format!("host:{id}"),
-            LockKey::HostDedup { network_id } => format!("host-dedup:{network_id}"),
+            LockKey::HostDedup { site_id } => format!("host-dedup:{site_id}"),
             LockKey::Service(id) => format!("service:{id}"),
             LockKey::ServiceDedup { host_id } => format!("service-dedup:{host_id}"),
-            LockKey::DependencyMembers { network_id } => {
-                format!("dependency-members:{network_id}")
+            LockKey::DependencyMembers { site_id } => {
+                format!("dependency-members:{site_id}")
             }
             LockKey::IpPositions { host_id } => format!("ip-positions:{host_id}"),
             LockKey::JunctionSync { parent, parent_id } => {
@@ -292,16 +292,10 @@ mod tests {
     fn test_distinct_variants_distinct_keys() {
         let keys = [
             LockKey::Host(uuid_a()).pg_key(),
-            LockKey::HostDedup {
-                network_id: uuid_a(),
-            }
-            .pg_key(),
+            LockKey::HostDedup { site_id: uuid_a() }.pg_key(),
             LockKey::Service(uuid_a()).pg_key(),
             LockKey::ServiceDedup { host_id: uuid_a() }.pg_key(),
-            LockKey::DependencyMembers {
-                network_id: uuid_a(),
-            }
-            .pg_key(),
+            LockKey::DependencyMembers { site_id: uuid_a() }.pg_key(),
             LockKey::IpPositions { host_id: uuid_a() }.pg_key(),
             LockKey::JunctionSync {
                 parent: EntityDiscriminants::Host,
@@ -400,9 +394,7 @@ mod tests {
     async fn test_session_lock_many_ordering_prevents_deadlock() {
         let (pool, _url, _container) = setup_test_db().await;
         let a = LockKey::Host(uuid_a());
-        let b = LockKey::HostDedup {
-            network_id: uuid_a(),
-        };
+        let b = LockKey::HostDedup { site_id: uuid_a() };
 
         let spawn_looper = |pool: PgPool, keys: [LockKey; 2]| {
             tokio::spawn(async move {
@@ -428,7 +420,7 @@ mod tests {
         let (pool_a, url, _container) = setup_test_db().await;
         let pool_b = PgPool::connect(&url).await.unwrap();
         let key = LockKey::HostDedup {
-            network_id: Uuid::new_v4(),
+            site_id: Uuid::new_v4(),
         };
 
         let guard = session_lock(&pool_a, key, DEFAULT_LOCK_TIMEOUT)

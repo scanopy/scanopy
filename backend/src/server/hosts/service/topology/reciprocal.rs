@@ -48,9 +48,9 @@ impl HostService {
             .map(|&paired_id| IdentityResolution::Resolved(paired_id))
     }
 
-    /// Build the network's neighbour adjacency and the reciprocal pairs that follow from it.
+    /// Build the site's neighbour adjacency and the reciprocal pairs that follow from it.
     ///
-    /// One query for every live candidate in the network, one query for the interfaces those
+    /// One query for every live candidate in the site, one query for the interfaces those
     /// candidates belong to, and the chassis/CDP ladder run fresh for every candidate — GH #701
     /// dropped the "reuse an already-bound port's stored verdict" shortcut the single-neighbour
     /// version had, since a bound interface no longer identifies which of several candidates
@@ -58,7 +58,7 @@ impl HostService {
     /// so this costs CPU, not round-trips.
     ///
     /// `evidence_cutoff` is the instant before which a candidate's `created_at` counts as stale —
-    /// the network's own staleness window, so a link is judged by the same rule and the same
+    /// the site's own staleness window, so a link is judged by the same rule and the same
     /// setting as every other freshness verdict. Candidates are replaced wholesale every complete
     /// scan (see `InterfaceNeighborService::replace_candidates_from_discovery`), so a candidate's
     /// `created_at` is "last scan that confirmed this exact piece of evidence", not "last time this
@@ -66,13 +66,13 @@ impl HostService {
     /// original `created_at`, and so reads as stale exactly when it should.
     pub(super) async fn build_neighbor_adjacency(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         resolver: &impl LldpResolver,
         evidence_cutoff: DateTime<Utc>,
     ) -> Result<NeighborAdjacency> {
         let all_candidates = self
             .interface_neighbor_service
-            .candidates_for_network(network_id)
+            .candidates_for_site(site_id)
             .await?;
 
         let mut candidates_by_interface: HashMap<Uuid, Vec<InterfaceNeighborCandidate>> =
@@ -112,7 +112,7 @@ impl HostService {
                 let evidence = &candidate.base.evidence;
                 let resolution = if let Some(ref chassis_id) = evidence.lldp_chassis_id {
                     chassis_id
-                        .resolve_host_id(resolver, network_id, evidence.advertised_identity())
+                        .resolve_host_id(resolver, site_id, evidence.advertised_identity())
                         .await
                 } else if evidence.cdp_device_id.is_some() || evidence.cdp_address.is_some() {
                     // CDP carries no chassis id, so there is no subtype tier to run — but the
@@ -121,7 +121,7 @@ impl HostService {
                     // neighbour from being unresolvable purely for arriving over CDP.
                     evidence
                         .advertised_identity()
-                        .resolve_host_id(resolver, network_id)
+                        .resolve_host_id(resolver, site_id)
                         .await
                 } else {
                     IdentityResolution::NoStrategy
@@ -234,7 +234,7 @@ impl HostService {
         // the two can never disagree about which bindings are legitimate.
         if matches!(
             resolver
-                .find_if_entry_by_mac(&mac.to_string(), bound.base.host_id)
+                .find_interface_by_mac(&mac.to_string(), bound.base.host_id)
                 .await,
             IdentityResolution::Ambiguous
         ) {

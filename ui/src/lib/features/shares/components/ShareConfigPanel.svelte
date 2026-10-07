@@ -12,6 +12,7 @@
 	import UpgradeButton from '$lib/shared/components/UpgradeButton.svelte';
 	import CodeContainer from '$lib/shared/components/data/CodeContainer.svelte';
 	import CollapsibleCard from '$lib/shared/components/data/CollapsibleCard.svelte';
+	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
 	import {
 		SimpleOptionDisplay,
@@ -23,7 +24,6 @@
 	import viewsJson from '$lib/data/views.json';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import {
-		common_enabled,
 		common_height,
 		common_name,
 		common_password,
@@ -59,7 +59,9 @@
 		shares_allViewsEnabled,
 		shares_urlAvailableAfterSaveTitle,
 		shares_urlAvailableAfterSaveBody,
-		topology_showMinimap
+		topology_showMinimap,
+		common_details,
+		shares_enableShare
 	} from '$lib/paraglide/messages';
 
 	interface Props {
@@ -158,8 +160,7 @@
 		dismissableKey="share-cache-info"
 	/>
 
-	<!-- Name -->
-	<div class="card card-static">
+	<InfoCard title={common_details()}>
 		<form.Field
 			name={nameFieldName}
 			validators={{
@@ -180,12 +181,10 @@
 				/>
 			{/snippet}
 		</form.Field>
-	</div>
 
-	<!-- Share URL / Embed Code — directly below name. Hidden until the share has been
-	     saved, since the URL can't resolve until the backend has a persisted record. -->
-	{#if isSaved}
-		<div class="space-y-3">
+		<!-- Share URL / Embed Code. Shown once the share has been saved, since the URL can't
+		     resolve until the backend has a persisted record. -->
+		{#if isSaved}
 			<div>
 				<span class="text-secondary mb-1 block text-sm font-medium">{shares_shareUrl()}</span>
 				<CodeContainer
@@ -209,13 +208,13 @@
 					/>
 				{/if}
 			</div>
-		</div>
-	{:else}
-		<InlineInfo
-			title={shares_urlAvailableAfterSaveTitle()}
-			body={shares_urlAvailableAfterSaveBody()}
-		/>
-	{/if}
+		{:else}
+			<InlineInfo
+				title={shares_urlAvailableAfterSaveTitle()}
+				body={shares_urlAvailableAfterSaveBody()}
+			/>
+		{/if}
+	</InfoCard>
 
 	<!-- Topology Views — collapsible -->
 	<CollapsibleCard title={shares_topologyViews()} expanded={false}>
@@ -255,35 +254,32 @@
 				{/snippet}
 			</form.Field>
 
-			<div class="grid grid-cols-2 gap-4">
-				<form.Field name={expiresAtFieldName}>
-					{#snippet children(field: AnyFieldApi)}
-						<DateInput
-							{field}
-							label={shares_expirationDate()}
-							id="expires-at-{index}"
-							helpText={shares_expirationHelp()}
-						/>
-					{/snippet}
-				</form.Field>
-				<div class="flex items-center">
-					<form.Field
-						name={isEnabledFieldName}
-						listeners={{
-							onChange: ({ value }: { value: boolean }) => handleEnabledChange(value)
-						}}
-					>
-						{#snippet children(field: AnyFieldApi)}
-							<Checkbox
-								label={common_enabled()}
-								id="is-enabled-{index}"
-								{field}
-								helpText={shares_enabledHelp()}
-							/>
-						{/snippet}
-					</form.Field>
-				</div>
-			</div>
+			<form.Field name={expiresAtFieldName}>
+				{#snippet children(field: AnyFieldApi)}
+					<DateInput
+						{field}
+						label={shares_expirationDate()}
+						id="expires-at-{index}"
+						helpText={shares_expirationHelp()}
+					/>
+				{/snippet}
+			</form.Field>
+
+			<form.Field
+				name={isEnabledFieldName}
+				listeners={{
+					onChange: ({ value }: { value: boolean }) => handleEnabledChange(value)
+				}}
+			>
+				{#snippet children(field: AnyFieldApi)}
+					<Checkbox
+						label={shares_enableShare()}
+						id="is-enabled-{index}"
+						{field}
+						helpText={shares_enabledHelp()}
+					/>
+				{/snippet}
+			</form.Field>
 
 			<form.Field name={allowedDomainsFieldName}>
 				{#snippet children(field: AnyFieldApi)}
@@ -302,26 +298,28 @@
 	<!-- Display Options — collapsible -->
 	<CollapsibleCard title={shares_displayOptions()} expanded={false}>
 		<div class="space-y-3">
-			<form.Field name={showZoomControlsFieldName}>
-				{#snippet children(field: AnyFieldApi)}
-					<Checkbox label={shares_showZoomControls()} id="show-zoom-controls-{index}" {field} />
-				{/snippet}
-			</form.Field>
-			<form.Field name={showInspectPanelFieldName}>
-				{#snippet children(field: AnyFieldApi)}
-					<Checkbox label={shares_showInspectPanel()} id="show-inspect-panel-{index}" {field} />
-				{/snippet}
-			</form.Field>
-			<form.Field name={showExportButtonFieldName}>
-				{#snippet children(field: AnyFieldApi)}
-					<Checkbox label={shares_showExportButton()} id="show-export-button-{index}" {field} />
-				{/snippet}
-			</form.Field>
-			<form.Field name={showMinimapFieldName}>
-				{#snippet children(field: AnyFieldApi)}
-					<Checkbox label={topology_showMinimap()} id="show-minimap-{index}" {field} />
-				{/snippet}
-			</form.Field>
+			<div class="grid grid-cols-2 gap-x-4 gap-y-3">
+				<form.Field name={showZoomControlsFieldName}>
+					{#snippet children(field: AnyFieldApi)}
+						<Checkbox label={shares_showZoomControls()} id="show-zoom-controls-{index}" {field} />
+					{/snippet}
+				</form.Field>
+				<form.Field name={showInspectPanelFieldName}>
+					{#snippet children(field: AnyFieldApi)}
+						<Checkbox label={shares_showInspectPanel()} id="show-inspect-panel-{index}" {field} />
+					{/snippet}
+				</form.Field>
+				<form.Field name={showExportButtonFieldName}>
+					{#snippet children(field: AnyFieldApi)}
+						<Checkbox label={shares_showExportButton()} id="show-export-button-{index}" {field} />
+					{/snippet}
+				</form.Field>
+				<form.Field name={showMinimapFieldName}>
+					{#snippet children(field: AnyFieldApi)}
+						<Checkbox label={topology_showMinimap()} id="show-minimap-{index}" {field} />
+					{/snippet}
+				</form.Field>
+			</div>
 			<div>
 				<span class="text-secondary mb-1 block text-sm font-medium">{common_theme()}</span>
 				<div class="flex gap-2">

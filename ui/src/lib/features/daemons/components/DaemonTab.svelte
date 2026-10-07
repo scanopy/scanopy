@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { formatLongDate } from '$lib/shared/utils/formatting';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
@@ -16,8 +15,9 @@
 	import CreateDaemonModal from './CreateDaemonModal/CreateDaemonModal.svelte';
 	import { defineFields, type CardAction } from '$lib/shared/components/data/types';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import { tagNames } from '$lib/features/tags/columns';
-	import { networkItems } from '$lib/features/networks/columns';
+	import { siteItems } from '$lib/features/sites/columns';
 	import { entityRef } from '$lib/shared/components/data/types';
 	import { entities } from '$lib/shared/stores/metadata';
 	import { isUserManagedSubnet, useSubnetsQuery } from '$lib/features/subnets/queries';
@@ -30,8 +30,9 @@
 		useBulkDeleteDaemonsMutation,
 		useRetryDaemonConnectionMutation
 	} from '$lib/features/daemons/queries';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
+	import { useUsersByIds } from '$lib/features/users/queries';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 	import {
 		modalState,
@@ -54,13 +55,14 @@
 		common_delete,
 		common_edit,
 		common_host,
+		common_maintainer,
 		common_name,
-		common_network,
+		common_site,
 		common_status,
 		common_tags,
 		common_noEntityYet,
 		common_unknownEntity,
-		common_unknownNetwork,
+		common_unknownSite,
 		common_update,
 		common_updated,
 		common_url,
@@ -70,7 +72,9 @@
 		daemons_interfacesWith,
 		daemons_lastSeen,
 		daemons_mode_daemonPoll,
+		daemons_mode_daemonPollDescription,
 		daemons_mode_serverPoll,
+		daemons_mode_serverPollDescription,
 		daemons_sunsetBannerTitle,
 		daemons_sunsetBannerBody
 	} from '$lib/paraglide/messages';
@@ -82,7 +86,7 @@
 	// Queries
 	const tagsQuery = useTagsQuery();
 	const daemonsQuery = useDaemonsQuery();
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	// Shared subnets cache, to resolve each daemon's interfaced subnet ids.
 	const subnetsQuery = useSubnetsQuery();
 
@@ -96,14 +100,21 @@
 
 	// Only the hosts the daemons actually run on. This was an unpaginated
 	// org-wide hosts query (~1.9MB on a few hundred hosts) issued to resolve one
-	// name per daemon card — and because TanStack dedupes by key, it was shared
+	// name per daemon row — and because TanStack dedupes by key, it was shared
 	// with every other consumer, so it loaded on pages that never showed a
-	// daemon. Scoped to the ids in hand and passed down to the cards.
+	// daemon. Scoped to the ids in hand and read by the host column.
 	let daemonHostIds = $derived([
 		...new Set(daemonsData.map((d) => d.host_id).filter((id): id is string => !!id))
 	]);
 	const daemonHostsQuery = useHostsByIds(() => daemonHostIds);
 	let daemonHosts = $derived(daemonHostsQuery.data ?? []);
+
+	// The users who maintain the daemons, by id: the users list needs Admin, and a daemon's
+	// maintainer is often an admin or the owner, whom it leaves out.
+	const maintainersQuery = useUsersByIds(() => [
+		...new Set(daemonsData.map((d) => d.user_id).filter((id): id is string => !!id))
+	]);
+	let maintainers = $derived(maintainersQuery.data ?? []);
 
 	// Any daemon with a scheduled/active sunset. Drives a non-dismissable banner
 	// so the warning re-arms as long as an affected daemon exists.
@@ -116,9 +127,9 @@
 		if (!iso) return null;
 		return formatLongDate(iso, 'UTC');
 	});
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
 	let subnetsData = $derived((subnetsQuery.data ?? []).filter(isUserManagedSubnet));
-	let isLoading = $derived(daemonsQuery.isPending || networksQuery.isPending);
+	let isLoading = $derived(daemonsQuery.isPending || sitesQuery.isPending);
 
 	let showCreateDaemonModal = $state(false);
 	let showDaemonEditor = $state(false);
@@ -209,8 +220,7 @@
 				label: common_update(),
 				icon: ArrowBigUp,
 				class: upgradeButtonClass(daemon),
-				onClick: () => handleOpenUpgrade(daemon),
-				forceLabel: true
+				onClick: () => handleOpenUpgrade(daemon)
 			});
 		}
 
@@ -222,8 +232,7 @@
 				icon: RefreshCw,
 				class: 'btn-icon-info',
 				onClick: () => retryConnectionMutation.mutate(daemon.id),
-				disabled: retryConnectionMutation.isPending,
-				forceLabel: true
+				disabled: retryConnectionMutation.isPending
 			});
 		}
 
@@ -279,13 +288,17 @@
 	function interfacedSubnets(daemon: Daemon): Subnet[] {
 		return daemon.interfaced_subnet_ids
 			.map((id) => subnetsData.find((subnet) => subnet.id === id))
-			.filter((subnet): subnet is Subnet => subnet !== undefined);
+			.filter((subnet) => subnet !== undefined);
 	}
 
 	// CSV export handler
 	async function handleCsvExport() {
 		await downloadCsv('Daemon', {});
 	}
+
+	const tableDefaults: TableDefaults<DaemonOrderField> = {
+		sort: { field: 'name', direction: 'asc' }
+	};
 
 	// Define field configuration for the DataTableControls
 	// Uses defineFields to ensure all DaemonOrderField values are covered
@@ -300,15 +313,15 @@
 					groupable: false,
 					display: { order: 0, primary: true, width: 220 }
 				},
-				network_id: {
-					label: common_network(),
+				site_id: {
+					label: common_site(),
 					type: 'string',
 					searchable: true,
 					filterable: true,
 					groupable: true,
 					getValue: (item) =>
-						networksData.find((n) => n.id == item.network_id)?.name || common_unknownNetwork(),
-					display: { order: 3, getItems: (item) => networkItems(item.network_id, networksData) }
+						sitesData.find((n) => n.id == item.site_id)?.name || common_unknownSite(),
+					display: { order: 3, getItems: (item) => siteItems(item.site_id, sitesData) }
 				},
 				last_seen: {
 					label: daemons_lastSeen(),
@@ -320,9 +333,8 @@
 			},
 			[
 				{
-					// Host, version and subnet interfaces were card-only. Declaring
-					// them here is what makes them exist for both views at once.
-					// Display-only: none is a DaemonOrderField, so the server cannot
+					// Host, version and subnet interfaces are display-only: none is a
+					// DaemonOrderField, so the server cannot
 					// order on them and defineFields rightly refuses them above.
 					// One daemon per host, so the host neither groups nor filters; search finds it.
 					key: 'host_id',
@@ -350,11 +362,8 @@
 					}
 				},
 				{
-					// One mapping for both views. This used to compute its own
-					// active/standby/unreachable strings while the card called
-					// getDaemonStatusTag, so the same daemon read "Active" in the table
-					// and "Healthy" on the card. Both now come from the one helper,
-					// which also carries version lifecycle (deprecated, unsupported).
+					// From getDaemonStatusTag, the same helper the home page uses, which
+					// also carries version lifecycle (deprecated, unsupported).
 					key: 'status',
 					label: common_status(),
 					type: 'string',
@@ -365,10 +374,17 @@
 					getValue: (daemon) => getDaemonStatusTag(daemon).label,
 					display: {
 						order: 1,
-						statusTag: true,
 						getItems: (daemon) => {
 							const tag = getDaemonStatusTag(daemon);
-							return [{ id: tag.label, label: tag.label, color: tag.color, icon: tag.icon }];
+							return [
+								{
+									id: tag.label,
+									label: tag.label,
+									color: tag.color,
+									icon: tag.icon,
+									href: tag.href
+								}
+							];
 						}
 					}
 				},
@@ -402,9 +418,38 @@
 								label:
 									daemon.mode === 'server_poll'
 										? daemons_mode_serverPoll()
-										: daemons_mode_daemonPoll()
+										: daemons_mode_daemonPoll(),
+								title:
+									daemon.mode === 'server_poll'
+										? daemons_mode_serverPollDescription()
+										: daemons_mode_daemonPollDescription()
 							}
 						]
+					}
+				},
+				{
+					key: 'maintainer',
+					label: common_maintainer(),
+					type: 'string',
+					searchable: true,
+					filterable: true,
+					groupable: true,
+					sortable: true,
+					getValue: (daemon) => maintainers.find((u) => u.id === daemon.user_id)?.email ?? null,
+					display: {
+						hiddenByDefault: true,
+						getItems: (daemon) => {
+							const user = maintainers.find((u) => u.id === daemon.user_id);
+							if (!user) return [];
+							return [
+								{
+									id: user.id,
+									label: user.email,
+									color: entities.getColorHelper('User').color,
+									entityRef: entityRef('User', user.id, user)
+								}
+							];
+						}
 					}
 				},
 				{
@@ -470,18 +515,16 @@
 	{/if}
 {/snippet}
 
-<div class="space-y-6">
-	<!-- Header -->
-	<TabHeader title={common_daemons()}>
-		<svelte:fragment slot="actions">
-			{#if !isReadOnly}
-				<button class="btn-primary flex items-center" onclick={handleCreateDaemon}
-					><Plus class="h-5 w-5" />{common_create()}</button
-				>
-			{/if}
-		</svelte:fragment>
-	</TabHeader>
+<!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
+{#snippet toolbarActions()}
+	{#if !isReadOnly}
+		<button class="btn-primary toolbar-control flex items-center" onclick={handleCreateDaemon}
+			><Plus class="h-5 w-5" />{common_create()}</button
+		>
+	{/if}
+{/snippet}
 
+<div class="space-y-6">
 	<!-- Loading state -->
 	{#if isLoading}
 		<Loading />
@@ -503,17 +546,16 @@
 			</div>
 		{/if}
 		<DataControls
+			title={common_daemons()}
+			{toolbarActions}
 			items={daemonsData}
 			fields={daemonFields}
 			storageKey="scanopy-daemons-table-state"
+			defaults={tableDefaults}
 			onBulkDelete={isReadOnly ? undefined : handleBulkDelete}
 			entityType={isReadOnly ? undefined : 'Daemon'}
 			getItemTags={getDaemonTags}
 			getItemId={(item) => item.id}
-			getIcon={() => ({
-				icon: entities.getIconComponent('Daemon'),
-				color: entities.getColorHelper('Daemon').icon
-			})}
 			onCsvExport={handleCsvExport}
 			getActions={daemonActions}
 			entityLabel={common_daemons()}

@@ -1,16 +1,17 @@
 <script lang="ts" module>
 	import { entities } from '$lib/shared/stores/metadata';
 	import { queryClient, queryKeys } from '$lib/api/query-client';
-	import type { Network } from '$lib/features/networks/types';
+	import type { Site } from '$lib/features/sites/types';
+	import { common_unknownSite } from '$lib/paraglide/messages';
 
 	export const TopologyDisplay: EntityDisplayComponent<Topology, object> = {
 		getId: (topology: Topology) => topology.id,
 		getLabel: (topology: Topology) =>
 			(topology as Topology & { name?: string }).name ?? topology.id,
 		getDescription: (topology: Topology) => {
-			const networksData = queryClient.getQueryData<Network[]>(queryKeys.networks.all) ?? [];
-			const network = networksData.find((n) => n.id == topology.network_id);
-			return network ? network.name : 'Unknown Network';
+			const sitesData = queryClient.getQueryData<Site[]>(queryKeys.sites.all) ?? [];
+			const site = sitesData.find((n) => n.id == topology.site_id);
+			return site ? site.name : common_unknownSite();
 		},
 		getIcon: () => entities.getIconComponent('Topology'),
 		getIconColor: () => entities.getColorHelper('Topology').icon

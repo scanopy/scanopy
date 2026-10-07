@@ -38,18 +38,18 @@ mod generated {
 
 pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
     OpenApiRouter::new()
-        .routes(routes!(generated::get_all, create_if_entry))
+        .routes(routes!(generated::get_all, create_interface))
         .routes(routes!(generated::export_csv))
         .routes(routes!(
             generated::get_by_id,
-            update_if_entry,
+            update_interface,
             generated::delete
         ))
         .routes(routes!(generated::bulk_delete))
 }
 
-/// Validate that if entry's host is on the same network as the entry
-async fn validate_if_entry_network_consistency(
+/// Validate that if entry's host is on the same site as the entry
+async fn validate_interface_site_consistency(
     state: &AppState,
     interface: &Interface,
 ) -> Result<(), ApiError> {
@@ -58,9 +58,9 @@ async fn validate_if_entry_network_consistency(
         .host_service
         .get_by_id(&interface.base.host_id)
         .await?
-        && host.base.network_id != interface.base.network_id
+        && host.base.site_id != interface.base.site_id
     {
-        return Err(ApiError::entity_network_mismatch::<Host>());
+        return Err(ApiError::entity_site_mismatch::<Host>());
     }
 
     Ok(())
@@ -77,16 +77,16 @@ async fn validate_if_entry_network_consistency(
     request_body = Interface,
     responses(
         (status = 200, description = "If entry created successfully", body = ApiResponse<Interface>),
-        (status = 400, description = "Network mismatch or duplicate if_index", body = ApiErrorResponse),
+        (status = 400, description = "Site mismatch or duplicate if_index", body = ApiErrorResponse),
     ),
     security(("user_api_key" = []), ("session" = []))
 )]
-async fn create_if_entry(
+async fn create_interface(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
     ApiJson(interface): ApiJson<Interface>,
 ) -> ApiResult<Json<ApiResponse<Interface>>> {
-    validate_if_entry_network_consistency(&state, &interface).await?;
+    validate_interface_site_consistency(&state, &interface).await?;
     state
         .services
         .interface_service
@@ -105,18 +105,18 @@ async fn create_if_entry(
     request_body = Interface,
     responses(
         (status = 200, description = "If entry updated successfully", body = ApiResponse<Interface>),
-        (status = 400, description = "Network mismatch or invalid request", body = ApiErrorResponse),
+        (status = 400, description = "Site mismatch or invalid request", body = ApiErrorResponse),
         (status = 404, description = "If entry not found", body = ApiErrorResponse),
     ),
     security(("user_api_key" = []), ("session" = []))
 )]
-async fn update_if_entry(
+async fn update_interface(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
     path: Path<Uuid>,
     ApiJson(interface): ApiJson<Interface>,
 ) -> ApiResult<Json<ApiResponse<Interface>>> {
-    validate_if_entry_network_consistency(&state, &interface).await?;
+    validate_interface_site_consistency(&state, &interface).await?;
     state
         .services
         .interface_service

@@ -142,8 +142,8 @@ describe('discovery warning rendering', () => {
 			const [line] = sentences([w]);
 			const name = discoveryIntegrations.find((i) => i.id === id)?.name;
 			expect(line, `${id} has no display name`).toContain(name);
-			// The raw value may only appear when it is also the display name.
-			if (name !== id) expect(line, `${id} leaked its discriminant`).not.toContain(id);
+			// The raw value may only appear as part of the display name ("Proxmox" in "Proxmox VE API").
+			expect(line.replace(name ?? '', ''), `${id} leaked its discriminant`).not.toContain(id);
 		}
 	});
 

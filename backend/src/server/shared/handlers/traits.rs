@@ -42,7 +42,7 @@ where
     fn get_service(state: &AppState) -> &Self::Service;
 
     /// Query type for filtering in get_all requests.
-    /// Use `NetworkFilterQuery` for network-keyed entities,
+    /// Use `SiteFilterQuery` for site-keyed entities,
     /// `OrganizationFilterQuery` for organization-keyed entities.
     type FilterQuery: FilterQueryExtractor;
 
@@ -50,7 +50,13 @@ where
     /// Use `NoOrderField` for entities without server-side ordering.
     type OrderField: OrderField + DeserializeOwned + ToSchema;
 
-    /// Get entity name for error messages (e.g., "Group", "Network")
+    /// The order global search lists this entity's matches in. `None` lists them in creation
+    /// order.
+    fn search_order() -> Option<Self::OrderField> {
+        None
+    }
+
+    /// Get entity name for error messages (e.g., "Group", "Site")
     fn entity_name() -> &'static str {
         Self::table_name()
     }
@@ -91,16 +97,16 @@ where
     validate_entity(|| CrudHandlers::validate(&entity), T::entity_name())?;
 
     let service = T::get_service(&state);
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
     let user_id = auth.user_id();
 
     validate_create_access(
-        service.get_network_id(&entity),
+        service.get_site_id(&entity),
         service.get_organization_id(&entity),
-        &network_ids,
+        &site_ids,
         organization_id,
     )?;
 
@@ -124,13 +130,13 @@ where
     Ok(Json(ApiResponse::success(created)))
 }
 
-/// The filter every list-shaped read of `T` starts from: the caller's network or organization
+/// The filter every list-shaped read of `T` starts from: the caller's site or organization
 /// scope, the SCD2 live/as-of narrowing, and the entity's own query filters.
 ///
 /// Shared by `get_all_handler` and `get_field_values_handler`, so the values offered for a field
 /// can never come from rows the list itself would not show.
 pub fn base_list_filter<T>(
-    network_ids: &[Uuid],
+    site_ids: &[Uuid],
     organization_id: Uuid,
     query: &T::FilterQuery,
 ) -> StorableFilter<T>
@@ -138,14 +144,7 @@ where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
     EntityEnum: From<T>,
 {
-    let mut base_filter = if T::is_network_keyed() {
-        StorableFilter::<T>::new_from_network_ids(network_ids)
-    } else if T::table_name() == "networks" {
-        // Networks are org-scoped but should be filtered to only those the user has access to
-        StorableFilter::<T>::new_from_entity_ids(network_ids)
-    } else {
-        StorableFilter::<T>::new_from_org_id(&organization_id)
-    };
+    let mut base_filter = StorableFilter::<T>::new_for_access(site_ids, &organization_id);
 
     // SCD2 entities: hide closed historical copies from frontend-facing GETs.
     // When the query carries an `at` timestamp (snapshot view), read as-of that
@@ -155,7 +154,7 @@ where
     }
 
     // Apply entity-specific filters
-    query.apply_to_filter(base_filter, network_ids, organization_id)
+    query.apply_to_filter(base_filter, site_ids, organization_id)
 }
 
 /// Every distinct value of one order field across the rows the caller can list, with how many
@@ -171,12 +170,12 @@ where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
     EntityEnum: From<T>,
 {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
 
-    let filter = field_values_filter::<T>(&network_ids, organization_id, &query, field);
+    let filter = field_values_filter::<T>(&site_ids, organization_id, &query, field);
 
     let counts = T::get_service(&state)
         .count_by_group(filter, field.to_sql())
@@ -188,7 +187,7 @@ where
 /// The filter `get_field_values_handler` counts under: the list's base filter plus the JOIN the
 /// field's expression reads from.
 pub fn field_values_filter<T>(
-    network_ids: &[Uuid],
+    site_ids: &[Uuid],
     organization_id: Uuid,
     query: &T::FilterQuery,
     field: T::OrderField,
@@ -197,7 +196,7 @@ where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
     EntityEnum: From<T>,
 {
-    let filter = base_list_filter::<T>(network_ids, organization_id, query);
+    let filter = base_list_filter::<T>(site_ids, organization_id, query);
     match field.join_sql() {
         Some(join) => filter.join(join),
         None => filter,
@@ -213,13 +212,13 @@ where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
     EntityEnum: From<T>,
 {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
     let user_id = auth.user_id();
 
-    let filter = base_list_filter::<T>(&network_ids, organization_id, &query);
+    let filter = base_list_filter::<T>(&site_ids, organization_id, &query);
 
     // Apply pagination
     let pagination = query.pagination();
@@ -260,7 +259,7 @@ where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
     EntityEnum: From<T>,
 {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
@@ -291,9 +290,9 @@ where
         })?;
 
     validate_read_access(
-        service.get_network_id(&entity),
+        service.get_site_id(&entity),
         service.get_organization_id(&entity),
-        &network_ids,
+        &site_ids,
         organization_id,
     )?;
 
@@ -316,7 +315,7 @@ where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
     EntityEnum: From<T>,
 {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
@@ -361,11 +360,11 @@ where
     validate_entity(|| CrudHandlers::validate(&entity), T::entity_name())?;
 
     validate_update_access(
-        service.get_network_id(&existing),
+        service.get_site_id(&existing),
         service.get_organization_id(&existing),
-        service.get_network_id(&entity),
+        service.get_site_id(&entity),
         service.get_organization_id(&entity),
-        &network_ids,
+        &site_ids,
         organization_id,
     )?;
 
@@ -399,7 +398,7 @@ where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
     EntityEnum: From<T>,
 {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
@@ -429,9 +428,9 @@ where
         })?;
 
     validate_delete_access(
-        service.get_network_id(&entity),
+        service.get_site_id(&entity),
         service.get_organization_id(&entity),
-        &network_ids,
+        &site_ids,
         organization_id,
     )?;
 
@@ -465,7 +464,7 @@ where
         return Err(ApiError::bulk_empty());
     }
 
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
@@ -492,9 +491,9 @@ where
     // Verify ownership of ALL entities before deleting any
     for entity in &entities {
         validate_bulk_delete_access(
-            service.get_network_id(entity),
+            service.get_site_id(entity),
             service.get_organization_id(entity),
-            &network_ids,
+            &site_ids,
             organization_id,
         )?;
     }

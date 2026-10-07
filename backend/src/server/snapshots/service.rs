@@ -6,8 +6,6 @@ use chrono::{DateTime, Duration, Utc};
 use sqlx::{PgPool, Postgres};
 use uuid::Uuid;
 
-use crate::server::networks::r#impl::Network;
-use crate::server::networks::service::NetworkService;
 use crate::server::organizations::service::OrganizationService;
 use crate::server::shared::events::bus::EventBus;
 use crate::server::shared::services::traits::{CrudService, EventBusService};
@@ -17,6 +15,8 @@ use crate::server::shared::storage::{
     snapshot::{FkMaps, Snapshotable},
     traits::{Storable, Storage},
 };
+use crate::server::sites::r#impl::Site;
+use crate::server::sites::service::SiteService;
 use crate::server::snapshots::types::base::Snapshot;
 use crate::server::tags::entity_tags::EntityTagService;
 
@@ -68,7 +68,7 @@ impl VirtualizationServiceRef for Subnet {
     }
 }
 
-/// Network snapshots: close-and-clone the live row set for a network at a
+/// Site snapshots: close-and-clone the live row set for a site at a
 /// single timestamp inside one transaction. Also acts as the `CrudService`
 /// for the `Snapshot` entity so the standard handlers can read/list/delete
 /// snapshot rows.
@@ -76,7 +76,7 @@ pub struct SnapshotService {
     pool: Arc<PgPool>,
     storage: Arc<GenericPostgresStorage<Snapshot>>,
     event_bus: Arc<EventBus>,
-    network_service: Arc<NetworkService>,
+    site_service: Arc<SiteService>,
     organization_service: Arc<OrganizationService>,
 }
 
@@ -85,14 +85,14 @@ impl SnapshotService {
         pool: Arc<PgPool>,
         storage: Arc<GenericPostgresStorage<Snapshot>>,
         event_bus: Arc<EventBus>,
-        network_service: Arc<NetworkService>,
+        site_service: Arc<SiteService>,
         organization_service: Arc<OrganizationService>,
     ) -> Arc<Self> {
         Arc::new(Self {
             pool,
             storage,
             event_bus,
-            network_service,
+            site_service,
             organization_service,
         })
     }
@@ -103,8 +103,8 @@ impl EventBusService<Snapshot> for SnapshotService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, entity: &Snapshot) -> Option<Uuid> {
-        Some(entity.base.network_id)
+    fn get_site_id(&self, entity: &Snapshot) -> Option<Uuid> {
+        Some(entity.base.site_id)
     }
 
     fn get_organization_id(&self, _entity: &Snapshot) -> Option<Uuid> {
@@ -124,20 +124,20 @@ impl CrudService<Snapshot> for SnapshotService {
 }
 
 impl SnapshotService {
-    /// Synchronous orchestration of one network snapshot at `taken_at`.
+    /// Synchronous orchestration of one site snapshot at `taken_at`.
     ///
     /// Caller (the manual-snapshot API handler or future scheduled-snapshot
-    /// machinery) is responsible for `DiscoveryService::try_acquire_network_for_snapshot`
-    /// before calling, and `release_network_for_snapshot` after — regardless
+    /// machinery) is responsible for `DiscoveryService::try_acquire_site_for_snapshot`
+    /// before calling, and `release_site_for_snapshot` after — regardless
     /// of result.
     ///
-    /// All twelve network-scoped Snapshotable entity types are processed
+    /// All twelve site-scoped Snapshotable entity types are processed
     /// parents-first so child rows can remap their FK columns to the closed
     /// parent ids via [`FkMaps`]. The whole sequence runs in a single
     /// `sqlx::Transaction`; if any step fails, nothing is committed.
     pub async fn run_close_and_clone(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         taken_at: DateTime<Utc>,
         snapshot_id: Uuid,
     ) -> Result<()> {
@@ -157,10 +157,10 @@ impl SnapshotService {
         let mut tx = self.pool.begin().await?;
         let mut maps = FkMaps::default();
 
-        // Top-level network-scoped entities (no within-tracked FKs to remap).
+        // Top-level site-scoped entities (no within-tracked FKs to remap).
         let subnet_map = close_and_clone_for::<Subnet>(
             &mut tx,
-            network_filter::<Subnet>(network_id),
+            site_filter::<Subnet>(site_id),
             taken_at,
             snapshot_id,
             &maps,
@@ -170,7 +170,7 @@ impl SnapshotService {
 
         let vlan_map = close_and_clone_for::<Vlan>(
             &mut tx,
-            network_filter::<Vlan>(network_id),
+            site_filter::<Vlan>(site_id),
             taken_at,
             snapshot_id,
             &maps,
@@ -180,7 +180,7 @@ impl SnapshotService {
 
         let host_map = close_and_clone_for::<Host>(
             &mut tx,
-            network_filter::<Host>(network_id),
+            site_filter::<Host>(site_id),
             taken_at,
             snapshot_id,
             &maps,
@@ -192,7 +192,7 @@ impl SnapshotService {
         // parent maps populated above.
         let ip_map = close_and_clone_for::<IPAddress>(
             &mut tx,
-            network_filter::<IPAddress>(network_id),
+            site_filter::<IPAddress>(site_id),
             taken_at,
             snapshot_id,
             &maps,
@@ -200,7 +200,7 @@ impl SnapshotService {
         .await?;
         maps.ip_addresses = ip_map;
 
-        // Ports filter through host_id (Port has no network_id column).
+        // Ports filter through host_id (Port has no site_id column).
         let host_ids: Vec<Uuid> = maps.hosts.keys().copied().collect();
         let port_map = close_and_clone_for::<Port>(
             &mut tx,
@@ -214,7 +214,7 @@ impl SnapshotService {
 
         let service_map = close_and_clone_for::<Service>(
             &mut tx,
-            network_filter::<Service>(network_id),
+            site_filter::<Service>(site_id),
             taken_at,
             snapshot_id,
             &maps,
@@ -232,7 +232,7 @@ impl SnapshotService {
         remap_virtualization_service_ids::<Service>(&mut tx, snapshot_id, &maps.services).await?;
         remap_virtualization_service_ids::<Subnet>(&mut tx, snapshot_id, &maps.services).await?;
 
-        // Interfaces filter through host_id (Interface has no network_id).
+        // Interfaces filter through host_id (Interface has no site_id).
         let interface_map = close_and_clone_for::<Interface>(
             &mut tx,
             StorableFilter::<Interface>::new_from_uuids_column("host_id", &host_ids).live(),
@@ -244,7 +244,7 @@ impl SnapshotService {
         maps.interfaces = interface_map;
 
         // GH #701: resolved neighbour adjacencies, filtered through interface_id (neither table
-        // has a network_id-free shortcut — both are children of `interfaces`, same as ports).
+        // has a site_id-free shortcut — both are children of `interfaces`, same as ports).
         // Both FKs (`interface_id`, `neighbor_interface_id`/`neighbor_host_id`) remap in the
         // per-row `remap_fks_for_clone` pass against `maps.interfaces`/`maps.hosts`, which are
         // both already populated by this point — unlike the old `Interface.neighbor` self-
@@ -276,7 +276,7 @@ impl SnapshotService {
         )
         .await?;
 
-        // Bindings filter through service_id (Binding has no network_id).
+        // Bindings filter through service_id (Binding has no site_id).
         // BINDINGS must come before DEPENDENCY_MEMBERS so dep_member's
         // optional binding_id can be remapped.
         let service_ids: Vec<Uuid> = maps.services.keys().copied().collect();
@@ -304,7 +304,7 @@ impl SnapshotService {
 
         let dependency_map = close_and_clone_for::<Dependency>(
             &mut tx,
-            network_filter::<Dependency>(network_id),
+            site_filter::<Dependency>(site_id),
             taken_at,
             snapshot_id,
             &maps,
@@ -327,9 +327,9 @@ impl SnapshotService {
         )
         .await?;
 
-        // EntityTags: filter to network-scoped entity types only. Org-scoped
+        // EntityTags: filter to site-scoped entity types only. Org-scoped
         // variants (Daemon, User, DaemonApiKey, UserApiKey, etc.) are not
-        // cloned at network snapshot. The set of network-scoped entity ids
+        // cloned at site snapshot. The set of site-scoped entity ids
         // is the union of host/service/subnet/dependency live ids that
         // were just cloned (via maps).
         let entity_ids: Vec<Uuid> = maps
@@ -385,13 +385,13 @@ impl SnapshotService {
     /// to the deleted snapshots automatically. Live rows (snapshot_id IS NULL)
     /// are untouched.
     pub async fn trim_org(&self, org_id: Uuid, retention_days: u32) -> Result<()> {
-        let networks = self
-            .network_service
-            .get_all(StorableFilter::<Network>::new_from_org_id(&org_id))
+        let sites = self
+            .site_service
+            .get_all(StorableFilter::<Site>::new_from_org_id(&org_id))
             .await?;
-        let network_ids: Vec<Uuid> = networks.into_iter().map(|n| n.id).collect();
+        let site_ids: Vec<Uuid> = sites.into_iter().map(|n| n.id).collect();
 
-        if network_ids.is_empty() {
+        if site_ids.is_empty() {
             return Ok(());
         }
 
@@ -401,20 +401,19 @@ impl SnapshotService {
         // a feature on this plan, new ones are blocked, and the sweep is what
         // clears any inherited from a higher tier.)
         let cutoff = Utc::now() - Duration::days(retention_days as i64);
-        let filter =
-            StorableFilter::<Snapshot>::new_from_network_ids(&network_ids).taken_at_lt(cutoff);
+        let filter = StorableFilter::<Snapshot>::new_from_site_ids(&site_ids).taken_at_lt(cutoff);
         self.storage.delete_by_filter(filter).await?;
 
         Ok(())
     }
 }
 
-/// Standard "live rows on this network" filter. Used by the entity types
-/// that carry a `network_id` column directly (subnets, vlans, hosts,
+/// Standard "live rows on this site" filter. Used by the entity types
+/// that carry a `site_id` column directly (subnets, vlans, hosts,
 /// ip_addresses, services, dependencies). Junction tables that lack
-/// `network_id` are filtered through their parents above.
-fn network_filter<T: Storable>(network_id: Uuid) -> StorableFilter<T> {
-    StorableFilter::<T>::new_from_network_ids(&[network_id]).live()
+/// `site_id` are filtered through their parents above.
+fn site_filter<T: Storable>(site_id: Uuid) -> StorableFilter<T> {
+    StorableFilter::<T>::new_from_site_ids(&[site_id]).live()
 }
 
 /// Generic close-and-clone for one Snapshotable entity type within a shared
@@ -501,7 +500,7 @@ fn remap_self_refs<T: Snapshotable>(
                 row.set_own_clone_ref(*closed_ref);
                 remapped.push(row.clone());
             }
-            // No closed copy in this snapshot — a neighbour on another network,
+            // No closed copy in this snapshot — a neighbour on another site,
             // say. The live id stays, which is the only value that satisfies the
             // FK, but the snapshot's L2 read cannot resolve it and drops the
             // edge. Reported rather than left to be inferred from a link that

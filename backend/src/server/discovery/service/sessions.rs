@@ -16,11 +16,11 @@ impl DiscoveryService {
     }
 
     /// Get session state
-    pub async fn get_all_sessions(&self, network_ids: &[Uuid]) -> Vec<DiscoveryUpdatePayload> {
+    pub async fn get_all_sessions(&self, site_ids: &[Uuid]) -> Vec<DiscoveryUpdatePayload> {
         let all_sessions = self.sessions.read().await;
         all_sessions
             .values()
-            .filter(|v| network_ids.contains(&v.network_id) && !v.phase.is_terminal())
+            .filter(|v| site_ids.contains(&v.site_id) && !v.phase.is_terminal())
             .cloned()
             .collect()
     }
@@ -131,79 +131,79 @@ impl DiscoveryService {
         }
     }
 
-    /// Reserve a network for snapshotting, returning a reservation that releases it.
+    /// Reserve a site for snapshotting, returning a reservation that releases it.
     ///
-    /// `None` when [`Self::try_acquire_network_for_snapshot`] would return `false`. Prefer this to
-    /// pairing acquire and release by hand: the reservation also releases the network when the
+    /// `None` when [`Self::try_acquire_site_for_snapshot`] would return `false`. Prefer this to
+    /// pairing acquire and release by hand: the reservation also releases the site when the
     /// holder is dropped without releasing it, which is what a request handler's future does when
     /// its client disconnects.
-    pub async fn try_reserve_network_for_snapshot(
+    pub async fn try_reserve_site_for_snapshot(
         self: &Arc<Self>,
-        network_id: Uuid,
+        site_id: Uuid,
     ) -> Option<SnapshotReservation> {
-        self.try_acquire_network_for_snapshot(network_id)
+        self.try_acquire_site_for_snapshot(site_id)
             .await
             .then(|| SnapshotReservation {
                 service: self.clone(),
-                network_id,
+                site_id,
                 released: false,
             })
     }
 
-    /// Atomically reserve a network for snapshotting.
+    /// Atomically reserve a site for snapshotting.
     ///
-    /// Returns `true` iff the network has zero non-terminal sessions AND is
-    /// not already reserved. On success, the network is added to
+    /// Returns `true` iff the site has zero non-terminal sessions AND is
+    /// not already reserved. On success, the site is added to
     /// `running_snapshots`; the caller MUST pair this with
-    /// `release_network_for_snapshot` (typically via the manual-snapshot
+    /// `release_site_for_snapshot` (typically via the manual-snapshot
     /// API handler's acquire → run → release sequence).
     ///
-    /// Returns `false` if any non-terminal session exists on the network or
+    /// Returns `false` if any non-terminal session exists on the site or
     /// if another snapshot is already in progress for it.
-    pub async fn try_acquire_network_for_snapshot(&self, network_id: Uuid) -> bool {
+    pub async fn try_acquire_site_for_snapshot(&self, site_id: Uuid) -> bool {
         // Lock order: running_snapshots → sessions. This matches start_session,
         // which takes running_snapshots.read before sessions.write to decide
         // AwaitingSnapshot vs Queued/Pending. With this consistent order, the
         // "no non-terminal session" check and the insert into running_snapshots
-        // are atomic against any in-flight start_session for the same network:
+        // are atomic against any in-flight start_session for the same site:
         // start_session is either fully visible (try_acquire returns false) or
         // not started yet (start_session sees running_snapshots and goes
         // AwaitingSnapshot).
         let mut running = self.running_snapshots.write().await;
         let sessions = self.sessions.read().await;
 
-        if running.contains(&network_id) {
+        if running.contains(&site_id) {
             return false;
         }
 
         let has_non_terminal_session = sessions
             .values()
-            .any(|s| s.network_id == network_id && !s.phase.is_terminal());
+            .any(|s| s.site_id == site_id && !s.phase.is_terminal());
         if has_non_terminal_session {
             return false;
         }
 
-        running.insert(network_id);
+        running.insert(site_id);
         true
     }
 
-    /// Release a network from snapshotting and unblock any AwaitingSnapshot
+    /// Release a site from snapshotting and unblock any AwaitingSnapshot
     /// sessions on it.
     ///
-    /// For each session on this network whose phase is `AwaitingSnapshot`,
+    /// For each session on this site whose phase is `AwaitingSnapshot`,
     /// runs the same Queued/Pending decision that `start_session` uses: if
     /// the daemon's queue would otherwise be empty after promotion, the
     /// session is promoted to `Pending` and a discovery event published;
     /// otherwise it stays `Queued`.
-    pub async fn release_network_for_snapshot(&self, network_id: Uuid) {
+    pub async fn release_site_for_snapshot(&self, site_id: Uuid) {
         // Drop the running_snapshots entry up front so any subsequent
-        // start_session for this network goes through the normal path.
+        // start_session for this site goes through the normal path.
         {
             let mut running = self.running_snapshots.write().await;
-            running.remove(&network_id);
+            running.remove(&site_id);
         }
 
-        // Identify AwaitingSnapshot sessions on this network and decide
+        // Identify AwaitingSnapshot sessions on this site and decide
         // their next phase. Walk daemons in turn so the Queued/Pending
         // decision matches start_session's "promote only if daemon has no
         // other dispatched sessions" rule.
@@ -215,7 +215,7 @@ impl DiscoveryService {
         let mut to_publish: Vec<DiscoveryUpdatePayload> = Vec::new();
         let awaiting_session_ids: Vec<Uuid> = sessions
             .values()
-            .filter(|s| s.network_id == network_id && s.phase == DiscoveryPhase::AwaitingSnapshot)
+            .filter(|s| s.site_id == site_id && s.phase == DiscoveryPhase::AwaitingSnapshot)
             .map(|s| s.session_id)
             .collect();
 
@@ -269,9 +269,9 @@ impl DiscoveryService {
                 .await
             {
                 tracing::warn!(
-                    network_id = %network_id,
+                    site_id = %site_id,
                     error = %e,
-                    "Failed to publish discovery event after release_network_for_snapshot",
+                    "Failed to publish discovery event after release_site_for_snapshot",
                 );
             }
         }
@@ -286,14 +286,13 @@ impl DiscoveryService {
     /// scan record down with it.
     pub async fn publish_warning_events(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         session_id: Uuid,
         daemon_id: Uuid,
         warnings: &[DiscoveryWarning],
     ) {
         for warning in warnings {
-            let scope =
-                DiscoveryWarningScope::new(network_id, session_id, daemon_id, warning.clone());
+            let scope = DiscoveryWarningScope::new(site_id, session_id, daemon_id, warning.clone());
             let code = warning.code();
             let _ = self
                 .event_bus
@@ -319,6 +318,32 @@ impl DiscoveryService {
         self.superseded_wire_daemons.write().await.remove(daemon_id)
     }
 
+    /// Record subnets a host request from this daemon stored, for its scan's terminal update.
+    ///
+    /// Latched per daemon for the same reason as `note_superseded_wire_shape`: the submission
+    /// path sees the stored ids but not the session. Idempotent across hosts sharing a subnet.
+    pub async fn note_touched_subnets(&self, daemon_id: Uuid, subnet_ids: Vec<Uuid>) {
+        if subnet_ids.is_empty() {
+            return;
+        }
+        self.touched_subnets
+            .write()
+            .await
+            .entry(daemon_id)
+            .or_default()
+            .extend(subnet_ids);
+    }
+
+    /// Take this daemon's latched subnets, clearing them, so the next scan starts empty.
+    pub async fn take_touched_subnets(&self, daemon_id: &Uuid) -> Vec<Uuid> {
+        self.touched_subnets
+            .write()
+            .await
+            .remove(daemon_id)
+            .map(|ids| ids.into_iter().collect())
+            .unwrap_or_default()
+    }
+
     pub async fn pull_cancellation_for_daemon(&self, daemon_id: &Uuid) -> (bool, Uuid) {
         let mut daemon_cancellation_ids = self.daemon_pull_cancellations.write().await;
         daemon_cancellation_ids
@@ -327,23 +352,21 @@ impl DiscoveryService {
     }
 }
 
-/// A network reserved for a snapshot.
+/// A site reserved for a snapshot.
 ///
 /// Release it with [`Self::release`] when the snapshot is done. If it is dropped unreleased (the
-/// request serving the snapshot was abandoned mid-way), it releases the network itself. Without
-/// that, the reservation outlived the request and every later scan on the network waited in
+/// request serving the snapshot was abandoned mid-way), it releases the site itself. Without
+/// that, the reservation outlived the request and every later scan on the site waited in
 /// `AwaitingSnapshot`, which the stall sweep never touches, until the server restarted.
 pub struct SnapshotReservation {
     service: Arc<DiscoveryService>,
-    network_id: Uuid,
+    site_id: Uuid,
     released: bool,
 }
 
 impl SnapshotReservation {
     pub async fn release(mut self) {
-        self.service
-            .release_network_for_snapshot(self.network_id)
-            .await;
+        self.service.release_site_for_snapshot(self.site_id).await;
         // Set only once the release has run: a release interrupted part-way is finished by `Drop`.
         // Releasing twice is harmless.
         self.released = true;
@@ -361,13 +384,13 @@ impl Drop for SnapshotReservation {
             return;
         };
         tracing::warn!(
-            network_id = %self.network_id,
-            "Snapshot request ended without releasing its network; releasing it now"
+            site_id = %self.site_id,
+            "Snapshot request ended without releasing its site; releasing it now"
         );
         let service = self.service.clone();
-        let network_id = self.network_id;
+        let site_id = self.site_id;
         runtime.spawn(async move {
-            service.release_network_for_snapshot(network_id).await;
+            service.release_site_for_snapshot(site_id).await;
         });
     }
 }

@@ -74,11 +74,11 @@ pub async fn get_user_by_id(
         return Err(ApiError::permission_denied());
     }
 
-    // Hydrate network_ids from junction table
+    // Hydrate site_ids from junction table
     state
         .services
         .user_service
-        .hydrate_network_ids(&mut user)
+        .hydrate_site_ids(&mut user)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
@@ -126,11 +126,7 @@ pub async fn get_all_users(
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?
         .into_iter()
-        .filter(|u| {
-            permissions == UserOrgPermissions::Owner
-                || u.base.permissions < permissions
-                || u.id == user_id
-        })
+        .filter(|u| u.is_listed_for(permissions, user_id))
         .collect();
 
     // Apply pagination in-memory after filtering
@@ -148,11 +144,11 @@ pub async fn get_all_users(
         None => all_users.into_iter().skip(offset).collect(),
     };
 
-    // Hydrate network_ids from junction table
+    // Hydrate site_ids from junction table
     state
         .services
         .user_service
-        .hydrate_network_ids_batch(&mut users)
+        .hydrate_site_ids_batch(&mut users)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
@@ -375,19 +371,19 @@ async fn admin_update_user(
     request.base.email_settings = existing.base.email_settings.clone();
     request.base.display_settings = existing.base.display_settings.clone();
 
-    // Capture network_ids before update (they're stored in junction table, not user record)
-    let network_ids = request.base.network_ids.clone();
+    // Capture site_ids before update (they're stored in junction table, not user record)
+    let site_ids = request.base.site_ids.clone();
 
     let updated = service
         .update(&mut request, auth.into_entity())
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
-    // Persist network_ids to the junction table
+    // Persist site_ids to the junction table
     state
         .services
         .user_service
-        .set_network_ids(&id, &network_ids)
+        .set_site_ids(&id, &site_ids)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 

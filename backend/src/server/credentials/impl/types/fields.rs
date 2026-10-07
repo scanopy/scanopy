@@ -42,6 +42,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: None,
                     file_name: Some("snmp-community"),
+                    half_width: false,
                 }]
             }
             Self::Gnmi {
@@ -53,6 +54,24 @@ impl CredentialType {
                 tls: _,
                 skip_verify: _,
             } => vec![
+                FieldDefinition {
+                    id: "username",
+                    label: "Username",
+                    field_type: FieldType::String,
+                    placeholder: Some("gnmi-user"),
+                    placeholder_by: None,
+                    secret: false,
+                    optional: false,
+                    help_text: Some(
+                        "Sent as gRPC `username` metadata (the OpenConfig convention).",
+                    ),
+                    options: None,
+                    default_value: None,
+                    inline_format: None,
+                    group: Some("Connection"),
+                    file_name: None,
+                    half_width: true,
+                },
                 FieldDefinition {
                     id: "port",
                     label: "gNMI Port",
@@ -69,23 +88,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Connection"),
                     file_name: None,
-                },
-                FieldDefinition {
-                    id: "username",
-                    label: "Username",
-                    field_type: FieldType::String,
-                    placeholder: Some("gnmi-user"),
-                    placeholder_by: None,
-                    secret: false,
-                    optional: false,
-                    help_text: Some(
-                        "Sent as gRPC `username` metadata (the OpenConfig convention).",
-                    ),
-                    options: None,
-                    default_value: None,
-                    inline_format: None,
-                    group: Some("Authentication"),
-                    file_name: None,
+                    half_width: true,
                 },
                 FieldDefinition {
                     id: "password",
@@ -101,6 +104,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
                     file_name: Some("gnmi-password"),
+                    half_width: false,
                 },
             ],
             Self::SnmpV3 {
@@ -125,6 +129,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Authentication"),
                     file_name: None,
+                    half_width: true,
                 },
                 FieldDefinition {
                     id: "auth_protocol",
@@ -140,6 +145,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Authentication"),
                     file_name: None,
+                    half_width: true,
                 },
                 FieldDefinition {
                     id: "auth_password",
@@ -155,6 +161,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
                     file_name: Some("snmpv3-auth-password"),
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "priv_protocol",
@@ -170,6 +177,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Privacy"),
                     file_name: None,
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "priv_password",
@@ -185,6 +193,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Privacy"),
                     file_name: Some("snmpv3-priv-password"),
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "context_name",
@@ -202,6 +211,7 @@ impl CredentialType {
                     inline_format: None,
                     group: None,
                     file_name: None,
+                    half_width: false,
                 },
             ],
             Self::DockerProxy { .. } => container_proxy_field_definitions(
@@ -248,6 +258,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
                     file_name: Some("unifi-api-key"),
+                    half_width: false,
                 });
                 fields
             }
@@ -269,6 +280,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Authentication"),
                     file_name: None,
+                    half_width: false,
                 });
                 fields.push(FieldDefinition {
                     id: "password",
@@ -284,6 +296,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
                     file_name: Some("unifi-password"),
+                    half_width: false,
                 });
                 fields
             }
@@ -304,6 +317,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Authentication"),
                     file_name: None,
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "password",
@@ -319,6 +333,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
                     file_name: Some("instant-on-password"),
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "site",
@@ -336,6 +351,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Scope"),
                     file_name: None,
+                    half_width: false,
                 },
             ],
             Self::SshPassword {
@@ -362,6 +378,7 @@ impl CredentialType {
                 inline_format: Some(InlineFormat::Plain),
                 group: Some("Authentication"),
                 file_name: Some("ssh-password"),
+                half_width: false,
             }]),
             Self::SshKey {
                 port: _,
@@ -389,6 +406,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::SshPrivateKey),
                     group: Some("Authentication"),
                     file_name: Some("ssh-key"),
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "passphrase",
@@ -404,6 +422,7 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
                     file_name: Some("ssh-key-passphrase"),
+                    half_width: false,
                 },
             ]),
             Self::WakeOnLan {
@@ -412,23 +431,6 @@ impl CredentialType {
                 broadcast_address: _,
                 secure_on_password: _,
             } => vec![
-                FieldDefinition {
-                    id: "port",
-                    label: "UDP Port",
-                    field_type: FieldType::Port,
-                    placeholder: Some("9"),
-                    placeholder_by: None,
-                    secret: false,
-                    optional: true,
-                    help_text: Some(
-                        "Most network cards accept the packet on any port. Change it only if a router relay rule listens on another port, commonly 7.",
-                    ),
-                    options: None,
-                    default_value: Some("9"),
-                    inline_format: None,
-                    group: Some("Delivery"),
-                    file_name: None,
-                },
                 FieldDefinition {
                     id: "broadcast_address",
                     label: "Broadcast Address",
@@ -445,6 +447,25 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Delivery"),
                     file_name: None,
+                    half_width: true,
+                },
+                FieldDefinition {
+                    id: "port",
+                    label: "UDP Port",
+                    field_type: FieldType::Port,
+                    placeholder: Some("9"),
+                    placeholder_by: None,
+                    secret: false,
+                    optional: true,
+                    help_text: Some(
+                        "Most network cards accept the packet on any port. Change it only if a router relay rule listens on another port, commonly 7.",
+                    ),
+                    options: None,
+                    default_value: Some("9"),
+                    inline_format: None,
+                    group: Some("Delivery"),
+                    file_name: None,
+                    half_width: true,
                 },
                 FieldDefinition {
                     id: "wait_seconds",
@@ -462,6 +483,7 @@ impl CredentialType {
                     inline_format: None,
                     group: Some("Delivery"),
                     file_name: None,
+                    half_width: false,
                 },
                 FieldDefinition {
                     id: "secure_on_password",
@@ -479,6 +501,65 @@ impl CredentialType {
                     inline_format: Some(InlineFormat::MacAddress),
                     group: Some("Delivery"),
                     file_name: Some("secureon-password"),
+                    half_width: false,
+                },
+            ],
+            Self::ProxmoxApiToken {
+                port: _,
+                token_id: _,
+                token_secret: _,
+            } => vec![
+                FieldDefinition {
+                    id: "token_id",
+                    label: "Token ID",
+                    field_type: FieldType::String,
+                    placeholder: Some("scanopy@pve!discovery"),
+                    placeholder_by: None,
+                    secret: false,
+                    optional: false,
+                    help_text: Some(
+                        "The full token ID, user@realm!tokenname (Datacenter → Permissions → API Tokens). Give the token the PVEAuditor role on / and, for VM addresses from the guest agent, VM.GuestAgent.Audit on Proxmox VE 9 or VM.Monitor on 8. Assign the credential to one node: its API answers for the whole cluster.",
+                    ),
+                    options: None,
+                    default_value: None,
+                    inline_format: Some(InlineFormat::ProxmoxTokenId),
+                    group: Some("Connection"),
+                    file_name: None,
+                    half_width: true,
+                },
+                FieldDefinition {
+                    id: "port",
+                    label: "API Port",
+                    field_type: FieldType::Port,
+                    placeholder: Some("8006"),
+                    placeholder_by: None,
+                    secret: false,
+                    optional: true,
+                    help_text: Some(
+                        "The port the Proxmox VE web interface and API listen on. 8006 unless a reverse proxy sits in front of it.",
+                    ),
+                    options: None,
+                    default_value: Some("8006"),
+                    inline_format: None,
+                    group: Some("Connection"),
+                    file_name: None,
+                    half_width: true,
+                },
+                FieldDefinition {
+                    id: "token_secret",
+                    label: "Token Secret",
+                    field_type: FieldType::SecretPathOrInline,
+                    placeholder: None,
+                    placeholder_by: None,
+                    secret: true,
+                    optional: false,
+                    help_text: Some("The secret shown once when the token is created, a UUID."),
+                    options: None,
+                    default_value: None,
+                    inline_format: Some(InlineFormat::Plain),
+                    group: Some("Authentication"),
+                    file_name: Some("proxmox-token-secret"),
+                    half_width: false,
                 },
             ],
         }
@@ -489,21 +570,6 @@ impl CredentialType {
 /// first, then auth, then the script and how it is trusted and bounded.
 fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefinition> {
     let mut fields = vec![
-        FieldDefinition {
-            id: "port",
-            label: "SSH Port",
-            field_type: FieldType::Port,
-            placeholder: Some("22"),
-            placeholder_by: None,
-            secret: false,
-            optional: true,
-            help_text: None,
-            options: None,
-            default_value: Some("22"),
-            inline_format: None,
-            group: Some("Connection"),
-            file_name: None,
-        },
         FieldDefinition {
             id: "username",
             label: "Username",
@@ -518,8 +584,25 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             options: None,
             default_value: None,
             inline_format: None,
-            group: Some("Authentication"),
+            group: Some("Connection"),
             file_name: None,
+            half_width: true,
+        },
+        FieldDefinition {
+            id: "port",
+            label: "SSH Port",
+            field_type: FieldType::Port,
+            placeholder: Some("22"),
+            placeholder_by: None,
+            secret: false,
+            optional: true,
+            help_text: None,
+            options: None,
+            default_value: Some("22"),
+            inline_format: None,
+            group: Some("Connection"),
+            file_name: None,
+            half_width: true,
         },
     ];
     fields.extend(auth_fields);
@@ -540,6 +623,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             inline_format: None,
             group: Some("Script"),
             file_name: None,
+            half_width: false,
         },
         FieldDefinition {
             id: "script",
@@ -562,6 +646,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             inline_format: None,
             group: Some("Script"),
             file_name: Some("scanopy-inventory.sh"),
+            half_width: false,
         },
         FieldDefinition {
             id: "timeout_seconds",
@@ -577,6 +662,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             inline_format: None,
             group: Some("Script"),
             file_name: None,
+            half_width: false,
         },
         FieldDefinition {
             id: "host_key_fingerprint",
@@ -594,6 +680,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             inline_format: None,
             group: Some("Script"),
             file_name: None,
+            half_width: false,
         },
     ]);
     fields
@@ -604,23 +691,6 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
 /// controller endpoint.
 fn unifi_connection_fields() -> Vec<FieldDefinition> {
     vec![
-        FieldDefinition {
-            id: "port",
-            label: "Controller Port",
-            field_type: FieldType::Port,
-            placeholder: Some("443"),
-            placeholder_by: None,
-            secret: false,
-            optional: true,
-            help_text: Some(
-                "443 for a UniFi OS console (Dream Machine, Cloud Key, Cloud Gateway), 11443 for a self-hosted UniFi OS Server, or 8443 for the legacy self-hosted Network Application. Check the port in your controller's URL — the wrong port fails to connect.",
-            ),
-            options: None,
-            default_value: Some("443"),
-            inline_format: None,
-            group: Some("Connection"),
-            file_name: None,
-        },
         FieldDefinition {
             id: "site",
             label: "Site",
@@ -637,6 +707,25 @@ fn unifi_connection_fields() -> Vec<FieldDefinition> {
             inline_format: None,
             group: Some("Connection"),
             file_name: None,
+            half_width: true,
+        },
+        FieldDefinition {
+            id: "port",
+            label: "Controller Port",
+            field_type: FieldType::Port,
+            placeholder: Some("443"),
+            placeholder_by: None,
+            secret: false,
+            optional: true,
+            help_text: Some(
+                "443 for a UniFi OS console (Dream Machine, Cloud Key, Cloud Gateway), 11443 for a self-hosted UniFi OS Server, or 8443 for the legacy self-hosted Network Application. Check the port in your controller's URL — the wrong port fails to connect.",
+            ),
+            options: None,
+            default_value: Some("443"),
+            inline_format: None,
+            group: Some("Connection"),
+            file_name: None,
+            half_width: true,
         },
     ]
 }
@@ -663,6 +752,7 @@ fn socket_path_field(
         inline_format: None,
         group: Some("Connection"),
         file_name: None,
+        half_width: false,
     }
 }
 
@@ -688,6 +778,7 @@ fn container_proxy_field_definitions(
             inline_format: None,
             group: Some("Connection"),
             file_name: None,
+            half_width: true,
         },
         FieldDefinition {
             id: "path",
@@ -703,6 +794,7 @@ fn container_proxy_field_definitions(
             inline_format: None,
             group: Some("Connection"),
             file_name: None,
+            half_width: true,
         },
         FieldDefinition {
             id: "ssl_cert",
@@ -720,6 +812,7 @@ fn container_proxy_field_definitions(
             inline_format: Some(InlineFormat::PemCertificate),
             group: Some("TLS"),
             file_name: Some("cert.pem"),
+            half_width: false,
         },
         FieldDefinition {
             id: "ssl_key",
@@ -735,6 +828,7 @@ fn container_proxy_field_definitions(
             inline_format: Some(InlineFormat::PemPrivateKey),
             group: Some("TLS"),
             file_name: Some("key.pem"),
+            half_width: false,
         },
         FieldDefinition {
             id: "ssl_chain",
@@ -752,6 +846,7 @@ fn container_proxy_field_definitions(
             inline_format: Some(InlineFormat::PemCertificate),
             group: Some("TLS"),
             file_name: Some("ca.pem"),
+            half_width: false,
         },
     ]
 }

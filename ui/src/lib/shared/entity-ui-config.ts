@@ -12,12 +12,17 @@ import { InterfaceDisplay } from '$lib/shared/components/forms/selection/display
 import { SubnetDisplay } from '$lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
 import { DaemonDisplay } from '$lib/shared/components/forms/selection/display/DaemonDisplay.svelte';
 import { DependencyDisplay } from '$lib/shared/components/forms/selection/display/DependencyDisplay.svelte';
-import { NetworkDisplay } from '$lib/shared/components/forms/selection/display/NetworkDisplay.svelte';
+import { SiteDisplay } from '$lib/shared/components/forms/selection/display/SiteDisplay.svelte';
 import { CredentialDisplay } from '$lib/shared/components/forms/selection/display/CredentialDisplay.svelte';
 import { TopologyDisplay } from '$lib/shared/components/forms/selection/display/TopologyDisplay.svelte';
 import { DaemonApiKeyDisplay } from '$lib/shared/components/forms/selection/display/DaemonApiKeyDisplay.svelte';
 import { BindingDisplay } from '$lib/shared/components/forms/selection/display/BindingDisplay.svelte';
 import { UserDisplay } from '$lib/shared/components/forms/selection/display/UserDisplay.svelte';
+import { DiscoveryDisplay } from '$lib/shared/components/forms/selection/display/DiscoveryDisplay.svelte';
+import { PortDisplay } from '$lib/shared/components/forms/selection/display/PortDisplay.svelte';
+import { VlanDisplay } from '$lib/shared/components/forms/selection/display/VlanDisplay.svelte';
+import { TagDisplay } from '$lib/shared/components/forms/selection/display/TagDisplay.svelte';
+import { UserApiKeyDisplay } from '$lib/shared/components/forms/selection/display/UserApiKeyDisplay.svelte';
 
 export interface EntityUIConfig {
 	tabId: string;
@@ -30,6 +35,13 @@ export interface EntityUIConfig {
 	parentIdField?: string;
 	/** For sub-entities: which tab to open in the parent's modal */
 	modalTab?: string;
+	/**
+	 * Where one entity of this type opens instead, when it depends on the entity's data: a
+	 * discovery run opens in the history tab, a scan configuration in the scans tab.
+	 */
+	forEntity?: (data: Record<string, unknown>) => EntityUIConfig | undefined;
+	/** Every config `forEntity` can return, so the modals it names can be listed without data. */
+	variants?: EntityUIConfig[];
 }
 
 /** Tab ID → display label. Single source of truth for sidebar and back navigation. */
@@ -42,7 +54,7 @@ export const TAB_LABELS: Record<string, string> = {
 	'discovery-history': 'Historical',
 	daemons: 'Daemons',
 	'daemon-api-keys': 'API Keys',
-	networks: 'Networks',
+	sites: 'Sites',
 	subnets: 'Subnets',
 	vlans: 'VLANs',
 	hosts: 'Hosts',
@@ -51,6 +63,12 @@ export const TAB_LABELS: Record<string, string> = {
 	users: 'Users',
 	'api-keys': 'API Keys',
 	credentials: 'Credentials'
+};
+
+/** A historical discovery run opens in the history tab's read-only detail modal. */
+const HISTORICAL_DISCOVERY: EntityUIConfig = {
+	tabId: 'discovery-history',
+	modalName: 'discovery-history-detail'
 };
 
 export const entityUIConfig: Record<EntityDiscriminants, EntityUIConfig | null> = {
@@ -70,9 +88,14 @@ export const entityUIConfig: Record<EntityDiscriminants, EntityUIConfig | null> 
 		parentIdField: 'host_id',
 		modalTab: 'interfaces'
 	},
-	// View-only tab: no edit modal, so no `modalName` / `displayComponent`.
-	Vlan: { tabId: 'vlans' },
-	Port: { tabId: 'hosts', parentType: 'Host', parentIdField: 'host_id', modalTab: 'ports' },
+	Vlan: { tabId: 'vlans', modalName: 'vlan-editor', displayComponent: VlanDisplay },
+	Port: {
+		tabId: 'hosts',
+		displayComponent: PortDisplay,
+		parentType: 'Host',
+		parentIdField: 'host_id',
+		modalTab: 'ports'
+	},
 	Binding: {
 		tabId: 'hosts',
 		parentType: 'Host',
@@ -87,25 +110,43 @@ export const entityUIConfig: Record<EntityDiscriminants, EntityUIConfig | null> 
 		modalName: 'daemon-api-key',
 		displayComponent: DaemonApiKeyDisplay
 	},
-	Dependency: {
-		tabId: 'dependencies',
-		modalName: 'dependency-editor',
-		displayComponent: DependencyDisplay
-	},
-	Network: { tabId: 'networks', modalName: 'network-editor', displayComponent: NetworkDisplay },
+	// No modal opens a dependency by URL.
+	Dependency: { tabId: 'dependencies', displayComponent: DependencyDisplay },
+	Site: { tabId: 'sites', modalName: 'site-editor', displayComponent: SiteDisplay },
 	Credential: {
 		tabId: 'credentials',
 		modalName: 'credential-editor',
 		displayComponent: CredentialDisplay
 	},
-	Discovery: { tabId: 'discovery-scans', modalName: 'discovery-editor' },
-	Tag: { tabId: 'tags', modalName: 'tag-editor' },
-	Share: { tabId: 'shares', modalName: 'share-editor' },
-	Topology: { tabId: 'topology', modalName: 'topology-editor', displayComponent: TopologyDisplay },
+	Discovery: {
+		tabId: 'discovery-scans',
+		modalName: 'discovery-editor',
+		displayComponent: DiscoveryDisplay,
+		forEntity: (data) =>
+			(data.run_type as { type?: string } | undefined)?.type === 'Historical'
+				? HISTORICAL_DISCOVERY
+				: undefined,
+		variants: [HISTORICAL_DISCOVERY]
+	},
+	Tag: { tabId: 'tags', modalName: 'tag-editor', displayComponent: TagDisplay },
+	// Shares are edited in SharesModal, which no URL opens.
+	Share: { tabId: 'shares' },
+	// No modal opens a topology by URL; it shows in its tab.
+	Topology: { tabId: 'topology', displayComponent: TopologyDisplay },
 	Snapshot: { tabId: 'topology' },
 	User: { tabId: 'users', modalName: 'user-editor', displayComponent: UserDisplay },
-	UserApiKey: { tabId: 'api-keys', modalName: 'user-api-key' },
+	UserApiKey: {
+		tabId: 'api-keys',
+		modalName: 'user-api-key',
+		displayComponent: UserApiKeyDisplay
+	},
 	Organization: null,
-	Invite: null,
-	Unknown: null
+	Invite: null
 };
+
+/** Every modal that opens one entity: the modals arrow-key navigation steps between. */
+export const entityModalNames: ReadonlySet<string> = new Set(
+	Object.values(entityUIConfig)
+		.flatMap((config) => (config ? [config, ...(config.variants ?? [])] : []))
+		.flatMap((config) => (config.modalName ? [config.modalName] : []))
+);

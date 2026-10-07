@@ -1,12 +1,19 @@
 <script lang="ts" module>
 	import { isContainerSubnet, getSubnetById } from '$lib/features/subnets/queries';
 	import type { Subnet } from '$lib/features/subnets/types/base';
-	import { entityRef } from '$lib/shared/components/data/types';
+	import { entityRef, type TagProps } from '$lib/shared/components/data/types';
+	import type { Site } from '$lib/features/sites/types';
+	import { getFreshnessTag } from '$lib/shared/utils/freshness';
+	import { ipAddressKey } from '$lib/features/hosts/address-labels';
+	import { hosts_noMacAddress } from '$lib/paraglide/messages';
+
+	export type IPAddressTagRole = 'subnet' | 'stale';
 
 	// Context for interface display - needs access to subnets for lookups
-	export interface IPAddressDisplayContext {
+	export interface IPAddressDisplayContext extends DisplayTagContext<IPAddressTagRole> {
 		subnets: Subnet[];
-		compact?: boolean;
+		/** Sites to judge each address's staleness against. Without them, no Stale tag. */
+		sites?: Site[];
 		/** A non-null `disabledReason` renders the option disabled with that tooltip. */
 		disabledReason?: string | null;
 	}
@@ -21,32 +28,42 @@
 		getId: (iface) => iface.id ?? ALL_IP_ADDRESSES_ID,
 		getDisabled: (_iface, context) => !!context?.disabledReason,
 		getDisabledReason: (_iface, context) => context?.disabledReason ?? null,
-		getLabel: (iface, context?: IPAddressDisplayContext) => {
-			if (iface.id == null) return iface.name;
-			// Align with formatIPAddress(): "name: IP" or just "IP" (or name-only for containers)
-			const subnetsData = context?.subnets ?? [];
-			const subnet = getSubnetById(subnetsData, iface.subnet_id);
-			if (subnet && isContainerSubnet(subnet)) {
-				return iface.name ?? iface.ip_address;
-			}
-			return (iface.name ? iface.name + ': ' : '') + iface.ip_address;
-		},
-		getDescription: (iface) => {
+		// The address alone, so a long IPv6 address gets the whole row; its interface name goes on
+		// the description line.
+		getLabel: (iface, context?: IPAddressDisplayContext) =>
+			ipAddressKey(iface, (subnetId) => {
+				const subnet = getSubnetById(context?.subnets ?? [], subnetId);
+				return !!subnet && isContainerSubnet(subnet);
+			}),
+		getDescription: (iface, context?: IPAddressDisplayContext) => {
 			if (iface.id == null) return '';
-			return iface.mac_address ?? 'No MAC';
+			const label = IPAddressDisplay.getLabel(iface, context);
+			const name = iface.name && iface.name !== label ? iface.name : null;
+			return [name, iface.mac_address ?? hosts_noMacAddress()].filter(Boolean).join(' · ');
 		},
 		getIcon: () => entities.getIconComponent('IPAddress'),
 		getIconColor: () => entities.getColorHelper('IPAddress').icon,
+		// Topology already shows the subnet as the address's container.
+		compactHides: ['subnet'] satisfies IPAddressTagRole[],
 		getTags: (iface, context: IPAddressDisplayContext) => {
-			if (context?.compact || iface.id == null) return [];
-			const subnetsData = context?.subnets ?? [];
-			const subnet = getSubnetById(subnetsData, iface.subnet_id);
-			const tags = [];
+			if (iface.id == null) return [];
+			const tags: TagProps[] = [];
+			// Each address carries its own verdict, so one the host stopped answering on reads
+			// Stale while the host stays current. It comes first: when a narrow row fits one tag,
+			// the address's status outranks its subnet.
+			const stale = getFreshnessTag(
+				iface,
+				context?.sites?.find((n) => n.id === iface.site_id),
+				{ entityTypeLabel: entities.getName('IPAddress') || undefined }
+			);
+			if (stale) tags.push({ ...stale, role: 'stale' satisfies IPAddressTagRole });
+			const subnet = getSubnetById(context?.subnets ?? [], iface.subnet_id);
 			if (subnet && !isContainerSubnet(subnet)) {
 				tags.push({
 					label: subnet.cidr,
 					color: entities.getColorHelper('Subnet').color,
-					entityRef: entityRef('Subnet', subnet.id, subnet)
+					entityRef: entityRef('Subnet', subnet.id, subnet),
+					role: 'subnet' satisfies IPAddressTagRole
 				});
 			}
 			return tags;
@@ -58,7 +75,7 @@
 <script lang="ts">
 	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import type { AllIPAddresses, IPAddress } from '$lib/features/hosts/types/base';
-	import type { EntityDisplayComponent } from '../types';
+	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
 	import { entities } from '$lib/shared/stores/metadata';
 
 	interface Props {

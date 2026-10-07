@@ -6,14 +6,30 @@
 		ChevronDown,
 		ChevronRight
 	} from 'lucide-svelte';
-	import { getCoreRowModel, type ColumnDef, type Row } from '@tanstack/table-core';
+	import {
+		getCoreRowModel,
+		type ColumnDef,
+		type ColumnSizingInfoState,
+		type Header,
+		type Row,
+		type Updater
+	} from '@tanstack/table-core';
 	import { createSvelteTable } from './createSvelteTable.svelte';
 	import type { Snippet } from 'svelte';
-	import type { EntityColumn } from './columns';
+	import {
+		clampColumnWidth,
+		columnWidth,
+		MAX_COLUMN_WIDTH,
+		MIN_COLUMN_WIDTH,
+		UNSIZED_COLUMN_MAX,
+		type EntityColumn
+	} from './columns';
+	import { displaySettings } from '$lib/shared/stores/display-settings.svelte';
 	import FieldValue from '../FieldValue.svelte';
+	import TreeGuides from '../TreeGuides.svelte';
 	import { tooltip } from '$lib/shared/actions/tooltip';
-	import { SvelteSet } from 'svelte/reactivity';
 	import { getFieldValue } from '../controls/fieldValues';
+	import type { RenderGroup, TreeCell, TreeEntry } from '../controls/grouping';
 	import type { SortState } from '../controls/sorting';
 	import type { CardAction, GroupSlice } from '../types';
 	import {
@@ -22,13 +38,20 @@
 		common_sortByColumn,
 		common_deselectAll,
 		common_selectAllOnPage,
-		common_groupTotalShowing
+		common_groupTotalShowing,
+		common_resizeColumn,
+		common_expand,
+		common_collapse
 	} from '$lib/paraglide/messages';
 
 	let {
 		items,
 		groups = null,
+		collapsed,
+		onToggleCollapse,
 		columns,
+		columnSizing,
+		onColumnSizingChange,
 		sortState,
 		selectable,
 		selectedIds,
@@ -49,8 +72,14 @@
 		 * a table each — so every group shares the one header and the one set of
 		 * column widths, which is what makes groups comparable.
 		 */
-		groups: { name: string; items: T[]; range: GroupSlice | null }[] | null;
+		groups: RenderGroup<T>[] | null;
+		/** Keys of the collapsed groups and tree sections. Owned by the caller. */
+		collapsed: ReadonlySet<string>;
+		onToggleCollapse: (key: string) => void;
 		columns: EntityColumn<T>[];
+		/** Widths the user resized columns to, in px. Owned and persisted by the caller. */
+		columnSizing: Record<string, number>;
+		onColumnSizingChange: (sizing: Record<string, number>) => void;
 		sortState: SortState;
 		selectable: boolean;
 		selectedIds: ReadonlySet<string>;
@@ -83,19 +112,41 @@
 		return columns.map((column) => ({
 			id: column.id,
 			accessorFn: (row: T) => getFieldValue(row, column.field),
-			enableSorting: column.sortable
+			enableSorting: column.sortable,
+			minSize: MIN_COLUMN_WIDTH,
+			maxSize: MAX_COLUMN_WIDTH
 		}));
 	});
 
+	/**
+	 * Drag progress table-core tracks while a column is being resized. Kept here
+	 * rather than by the caller: it is meaningless once the pointer is released.
+	 */
+	let columnSizingInfo = $state<ColumnSizingInfoState>({
+		startOffset: null,
+		startSize: null,
+		deltaOffset: null,
+		deltaPercentage: null,
+		isResizingColumn: false,
+		columnSizingStart: []
+	});
+
+	function resolve<S>(updater: Updater<S>, old: S): S {
+		return typeof updater === 'function' ? (updater as (old: S) => S)(old) : updater;
+	}
+
+	/** Every write goes through the resize bounds, whichever path produced it. */
+	function setSizing(next: Record<string, number>) {
+		const sizing: Record<string, number> = {};
+		for (const [id, width] of Object.entries(next)) {
+			const clamped = clampColumnWidth(width);
+			if (clamped !== null) sizing[id] = clamped;
+		}
+		onColumnSizingChange(sizing);
+	}
+
 	/** Every row on the page, grouped or not — table-core sees one flat list. */
 	let allRows = $derived(items ?? (groups ?? []).flatMap((group) => group.items));
-
-	const collapsed = new SvelteSet<string>();
-
-	function toggleGroup(name: string) {
-		if (collapsed.has(name)) collapsed.delete(name);
-		else collapsed.add(name);
-	}
 
 	const view = createSvelteTable<T>(() => ({
 		get data() {
@@ -112,31 +163,100 @@
 		manualFiltering: true,
 		manualPagination: true,
 		getRowId: (row: T) => getItemId(row),
+		enableColumnResizing: true,
+		columnResizeMode: 'onChange',
+		onColumnSizingChange: (updater) => setSizing(resolve(updater, columnSizing)),
+		onColumnSizingInfoChange: (updater) => {
+			columnSizingInfo = resolve(updater, columnSizingInfo);
+		},
 		state: {
 			get sorting() {
 				return sortState.field
 					? [{ id: sortState.field, desc: sortState.direction === 'desc' }]
 					: [];
+			},
+			get columnSizing() {
+				return columnSizing;
+			},
+			get columnSizingInfo() {
+				return columnSizingInfo;
 			}
 		}
 	}));
 
+	/** Step, in px, for one arrow-key press on a resize handle; Shift takes four. */
+	const RESIZE_STEP = 16;
+
 	/**
-	 * Rows keyed by group, so the body can emit a group header row followed by
-	 * that group's rows while table-core still owns one row model for all of them.
+	 * Start a drag from a resize handle.
+	 *
+	 * A column the user never resized has no size in table-core, so its
+	 * `getSize()` would be the library's default rather than what is on screen,
+	 * and the drag would jump. Seeding the rendered width first makes the drag
+	 * start where the edge is. Reading `view.headers` again re-applies the table
+	 * options, so the handler sees the seeded size.
 	 */
-	let rowsByGroup = $derived.by(() => {
-		const rowById = new Map(view.rows.map((row) => [row.id, row]));
-		return (groups ?? []).map((group) => ({
-			...group,
-			rows: group.items
-				.map((item) => rowById.get(getItemId(item)))
-				.filter((row) => row !== undefined)
-		}));
-	});
+	function startResize(event: MouseEvent | TouchEvent, header: Header<T, unknown>) {
+		const th = (event.currentTarget as HTMLElement).closest('th');
+		if (!th) return;
+		event.preventDefault();
+		if (columnSizing[header.column.id] === undefined) {
+			setSizing({ ...columnSizing, [header.column.id]: th.offsetWidth });
+		}
+		const fresh = view.headers.find((h) => h.id === header.id) ?? header;
+		fresh.getResizeHandler()(event);
+	}
+
+	function resizeByKey(event: KeyboardEvent, columnId: string) {
+		const th = (event.currentTarget as HTMLElement).closest('th');
+		const current = columnSizing[columnId] ?? th?.offsetWidth;
+		if (current === undefined) return;
+		const step = event.shiftKey ? RESIZE_STEP * 4 : RESIZE_STEP;
+
+		if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+			event.preventDefault();
+			const delta = event.key === 'ArrowLeft' ? -step : step;
+			setSizing({ ...columnSizing, [columnId]: current + delta });
+		} else if (event.key === 'Enter' || event.key === 'Delete' || event.key === 'Backspace') {
+			event.preventDefault();
+			resetWidth(columnId);
+		}
+	}
+
+	/** Drop the user's width, so the column goes back to its default. */
+	function resetWidth(columnId: string) {
+		if (columnSizing[columnId] === undefined) return;
+		const rest = { ...columnSizing };
+		delete rest[columnId];
+		onColumnSizingChange(rest);
+	}
+
+	/**
+	 * Cap on a cell's content: the column width less its padding, or a fixed
+	 * cap for a content-sized column.
+	 *
+	 * In an auto-layout table a block's `max-width` also caps its column's
+	 * minimum width, so this is what lets a column be narrower than its widest
+	 * chip or name. Nothing is clipped: chips and text truncate inside it, and
+	 * popovers opened from a cell are not cut off.
+	 */
+	function contentMaxWidth(column: EntityColumn<T>): string {
+		const width = columnWidth(column, columnSizing) ?? UNSIZED_COLUMN_MAX;
+		return `max-width: calc(${width}px - 2 * var(--cell-px))`;
+	}
+
+	/**
+	 * table-core's rows by id, so the body can emit group and section headers between rows while
+	 * table-core still owns one row model for all of them.
+	 */
+	let rowById = $derived(new Map(view.rows.map((row) => [row.id, row])));
 
 	/** Header checkbox, plus every data column, plus the actions column. */
 	let spannedColumns = $derived(columns.length + (selectable ? 1 : 0) + (getActions ? 1 : 0));
+
+	function entryKey(entry: TreeEntry<T>): string {
+		return entry.type === 'row' ? getItemId(entry.item) : entry.key;
+	}
 
 	let byId = $derived(new Map(columns.map((c) => [c.id, c])));
 	let primaryColumn = $derived(columns.find((c) => c.primary) ?? columns[0]);
@@ -178,13 +298,19 @@
 	vertically, one level down.
 -->
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-<div class="relative overflow-x-auto" tabindex="0" role="region" aria-label={caption}>
+<div
+	class="entity-table relative overflow-x-auto"
+	data-density={displaySettings.current.table_density}
+	tabindex="0"
+	role="region"
+	aria-label={caption}
+>
 	<table class="w-full border-collapse text-sm">
 		<caption class="sr-only">{caption}</caption>
 		<thead>
 			<tr>
 				{#if selectable}
-					<th scope="col" class="w-10 px-3 py-2">
+					<th scope="col" class="w-10 px-[var(--cell-px)] py-[var(--cell-py)]">
 						<input
 							type="checkbox"
 							checked={allSelected}
@@ -199,25 +325,32 @@
 				{#each view.headers as header (header.id)}
 					{@const column = byId.get(header.column.id)}
 					{#if column}
+						{@const width = columnWidth(column, columnSizing)}
 						<th
 							scope="col"
 							aria-sort={ariaSort(column.id)}
-							style={column.width ? `width: ${column.width}px` : ''}
-							class="text-secondary whitespace-nowrap px-3 py-2 text-xs font-medium {column.align ===
+							style={width ? `width: ${width}px` : ''}
+							class="text-secondary relative whitespace-nowrap px-[var(--cell-px)] py-[var(--cell-py)] text-xs font-medium {column.align ===
 							'right'
 								? 'text-right'
 								: 'text-left'}"
 						>
+							<!--
+								Capped only once the user sized the column, so a narrowed header
+								truncates its label instead of holding the column open.
+							-->
 							<div
-								class="inline-flex items-center gap-1 {column.align === 'right'
+								class="inline-flex max-w-full items-center gap-1 {column.align === 'right'
 									? 'flex-row-reverse'
 									: ''}"
+								style={columnSizing[column.id] !== undefined ? contentMaxWidth(column) : ''}
 							>
 								{@render headerLabel(column, header.column.getCanSort())}
 								{#if headerControl}
 									{@render headerControl(column)}
 								{/if}
 							</div>
+							{@render resizeHandle(header, column)}
 						</th>
 					{/if}
 				{/each}
@@ -231,7 +364,10 @@
 						than it looks — every cell needs the same background or content
 						shows through — so both scroll together instead.
 					-->
-					<th scope="col" class="text-secondary px-3 py-2 text-right text-xs font-medium">
+					<th
+						scope="col"
+						class="text-secondary px-[var(--cell-px)] py-[var(--cell-py)] text-right text-xs font-medium"
+					>
 						{common_actions()}
 					</th>
 				{/if}
@@ -240,8 +376,8 @@
 
 		<tbody>
 			{#if groups}
-				{#each rowsByGroup as group (group.name)}
-					{@const isCollapsed = collapsed.has(group.name)}
+				{#each groups as group (group.key)}
+					{@const isCollapsed = collapsed.has(group.key)}
 					<tr class="border-t" style="border-color: var(--color-border)">
 						<!--
 							scope="colgroup": this heading names the rows beneath it rather
@@ -250,11 +386,11 @@
 						<th
 							scope="colgroup"
 							colspan={spannedColumns}
-							class="bg-black/[0.03] px-3 py-2 text-left dark:bg-white/[0.03]"
+							class="bg-black/[0.07] px-[var(--cell-px)] py-[var(--cell-py)] text-left dark:bg-white/[0.08]"
 						>
 							<button
 								type="button"
-								onclick={() => toggleGroup(group.name)}
+								onclick={() => onToggleCollapse(group.key)}
 								aria-expanded={!isCollapsed}
 								class="text-primary flex items-center gap-2 text-sm font-semibold"
 							>
@@ -280,21 +416,90 @@
 					</tr>
 
 					{#if !isCollapsed}
-						{#each group.rows as row (row.id)}
-							{@render bodyRow(row)}
-						{/each}
+						{#if group.entries}
+							{@render treeEntries(group.entries, group.rootRanges)}
+						{:else}
+							{#each group.items as item (getItemId(item))}
+								{@const row = rowById.get(getItemId(item))}
+								{#if row}
+									{@render bodyRow(row, 0, null)}
+								{/if}
+							{/each}
+						{/if}
 					{/if}
 				{/each}
 			{:else}
 				{#each view.rows as row (row.id)}
-					{@render bodyRow(row)}
+					{@render bodyRow(row, 0, null)}
 				{/each}
 			{/if}
 		</tbody>
 	</table>
 </div>
 
-{#snippet bodyRow(row: Row<T>)}
+<!-- `rootRanges` holds the merged group's roots' own page ranges; only the top level has any. -->
+{#snippet treeEntries(entries: TreeEntry<T>[], rootRanges: Map<string, GroupSlice> | null)}
+	{#each entries as entry (entryKey(entry))}
+		{@const row = rowById.get(getItemId(entry.item))}
+		{#if entry.type === 'row'}
+			{#if row}
+				{@render bodyRow(row, entry.depth, { section: null, range: null })}
+			{/if}
+		{:else}
+			{#if row}
+				{@render bodyRow(row, entry.depth, {
+					section: entry,
+					range: rootRanges?.get(getItemId(entry.item)) ?? null
+				})}
+			{/if}
+			{#if !collapsed.has(entry.key)}
+				{@render treeEntries(entry.entries, null)}
+			{/if}
+		{/if}
+	{/each}
+{/snippet}
+
+<!-- A tree row's chevron, or the same width of space for a row with no children, so names line
+     up across a level. A parent's chevron collapses its children and shows how many there are. -->
+{#snippet treeToggle(tree: TreeCell<T>)}
+	{#if tree.section}
+		{@const section = tree.section}
+		{@const isCollapsed = collapsed.has(section.key)}
+		<button
+			type="button"
+			onclick={() => onToggleCollapse(section.key)}
+			aria-expanded={!isCollapsed}
+			aria-label={isCollapsed ? common_expand() : common_collapse()}
+			class="text-tertiary hover:text-primary flex shrink-0 items-center transition-colors"
+		>
+			{#if isCollapsed}
+				<ChevronRight class="h-4 w-4" aria-hidden="true" />
+			{:else}
+				<ChevronDown class="h-4 w-4" aria-hidden="true" />
+			{/if}
+		</button>
+	{:else}
+		<span class="w-4 shrink-0" aria-hidden="true"></span>
+	{/if}
+{/snippet}
+
+{#snippet treeCount(tree: TreeCell<T>)}
+	{#if tree.section}
+		<span class="text-tertiary shrink-0 text-xs font-normal">
+			{#if tree.range}
+				{common_groupTotalShowing({
+					total: tree.range.total,
+					start: tree.range.start,
+					end: tree.range.end
+				})}
+			{:else}
+				({tree.section.count})
+			{/if}
+		</span>
+	{/if}
+{/snippet}
+
+{#snippet bodyRow(row: Row<T>, depth: number, tree: TreeCell<T> | null)}
 	{@const item = row.original}
 	{@const itemId = getItemId(item)}
 	{@const isSelected = selectedIds.has(itemId)}
@@ -305,7 +510,7 @@
 		style="border-color: var(--color-border)"
 	>
 		{#if selectable}
-			<td class="w-10 px-3 py-2 align-middle">
+			<td class="w-10 px-[var(--cell-px)] py-[var(--cell-py)] align-middle">
 				<input
 					type="checkbox"
 					checked={isSelected}
@@ -323,15 +528,34 @@
 					<!-- Announces the row's identity before each cell when navigating across. -->
 					<th
 						scope="row"
-						class="text-primary max-w-xs px-3 py-2 text-left align-middle font-medium"
+						class="text-primary relative px-[var(--cell-px)] py-[var(--cell-py)] text-left align-middle font-medium"
 					>
-						<FieldValue {item} {column} />
+						{#if tree}
+							{#if depth > 0}
+								<TreeGuides {depth} offset="var(--cell-px)" />
+							{/if}
+							<div class="flex items-center gap-1.5" style="padding-left: {depth}rem">
+								{@render treeToggle(tree)}
+								<div class="min-w-0" style={contentMaxWidth(column)}>
+									<FieldValue {item} {column} />
+								</div>
+								{@render treeCount(tree)}
+							</div>
+						{:else}
+							<div style={contentMaxWidth(column)}>
+								<FieldValue {item} {column} />
+							</div>
+						{/if}
 					</th>
 				{:else}
 					<td
-						class="max-w-xs px-3 py-2 align-middle {column.align === 'right' ? 'text-right' : ''}"
+						class="px-[var(--cell-px)] py-[var(--cell-py)] align-middle {column.align === 'right'
+							? 'text-right'
+							: ''}"
 					>
-						<FieldValue {item} {column} />
+						<div class={column.align === 'right' ? 'ml-auto' : ''} style={contentMaxWidth(column)}>
+							<FieldValue {item} {column} />
+						</div>
 					</td>
 				{/if}
 			{/if}
@@ -339,7 +563,7 @@
 
 		{#if getActions}
 			{@const actions = getActions(item)}
-			<td class="px-3 py-2 text-right align-middle">
+			<td class="px-[var(--cell-px)] py-[var(--cell-py)] text-right align-middle">
 				<div class="flex items-center justify-end gap-1">
 					{#each actions as action (action.label)}
 						{@const tip =
@@ -379,9 +603,9 @@
 			type="button"
 			onclick={() => onToggleSort(column.id)}
 			aria-label={common_sortByColumn({ column: column.label })}
-			class="hover:text-primary group inline-flex items-center gap-1 transition-colors"
+			class="hover:text-primary group inline-flex min-w-0 items-center gap-1 transition-colors"
 		>
-			<span>{column.label}</span>
+			<span class="truncate">{column.label}</span>
 			<!--
 				Every sortable header carries an icon, so it reads as sortable
 				before anyone clicks it. A header without one cannot sort.
@@ -400,6 +624,41 @@
 			{/if}
 		</button>
 	{:else}
-		<span>{column.label}</span>
+		<span class="truncate">{column.label}</span>
 	{/if}
+{/snippet}
+
+{#snippet resizeHandle(header: Header<T, unknown>, column: EntityColumn<T>)}
+	{@const width = columnSizing[column.id]}
+	<!--
+		A focusable separator is the ARIA pattern for a splitter, so arrow keys
+		resize and the current width is announced. Double-click, Enter or Delete
+		drops the user's width and returns the column to its default.
+
+		The lint rules below treat `separator` as non-interactive, which holds only
+		for an unfocusable one; ARIA 1.2 makes a focusable separator a widget.
+	-->
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<div
+		role="separator"
+		aria-orientation="vertical"
+		aria-label={common_resizeColumn({ column: column.label })}
+		aria-valuemin={MIN_COLUMN_WIDTH}
+		aria-valuemax={MAX_COLUMN_WIDTH}
+		aria-valuenow={width}
+		tabindex="0"
+		class="group absolute inset-y-0 right-0 z-10 flex w-2 cursor-col-resize touch-none select-none justify-end focus:outline-none"
+		onmousedown={(e) => startResize(e, header)}
+		ontouchstart={(e) => startResize(e, header)}
+		ondblclick={() => resetWidth(column.id)}
+		onkeydown={(e) => resizeByKey(e, column.id)}
+	>
+		<span
+			class="h-full w-0.5 transition-colors group-hover:bg-blue-500/60 group-focus-visible:bg-blue-500 {columnSizingInfo.isResizingColumn ===
+			column.id
+				? 'bg-blue-500'
+				: ''}"
+		></span>
+	</div>
 {/snippet}

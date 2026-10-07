@@ -13,7 +13,16 @@
 	import { useTopology } from '../../../context';
 	import { getTopologyEditState, getOptionDisabledTooltip } from '../../../state';
 	import { edgeTypes, views } from '$lib/shared/stores/metadata';
-	import { activeView, clearedHideSetFor, declaredMetadataFiltersFor } from '../../../queries';
+	import { activeView, clearedViewHideSet } from '../../../queries';
+	import {
+		coversSeveralEntities,
+		declaredMetadataFilters,
+		hiddenValuesFor,
+		withFilterValues,
+		type HiddenMetadataValues,
+		type MetadataFilter
+	} from '../../../view-filters';
+	import { getViewCollectiveNoun } from '../../../labels';
 	import { type Color } from '$lib/shared/utils/styling';
 	import { useServicesCacheQuery } from '$lib/features/services/queries';
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
@@ -28,6 +37,7 @@
 	import EntityFilterHeader from './EntityFilterHeader.svelte';
 	import { useTagsQuery } from '$lib/features/tags/queries';
 	import {
+		common_all,
 		common_visual,
 		common_dependenciesLabel,
 		topology_bundleEdges,
@@ -42,7 +52,8 @@
 		topology_filtersApplyToView,
 		topology_layoutHelp,
 		topology_displayHelp,
-		topology_nFiltersApplied
+		topology_nFiltersApplied,
+		topology_clearSectionFilters
 	} from '$lib/paraglide/messages';
 
 	type EntityType = components['schemas']['EntityDiscriminants'];
@@ -52,7 +63,7 @@
 		renderableTopology
 	}: {
 		activeTab: 'filter' | 'layout' | 'visual';
-		/** Enriched bundle for the active view — network- and snapshot-scoped. */
+		/** Enriched bundle for the active view — site- and snapshot-scoped. */
 		renderableTopology: RenderableTopology | undefined;
 	} = $props();
 
@@ -84,10 +95,10 @@
 	// parsed on the critical path to interactive, to produce a set of tag ids and
 	// one boolean.
 	//
-	// It also disagreed with the graph. That query passed neither `network_id`
-	// nor `at`, so the filter offered tags from hosts on networks you were not
+	// It also disagreed with the graph. That query passed neither `site_id`
+	// nor `at`, so the filter offered tags from hosts on sites you were not
 	// viewing, and in snapshot mode offered *live* host tags while the graph
-	// showed the snapshot. The bundle is already scoped to the selected network
+	// showed the snapshot. The bundle is already scoped to the selected site
 	// and snapshot, so reading from it makes the filter match what is on screen.
 	const servicesCacheQuery = useServicesCacheQuery();
 	const subnetsQuery = useSubnetsQuery();
@@ -199,18 +210,18 @@
 		});
 	});
 
-	// Metadata filters declared on the active view, keyed by entity type.
-	// Used to render a MetadataFilterGroup per section.
-	type MetadataFilterDef = {
-		filter_type: string;
-		label: string;
-		applies: string;
-		values: Array<{ id: string; label: string; color: string; icon: string | null }>;
-	};
-	let metadataFiltersByEntity = $derived(
-		(viewMetaObj?.element_config as { metadata_filters?: Record<string, MetadataFilterDef[]> })
-			?.metadata_filters ?? {}
-	);
+	// The active view's metadata filters. One covering a single entity renders in that entity's
+	// section; one covering several renders in the view-wide section above them, headed by the
+	// view's collective noun.
+	let metadataFilters = $derived(declaredMetadataFilters($activeView));
+	let viewWideFilters = $derived(metadataFilters.filter(coversSeveralEntities));
+	let viewWideLabel = $derived.by(() => {
+		const noun = getViewCollectiveNoun($activeView);
+		return noun ? `${noun}s` : common_all();
+	});
+	function sectionFilters(entityType: EntityType): MetadataFilter[] {
+		return metadataFilters.filter((f) => !coversSeveralEntities(f) && f.entities[0] === entityType);
+	}
 
 	/**
 	 * Drop a filter group whose entities all share one value — every toggle
@@ -226,11 +237,11 @@
 	 * that could put the filter back. `hide_metadata_values` reaching the server, the rebuild and
 	 * the refetch are three round trips; the panel must not blink out for the length of them.
 	 */
-	function filterOffersAChoice(entityType: string, filterType: string): boolean {
-		const filter = metadataFiltersByEntity[entityType]?.find((f) => f.filter_type === filterType);
-		if (filter?.applies === 'Server') return true;
-		const present = $presentFilterValues[entityType]?.[filterType];
-		return present === undefined || present.length > 1;
+	function filterOffersAChoice(filter: MetadataFilter): boolean {
+		if (filter.applies === 'Server') return true;
+		const present = filter.entities.map((e) => $presentFilterValues[e]?.[filter.filter_type]);
+		if (present.every((p) => p === undefined)) return true;
+		return new Set(present.flatMap((p) => p ?? [])).size > 1;
 	}
 	let hiddenMetadataForView = $derived(
 		(
@@ -241,8 +252,8 @@
 		)[$activeView] ?? {}
 	);
 
-	function hiddenMetadataValuesFor(entityType: EntityType, filterType: string): string[] {
-		return hiddenMetadataForView[entityType]?.[filterType] ?? [];
+	function hiddenMetadataValuesFor(filter: MetadataFilter): string[] {
+		return hiddenValuesFor(filter, hiddenMetadataForView);
 	}
 
 	// Map from entity type to the tag list / untagged flag for the inline body.
@@ -268,18 +279,21 @@
 		return [];
 	}
 
-	function clearedFiltersFor(
-		entityType: string,
-		existing: Record<string, string[]> | undefined
-	): Record<string, string[]> {
-		return clearedHideSetFor($activeView, entityType, existing);
+	/** Hidden values across `filters`, each filter counted once however many entities it covers. */
+	function countHiddenMetadataValues(filters: MetadataFilter[]): number {
+		return filters.reduce((sum, f) => sum + hiddenMetadataValuesFor(f).length, 0);
 	}
 
-	function countHiddenMetadataValues(entityType: EntityType): number {
-		const perFilter = hiddenMetadataForView[entityType] ?? {};
-		let count = 0;
-		for (const filterType of Object.keys(perFilter)) count += perFilter[filterType].length;
-		return count;
+	/**
+	 * `hidden` with every filter in `filters` set to an explicit empty list across the entities it
+	 * covers. Empty lists rather than removed keys: an absent key is "no opinion", which the server
+	 * refills from the view's defaults (see `clearedHideSetFor`).
+	 */
+	function withFiltersCleared(
+		hidden: HiddenMetadataValues | undefined,
+		filters: MetadataFilter[]
+	): HiddenMetadataValues {
+		return filters.reduce((acc, f) => withFilterValues(f, acc, []), hidden ?? {});
 	}
 
 	/**
@@ -290,11 +304,16 @@
 	 * this) never renders, so there is nothing to press.
 	 */
 	function userFilterCountFor(entityType: EntityType): number {
-		return hiddenTagIdsForEntity(entityType).length + countHiddenMetadataValues(entityType);
+		return (
+			hiddenTagIdsForEntity(entityType).length +
+			countHiddenMetadataValues(sectionFilters(entityType))
+		);
 	}
 
+	let viewWideFilterCount = $derived(countHiddenMetadataValues(viewWideFilters));
 	let userFilterTotal = $derived(
-		filterSections.reduce((sum, s) => sum + userFilterCountFor(s.entityType), 0)
+		filterSections.reduce((sum, s) => sum + userFilterCountFor(s.entityType), 0) +
+			viewWideFilterCount
 	);
 
 	function clearFiltersForEntity(entityType: EntityType) {
@@ -316,10 +335,10 @@
 					Record<string, Record<string, string[]>>
 				>)
 			};
+			// The filters this section renders. A filter it shares with other entities lives in
+			// the view-wide section and is cleared there, so the two never disagree.
 			if (hideMeta[view]) {
-				const byEntity = { ...hideMeta[view] };
-				byEntity[entityType] = clearedFiltersFor(entityType, byEntity[entityType]);
-				hideMeta[view] = byEntity;
+				hideMeta[view] = withFiltersCleared(hideMeta[view], sectionFilters(entityType));
 			}
 
 			return {
@@ -333,6 +352,17 @@
 		});
 	}
 
+	function clearViewWideFilters() {
+		const view = $activeView;
+		updateTopologyOptions((opts) => {
+			const hideMeta = {
+				...((opts.request.hide_metadata_values ?? {}) as Record<string, HiddenMetadataValues>)
+			};
+			hideMeta[view] = withFiltersCleared(hideMeta[view], viewWideFilters);
+			return { ...opts, request: { ...opts.request, hide_metadata_values: hideMeta } };
+		});
+	}
+
 	function clearAllFiltersForView() {
 		const view = $activeView;
 		updateTopologyOptions((opts) => {
@@ -342,14 +372,7 @@
 					Record<string, Record<string, string[]>>
 				>)
 			};
-			const byEntity = { ...(hideMeta[view] ?? {}) };
-			for (const entityType of new Set([
-				...Object.keys(byEntity),
-				...Object.keys(declaredMetadataFiltersFor(view))
-			])) {
-				byEntity[entityType] = clearedFiltersFor(entityType, byEntity[entityType]);
-			}
-			hideMeta[view] = byEntity;
+			hideMeta[view] = clearedViewHideSet(view, hideMeta[view]);
 
 			return {
 				...opts,
@@ -438,30 +461,22 @@
 	}
 
 	/**
-	 * Toggle a single value in the generic metadata-filter hide-set.
+	 * Toggle a single value of `filter`, written under every entity it covers.
 	 * Path: request.hide_metadata_values[view][entityType][filterType].
 	 */
-	function toggleMetadataFilterValue(entityType: EntityType, filterType: string, valueId: string) {
+	function toggleMetadataFilterValue(filter: MetadataFilter, valueId: string) {
 		const view = $activeView;
 		updateTopologyOptions((opts) => {
-			const map =
-				((opts.request.hide_metadata_values ?? {}) as Record<
-					string,
-					Record<string, Record<string, string[]>>
-				>) ?? {};
-			const byEntity = { ...(map[view] ?? {}) };
-			const byFilter = { ...(byEntity[entityType] ?? {}) };
-			const current = byFilter[filterType] ?? [];
+			const map = (opts.request.hide_metadata_values ?? {}) as Record<string, HiddenMetadataValues>;
+			const current = hiddenValuesFor(filter, map[view]);
 			const next = current.includes(valueId)
 				? current.filter((v) => v !== valueId)
 				: [...current, valueId];
-			byFilter[filterType] = next;
-			byEntity[entityType] = byFilter;
 			return {
 				...opts,
 				request: {
 					...opts.request,
-					hide_metadata_values: { ...map, [view]: byEntity }
+					hide_metadata_values: { ...map, [view]: withFilterValues(filter, map[view], next) }
 				}
 			};
 		});
@@ -559,7 +574,11 @@
 					}
 				} else {
 					const colorHelper = edgeTypes.getColorHelper(edgeType);
-					result.push({ value: edgeType, label: edgeType, color: colorHelper.color });
+					result.push({
+						value: edgeType,
+						label: edgeTypes.getName(edgeType) || edgeType,
+						color: colorHelper.color
+					});
 				}
 			}
 		}
@@ -704,9 +723,51 @@
 			/>
 		</div>
 
+		{#snippet metadataFilterGroups(filters: MetadataFilter[])}
+			{#each filters.filter(filterOffersAChoice) as filter (filter.filter_type)}
+				<CategoryFilterGroup
+					entityTypes={filter.entities}
+					filterType={filter.filter_type}
+					categories={filter.values
+						.map((v) => ({
+							value: v.id,
+							label: v.label,
+							color: v.color as Color
+						}))
+						.sort((a, b) => a.label.localeCompare(b.label))}
+					hiddenCategories={hiddenMetadataValuesFor(filter)}
+					onToggle={(valueId) => toggleMetadataFilterValue(filter, valueId)}
+					disabled={!editState.isEditable}
+					label={filter.label}
+				/>
+			{/each}
+		{/snippet}
+
+		{#if viewWideFilters.some(filterOffersAChoice)}
+			<div class="filter-section space-y-1.5 border-t border-gray-300 pt-2 dark:border-gray-700">
+				<div class="flex select-none items-center gap-1.5">
+					<span class="text-secondary text-xs font-semibold uppercase tracking-wide">
+						{viewWideLabel}
+					</span>
+					{#if viewWideFilterCount > 0}
+						<button
+							type="button"
+							class="btn-secondary gap-1 rounded px-1.5 py-0 text-xs font-medium"
+							title={topology_clearSectionFilters({ entity: viewWideLabel })}
+							onclick={clearViewWideFilters}
+						>
+							<FunnelX class="h-3 w-3" />
+							{viewWideFilterCount}
+						</button>
+					{/if}
+				</div>
+				{@render metadataFilterGroups(viewWideFilters)}
+			</div>
+		{/if}
+
 		{#each filterSections as section (section.entityType)}
 			{@const tagBundle = tagListByEntity[section.entityType]}
-			{@const metadataFilters = metadataFiltersByEntity[section.entityType] ?? []}
+			{@const metadataFilters = sectionFilters(section.entityType)}
 			{@const hasTagBody = !!tagBundle && (tagBundle.tags.length > 0 || tagBundle.hasUntagged)}
 			{@const hasContent = hasTagBody || metadataFilters.length > 0 || section.togglePresent}
 			{#if hasContent}
@@ -733,24 +794,7 @@
 								hasUntagged={tagBundle.hasUntagged}
 							/>
 						{/if}
-						{#each metadataFilters.filter( (f) => filterOffersAChoice(section.entityType, f.filter_type) ) as filter (filter.filter_type)}
-							<CategoryFilterGroup
-								entityType={section.entityType}
-								filterType={filter.filter_type}
-								categories={filter.values
-									.map((v) => ({
-										value: v.id,
-										label: v.label,
-										color: v.color as Color
-									}))
-									.sort((a, b) => a.label.localeCompare(b.label))}
-								hiddenCategories={hiddenMetadataValuesFor(section.entityType, filter.filter_type)}
-								onToggle={(valueId) =>
-									toggleMetadataFilterValue(section.entityType, filter.filter_type, valueId)}
-								disabled={!editState.isEditable}
-								label={filter.label}
-							/>
-						{/each}
+						{@render metadataFilterGroups(metadataFilters)}
 					{/if}
 				</div>
 			{/if}

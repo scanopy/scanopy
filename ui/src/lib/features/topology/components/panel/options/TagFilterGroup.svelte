@@ -1,8 +1,8 @@
 <script lang="ts">
+	import { isApplicationTag, tagIcon } from '$lib/features/tags/groups';
 	import type { components } from '$lib/api/schema';
 	import { UNTAGGED_SENTINEL, hoveredTag } from '../../../interactions';
 	import FilterGroup, { type FilterItem } from './FilterGroup.svelte';
-	import { concepts } from '$lib/shared/stores/metadata';
 	import { common_untagged } from '$lib/paraglide/messages';
 
 	type TagType = components['schemas']['Tag'];
@@ -34,12 +34,12 @@
 			result.push({ value: UNTAGGED_SENTINEL, label: common_untagged(), color: 'Gray' });
 		}
 		for (const tag of tags) {
-			const isApp = tag.is_application ?? false;
+			const isApp = isApplicationTag(tag);
 			result.push({
 				value: tag.id,
 				label: tag.name,
 				color: tag.color as FilterItem['color'],
-				icon: isApp ? concepts.getIconComponent('Application') : undefined,
+				icon: tagIcon(tag) ?? undefined,
 				isShiny: isApp
 			});
 		}

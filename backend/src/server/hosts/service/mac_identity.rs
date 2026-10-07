@@ -6,7 +6,7 @@
 //!
 //! - **Value quality**, which is a property of the address itself. A locally administered MAC is
 //!   one a device chose and may choose again, so anchoring identity to it duplicates the host on
-//!   every rotation.
+//!   every rotation — unless a hypervisor fixed it in a guest's config ([`grade`]).
 //! - **Provenance**, the §7 rung it arrived on. Our own ARP sweep, a device's `ifPhysAddress`, a
 //!   *router's* ARP cache and a controller's inventory are four very different claims that were
 //!   indistinguishable downstream until `mac_address_source` existed.
@@ -76,13 +76,36 @@ pub(crate) fn classify(mac: &MacAddress) -> MacQuality {
     MacQuality::Strong
 }
 
+/// Grade a MAC as the evidence it arrived as.
+///
+/// [`classify`] judges the value on the assumption that the device chose it. That holds for a
+/// randomizing phone and fails for a hypervisor's guest: Proxmox writes the guest's NIC MAC into
+/// the guest's config and emulates the NIC with it, so it is fixed until someone edits the config,
+/// whatever its U/L bit or OUI. A helper script that hands out `02:…` addresses produces exactly
+/// such a fixed address. Read from that config ([`AttributeSource::HypervisorConfig`]), a weak
+/// value is as stable as a burned-in one. An excluded value stays excluded: a group or
+/// virtual-router address is not a NIC whoever assigned it.
+///
+/// [`AttributeSource::HypervisorConfig`]: crate::server::shared::attribution::AttributeSource::HypervisorConfig
+pub(crate) fn grade(evidence: &MacEvidence) -> MacQuality {
+    match classify(&evidence.value().0) {
+        MacQuality::Weak
+            if evidence.source()
+                == crate::server::shared::attribution::AttributeSource::HypervisorConfig =>
+        {
+            MacQuality::Strong
+        }
+        quality => quality,
+    }
+}
+
 /// Whether this MAC may anchor a match against a host that already exists.
 ///
-/// Provenance is not consulted. A weak rung is a weak claim about *where the address came from*,
-/// and the cost of believing it here is attaching evidence to the wrong existing host — visible,
-/// and recoverable by the next scan that reads the device directly.
+/// Provenance is not consulted beyond [`grade`]. A weak rung is a weak claim about *where the
+/// address came from*, and the cost of believing it here is attaching evidence to the wrong
+/// existing host — visible, and recoverable by the next scan that reads the device directly.
 pub(crate) fn may_match(evidence: &MacEvidence) -> bool {
-    classify(&evidence.value().0) == MacQuality::Strong
+    grade(evidence) == MacQuality::Strong
 }
 
 /// Whether this MAC may conjure a host that does not exist.
@@ -100,28 +123,32 @@ pub(crate) fn may_mint(evidence: &MacEvidence) -> bool {
 /// matches on IP and subnet long before it reaches here; what arrives is a device with no address,
 /// or one whose address moved.
 ///
-/// `candidates` is `(host_id, mac)` for the live rows a targeted lookup returned, from both
-/// `ip_addresses` and `interfaces` — a MAC-identified device may carry its address on either.
+/// `candidates` is `(host_id, stored evidence)` for the live rows a targeted lookup returned, from
+/// both `ip_addresses` and `interfaces` — a MAC-identified device may carry its address on either.
+///
+/// A pair matches when the value is equal and either side can anchor identity. The stored side
+/// counts because a guest's MAC stored from its hypervisor's config is fixed even when the value
+/// is locally administered, so the sweep's ARP reply for that same `02:…` address — weak on its
+/// own — still finds the guest rather than minting a second host beside it.
+///
+/// A weak value also matches when the two copies corroborate each other ([`corroborated`]).
 ///
 /// Resolves on a **single** host only, for the reason `match_by_chassis_id` gives: two hosts
 /// wearing one identifier are a duplicate this cannot choose between, and picking either merges a
 /// scan into an arbitrary one of them.
 pub(crate) fn select_matching_host_by_mac(
     incoming: &[MacEvidence],
-    candidates: &[(Uuid, MacAddress)],
+    candidates: &[(Uuid, MacEvidence)],
 ) -> Option<Uuid> {
-    let anchors: HashSet<MacAddress> = incoming
-        .iter()
-        .filter(|e| may_match(e))
-        .map(|e| e.value().0)
-        .collect();
-    if anchors.is_empty() {
-        return None;
-    }
-
     let matched: HashSet<Uuid> = candidates
         .iter()
-        .filter(|(_, mac)| anchors.contains(mac))
+        .filter(|(_, stored)| {
+            incoming.iter().any(|e| {
+                e.value().0 == stored.value().0
+                    && grade(e) != MacQuality::Excluded
+                    && (may_match(e) || may_match(stored) || corroborated(e, stored))
+            })
+        })
         .map(|(host_id, _)| *host_id)
         .collect();
 
@@ -138,6 +165,19 @@ pub(crate) fn select_matching_host_by_mac(
         "Found matching host via MAC identity"
     );
     Some(first)
+}
+
+/// Whether a weak MAC's two copies vouch for each other: the incoming one read first-hand from the
+/// device (it answered in its own protocol, or to our query), and the stored one observed rather
+/// than guessed.
+///
+/// A weak value is one nothing stops the device changing, so on its own it may not anchor a match.
+/// When the device itself answers with the value another source already recorded for an existing
+/// host, both name the same NIC as it is now: a PROFINET DCP responder on a VM's macvlan interface,
+/// whose `8a:…` MAC Proxmox's guest agent reported first. A value several devices share (Docker's
+/// default bridge MACs) still resolves nowhere, because the tier needs a single host.
+pub(crate) fn corroborated(incoming: &MacEvidence, stored: &MacEvidence) -> bool {
+    incoming.source().method().binds_claim_to_subject() && !stored.source().method().is_guess()
 }
 
 /// Whether this payload may become a host that does not exist yet.
@@ -204,6 +244,58 @@ mod tests {
 
     fn evidence(mac: MacAddress, source: AttributeSource) -> MacEvidence {
         MacEvidence::new(MacEvidenceValue(mac), source)
+    }
+
+    /// A stored row's MAC, as the sweep would have written it.
+    fn row(mac: MacAddress) -> MacEvidence {
+        evidence(mac, AttributeSource::ArpReply)
+    }
+
+    /// A Proxmox community-script guest's NIC: locally administered, fixed in the guest's config.
+    fn guest_nic() -> MacAddress {
+        MacAddress::new([0x02, 0x38, 0xB2, 0x56, 0xD6, 0x31])
+    }
+
+    /// The value alone says a device chose it; read from the hypervisor's config it is fixed, so
+    /// it creates and anchors a host like a burned-in address.
+    #[test]
+    fn a_locally_administered_mac_from_a_hypervisor_config_matches_and_mints() {
+        assert_eq!(classify(&guest_nic()), MacQuality::Weak);
+        let e = evidence(guest_nic(), AttributeSource::HypervisorConfig);
+        assert!(may_match(&e));
+        assert!(may_mint(&e));
+
+        // Whoever assigned it, a group address is not a NIC.
+        let group = evidence(
+            MacAddress::new([0x03, 0x00, 0x00, 0x00, 0x00, 0x01]),
+            AttributeSource::HypervisorConfig,
+        );
+        assert!(!may_match(&group));
+    }
+
+    /// The guest recorded from its config first; the sweep later ARPs its `02:…` address. The
+    /// reply alone could not anchor anything, but the stored copy can, so both land on one host.
+    /// The reverse order (sweep first, config later) resolves the same way from the incoming side.
+    #[test]
+    fn a_swept_guest_finds_the_host_its_hypervisor_config_created_in_either_order() {
+        let guest = Uuid::new_v4();
+        assert_eq!(
+            select_matching_host_by_mac(
+                &[evidence(guest_nic(), AttributeSource::ArpReply)],
+                &[(
+                    guest,
+                    evidence(guest_nic(), AttributeSource::HypervisorConfig)
+                )],
+            ),
+            Some(guest)
+        );
+        assert_eq!(
+            select_matching_host_by_mac(
+                &[evidence(guest_nic(), AttributeSource::HypervisorConfig)],
+                &[(guest, row(guest_nic()))],
+            ),
+            Some(guest)
+        );
     }
 
     /// The address we solicited ourselves is the case both gates are meant to admit.
@@ -317,10 +409,10 @@ mod tests {
             select_matching_host_by_mac(
                 &[evidence(burned_in(), AttributeSource::ForwardingTable)],
                 &[
-                    (host, burned_in()),
+                    (host, row(burned_in())),
                     (
                         Uuid::new_v4(),
-                        MacAddress::new([0xB0, 0x83, 0xFE, 0x99, 0x99, 0x99])
+                        row(MacAddress::new([0xB0, 0x83, 0xFE, 0x99, 0x99, 0x99]))
                     )
                 ],
             ),
@@ -342,7 +434,7 @@ mod tests {
         assert_eq!(
             select_matching_host_by_mac(
                 &[evidence(burned_in(), AttributeSource::ProfinetDcp)],
-                &[(host, burned_in())], // stands in for an existing ip_addresses row
+                &[(host, row(burned_in()))], // stands in for an existing ip_addresses row
             ),
             Some(host),
             "a DCP submission must resolve onto a host ARP already established"
@@ -352,7 +444,7 @@ mod tests {
         assert_eq!(
             select_matching_host_by_mac(
                 &[evidence(burned_in(), AttributeSource::ArpReply)],
-                &[(host, burned_in())], // stands in for an existing interfaces row
+                &[(host, row(burned_in()))], // stands in for an existing interfaces row
             ),
             Some(host),
             "an ARP submission must resolve onto a host DCP already established"
@@ -367,7 +459,7 @@ mod tests {
         assert_eq!(
             select_matching_host_by_mac(
                 &[evidence(burned_in(), AttributeSource::ArpReply)],
-                &[(host, burned_in()), (host, burned_in())],
+                &[(host, row(burned_in())), (host, row(burned_in()))],
             ),
             Some(host)
         );
@@ -380,23 +472,47 @@ mod tests {
         assert_eq!(
             select_matching_host_by_mac(
                 &[evidence(burned_in(), AttributeSource::ArpReply)],
-                &[(Uuid::new_v4(), burned_in()), (Uuid::new_v4(), burned_in())],
+                &[
+                    (Uuid::new_v4(), row(burned_in())),
+                    (Uuid::new_v4(), row(burned_in()))
+                ],
             ),
             None
         );
     }
 
-    /// The gate is what selects the anchors, so a payload of weak addresses reaches no candidate
-    /// even when a host is sitting there carrying the very same value.
+    /// A weak value anchors a match only when its two copies corroborate: the incoming one read
+    /// from the device itself, the stored one observed. The lab's case is a PROFINET DCP responder
+    /// on a VM's macvlan interface, whose `8a:…` MAC Proxmox's guest agent reported first.
     #[test]
-    fn a_weak_mac_does_not_reach_a_candidate_that_carries_it() {
-        let mac = MacAddress::new([0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x02]);
+    fn a_weak_mac_reaches_a_candidate_only_when_both_copies_corroborate() {
+        let mac = MacAddress::new([0x8A, 0x2E, 0x53, 0xFE, 0x33, 0x50]);
+        let host = Uuid::new_v4();
+        let reported_by_proxmox = evidence(mac, AttributeSource::Probe(ClientProbe::Proxmox));
+
         assert_eq!(
             select_matching_host_by_mac(
-                &[evidence(mac, AttributeSource::ArpReply)],
-                &[(Uuid::new_v4(), mac)],
+                &[evidence(mac, AttributeSource::ProfinetDcp)],
+                &[(host, reported_by_proxmox.clone())],
             ),
-            None
+            Some(host),
+            "the device answering first-hand corroborates an observed copy"
+        );
+        assert_eq!(
+            select_matching_host_by_mac(
+                &[evidence(mac, AttributeSource::ProfinetDcp)],
+                &[(host, evidence(mac, AttributeSource::Unspecified))],
+            ),
+            None,
+            "a stored copy nothing vouches for corroborates nothing"
+        );
+        assert_eq!(
+            select_matching_host_by_mac(
+                &[evidence(mac, AttributeSource::ForwardingTable)],
+                &[(host, reported_by_proxmox.clone())],
+            ),
+            None,
+            "a third party's say-so is not the device answering"
         );
     }
 

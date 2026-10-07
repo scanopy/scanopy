@@ -106,6 +106,15 @@ impl From<stripe_shared::InvoiceCollectionMethod> for InvoiceCollection {
 pub const INVOICE_PAYMENT_GRACE_DAYS: i64 = 30;
 
 impl BillingInvoice {
+    /// The invoice came to nothing and nothing was taken: a $0 price or a
+    /// 100%-off coupon. An invoice that the customer's account credit paid in
+    /// full has a real total and is not this. Reads both amounts so that an
+    /// event recorded before `total_cents` existed, where it defaults to zero,
+    /// still counts as charged when money was paid.
+    pub fn charged_nothing(&self) -> bool {
+        self.amount_paid_cents == 0 && self.total_cents <= 0
+    }
+
     /// End of the latest service period this invoice pays for on a
     /// self-hosted license plan, or `None` when no line is for one. Read from
     /// the invoice's own lines rather than the org row: `invoice.paid` can

@@ -1,35 +1,31 @@
 use crate::server::{
-    networks::r#impl::Network, organizations::r#impl::base::Organization,
-    shared::types::api::ApiError,
+    organizations::r#impl::base::Organization, shared::types::api::ApiError, sites::r#impl::Site,
 };
 use uuid::Uuid;
 
-/// Validates that a user has access to a network.
-/// Returns an error if the network_id is not in the user's allowed networks.
-pub fn validate_network_access(
-    network_id: Option<Uuid>,
-    user_network_ids: &[Uuid],
+/// Validates that a user has access to a site.
+/// Returns an error if the site_id is not in the user's allowed sites.
+pub fn validate_site_access(
+    site_id: Option<Uuid>,
+    user_site_ids: &[Uuid],
     _action: &str,
 ) -> Result<(), ApiError> {
-    if let Some(network_id) = network_id
-        && !user_network_ids.contains(&network_id)
+    if let Some(site_id) = site_id
+        && !user_site_ids.contains(&site_id)
     {
-        return Err(ApiError::entity_access_denied::<Network>(network_id));
+        return Err(ApiError::entity_access_denied::<Site>(site_id));
     }
     Ok(())
 }
 
-/// Validates that a user has access to every network in `network_ids`.
-/// Returns an error on the first id not in the caller's allowed networks.
-/// In-memory subset check — use for caller-supplied network-id sets that are
-/// validated directly against `auth.network_ids()` (no DB lookup needed).
-pub fn validate_network_ids_access(
-    network_ids: &[Uuid],
-    user_network_ids: &[Uuid],
-) -> Result<(), ApiError> {
-    for network_id in network_ids {
-        if !user_network_ids.contains(network_id) {
-            return Err(ApiError::entity_access_denied::<Network>(*network_id));
+/// Validates that a user has access to every site in `site_ids`.
+/// Returns an error on the first id not in the caller's allowed sites.
+/// In-memory subset check — use for caller-supplied site-id sets that are
+/// validated directly against `auth.site_ids()` (no DB lookup needed).
+pub fn validate_site_ids_access(site_ids: &[Uuid], user_site_ids: &[Uuid]) -> Result<(), ApiError> {
+    for site_id in site_ids {
+        if !user_site_ids.contains(site_id) {
+            return Err(ApiError::entity_access_denied::<Site>(*site_id));
         }
     }
     Ok(())
@@ -64,27 +60,27 @@ where
 }
 
 /// Combined validation for create operations.
-/// Validates network access, organization access, and entity constraints.
+/// Validates site access, organization access, and entity constraints.
 pub fn validate_create_access(
-    network_id: Option<Uuid>,
+    site_id: Option<Uuid>,
     organization_id: Option<Uuid>,
-    user_network_ids: &[Uuid],
+    user_site_ids: &[Uuid],
     user_organization_id: Uuid,
 ) -> Result<(), ApiError> {
-    validate_network_access(network_id, user_network_ids, "create")?;
+    validate_site_access(site_id, user_site_ids, "create")?;
     validate_organization_access(organization_id, user_organization_id, "create")?;
     Ok(())
 }
 
 /// Combined validation for read/access operations.
-/// Validates network access and organization access for viewing an entity.
+/// Validates site access and organization access for viewing an entity.
 pub fn validate_read_access(
-    network_id: Option<Uuid>,
+    site_id: Option<Uuid>,
     organization_id: Option<Uuid>,
-    user_network_ids: &[Uuid],
+    user_site_ids: &[Uuid],
     user_organization_id: Uuid,
 ) -> Result<(), ApiError> {
-    validate_network_access(network_id, user_network_ids, "access")?;
+    validate_site_access(site_id, user_site_ids, "access")?;
     validate_organization_access(organization_id, user_organization_id, "access")?;
     Ok(())
 }
@@ -92,18 +88,18 @@ pub fn validate_read_access(
 /// Combined validation for update operations.
 /// Validates access to both existing entity AND new values being set.
 pub fn validate_update_access(
-    existing_network_id: Option<Uuid>,
+    existing_site_id: Option<Uuid>,
     existing_organization_id: Option<Uuid>,
-    new_network_id: Option<Uuid>,
+    new_site_id: Option<Uuid>,
     new_organization_id: Option<Uuid>,
-    user_network_ids: &[Uuid],
+    user_site_ids: &[Uuid],
     user_organization_id: Uuid,
 ) -> Result<(), ApiError> {
     // First check access to existing entity
-    if let Some(network_id) = existing_network_id
-        && !user_network_ids.contains(&network_id)
+    if let Some(site_id) = existing_site_id
+        && !user_site_ids.contains(&site_id)
     {
-        return Err(ApiError::entity_access_denied::<Network>(network_id));
+        return Err(ApiError::entity_access_denied::<Site>(site_id));
     }
     if let Some(organization_id) = existing_organization_id
         && organization_id != user_organization_id
@@ -114,10 +110,10 @@ pub fn validate_update_access(
     }
 
     // Then check access to new values being set
-    if let Some(network_id) = new_network_id
-        && !user_network_ids.contains(&network_id)
+    if let Some(site_id) = new_site_id
+        && !user_site_ids.contains(&site_id)
     {
-        return Err(ApiError::entity_access_denied::<Network>(network_id));
+        return Err(ApiError::entity_access_denied::<Site>(site_id));
     }
     if let Some(organization_id) = new_organization_id
         && organization_id != user_organization_id
@@ -131,17 +127,17 @@ pub fn validate_update_access(
 }
 
 /// Combined validation for delete operations.
-/// Validates network access and organization access for deleting an entity.
+/// Validates site access and organization access for deleting an entity.
 pub fn validate_delete_access(
-    network_id: Option<Uuid>,
+    site_id: Option<Uuid>,
     organization_id: Option<Uuid>,
-    user_network_ids: &[Uuid],
+    user_site_ids: &[Uuid],
     user_organization_id: Uuid,
 ) -> Result<(), ApiError> {
-    if let Some(network_id) = network_id
-        && !user_network_ids.contains(&network_id)
+    if let Some(site_id) = site_id
+        && !user_site_ids.contains(&site_id)
     {
-        return Err(ApiError::entity_access_denied::<Network>(network_id));
+        return Err(ApiError::entity_access_denied::<Site>(site_id));
     }
     if let Some(organization_id) = organization_id
         && organization_id != user_organization_id
@@ -173,17 +169,17 @@ pub fn validate_csp_domain(domain: &str) -> Result<(), ApiError> {
 }
 
 /// Validation for bulk delete operations.
-/// Validates network access and organization access for deleting multiple entities.
+/// Validates site access and organization access for deleting multiple entities.
 pub fn validate_bulk_delete_access(
-    network_id: Option<Uuid>,
+    site_id: Option<Uuid>,
     organization_id: Option<Uuid>,
-    user_network_ids: &[Uuid],
+    user_site_ids: &[Uuid],
     user_organization_id: Uuid,
 ) -> Result<(), ApiError> {
-    if let Some(network_id) = network_id
-        && !user_network_ids.contains(&network_id)
+    if let Some(site_id) = site_id
+        && !user_site_ids.contains(&site_id)
     {
-        return Err(ApiError::entity_access_denied::<Network>(network_id));
+        return Err(ApiError::entity_access_denied::<Site>(site_id));
     }
     if let Some(organization_id) = organization_id
         && organization_id != user_organization_id

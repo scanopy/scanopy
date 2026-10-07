@@ -10,7 +10,7 @@ export type EntityDiscriminants = components['schemas']['EntityDiscriminants'];
  * Map EntityDiscriminants to API path segments for CSV export.
  * Paths are relative to /api/v1/
  *
- * Note: Some entities don't support CSV export (Organization, Invite, Unknown)
+ * Note: Some entities don't support CSV export (Organization, Invite)
  */
 export const entityToExportPath: Record<EntityDiscriminants, string | null> = {
 	// Standard entity paths
@@ -25,7 +25,7 @@ export const entityToExportPath: Record<EntityDiscriminants, string | null> = {
 	Dependency: 'dependencies',
 	Tag: 'tags',
 	Daemon: 'daemons',
-	Network: 'networks',
+	Site: 'sites',
 	Share: 'shares',
 	Discovery: 'discoveries',
 	Topology: 'topologies',
@@ -37,6 +37,5 @@ export const entityToExportPath: Record<EntityDiscriminants, string | null> = {
 	DaemonApiKey: 'auth/daemon',
 	// No CSV export
 	Organization: null,
-	Invite: null,
-	Unknown: null
+	Invite: null
 };

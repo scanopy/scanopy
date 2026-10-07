@@ -173,7 +173,7 @@ impl ServiceService {
 
         mutable_service.base.host_id = updated_host.id;
 
-        mutable_service.base.network_id = updated_host.base.network_id;
+        mutable_service.base.site_id = updated_host.base.site_id;
 
         tracing::trace!(
             "Reassigned service {:?} bindings for from host {:?} to host {:?}",
@@ -183,5 +183,86 @@ impl ServiceService {
         );
 
         mutable_service
+    }
+}
+
+impl ServiceService {
+    /// Point everything that references `old` at `new`, so `old` can be deleted without taking
+    /// anything with it.
+    ///
+    /// For a host merge, where `old` duplicates `new` (same name and definition) on the host being
+    /// merged away. Deleting `old` otherwise nulls the link of every container it runs
+    /// (`services.virtualization_service_id`, `ON DELETE SET NULL`) and drops it from every
+    /// dependency (`dependency_members`, `ON DELETE CASCADE`). `binding_map` carries `old`'s
+    /// binding ids to `new`'s matching bindings; a binding with no match is dropped from a
+    /// binding-level dependency, the same as deleting it would.
+    pub async fn replace_service_references(
+        &self,
+        old: &Service,
+        new: &Service,
+        binding_map: &std::collections::HashMap<Uuid, Uuid>,
+        authentication: AuthenticatedEntity,
+    ) -> Result<()> {
+        use crate::server::dependencies::r#impl::base::DependencyMembers;
+
+        let site_id = old.base.site_id;
+        let containers = self
+            .get_all(
+                StorableFilter::<Service>::new_from_site_ids(&[site_id])
+                    .virtualization_service_in(&[old.id], false)
+                    .live(),
+            )
+            .await?;
+        for mut container in containers {
+            container.base.virtualization_service_id = Some(new.id);
+            self.update(&mut container, authentication.clone()).await?;
+        }
+
+        // Same lock `update_dependency_members` takes, held across the read-modify-write.
+        let lock_guard = self
+            .storage
+            .session_lock(LockKey::DependencyMembers { site_id }, DEFAULT_LOCK_TIMEOUT)
+            .await?;
+        let dependencies = self
+            .dependency_service
+            .get_all(StorableFilter::<Dependency>::new_from_site_ids(&[site_id]))
+            .await?;
+        for mut dependency in dependencies {
+            let changed = match &mut dependency.base.members {
+                DependencyMembers::Services { service_ids } => {
+                    let before = service_ids.clone();
+                    let mut seen = std::collections::HashSet::new();
+                    *service_ids = service_ids
+                        .iter()
+                        .map(|id| if *id == old.id { new.id } else { *id })
+                        .filter(|id| seen.insert(*id))
+                        .collect();
+                    *service_ids != before
+                }
+                DependencyMembers::Bindings { binding_ids } => {
+                    let old_bindings: Vec<Uuid> =
+                        old.base.bindings.iter().map(|b| b.id()).collect();
+                    let before = binding_ids.clone();
+                    *binding_ids = binding_ids
+                        .iter()
+                        .filter_map(|id| {
+                            if old_bindings.contains(id) {
+                                binding_map.get(id).copied()
+                            } else {
+                                Some(*id)
+                            }
+                        })
+                        .collect();
+                    *binding_ids != before
+                }
+            };
+            if changed {
+                self.dependency_service
+                    .update(&mut dependency, authentication.clone())
+                    .await?;
+            }
+        }
+        lock_guard.release().await?;
+        Ok(())
     }
 }

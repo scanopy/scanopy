@@ -6,7 +6,8 @@ use utoipa::ToSchema;
 /// Stored as a JSONB blob with `#[serde(default)]` on the struct, so a stored
 /// object missing a key (including the `{}` every existing row starts with)
 /// reads as that field's default. Every default reproduces the UI's
-/// behaviour from before the setting existed.
+/// behaviour from before the setting existed, except `table_density`, which
+/// defaults to the tighter of its two layouts.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, Hash, ToSchema)]
 #[serde(default)]
 pub struct DisplaySettings {
@@ -20,6 +21,8 @@ pub struct DisplaySettings {
     pub week_start: WeekStart,
     /// Whether recent events show as relative ("3h ago") or absolute times.
     pub timestamps: TimestampStyle,
+    /// Cell padding and row height in entity tables.
+    pub table_density: TableDensity,
 }
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, Hash, ToSchema)]
@@ -62,6 +65,16 @@ pub enum TimestampStyle {
     Absolute,
 }
 
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, Hash, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum TableDensity {
+    /// Roomier cell padding and taller rows.
+    Comfortable,
+    /// Tighter cell padding, shorter rows and smaller row actions.
+    #[default]
+    Compact,
+}
+
 impl DisplaySettings {
     /// Whether `time_zone` is unset or names a zone in the IANA database.
     pub fn has_valid_time_zone(&self) -> bool {
@@ -88,6 +101,22 @@ mod tests {
                 ..DisplaySettings::default()
             }
         );
+    }
+
+    #[test]
+    fn table_density_survives_storage_round_trip() {
+        // The JSONB column is bound with `to_value` and read back with `from_value`.
+        let settings = DisplaySettings {
+            table_density: TableDensity::Comfortable,
+            ..DisplaySettings::default()
+        };
+        let stored = serde_json::to_value(&settings).unwrap();
+        let read: DisplaySettings = serde_json::from_value(stored).unwrap();
+        assert_eq!(read.table_density, TableDensity::Comfortable);
+
+        let before_density: DisplaySettings =
+            serde_json::from_str(r#"{"clock":"twelve_hour"}"#).unwrap();
+        assert_eq!(before_density.table_density, TableDensity::Compact);
     }
 
     #[test]

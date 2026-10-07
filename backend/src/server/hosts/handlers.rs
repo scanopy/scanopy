@@ -10,7 +10,6 @@ use crate::server::discovery::r#impl::types::{DiscoveryType, RunType};
 use crate::server::hosts::r#impl::os::HostOsFamily;
 use crate::server::interfaces::r#impl::base::Interface;
 use crate::server::ip_addresses::r#impl::base::IPAddress;
-use crate::server::networks::r#impl::Network;
 use crate::server::openapi::tags as api_tags;
 use crate::server::ports::r#impl::base::{Port, PortType};
 use crate::server::services::r#impl::base::Service;
@@ -33,7 +32,8 @@ use crate::server::shared::types::api::{ApiErrorResponse, EmptyApiResponse};
 use crate::server::shared::types::entities::EntitySourceDiscriminants;
 use crate::server::shared::types::error_codes::ErrorCode;
 use crate::server::shared::types::metadata::HasId;
-use crate::server::shared::validation::{validate_network_access, validate_read_access};
+use crate::server::shared::validation::{validate_read_access, validate_site_access};
+use crate::server::sites::r#impl::Site;
 use crate::server::{
     config::AppState,
     daemons::r#impl::{base::Daemon, version::pre_interface_to_ip_address_rename},
@@ -41,6 +41,9 @@ use crate::server::{
         api::{CreateHostRequest, DiscoveryHostRequest, HostResponse, UpdateHostRequest},
         base::{HOST_MAC_JOIN, Host, PRIMARY_INTERFACE_JOIN},
         legacy::{HostCreateRequestBody, HostCreateResponse, LegacyHostWithServicesResponse},
+        virtualization_tree::{
+            VIRTUALIZATION_TREE_GROUP_SQL, VIRTUALIZATION_TREE_JOIN, VIRTUALIZATION_TREE_ORDER_SQL,
+        },
     },
     shared::types::api::{ApiError, ApiResponse, ApiResult, PaginatedApiResponse},
 };
@@ -80,7 +83,7 @@ pub enum HostOrderField {
     UpdatedAt,
     /// Sort by virtualizing service name. Requires JOIN to services table.
     VirtualizedBy,
-    NetworkId,
+    SiteId,
     /// Sort by primary interface IP address. Requires JOIN to ip_addresses table.
     InterfaceIp,
     /// Sort by when discovery last observed the host. Surfaces stale assets.
@@ -114,7 +117,7 @@ impl OrderField for HostOrderField {
             Self::Name => HOST_TITLE_SQL.as_str(),
             Self::Hostname => "hosts.hostname",
             Self::UpdatedAt => "hosts.updated_at",
-            Self::NetworkId => "hosts.network_id",
+            Self::SiteId => "hosts.site_id",
             Self::LastSeenAt => "hosts.last_seen_at",
             Self::VirtualizedBy => "COALESCE(virt_service.name, '')",
             Self::InterfaceIp => "primary_interface.ip_address",
@@ -125,6 +128,29 @@ impl OrderField for HostOrderField {
             Self::SysLocation => "hosts.sys_location",
             Self::OsFamily => "hosts.os->>'family'",
             Self::Hidden => "hosts.hidden",
+        }
+    }
+
+    /// Grouping by Virtualized By groups each host under the top of its virtualization chain,
+    /// parent first, while sorting and filter options stay on the immediate service's name.
+    fn group_sql(&self) -> &'static str {
+        match self {
+            Self::VirtualizedBy => VIRTUALIZATION_TREE_GROUP_SQL,
+            _ => self.to_sql(),
+        }
+    }
+
+    fn group_join_sql(&self) -> Option<&'static str> {
+        match self {
+            Self::VirtualizedBy => Some(VIRTUALIZATION_TREE_JOIN.as_str()),
+            _ => self.join_sql(),
+        }
+    }
+
+    fn group_order_sql(&self) -> Option<&'static str> {
+        match self {
+            Self::VirtualizedBy => Some(VIRTUALIZATION_TREE_ORDER_SQL),
+            _ => None,
         }
     }
 
@@ -162,9 +188,9 @@ impl OrderField for HostOrderField {
 /// Query parameters for filtering and ordering hosts.
 #[derive(Deserialize, Default, Debug, Clone, IntoParams)]
 pub struct HostFilterQuery {
-    /// Filter by network ID. Repeat the parameter to pass several.
-    #[serde(alias = "network_id")]
-    pub network_ids: Option<Vec<Uuid>>,
+    /// Filter by site ID. Repeat the parameter to pass several.
+    #[serde(alias = "site_id")]
+    pub site_ids: Option<Vec<Uuid>>,
     /// Filter by specific entity IDs (for selective loading)
     pub ids: Option<Vec<Uuid>>,
     /// Filter by the `hidden` flag. Repeat the parameter to accept both values;
@@ -196,8 +222,9 @@ pub struct HostFilterQuery {
     /// Filter by tag IDs (returns hosts that have ANY of the specified tags)
     pub tag_ids: Option<Vec<Uuid>>,
     /// Free-text search. Case-insensitive substring match against the host's
-    /// name, hostname, sysName, chassis id and description, and against its IP
-    /// addresses and the names of services running on it.
+    /// name, hostname, sysName, chassis id, serial number, asset tag and
+    /// description, and against its IP addresses and the names of services
+    /// running on it.
     ///
     /// sysName and chassis id are in there because they are rungs of the title
     /// ladder: a host with no name of its own is *shown* under one of them, and
@@ -219,8 +246,8 @@ pub struct HostFilterQuery {
     /// instant (snapshot view) instead of live state.
     pub at: Option<chrono::DateTime<chrono::Utc>>,
     /// `true` returns only hosts discovery hasn't observed within their
-    /// network's staleness window; `false` returns only those it has. Omit for
-    /// both. Evaluated per row against the host's own network's window.
+    /// site's staleness window; `false` returns only those it has. Omit for
+    /// both. Evaluated per row against the host's own site's window.
     pub stale: Option<bool>,
     /// `false` returns hosts with empty `ports`/`services`/`interfaces`.
     /// `ip_addresses` is always populated: the host's title can come from its
@@ -308,7 +335,7 @@ impl FilterQueryExtractor for HostFilterQuery {
     fn apply_to_filter<T: Storable>(
         &self,
         filter: StorableFilter<T>,
-        user_network_ids: &[Uuid],
+        user_site_ids: &[Uuid],
         _user_organization_id: Uuid,
     ) -> StorableFilter<T> {
         // Apply IDs filter first if provided
@@ -316,19 +343,19 @@ impl FilterQueryExtractor for HostFilterQuery {
             Some(ids) if !ids.is_empty() => filter.entity_ids(ids),
             _ => filter,
         };
-        // Then apply network filter. Intersect with what the caller can see —
-        // a requested network they have no access to must narrow the result to
+        // Then apply site filter. Intersect with what the caller can see —
+        // a requested site they have no access to must narrow the result to
         // nothing, never widen it.
-        match &self.network_ids {
+        match &self.site_ids {
             Some(requested) => {
                 let accessible: Vec<Uuid> = requested
                     .iter()
                     .copied()
-                    .filter(|id| user_network_ids.contains(id))
+                    .filter(|id| user_site_ids.contains(id))
                     .collect();
-                filter.network_ids(&accessible)
+                filter.site_ids(&accessible)
             }
-            None => filter.network_ids(user_network_ids),
+            None => filter.site_ids(user_site_ids),
         }
     }
 
@@ -383,13 +410,13 @@ async fn get_all_hosts(
     auth: Authorized<Viewer>,
     Query(query): Query<HostFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<HostResponse>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
 
-    let base_filter = StorableFilter::<Host>::new_from_network_ids(&network_ids);
-    let filter = query.apply_to_filter(base_filter, &network_ids, organization_id);
+    let base_filter = StorableFilter::<Host>::new_from_site_ids(&site_ids);
+    let filter = query.apply_to_filter(base_filter, &site_ids, organization_id);
 
     // SCD2 read path: live by default, or as-of the snapshot timestamp when set.
     // Without this, close-and-clone's closed historical copies leak into the
@@ -413,16 +440,12 @@ async fn get_all_hosts(
 
     let filter = query.apply_field_filters(filter);
 
-    // Staleness is per-network, so resolve each accessible network's cutoff and
+    // Staleness is per-site, so resolve each accessible site's cutoff and
     // let the filter compare every row against its own.
     let filter = match query.stale {
         Some(stale) => {
-            let cutoffs = state
-                .services
-                .network_service
-                .stale_cutoffs(&network_ids)
-                .await?;
-            filter.stale_by_network(&cutoffs, stale)
+            let cutoffs = state.services.site_service.stale_cutoffs(&site_ids).await?;
+            filter.stale_by_site(&cutoffs, stale)
         }
         None => filter,
     };
@@ -442,7 +465,7 @@ async fn get_all_hosts(
             state
                 .services
                 .host_service
-                .count_by_group(filter.clone(), group_field.to_sql())
+                .count_by_group(filter.clone(), group_field.group_sql())
                 .await?,
         ),
         None => None,
@@ -504,7 +527,7 @@ async fn get_host_by_id(
     auth: Authorized<Viewer>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<HostResponse>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
@@ -516,7 +539,7 @@ async fn get_host_by_id(
         .await?
         .ok_or_else(|| ApiError::entity_not_found::<Host>(id))?;
 
-    validate_read_access(Some(host.network_id), None, &network_ids, organization_id)?;
+    validate_read_access(Some(host.site_id), None, &site_ids, organization_id)?;
 
     // Hydrate tags from junction table
     let tags_map = state
@@ -557,8 +580,8 @@ async fn get_host_by_id(
     request_body = CreateHostRequest,
     responses(
         (status = 200, description = "Host created successfully", body = ApiResponse<HostResponse>),
-        (status = 400, description = "Validation error: network not found, subnet mismatch, or invalid tags", body = ApiErrorResponse),
-        (status = 401, description = "No access to the specified network", body = ApiErrorResponse),
+        (status = 400, description = "Validation error: site not found, subnet mismatch, or invalid tags", body = ApiErrorResponse),
+        (status = 401, description = "No access to the specified site", body = ApiErrorResponse),
     ),
     security( ("user_api_key" = []),("session" = []), ("daemon_api_key" = []))
 )]
@@ -567,7 +590,7 @@ async fn create_host(
     auth: Authorized<Or<Member, IsDaemon>>,
     ApiJson(request): ApiJson<HostCreateRequestBody>,
 ) -> ApiResult<Json<ApiResponse<HostCreateResponse>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth.organization_id();
     let entity = auth.into_entity();
     let host_service = &state.services.host_service;
@@ -580,17 +603,17 @@ async fn create_host(
                 .validate()
                 .map_err(|e| ApiError::bad_request(&e.to_string()))?;
 
-            // Validate user has access to the network
-            validate_network_access(Some(request.network_id), &network_ids, "create")?;
+            // Validate user has access to the site
+            validate_site_access(Some(request.site_id), &site_ids, "create")?;
 
-            // Validate network_id exists
-            let _network = state
+            // Validate site_id exists
+            let _site = state
                 .services
-                .network_service
-                .get_by_id(&request.network_id)
+                .site_service
+                .get_by_id(&request.site_id)
                 .await?
                 .ok_or_else(|| {
-                    ApiError::bad_request(&format!("Network {} not found", request.network_id))
+                    ApiError::bad_request(&format!("Site {} not found", request.site_id))
                 })?;
 
             // Check host limit on plan
@@ -604,15 +627,15 @@ async fn create_host(
                     .unwrap_or_else(crate::server::billing::plans::get_free_plan);
                 if let Some(limit) = plan.host_limit() {
                     // Counted the way the dashboard counts and the way the discovery path gates:
-                    // through `count_for_networks`, which narrows SCD2 entities to live rows, and
-                    // across *every* network the organization owns. Hand-rolling it here meant
-                    // closed snapshot copies were counted and the caller's own accessible networks
+                    // through `count_for_sites`, which narrows SCD2 entities to live rows, and
+                    // across *every* site the organization owns. Hand-rolling it here meant
+                    // closed snapshot copies were counted and the caller's own accessible sites
                     // were the scope — so a user could be shown 18/25 and refused at 25, and a
-                    // member whose networks are a subset of the org's could create past the limit.
-                    let org_network_ids: Vec<Uuid> = state
+                    // member whose sites are a subset of the org's could create past the limit.
+                    let org_site_ids: Vec<Uuid> = state
                         .services
-                        .network_service
-                        .get_all(StorableFilter::<Network>::new_from_org_id(&org_id))
+                        .site_service
+                        .get_all(StorableFilter::<Site>::new_from_org_id(&org_id))
                         .await
                         .unwrap_or_default()
                         .iter()
@@ -621,7 +644,7 @@ async fn create_host(
                     let current_hosts = state
                         .services
                         .host_service
-                        .count_for_networks(&org_network_ids)
+                        .count_for_sites(&org_site_ids)
                         .await?;
                     if current_hosts >= limit {
                         let _ = state
@@ -650,18 +673,18 @@ async fn create_host(
                 }
             }
 
-            // Check interface subnets are on the same network
+            // Check interface subnets are on the same site
             for ip_address in &request.ip_addresses {
                 if let Some(subnet) = state
                     .services
                     .subnet_service
                     .get_by_id(&ip_address.subnet_id)
                     .await?
-                    && subnet.base.network_id != request.network_id
+                    && subnet.base.site_id != request.site_id
                 {
                     return Err(ApiError::bad_request(&format!(
-                        "Host is on network {}, cannot have an ip_address with a subnet \"{}\" which is on network {}.",
-                        request.network_id, subnet.base.name, subnet.base.network_id
+                        "Host is on site {}, cannot have an ip_address with a subnet \"{}\" which is on site {}.",
+                        request.site_id, subnet.base.name, subnet.base.site_id
                     )));
                 }
             }
@@ -693,10 +716,10 @@ async fn create_host(
 
             let discovery_request = legacy_request.into_discovery_request();
 
-            // Validate daemon has access to the network
-            validate_network_access(
-                Some(discovery_request.host.base.network_id),
-                &network_ids,
+            // Validate daemon has access to the site
+            validate_site_access(
+                Some(discovery_request.host.base.site_id),
+                &site_ids,
                 "create",
             )?;
 
@@ -724,11 +747,12 @@ async fn create_host(
                     .await;
             }
 
+            let daemon_id = *daemon_id;
             // Capture one scan_time for the whole submission so all entities
             // share consistent SCD2 timestamps. See ScanContext for rationale.
             let scan_ctx =
-                crate::server::shared::services::scan_context::ScanContext::new(*daemon_id);
-            let host_response = host_service
+                crate::server::shared::services::scan_context::ScanContext::new(daemon_id);
+            let discovered = host_service
                 .discover_host(
                     host,
                     ip_addresses,
@@ -744,7 +768,15 @@ async fn create_host(
                 )
                 .await?;
 
-            let legacy_response = LegacyHostWithServicesResponse::from_host_response(host_response);
+            // Latched for the scan record, as `superseded_wire_shape` is above.
+            state
+                .services
+                .discovery_service
+                .note_touched_subnets(daemon_id, discovered.subnet_ids)
+                .await;
+
+            let legacy_response =
+                LegacyHostWithServicesResponse::from_host_response(discovered.host);
 
             Ok(Json(ApiResponse::success(HostCreateResponse::Legacy(
                 legacy_response,
@@ -788,7 +820,7 @@ async fn update_host(
     Path(id): Path<Uuid>,
     ApiJson(mut request): ApiJson<UpdateHostRequest>,
 ) -> ApiResult<Json<ApiResponse<HostResponse>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
@@ -803,16 +835,16 @@ async fn update_host(
     // Path ID is canonical - override any ID in the body
     request.id = id;
 
-    // Fetch existing host to validate network access
+    // Fetch existing host to validate site access
     let existing_host = host_service
         .get_by_id(&id)
         .await?
         .ok_or_else(|| ApiError::entity_not_found::<Host>(id))?;
 
     validate_read_access(
-        Some(existing_host.base.network_id),
+        Some(existing_host.base.site_id),
         None,
-        &network_ids,
+        &site_ids,
         organization_id,
     )?;
 
@@ -868,7 +900,7 @@ async fn update_host(
     request_body = DiscoveryHostRequest,
     responses(
         (status = 200, description = "Host discovered/updated successfully", body = ApiResponse<HostResponse>),
-        (status = 403, description = "Daemon cannot create hosts on other networks", body = ApiErrorResponse),
+        (status = 403, description = "Daemon cannot create hosts on other sites", body = ApiErrorResponse),
     ),
     security(("daemon_api_key" = []))
 )]
@@ -880,16 +912,16 @@ async fn create_host_discovery(
     // Legacy cleanup: remove once minimum_supported >= 0.16.0
     let is_legacy_daemon = pre_interface_to_ip_address_rename(auth.entity.daemon_version());
 
-    // Get daemon network_id from entity
-    let daemon_network_id = auth
-        .network_ids()
+    // Get daemon site_id from entity
+    let daemon_site_id = auth
+        .site_ids()
         .first()
         .copied()
-        .ok_or_else(|| ApiError::forbidden("Daemon has no network assignment"))?;
+        .ok_or_else(|| ApiError::forbidden("Daemon has no site assignment"))?;
 
-    if request.host.base.network_id != daemon_network_id {
+    if request.host.base.site_id != daemon_site_id {
         return Err(ApiError::forbidden(
-            "Daemon cannot create hosts on networks it's not assigned to",
+            "Daemon cannot create hosts on sites it's not assigned to",
         ));
     }
 
@@ -973,7 +1005,7 @@ async fn rescan_host(
     auth: Authorized<Member>,
     Path(host_id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<DiscoveryUpdatePayload>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
@@ -985,12 +1017,7 @@ async fn rescan_host(
         .await?
         .ok_or_else(|| ApiError::entity_not_found::<Host>(host_id))?;
 
-    validate_read_access(
-        Some(host.base.network_id),
-        None,
-        &network_ids,
-        organization_id,
-    )?;
+    validate_read_access(Some(host.base.site_id), None, &site_ids, organization_id)?;
 
     let ip_addresses = state
         .services
@@ -1080,7 +1107,7 @@ async fn rescan_host(
                 .join(", ")
         ),
         daemon_id: daemon.id,
-        network_id: host.base.network_id,
+        site_id: host.base.site_id,
         tags: Vec::new(),
     });
 
@@ -1170,9 +1197,9 @@ async fn resolve_rescan_daemon(state: &Arc<AppState>, host: &Host) -> Result<Dae
             )
         })?;
 
-    if daemon.base.network_id != host.base.network_id {
+    if daemon.base.site_id != host.base.site_id {
         return Err(ApiError::bad_request(&format!(
-            "Daemon \"{}\" has moved to a different network and can no longer reach this host.",
+            "Daemon \"{}\" has moved to a different site and can no longer reach this host.",
             daemon.base.name
         )));
     }
@@ -1200,7 +1227,7 @@ async fn resolve_rescan_daemon(state: &Arc<AppState>, host: &Host) -> Result<Dae
 ///
 /// Merges all ip_addresses, ports, and services from `other_host` into
 /// `destination_host`, then deletes `other_host`. Both hosts must be
-/// on the same network.
+/// on the same site.
 ///
 /// ### Merge Behavior
 ///
@@ -1226,7 +1253,7 @@ async fn resolve_rescan_daemon(state: &Arc<AppState>, host: &Host) -> Result<Dae
     responses(
         (status = 200, description = "Hosts consolidated successfully", body = ApiResponse<HostResponse>),
         (status = 404, description = "One or both hosts not found", body = ApiErrorResponse),
-        (status = 400, description = "Validation error: same host, has daemon, or different networks", body = ApiErrorResponse),
+        (status = 400, description = "Validation error: same host, has daemon, or different sites", body = ApiErrorResponse),
     ),
      security(("user_api_key" = []), ("session" = []))
 )]
@@ -1235,7 +1262,7 @@ async fn consolidate_hosts(
     auth: Authorized<Member>,
     Path((destination_host_id, other_host_id)): Path<(Uuid, Uuid)>,
 ) -> ApiResult<Json<ApiResponse<HostResponse>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
@@ -1253,23 +1280,23 @@ async fn consolidate_hosts(
 
     // Validate user has access to both hosts
     validate_read_access(
-        Some(destination_host.base.network_id),
+        Some(destination_host.base.site_id),
         None,
-        &network_ids,
+        &site_ids,
         organization_id,
     )?;
     validate_read_access(
-        Some(other_host.base.network_id),
+        Some(other_host.base.site_id),
         None,
-        &network_ids,
+        &site_ids,
         organization_id,
     )?;
 
-    // Make sure hosts are on same network
-    if destination_host.base.network_id != other_host.base.network_id {
+    // Make sure hosts are on same site
+    if destination_host.base.site_id != other_host.base.site_id {
         return Err(ApiError::bad_request(&format!(
-            "Destination Host is on network {}, other host \"{}\" can't be on a different network ({}).",
-            destination_host.base.network_id, other_host.base.name, other_host.base.network_id
+            "Destination Host is on site {}, other host \"{}\" can't be on a different site ({}).",
+            destination_host.base.site_id, other_host.base.name, other_host.base.site_id
         )));
     }
 
@@ -1397,14 +1424,14 @@ async fn export_hosts_zip(
     auth: Authorized<Viewer>,
     Query(query): Query<HostFilterQuery>,
 ) -> ApiResult<impl IntoResponse> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
 
     // Build host filter (same as CSV export)
-    let base_filter = StorableFilter::<Host>::new_from_network_ids(&network_ids);
-    let filter = query.apply_to_filter(base_filter, &network_ids, organization_id);
+    let base_filter = StorableFilter::<Host>::new_from_site_ids(&site_ids);
+    let filter = query.apply_to_filter(base_filter, &site_ids, organization_id);
 
     // SCD2 read path: live by default, or as-of the snapshot timestamp when set.
     // Without this, close-and-clone's closed historical copies leak into the
@@ -1423,12 +1450,8 @@ async fn export_hosts_zip(
     // exactly what the user was looking at when they triggered it.
     let filter = match query.stale {
         Some(stale) => {
-            let cutoffs = state
-                .services
-                .network_service
-                .stale_cutoffs(&network_ids)
-                .await?;
-            filter.stale_by_network(&cutoffs, stale)
+            let cutoffs = state.services.site_service.stale_cutoffs(&site_ids).await?;
+            filter.stale_by_site(&cutoffs, stale)
         }
         None => filter,
     };
@@ -1443,29 +1466,25 @@ async fn export_hosts_zip(
     let ip_addresses = state
         .services
         .ip_address_service
-        .get_all(
-            StorableFilter::<IPAddress>::new_from_host_ids(&host_ids).network_ids(&network_ids),
-        )
+        .get_all(StorableFilter::<IPAddress>::new_from_host_ids(&host_ids).site_ids(&site_ids))
         .await?;
 
     let ports = state
         .services
         .port_service
-        .get_all(StorableFilter::<Port>::new_from_host_ids(&host_ids).network_ids(&network_ids))
+        .get_all(StorableFilter::<Port>::new_from_host_ids(&host_ids).site_ids(&site_ids))
         .await?;
 
     let services = state
         .services
         .service_service
-        .get_all(StorableFilter::<Service>::new_from_host_ids(&host_ids).network_ids(&network_ids))
+        .get_all(StorableFilter::<Service>::new_from_host_ids(&host_ids).site_ids(&site_ids))
         .await?;
 
     let interfaces = state
         .services
         .interface_service
-        .get_all(
-            StorableFilter::<Interface>::new_from_host_ids(&host_ids).network_ids(&network_ids),
-        )
+        .get_all(StorableFilter::<Interface>::new_from_host_ids(&host_ids).site_ids(&site_ids))
         .await?;
 
     // Build CSVs
@@ -1478,7 +1497,7 @@ async fn export_hosts_zip(
         .map_err(|e| ApiError::internal_error(&format!("Failed to build ports CSV: {}", e)))?;
     let services_csv = build_csv(&services)
         .map_err(|e| ApiError::internal_error(&format!("Failed to build services CSV: {}", e)))?;
-    let if_entries_csv = build_csv(&interfaces)
+    let interfaces_csv = build_csv(&interfaces)
         .map_err(|e| ApiError::internal_error(&format!("Failed to build interfaces CSV: {}", e)))?;
 
     // Build zip archive
@@ -1509,7 +1528,7 @@ async fn export_hosts_zip(
 
         zip.start_file("interfaces.csv", options)
             .map_err(|e| ApiError::internal_error(&format!("Failed to create zip: {}", e)))?;
-        zip.write_all(&if_entries_csv)
+        zip.write_all(&interfaces_csv)
             .map_err(|e| ApiError::internal_error(&format!("Failed to write zip: {}", e)))?;
 
         zip.finish()

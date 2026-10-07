@@ -22,13 +22,9 @@
 	// Props for callbacks from parent
 	let {
 		topology,
-		onToggleLock,
-		onRebuild,
 		isActive = false
 	}: {
 		topology: RenderableTopology | null | undefined;
-		onToggleLock?: () => void;
-		onRebuild?: () => void;
 		isActive?: boolean;
 	} = $props();
 
@@ -109,7 +105,7 @@
 			// DISABLED: no mechanism to persist position changes.
 			// await updateNodePositionMutation.mutateAsync({
 			// 	topologyId: topology.id,
-			// 	networkId: topology.network_id,
+			// 	siteId: topology.site_id,
 			// 	view: $activeView,
 			// 	nodeId: movedNode.id,
 			// 	position: { x, y }
@@ -136,7 +132,7 @@
 				// DISABLED: no mechanism to persist edge handle changes.
 				// await updateEdgeHandlesMutation.mutateAsync({
 				// 	topologyId: topology.id,
-				// 	networkId: topology.network_id,
+				// 	siteId: topology.site_id,
 				// 	view: $activeView,
 				// 	edgeId: topologyEdge.id,
 				// 	sourceHandle: newConnection.sourceHandle as 'Top' | 'Bottom' | 'Left' | 'Right',
@@ -151,9 +147,7 @@
 		getShortcutsHelpOpen: () => shortcutsHelpOpen,
 		setShortcutsHelpOpen: (open) => (shortcutsHelpOpen = open),
 		selectionStores: { selectedNode, selectedEdge, selectedNodes },
-		isEnabled: () => isActive,
-		onToggleLock: () => onToggleLock?.(),
-		onRebuild: () => onRebuild?.()
+		isEnabled: () => isActive
 	});
 </script>
 

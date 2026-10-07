@@ -113,8 +113,8 @@ pub struct SubnetBase {
     #[serde(flatten, deserialize_with = "attribution::required")]
     #[schema(value_type = SubnetCidr)]
     pub cidr: SubnetCidr,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// Human-facing name for this subnet.
     #[validate(length(min = 0, max = 100))]
     pub name: String,
@@ -127,7 +127,7 @@ pub struct SubnetBase {
     /// The container runtime service that owns this bridge network.
     ///
     /// Load-bearing for dedup: the same CIDR on two different Docker daemons is two distinct
-    /// subnets, so bridge rows only merge when this matches as well as the CIDR and network.
+    /// subnets, so bridge rows only merge when this matches as well as the CIDR and site.
     /// A foreign key rather than a field inside a JSONB blob because a stale value here is
     /// precisely what made a scan add a duplicate bridge row every time (GH #650) — now it
     /// cannot be written at all.
@@ -154,7 +154,7 @@ impl Default for SubnetBase {
                 AttributeSource::Unspecified,
             ),
             name: "New Subnet".to_string(),
-            network_id: Uuid::new_v4(),
+            site_id: Uuid::new_v4(),
             description: None,
             subnet_type: SubnetType::Unknown,
             virtualization_service_id: None,
@@ -240,10 +240,33 @@ impl Subnet {
             && !self.base.subnet_type.is_container_bridge()
     }
 
+    /// The runtime owner this fresh bridge observation gives `existing`, when it has none.
+    ///
+    /// The CIDR dedup matches an incoming bridge against a stored one with no owner, and the
+    /// stored row is what gets written back. Without this, a bridge that lost its owner (the
+    /// runtime service deleted, `ON DELETE SET NULL`; a pre-v0.17.10 daemon; the v0.17.10
+    /// migration's unresolvable ids) stayed ownerless through every later scan that named it.
+    /// An owner already stored is kept: a different one never matches the dedup.
+    pub fn owner_for_ownerless_bridge(&self, existing: &Subnet) -> Option<Uuid> {
+        let adopts = existing.base.subnet_type.is_container_bridge()
+            && existing.base.virtualization_service_id.is_none()
+            && self.base.subnet_type.is_container_bridge();
+        adopts
+            .then_some(self.base.virtualization_service_id)
+            .flatten()
+    }
+
+    /// A subnet built from an interface address and its prefix.
+    ///
+    /// `cidr_source` says who read the range. A daemon describing its own NIC is
+    /// `DaemonSelfReport`. A device answering an SNMP walk about its own interfaces is
+    /// `Probe(Snmp)`. Both are queried readings and rank the same, so on a CIDR merge neither
+    /// relabels a row the other created.
     pub fn from_discovery(
         interface_name: String,
         ip_network: &IpNetwork,
-        network_id: Uuid,
+        site_id: Uuid,
+        cidr_source: AttributeSource,
     ) -> Option<Self> {
         let mut subnet_type = SubnetType::from_interface_name(&interface_name);
 
@@ -273,10 +296,8 @@ impl Subnet {
                 let cidr = IpCidr::V4(Ipv4Cidr::new(network_addr, prefix_len).ok()?);
 
                 Some(Subnet::new(SubnetBase {
-                    // Straight off a daemon's own interface: it is describing the host it runs on,
-                    // which is the strongest reading there is for a range.
-                    cidr: SubnetCidr::new(SubnetCidrValue(cidr), AttributeSource::DaemonSelfReport),
-                    network_id,
+                    cidr: SubnetCidr::new(SubnetCidrValue(cidr), cidr_source),
+                    site_id,
                     description: None,
                     tags: Vec::new(),
                     name: cidr.to_string(),
@@ -311,11 +332,11 @@ impl Subnet {
     }
 
     /// Whether this subnet belongs to the inventory the user curates, and so
-    /// appears in the management lists (Subnets, Networks and Daemon tabs) and
+    /// appears in the management lists (Subnets, Sites and Daemon tabs) and
     /// in the dashboard's subnet count.
     ///
     /// Provenance, not category. The rows Scanopy fabricates for itself — the
-    /// per-network `0.0.0.0/0` Internet and Remote supernets (`EntitySource::System`,
+    /// per-site `0.0.0.0/0` Internet and Remote supernets (`EntitySource::System`,
     /// `seed_data::create_wan_subnet` / `create_remote_subnet`) and the loopback
     /// row seeded per daemon host (`EntitySource::Discovery`) — are fixtures nobody
     /// curates, and omitting them is what
@@ -366,11 +387,11 @@ impl Subnet {
     /// inferred-tier source ranks the same, so one inference never outranks another.
     ///
     /// The organizational rows are excluded because both are `0.0.0.0/0` and would otherwise
-    /// "contain" every inferred range on the network.
+    /// "contain" every inferred range on the site.
     pub fn corrects_inferred_range(&self, existing: &Subnet) -> bool {
         existing.base.cidr.source().method() == AttributeMethod::Inferred
             && self.base.cidr.rank() > existing.base.cidr.rank()
-            && self.base.network_id == existing.base.network_id
+            && self.base.site_id == existing.base.site_id
             && !self.is_organizational_subnet()
             && !existing.is_organizational_subnet()
             && overlaps(&self.base.cidr, &existing.base.cidr)
@@ -395,7 +416,7 @@ impl PartialEq for Subnet {
         // second live row for every interfaced CIDR. Duplicate subnet ids then break host
         // matching, which compares IP *and* `subnet_id`.
         let network_match = self.base.cidr.value() == other.base.cidr.value()
-            && self.base.network_id == other.base.network_id;
+            && self.base.site_id == other.base.site_id;
 
         network_match || self.id == other.id
     }
@@ -433,14 +454,24 @@ mod tests {
     #[test]
     fn from_discovery_accepts_valid_prefix() {
         let ip = IpNetwork::from_str("192.168.1.0/24").unwrap();
-        let result = Subnet::from_discovery("eth0".to_string(), &ip, Uuid::nil());
+        let result = Subnet::from_discovery(
+            "eth0".to_string(),
+            &ip,
+            Uuid::nil(),
+            AttributeSource::DaemonSelfReport,
+        );
         assert!(result.is_some(), "/24 prefix should be accepted");
     }
 
     #[test]
     fn from_discovery_accepts_prefix_2() {
         let ip = IpNetwork::from_str("10.0.0.0/2").unwrap();
-        let result = Subnet::from_discovery("eth0".to_string(), &ip, Uuid::nil());
+        let result = Subnet::from_discovery(
+            "eth0".to_string(),
+            &ip,
+            Uuid::nil(),
+            AttributeSource::DaemonSelfReport,
+        );
         assert!(result.is_some(), "/2 prefix should be accepted");
     }
 
@@ -462,7 +493,7 @@ mod tests {
                 SubnetCidrValue(cidr::IpCidr::from_str("172.30.10.0/24").unwrap()),
                 AttributeSource::DaemonSelfReport,
             ),
-            network_id: Uuid::nil(),
+            site_id: Uuid::nil(),
             name: "172.30.10.0/24".into(),
             description: None,
             subnet_type,
@@ -477,6 +508,28 @@ mod tests {
     /// rediscovery dedups into the stale row. A bridge row with no virtualization
     /// can only be a name-derived guess, so a current non-bridge observation
     /// corrects it.
+    #[test]
+    fn ownerless_bridge_adopts_the_owner_a_scan_reports() {
+        let runtime = Uuid::new_v4();
+        let stored = subnet(SubnetType::DockerBridge, None);
+        let scanned = subnet(SubnetType::DockerBridge, Some(runtime));
+        assert_eq!(scanned.owner_for_ownerless_bridge(&stored), Some(runtime));
+    }
+
+    #[test]
+    fn owned_bridge_keeps_its_owner() {
+        let stored = subnet(SubnetType::DockerBridge, Some(Uuid::new_v4()));
+        let scanned = subnet(SubnetType::DockerBridge, Some(Uuid::new_v4()));
+        assert_eq!(scanned.owner_for_ownerless_bridge(&stored), None);
+    }
+
+    #[test]
+    fn only_a_bridge_observation_gives_an_owner() {
+        let stored = subnet(SubnetType::DockerBridge, None);
+        let scanned = subnet(SubnetType::Lan, Some(Uuid::new_v4()));
+        assert_eq!(scanned.owner_for_ownerless_bridge(&stored), None);
+    }
+
     #[test]
     fn stale_bridge_guess_is_corrected_by_a_fresh_observation() {
         let guess = subnet(SubnetType::DockerBridge, None);
@@ -535,21 +588,31 @@ mod tests {
     fn scanopy_fabricated_subnets_are_not_user_managed() {
         use crate::server::shared::storage::seed_data;
 
-        let network_id = Uuid::new_v4();
-        assert!(!seed_data::create_wan_subnet(network_id).is_user_managed());
-        assert!(!seed_data::create_remote_subnet(network_id).is_user_managed());
+        let site_id = Uuid::new_v4();
+        assert!(!seed_data::create_wan_subnet(site_id).is_user_managed());
+        assert!(!seed_data::create_remote_subnet(site_id).is_user_managed());
 
         let loopback_ip = IpNetwork::V4(
             pnet::ipnetwork::Ipv4Network::new(std::net::Ipv4Addr::LOCALHOST, 8).unwrap(),
         );
-        let loopback = Subnet::from_discovery("lo".to_string(), &loopback_ip, network_id)
-            .expect("loopback /8 should produce a subnet");
+        let loopback = Subnet::from_discovery(
+            "lo".to_string(),
+            &loopback_ip,
+            site_id,
+            AttributeSource::DaemonSelfReport,
+        )
+        .expect("loopback /8 should produce a subnet");
         assert!(!loopback.is_user_managed());
 
         // A discovered subnet of any other category is real inventory and stays.
         let discovered = IpNetwork::from_str("192.168.1.0/24").unwrap();
-        let lan = Subnet::from_discovery("eth0".to_string(), &discovered, network_id)
-            .expect("/24 should produce a subnet");
+        let lan = Subnet::from_discovery(
+            "eth0".to_string(),
+            &discovered,
+            site_id,
+            AttributeSource::DaemonSelfReport,
+        )
+        .expect("/24 should produce a subnet");
         assert!(lan.is_user_managed());
     }
 
@@ -563,8 +626,13 @@ mod tests {
         let ip = IpNetwork::V4(
             pnet::ipnetwork::Ipv4Network::new(std::net::Ipv4Addr::LOCALHOST, 8).unwrap(),
         );
-        let subnet = Subnet::from_discovery("lo".to_string(), &ip, Uuid::nil())
-            .expect("loopback /8 should produce a subnet");
+        let subnet = Subnet::from_discovery(
+            "lo".to_string(),
+            &ip,
+            Uuid::nil(),
+            AttributeSource::DaemonSelfReport,
+        )
+        .expect("loopback /8 should produce a subnet");
         assert_eq!(subnet.base.cidr.to_string(), "127.0.0.0/8");
         assert_eq!(subnet.base.source, EntitySource::Discovery);
         assert!(subnet.base.subnet_type.is_loopback());
@@ -585,7 +653,7 @@ mod tests {
                 cidr_source,
             ),
             source: EntitySource::Discovery,
-            network_id: Uuid::nil(),
+            site_id: Uuid::nil(),
             ..Default::default()
         })
     }
@@ -636,6 +704,22 @@ mod tests {
 
         assert!(!subnet.apply_cidr("10.20.31.0/24".parse().unwrap(), other_source_same_rung));
         assert_eq!(subnet.base.cidr.to_string(), "10.20.30.0/24");
+    }
+
+    /// The CIDR dedup in `SubnetService::create` merges a re-read of the same range through
+    /// `apply_cidr`. A device's SNMP reading of a range a daemon reads from its own NIC leaves the
+    /// daemon's row as it was, and a daemon later reading a range SNMP created leaves that row too.
+    #[test]
+    fn an_snmp_reading_and_a_daemon_reading_of_one_range_keep_whichever_came_first() {
+        let snmp = AttributeSource::Probe(ClientProbe::Snmp);
+
+        let mut daemon_row = ranged("10.20.30.0/24", READING);
+        assert!(!daemon_row.apply_cidr("10.20.30.0/24".parse().unwrap(), snmp));
+        assert_eq!(daemon_row.base.cidr.source(), READING);
+
+        let mut snmp_row = ranged("10.20.30.0/24", snmp);
+        assert!(!snmp_row.apply_cidr("10.20.30.0/24".parse().unwrap(), READING));
+        assert_eq!(snmp_row.base.cidr.source(), snmp);
     }
 
     /// Nothing a scan reads displaces a range a person confirmed.
@@ -691,7 +775,7 @@ mod tests {
         assert!(!incoming.corrects_inferred_range(&observed));
     }
 
-    /// The seeded catch-alls contain every private range on the network, so without excluding them
+    /// The seeded catch-alls contain every private range on the site, so without excluding them
     /// the first `0.0.0.0/0` to arrive would swallow every inferred row.
     #[test]
     fn the_organizational_catch_alls_correct_nothing() {

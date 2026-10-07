@@ -1,0 +1,57 @@
+//! Sites
+
+use super::*;
+
+/// Every demo site uses a staleness window of at least 365 days, so a demo org reads as fresh
+/// for a year after it is created. Only the hosts `gone_quiet` backdates past the window read as
+/// stale.
+const DEMO_STALE_AFTER_HOURS: i64 = 24 * 365;
+
+/// The data center keeps entities a little longer before calling them stale. Still shorter than
+/// the 410 days since its decommissioned InfluxDB host last answered.
+const DEMO_DC_STALE_AFTER_HOURS: i64 = 24 * 400;
+
+pub(super) fn generate_sites(
+    organization_id: Uuid,
+    tags: &[Tag],
+    _credentials: &[Credential],
+    now: DateTime<Utc>,
+) -> Vec<Site> {
+    let production_tag = tags
+        .iter()
+        .find(|t| t.base.name == "Production")
+        .map(|t| t.id);
+
+    // Note: credential_ids are hydrated from junction tables, not stored on the site.
+    // Site-credential associations would be created via credential_service.set_site_credentials().
+
+    // Stagger timestamps so sites sort in predictable order (Headquarters first)
+    vec![
+        Site {
+            id: Uuid::new_v4(),
+            created_at: now,
+            updated_at: now,
+            base: SiteBase {
+                name: "Headquarters".to_string(),
+                organization_id,
+                tags: production_tag.into_iter().collect(),
+                credential_ids: vec![],
+                stale_after_hours: Some(DEMO_STALE_AFTER_HOURS),
+            },
+            effective_stale_after_hours: DEMO_STALE_AFTER_HOURS,
+        },
+        Site {
+            id: Uuid::new_v4(),
+            created_at: now + chrono::Duration::seconds(1),
+            updated_at: now + chrono::Duration::seconds(1),
+            base: SiteBase {
+                name: "Data Center".to_string(),
+                organization_id,
+                tags: production_tag.into_iter().collect(),
+                credential_ids: vec![],
+                stale_after_hours: Some(DEMO_DC_STALE_AFTER_HOURS),
+            },
+            effective_stale_after_hours: DEMO_DC_STALE_AFTER_HOURS,
+        },
+    ]
+}

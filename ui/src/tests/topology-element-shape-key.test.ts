@@ -41,11 +41,10 @@ function result(overrides: Record<string, unknown> = {}, extra: Partial<ElementR
 			bodyText: null,
 			footerText: null,
 			showServices: true,
-			isVirtualized: false,
-			isContainerized: false,
 			services: [],
 			hiddenOpenPorts: [],
 			ip_address_id: '',
+			inlineGroups: [],
 			...overrides
 		},
 		...extra
@@ -65,6 +64,42 @@ describe('elementShapeKey', () => {
 		expect(elementShapeKey(result({ services: [service('a', 'nginx')] }))).not.toBe(
 			elementShapeKey(result({ services: [service('a', 'nginx'), service('b', 'redis')] }))
 		);
+	});
+
+	it('separates cards whose inline group holds a different number of member hosts', () => {
+		const member = (id: string) => ({
+			host: { id, display_name: id },
+			services: [service(`${id}-snmp`, 'SNMP')]
+		});
+		const group = (hosts: string[]) => ({
+			groupId: 'identities',
+			collapsed: false,
+			header: service('identities', 'Site Identities'),
+			services: [],
+			hosts: hosts.map(member)
+		});
+		expect(elementShapeKey(result({ inlineGroups: [group(['mv-1'])] }))).not.toBe(
+			elementShapeKey(result({ inlineGroups: [group(['mv-1', 'mv-2'])] }))
+		);
+	});
+
+	it('separates a collapsed manager box from the same box expanded, and ignores members when collapsed', () => {
+		const box = (collapsed: boolean, hosts: number) => ({
+			groupId: 'identities',
+			collapsed,
+			header: service('identities', 'Site Identities'),
+			services: [],
+			hosts: Array.from({ length: hosts }, (_, i) => ({
+				host: { id: `mv-${i}`, display_name: `mv-${i}` },
+				services: []
+			}))
+		});
+		const key = (collapsed: boolean, hosts: number) =>
+			elementShapeKey(result({ inlineGroups: [box(collapsed, hosts)] }));
+
+		expect(key(true, 3)).not.toBe(key(false, 3));
+		// Collapsed, only the header row renders: member count no longer changes the height.
+		expect(key(true, 3)).toBe(key(true, 45));
 	});
 
 	it('separates a service row carrying port lines from one without', () => {

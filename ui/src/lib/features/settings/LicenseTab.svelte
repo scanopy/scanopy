@@ -2,6 +2,7 @@
 	import { Copy, RefreshCw } from 'lucide-svelte';
 	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
+	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
 	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
 	import SegmentedControl from '$lib/shared/components/forms/SegmentedControl.svelte';
 	import {
@@ -45,6 +46,8 @@
 		settings_billing_license_airGappedNeedsCard,
 		settings_billing_license_airGappedOpenInvoice,
 		settings_billing_license_airGappedPastDue,
+		settings_billing_license_installHint,
+		settings_billing_license_installLinkText,
 		settings_billing_license_keyLabel,
 		settings_billing_license_lapsed,
 		settings_billing_license_lapsedUnpaid,
@@ -189,7 +192,12 @@
 		try {
 			await copyText(key);
 			pushSuccess(common_copied());
-			trackEvent('license_key_copied', { key_type: type });
+			// An air-gapped key never calls home, so a copy for the current
+			// paid-through date is the only sign its renewal reached the server.
+			trackEvent('license_key_copied', {
+				key_type: type,
+				license_paid_through: org?.license_paid_through ?? null
+			});
 		} catch (error) {
 			pushWarning(common_failedToCopy({ error: String(error) }));
 		}
@@ -429,6 +437,12 @@
 										{apiKeys_rotateKey()}
 									</button>
 								</div>
+								<DocsHint
+									class="mt-2"
+									text={settings_billing_license_installHint()}
+									href="https://scanopy.net/docs/self-hosted-server/server-installation/"
+									linkText={settings_billing_license_installLinkText()}
+								/>
 							</div>
 						</div>
 					</div>

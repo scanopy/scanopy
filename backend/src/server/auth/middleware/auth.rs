@@ -5,7 +5,6 @@ use cidr::IpCidr;
 use crate::server::{
     config::AppState,
     daemon_api_keys::{r#impl::base::DaemonApiKey, service::ResolvedDaemonKey},
-    networks::r#impl::Network,
     shared::{
         api_key_common::{ApiKeyCommon, ApiKeyType, check_key_validity, hash_api_key},
         events::{
@@ -16,6 +15,7 @@ use crate::server::{
         storage::{filter::StorableFilter, traits::Unique},
         types::api::ApiError,
     },
+    sites::r#impl::Site,
     users::r#impl::{base::User, permissions::UserOrgPermissions},
 };
 use axum::{
@@ -105,18 +105,28 @@ impl Display for AuthMethod {
 }
 
 /// Represents either an authenticated user, daemon, or user API key
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum::VariantNames)]
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    strum::VariantNames,
+    strum::EnumDiscriminants,
+)]
+#[strum_discriminants(derive(Serialize), serde(rename_all = "snake_case"))]
 pub enum AuthenticatedEntity {
     User {
         user_id: Uuid,
         organization_id: Uuid,
         permissions: UserOrgPermissions,
-        network_ids: Vec<Uuid>,
+        site_ids: Vec<Uuid>,
         email: EmailAddress,
         email_verified: bool,
     },
     Daemon {
-        network_id: Uuid,
+        site_id: Uuid,
         api_key_id: Uuid,
         daemon_id: Uuid,
         /// Daemon version from `X-Daemon-Version` header (introduced in v0.14.10)
@@ -128,7 +138,7 @@ pub enum AuthenticatedEntity {
         user_id: Uuid,
         organization_id: Uuid,
         permissions: UserOrgPermissions,
-        network_ids: Vec<Uuid>,
+        site_ids: Vec<Uuid>,
     },
     /// External service authentication (e.g., Prometheus, Grafana)
     ExternalService {
@@ -137,6 +147,33 @@ pub enum AuthenticatedEntity {
     },
     System,
     Anonymous,
+}
+
+/// Who acted, in the form sent outside the server with every event: identifiers only, never
+/// permissions or site access.
+#[derive(Debug, Clone, Serialize)]
+pub struct ActorProperties {
+    pub auth_type: AuthenticatedEntityDiscriminants,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<EmailAddress>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub organization_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub daemon_id: Option<Uuid>,
+}
+
+impl From<&AuthenticatedEntity> for ActorProperties {
+    fn from(auth: &AuthenticatedEntity) -> Self {
+        Self {
+            auth_type: auth.into(),
+            user_id: auth.user_id(),
+            email: auth.email().cloned(),
+            organization_id: auth.organization_id(),
+            daemon_id: auth.daemon_id(),
+        }
+    }
 }
 
 impl Display for AuthenticatedEntity {
@@ -225,13 +262,13 @@ impl AuthenticatedEntity {
         }
     }
 
-    /// Get network_ids that daemon / user / API key have access to
-    pub fn network_ids(&self) -> Vec<Uuid> {
+    /// Get site_ids that daemon / user / API key have access to
+    pub fn site_ids(&self) -> Vec<Uuid> {
         match self {
-            AuthenticatedEntity::Daemon { network_id, .. } => vec![*network_id],
-            AuthenticatedEntity::User { network_ids, .. } => network_ids.clone(),
-            AuthenticatedEntity::ApiKey { network_ids, .. } => network_ids.clone(),
-            AuthenticatedEntity::ExternalService { .. } => vec![], // Global scope, no network restriction
+            AuthenticatedEntity::Daemon { site_id, .. } => vec![*site_id],
+            AuthenticatedEntity::User { site_ids, .. } => site_ids.clone(),
+            AuthenticatedEntity::ApiKey { site_ids, .. } => site_ids.clone(),
+            AuthenticatedEntity::ExternalService { .. } => vec![], // Global scope, no site restriction
             AuthenticatedEntity::System => vec![],
             AuthenticatedEntity::Anonymous => vec![],
         }
@@ -265,9 +302,9 @@ impl AuthenticatedEntity {
         )
     }
 
-    /// Check if this entity has access to the specified network
-    pub fn has_network_access(&self, network_id: &Uuid) -> bool {
-        self.network_ids().contains(network_id)
+    /// Check if this entity has access to the specified site
+    pub fn has_site_access(&self, site_id: &Uuid) -> bool {
+        self.site_ids().contains(site_id)
     }
 
     /// Get the email address if this is a User.
@@ -314,7 +351,7 @@ impl From<User> for AuthenticatedEntity {
             user_id: value.id,
             organization_id: value.base.organization_id,
             permissions: value.base.permissions,
-            network_ids: vec![],
+            site_ids: vec![],
             email: value.base.email,
             email_verified: value.base.email_verified,
         }
@@ -481,11 +518,11 @@ impl AuthenticatedEntity {
                             )));
                         }
 
-                        // Get network access from junction table
-                        let network_ids = app_state
+                        // Get site access from junction table
+                        let site_ids = app_state
                             .services
                             .user_api_key_service
-                            .get_network_ids(&api_key_id)
+                            .get_site_ids(&api_key_id)
                             .await
                             .unwrap_or_default();
 
@@ -502,7 +539,7 @@ impl AuthenticatedEntity {
                             user_id,
                             organization_id,
                             permissions,
-                            network_ids,
+                            site_ids,
                         });
                     }
 
@@ -519,7 +556,7 @@ impl AuthenticatedEntity {
                 }
                 ApiKeyType::Daemon => {
                     // Daemon identity comes from the X-Daemon-ID header for legacy
-                    // network-shared keys, and from the key itself for 1:1 provisioned
+                    // site-shared keys, and from the key itself for 1:1 provisioned
                     // keys. Read the header optionally here (a freshly provisioned daemon
                     // has no id yet on its bootstrap request); requiredness and validation
                     // are decided below, once we know the key's shape. Nil is treated as
@@ -572,7 +609,7 @@ impl AuthenticatedEntity {
                             {
                                 Ok(daemon_id) => {
                                     return Ok(AuthenticatedEntity::Daemon {
-                                        network_id: resolved.network_id,
+                                        site_id: resolved.site_id,
                                         api_key_id: resolved.api_key_id,
                                         daemon_id,
                                         version: daemon_version,
@@ -604,7 +641,7 @@ impl AuthenticatedEntity {
                         // is broken. Refusing to authenticate is the only safe reading — the
                         // request presented a credential that identifies no single daemon — and
                         // it is loud, because silently taking one of them would hand a caller
-                        // whichever network the database returned first.
+                        // whichever site the database returned first.
                         Ok(Unique::Multiple) => {
                             tracing::error!("Daemon api key hash matched more than one key");
                             return Err(AuthError(ApiError::internal_error(
@@ -619,7 +656,7 @@ impl AuthenticatedEntity {
                         }
                     };
                     if let Some(mut api_key) = found_key {
-                        let network_id = api_key.base.network_id;
+                        let site_id = api_key.base.site_id;
                         let service = app_state.services.daemon_api_key_service.clone();
                         let api_key_id = api_key.id;
                         // Snapshot the fields the cache needs before `api_key` is moved
@@ -673,7 +710,7 @@ impl AuthenticatedEntity {
                                 &hashed_key,
                                 ResolvedDaemonKey {
                                     api_key_id,
-                                    network_id,
+                                    site_id,
                                     daemon_id: key_daemon_id,
                                     is_enabled,
                                     expires_at,
@@ -693,7 +730,7 @@ impl AuthenticatedEntity {
                         .await?;
 
                         return Ok(AuthenticatedEntity::Daemon {
-                            network_id,
+                            site_id,
                             api_key_id,
                             daemon_id,
                             version: daemon_version,
@@ -766,36 +803,36 @@ impl AuthenticatedEntity {
             return Err(AuthError(ApiError::not_authenticated()));
         }
 
-        let network_ids: Vec<Uuid> = if matches!(
+        let site_ids: Vec<Uuid> = if matches!(
             user.base.permissions,
             UserOrgPermissions::Owner | UserOrgPermissions::Admin
         ) {
-            let org_filter = StorableFilter::<Network>::new_from_org_id(&user.base.organization_id);
+            let org_filter = StorableFilter::<Site>::new_from_org_id(&user.base.organization_id);
 
             app_state
                 .services
-                .network_service
+                .site_service
                 .get_all(org_filter)
                 .await
-                .map_err(|_| AuthError(ApiError::internal_error("Failed to load networks")))?
+                .map_err(|_| AuthError(ApiError::internal_error("Failed to load sites")))?
                 .iter()
                 .map(|n| n.id)
                 .collect()
         } else {
-            // Load network_ids from junction table for non-admin users
+            // Load site_ids from junction table for non-admin users
             app_state
                 .services
                 .user_service
-                .get_network_ids(&user.id)
+                .get_site_ids(&user.id)
                 .await
-                .map_err(|_| AuthError(ApiError::internal_error("Failed to load user networks")))?
+                .map_err(|_| AuthError(ApiError::internal_error("Failed to load user sites")))?
         };
 
         Ok(AuthenticatedEntity::User {
             user_id: user.id,
             organization_id: user.base.organization_id,
             permissions: user.base.permissions,
-            network_ids,
+            site_ids,
             email: user.base.email,
             email_verified: user.base.email_verified,
         })
@@ -856,12 +893,12 @@ enum DaemonIdentityDecision {
     /// 1:1 key, but the header names a different daemon — the key is being
     /// reused from another daemon. Reject.
     Mismatch,
-    /// Legacy network-shared key with no header — identity is unknowable. Reject.
+    /// Legacy site-shared key with no header — identity is unknowable. Reject.
     MissingHeader,
 }
 
 /// See the coexistence spine: a 1:1 provisioned key (`key_daemon_id = Some`) is
-/// authoritative and a present header must match it; a legacy network-shared key
+/// authoritative and a present header must match it; a legacy site-shared key
 /// (`None`) takes identity from the required header.
 fn decide_daemon_identity(
     key_daemon_id: Option<Uuid>,
@@ -948,7 +985,7 @@ pub struct AuthenticatedApiKey {
     pub user_id: Uuid,
     pub organization_id: Uuid,
     pub permissions: UserOrgPermissions,
-    pub network_ids: Vec<Uuid>,
+    pub site_ids: Vec<Uuid>,
 }
 
 impl From<AuthenticatedApiKey> for AuthenticatedEntity {
@@ -958,7 +995,7 @@ impl From<AuthenticatedApiKey> for AuthenticatedEntity {
             user_id: value.user_id,
             organization_id: value.organization_id,
             permissions: value.permissions,
-            network_ids: value.network_ids,
+            site_ids: value.site_ids,
         }
     }
 }
@@ -978,13 +1015,13 @@ where
                 user_id,
                 organization_id,
                 permissions,
-                network_ids,
+                site_ids,
             } => Ok(AuthenticatedApiKey {
                 api_key_id,
                 user_id,
                 organization_id,
                 permissions,
-                network_ids,
+                site_ids,
             }),
             _ => Err(AuthError(ApiError::api_key_required())),
         }

@@ -25,7 +25,6 @@ use crate::server::{
     },
     interfaces::{r#impl::base::Interface, service::InterfaceService},
     ip_addresses::{r#impl::base::IPAddress, service::IPAddressService},
-    networks::service::NetworkService,
     ports::{r#impl::base::Port, service::PortService},
     services::{r#impl::base::Service, service::ServiceService},
     shared::{
@@ -37,6 +36,7 @@ use crate::server::{
             traits::{Entity, Storable, Storage},
         },
     },
+    sites::service::SiteService,
     subnets::{r#impl::base::Subnet, service::SubnetService},
     tags::{entity_tags::EntityTagService, r#impl::base::Tag, service::TagService},
     topology::{
@@ -66,9 +66,9 @@ pub struct TopologyService {
     pub(crate) interface_neighbor_service: Arc<InterfaceNeighborService>,
     pub(crate) tag_service: Arc<TagService>,
     pub(crate) vlan_service: Arc<VlanService>,
-    pub(crate) network_service: Arc<NetworkService>,
+    pub(crate) site_service: Arc<SiteService>,
     event_bus: Arc<EventBus>,
-    /// Broadcast channel emitting `network_id`s whose live entity set has
+    /// Broadcast channel emitting `site_id`s whose live entity set has
     /// just changed. Frontend SSE consumers refetch the live topology row +
     /// entity data on receipt. Replaces the legacy staleness state machine.
     pub live_update_tx: broadcast::Sender<Uuid>,
@@ -79,8 +79,8 @@ impl EventBusService<Topology> for TopologyService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, entity: &Topology) -> Option<Uuid> {
-        Some(entity.base.network_id)
+    fn get_site_id(&self, entity: &Topology) -> Option<Uuid> {
+        Some(entity.base.site_id)
     }
     fn get_organization_id(&self, _entity: &Topology) -> Option<Uuid> {
         None
@@ -101,7 +101,7 @@ impl CrudService<Topology> for TopologyService {
     ///
     /// The row holds only the user's grouping `options`; the per-view graph is
     /// built on request from entities + options (see `build_all_view_graphs`),
-    /// so there's nothing to seed here. One live row per network.
+    /// so there's nothing to seed here. One live row per site.
     async fn create(
         &self,
         entity: Topology,
@@ -118,7 +118,7 @@ impl CrudService<Topology> for TopologyService {
         if let Some(scope) = EntityScope::from_ids(
             created.id(),
             created.clone().into(),
-            self.get_network_id(&created),
+            self.get_site_id(&created),
             self.get_organization_id(&created),
         ) {
             self.event_bus()
@@ -156,7 +156,7 @@ impl CrudService<Topology> for TopologyService {
         if let Some(scope) = EntityScope::from_ids(
             updated.id(),
             updated.clone().into(),
-            self.get_network_id(&updated),
+            self.get_site_id(&updated),
             self.get_organization_id(&updated),
         ) {
             self.event_bus()
@@ -199,11 +199,11 @@ pub struct BuildGraphParams<'a> {
     pub view: TopologyView,
 }
 
-/// Whether any interface in this set qualifies its network for the L2 Physical view.
+/// Whether any interface in this set qualifies its site for the L2 Physical view.
 ///
 /// Two conditions, matching `l2_builder.rs`'s `qualifying_host_ids` exactly (kept in sync
 /// deliberately — this answers "should the tab even be offered", that answers "which hosts does
-/// it draw", and a network can only offer the tab honestly if at least one host would qualify):
+/// it draw", and a site can only offer the tab honestly if at least one host would qualify):
 /// a resolved neighbour (port-precise or device-level), or a host with no IP address at all,
 /// identified only by an interface's MAC — the PROFINET DCP identify case, which has neither a
 /// neighbour nor an IP for `subnet_graph_builder.rs` to place it by.
@@ -239,7 +239,7 @@ impl TopologyService {
         interface_neighbor_service: Arc<InterfaceNeighborService>,
         tag_service: Arc<TagService>,
         vlan_service: Arc<VlanService>,
-        network_service: Arc<NetworkService>,
+        site_service: Arc<SiteService>,
         storage: Arc<GenericPostgresStorage<Topology>>,
         event_bus: Arc<EventBus>,
     ) -> Self {
@@ -257,14 +257,14 @@ impl TopologyService {
             interface_neighbor_service,
             tag_service,
             vlan_service,
-            network_service,
+            site_service,
             event_bus,
             live_update_tx,
         }
     }
 
     /// Subscribe to live-topology update pings. Each emitted `Uuid` is a
-    /// network whose live entity set just changed; consumers refetch the
+    /// site whose live entity set just changed; consumers refetch the
     /// live topology row + entity data.
     pub fn subscribe_live_topology_updates(&self) -> broadcast::Receiver<Uuid> {
         self.live_update_tx.subscribe()
@@ -278,7 +278,7 @@ impl TopologyService {
     /// counterparts and survive live-row deletion.
     pub async fn get_topology_data(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         snapshot_id: Option<Uuid>,
     ) -> Result<TopologyData, Error> {
         // Hosts/services/subnets carry the tags that drive topology grouping +
@@ -290,7 +290,7 @@ impl TopologyService {
             .host_service
             .get_all_as_of_snapshot(
                 apply_snapshot(
-                    StorableFilter::<Host>::new_from_network_ids(&[network_id]).hidden_is(false),
+                    StorableFilter::<Host>::new_from_site_ids(&[site_id]).hidden_is(false),
                     snapshot_id,
                 ),
                 snapshot_id,
@@ -299,7 +299,7 @@ impl TopologyService {
         let ip_addresses = self
             .ip_address_service
             .get_all(apply_snapshot(
-                StorableFilter::<IPAddress>::new_from_network_ids(&[network_id]),
+                StorableFilter::<IPAddress>::new_from_site_ids(&[site_id]),
                 snapshot_id,
             ))
             .await?;
@@ -307,7 +307,7 @@ impl TopologyService {
             .subnet_service
             .get_all_as_of_snapshot(
                 apply_snapshot(
-                    StorableFilter::<Subnet>::new_from_network_ids(&[network_id]),
+                    StorableFilter::<Subnet>::new_from_site_ids(&[site_id]),
                     snapshot_id,
                 ),
                 snapshot_id,
@@ -316,28 +316,28 @@ impl TopologyService {
         let dependencies = self
             .dependency_service
             .get_all(apply_snapshot(
-                StorableFilter::<Dependency>::new_from_network_ids(&[network_id]),
+                StorableFilter::<Dependency>::new_from_site_ids(&[site_id]),
                 snapshot_id,
             ))
             .await?;
         let ports = self
             .port_service
             .get_all(apply_snapshot(
-                StorableFilter::<Port>::new_from_network_ids(&[network_id]),
+                StorableFilter::<Port>::new_from_site_ids(&[site_id]),
                 snapshot_id,
             ))
             .await?;
         let bindings = self
             .binding_service
             .get_all(apply_snapshot(
-                StorableFilter::<Binding>::new_from_network_ids(&[network_id]),
+                StorableFilter::<Binding>::new_from_site_ids(&[site_id]),
                 snapshot_id,
             ))
             .await?;
         let interfaces = self
             .interface_service
             .get_all(apply_snapshot(
-                StorableFilter::<Interface>::new_from_network_ids(&[network_id]),
+                StorableFilter::<Interface>::new_from_site_ids(&[site_id]),
                 snapshot_id,
             ))
             .await?;
@@ -347,17 +347,17 @@ impl TopologyService {
         // `snapshot_id`; a historical snapshot's L2 view renders from `neighbours` alone.
         let neighbours = self
             .interface_neighbor_service
-            .resolved_for_network(network_id, snapshot_id)
+            .resolved_for_site(site_id, snapshot_id)
             .await?;
         let candidates = self
             .interface_neighbor_service
-            .candidates_for_network(network_id)
+            .candidates_for_site(site_id)
             .await?;
         let services = self
             .service_service
             .get_all_as_of_snapshot(
                 apply_snapshot(
-                    StorableFilter::<Service>::new_from_network_ids(&[network_id]),
+                    StorableFilter::<Service>::new_from_site_ids(&[site_id]),
                     snapshot_id,
                 ),
                 snapshot_id,
@@ -366,7 +366,7 @@ impl TopologyService {
         let vlans = self
             .vlan_service
             .get_all(apply_snapshot(
-                StorableFilter::<Vlan>::new_from_uuid_column("network_id", &network_id),
+                StorableFilter::<Vlan>::new_from_uuid_column("site_id", &site_id),
                 snapshot_id,
             ))
             .await?;
@@ -379,7 +379,7 @@ impl TopologyService {
         // snapshot can't populate (no LLDP neighbors → no L2; no app tags → no
         // Application).
         let support = TopologyViewSupport {
-            // Any resolved neighbour, port-precise or device-level. A network whose links have
+            // Any resolved neighbour, port-precise or device-level. A site whose links have
             // all degraded to `Neighbor::Host` still has an L2 topology to show — dashed
             // `NeighborLink` edges between host containers — and hiding the view is the one
             // outcome that leaves the operator nothing to look at. Failing that, a no-IP host
@@ -389,7 +389,7 @@ impl TopologyService {
                 &ip_addresses,
                 !neighbours.is_empty(),
             ),
-            application: tags.iter().any(|t| t.base.is_application),
+            application: tags.iter().any(|t| t.is_application()),
         };
         let available_views: Vec<TopologyView> = TopologyView::iter()
             .filter(|v| v.is_supported(&support))
@@ -399,6 +399,15 @@ impl TopologyService {
         // the host list and every by-id lookup on the frontend read one value rather than each
         // re-deriving the ladder. Last, because `get_entity_tags` above wants plain `&[Host]`.
         let hosts = TopologyHost::wrap_all(hosts, &ip_addresses);
+        // Interfaces likewise, as `HostResponse` titles them: the inspector cards label an
+        // interface with `display_name`, and without it every one reads "Unnamed interface".
+        let interfaces: Vec<Interface> = interfaces
+            .into_iter()
+            .map(|mut interface| {
+                interface.display_name = Some(interface.display_name());
+                interface
+            })
+            .collect();
 
         Ok(TopologyData {
             hosts,
@@ -463,28 +472,24 @@ impl TopologyService {
         Ok(tags)
     }
 
-    /// Compute per-view data-support flags for a network's topology by
+    /// Compute per-view data-support flags for a site's topology by
     /// querying raw entity tables — independent of whatever the topology
     /// was last rebuilt under.
-    pub async fn get_view_support(&self, network_id: Uuid) -> Result<TopologyViewSupport, Error> {
+    pub async fn get_view_support(&self, site_id: Uuid) -> Result<TopologyViewSupport, Error> {
         // Device-level neighbours count too — see the equivalent in `get_topology_data`. Live
         // only: this check has no snapshot context, and the live view is what it governs.
         let has_resolved_neighbours = !self
             .interface_neighbor_service
-            .resolved_for_network(network_id, None)
+            .resolved_for_site(site_id, None)
             .await?
             .is_empty();
         let interfaces = self
             .interface_service
-            .get_all(StorableFilter::<Interface>::new_from_network_ids(&[
-                network_id,
-            ]))
+            .get_all(StorableFilter::<Interface>::new_from_site_ids(&[site_id]))
             .await?;
         let ip_addresses = self
             .ip_address_service
-            .get_all(StorableFilter::<IPAddress>::new_from_network_ids(&[
-                network_id,
-            ]))
+            .get_all(StorableFilter::<IPAddress>::new_from_site_ids(&[site_id]))
             .await?;
         let l2_physical = any_interface_qualifies_l2_physical(
             &interfaces,
@@ -492,15 +497,15 @@ impl TopologyService {
             has_resolved_neighbours,
         );
 
-        let application = match self.network_service.get_by_id(&network_id).await? {
-            Some(network) => self
+        let application = match self.site_service.get_by_id(&site_id).await? {
+            Some(site) => self
                 .tag_service
                 .get_all(StorableFilter::<Tag>::new_from_org_id(
-                    &network.base.organization_id,
+                    &site.base.organization_id,
                 ))
                 .await?
                 .iter()
-                .any(|t| t.base.is_application),
+                .any(|t| t.is_application()),
             None => false,
         };
 
@@ -510,18 +515,18 @@ impl TopologyService {
         })
     }
 
-    /// Load the entity set for `(network_id, snapshot_id)` and build the
-    /// per-view graph on request from it + the network's grouping options.
+    /// Load the entity set for `(site_id, snapshot_id)` and build the
+    /// per-view graph on request from it + the site's grouping options.
     /// Single source for the render, export, and share paths now that the graph
-    /// is no longer persisted. Snapshots use the network's (live) options —
+    /// is no longer persisted. Snapshots use the site's (live) options —
     /// the same behaviour the former `build_snapshot_topology` had.
     pub async fn get_topology_render_data(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         snapshot_id: Option<Uuid>,
     ) -> Result<TopologyData, Error> {
-        let options = self.network_topology_options(network_id).await?;
-        let mut data = self.get_topology_data(network_id, snapshot_id).await?;
+        let options = self.site_topology_options(site_id).await?;
+        let mut data = self.get_topology_data(site_id, snapshot_id).await?;
         // `data.tags` only carries tags applied to entities. A grouping rule can
         // reference a tag applied to nothing (e.g. ByTag on an unused tag); the
         // frontend needs its name/color to label the group, so ship it too.
@@ -641,16 +646,11 @@ impl TopologyService {
         Ok(())
     }
 
-    /// The network's single live topology row holds the user's grouping
+    /// The site's single live topology row holds the user's grouping
     /// `options`. Defaults if the row is somehow absent.
-    pub async fn network_topology_options(
-        &self,
-        network_id: Uuid,
-    ) -> Result<TopologyOptions, Error> {
+    pub async fn site_topology_options(&self, site_id: Uuid) -> Result<TopologyOptions, Error> {
         let rows = self
-            .get_all(StorableFilter::<Topology>::new_from_network_ids(&[
-                network_id,
-            ]))
+            .get_all(StorableFilter::<Topology>::new_from_site_ids(&[site_id]))
             .await?;
         Ok(rows
             .into_iter()
@@ -902,18 +902,18 @@ mod tests {
         })
     }
 
-    /// The case this function exists for: a network whose only L2-relevant data is a PROFINET
+    /// The case this function exists for: a site whose only L2-relevant data is a PROFINET
     /// DCP-identified host (no IP, no neighbour) must still offer the L2 Physical tab —
     /// otherwise the view `l2_builder.rs` would draw a container in is never reachable.
     #[test]
-    fn a_no_ip_mac_only_host_qualifies_the_network_for_l2() {
+    fn a_no_ip_mac_only_host_qualifies_the_site_for_l2() {
         let host_id = Uuid::new_v4();
         let interfaces = vec![interface(host_id, Some("aa:bb:cc:dd:ee:ff"))];
         assert!(any_interface_qualifies_l2_physical(&interfaces, &[], false));
     }
 
     /// The condition is "no IP *at all*", not "this interface has no IP" — a host with an IP
-    /// recorded elsewhere (its own `IPAddress` row) doesn't qualify the network on its MAC
+    /// recorded elsewhere (its own `IPAddress` row) doesn't qualify the site on its MAC
     /// alone; it's already visible via L3, and must still require a neighbour like any other.
     #[test]
     fn a_mac_carrying_interface_on_a_host_that_has_an_ip_does_not_qualify_on_its_own() {
@@ -938,10 +938,10 @@ mod tests {
     }
 
     /// The other half of the predicate, which moved out of `Interface` and into its own tables
-    /// (GH #701): a resolved neighbour qualifies the network on its own, whatever the interfaces
+    /// (GH #701): a resolved neighbour qualifies the site on its own, whatever the interfaces
     /// carry. A host with an IP and no MAC fails every other condition.
     #[test]
-    fn a_resolved_neighbour_qualifies_the_network_on_its_own() {
+    fn a_resolved_neighbour_qualifies_the_site_on_its_own() {
         let host_id = Uuid::new_v4();
         let interfaces = vec![interface(host_id, None)];
         let ip_addresses = vec![ip_address(host_id)];

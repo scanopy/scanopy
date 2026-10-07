@@ -162,7 +162,7 @@ services:
     # The 2026-09-16 build's first boot outlasted an entire 18-minute release run, so the scan
     # probed a port nothing was listening on and v0.17.16's release test failed looking like a
     # discovery bug. Move this deliberately, not by whenever CI last pulled.
-    image: lscr.io/linuxserver/homeassistant:2026.9.2-ls247
+    image: ghcr.io/linuxserver/homeassistant:2026.9.2-ls247
     container_name: homeassistant-discovery
     environment:
       - PUID=1000

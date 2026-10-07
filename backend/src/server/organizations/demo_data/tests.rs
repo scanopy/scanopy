@@ -56,7 +56,7 @@ fn stale_demo_hosts_are_stale_together_with_their_children() {
     let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4());
     let now = Utc::now();
     let cutoffs: HashMap<Uuid, DateTime<Utc>> = demo
-        .networks
+        .sites
         .iter()
         .map(|n| (n.id, n.stale_cutoff(now)))
         .collect();
@@ -67,7 +67,7 @@ fn stale_demo_hosts_are_stale_together_with_their_children() {
         .iter()
         .chain(&demo.recent_hosts_with_services)
     {
-        let cutoff = cutoffs[&hws.host.base.network_id];
+        let cutoff = cutoffs[&hws.host.base.site_id];
         let host_freshness = hws.host.freshness(cutoff);
         if host_freshness == EntityFreshness::Stale {
             stale_hosts += 1;
@@ -274,9 +274,9 @@ fn demo_credentials_are_assigned_within_their_targets() {
             uses.push((assignment.credential_id, Target::Hosts));
         }
     }
-    for assignment in &demo.network_credential_assignments {
+    for assignment in &demo.site_credential_assignments {
         for &credential_id in &assignment.credential_ids {
-            uses.push((credential_id, Target::Network));
+            uses.push((credential_id, Target::Site));
         }
     }
     for discovery in &demo.discoveries {
@@ -306,7 +306,7 @@ fn demo_credentials_are_assigned_within_their_targets() {
         }
         assert!(
             used.contains(&credential.id),
-            "{} is not assigned to any host, network or discovery",
+            "{} is not assigned to any host, site or discovery",
             credential.base.name
         );
     }
@@ -351,4 +351,72 @@ fn daemons_report_the_subnets_their_host_has_addresses_on() {
             daemon.base.name
         );
     }
+}
+
+/// The demo's tag assignments keep the rule tag groups exist for: no entity holds two tags of
+/// one group. Seeding writes the junction rows directly, so nothing else would catch a demo host
+/// tagged both Production and Development.
+#[test]
+fn no_demo_entity_holds_two_tags_of_one_tag_group() {
+    let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4());
+    let group_of: HashMap<Uuid, String> = demo
+        .tags
+        .iter()
+        .filter_map(|t| t.base.tag_group.as_ref().map(|g| (t.id, g.to_string())))
+        .collect();
+
+    let hosts: Vec<&HostWithServices> = demo
+        .hosts_with_services
+        .iter()
+        .chain(&demo.recent_hosts_with_services)
+        .collect();
+    let tag_lists = hosts
+        .iter()
+        .map(|h| (h.host.id, h.host.base.tags.clone()))
+        .chain(
+            hosts
+                .iter()
+                .flat_map(|h| h.services.iter().map(|s| (s.id, s.base.tags.clone()))),
+        )
+        .chain(demo.subnets.iter().map(|s| (s.id, s.base.tags.clone())))
+        .chain(demo.sites.iter().map(|s| (s.id, s.base.tags.clone())));
+
+    let name_of = |tag_id: &Uuid| {
+        demo.tags
+            .iter()
+            .find(|t| t.id == *tag_id)
+            .map(|t| t.base.name.clone())
+    };
+    for (id, tags) in tag_lists {
+        let mut seen = HashSet::new();
+        for group in tags.iter().filter_map(|id| group_of.get(id)) {
+            assert!(
+                seen.insert(group),
+                "entity {id} holds two tags of the {group} group: {:?}",
+                tags.iter().filter_map(name_of).collect::<Vec<_>>()
+            );
+        }
+    }
+}
+
+#[test]
+fn every_daemon_api_key_is_bound_one_to_one() {
+    let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4());
+    assert!(!demo.api_keys.is_empty());
+
+    // No site-shared legacy keys: each key names a daemon, and that daemon names it back.
+    for key in &demo.api_keys {
+        let daemon_id = key
+            .base
+            .daemon_id
+            .unwrap_or_else(|| panic!("{} is not bound to a daemon", key.base.name));
+        let daemon = demo
+            .daemons
+            .iter()
+            .find(|d| d.id == daemon_id)
+            .unwrap_or_else(|| panic!("{} names a daemon the demo lacks", key.base.name));
+        assert_eq!(daemon.base.api_key_id, Some(key.id), "{}", daemon.base.name);
+        assert_eq!(daemon.base.site_id, key.base.site_id, "{}", key.base.name);
+    }
+    assert!(demo.daemons.iter().all(|d| d.base.api_key_id.is_some()));
 }

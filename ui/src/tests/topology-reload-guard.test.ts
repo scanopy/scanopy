@@ -10,6 +10,7 @@ function inputs(overrides: Partial<ReloadInputs> = {}): ReloadInputs {
 		collapsed: new Set(),
 		expandedBundles: new Set(),
 		expandedPorts: new Set(),
+		expandedInlineGroups: new Set(),
 		bundleEdges: false,
 		hiddenEdgeTypes: '',
 		tagHidden: new Set(),
@@ -21,6 +22,14 @@ function inputs(overrides: Partial<ReloadInputs> = {}): ReloadInputs {
 }
 
 describe('pipeline reload guard', () => {
+	/** Opening or closing a manager box mid-run changes that card's height, so it must not be dropped. */
+	it('re-runs when a manager box was opened during the run', () => {
+		const consumed = snapshotReloadInputs(inputs());
+		const current = inputs({ expandedInlineGroups: new Set(['guest|identities']) });
+
+		expect(reloadInputsDiff(consumed, current)).toEqual(['expandedInlineGroups']);
+	});
+
 	/**
 	 * The reported bug: "Show everything" cleared a server-side filter, the view stayed empty, and
 	 * only a page refresh brought the nodes back.

@@ -5,17 +5,17 @@
 	import HomeDiscoveryDisplay from './HomeDiscoveryDisplay.svelte';
 	import { home_noDiscoveriesYet } from '$lib/paraglide/messages';
 
-	type NetworkSummary = components['schemas']['NetworkSummary'];
+	type SiteSummary = components['schemas']['SiteSummary'];
 
 	let {
 		discoveries,
 		daemons = [],
-		networks = [],
+		sites = [],
 		onNavigate
 	}: {
 		discoveries: Discovery[];
 		daemons?: Daemon[];
-		networks?: NetworkSummary[];
+		sites?: SiteSummary[];
 		onNavigate?: (discovery: Discovery) => void;
 	} = $props();
 </script>
@@ -31,7 +31,7 @@
 					class="card card-static cursor-pointer text-left"
 					onclick={() => onNavigate?.(discovery)}
 				>
-					<HomeDiscoveryDisplay item={discovery} context={{ daemons, networks }} />
+					<HomeDiscoveryDisplay item={discovery} context={{ daemons, sites }} />
 				</button>
 			{/each}
 		</div>

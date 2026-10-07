@@ -13,7 +13,7 @@ const SRC = path.resolve(__dirname, '..');
  * the first address — and it has been on the API as `display_name` since it shipped. The frontend
  * ignored it and read `host.name` instead, so every host that had never been named (the entire
  * `Unnamed` backfill, controller-imported devices, every LLDP far end) rendered as the empty string
- * in the table, on its card, in every picker and in every confirm dialog, while the same host was
+ * in the table, in every picker and in every confirm dialog, while the same host was
  * titled correctly on the topology canvas.
  *
  * Nothing about that was hard to fix and nothing stops it recurring: `host.name` is right there on
@@ -118,8 +118,7 @@ describe('host display name is the single source of a host title', () => {
 		// deleting a call is not an offending pattern. These two carry the bulk of the surfaces
 		// between them, so they are asserted positively: `HostDisplay.getLabel` is the label for
 		// every picker row, inspector card and entity chip, and the `name` field's `getValue` is
-		// the host table cell, the row header, the row checkbox's accessible name and the card
-		// title at once.
+		// the host table cell, the row header and the row checkbox's accessible name at once.
 		const seams = [
 			path.join(SRC, 'lib/shared/components/forms/selection/display/HostDisplay.svelte'),
 			path.join(SRC, 'lib/features/hosts/components/HostTab.svelte')

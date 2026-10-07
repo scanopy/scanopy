@@ -72,7 +72,7 @@
 		daemons_credentialWizardTargetRequired,
 		discovery_copyDiagnostics,
 		discovery_copyRunData,
-		discovery_couldNotGetNetworkId,
+		discovery_couldNotGetSiteId,
 		discovery_createDiscovery,
 		discovery_createScheduled,
 		discovery_credentialsDescription,
@@ -251,10 +251,10 @@
 	const assignedHostsQuery = useHostsByIds(() => assignedHostIds);
 
 	/**
-	 * Credential id → the hosts on THIS discovery's network it is already assigned to.
+	 * Credential id → the hosts on THIS discovery's site it is already assigned to.
 	 *
 	 * The scan already runs all of these (the server builds host-level mappings for every host
-	 * on the network, independent of this discovery's targets), so omitting them made the step
+	 * on the site, independent of this discovery's targets), so omitting them made the step
 	 * an incomplete picture of what a scan will do. They surface on the credential's own card.
 	 *
 	 * Deliberately separate from `computeDaemonHostCredentials`: that one feeds the daemon-host
@@ -262,16 +262,16 @@
 	 * falsely claim the daemon host.
 	 */
 	let junctionHostsByCredential = $derived.by(() => {
-		const onNetwork = new Map(
+		const onSite = new Map(
 			(assignedHostsQuery.data ?? [])
-				.filter((h) => h.network_id === formData.network_id)
+				.filter((h) => h.site_id === formData.site_id)
 				.map((h) => [h.id, h])
 		);
 		return new Map(
 			(allCredentialsQuery.data ?? []).flatMap((c) => {
 				// The junction holds a row per host+IP-scope, so a host id can repeat.
 				const assigned = [...new Set((c.host_assignments ?? []).map((a) => a.host_id))]
-					.map((id) => onNetwork.get(id))
+					.map((id) => onSite.get(id))
 					.filter((h): h is Host => !!h);
 				return assigned.length > 0 ? [[c.id, assigned] as const] : [];
 			})
@@ -531,7 +531,7 @@
 		const empty = createEmptyDiscoveryFormData(defaultDaemon);
 		if (defaultDaemon) {
 			empty.daemon_id = defaultDaemon.id;
-			empty.network_id = defaultDaemon.network_id;
+			empty.site_id = defaultDaemon.site_id;
 		}
 		// Default to AdHoc for plans without scheduled discovery (e.g. Free)
 		if (!hasScheduledDiscovery) {
@@ -568,13 +568,13 @@
 				try {
 					// Per-credential targeting comes from the wizard and is delivered as per-daemon
 					// integration targets on the Discovery. Parity with the daemon-create modal: the
-					// scope comes from the type's `targets` metadata, so a type that excludes Network
-					// (e.g. a UniFi controller) can never be emitted as a network-wide broadcast the
+					// scope comes from the type's `targets` metadata, so a type that excludes Site
+					// (e.g. a UniFi controller) can never be emitted as a site-wide broadcast the
 					// server would drop at dispatch.
 					const persisted = new Set(ids ?? []);
 					// Only rows the user actually pointed somewhere: a credential listed purely
 					// because it is assigned elsewhere has no selection here, and an empty IP list
-					// would otherwise read as "network-wide" for a broadcast-capable type —
+					// would otherwise read as "site-wide" for a broadcast-capable type —
 					// inventing a scope nobody asked for.
 					const targeted = pendingCredentials
 						.filter(
@@ -612,7 +612,7 @@
 					loading = false;
 				}
 			} else {
-				pushError(discovery_couldNotGetNetworkId());
+				pushError(discovery_couldNotGetSiteId());
 			}
 		}
 	}));
@@ -651,7 +651,7 @@
 					return [];
 				// A daemon-host target is shown as the loopback row the picker already renders (a
 				// disabled "daemon host" label with a remove button), so it reads back as the same
-				// scope it was saved with. Network scope carries no IPs; an empty row is the
+				// scope it was saved with. Site scope carries no IPs; an empty row is the
 				// picker's "nothing chosen" placeholder.
 				const ips = t.scope === 'Hosts' ? t.ips : t.scope === 'DaemonHost' ? [DAEMON_HOST_IP] : [];
 				return [
@@ -660,9 +660,9 @@
 						targetIps: ips.length ? ips : [''],
 						fieldValues: {},
 						isExisting: true,
-						// Record the scope this target was saved with, so a Network-scope row
+						// Record the scope this target was saved with, so a Site-scope row
 						// round-trips as broadcast rather than reading back as "nothing chosen".
-						scope: t.scope === 'Network' ? ('broadcast' as const) : ('per_host' as const)
+						scope: t.scope === 'Site' ? ('broadcast' as const) : ('per_host' as const)
 					}
 				];
 			});
@@ -740,7 +740,7 @@
 	$effect(() => {
 		if (formData.daemon_id === uuidv4Sentinel && daemons.length > 0) {
 			formData.daemon_id = daemons[0].id;
-			formData.network_id = daemons[0].network_id;
+			formData.site_id = daemons[0].site_id;
 		}
 	});
 
@@ -755,9 +755,11 @@
 	{title}
 	{name}
 	entityId={discovery?.id}
+	{form}
+	unsavedState={() => (isHistoricalRun ? null : { formData, pendingCredentials, credentialIds })}
 	{onClose}
 	onOpen={handleOpen}
-	size="full"
+	size="wide"
 	fixedHeight={true}
 	showCloseButton={true}
 	{tabs}
@@ -848,7 +850,7 @@
 				<div class="flex min-h-0 flex-1 flex-col" class:hidden={activeTab !== 'credentials'}>
 					<CredentialsStep
 						bind:this={credentialsStep}
-						networkId={formData.network_id}
+						siteId={formData.site_id}
 						description={discovery_credentialsDescription()}
 						bind:pendingCredentials
 						bind:credentialIds

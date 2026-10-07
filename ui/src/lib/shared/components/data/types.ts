@@ -2,6 +2,7 @@ import type { IconComponent } from '$lib/shared/utils/types';
 import type { Snippet } from 'svelte';
 import type { Color } from '$lib/shared/utils/styling';
 import type { EntityDiscriminants } from '$lib/api/entities';
+import type { AttributeSource } from '$lib/shared/utils/attribute-source';
 
 // ============================================================================
 // Page Size Configuration
@@ -33,6 +34,12 @@ export interface TagProps {
 	entityRef?: EntityRef;
 	pill?: boolean;
 	title?: string;
+	/**
+	 * What the tag says about the row (a display's own vocabulary, e.g. `subnet`, `guest`). A
+	 * display context's `hideTags`, or `compact` through the display's `compactHides`, drops tags
+	 * by role where they repeat what the surrounding view already shows.
+	 */
+	role?: string;
 	onmouseenter?: () => void;
 	onmouseleave?: () => void;
 	onclick?: () => void;
@@ -46,7 +53,6 @@ export interface CardAction {
 	disabled?: boolean;
 	tooltip?: string | ((disabled: boolean) => string | null);
 	animation?: string;
-	forceLabel?: boolean;
 }
 
 export interface EntityRef {
@@ -90,15 +96,9 @@ export interface CardFieldItem {
 	badge?: string; // For things like "5m", "Critical", etc.
 	badgeColor?: string;
 	title?: string;
+	/** Opens in a new tab: a docs link that explains the value. */
+	href?: string;
 	entityRef?: EntityRef;
-}
-
-export interface CardField {
-	label: string;
-	value?: string | CardFieldItem[] | undefined | null;
-	snippet?: Snippet; // Allow snippet as an alternative to value
-	color?: Color; // Used for tags when value is an array
-	emptyText?: string; // Used when value is empty array
 }
 
 // ============================================================================
@@ -106,7 +106,7 @@ export interface CardField {
 // ============================================================================
 
 /**
- * How a field renders, in the card and the table alike.
+ * How a field renders in the table.
  *
  * Omit it and the value renders as the stringified `getValue` — the same value
  * search, filtering and grouping already match against, so what is shown can
@@ -118,9 +118,9 @@ export interface DisplayConfig<T> {
 	/** A real column, but unchecked in the column menu until the user asks for it. */
 	hiddenByDefault?: boolean;
 	/**
-	 * Rich chips, in the vocabulary the card already renders: `EntityTag` when
-	 * an item carries an `entityRef`, `Tag` otherwise. Prefer this over `cell` —
-	 * it is data rather than markup, so the card can reuse the same builder.
+	 * Rich chips: `EntityTag` when an item carries an `entityRef`, `Tag`
+	 * otherwise. Prefer this over `cell`: it is data rather than markup, so
+	 * `getValue` can derive from the same builder.
 	 *
 	 * Returning `undefined` — as opposed to `[]` — means "no chips for this row",
 	 * and the cell falls back to the field's plain value. That is what lets a
@@ -130,6 +130,12 @@ export interface DisplayConfig<T> {
 	getItems?: (item: T) => CardFieldItem[] | undefined;
 	/** Escape hatch for genuinely bespoke content: a status tag, a link, an icon. */
 	cell?: Snippet<[T]>;
+	/**
+	 * Where a plain value came from, for a field that records its provenance (a host's
+	 * `hostname_source`). The value's tooltip explains the source under the value, the way
+	 * the OS tag does.
+	 */
+	getSource?: (item: T) => AttributeSource | null | undefined;
 	align?: 'left' | 'right';
 	/**
 	 * Where this field sits among the columns, low to high.
@@ -145,26 +151,11 @@ export interface DisplayConfig<T> {
 	/** Row identity: pinned left, carries the checkbox, renders as `<th scope="row">`. */
 	primary?: boolean;
 	/**
-	 * This field is the row's secondary line, so the card renders it under the
-	 * title rather than as another labelled row — a subnet's CIDR, a VLAN's
-	 * number, what a host is virtualized by.
-	 */
-	subtitle?: boolean;
-	/**
 	 * This field sits after the tag column, immediately before the row actions —
 	 * the far end of the row. For content that reads as the row's live state
 	 * rather than one of its attributes, like a running scan's progress.
 	 */
 	trailing?: boolean;
-	/**
-	 * This field is the row's status, so the card renders it as the tag beside
-	 * the title instead of as another labelled row.
-	 *
-	 * Marking it rather than letting the card compute its own is what stops the
-	 * two views disagreeing: a card that derived its own status tag showed
-	 * "Healthy" where the table's separate computation said "Active".
-	 */
-	statusTag?: boolean;
 	/**
 	 * This date is when something last happened (last seen, last used), so it renders as
 	 * recent activity: `3h ago`, or the full timestamp when the user turned relative times off.
@@ -174,10 +165,38 @@ export interface DisplayConfig<T> {
 }
 
 /**
+ * How the rows of a group nest, for a groupable field whose groups are trees: subnets inside the
+ * range that contains them, guests under the host that runs them.
+ *
+ * When the list is grouped by that field, every row with children gets a chevron that collapses
+ * its children, which sit one level in beneath it, as deep as the tree goes. See
+ * `buildTreeSections`.
+ *
+ * - On a list holding every row, the nesting comes from `parentKey` (siblings by the field's
+ *   `compare`, else in the current sort). A row whose parent is filtered out starts at the top.
+ * - On a server-paginated list a parent can sit on another page, so it can't be derived here.
+ *   The server must return each group's rows parent-first, and `depth` is required.
+ */
+export interface TreeConfig<T> {
+	/** The row's identity, as `parentKey` refers to it. */
+	key: (item: T) => string;
+	/** The identity of the row this one nests under, or `null` for a top-level row. */
+	parentKey: (item: T) => string | null;
+	/** The row's depth as the server computed it. Required on a server-paginated list. */
+	depth?: (item: T) => number;
+	/**
+	 * The header of the one group that collects every tree under a real root ("Virtualized",
+	 * "Nested"), set apart from the rows outside any tree. Each root row inside it carries its own
+	 * chevron and count.
+	 */
+	rootsLabel: () => string;
+}
+
+/**
  * Base configuration shared by all field types.
  */
 interface BaseFieldConfig<T> {
-	/** How this field renders, in both the card and the table. Omit for plain text. */
+	/** How this field renders in the table. Omit for plain text. */
 	display?: DisplayConfig<T>;
 	type: 'string' | 'boolean' | 'date' | 'array';
 	label: string;
@@ -205,19 +224,35 @@ interface BaseFieldConfig<T> {
 	filterOptions?: string[];
 	/**
 	 * The raw value the server groups this item under, when it differs from
-	 * what `getValue` renders (e.g. `network_id` is a UUID in the database but
-	 * a network name in the UI). Only needed on groupable fields of
+	 * what `getValue` renders (e.g. `site_id` is a UUID in the database but
+	 * a site name in the UI). Only needed on groupable fields of
 	 * server-paginated lists: it's the key that matches a group to its total in
 	 * the response's `group_counts`. Defaults to the displayed value.
 	 */
 	getGroupValue?: (item: T) => string | null;
+	/**
+	 * The header a row groups under, when grouping follows something other than the value the
+	 * column shows. "Virtualized By" shows the runtime a host runs under but groups under the host
+	 * at the top of its chain. Defaults to the displayed value.
+	 */
+	getGroupLabel?: (item: T) => string | null;
 	/** Default checked values for the filter (applied on first load if no localStorage state). */
 	filterDefaults?: string[];
+	/**
+	 * Orders two items for a client-side sort on this field, ascending, in place of comparing
+	 * `getValue` as text. For values whose text order is wrong, like a CIDR, where "10.0.16.0/20"
+	 * would otherwise land before "10.0.2.0/24".
+	 */
+	compare?: (a: T, b: T) => number;
+	/**
+	 * Grouping by this field draws each group as nested tree sections. See {@link TreeConfig}.
+	 */
+	tree?: TreeConfig<T>;
 	/**
 	 * This column carries the list's "Stale only" toggle. Staleness is a
 	 * server-side constraint rather than a value filter, so it has no field of
 	 * its own; marking the last-seen column gives it the same home as every
-	 * other filter, in the header popover and the card pane. Only takes effect
+	 * other filter, in the column's header popover. Only takes effect
 	 * when the parent passes `onStaleFilterChange`.
 	 */
 	staleFilter?: boolean;
@@ -279,6 +314,18 @@ export function isDisplayField<T, O extends string>(
  */
 export function getFieldKey<T, O extends string>(field: FieldConfig<T, O>): string {
 	return isOrderableField(field) ? field.orderField : field.key;
+}
+
+/**
+ * The grouping and sort a tab opens with until the user picks their own.
+ *
+ * Declared beside the tab's fields and keyed by the same field keys. Each must
+ * name a field whose column renders by default, since a list only groups and
+ * sorts by rendered columns; the dev guard in `DataControls` enforces that.
+ */
+export interface TableDefaults<K extends string = string> {
+	group?: K;
+	sort?: { field: K; direction: 'asc' | 'desc' };
 }
 
 // ============================================================================

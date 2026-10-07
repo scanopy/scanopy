@@ -202,7 +202,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Store pre-registration setup data (org name, networks, seed preference) in session */
+        /** Store pre-registration setup data (org name, first site) in session */
         post: operations["setup"];
         delete?: never;
         options?: never;
@@ -1389,7 +1389,7 @@ export interface paths {
         /**
          * Update daemon
          * @description Edits the server-side daemon record: its name, maintainer, tags, and — for ServerPoll —
-         *     the url the server dials. Identity and server-managed fields (network, mode, host, key
+         *     the url the server dials. Identity and server-managed fields (site, mode, host, key
          *     binding, version, liveness) are restored from the existing record by
          *     `preserve_immutable_fields`.
          */
@@ -1462,7 +1462,7 @@ export interface paths {
         };
         /**
          * Get dashboard summary
-         * @description Returns aggregated dashboard data including network metrics, daemon health,
+         * @description Returns aggregated dashboard data including site metrics, daemon health,
          *     recent discoveries, and plan usage.
          */
         get: operations["get_dashboard_summary"];
@@ -1878,7 +1878,7 @@ export interface paths {
          * Consolidate hosts
          * @description Merges all ip_addresses, ports, and services from `other_host` into
          *     `destination_host`, then deletes `other_host`. Both hosts must be
-         *     on the same network.
+         *     on the same site.
          *
          *     ### Merge Behavior
          *
@@ -1973,7 +1973,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/if-entries": {
+    "/api/v1/interfaces": {
         parameters: {
             query?: never;
             header?: never;
@@ -1988,14 +1988,14 @@ export interface paths {
          * @description Creates an SNMP ifTable entry for a host. These are typically created by
          *     SNMP discovery, but can also be created manually.
          */
-        post: operations["create_if_entry"];
+        post: operations["create_interface"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/if-entries/bulk-delete": {
+    "/api/v1/interfaces/bulk-delete": {
         parameters: {
             query?: never;
             header?: never;
@@ -2012,7 +2012,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/if-entries/export/csv": {
+    "/api/v1/interfaces/export/csv": {
         parameters: {
             query?: never;
             header?: never;
@@ -2032,7 +2032,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/if-entries/{id}": {
+    "/api/v1/interfaces/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2042,7 +2042,7 @@ export interface paths {
         /** Get Interface by ID */
         get: operations["get_interface_by_id"];
         /** Update an Interface */
-        put: operations["update_if_entry"];
+        put: operations["update_interface"];
         post?: never;
         /** Delete Interface */
         delete: operations["delete_interface"];
@@ -2276,80 +2276,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/networks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List all networks */
-        get: operations["get_all_networks"];
-        put?: never;
-        /** Create a new network */
-        post: operations["create_network"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/networks/bulk-delete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Bulk delete networks */
-        post: operations["bulk_delete_networks"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/networks/export/csv": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Export Networks to CSV
-         * @description Export all Networks matching the filter criteria to CSV format. Ignores pagination parameters (limit/offset) and exports all matching records.
-         */
-        get: operations["export_networks_csv"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/networks/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get a network by ID */
-        get: operations["get_by_id_network"];
-        /** Update a network */
-        put: operations["update_network"];
-        post?: never;
-        /** Delete a network */
-        delete: operations["delete_network"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/organizations": {
         parameters: {
             query?: never;
@@ -2571,6 +2497,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search every entity type
+         * @description Returns a page of matches of each entity type the caller can list, on the sites and in the
+         *     organization they can access, with each type's total. Each type matches the text against its
+         *     own fields; tags narrow every type to entities carrying all of them. Name `entity_type` with
+         *     `offset` to page through one type.
+         */
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/services": {
         parameters: {
             query?: never;
@@ -2590,7 +2539,7 @@ export interface paths {
          * Create a new service
          * @description Creates a service with optional bindings to ip_addresses or ports.
          *     The `id`, `created_at`, `updated_at`, and `source` fields are generated server-side.
-         *     Bindings are specified without `service_id` or `network_id` - these are assigned automatically.
+         *     Bindings are specified without `service_id` or `site_id` - these are assigned automatically.
          *
          *     ### Binding Validation Rules
          *
@@ -2830,6 +2779,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all sites */
+        get: operations["get_all_sites"];
+        put?: never;
+        /** Create a new site */
+        post: operations["create_site"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sites/bulk-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bulk delete sites */
+        post: operations["bulk_delete_sites"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sites/export/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Sites to CSV
+         * @description Export all Sites matching the filter criteria to CSV format. Ignores pagination parameters (limit/offset) and exports all matching records.
+         */
+        get: operations["export_sites_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sites/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a site by ID */
+        get: operations["get_by_id_site"];
+        /** Update a site */
+        put: operations["update_site"];
+        post?: never;
+        /** Delete a site */
+        delete: operations["delete_site"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/snapshots": {
         parameters: {
             query?: never;
@@ -2841,7 +2864,7 @@ export interface paths {
         get: operations["list_snapshots"];
         put?: never;
         /**
-         * Take a snapshot of the current live topology + entity state for a network.
+         * Take a snapshot of the current live topology + entity state for a site.
          *     Acquires the discovery snapshot lock, creates the snapshots row, runs
          *     close-and-clone to stamp every Snapshotable entity row with `snapshot_id`
          *     and close them. The topology subscriber inserts the snapshot's topology
@@ -2882,7 +2905,7 @@ export interface paths {
         /**
          * List all subnets
          * @description Returns all subnets accessible to the authenticated user or daemon.
-         *     Daemons can only access subnets within their assigned network.
+         *     Daemons can only access subnets within their assigned site.
          *     Supports pagination via `limit` and `offset` query parameters,
          *     and ordering via `group_by`, `order_by`, and `order_direction`.
          */
@@ -2940,7 +2963,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Subnet by ID */
+        /**
+         * Get subnet by ID
+         * @description Returns the subnet with its utilization and the range it sits inside, if any.
+         */
         get: operations["get_subnet_by_id"];
         /**
          * Update a subnet
@@ -3024,7 +3050,7 @@ export interface paths {
          *
          *     ### Validation
          *
-         *     - Entity type must be taggable (Host, Service, Subnet, Group, Network, Discovery, Daemon, DaemonApiKey, UserApiKey)
+         *     - Entity type must be taggable (Host, Service, Subnet, Vlan, Dependency, Site, Discovery, Daemon, DaemonApiKey, UserApiKey, Credential)
          *     - All tags must exist and belong to your organization
          */
         put: operations["set_entity_tags"];
@@ -3050,7 +3076,7 @@ export interface paths {
          *
          *     ### Validation
          *
-         *     - Entity type must be taggable (Host, Service, Subnet, Group, Network, Discovery, Daemon, DaemonApiKey, UserApiKey)
+         *     - Entity type must be taggable (Host, Service, Subnet, Vlan, Dependency, Site, Discovery, Daemon, DaemonApiKey, UserApiKey, Credential)
          *     - Tag must exist and belong to your organization
          *     - Entities that already have the tag are silently skipped
          */
@@ -3076,7 +3102,7 @@ export interface paths {
          *
          *     ### Validation
          *
-         *     - Entity type must be taggable (Host, Service, Subnet, Group, Network, Discovery, Daemon, DaemonApiKey, UserApiKey)
+         *     - Entity type must be taggable (Host, Service, Subnet, Vlan, Dependency, Site, Discovery, Daemon, DaemonApiKey, UserApiKey, Credential)
          *     - Entities that don't have the tag are silently skipped
          */
         post: operations["bulk_remove_tag"];
@@ -3150,7 +3176,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get all topologies for the authenticated user's networks.
+         * Get all topologies for the authenticated user's sites.
          * @description Returns both live-view rows (`snapshot_id IS NULL`) and snapshot-pinned
          *     rows. The frontend renders the live one by default and renders snapshot
          *     rows when the user picks one from the snapshots dropdown.
@@ -3356,13 +3382,13 @@ export interface paths {
         };
         /**
          * List all VLANs
-         * @description Returns VLANs accessible to the authenticated user, optionally filtered by network.
+         * @description Returns VLANs accessible to the authenticated user, optionally filtered by site.
          */
         get: operations["get_all_vlans"];
         put?: never;
         /**
          * Create a new VLAN
-         * @description Creates a VLAN scoped to a network. VLAN numbers must be unique within a network.
+         * @description Creates a VLAN scoped to a site. VLAN numbers must be unique within a site.
          */
         post: operations["create_vlan"];
         delete?: never;
@@ -3488,7 +3514,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.17.19"
+         *       "server_version": "0.17.22"
          *     }
          */
         ApiMeta: {
@@ -3499,7 +3525,7 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.17.19
+             * @example 0.17.22
              */
             server_version: string;
         };
@@ -3528,19 +3554,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-03T01:53:18.411304Z",
+             *       "created_at": "2026-10-07T12:26:33.856870Z",
              *       "first_discovery_id": null,
-             *       "id": "1282642a-ef30-48d8-a0d4-3ddf450cdfda",
+             *       "id": "346613b5-a052-4f31-a282-b3c42861d975",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-03T01:53:18.411304Z",
+             *       "last_seen_at": "2026-10-07T12:26:33.856870Z",
              *       "lineage_id": null,
-             *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
+             *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-10-03T01:53:18.411304Z",
-             *       "valid_from": "2026-10-03T01:53:18.411304Z",
+             *       "updated_at": "2026-10-07T12:26:33.856870Z",
+             *       "valid_from": "2026-10-07T12:26:33.856870Z",
              *       "valid_to": null
              *     }
              */
@@ -3680,14 +3706,14 @@ export interface components {
                 excess_hosts: number;
                 /**
                  * Format: int64
-                 * @description Networks over the target plan's allowance.
-                 */
-                excess_networks: number;
-                /**
-                 * Format: int64
                  * @description Seats over the target plan's allowance.
                  */
                 excess_seats: number;
+                /**
+                 * Format: int64
+                 * @description Sites over the target plan's allowance.
+                 */
+                excess_sites: number;
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -3926,12 +3952,12 @@ export interface components {
             data?: {
                 /** @description Daemons the caller can see, with their current status. */
                 daemons: components["schemas"]["DaemonResponse"][];
-                /** @description Per-network counts for every network the caller can see. */
-                networks: components["schemas"]["NetworkSummary"][];
                 /** @description Current usage against the organization's plan allowances. */
                 plan_usage: components["schemas"]["PlanUsage"];
                 /** @description The most recent discovery runs, newest first. */
                 recent_discoveries: components["schemas"]["Discovery"][];
+                /** @description Per-site counts for every site the caller can see. */
+                sites: components["schemas"]["SiteSummary"][];
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -4010,7 +4036,7 @@ export interface components {
              *         "type": "Services"
              *       },
              *       "name": "Web Services",
-             *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
+             *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -4090,8 +4116,8 @@ export interface components {
                  *     One-shot: a target is offered to the daemon until a scan completes successfully, then
                  *     dropped by [`Discovery::apply_successful_scan`]. Credentials that earned a durable home
                  *     during the scan keep being retried from there — `host_credentials` for one that probed
-                 *     successfully, `network_credentials` for a broadcast one (see
-                 *     [`Discovery::take_network_scope_credential_ids`]).
+                 *     successfully, `site_credentials` for a broadcast one (see
+                 *     [`Discovery::take_site_scope_credential_ids`]).
                  */
                 integration_targets: components["schemas"]["IntegrationTarget"][];
                 /**
@@ -4170,11 +4196,6 @@ export interface components {
                  * @description When the server last heard about this run. Stamped by the server at terminal.
                  */
                 last_update_at?: string | null;
-                /**
-                 * Format: uuid
-                 * @description The network this entity belongs to.
-                 */
-                network_id: string;
                 /** @description Which stage of the run is in progress. */
                 phase: components["schemas"]["DiscoveryPhase"];
                 /**
@@ -4189,6 +4210,11 @@ export interface components {
                  * @description The discovery run this update belongs to.
                  */
                 session_id: string;
+                /**
+                 * Format: uuid
+                 * @description The site this entity belongs to.
+                 */
+                site_id: string;
                 /**
                  * Format: date-time
                  * @description When the run started.
@@ -4242,11 +4268,35 @@ export interface components {
          * @description Envelope for a successful response. Failures are sent with a non-2xx status
          *     and an `ApiErrorResponse` body instead.
          */
+        ApiResponse_GlobalSearchResponse: {
+            /** @description Matches grouped by entity type, in registry order. Types with no matches are left out. */
+            data?: {
+                /** @description One group per entity type with at least one match. */
+                groups: components["schemas"]["GlobalSearchGroup"][];
+            };
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_HostResponse: {
             /**
              * @description Response type for host endpoints.
              *     Includes children (ip_addresses, ports, services, interfaces).
              * @example {
+             *       "asset_tag": "IT-00412",
+             *       "asset_tag_source": {
+             *         "Probe": "Snmp"
+             *       },
              *       "chassis_id_source": "Unspecified",
              *       "created_at": "2026-01-15T10:30:00Z",
              *       "credential_assignments": [],
@@ -4255,6 +4305,7 @@ export interface components {
              *       "display_name_rung": "Name",
              *       "firmware_revision": null,
              *       "firmware_revision_source": "Unspecified",
+             *       "first_discovery_id": null,
              *       "hidden": false,
              *       "hostname": "web-server-01.local",
              *       "hostname_source": "Manual",
@@ -4280,8 +4331,8 @@ export interface components {
              *           "mac_address": "DE:AD:BE:EF:CA:FE",
              *           "mac_address_source": "ArpReply",
              *           "neighbor_candidates": [],
-             *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "oper_status": "Up",
+             *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "speed_bps": 1000000000,
              *           "updated_at": "2026-01-15T10:30:00Z",
              *           "valid_from": "2026-01-15T10:30:00Z",
@@ -4301,14 +4352,15 @@ export interface components {
              *           "mac_address": "DE:AD:BE:EF:CA:FE",
              *           "mac_address_source": "ArpReply",
              *           "name": "eth0",
-             *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
+             *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "subnet_id": "550e8400-e29b-41d4-a716-446655440004",
              *           "updated_at": "2026-01-15T10:30:00Z",
              *           "valid_from": "2026-01-15T10:30:00Z",
              *           "valid_to": null
              *         }
              *       ],
+             *       "last_discovery_id": null,
              *       "last_seen_at": "2026-01-15T10:30:00Z",
              *       "management_url_source": "Unspecified",
              *       "manufacturer_source": "Unspecified",
@@ -4342,7 +4394,6 @@ export interface components {
              *         }
              *       ],
              *       "name_source": "Manual",
-             *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "os": null,
              *       "os_source": "Unspecified",
              *       "ports": [
@@ -4354,9 +4405,9 @@ export interface components {
              *           "last_discovery_id": null,
              *           "last_seen_at": "2026-01-15T10:30:00Z",
              *           "lineage_id": null,
-             *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "number": 80,
              *           "protocol": "Tcp",
+             *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Http",
              *           "updated_at": "2026-01-15T10:30:00Z",
              *           "valid_from": "2026-01-15T10:30:00Z",
@@ -4368,19 +4419,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-03T01:53:18.386838Z",
+             *               "created_at": "2026-10-07T12:26:33.828095Z",
              *               "first_discovery_id": null,
-             *               "id": "184c3384-04fe-4005-af4c-44b75ed29bb2",
+             *               "id": "42bf65c5-c467-41dd-bb63-1e688ec991af",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-03T01:53:18.386838Z",
+             *               "last_seen_at": "2026-10-07T12:26:33.828095Z",
              *               "lineage_id": null,
-             *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
+             *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-10-03T01:53:18.386838Z",
-             *               "valid_from": "2026-10-03T01:53:18.386838Z",
+             *               "updated_at": "2026-10-07T12:26:33.828095Z",
+             *               "valid_from": "2026-10-07T12:26:33.828095Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4392,9 +4443,9 @@ export interface components {
              *           "last_seen_at": "2026-01-15T10:30:00Z",
              *           "lineage_id": null,
              *           "name": "nginx",
-             *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Tomcat",
+             *           "service_definition": "Wazuh",
+             *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4406,6 +4457,7 @@ export interface components {
              *           "virtualization_service_id": null
              *         }
              *       ],
+             *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "software_revision": null,
              *       "software_revision_source": "Unspecified",
              *       "source": {
@@ -4418,11 +4470,22 @@ export interface components {
              *       "sys_object_id_source": "Unspecified",
              *       "tags": [],
              *       "updated_at": "2026-01-15T10:30:00Z",
+             *       "virtualization_depth": 0,
+             *       "virtualization_interface_id": null,
              *       "virtualization_metadata": null,
+             *       "virtualization_parent_host_id": null,
+             *       "virtualization_root_host_id": null,
              *       "virtualization_service_id": null
              *     }
              */
             data?: {
+                /**
+                 * @description The asset tag the device reports: ENTITY-MIB entPhysicalAssetID. Read-only: discovery is
+                 *     the only writer, so it always says what the device itself carries.
+                 */
+                readonly asset_tag?: string | null;
+                /** @description What produced the asset tag. Read-only. */
+                asset_tag_source?: components["schemas"]["AttributeSource"];
                 /** @description LLDP chassis identifier, used to match the host to its neighbours. */
                 chassis_id?: string | null;
                 /** @description What produced the LLDP chassis identifier. Read-only: decided by whichever source read it. */
@@ -4452,6 +4515,11 @@ export interface components {
                 readonly firmware_revision: string | null;
                 /** @description What produced the firmware revision. Read-only: decided by whichever source read it. */
                 firmware_revision_source?: components["schemas"]["AttributeSource"];
+                /**
+                 * Format: uuid
+                 * @description The discovery run that first observed this host. Drives the "First found by" column.
+                 */
+                readonly first_discovery_id?: string | null;
                 /** @description Whether the host is hidden from topology views. */
                 hidden: boolean;
                 /** @description Hostname as resolved or reported by the host. */
@@ -4471,10 +4539,15 @@ export interface components {
                 /** @description IP addresses on this host. */
                 ip_addresses: components["schemas"]["IPAddress"][];
                 /**
+                 * Format: uuid
+                 * @description The discovery run that last observed this host. Drives the "Last found by" column.
+                 */
+                readonly last_discovery_id?: string | null;
+                /**
                  * Format: date-time
                  * @description Last time discovery observed this host. User-facing (drives the "Last
                  *     seen" column and the stale badge), which is why it is carried here while
-                 *     the rest of the SCD2/audit columns are not.
+                 *     the version-history columns are not.
                  */
                 last_seen_at: string;
                 /** @description Link to the host's own management interface. */
@@ -4498,11 +4571,6 @@ export interface components {
                  *     caller.
                  */
                 name_source?: components["schemas"]["AttributeSource"];
-                /**
-                 * Format: uuid
-                 * @description The network this entity belongs to.
-                 */
-                network_id: string;
                 os: null | components["schemas"]["HostOs"];
                 /**
                  * @description What produced the OS. Read-only, as above. A source whose method is `Inferred` matched the OS
@@ -4517,6 +4585,11 @@ export interface components {
                 serial_number_source?: components["schemas"]["AttributeSource"];
                 /** @description Services running on this host. */
                 services: components["schemas"]["Service"][];
+                /**
+                 * Format: uuid
+                 * @description The site this entity belongs to.
+                 */
+                site_id: string;
                 /** @description ENTITY-MIB entPhysicalSoftwareRev — software revision of the device. Read-only, as above. */
                 readonly software_revision: string | null;
                 /** @description What produced the software revision. Read-only: decided by whichever source read it. */
@@ -4553,7 +4626,28 @@ export interface components {
                  * @description When this record was last modified.
                  */
                 updated_at: string;
+                /**
+                 * Format: int32
+                 * @description How many hosts sit above this one in its virtualization chain.
+                 */
+                readonly virtualization_depth?: number;
+                /**
+                 * Format: uuid
+                 * @description The interface on the virtualizing host that presents this host, for a network identity.
+                 */
+                virtualization_interface_id?: string | null;
                 virtualization_metadata?: null | components["schemas"]["HostVirtualization"];
+                /**
+                 * Format: uuid
+                 * @description The host this one runs under: the host of its virtualizing service.
+                 */
+                readonly virtualization_parent_host_id?: string | null;
+                /**
+                 * Format: uuid
+                 * @description The host at the top of this host's virtualization chain, itself when it is the top.
+                 *     `null` when the host neither runs under nor runs another host.
+                 */
+                readonly virtualization_root_host_id?: string | null;
                 /**
                  * Format: uuid
                  * @description The hypervisor service this VM runs on.
@@ -4589,8 +4683,8 @@ export interface components {
              *       "mac_address": "DE:AD:BE:EF:CA:FE",
              *       "mac_address_source": "ArpReply",
              *       "name": "eth0",
-             *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
+             *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "subnet_id": "550e8400-e29b-41d4-a716-446655440004",
              *       "updated_at": "2026-01-15T10:30:00Z",
              *       "valid_from": "2026-01-15T10:30:00Z",
@@ -4707,9 +4801,8 @@ export interface components {
                  *
                  *     Read-only and computed from [`Interface::display_name`] — the same ladder topology port
                  *     labels an interface with, so it cannot be called one thing in a list and another on the
-                 *     map. Only set on outbound responses nested under a host (`HostResponse::interfaces`);
-                 *     absent on a daemon's own submission and on the standalone `/interfaces` CRUD endpoints,
-                 *     which return `Interface` directly without this computation.
+                 *     map. Set on every interface read from storage, so every endpoint that returns one carries
+                 *     it; absent on a daemon's own submission, and ignored on write.
                  */
                 readonly display_name?: string | null;
                 /**
@@ -4847,73 +4940,17 @@ export interface components {
          * @description Envelope for a successful response. Failures are sent with a non-2xx status
          *     and an `ApiErrorResponse` body instead.
          */
-        ApiResponse_Network: {
-            /**
-             * @description The result payload. Omitted on failure.
-             * @example {
-             *       "created_at": "2026-01-15T10:30:00Z",
-             *       "credential_ids": [],
-             *       "effective_stale_after_hours": 672,
-             *       "id": "550e8400-e29b-41d4-a716-446655440002",
-             *       "name": "Home Network",
-             *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
-             *       "stale_after_hours": null,
-             *       "tags": [],
-             *       "updated_at": "2026-01-15T10:30:00Z"
-             *     }
-             */
-            data?: components["schemas"]["NetworkBase"] & {
-                /**
-                 * Format: date-time
-                 * @description When this record was first created.
-                 */
-                readonly created_at: string;
-                /**
-                 * Format: int64
-                 * @description `stale_after_hours` with the server's default already applied.
-                 *
-                 *     Computed, never stored (excluded from `to_params`). Published so the
-                 *     frontend derives staleness from the *same* number the digest uses rather
-                 *     than re-declaring the default in TypeScript, where the two could drift
-                 *     and a host could read stale in the app but current in the digest email.
-                 */
-                readonly effective_stale_after_hours?: number;
-                /**
-                 * Format: uuid
-                 * @description Server-assigned unique identifier.
-                 */
-                readonly id: string;
-                /**
-                 * Format: date-time
-                 * @description When this record was last modified.
-                 */
-                readonly updated_at: string;
-            };
-            /**
-             * @description Not sent on a successful response. Failure messages arrive in an
-             *     `ApiErrorResponse`.
-             */
-            error?: string | null;
-            /** @description API and server version metadata. */
-            meta: components["schemas"]["ApiMeta"];
-            /** @description Always `true` on a successful response. */
-            success: boolean;
-        };
-        /**
-         * @description Envelope for a successful response. Failures are sent with a non-2xx status
-         *     and an `ApiErrorResponse` body instead.
-         */
         ApiResponse_OnboardingStateResponse: {
             /** @description Response from onboarding state endpoint */
             data?: {
-                network?: null | components["schemas"]["OnboardingNetworkState"];
-                /**
-                 * Format: uuid
-                 * @description Network ID from pending setup (if any)
-                 */
-                network_id?: string | null;
                 /** @description Organization name from pending setup */
                 org_name?: string | null;
+                site?: null | components["schemas"]["OnboardingSiteState"];
+                /**
+                 * Format: uuid
+                 * @description Site ID from pending setup (if any)
+                 */
+                site_id?: string | null;
                 /** @description Current onboarding step (if any) */
                 step?: string | null;
                 use_case?: null | components["schemas"]["UseCase"];
@@ -5011,9 +5048,9 @@ export interface components {
              *       "last_discovery_id": null,
              *       "last_seen_at": "2026-01-15T10:30:00Z",
              *       "lineage_id": null,
-             *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "number": 80,
              *       "protocol": "Tcp",
+             *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Http",
              *       "updated_at": "2026-01-15T10:30:00Z",
              *       "valid_from": "2026-01-15T10:30:00Z",
@@ -5313,19 +5350,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-03T01:53:18.406165Z",
+             *           "created_at": "2026-10-07T12:26:33.852222Z",
              *           "first_discovery_id": null,
-             *           "id": "02858d2e-8d0b-431a-8def-1710b31e569b",
+             *           "id": "f913c044-08ca-4aee-9f8b-81bc460c7386",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-03T01:53:18.406165Z",
+             *           "last_seen_at": "2026-10-07T12:26:33.852222Z",
              *           "lineage_id": null,
-             *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
+             *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-10-03T01:53:18.406165Z",
-             *           "valid_from": "2026-10-03T01:53:18.406165Z",
+             *           "updated_at": "2026-10-07T12:26:33.852222Z",
+             *           "valid_from": "2026-10-07T12:26:33.852222Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5337,9 +5374,9 @@ export interface components {
              *       "last_seen_at": "2026-01-15T10:30:00Z",
              *       "lineage_id": null,
              *       "name": "nginx",
-             *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Tomcat",
+             *       "service_definition": "Wazuh",
+             *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5440,9 +5477,9 @@ export interface components {
             data?: {
                 /**
                  * Format: uuid
-                 * @description The network this entity belongs to.
+                 * @description Pre-assigned id of the site created at registration, if one was requested.
                  */
-                network_id: string;
+                site_id?: string | null;
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -5525,7 +5562,7 @@ export interface components {
             /**
              * @description Share with topology data (returned after authentication/verification).
              *
-             *     Returns the slim topology row (`{ id, network_id, options }`) plus the
+             *     Returns the slim topology row (`{ id, site_id, options }`) plus the
              *     `TopologyData` bundle (entities + the per-view graph built on request). The
              *     share viewer composes these with the same `toRenderableTopology` the app
              *     uses — no server-side merge.
@@ -5539,6 +5576,62 @@ export interface components {
                 share: components["schemas"]["PublicShareMetadata"];
                 /** @description The shared topology record. */
                 topology: components["schemas"]["Topology"];
+            };
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Site: {
+            /**
+             * @description The result payload. Omitted on failure.
+             * @example {
+             *       "created_at": "2026-01-15T10:30:00Z",
+             *       "credential_ids": [],
+             *       "effective_stale_after_hours": 672,
+             *       "id": "550e8400-e29b-41d4-a716-446655440002",
+             *       "name": "Home Site",
+             *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+             *       "stale_after_hours": null,
+             *       "tags": [],
+             *       "updated_at": "2026-01-15T10:30:00Z"
+             *     }
+             */
+            data?: components["schemas"]["SiteBase"] & {
+                /**
+                 * Format: date-time
+                 * @description When this record was first created.
+                 */
+                readonly created_at: string;
+                /**
+                 * Format: int64
+                 * @description `stale_after_hours` with the server's default already applied.
+                 *
+                 *     Computed, never stored (excluded from `to_params`). Published so the
+                 *     frontend derives staleness from the *same* number the digest uses rather
+                 *     than re-declaring the default in TypeScript, where the two could drift
+                 *     and a host could read stale in the app but current in the digest email.
+                 */
+                readonly effective_stale_after_hours?: number;
+                /**
+                 * Format: uuid
+                 * @description Server-assigned unique identifier.
+                 */
+                readonly id: string;
+                /**
+                 * Format: date-time
+                 * @description When this record was last modified.
+                 */
+                readonly updated_at: string;
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -5618,7 +5711,7 @@ export interface components {
              *       "last_seen_at": "2026-01-15T10:30:00Z",
              *       "lineage_id": null,
              *       "name": "LAN",
-             *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
+             *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5691,6 +5784,40 @@ export interface components {
          * @description Envelope for a successful response. Failures are sent with a non-2xx status
          *     and an `ApiErrorResponse` body instead.
          */
+        ApiResponse_SubnetResponse: {
+            /** @description A subnet together with what is derived from the rest of its site. */
+            data?: components["schemas"]["Subnet"] & {
+                /**
+                 * Format: uuid
+                 * @description The most specific other subnet on the same site whose range contains this one. `null` when
+                 *     none does. Children are the subnets whose parent is this one.
+                 */
+                readonly parent_subnet_id?: string | null;
+                /**
+                 * Format: int64
+                 * @description Addresses a host can hold in this range. Saturates for IPv6 ranges wider than a `/64`.
+                 */
+                readonly usable_addresses: number;
+                /**
+                 * Format: int64
+                 * @description Distinct addresses held in this range, including those filed in subnets nested inside it.
+                 */
+                readonly used_addresses: number;
+            };
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Tag: {
             /**
              * @description The result payload. Omitted on failure.
@@ -5698,11 +5825,12 @@ export interface components {
              *       "color": "Green",
              *       "created_at": "2026-01-15T10:30:00Z",
              *       "description": "Production environment resources",
+             *       "icon": null,
              *       "id": "550e8400-e29b-41d4-a716-44665544000a",
-             *       "is_application": false,
              *       "lineage_id": null,
              *       "name": "production",
              *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+             *       "tag_group": null,
              *       "updated_at": "2026-01-15T10:30:00Z",
              *       "valid_from": "2026-01-15T10:30:00Z",
              *       "valid_to": null
@@ -5819,7 +5947,7 @@ export interface components {
              *     Loaded by [`crate::server::topology::service::main::TopologyService::get_topology_data`]
              *     for either the live view (`snapshot_id = None`) or a point-in-time snapshot
              *     (`snapshot_id = Some(id)`). The per-view `nodes`/`edges` are built on request
-             *     from these entities + the network's grouping options
+             *     from these entities + the site's grouping options
              *     (`build_all_view_graphs`) — they are not persisted. The frontend selects the
              *     active view's slice client-side.
              */
@@ -5853,7 +5981,7 @@ export interface components {
                  *
                  *     Server-filtered entities never reach the browser, so this is the only way the frontend can
                  *     say "171 interfaces hidden by By link" rather than presenting an empty view as an empty
-                 *     network. Keyed by entity and filter only, with no view: the hide-set is per view but a drop
+                 *     site. Keyed by entity and filter only, with no view: the hide-set is per view but a drop
                  *     is not — an entity is removed from the one shared bundle only when *every* view that could
                  *     render it hides it (see `metadata_filter`).
                  *
@@ -6137,11 +6265,6 @@ export interface components {
                  * @description When the server last heard about this run. Stamped by the server at terminal.
                  */
                 last_update_at?: string | null;
-                /**
-                 * Format: uuid
-                 * @description The network this entity belongs to.
-                 */
-                network_id: string;
                 /** @description Which stage of the run is in progress. */
                 phase: components["schemas"]["DiscoveryPhase"];
                 /**
@@ -6156,6 +6279,11 @@ export interface components {
                  * @description The discovery run this update belongs to.
                  */
                 session_id: string;
+                /**
+                 * Format: uuid
+                 * @description The site this entity belongs to.
+                 */
+                site_id: string;
                 /**
                  * Format: date-time
                  * @description When the run started.
@@ -6392,7 +6520,7 @@ export interface components {
          *     that do carry a [`ClientProbe`] keep it under their own name, `{"Probe":"Snmp"}`, which tells them
          *     apart from each other and from every bare name.
          */
-        AttributeSource: "Unspecified" | "OwnAddress" | "ServiceMatch" | "LldpNeighbourAddress" | "CipVendorId" | "SysDescrMatch" | "SysObjectIdMatch" | "LldpSysDescMatch" | "SshBannerMatch" | "HttpServerMatch" | "DnsSdDeviceInfoMatch" | "DnsSdAirPlayMatch" | "DnsSdInstanceName" | "DnsSdHostname" | "LldpChassisId" | "ReverseDns" | "ForwardingTable" | "ArpReply" | "DaemonSelfReport" | "ProfinetDcp" | "ContainerRuntimeInfo" | "SshScript" | {
+        AttributeSource: "Unspecified" | "OwnAddress" | "ServiceMatch" | "LldpNeighbourAddress" | "CipVendorId" | "SysDescrMatch" | "SysObjectIdMatch" | "LldpSysDescMatch" | "SshBannerMatch" | "HttpServerMatch" | "DnsSdDeviceInfoMatch" | "DnsSdAirPlayMatch" | "DnsSdInstanceName" | "DnsSdHostname" | "LldpChassisId" | "ReverseDns" | "ForwardingTable" | "ArpReply" | "DaemonSelfReport" | "ProfinetDcp" | "ContainerRuntimeInfo" | "HypervisorConfig" | "GuestAgent" | "SshScript" | {
             /** @description A value the thing emitted about itself, over whatever transport [`ClientProbe`] names. */
             Probe: components["schemas"]["ClientProbe"];
         } | {
@@ -6441,19 +6569,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-03T01:53:18.387526Z",
+         *       "created_at": "2026-10-07T12:26:33.828768Z",
          *       "first_discovery_id": null,
-         *       "id": "60e95f88-aeff-495f-aa32-90a40688d0f5",
+         *       "id": "283611da-7949-4397-8d64-37ba845ad394",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-03T01:53:18.387526Z",
+         *       "last_seen_at": "2026-10-07T12:26:33.828768Z",
          *       "lineage_id": null,
-         *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
+         *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-10-03T01:53:18.387526Z",
-         *       "valid_from": "2026-10-03T01:53:18.387526Z",
+         *       "updated_at": "2026-10-07T12:26:33.828768Z",
+         *       "valid_from": "2026-10-07T12:26:33.828768Z",
          *       "valid_to": null
          *     }
          */
@@ -6508,14 +6636,14 @@ export interface components {
         BindingBase: components["schemas"]["BindingType"] & {
             /**
              * Format: uuid
-             * @description The network this entity belongs to.
-             */
-            network_id: string;
-            /**
-             * Format: uuid
              * @description The service this entity refers to.
              */
             service_id: string;
+            /**
+             * Format: uuid
+             * @description The site this entity belongs to.
+             */
+            site_id: string;
         };
         /**
          * @description Input for creating or updating a binding within a service.
@@ -6644,14 +6772,14 @@ export interface components {
             excess_hosts: number;
             /**
              * Format: int64
-             * @description Networks over the target plan's allowance.
-             */
-            excess_networks: number;
-            /**
-             * Format: int64
              * @description Seats over the target plan's allowance.
              */
             excess_seats: number;
+            /**
+             * Format: int64
+             * @description Sites over the target plan's allowance.
+             */
+            excess_sites: number;
         };
         ChangePlanRequest: {
             /** @description Plan to move the subscription to. */
@@ -6699,16 +6827,36 @@ export interface components {
          *     `every_client_probe_variant_has_a_producer` is what now says so.
          * @enum {string}
          */
-        ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula" | "BeszelAgent" | "H323";
+        ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "Proxmox" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula" | "BeszelAgent" | "H323";
         /** @enum {string} */
         ClockFormat: "browser_default" | "twelve_hour" | "twenty_four_hour";
         /** @enum {string} */
         Color: "Pink" | "Rose" | "Red" | "Amber" | "Orange" | "Green" | "Emerald" | "Teal" | "Cyan" | "Blue" | "Indigo" | "Purple" | "Fuchsia" | "Violet" | "Sky" | "Gray" | "Lime" | "Yellow";
+        /**
+         * @description A container with its own identity on the LAN: a macvlan or ipvlan endpoint gives it a MAC and
+         *     an IP of its own, so it is a host under its runtime rather than a service on the runtime's
+         *     host. Containers on bridge networks stay services (`ServiceVirtualization`).
+         */
+        ContainerHostVirtualization: {
+            /** @description Compose project the container belongs to, when it was started by Compose. */
+            compose_project?: string | null;
+            /** @description Container ID as reported by the runtime. */
+            container_id?: string | null;
+            /** @description Container name as reported by the runtime. */
+            container_name?: string | null;
+            /** @description The network driver that gives the container its own LAN address. */
+            network_type: components["schemas"]["ContainerNetworkType"];
+        };
+        /**
+         * @description The container network drivers that put a container directly on the LAN.
+         * @enum {string}
+         */
+        ContainerNetworkType: "MacVlan" | "IpVlan";
         /** @enum {string} */
         ContainerType: "Subnet" | "ServiceCategory" | "Application" | "ApplicationUngrouped" | "Root" | "Host" | "NestedTag" | "NestedServiceCategory" | "Hypervisor" | "ContainerRuntime" | "Stack" | "TrunkPort" | "VLAN" | "PortOpStatus";
         /**
          * @description Input for creating a binding with a service.
-         *     `service_id` and `network_id` are assigned by the server after the service is created.
+         *     `service_id` and `site_id` are assigned by the server after the service is created.
          */
         CreateBindingInput: {
             /**
@@ -6740,7 +6888,7 @@ export interface components {
         };
         /**
          * @description Request type for creating a host with its associated ip_addresses, ports, and services.
-         *     Server assigns `host_id`, `network_id`, and `source` to all children.
+         *     Server assigns `host_id`, `site_id`, and `source` to all children.
          *     Client must provide UUIDs for all entities, enabling services to reference
          *     ip_addresses/ports by ID in the same request.
          * @example {
@@ -6760,7 +6908,6 @@ export interface components {
          *         }
          *       ],
          *       "name": "web-server-01",
-         *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "ports": [
          *         {
          *           "id": "550e8400-e29b-41d4-a716-446655440006",
@@ -6781,13 +6928,15 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Tomcat",
+         *           "service_definition": "Wazuh",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
          *         }
          *       ],
+         *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "tags": [],
+         *       "virtualization_interface_id": null,
          *       "virtualization_metadata": null,
          *       "virtualization_service_id": null
          *     }
@@ -6811,15 +6960,15 @@ export interface components {
             management_url?: string | null;
             /** @description Human-facing name for the host. */
             name: string;
-            /**
-             * Format: uuid
-             * @description The network this entity belongs to.
-             */
-            network_id: string;
             /** @description Ports to create with this host (client provides UUIDs) */
             ports?: components["schemas"]["PortInput"][];
             /** @description Services to create with this host (can reference ip_addresses/ports by their UUIDs) */
             services?: components["schemas"]["ServiceInput"][];
+            /**
+             * Format: uuid
+             * @description The site this entity belongs to.
+             */
+            site_id: string;
             /** @description SNMP sysContact — administrative contact as configured on the device. */
             sys_contact?: string | null;
             /** @description SNMP sysDescr — the device's own description of itself. */
@@ -6830,6 +6979,11 @@ export interface components {
             sys_object_id?: string | null;
             /** @description Tags assigned to this entity. */
             tags: string[];
+            /**
+             * Format: uuid
+             * @description The interface on the virtualizing host that presents this host, for a network identity.
+             */
+            virtualization_interface_id?: string | null;
             virtualization_metadata?: null | components["schemas"]["HostVirtualization"];
             /**
              * Format: uuid
@@ -6843,12 +6997,12 @@ export interface components {
              * @description How long the invite stays valid, in hours.
              */
             expiration_hours?: number | null;
-            /** @description The networks this entity applies to. */
-            network_ids: string[];
             /** @description Role the invited user gets on acceptance. */
             permissions: components["schemas"]["UserOrgPermissions"];
             /** @description Address to email the invite to. Omit to create a link without sending. */
             send_to?: string | null;
+            /** @description The sites this entity applies to. */
+            site_ids: string[];
         };
         /** @description The license key to mint. */
         CreateLicenseKeyRequest: {
@@ -6857,12 +7011,12 @@ export interface components {
         /**
          * @description Request type for creating a service.
          *     Server assigns `id`, `created_at`, `updated_at`, and `source`.
-         *     Server also assigns `service_id` and `network_id` to all bindings.
+         *     Server also assigns `service_id` and `site_id` to all bindings.
          */
         CreateServiceRequest: {
             /**
              * @description Bindings to create with the service.
-             *     `service_id` and `network_id` are assigned by the server.
+             *     `service_id` and `site_id` are assigned by the server.
              */
             bindings?: components["schemas"]["CreateBindingInput"][];
             /**
@@ -6872,13 +7026,13 @@ export interface components {
             host_id: string;
             /** @description Human-facing name for the service. */
             name: string;
-            /**
-             * Format: uuid
-             * @description The network this entity belongs to.
-             */
-            network_id: string;
             /** @description Which known software this service is, if identified. */
             service_definition: string;
+            /**
+             * Format: uuid
+             * @description The site this entity belongs to.
+             */
+            site_id: string;
             /** @description Tags assigned to this entity. */
             tags: string[];
             virtualization_metadata?: null | components["schemas"]["ServiceVirtualization"];
@@ -6891,9 +7045,9 @@ export interface components {
         CreateSnapshotRequest: {
             /**
              * Format: uuid
-             * @description The network this entity belongs to.
+             * @description The site this entity belongs to.
              */
-            network_id: string;
+            site_id: string;
         };
         CreateUpdateShareRequest: {
             /** @description The share to create or replace. */
@@ -6951,10 +7105,10 @@ export interface components {
         };
         CredentialBase: {
             /**
-             * @description Networks this credential is assigned to (Broadcast scope).
-             *     Hydrated from the `network_credentials` junction table.
+             * @description Sites this credential is assigned to (Broadcast scope).
+             *     Hydrated from the `site_credentials` junction table.
              */
-            assigned_network_ids: string[];
+            assigned_site_ids: string[];
             /** @description Protocol this credential authenticates with, and its settings. */
             credential_type: components["schemas"]["CredentialType"];
             daemon_os?: null | components["schemas"]["OsFamily"];
@@ -7000,7 +7154,7 @@ export interface components {
          *     messages.
          * @enum {string}
          */
-        CredentialIntegration: "Snmp" | "Gnmi" | "Docker" | "Podman" | "UnifiController" | "InstantOn" | "Ssh" | "WakeOnLan";
+        CredentialIntegration: "Snmp" | "Gnmi" | "Docker" | "Podman" | "UnifiController" | "InstantOn" | "Ssh" | "WakeOnLan" | "Proxmox";
         /** @enum {string} */
         CredentialOrderField: "created_at" | "name" | "updated_at";
         /**
@@ -7018,7 +7172,7 @@ export interface components {
             daemon: string[];
         };
         /** @enum {string} */
-        CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Ssh" | "WakeOnLan" | "Unknown";
+        CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Ssh" | "WakeOnLan" | "Proxmox" | "Unknown";
         CredentialRunOutcome: {
             /**
              * Format: int32
@@ -7253,9 +7407,21 @@ export interface components {
              * @description How long to wait for the woken hosts to answer before the sweep starts.
              */
             wait_seconds?: number;
+        } | {
+            /**
+             * Format: int32
+             * @description Proxmox VE API port (default 8006).
+             */
+            port?: number;
+            /** @description Token ID in `user@realm!tokenname` form, e.g. `scanopy@pve!discovery`. */
+            token_id: string;
+            /** @description The token's secret (a UUID), shown once when the token is created. */
+            token_secret: components["schemas"]["SecretValue"];
+            /** @enum {string} */
+            type: "ProxmoxApiToken";
         };
         /** @enum {string} */
-        CredentialTypeDiscriminants: "SnmpV1" | "SnmpV2c" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount" | "SshPassword" | "SshKey" | "WakeOnLan";
+        CredentialTypeDiscriminants: "SnmpV1" | "SnmpV2c" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount" | "SshPassword" | "SshKey" | "WakeOnLan" | "ProxmoxApiToken";
         Daemon: components["schemas"]["DaemonBase"] & {
             /**
              * Format: date-time
@@ -7294,7 +7460,7 @@ export interface components {
             /**
              * Format: uuid
              * @description Daemon this key is bound to 1:1, when provisioned server-side.
-             *     NULL for legacy network-shared keys created before 1:1 provisioning,
+             *     NULL for legacy site-shared keys created before 1:1 provisioning,
              *     which resolve daemon identity from the X-Daemon-ID header instead.
              */
             readonly daemon_id?: string | null;
@@ -7316,9 +7482,9 @@ export interface components {
             name: string;
             /**
              * Format: uuid
-             * @description The network this entity belongs to.
+             * @description The site this entity belongs to.
              */
-            network_id: string;
+            site_id: string;
             /** @description Tags assigned to this entity. */
             tags: string[];
         };
@@ -7358,12 +7524,12 @@ export interface components {
             mode: components["schemas"]["DaemonMode"];
             /** @description Human-facing name for this daemon. */
             name: string;
+            os: null | components["schemas"]["DaemonOs"];
             /**
              * Format: uuid
-             * @description The network this entity belongs to.
+             * @description The site this entity belongs to.
              */
-            network_id: string;
-            os: null | components["schemas"]["DaemonOs"];
+            site_id: string;
             /** @description Whether the daemon is on standby due to inactivity (no discovery in 30 days). */
             readonly standby?: boolean;
             /**
@@ -7425,7 +7591,7 @@ export interface components {
          * @description Fields that daemons can be ordered/grouped by.
          * @enum {string}
          */
-        DaemonOrderField: "created_at" | "name" | "last_seen" | "updated_at" | "network_id";
+        DaemonOrderField: "created_at" | "name" | "last_seen" | "updated_at" | "site_id";
         /**
          * @description Operating system a daemon is installed on, as picked when it is created.
          * @enum {string}
@@ -7468,12 +7634,12 @@ export interface components {
             mode: components["schemas"]["DaemonMode"];
             /** @description Name the daemon reports for itself. */
             name: string;
+            os?: null | components["schemas"]["DaemonOs"];
             /**
              * Format: uuid
-             * @description The network this entity belongs to.
+             * @description The site this entity belongs to.
              */
-            network_id: string;
-            os?: null | components["schemas"]["DaemonOs"];
+            site_id: string;
             /**
              * @description URL is ignored by server - kept for backwards compat with old daemons.
              *     URL is only set via admin provisioning for ServerPoll daemons.
@@ -7568,8 +7734,11 @@ export interface components {
         };
         /** @description Daemon version status including health and any warnings */
         DaemonVersionStatus: {
-            /** @description Whether a containerized daemon is mounted so it can read the Docker socket. */
-            has_correct_docker_volume_mount?: boolean;
+            /**
+             * @description Whether a Docker daemon at this version keeps its config on the `daemon-config` volume.
+             *     When false, the upgrade modal has the user copy the config onto the volume first.
+             */
+            persists_docker_config?: boolean;
             /** @description Whether that version is current, ageing, or out of support. */
             status: components["schemas"]["VersionHealthStatus"];
             /**
@@ -7599,12 +7768,12 @@ export interface components {
         DashboardSummary: {
             /** @description Daemons the caller can see, with their current status. */
             daemons: components["schemas"]["DaemonResponse"][];
-            /** @description Per-network counts for every network the caller can see. */
-            networks: components["schemas"]["NetworkSummary"][];
             /** @description Current usage against the organization's plan allowances. */
             plan_usage: components["schemas"]["PlanUsage"];
             /** @description The most recent discovery runs, newest first. */
             recent_discoveries: components["schemas"]["Discovery"][];
+            /** @description Per-site counts for every site the caller can see. */
+            sites: components["schemas"]["SiteSummary"][];
         };
         /** @enum {string} */
         DateOrder: "browser_default" | "iso" | "day_first" | "month_first";
@@ -7654,7 +7823,7 @@ export interface components {
          *         "type": "Services"
          *       },
          *       "name": "Web Services",
-         *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
+         *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -7711,9 +7880,9 @@ export interface components {
             name: string;
             /**
              * Format: uuid
-             * @description The network this entity belongs to.
+             * @description The site this entity belongs to.
              */
-            network_id: string;
+            site_id: string;
             /** @description Will be automatically set to Manual for creation through API */
             source?: components["schemas"]["EntitySource"];
             /** @description Tags assigned to this entity. */
@@ -7739,7 +7908,7 @@ export interface components {
          * @description Fields that dependencies can be ordered/grouped by.
          * @enum {string}
          */
-        DependencyOrderField: "created_at" | "name" | "dependency_type" | "updated_at" | "network_id";
+        DependencyOrderField: "created_at" | "name" | "dependency_type" | "updated_at" | "site_id";
         /** @enum {string} */
         DependencyType: "RequestPath" | "HubAndSpoke";
         /** @description A placeholder that applies while `depends_on` holds `value`. */
@@ -7792,8 +7961,8 @@ export interface components {
              *     One-shot: a target is offered to the daemon until a scan completes successfully, then
              *     dropped by [`Discovery::apply_successful_scan`]. Credentials that earned a durable home
              *     during the scan keep being retried from there — `host_credentials` for one that probed
-             *     successfully, `network_credentials` for a broadcast one (see
-             *     [`Discovery::take_network_scope_credential_ids`]).
+             *     successfully, `site_credentials` for a broadcast one (see
+             *     [`Discovery::take_site_scope_credential_ids`]).
              */
             integration_targets: components["schemas"]["IntegrationTarget"][];
             /**
@@ -7817,13 +7986,13 @@ export interface components {
             discovery_type: components["schemas"]["DiscoveryType"];
             /** @description Human-facing name for this discovery. */
             name: string;
-            /**
-             * Format: uuid
-             * @description The network this entity belongs to.
-             */
-            network_id: string;
             /** @description Whether this run was triggered by hand or on a schedule. */
             run_type: components["schemas"]["RunType"];
+            /**
+             * Format: uuid
+             * @description The site this entity belongs to.
+             */
+            site_id: string;
             /** @description Tags assigned to this entity. */
             tags: string[];
         };
@@ -7877,7 +8046,7 @@ export interface components {
          * @description Fields that discoveries can be ordered/grouped by.
          * @enum {string}
          */
-        DiscoveryOrderField: "created_at" | "name" | "updated_at" | "daemon_id" | "network_id" | "discovery_type" | "phase" | "started_at" | "finished_at" | "duration" | "warnings";
+        DiscoveryOrderField: "created_at" | "name" | "updated_at" | "daemon_id" | "site_id" | "discovery_type" | "phase" | "started_at" | "finished_at" | "duration" | "warnings";
         /** @enum {string} */
         DiscoveryPhase: "AwaitingSnapshot" | "Queued" | "Pending" | "Starting" | "Started" | "Scanning" | "Complete" | "Failed" | "Cancelled";
         /**
@@ -7913,7 +8082,7 @@ export interface components {
              *     Server builds this mapping before initiating discovery
              */
             snmp_credentials?: Record<string, never>;
-            /** @description Subnets to sweep. `null` sweeps every subnet on the network. */
+            /** @description Subnets to sweep. `null` sweeps every subnet on the site. */
             subnet_ids: string[] | null;
             /** @enum {string} */
             type: "Network";
@@ -8015,11 +8184,6 @@ export interface components {
              * @description When the server last heard about this run. Stamped by the server at terminal.
              */
             last_update_at?: string | null;
-            /**
-             * Format: uuid
-             * @description The network this entity belongs to.
-             */
-            network_id: string;
             /** @description Which stage of the run is in progress. */
             phase: components["schemas"]["DiscoveryPhase"];
             /**
@@ -8034,6 +8198,11 @@ export interface components {
              * @description The discovery run this update belongs to.
              */
             session_id: string;
+            /**
+             * Format: uuid
+             * @description The site this entity belongs to.
+             */
+            site_id: string;
             /**
              * Format: date-time
              * @description When the run started.
@@ -8462,13 +8631,16 @@ export interface components {
          *     Stored as a JSONB blob with `#[serde(default)]` on the struct, so a stored
          *     object missing a key (including the `{}` every existing row starts with)
          *     reads as that field's default. Every default reproduces the UI's
-         *     behaviour from before the setting existed.
+         *     behaviour from before the setting existed, except `table_density`, which
+         *     defaults to the tighter of its two layouts.
          */
         DisplaySettings: {
             /** @default browser_default */
             clock: components["schemas"]["ClockFormat"];
             /** @default browser_default */
             date_order: components["schemas"]["DateOrder"];
+            /** @default compact */
+            table_density: components["schemas"]["TableDensity"];
             /**
              * @description IANA time zone dates are shown in. `None` uses the browser's zone.
              * @default null
@@ -8569,7 +8741,18 @@ export interface components {
              */
             hypervisor_service_id: string;
         } | {
-            /** @description The containerized services this edge stands for — the ones on those subnets. */
+            /** @enum {string} */
+            edge_type: "NetworkIdentity";
+            /**
+             * Format: uuid
+             * @description The guest's Network Identities service, which owns the identity host.
+             */
+            identities_service_id: string;
+        } | {
+            /**
+             * @description The containerized services this edge stands for — the ones on those subnets. Empty on
+             *     an edge to a container host.
+             */
             containerized_service_ids: string[];
             /** @enum {string} */
             edge_type: "ContainerRuntime";
@@ -8586,7 +8769,8 @@ export interface components {
             /**
              * @description The bridge subnet(s) this edge reaches: one when they render as their own boxes,
              *     all of them when merged into a single box. Resolved here rather than in the
-             *     inspector, which cannot tell which subnet an elevated edge landed on.
+             *     inspector, which cannot tell which subnet an elevated edge landed on. For an edge to a
+             *     container host (macvlan, ipvlan), the subnet holding the address it ends on.
              */
             subnet_ids: string[];
         } | {
@@ -8665,7 +8849,7 @@ export interface components {
             target_host_id: string;
         };
         /** @enum {string} */
-        EdgeTypeDiscriminants: "SameHost" | "Hypervisor" | "ContainerRuntime" | "SameContainer" | "RequestPath" | "HubAndSpoke" | "PhysicalLink" | "NeighborLink";
+        EdgeTypeDiscriminants: "SameHost" | "Hypervisor" | "NetworkIdentity" | "ContainerRuntime" | "SameContainer" | "RequestPath" | "HubAndSpoke" | "PhysicalLink" | "NeighborLink";
         /** @description Per-view configuration for an edge: disabled (not in this view) or active with properties */
         EdgeViewConfig: {
             /** @enum {string} */
@@ -8718,6 +8902,21 @@ export interface components {
             interface_id: string;
         };
         /**
+         * @description A colour a view paints on its element cards, named by the filter value that decodes it.
+         *
+         *     The colour is that value's `FilterValue::color`; the mark carries none of its own, so the card
+         *     and the chip cannot disagree. A card is marked when its own entity, or its host, carries
+         *     `value` under `filter_type`, judged by the extractor the filter's hover uses.
+         */
+        ElementMark: {
+            channel: components["schemas"]["MarkChannel"];
+            /** @description The entity whose filter value is read: the card's own, or `Host` for the card's host. */
+            entity: components["schemas"]["EntityDiscriminants"];
+            filter_type: components["schemas"]["MetadataFilterType"];
+            /** @description The `FilterValue::id` that paints. */
+            value: string;
+        };
+        /**
          * @description The order of the nodes inside each top-level container, groups within it included.
          *
          *     Top-level containers keep their own placement whatever the sort. Anything other than
@@ -8766,15 +8965,15 @@ export interface components {
             /** @description Contact name */
             name: string;
             /**
-             * Format: int64
-             * @description Number of networks/sites
-             */
-            network_count?: number | null;
-            /**
              * @description Plan the enquiry is about — the `type` tag of a `BillingPlan`
              *     (e.g. `Team`, `Business`, `Enterprise`).
              */
             plan_type?: string | null;
+            /**
+             * Format: int64
+             * @description Number of sites
+             */
+            site_count?: number | null;
             /** @description Team/company size */
             team_size: components["schemas"]["TeamSize"];
             urgency?: null | components["schemas"]["InquiryTimeline"];
@@ -8793,16 +8992,16 @@ export interface components {
             entitlement: string;
         };
         /** @enum {string} */
-        EntityDiscriminants: "Organization" | "Invite" | "Share" | "Network" | "DaemonApiKey" | "UserApiKey" | "User" | "Tag" | "Discovery" | "Daemon" | "Host" | "Service" | "Port" | "Binding" | "IPAddress" | "Interface" | "Credential" | "Subnet" | "Vlan" | "Dependency" | "Topology" | "Snapshot" | "Unknown";
+        EntityDiscriminants: "Site" | "Vlan" | "Subnet" | "Host" | "Service" | "IPAddress" | "Interface" | "Port" | "Binding" | "Discovery" | "Daemon" | "DaemonApiKey" | "Tag" | "User" | "UserApiKey" | "Credential" | "Organization" | "Invite" | "Topology" | "Snapshot" | "Share" | "Dependency";
         /**
          * @description How recently discovery last observed an entity.
          *
          *     Derived, never persisted — computed from `last_seen_at` against the
-         *     entity's network staleness window (`Network::stale_cutoff`). Shared by the
+         *     entity's site staleness window (`Site::stale_cutoff`). Shared by the
          *     discovery digest email and the UI so a host reported stale in the digest is
          *     the same host badged stale in the inventory and topology; running two
          *     different measures let them disagree (a scan-count measure calls an entity
-         *     missing after 3 scans, which is 45 minutes on one network and 3 months on
+         *     missing after 3 scans, which is 45 minutes on one site and 3 months on
          *     another).
          *
          *     Only discovery-managed entities can be `Stale` — see
@@ -8875,6 +9074,11 @@ export interface components {
             file_name?: string | null;
             /** @description Grouping label used to section a long form. */
             group?: string | null;
+            /**
+             * @description Whether the field is short enough to share a row. The form puts two adjacent half-width
+             *     fields of the same group side by side.
+             */
+            half_width: boolean;
             /** @description Explanatory text shown beneath the field. */
             help_text?: string | null;
             /** @description Server-assigned unique identifier. */
@@ -8921,6 +9125,31 @@ export interface components {
             path: components["schemas"]["DaemonPath"];
         };
         /**
+         * @description Where a filter is applied — and therefore what toggling it costs.
+         *
+         *     Filtering on the client makes a toggle instant, because the entities are already there. Filtering
+         *     on the server makes it a round trip, but keeps the hidden entities out of the response entirely.
+         *     That is a good trade only when the hidden set is large: L2 ships 19,095 interfaces to render
+         *     2,872, and a customer's browser runs out of memory holding the difference.
+         *
+         *     **A filter may only be `Server` if its value is computable from the topology the backend is
+         *     already building.** `Staleness` fails that test — it depends on the current time, so an identical
+         *     request would return different results as time passes, and a cached response would be wrong. It
+         *     stays `Client` permanently; this is a property of the filter, not a migration left half-done.
+         * @enum {string}
+         */
+        FilterApplication: "Client" | "Server";
+        FilterValue: {
+            /** @description Colour shown on the filter chip. */
+            color: components["schemas"]["Color"];
+            /** @description Icon shown on the filter chip. */
+            icon: string | null;
+            /** @description Server-assigned unique identifier. */
+            id: string;
+            /** @description Human-facing label for this choice. */
+            label: string;
+        };
+        /**
          * @description Request to finalize a client-confirmed SetupIntent (set the collected card
          *     as the customer's default payment method).
          */
@@ -8934,6 +9163,22 @@ export interface components {
              * @description Email address to send the password-reset link to.
              */
             email: string;
+        };
+        /** @description One page of an entity type's matches. */
+        GlobalSearchGroup: {
+            entity_type: components["schemas"]["EntityDiscriminants"];
+            /** @description This page of matches, each in its entity's list shape. */
+            items: components["schemas"]["SearchHit"][];
+            /**
+             * Format: int64
+             * @description Matches of this type in all, across every page.
+             */
+            total_count: number;
+        };
+        /** @description Matches grouped by entity type, in registry order. Types with no matches are left out. */
+        GlobalSearchResponse: {
+            /** @description One group per entity type with at least one match. */
+            groups: components["schemas"]["GlobalSearchGroup"][];
         };
         /** @description Size of one group in a grouped list, across every page. */
         GroupCount: {
@@ -8950,6 +9195,10 @@ export interface components {
         };
         /**
          * @example {
+         *       "asset_tag": "IT-00412",
+         *       "asset_tag_source": {
+         *         "Probe": "Snmp"
+         *       },
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "credential_assignments": [],
          *       "description": "Primary web server",
@@ -8963,7 +9212,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "web-server-01",
          *       "name_source": "Manual",
-         *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
+         *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -8971,6 +9220,7 @@ export interface components {
          *       "updated_at": "2026-01-15T10:30:00Z",
          *       "valid_from": "2026-01-15T10:30:00Z",
          *       "valid_to": null,
+         *       "virtualization_interface_id": null,
          *       "virtualization_metadata": null,
          *       "virtualization_service_id": null
          *     }
@@ -9022,7 +9272,7 @@ export interface components {
              * Format: date-time
              * @description SCD2: when this row version became live. Equal to `created_at` for
              *     rows that have never ridden a snapshot; advanced to the snapshot's
-             *     `taken_at` for live rows after a network snapshot fires.
+             *     `taken_at` for live rows after a site snapshot fires.
              */
             readonly valid_from?: string;
             /**
@@ -9031,12 +9281,17 @@ export interface components {
              */
             readonly valid_to?: string | null;
         };
+        HostAssetTag: {
+            /** @description ENTITY-MIB entPhysicalAssetID - the organization's asset tag */
+            asset_tag?: string;
+            asset_tag_source?: components["schemas"]["AttributeSource"];
+        };
         /**
          * @description Base data for a Host entity (stored in database).
          *     Child entities (ip_addresses, ports, services) are stored in their own tables
          *     and queried by `host_id`. They are NOT stored on the host.
          */
-        HostBase: components["schemas"]["HostName"] & components["schemas"]["HostHostname"] & components["schemas"]["HostSysDescr"] & components["schemas"]["HostSysObjectId"] & components["schemas"]["HostSysLocation"] & components["schemas"]["HostSysContact"] & components["schemas"]["HostManagementUrl"] & components["schemas"]["HostChassisId"] & components["schemas"]["HostSysName"] & components["schemas"]["HostManufacturer"] & components["schemas"]["HostModel"] & components["schemas"]["HostSerialNumber"] & components["schemas"]["HostFirmwareRevision"] & components["schemas"]["HostSoftwareRevision"] & components["schemas"]["HostOperatingSystem"] & {
+        HostBase: components["schemas"]["HostName"] & components["schemas"]["HostHostname"] & components["schemas"]["HostSysDescr"] & components["schemas"]["HostSysObjectId"] & components["schemas"]["HostSysLocation"] & components["schemas"]["HostSysContact"] & components["schemas"]["HostManagementUrl"] & components["schemas"]["HostChassisId"] & components["schemas"]["HostSysName"] & components["schemas"]["HostManufacturer"] & components["schemas"]["HostModel"] & components["schemas"]["HostSerialNumber"] & components["schemas"]["HostAssetTag"] & components["schemas"]["HostFirmwareRevision"] & components["schemas"]["HostSoftwareRevision"] & components["schemas"]["HostOperatingSystem"] & {
             /** @description Credential assignments for this host (hydrated from junction table). */
             credential_assignments: components["schemas"]["CredentialAssignment"][];
             /** @description Free-text notes about the host. */
@@ -9045,13 +9300,21 @@ export interface components {
             hidden: boolean;
             /**
              * Format: uuid
-             * @description The network this entity belongs to.
+             * @description The site this entity belongs to.
              */
-            network_id: string;
+            site_id: string;
             /** @description How this host came to be known — discovered, imported, or created by hand. */
             source: components["schemas"]["EntitySource"];
             /** @description Tags assigned to this entity. */
             tags: string[];
+            /**
+             * Format: uuid
+             * @description The interface on the virtualizing host that presents this one, for a host whose
+             *     virtualizer presents it from an interface of its own (a network identity). Its own column
+             *     with a foreign key for the same reason as `virtualization_service_id`; `ON DELETE SET NULL`
+             *     clears it when the interface goes away.
+             */
+            virtualization_interface_id: string | null;
             virtualization_metadata: null | components["schemas"]["HostVirtualization"];
             /**
              * Format: uuid
@@ -9138,7 +9401,7 @@ export interface components {
          * @description Fields that hosts can be ordered/grouped by.
          * @enum {string}
          */
-        HostOrderField: "created_at" | "name" | "hostname" | "updated_at" | "virtualized_by" | "network_id" | "interface_ip" | "last_seen_at" | "mac_address" | "source" | "manufacturer" | "model" | "sys_location" | "os_family" | "hidden";
+        HostOrderField: "created_at" | "name" | "hostname" | "updated_at" | "virtualized_by" | "site_id" | "interface_ip" | "last_seen_at" | "mac_address" | "source" | "manufacturer" | "model" | "sys_location" | "os_family" | "hidden";
         /** @description Operating system of a host, as one source read or inferred it. */
         HostOs: {
             /** @description Release codename, such as "noble". */
@@ -9171,6 +9434,10 @@ export interface components {
          * @description Response type for host endpoints.
          *     Includes children (ip_addresses, ports, services, interfaces).
          * @example {
+         *       "asset_tag": "IT-00412",
+         *       "asset_tag_source": {
+         *         "Probe": "Snmp"
+         *       },
          *       "chassis_id_source": "Unspecified",
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "credential_assignments": [],
@@ -9179,6 +9446,7 @@ export interface components {
          *       "display_name_rung": "Name",
          *       "firmware_revision": null,
          *       "firmware_revision_source": "Unspecified",
+         *       "first_discovery_id": null,
          *       "hidden": false,
          *       "hostname": "web-server-01.local",
          *       "hostname_source": "Manual",
@@ -9204,8 +9472,8 @@ export interface components {
          *           "mac_address": "DE:AD:BE:EF:CA:FE",
          *           "mac_address_source": "ArpReply",
          *           "neighbor_candidates": [],
-         *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "oper_status": "Up",
+         *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "speed_bps": 1000000000,
          *           "updated_at": "2026-01-15T10:30:00Z",
          *           "valid_from": "2026-01-15T10:30:00Z",
@@ -9225,14 +9493,15 @@ export interface components {
          *           "mac_address": "DE:AD:BE:EF:CA:FE",
          *           "mac_address_source": "ArpReply",
          *           "name": "eth0",
-         *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
+         *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "subnet_id": "550e8400-e29b-41d4-a716-446655440004",
          *           "updated_at": "2026-01-15T10:30:00Z",
          *           "valid_from": "2026-01-15T10:30:00Z",
          *           "valid_to": null
          *         }
          *       ],
+         *       "last_discovery_id": null,
          *       "last_seen_at": "2026-01-15T10:30:00Z",
          *       "management_url_source": "Unspecified",
          *       "manufacturer_source": "Unspecified",
@@ -9266,7 +9535,6 @@ export interface components {
          *         }
          *       ],
          *       "name_source": "Manual",
-         *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "os": null,
          *       "os_source": "Unspecified",
          *       "ports": [
@@ -9278,9 +9546,9 @@ export interface components {
          *           "last_discovery_id": null,
          *           "last_seen_at": "2026-01-15T10:30:00Z",
          *           "lineage_id": null,
-         *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "number": 80,
          *           "protocol": "Tcp",
+         *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Http",
          *           "updated_at": "2026-01-15T10:30:00Z",
          *           "valid_from": "2026-01-15T10:30:00Z",
@@ -9292,19 +9560,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-03T01:53:18.386069Z",
+         *               "created_at": "2026-10-07T12:26:33.827351Z",
          *               "first_discovery_id": null,
-         *               "id": "be7ebab4-83bd-4365-8fa9-2f1dad9b9a18",
+         *               "id": "95d31a08-ece3-4d8e-bdfa-6d438c13cf17",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-03T01:53:18.386069Z",
+         *               "last_seen_at": "2026-10-07T12:26:33.827351Z",
          *               "lineage_id": null,
-         *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
+         *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-10-03T01:53:18.386069Z",
-         *               "valid_from": "2026-10-03T01:53:18.386069Z",
+         *               "updated_at": "2026-10-07T12:26:33.827351Z",
+         *               "valid_from": "2026-10-07T12:26:33.827351Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9316,9 +9584,9 @@ export interface components {
          *           "last_seen_at": "2026-01-15T10:30:00Z",
          *           "lineage_id": null,
          *           "name": "nginx",
-         *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Tomcat",
+         *           "service_definition": "Wazuh",
+         *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9330,6 +9598,7 @@ export interface components {
          *           "virtualization_service_id": null
          *         }
          *       ],
+         *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "software_revision": null,
          *       "software_revision_source": "Unspecified",
          *       "source": {
@@ -9342,11 +9611,22 @@ export interface components {
          *       "sys_object_id_source": "Unspecified",
          *       "tags": [],
          *       "updated_at": "2026-01-15T10:30:00Z",
+         *       "virtualization_depth": 0,
+         *       "virtualization_interface_id": null,
          *       "virtualization_metadata": null,
+         *       "virtualization_parent_host_id": null,
+         *       "virtualization_root_host_id": null,
          *       "virtualization_service_id": null
          *     }
          */
         HostResponse: {
+            /**
+             * @description The asset tag the device reports: ENTITY-MIB entPhysicalAssetID. Read-only: discovery is
+             *     the only writer, so it always says what the device itself carries.
+             */
+            readonly asset_tag?: string | null;
+            /** @description What produced the asset tag. Read-only. */
+            asset_tag_source?: components["schemas"]["AttributeSource"];
             /** @description LLDP chassis identifier, used to match the host to its neighbours. */
             chassis_id?: string | null;
             /** @description What produced the LLDP chassis identifier. Read-only: decided by whichever source read it. */
@@ -9376,6 +9656,11 @@ export interface components {
             readonly firmware_revision: string | null;
             /** @description What produced the firmware revision. Read-only: decided by whichever source read it. */
             firmware_revision_source?: components["schemas"]["AttributeSource"];
+            /**
+             * Format: uuid
+             * @description The discovery run that first observed this host. Drives the "First found by" column.
+             */
+            readonly first_discovery_id?: string | null;
             /** @description Whether the host is hidden from topology views. */
             hidden: boolean;
             /** @description Hostname as resolved or reported by the host. */
@@ -9395,10 +9680,15 @@ export interface components {
             /** @description IP addresses on this host. */
             ip_addresses: components["schemas"]["IPAddress"][];
             /**
+             * Format: uuid
+             * @description The discovery run that last observed this host. Drives the "Last found by" column.
+             */
+            readonly last_discovery_id?: string | null;
+            /**
              * Format: date-time
              * @description Last time discovery observed this host. User-facing (drives the "Last
              *     seen" column and the stale badge), which is why it is carried here while
-             *     the rest of the SCD2/audit columns are not.
+             *     the version-history columns are not.
              */
             last_seen_at: string;
             /** @description Link to the host's own management interface. */
@@ -9422,11 +9712,6 @@ export interface components {
              *     caller.
              */
             name_source?: components["schemas"]["AttributeSource"];
-            /**
-             * Format: uuid
-             * @description The network this entity belongs to.
-             */
-            network_id: string;
             os: null | components["schemas"]["HostOs"];
             /**
              * @description What produced the OS. Read-only, as above. A source whose method is `Inferred` matched the OS
@@ -9441,6 +9726,11 @@ export interface components {
             serial_number_source?: components["schemas"]["AttributeSource"];
             /** @description Services running on this host. */
             services: components["schemas"]["Service"][];
+            /**
+             * Format: uuid
+             * @description The site this entity belongs to.
+             */
+            site_id: string;
             /** @description ENTITY-MIB entPhysicalSoftwareRev — software revision of the device. Read-only, as above. */
             readonly software_revision: string | null;
             /** @description What produced the software revision. Read-only: decided by whichever source read it. */
@@ -9477,7 +9767,28 @@ export interface components {
              * @description When this record was last modified.
              */
             updated_at: string;
+            /**
+             * Format: int32
+             * @description How many hosts sit above this one in its virtualization chain.
+             */
+            readonly virtualization_depth?: number;
+            /**
+             * Format: uuid
+             * @description The interface on the virtualizing host that presents this host, for a network identity.
+             */
+            virtualization_interface_id?: string | null;
             virtualization_metadata?: null | components["schemas"]["HostVirtualization"];
+            /**
+             * Format: uuid
+             * @description The host this one runs under: the host of its virtualizing service.
+             */
+            readonly virtualization_parent_host_id?: string | null;
+            /**
+             * Format: uuid
+             * @description The host at the top of this host's virtualization chain, itself when it is the top.
+             *     `null` when the host neither runs under nor runs another host.
+             */
+            readonly virtualization_root_host_id?: string | null;
             /**
              * Format: uuid
              * @description The hypervisor service this VM runs on.
@@ -9532,7 +9843,30 @@ export interface components {
             details: components["schemas"]["EsxiVirtualization"];
             /** @enum {string} */
             type: "ESXi";
+        } | {
+            details: components["schemas"]["ContainerHostVirtualization"];
+            /** @enum {string} */
+            type: "Docker";
+        } | {
+            details: components["schemas"]["ContainerHostVirtualization"];
+            /** @enum {string} */
+            type: "Podman";
+        } | {
+            details: components["schemas"]["NetworkIdentityVirtualization"];
+            /** @enum {string} */
+            type: "NetworkIdentity";
         };
+        /**
+         * @description Coarse virtualization state used by the `Virtualization` metadata filter on Host. Each host
+         *     resolves to exactly one variant via `HasFilterValues`, from the type of its
+         *     `virtualization_metadata` ([`HostVirtualizationDiscriminants::state`]).
+         *
+         *     A container host and a network identity get states of their own rather than `Virtualized`:
+         *     the filter's colour marks Workloads cards, and an identity is an interface its owner presents,
+         *     not a guest it runs. The ids are persisted in hide-sets, so existing ones keep their spelling.
+         * @enum {string}
+         */
+        HostVirtualizationState: "Virtualized" | "Containerized" | "NetworkIdentity" | "BareMetal";
         /**
          * @example {
          *       "created_at": "2026-01-15T10:30:00Z",
@@ -9546,8 +9880,8 @@ export interface components {
          *       "mac_address": "DE:AD:BE:EF:CA:FE",
          *       "mac_address_source": "ArpReply",
          *       "name": "eth0",
-         *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
+         *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "subnet_id": "550e8400-e29b-41d4-a716-446655440004",
          *       "updated_at": "2026-01-15T10:30:00Z",
          *       "valid_from": "2026-01-15T10:30:00Z",
@@ -9615,15 +9949,15 @@ export interface components {
             /** @description Human-facing name for this IP address. */
             name: string | null;
             /**
-             * Format: uuid
-             * @description The network this entity belongs to.
-             */
-            network_id: string;
-            /**
              * Format: int32
              * @description Position of this IP address in the host's IP address list (for ordering)
              */
             position?: number;
+            /**
+             * Format: uuid
+             * @description The site this entity belongs to.
+             */
+            site_id: string;
             /**
              * Format: uuid
              * @description The subnet this entity belongs to.
@@ -9736,7 +10070,7 @@ export interface components {
          * @description Format hint for inline values in `PathOrInline` and `SecretPathOrInline` fields.
          * @enum {string}
          */
-        InlineFormat: "plain" | "pemprivatekey" | "pemcertificate" | "sshprivatekey" | "macaddress";
+        InlineFormat: "plain" | "pemprivatekey" | "pemcertificate" | "sshprivatekey" | "macaddress" | "proxmoxtokenid";
         /**
          * @description Visual grouping metadata for inlined entities.
          *     Entities sharing the same `group_id` are rendered together in the element card.
@@ -9747,6 +10081,8 @@ export interface components {
              * @description The inlined entity's ID (e.g., service ID).
              */
             entity_id: string;
+            /** @description Which entity `entity_id` names: a service, or a host (a guest's network identity). */
+            entity_type: components["schemas"]["EntityDiscriminants"];
             /**
              * Format: uuid
              * @description Shared by all members of the visual group.
@@ -9823,11 +10159,11 @@ export interface components {
         } | {
             /**
              * Format: uuid
-             * @description Credential to use across the network.
+             * @description Credential to use across the site.
              */
             credential_id: string;
             /** @enum {string} */
-            scope: "Network";
+            scope: "Site";
         } | {
             /**
              * Format: uuid
@@ -9851,9 +10187,8 @@ export interface components {
              *
              *     Read-only and computed from [`Interface::display_name`] — the same ladder topology port
              *     labels an interface with, so it cannot be called one thing in a list and another on the
-             *     map. Only set on outbound responses nested under a host (`HostResponse::interfaces`);
-             *     absent on a daemon's own submission and on the standalone `/interfaces` CRUD endpoints,
-             *     which return `Interface` directly without this computation.
+             *     map. Set on every interface read from storage, so every endpoint that returns one carries
+             *     it; absent on a daemon's own submission, and ignored on write.
              */
             readonly display_name?: string | null;
             /**
@@ -9983,12 +10318,12 @@ export interface components {
              *     database or echoed in a response ever has it populated.
              */
             neighbor_candidates?: components["schemas"]["InterfaceNeighborEvidence"][];
+            oper_status?: null | components["schemas"]["IfOperStatus"];
             /**
              * Format: uuid
-             * @description The network this entity belongs to.
+             * @description The site this entity belongs to.
              */
-            network_id: string;
-            oper_status?: null | components["schemas"]["IfOperStatus"];
+            site_id: string;
             /**
              * Format: int64
              * @description Interface speed from ifSpeed/ifHighSpeed in bits per second
@@ -10090,9 +10425,9 @@ export interface components {
             interface_id: string;
             /**
              * Format: uuid
-             * @description The network the reporting interface belongs to.
+             * @description The site the reporting interface belongs to.
              */
-            network_id: string;
+            site_id: string;
         };
         /**
          * @description The raw identity one LLDP or CDP record advertised about a neighbour on one port.
@@ -10105,7 +10440,7 @@ export interface components {
          *
          *     This is both the wire shape a daemon submits (nested under
          *     `InterfaceBase::neighbor_candidates`) and `InterfaceNeighborCandidate`'s stored field set — see
-         *     `InterfaceNeighborCandidateBase`, which pairs this with the `(network_id, interface_id)` the
+         *     `InterfaceNeighborCandidateBase`, which pairs this with the `(site_id, interface_id)` the
          *     wire submission does not need to repeat per candidate.
          */
         InterfaceNeighborEvidence: {
@@ -10136,7 +10471,7 @@ export interface components {
         };
         /**
          * @description One row of the merged read model: an interface's adjacency to one neighbour, whichever of the
-         *     two resolved tables it lives in. `TopologyContext` loads a `Vec` of these per network
+         *     two resolved tables it lives in. `TopologyContext` loads a `Vec` of these per site
          *     (`live_or_as_of`-pinned the same way `interfaces` is) instead of reading a scalar field —
          *     `InterfaceNeighborRow` is what every topology file downstream of resolution actually iterates.
          */
@@ -10189,8 +10524,6 @@ export interface components {
              * @description When this record stops being valid.
              */
             expires_at: string;
-            /** @description The networks this entity applies to. */
-            network_ids: string[];
             /**
              * Format: uuid
              * @description The organization that owns this record.
@@ -10200,6 +10533,8 @@ export interface components {
             permissions: components["schemas"]["UserOrgPermissions"];
             /** @description Optional email address to send the invite to */
             send_to: string | null;
+            /** @description The sites this entity applies to. */
+            site_ids: string[];
             /** @description Link the recipient follows to accept the invite. */
             url: string;
         };
@@ -10458,6 +10793,11 @@ export interface components {
              */
             kept: number;
         };
+        /**
+         * @description Where on an element card a mark paints.
+         * @enum {string}
+         */
+        MarkChannel: "Title" | "StatusDot" | "StateFill";
         /** @enum {string} */
         MatchConfidence: "NotApplicable" | "Low" | "Medium" | "High" | "Certain";
         MatchDetails: {
@@ -10486,6 +10826,42 @@ export interface components {
              */
             into: string;
         };
+        /**
+         * @description A declared metadata filter on an element entity inside a view.
+         *
+         *     `FilterValue::id` is the **stable identifier** — it's what each entity
+         *     emits via `HasFilterValues`, what the hide-set in request options stores,
+         *     and what matches entities on toggle. Changing an `id` silently clears
+         *     users' persisted hide entries for that value; `label` is display-only
+         *     and can change freely.
+         */
+        MetadataFilter: {
+            /**
+             * @description Where this filter runs. Deliberately not defaulted: a new filter has to state which side it
+             *     belongs on, and the compiler is a better place to force that decision than a review comment.
+             *     See `FilterApplication` for when `Server` is permissible.
+             */
+            applies: components["schemas"]["FilterApplication"];
+            /**
+             * @description The entities this filter reads and hides. Hovering a value rings every listed entity
+             *     carrying it; hiding one writes it into the hide-set under each listed entity.
+             */
+            entities: components["schemas"]["EntityDiscriminants"][];
+            /** @description What the filter narrows by. */
+            filter_type: components["schemas"]["MetadataFilterType"];
+            /** @description User-facing sub-section label (e.g. "By Category", "By Virtualization"). */
+            label: string;
+            /** @description The choices offered for this filter. */
+            values: components["schemas"]["FilterValue"][];
+        };
+        /**
+         * @description The type of metadata filter. One variant per conceptually-distinct filter
+         *     across the app — Category (on Service), Virtualization (on Host), and so
+         *     on. Kept narrow on purpose: adding a new filter means adding a variant
+         *     here + a `HasFilterValues` impl on the relevant entity.
+         * @enum {string}
+         */
+        MetadataFilterType: "Category" | "Virtualization" | "LinkState" | "Staleness" | "OperStatus";
         /**
          * @description The Windows MSI install method. The MSI itself is a static release asset the UI links to; only
          *     the per-daemon pre-fill data is tenant-specific.
@@ -10527,103 +10903,15 @@ export interface components {
             type: "Host";
         };
         /**
-         * @example {
-         *       "created_at": "2026-01-15T10:30:00Z",
-         *       "credential_ids": [],
-         *       "effective_stale_after_hours": 672,
-         *       "id": "550e8400-e29b-41d4-a716-446655440002",
-         *       "name": "Home Network",
-         *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
-         *       "stale_after_hours": null,
-         *       "tags": [],
-         *       "updated_at": "2026-01-15T10:30:00Z"
-         *     }
+         * @description An address and MAC that a host presents from an interface of its own beyond its configured
+         *     NICs: a macvlan shim, a virtual IP, a service given its own LAN address, an emulated device.
+         *     The reporting source proves only that the interface lives inside that host, not what it is,
+         *     so nothing here classifies it. The owner is the host's Network Identities service
+         *     (`HostBase::virtualization_service_id`), and the interface it sits on is
+         *     `HostBase::virtualization_interface_id`, both real columns with foreign keys. A stored row from
+         *     before the interface became a column still carries an `interface` name here, which is ignored.
          */
-        Network: components["schemas"]["NetworkBase"] & {
-            /**
-             * Format: date-time
-             * @description When this record was first created.
-             */
-            readonly created_at: string;
-            /**
-             * Format: int64
-             * @description `stale_after_hours` with the server's default already applied.
-             *
-             *     Computed, never stored (excluded from `to_params`). Published so the
-             *     frontend derives staleness from the *same* number the digest uses rather
-             *     than re-declaring the default in TypeScript, where the two could drift
-             *     and a host could read stale in the app but current in the digest email.
-             */
-            readonly effective_stale_after_hours?: number;
-            /**
-             * Format: uuid
-             * @description Server-assigned unique identifier.
-             */
-            readonly id: string;
-            /**
-             * Format: date-time
-             * @description When this record was last modified.
-             */
-            readonly updated_at: string;
-        };
-        NetworkBase: {
-            /** @description Credential IDs associated with this network (hydrated from junction table). */
-            credential_ids: string[];
-            /** @description Human-facing name for this network. */
-            name: string;
-            /**
-             * Format: uuid
-             * @description The organization that owns this record.
-             */
-            organization_id: string;
-            /**
-             * Format: int64
-             * @description How long a discovery-managed entity on this network may go unobserved
-             *     before it reads as stale. `None` = unset; callers resolve the effective
-             *     value through [`Network::stale_after`], never by reading this directly.
-             *
-             *     Network-scoped because staleness is only meaningful relative to scan
-             *     cadence, and cadence is a property of a network's discoveries.
-             */
-            stale_after_hours: number | null;
-            /** @description Tags assigned to this entity. */
-            tags: string[];
-        };
-        /** @description Network configuration for setup */
-        NetworkSetup: {
-            /** @description Name for the network created during setup. */
-            name: string;
-        };
-        /** @description Per-network summary of entity counts */
-        NetworkSummary: {
-            /**
-             * Format: int64
-             * @description Daemons assigned to this network.
-             */
-            daemon_count: number;
-            /**
-             * Format: int64
-             * @description Hosts currently discovered on this network.
-             */
-            host_count: number;
-            /**
-             * Format: uuid
-             * @description Server-assigned unique identifier.
-             */
-            id: string;
-            /** @description Name of the network. */
-            name: string;
-            /**
-             * Format: int64
-             * @description Services currently discovered on this network.
-             */
-            service_count: number;
-            /**
-             * Format: int64
-             * @description Subnets currently known on this network.
-             */
-            subnet_count: number;
-        };
+        NetworkIdentityVirtualization: Record<string, never>;
         Node: components["schemas"]["NodeType"] & {
             /** @description Heading drawn at the top of a container node. */
             header?: string | null;
@@ -10700,28 +10988,28 @@ export interface components {
             /** @description URL-safe identifier used in the provider's login and link endpoints. */
             slug: string;
         };
-        /** @description Network data in onboarding state response */
-        OnboardingNetworkState: {
+        /** @enum {string} */
+        OnboardingOperationDiscriminants: "OrgCreated" | "OnboardingModalCompleted" | "PlanSelected" | "DaemonPromptDismissed" | "DaemonPromptAccepted" | "FirstDaemonRegistered" | "FirstTopologyRebuild" | "FirstDiscoveryCompleted" | "FirstHostDiscovered" | "SecondSiteCreated" | "FirstTagCreated" | "FirstDependencyCreated" | "FirstUserApiKeyCreated" | "FirstSnmpCredentialCreated" | "FirstApplicationTagCreated" | "FirstCredentialCreated" | "FirstSnapshotCreated" | "InviteSent" | "InviteAccepted" | "ProfileCompleted" | "ReferralSourceCompleted";
+        /** @description Site data in onboarding state response */
+        OnboardingSiteState: {
             /**
              * Format: uuid
-             * @description Network ID (if created)
+             * @description Site ID (if created)
              */
             id?: string | null;
-            /** @description Network name */
+            /** @description Site name */
             name: string;
         };
-        /** @enum {string} */
-        OnboardingOperationDiscriminants: "OrgCreated" | "OnboardingModalCompleted" | "PlanSelected" | "DaemonPromptDismissed" | "DaemonPromptAccepted" | "FirstDaemonRegistered" | "FirstTopologyRebuild" | "FirstDiscoveryCompleted" | "FirstHostDiscovered" | "SecondNetworkCreated" | "FirstTagCreated" | "FirstDependencyCreated" | "FirstUserApiKeyCreated" | "FirstSnmpCredentialCreated" | "FirstApplicationTagCreated" | "FirstCredentialCreated" | "FirstSnapshotCreated" | "InviteSent" | "InviteAccepted" | "ProfileCompleted" | "ReferralSourceCompleted";
         /** @description Response from onboarding state endpoint */
         OnboardingStateResponse: {
-            network?: null | components["schemas"]["OnboardingNetworkState"];
-            /**
-             * Format: uuid
-             * @description Network ID from pending setup (if any)
-             */
-            network_id?: string | null;
             /** @description Organization name from pending setup */
             org_name?: string | null;
+            site?: null | components["schemas"]["OnboardingSiteState"];
+            /**
+             * Format: uuid
+             * @description Site ID from pending setup (if any)
+             */
+            site_id?: string | null;
             /** @description Current onboarding step (if any) */
             step?: string | null;
             use_case?: null | components["schemas"]["UseCase"];
@@ -10865,7 +11153,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.17.19"
+         *       "server_version": "0.17.22"
          *     }
          */
         PaginatedApiMeta: {
@@ -10878,7 +11166,7 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.17.19
+             * @example 0.17.22
              */
             server_version: string;
         };
@@ -11011,8 +11299,8 @@ export interface components {
                  *     One-shot: a target is offered to the daemon until a scan completes successfully, then
                  *     dropped by [`Discovery::apply_successful_scan`]. Credentials that earned a durable home
                  *     during the scan keep being retried from there — `host_credentials` for one that probed
-                 *     successfully, `network_credentials` for a broadcast one (see
-                 *     [`Discovery::take_network_scope_credential_ids`]).
+                 *     successfully, `site_credentials` for a broadcast one (see
+                 *     [`Discovery::take_site_scope_credential_ids`]).
                  */
                 integration_targets: components["schemas"]["IntegrationTarget"][];
                 /**
@@ -11037,6 +11325,13 @@ export interface components {
         PaginatedApiResponse_HostResponse: {
             /** @description The page of results. Empty when nothing matched the query. */
             data: {
+                /**
+                 * @description The asset tag the device reports: ENTITY-MIB entPhysicalAssetID. Read-only: discovery is
+                 *     the only writer, so it always says what the device itself carries.
+                 */
+                readonly asset_tag?: string | null;
+                /** @description What produced the asset tag. Read-only. */
+                asset_tag_source?: components["schemas"]["AttributeSource"];
                 /** @description LLDP chassis identifier, used to match the host to its neighbours. */
                 chassis_id?: string | null;
                 /** @description What produced the LLDP chassis identifier. Read-only: decided by whichever source read it. */
@@ -11066,6 +11361,11 @@ export interface components {
                 readonly firmware_revision: string | null;
                 /** @description What produced the firmware revision. Read-only: decided by whichever source read it. */
                 firmware_revision_source?: components["schemas"]["AttributeSource"];
+                /**
+                 * Format: uuid
+                 * @description The discovery run that first observed this host. Drives the "First found by" column.
+                 */
+                readonly first_discovery_id?: string | null;
                 /** @description Whether the host is hidden from topology views. */
                 hidden: boolean;
                 /** @description Hostname as resolved or reported by the host. */
@@ -11085,10 +11385,15 @@ export interface components {
                 /** @description IP addresses on this host. */
                 ip_addresses: components["schemas"]["IPAddress"][];
                 /**
+                 * Format: uuid
+                 * @description The discovery run that last observed this host. Drives the "Last found by" column.
+                 */
+                readonly last_discovery_id?: string | null;
+                /**
                  * Format: date-time
                  * @description Last time discovery observed this host. User-facing (drives the "Last
                  *     seen" column and the stale badge), which is why it is carried here while
-                 *     the rest of the SCD2/audit columns are not.
+                 *     the version-history columns are not.
                  */
                 last_seen_at: string;
                 /** @description Link to the host's own management interface. */
@@ -11112,11 +11417,6 @@ export interface components {
                  *     caller.
                  */
                 name_source?: components["schemas"]["AttributeSource"];
-                /**
-                 * Format: uuid
-                 * @description The network this entity belongs to.
-                 */
-                network_id: string;
                 os: null | components["schemas"]["HostOs"];
                 /**
                  * @description What produced the OS. Read-only, as above. A source whose method is `Inferred` matched the OS
@@ -11131,6 +11431,11 @@ export interface components {
                 serial_number_source?: components["schemas"]["AttributeSource"];
                 /** @description Services running on this host. */
                 services: components["schemas"]["Service"][];
+                /**
+                 * Format: uuid
+                 * @description The site this entity belongs to.
+                 */
+                site_id: string;
                 /** @description ENTITY-MIB entPhysicalSoftwareRev — software revision of the device. Read-only, as above. */
                 readonly software_revision: string | null;
                 /** @description What produced the software revision. Read-only: decided by whichever source read it. */
@@ -11167,7 +11472,28 @@ export interface components {
                  * @description When this record was last modified.
                  */
                 updated_at: string;
+                /**
+                 * Format: int32
+                 * @description How many hosts sit above this one in its virtualization chain.
+                 */
+                readonly virtualization_depth?: number;
+                /**
+                 * Format: uuid
+                 * @description The interface on the virtualizing host that presents this host, for a network identity.
+                 */
+                virtualization_interface_id?: string | null;
                 virtualization_metadata?: null | components["schemas"]["HostVirtualization"];
+                /**
+                 * Format: uuid
+                 * @description The host this one runs under: the host of its virtualizing service.
+                 */
+                readonly virtualization_parent_host_id?: string | null;
+                /**
+                 * Format: uuid
+                 * @description The host at the top of this host's virtualization chain, itself when it is the top.
+                 *     `null` when the host neither runs under nor runs another host.
+                 */
+                readonly virtualization_root_host_id?: string | null;
                 /**
                  * Format: uuid
                  * @description The hypervisor service this VM runs on.
@@ -11239,54 +11565,25 @@ export interface components {
             success: boolean;
         };
         /** @description Response type for paginated list endpoints (pagination is always present in meta) */
-        PaginatedApiResponse_Subnet: {
+        PaginatedApiResponse_SubnetResponse: {
             /** @description The page of results. Empty when nothing matched the query. */
-            data: (components["schemas"]["SubnetBase"] & {
-                /**
-                 * Format: date-time
-                 * @description When this record was first created.
-                 */
-                readonly created_at: string;
+            data: (components["schemas"]["Subnet"] & {
                 /**
                  * Format: uuid
-                 * @description The discovery that first observed this entity.
+                 * @description The most specific other subnet on the same site whose range contains this one. `null` when
+                 *     none does. Children are the subnets whose parent is this one.
                  */
-                readonly first_discovery_id?: string | null;
+                readonly parent_subnet_id?: string | null;
                 /**
-                 * Format: uuid
-                 * @description Server-assigned unique identifier.
+                 * Format: int64
+                 * @description Addresses a host can hold in this range. Saturates for IPv6 ranges wider than a `/64`.
                  */
-                readonly id: string;
+                readonly usable_addresses: number;
                 /**
-                 * Format: uuid
-                 * @description The most recent discovery that observed this entity.
+                 * Format: int64
+                 * @description Distinct addresses held in this range, including those filed in subnets nested inside it.
                  */
-                readonly last_discovery_id?: string | null;
-                /**
-                 * Format: date-time
-                 * @description When a discovery last observed this entity.
-                 */
-                readonly last_seen_at?: string;
-                /**
-                 * Format: uuid
-                 * @description Stable identifier shared by every revision of the same entity across its history.
-                 */
-                readonly lineage_id?: string | null;
-                /**
-                 * Format: date-time
-                 * @description When this record was last modified.
-                 */
-                readonly updated_at: string;
-                /**
-                 * Format: date-time
-                 * @description Start of the interval this revision was current for (SCD2 history).
-                 */
-                readonly valid_from?: string;
-                /**
-                 * Format: date-time
-                 * @description End of the interval this revision was current for. `null` while it is the live revision.
-                 */
-                readonly valid_to?: string | null;
+                readonly used_addresses: number;
             })[];
             /** @description Human-readable failure message. Omitted on success. */
             error?: string | null;
@@ -11577,11 +11874,6 @@ export interface components {
             included_hosts?: number | null;
             /**
              * Format: int64
-             * @description Networks included before per-network charges apply.
-             */
-            included_networks?: number | null;
-            /**
-             * Format: int64
              * @description Organizations allowed on one self-hosted server instance. `None` =
              *     unlimited. Only enforced for self-hosted deployments (see
              *     `provision_user`); cloud stays multi-tenant regardless. Defaulted so
@@ -11595,9 +11887,9 @@ export interface components {
             included_seats?: number | null;
             /**
              * Format: int64
-             * @description Charge per network beyond `included_networks`, in cents.
+             * @description Sites included before per-site charges apply.
              */
-            network_cents?: number | null;
+            included_sites?: number | null;
             /** @description Billing interval this configuration is priced for. */
             rate: components["schemas"]["BillingRate"];
             /**
@@ -11605,6 +11897,13 @@ export interface components {
              * @description Charge per seat beyond `included_seats`, in cents.
              */
             seat_cents?: number | null;
+            /**
+             * Format: int64
+             * @description Charge per site beyond `included_sites`, in cents.
+             *     Plans stored before the site rename (org rows, Stripe subscription metadata) say
+             *     `network_cents`.
+             */
+            site_cents?: number | null;
             /**
              * Format: int32
              * @description Length of the free trial, in days. Zero when the plan has no trial.
@@ -11640,16 +11939,6 @@ export interface components {
             host_limit?: number | null;
             /**
              * Format: int64
-             * @description Networks currently counted against the plan.
-             */
-            network_count: number;
-            /**
-             * Format: int64
-             * @description Networks included in the current plan. `null` when unlimited.
-             */
-            network_limit?: number | null;
-            /**
-             * Format: int64
              * @description Seats currently in use.
              */
             seat_count: number;
@@ -11658,6 +11947,16 @@ export interface components {
              * @description Seats included in the current plan. `null` when unlimited.
              */
             seat_limit?: number | null;
+            /**
+             * Format: int64
+             * @description Sites currently counted against the plan.
+             */
+            site_count: number;
+            /**
+             * Format: int64
+             * @description Sites included in the current plan. `null` when unlimited.
+             */
+            site_limit?: number | null;
         };
         PodmanVirtualization: {
             /** @description Compose project the container belongs to, when it was started by Compose. */
@@ -11677,9 +11976,9 @@ export interface components {
          *       "last_discovery_id": null,
          *       "last_seen_at": "2026-01-15T10:30:00Z",
          *       "lineage_id": null,
-         *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "number": 80,
          *       "protocol": "Tcp",
+         *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Http",
          *       "updated_at": "2026-01-15T10:30:00Z",
          *       "valid_from": "2026-01-15T10:30:00Z",
@@ -11742,9 +12041,9 @@ export interface components {
             host_id: string;
             /**
              * Format: uuid
-             * @description The network this entity belongs to.
+             * @description The site this entity belongs to.
              */
-            network_id: string;
+            site_id: string;
         };
         /**
          * @description Input for creating or updating a port.
@@ -11797,7 +12096,7 @@ export interface components {
              * Format: uuid
              * @description Mint a fresh 1:1 key for this existing daemon instead of creating a new record,
              *     keeping its host, discovery jobs and history. Used to give a legacy daemon (no bound
-             *     key) a dedicated one. When set, `name`/`network_id`/`mode`/`url` are ignored — those
+             *     key) a dedicated one. When set, `name`/`site_id`/`mode`/`url` are ignored — those
              *     come from the existing record.
              *
              *     Only accepted for a daemon that has never checked in or has no bound key; a live
@@ -11817,18 +12116,18 @@ export interface components {
              *     the existing record's name is kept.
              */
             name?: string | null;
-            /**
-             * Format: uuid
-             * @description Network this daemon will be associated with. Required unless `daemon_id` is set, in
-             *     which case the existing record's network is kept.
-             */
-            network_id?: string | null;
             os?: null | components["schemas"]["DaemonOs"];
             /**
              * @description Credential/integration references to seed onto the daemon's first
              *     discovery run. References only — never secret material. Empty by default.
              */
             seed_credential_refs?: components["schemas"]["IntegrationTarget"][];
+            /**
+             * Format: uuid
+             * @description Site this daemon will be associated with. Required unless `daemon_id` is set, in
+             *     which case the existing record's site is kept.
+             */
+            site_id?: string | null;
             /**
              * @description Reachable URL where the *server* can dial the daemon. Required for
              *     ServerPoll, unused for DaemonPoll (the daemon dials out instead).
@@ -11882,7 +12181,14 @@ export interface components {
              */
             widened_by_vlan: boolean;
         };
+        /**
+         * @description The two kinds of guest a Proxmox VE node runs. Both are hosts with their own addresses, so
+         *     both hang off the node's Proxmox VE service the same way.
+         * @enum {string}
+         */
+        ProxmoxGuestType: "Qemu" | "Lxc";
         ProxmoxVirtualization: {
+            guest_type?: null | components["schemas"]["ProxmoxGuestType"];
             /** @description Proxmox VMID of the guest. */
             vm_id?: string | null;
             /** @description Guest name as configured in Proxmox. */
@@ -12287,6 +12593,15 @@ export interface components {
         ScannedEntityIds: {
             /** @description Service bindings touched by this discovery. */
             binding_ids?: string[];
+            /**
+             * @description Subnets this discovery found without sweeping: ranges riding in a host request, ranges the
+             *     server inferred or placed addresses into, and ranges holding an address the scan saw.
+             *
+             *     Filled by the server, never by a daemon. Kept apart from `subnet_ids` because the digest
+             *     reads that list as the ranges the scan *swept*, and counting a range it only found evidence
+             *     in would report every unobserved host there as stale. The discovery FKs take both.
+             */
+            found_subnet_ids?: string[];
             /** @description Hosts touched by this discovery. */
             host_ids?: string[];
             /** @description Interfaces touched by this discovery. */
@@ -12319,6 +12634,53 @@ export interface components {
             mode: "Inline";
             /** @description The script text. */
             value: string;
+        };
+        /**
+         * @description One match, in the shape its entity's list endpoint returns it (a host as a `HostResponse`,
+         *     a daemon as a `DaemonResponse`), keyed by entity type.
+         */
+        SearchHit: {
+            Invite: components["schemas"]["Invite"];
+        } | {
+            Share: components["schemas"]["Share"];
+        } | {
+            Site: components["schemas"]["Site"];
+        } | {
+            DaemonApiKey: components["schemas"]["DaemonApiKey"];
+        } | {
+            UserApiKey: components["schemas"]["UserApiKey"];
+        } | {
+            User: components["schemas"]["User"];
+        } | {
+            Tag: components["schemas"]["Tag"];
+        } | {
+            Discovery: components["schemas"]["Discovery"];
+        } | {
+            Daemon: components["schemas"]["DaemonResponse"];
+        } | {
+            Host: components["schemas"]["HostResponse"];
+        } | {
+            Service: components["schemas"]["Service"];
+        } | {
+            Port: components["schemas"]["Port"];
+        } | {
+            Binding: components["schemas"]["Binding"];
+        } | {
+            IPAddress: components["schemas"]["IPAddress"];
+        } | {
+            Interface: components["schemas"]["Interface"];
+        } | {
+            Credential: components["schemas"]["Credential"];
+        } | {
+            Subnet: components["schemas"]["SubnetResponse"];
+        } | {
+            Vlan: components["schemas"]["Vlan"];
+        } | {
+            Dependency: components["schemas"]["Dependency"];
+        } | {
+            Topology: components["schemas"]["Topology"];
+        } | {
+            Snapshot: components["schemas"]["Snapshot"];
         };
         /** @description Secret value that can be either inline content or a file path on the daemon host. */
         SecretValue: {
@@ -12355,19 +12717,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-03T01:53:18.387326Z",
+         *           "created_at": "2026-10-07T12:26:33.828572Z",
          *           "first_discovery_id": null,
-         *           "id": "b47c3f71-fcd5-42c2-a197-67c0f9c29460",
+         *           "id": "2d178927-1c22-4b8e-b800-a62bc845a4c8",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-03T01:53:18.387326Z",
+         *           "last_seen_at": "2026-10-07T12:26:33.828572Z",
          *           "lineage_id": null,
-         *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
+         *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-10-03T01:53:18.387326Z",
-         *           "valid_from": "2026-10-03T01:53:18.387326Z",
+         *           "updated_at": "2026-10-07T12:26:33.828572Z",
+         *           "valid_from": "2026-10-07T12:26:33.828572Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12379,9 +12741,9 @@ export interface components {
          *       "last_seen_at": "2026-01-15T10:30:00Z",
          *       "lineage_id": null,
          *       "name": "nginx",
-         *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Tomcat",
+         *       "service_definition": "Wazuh",
+         *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12451,17 +12813,17 @@ export interface components {
             /** @description Human-facing name for the service. */
             name: string;
             /**
-             * Format: uuid
-             * @description The network this entity belongs to.
-             */
-            network_id: string;
-            /**
              * Format: int32
              * @description Position of this service in the host's service list (for ordering)
              */
             position: number;
             /** @description Which known software this service is, if identified. */
             service_definition: string;
+            /**
+             * Format: uuid
+             * @description The site this entity belongs to.
+             */
+            site_id: string;
             /** @description Will be automatically set to Manual for creation through API */
             source: components["schemas"]["EntitySource"];
             /** @description Tags assigned to this entity. */
@@ -12475,7 +12837,7 @@ export interface components {
             virtualization_service_id: string | null;
         };
         /** @enum {string} */
-        ServiceCategory: "NetworkCore" | "NetworkAccess" | "NetworkAppliance" | "RemoteAccess" | "Storage" | "Backup" | "Media" | "HomeAutomation" | "Hypervisor" | "ContainerRuntime" | "Container" | "Orchestrator" | "DNS" | "VPN" | "Monitoring" | "AdBlock" | "ReverseProxy" | "Workstation" | "Mobile" | "IoT" | "Industrial" | "Printer" | "Database" | "Development" | "Dashboard" | "MessageQueue" | "IdentityAndAccess" | "Integration" | "Office" | "ProjectManagement" | "Messaging" | "Conferencing" | "Telephony" | "Email" | "Publishing" | "Unknown" | "Custom" | "Scanopy" | "OpenPorts";
+        ServiceCategory: "NetworkCore" | "NetworkAccess" | "NetworkAppliance" | "RemoteAccess" | "Storage" | "Backup" | "Media" | "HomeAutomation" | "Hypervisor" | "ContainerRuntime" | "Container" | "Orchestrator" | "DNS" | "VPN" | "Monitoring" | "AdBlock" | "ReverseProxy" | "Workstation" | "Mobile" | "IoT" | "Industrial" | "Printer" | "Database" | "Development" | "Dashboard" | "MessageQueue" | "IdentityAndAccess" | "Integration" | "Office" | "ProjectManagement" | "Messaging" | "Conferencing" | "Telephony" | "Email" | "Publishing" | "Unknown" | "Custom" | "Scanopy" | "OpenPorts" | "NetworkIdentities";
         /**
          * @description Input for creating or updating a service.
          *     Used in both CreateHostRequest and UpdateHostRequest.
@@ -12514,7 +12876,7 @@ export interface components {
          * @description Fields that services can be ordered/grouped by.
          * @enum {string}
          */
-        ServiceOrderField: "created_at" | "name" | "updated_at" | "host" | "network_id" | "position" | "service_definition" | "last_seen_at" | "containerized_by" | "match_confidence" | "source";
+        ServiceOrderField: "created_at" | "name" | "updated_at" | "host" | "site_id" | "position" | "service_definition" | "last_seen_at" | "containerized_by" | "match_confidence" | "source";
         /** ServiceVirtualization */
         ServiceVirtualization: {
             details: components["schemas"]["DockerVirtualization"];
@@ -12545,20 +12907,19 @@ export interface components {
             /** @description Stripe SetupIntent client secret, used to mount the Payment Element. */
             client_secret: string;
         };
-        /** @description Setup request for pre-registration org/network configuration */
+        /** @description Setup request for pre-registration org/site configuration */
         SetupRequest: {
-            /** @description The first network to create alongside the organization. */
-            network: components["schemas"]["NetworkSetup"];
             /** @description Name for the organization created during setup. */
             organization_name: string;
+            site?: null | components["schemas"]["SiteSetup"];
         };
         /** @description Response from setup endpoint */
         SetupResponse: {
             /**
              * Format: uuid
-             * @description The network this entity belongs to.
+             * @description Pre-assigned id of the site created at registration, if one was requested.
              */
-            network_id: string;
+            site_id?: string | null;
         };
         Share: components["schemas"]["ShareBase"] & {
             /**
@@ -12615,11 +12976,6 @@ export interface components {
             is_enabled: boolean;
             /** @description Human-facing name for this share. */
             name: string;
-            /**
-             * Format: uuid
-             * @description The network this entity belongs to.
-             */
-            network_id: string;
             /** @description What the viewer can see and do. */
             options: components["schemas"]["ShareOptions"];
             /**
@@ -12630,6 +12986,11 @@ export interface components {
              *     deserialization and hashing.
              */
             password?: string | null;
+            /**
+             * Format: uuid
+             * @description The site this entity belongs to.
+             */
+            site_id: string;
             /**
              * Format: uuid
              * @description The topology this share exposes.
@@ -12656,7 +13017,7 @@ export interface components {
         /**
          * @description Share with topology data (returned after authentication/verification).
          *
-         *     Returns the slim topology row (`{ id, network_id, options }`) plus the
+         *     Returns the slim topology row (`{ id, site_id, options }`) plus the
          *     `TopologyData` bundle (entities + the per-view graph built on request). The
          *     share viewer composes these with the same `toRenderableTopology` the app
          *     uses — no server-side merge.
@@ -12670,6 +13031,104 @@ export interface components {
             share: components["schemas"]["PublicShareMetadata"];
             /** @description The shared topology record. */
             topology: components["schemas"]["Topology"];
+        };
+        /**
+         * @example {
+         *       "created_at": "2026-01-15T10:30:00Z",
+         *       "credential_ids": [],
+         *       "effective_stale_after_hours": 672,
+         *       "id": "550e8400-e29b-41d4-a716-446655440002",
+         *       "name": "Home Site",
+         *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+         *       "stale_after_hours": null,
+         *       "tags": [],
+         *       "updated_at": "2026-01-15T10:30:00Z"
+         *     }
+         */
+        Site: components["schemas"]["SiteBase"] & {
+            /**
+             * Format: date-time
+             * @description When this record was first created.
+             */
+            readonly created_at: string;
+            /**
+             * Format: int64
+             * @description `stale_after_hours` with the server's default already applied.
+             *
+             *     Computed, never stored (excluded from `to_params`). Published so the
+             *     frontend derives staleness from the *same* number the digest uses rather
+             *     than re-declaring the default in TypeScript, where the two could drift
+             *     and a host could read stale in the app but current in the digest email.
+             */
+            readonly effective_stale_after_hours?: number;
+            /**
+             * Format: uuid
+             * @description Server-assigned unique identifier.
+             */
+            readonly id: string;
+            /**
+             * Format: date-time
+             * @description When this record was last modified.
+             */
+            readonly updated_at: string;
+        };
+        SiteBase: {
+            /** @description Credential IDs associated with this site (hydrated from junction table). */
+            credential_ids: string[];
+            /** @description Human-facing name for this site. */
+            name: string;
+            /**
+             * Format: uuid
+             * @description The organization that owns this record.
+             */
+            organization_id: string;
+            /**
+             * Format: int64
+             * @description How long a discovery-managed entity on this site may go unobserved
+             *     before it reads as stale. `None` = unset; callers resolve the effective
+             *     value through [`Site::stale_after`], never by reading this directly.
+             *
+             *     Site-scoped because staleness is only meaningful relative to scan
+             *     cadence, and cadence is a property of a site's discoveries.
+             */
+            stale_after_hours: number | null;
+            /** @description Tags assigned to this entity. */
+            tags: string[];
+        };
+        /** @description Site configuration for setup */
+        SiteSetup: {
+            /** @description Name for the site created during setup. */
+            name: string;
+        };
+        /** @description Per-site summary of entity counts */
+        SiteSummary: {
+            /**
+             * Format: int64
+             * @description Daemons assigned to this site.
+             */
+            daemon_count: number;
+            /**
+             * Format: int64
+             * @description Hosts currently discovered on this site.
+             */
+            host_count: number;
+            /**
+             * Format: uuid
+             * @description Server-assigned unique identifier.
+             */
+            id: string;
+            /** @description Name of the site. */
+            name: string;
+            /**
+             * Format: int64
+             * @description Services currently discovered on this site.
+             */
+            service_count: number;
+            /**
+             * Format: int64
+             * @description Subnets currently known on this site.
+             */
+            subnet_count: number;
         };
         Snapshot: components["schemas"]["SnapshotBase"] & {
             /**
@@ -12696,9 +13155,9 @@ export interface components {
             created_by_user_id?: string | null;
             /**
              * Format: uuid
-             * @description The network this entity belongs to.
+             * @description The site this entity belongs to.
              */
-            network_id: string;
+            site_id: string;
             /**
              * Format: date-time
              * @description The point in time this snapshot captures.
@@ -12769,7 +13228,7 @@ export interface components {
          *       "last_seen_at": "2026-01-15T10:30:00Z",
          *       "lineage_id": null,
          *       "name": "LAN",
-         *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
+         *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12835,9 +13294,9 @@ export interface components {
             name: string;
             /**
              * Format: uuid
-             * @description The network this entity belongs to.
+             * @description The site this entity belongs to.
              */
-            network_id: string;
+            site_id: string;
             /** @description Will be automatically set to Manual for creation through API */
             source: components["schemas"]["EntitySource"];
             /** @description What type of subnet this is — physical, virtual, container bridge, and so on. */
@@ -12849,7 +13308,7 @@ export interface components {
              * @description The container runtime service that owns this bridge network.
              *
              *     Load-bearing for dedup: the same CIDR on two different Docker daemons is two distinct
-             *     subnets, so bridge rows only merge when this matches as well as the CIDR and network.
+             *     subnets, so bridge rows only merge when this matches as well as the CIDR and site.
              *     A foreign key rather than a field inside a JSONB blob because a stale value here is
              *     precisely what made a scan add a duplicate bridge row every time (GH #650) — now it
              *     cannot be written at all.
@@ -12868,19 +13327,41 @@ export interface components {
          * @description Fields that subnets can be ordered/grouped by.
          * @enum {string}
          */
-        SubnetOrderField: "created_at" | "name" | "cidr" | "subnet_type" | "updated_at" | "network_id" | "last_seen_at";
+        SubnetOrderField: "created_at" | "name" | "cidr" | "subnet_type" | "updated_at" | "site_id" | "last_seen_at";
+        /** @description A subnet together with what is derived from the rest of its site. */
+        SubnetResponse: components["schemas"]["Subnet"] & {
+            /**
+             * Format: uuid
+             * @description The most specific other subnet on the same site whose range contains this one. `null` when
+             *     none does. Children are the subnets whose parent is this one.
+             */
+            readonly parent_subnet_id?: string | null;
+            /**
+             * Format: int64
+             * @description Addresses a host can hold in this range. Saturates for IPv6 ranges wider than a `/64`.
+             */
+            readonly usable_addresses: number;
+            /**
+             * Format: int64
+             * @description Distinct addresses held in this range, including those filed in subnets nested inside it.
+             */
+            readonly used_addresses: number;
+        };
         /** @enum {string} */
         SubnetType: "Internet" | "Remote" | "Gateway" | "VpnTunnel" | "Dmz" | "Lan" | "WiFi" | "IoT" | "Guest" | "DockerBridge" | "PodmanBridge" | "MacVlan" | "IpVlan" | "Management" | "Storage" | "Loopback" | "Unknown";
+        /** @enum {string} */
+        TableDensity: "comfortable" | "compact";
         /**
          * @example {
          *       "color": "Green",
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "description": "Production environment resources",
+         *       "icon": null,
          *       "id": "550e8400-e29b-41d4-a716-44665544000a",
-         *       "is_application": false,
          *       "lineage_id": null,
          *       "name": "production",
          *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
+         *       "tag_group": null,
          *       "updated_at": "2026-01-15T10:30:00Z",
          *       "valid_from": "2026-01-15T10:30:00Z",
          *       "valid_to": null
@@ -12923,8 +13404,7 @@ export interface components {
             color: components["schemas"]["Color"];
             /** @description Free-text notes about the tag. */
             description?: string | null;
-            /** @description Whether this tag groups an application, so it drives the application view. */
-            is_application?: boolean;
+            icon?: null | components["schemas"]["TagIcon"];
             /** @description Human-facing name for this tag. */
             name: string;
             /**
@@ -12932,12 +13412,37 @@ export interface components {
              * @description The organization that owns this record.
              */
             organization_id: string;
+            tag_group?: null | components["schemas"]["TagGroup"];
         };
+        /**
+         * @description A group of tags of which an entity may hold at most one.
+         *
+         *     Assigning a tag from a group replaces whichever tag of the same group the entity already holds.
+         *     `Application` is the built-in group: its tags drive the application view, which can place an
+         *     entity in one application only. `Named` groups are named by the organization (a status, an
+         *     environment, a tier) and exist for as long as a tag carries the name.
+         */
+        TagGroup: {
+            /** @enum {string} */
+            type: "Application";
+        } | {
+            /** @description The group's name, shared by every tag in it. */
+            name: string;
+            /** @enum {string} */
+            type: "Named";
+        };
+        /**
+         * @description A lucide icon a person chose for a tag.
+         *
+         *     A newtype because `lucide_icons::Icon` derives neither `Eq` nor `Hash`, which every entity
+         *     base needs. The icon is a fieldless enum, so its discriminant is a complete identity.
+         */
+        TagIcon: string;
         /**
          * @description Fields that tags can be ordered/grouped by.
          * @enum {string}
          */
-        TagOrderField: "created_at" | "name" | "color" | "updated_at" | "is_application";
+        TagOrderField: "created_at" | "name" | "color" | "updated_at" | "tag_group";
         /**
          * @description Company size bracket offered by the plan-inquiry form.
          * @enum {string}
@@ -12979,13 +13484,13 @@ export interface components {
             readonly updated_at: string;
         };
         TopologyBase: {
-            /**
-             * Format: uuid
-             * @description The network this entity belongs to.
-             */
-            network_id: string;
             /** @description Saved layout and view settings for this topology. */
             options: components["schemas"]["TopologyOptions"];
+            /**
+             * Format: uuid
+             * @description The site this entity belongs to.
+             */
+            site_id: string;
         };
         /**
          * @description Bundle of entities + the built graph that feed the topology render, export,
@@ -12994,7 +13499,7 @@ export interface components {
          *     Loaded by [`crate::server::topology::service::main::TopologyService::get_topology_data`]
          *     for either the live view (`snapshot_id = None`) or a point-in-time snapshot
          *     (`snapshot_id = Some(id)`). The per-view `nodes`/`edges` are built on request
-         *     from these entities + the network's grouping options
+         *     from these entities + the site's grouping options
          *     (`build_all_view_graphs`) — they are not persisted. The frontend selects the
          *     active view's slice client-side.
          */
@@ -13028,7 +13533,7 @@ export interface components {
              *
              *     Server-filtered entities never reach the browser, so this is the only way the frontend can
              *     say "171 interfaces hidden by By link" rather than presenting an empty view as an empty
-             *     network. Keyed by entity and filter only, with no view: the hide-set is per view but a drop
+             *     site. Keyed by entity and filter only, with no view: the hide-set is per view but a drop
              *     is not — an entity is removed from the one shared bundle only when *every* view that could
              *     render it hides it (see `metadata_filter`).
              *
@@ -13102,7 +13607,8 @@ export interface components {
              */
             bundle_edges: boolean;
             /**
-             * @description Edge types to leave out of the drawing.
+             * @description Edge types to leave out of the drawing. Unknown values are dropped on read rather than
+             *     failing the topology — see [`deserialize_known_edge_types`](crate::server::topology::types::edges::deserialize_known_edge_types).
              * @default [
              *       "Hypervisor"
              *     ]
@@ -13139,7 +13645,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "0d2099ab-e892-4496-8c6e-d65ef29ca1ba",
+             *           "id": "d0563436-7517-4b58-a396-24357975efa4",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13149,23 +13655,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "17c64b77-77a9-4368-87b4-0ca81cdd0715",
+             *           "id": "4cd3f742-61c1-4f18-839f-d11f4f545997",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "af4a6f9b-73f7-47dc-b75e-a8641b3263ed",
+             *           "id": "a85309fa-8b61-401b-985e-4bf4c0f88d59",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "8e17f1dc-0a6e-4947-8725-8a9a6bde1c2c",
+             *           "id": "93e316a7-9257-4ad9-97cb-c58b852ac101",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "17c64b77-77a9-4368-87b4-0ca81cdd0715",
+             *           "id": "4cd3f742-61c1-4f18-839f-d11f4f545997",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13178,19 +13684,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "4fd78d64-54e9-42e8-99e3-790942bfb194",
+             *         "id": "ed0cb9e1-1407-4563-98d2-a82f6e766bdd",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "9ba8df56-9e9f-4682-b984-02d00f77665d",
+             *         "id": "162cf844-911a-4dad-8af5-8d5f6ad13fd7",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "6ebaa472-6811-4c68-a025-9c7492cd446e",
+             *         "id": "f972dfa5-c88d-4310-8e55-a7690d577197",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "01f32dc1-9285-424f-ab7f-1eb32764a2df",
+             *         "id": "1717d0ff-17e3-478a-83a1-f0e7eafb2e7d",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13200,7 +13706,8 @@ export interface components {
              *               "Workstation",
              *               "Mobile",
              *               "Printer",
-             *               "OpenPorts"
+             *               "OpenPorts",
+             *               "NetworkIdentities"
              *             ],
              *             "is_infra_rule": true,
              *             "title": "Infrastructure"
@@ -13208,7 +13715,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "92c10753-6770-484c-867f-fc214b5e09c6",
+             *         "id": "ce982fe0-c6f5-4ffc-8b76-e2ec5649898e",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13217,15 +13724,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "3e3bda11-a72b-4f1d-9034-868869793fbc",
+             *         "id": "19f49c13-481f-4bcd-a381-9947248e3e62",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "eea8b1a6-564a-487a-b016-6d82ce7a9092",
+             *         "id": "aa16d4aa-a137-430f-b978-56b44ddc3be4",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "65face03-3c54-4c4d-b2be-e0471b44ce27",
+             *         "id": "ff2fb363-d28f-4694-8f2e-5fe581f42531",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -13324,7 +13831,7 @@ export interface components {
              *     id, or `cdpCacheAddress` — where it sent a usable one.
              *
              *     Carried because it is the difference between two reports that otherwise read identically:
-             *     "the far end told us where it lives and this network holds no such address" is a device
+             *     "the far end told us where it lives and this site holds no such address" is a device
              *     nobody has scanned, while "it told us nothing" is a device that cannot be placed no matter
              *     how much of the network is scanned. Without it, deciding which of the two a fleet is
              *     looking at costs another round trip to the operator (GH #668).
@@ -13425,6 +13932,11 @@ export interface components {
             services?: components["schemas"]["ServiceInput"][] | null;
             /** @description Tags assigned to this entity. */
             tags: string[];
+            /**
+             * Format: uuid
+             * @description The interface on the virtualizing host that presents this host, for a network identity.
+             */
+            virtualization_interface_id?: string | null;
             virtualization_metadata?: null | components["schemas"]["HostVirtualization"];
             /**
              * Format: uuid
@@ -13516,8 +14028,6 @@ export interface components {
             readonly last_used: string | null;
             /** @description Human-facing name for this key. */
             name: string;
-            /** @description Network IDs this key has access to (hydrated from junction table) */
-            network_ids?: string[];
             /**
              * Format: uuid
              * @description The organization that owns this record.
@@ -13525,6 +14035,8 @@ export interface components {
             organization_id: string;
             /** @description Role the key is limited to, which cannot exceed the user's own. */
             permissions?: components["schemas"]["UserOrgPermissions"];
+            /** @description Site IDs this key has access to (hydrated from junction table) */
+            site_ids?: string[];
             /** @description Tags assigned to this entity. */
             tags: string[];
             /**
@@ -13560,8 +14072,6 @@ export interface components {
             email_verified?: boolean;
             /** @description Whether the user has a password set — computed from password_hash, never stored in DB */
             readonly has_password?: boolean;
-            /** @description The networks this entity applies to. */
-            network_ids: string[];
             /**
              * Format: date-time
              * @description When the account was linked to the identity provider.
@@ -13576,6 +14086,8 @@ export interface components {
             organization_id: string;
             /** @description The user's role within the organization. */
             permissions: components["schemas"]["UserOrgPermissions"];
+            /** @description The sites this entity applies to. */
+            site_ids: string[];
             /**
              * Format: date-time
              * @description When the user accepted the terms of service.
@@ -13628,6 +14140,71 @@ export interface components {
              * @example 0.12.10
              */
             server_version: string;
+        };
+        /**
+         * @description Defines the entity hierarchy for a topology view:
+         *     container (grouping box) → element (rendered as nodes) → inline (shown inside nodes)
+         */
+        ViewElementConfig: {
+            /**
+             * @description Single noun spanning all element entities. Used in summaries when the
+             *     per-entity breakdown would be confusing (e.g. mixed Host+Service in
+             *     Workloads, where everything is conceptually a "workload"). Singular;
+             *     the UI pluralizes as needed.
+             */
+            collective_noun?: string | null;
+            container_entity?: null | components["schemas"]["EntityDiscriminants"];
+            /**
+             * @description Filter values this view hides out of the box, keyed the same way as the
+             *     hide-set in request options.
+             *
+             *     These are product defaults rather than user filters: they keep a view
+             *     legible before anyone has touched it, so "clear all filters" preserves
+             *     them and the "filters applied" count ignores them. Declared here so the
+             *     backend's initial hide-set and the frontend's notion of what counts as a
+             *     default are the same list — they were separately hardcoded before, in
+             *     `default_hide_metadata_values` and again in the options panel.
+             */
+            default_hidden_values?: {
+                [key: string]: {
+                    [key: string]: string[];
+                };
+            };
+            /**
+             * @description Per-element-entity config: the entity types rendered as element nodes and
+             *     (for each) which other entity types are shown *inside* those cards.
+             *     Replaces the old flat `inline_entities` so views like Workloads — where
+             *     Host elements inline services but Service elements inline nothing — can
+             *     be expressed correctly.
+             */
+            element_entities: components["schemas"]["ViewElementEntityConfig"][];
+            /**
+             * @description The colours this view paints on its element cards, each tied to the filter value that
+             *     explains it. A card shows a classification colour only through one of these, so every
+             *     colour has a chip in the filter panel whose hover rings the same cards. Per channel, earlier
+             *     marks win.
+             */
+            element_marks?: components["schemas"]["ElementMark"][];
+            /**
+             * @description The metadata filters this view offers, each naming the entities it reads and hides.
+             *     Applied regardless of an entity's role (container/element/inline): a Service filter
+             *     renders under the Services section whether Service is an element entity
+             *     (Workloads/Application) or an inline entity (L3). A filter naming several entities renders
+             *     in a section of its own.
+             */
+            metadata_filters?: components["schemas"]["MetadataFilter"][];
+        };
+        /**
+         * @description An element-entity slot inside a view, plus the set of entity types that
+         *     render inline on that element's card. Card rendering (what services/ports
+         *     show up inside an element) and layout re-trigger fingerprinting both read
+         *     from this list.
+         */
+        ViewElementEntityConfig: {
+            /** @description Entity type drawn as an element in this view. */
+            entity_type: components["schemas"]["EntityDiscriminants"];
+            /** @description Entity types folded into that element rather than drawn separately. */
+            inline_entities: components["schemas"]["EntityDiscriminants"][];
         };
         Vlan: components["schemas"]["VlanBase"] & {
             /**
@@ -13683,14 +14260,14 @@ export interface components {
             name: string;
             /**
              * Format: uuid
-             * @description The network this entity belongs to.
-             */
-            network_id: string;
-            /**
-             * Format: uuid
              * @description The organization that owns this record.
              */
             organization_id: string;
+            /**
+             * Format: uuid
+             * @description The site this entity belongs to.
+             */
+            site_id: string;
             /** @description How this VLAN came to be known — discovered, imported, or created by hand. */
             source?: components["schemas"]["EntitySource"];
             /**
@@ -13700,6 +14277,8 @@ export interface components {
              *     here on create/update is ignored by `to_params`.
              */
             subnet_ids?: string[];
+            /** @description Tags assigned to this entity. */
+            tags: string[];
             /**
              * Format: int32
              * @description The 802.1Q VLAN number (1-4094)
@@ -13719,9 +14298,9 @@ export interface components {
         VlanDiscoveryRequest: {
             /**
              * Format: uuid
-             * @description The network this entity belongs to.
+             * @description The site this entity belongs to.
              */
-            network_id: string;
+            site_id: string;
             /** @description VLANs observed by the daemon. */
             vlans: components["schemas"]["VlanDiscoveryItem"][];
         };
@@ -15242,8 +15821,8 @@ export interface operations {
     list_daemon_api_keys: {
         parameters: {
             query?: {
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
                 ids?: string[] | null;
                 /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
@@ -15365,8 +15944,8 @@ export interface operations {
     export_daemon_api_keys_csv: {
         parameters: {
             query?: {
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
                 ids?: string[] | null;
                 /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
@@ -15606,7 +16185,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
-            /** @description Invalid permissions or network access */
+            /** @description Invalid permissions or site access */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -15831,8 +16410,8 @@ export interface operations {
             query?: {
                 /** @description Filter by service ID */
                 service_id?: string | null;
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Filter by port ID */
                 port_id?: string | null;
                 /** @description Filter by interface ID */
@@ -15945,8 +16524,8 @@ export interface operations {
             query?: {
                 /** @description Filter by service ID */
                 service_id?: string | null;
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Filter by port ID */
                 port_id?: string | null;
                 /** @description Filter by interface ID */
@@ -16365,8 +16944,8 @@ export interface operations {
     get_daemons: {
         parameters: {
             query?: {
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
                 group_by?: null | components["schemas"]["DaemonOrderField"];
                 /** @description Secondary ordering field (sorting within groups or standalone sort). */
@@ -16474,8 +17053,8 @@ export interface operations {
     export_daemons_csv: {
         parameters: {
             query?: {
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
                 group_by?: null | components["schemas"]["DaemonOrderField"];
                 /** @description Secondary ordering field (sorting within groups or standalone sort). */
@@ -16830,8 +17409,8 @@ export interface operations {
     get_all_dependencies: {
         parameters: {
             query?: {
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
                 group_by?: null | components["schemas"]["DependencyOrderField"];
                 /** @description Secondary ordering field (sorting within groups or standalone sort). */
@@ -16926,8 +17505,8 @@ export interface operations {
     export_dependencies_csv: {
         parameters: {
             query?: {
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
                 group_by?: null | components["schemas"]["DependencyOrderField"];
                 /** @description Secondary ordering field (sorting within groups or standalone sort). */
@@ -17073,10 +17652,12 @@ export interface operations {
     get_all_discoveries: {
         parameters: {
             query?: {
-                /** @description Filter by network ID. Repeat the parameter to pass several. */
-                network_ids?: string[] | null;
+                /** @description Filter by site ID. Repeat the parameter to pass several. */
+                site_ids?: string[] | null;
                 /** @description Filter by daemon ID. Repeat the parameter to pass several. */
                 daemon_ids?: string[] | null;
+                /** @description Filter by specific entity IDs (for selective loading) */
+                ids?: string[] | null;
                 /** @description Only runs of one of these discovery types. */
                 discovery_types?: string[] | null;
                 /**
@@ -17212,10 +17793,12 @@ export interface operations {
     export_discoveries_csv: {
         parameters: {
             query?: {
-                /** @description Filter by network ID. Repeat the parameter to pass several. */
-                network_ids?: string[] | null;
+                /** @description Filter by site ID. Repeat the parameter to pass several. */
+                site_ids?: string[] | null;
                 /** @description Filter by daemon ID. Repeat the parameter to pass several. */
                 daemon_ids?: string[] | null;
+                /** @description Filter by specific entity IDs (for selective loading) */
+                ids?: string[] | null;
                 /** @description Only runs of one of these discovery types. */
                 discovery_types?: string[] | null;
                 /**
@@ -17264,10 +17847,12 @@ export interface operations {
     get_discovery_field_values: {
         parameters: {
             query?: {
-                /** @description Filter by network ID. Repeat the parameter to pass several. */
-                network_ids?: string[] | null;
+                /** @description Filter by site ID. Repeat the parameter to pass several. */
+                site_ids?: string[] | null;
                 /** @description Filter by daemon ID. Repeat the parameter to pass several. */
                 daemon_ids?: string[] | null;
+                /** @description Filter by specific entity IDs (for selective loading) */
+                ids?: string[] | null;
                 /** @description Only runs of one of these discovery types. */
                 discovery_types?: string[] | null;
                 /**
@@ -17529,8 +18114,8 @@ export interface operations {
     get_all_hosts: {
         parameters: {
             query?: {
-                /** @description Filter by network ID. Repeat the parameter to pass several. */
-                network_ids?: string[] | null;
+                /** @description Filter by site ID. Repeat the parameter to pass several. */
+                site_ids?: string[] | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
                 ids?: string[] | null;
                 /**
@@ -17571,8 +18156,9 @@ export interface operations {
                 tag_ids?: string[] | null;
                 /**
                  * @description Free-text search. Case-insensitive substring match against the host's
-                 *     name, hostname, sysName, chassis id and description, and against its IP
-                 *     addresses and the names of services running on it.
+                 *     name, hostname, sysName, chassis id, serial number, asset tag and
+                 *     description, and against its IP addresses and the names of services
+                 *     running on it.
                  *
                  *     sysName and chassis id are in there because they are rungs of the title
                  *     ladder: a host with no name of its own is *shown* under one of them, and
@@ -17596,8 +18182,8 @@ export interface operations {
                 at?: string | null;
                 /**
                  * @description `true` returns only hosts discovery hasn't observed within their
-                 *     network's staleness window; `false` returns only those it has. Omit for
-                 *     both. Evaluated per row against the host's own network's window.
+                 *     site's staleness window; `false` returns only those it has. Omit for
+                 *     both. Evaluated per row against the host's own site's window.
                  */
                 stale?: boolean | null;
                 /**
@@ -17648,7 +18234,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_HostResponse"];
                 };
             };
-            /** @description Validation error: network not found, subnet mismatch, or invalid tags */
+            /** @description Validation error: site not found, subnet mismatch, or invalid tags */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -17657,7 +18243,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
-            /** @description No access to the specified network */
+            /** @description No access to the specified site */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -17724,7 +18310,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_HostResponse"];
                 };
             };
-            /** @description Daemon cannot create hosts on other networks */
+            /** @description Daemon cannot create hosts on other sites */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -17738,8 +18324,8 @@ export interface operations {
     export_hosts_csv: {
         parameters: {
             query?: {
-                /** @description Filter by network ID. Repeat the parameter to pass several. */
-                network_ids?: string[] | null;
+                /** @description Filter by site ID. Repeat the parameter to pass several. */
+                site_ids?: string[] | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
                 ids?: string[] | null;
                 /**
@@ -17780,8 +18366,9 @@ export interface operations {
                 tag_ids?: string[] | null;
                 /**
                  * @description Free-text search. Case-insensitive substring match against the host's
-                 *     name, hostname, sysName, chassis id and description, and against its IP
-                 *     addresses and the names of services running on it.
+                 *     name, hostname, sysName, chassis id, serial number, asset tag and
+                 *     description, and against its IP addresses and the names of services
+                 *     running on it.
                  *
                  *     sysName and chassis id are in there because they are rungs of the title
                  *     ladder: a host with no name of its own is *shown* under one of them, and
@@ -17805,8 +18392,8 @@ export interface operations {
                 at?: string | null;
                 /**
                  * @description `true` returns only hosts discovery hasn't observed within their
-                 *     network's staleness window; `false` returns only those it has. Omit for
-                 *     both. Evaluated per row against the host's own network's window.
+                 *     site's staleness window; `false` returns only those it has. Omit for
+                 *     both. Evaluated per row against the host's own site's window.
                  */
                 stale?: boolean | null;
                 /**
@@ -17838,8 +18425,8 @@ export interface operations {
     export_hosts_zip: {
         parameters: {
             query?: {
-                /** @description Filter by network ID. Repeat the parameter to pass several. */
-                network_ids?: string[] | null;
+                /** @description Filter by site ID. Repeat the parameter to pass several. */
+                site_ids?: string[] | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
                 ids?: string[] | null;
                 /**
@@ -17880,8 +18467,9 @@ export interface operations {
                 tag_ids?: string[] | null;
                 /**
                  * @description Free-text search. Case-insensitive substring match against the host's
-                 *     name, hostname, sysName, chassis id and description, and against its IP
-                 *     addresses and the names of services running on it.
+                 *     name, hostname, sysName, chassis id, serial number, asset tag and
+                 *     description, and against its IP addresses and the names of services
+                 *     running on it.
                  *
                  *     sysName and chassis id are in there because they are rungs of the title
                  *     ladder: a host with no name of its own is *shown* under one of them, and
@@ -17905,8 +18493,8 @@ export interface operations {
                 at?: string | null;
                 /**
                  * @description `true` returns only hosts discovery hasn't observed within their
-                 *     network's staleness window; `false` returns only those it has. Omit for
-                 *     both. Evaluated per row against the host's own network's window.
+                 *     site's staleness window; `false` returns only those it has. Omit for
+                 *     both. Evaluated per row against the host's own site's window.
                  */
                 stale?: boolean | null;
                 /**
@@ -17938,8 +18526,8 @@ export interface operations {
     get_host_field_values: {
         parameters: {
             query?: {
-                /** @description Filter by network ID. Repeat the parameter to pass several. */
-                network_ids?: string[] | null;
+                /** @description Filter by site ID. Repeat the parameter to pass several. */
+                site_ids?: string[] | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
                 ids?: string[] | null;
                 /**
@@ -17980,8 +18568,9 @@ export interface operations {
                 tag_ids?: string[] | null;
                 /**
                  * @description Free-text search. Case-insensitive substring match against the host's
-                 *     name, hostname, sysName, chassis id and description, and against its IP
-                 *     addresses and the names of services running on it.
+                 *     name, hostname, sysName, chassis id, serial number, asset tag and
+                 *     description, and against its IP addresses and the names of services
+                 *     running on it.
                  *
                  *     sysName and chassis id are in there because they are rungs of the title
                  *     ladder: a host with no name of its own is *shown* under one of them, and
@@ -18005,8 +18594,8 @@ export interface operations {
                 at?: string | null;
                 /**
                  * @description `true` returns only hosts discovery hasn't observed within their
-                 *     network's staleness window; `false` returns only those it has. Omit for
-                 *     both. Evaluated per row against the host's own network's window.
+                 *     site's staleness window; `false` returns only those it has. Omit for
+                 *     both. Evaluated per row against the host's own site's window.
                  */
                 stale?: boolean | null;
                 /**
@@ -18070,7 +18659,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_HostResponse"];
                 };
             };
-            /** @description Validation error: same host, has daemon, or different networks */
+            /** @description Validation error: same host, has daemon, or different sites */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -18254,8 +18843,8 @@ export interface operations {
             query?: {
                 /** @description Filter by host ID */
                 host_id?: string | null;
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
                 ids?: string[] | null;
                 /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
@@ -18294,7 +18883,7 @@ export interface operations {
             };
         };
     };
-    create_if_entry: {
+    create_interface: {
         parameters: {
             query?: never;
             header?: never;
@@ -18316,7 +18905,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_Interface"];
                 };
             };
-            /** @description Network mismatch or duplicate if_index */
+            /** @description Site mismatch or duplicate if_index */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -18357,8 +18946,8 @@ export interface operations {
             query?: {
                 /** @description Filter by host ID */
                 host_id?: string | null;
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
                 ids?: string[] | null;
                 /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
@@ -18420,7 +19009,7 @@ export interface operations {
             };
         };
     };
-    update_if_entry: {
+    update_interface: {
         parameters: {
             query?: never;
             header?: never;
@@ -18445,7 +19034,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_Interface"];
                 };
             };
-            /** @description Network mismatch or invalid request */
+            /** @description Site mismatch or invalid request */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -18648,8 +19237,8 @@ export interface operations {
                 host_id?: string | null;
                 /** @description Filter by subnet ID */
                 subnet_id?: string | null;
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
                 limit?: number | null;
                 /** @description Number of results to skip. Default: 0. */
@@ -18708,7 +19297,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_IPAddress"];
                 };
             };
-            /** @description Network mismatch or invalid request */
+            /** @description Site mismatch or invalid request */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -18760,8 +19349,8 @@ export interface operations {
                 host_id?: string | null;
                 /** @description Filter by subnet ID */
                 subnet_id?: string | null;
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
                 limit?: number | null;
                 /** @description Number of results to skip. Default: 0. */
@@ -18846,7 +19435,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_IPAddress"];
                 };
             };
-            /** @description Network mismatch or invalid request */
+            /** @description Site mismatch or invalid request */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -19031,267 +19620,6 @@ export interface operations {
             };
             /** @description Not an owner */
             403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
-    get_all_networks: {
-        parameters: {
-            query?: {
-                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
-                limit?: number | null;
-                /** @description Number of results to skip. Default: 0. */
-                offset?: number | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of networks */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @description The page of results. Empty when nothing matched the query. */
-                        data: (components["schemas"]["NetworkBase"] & {
-                            /**
-                             * Format: date-time
-                             * @description When this record was first created.
-                             */
-                            readonly created_at: string;
-                            /**
-                             * Format: int64
-                             * @description `stale_after_hours` with the server's default already applied.
-                             *
-                             *     Computed, never stored (excluded from `to_params`). Published so the
-                             *     frontend derives staleness from the *same* number the digest uses rather
-                             *     than re-declaring the default in TypeScript, where the two could drift
-                             *     and a host could read stale in the app but current in the digest email.
-                             */
-                            readonly effective_stale_after_hours?: number;
-                            /**
-                             * Format: uuid
-                             * @description Server-assigned unique identifier.
-                             */
-                            readonly id: string;
-                            /**
-                             * Format: date-time
-                             * @description When this record was last modified.
-                             */
-                            readonly updated_at: string;
-                        })[];
-                        /** @description Human-readable failure message. Omitted on success. */
-                        error?: string | null;
-                        /** @description API and server version metadata, plus pagination counters. */
-                        meta: components["schemas"]["PaginatedApiMeta"];
-                        /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
-                        success: boolean;
-                    };
-                };
-            };
-        };
-    };
-    create_network: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Network"];
-            };
-        };
-        responses: {
-            /** @description Network created */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse_Network"];
-                };
-            };
-        };
-    };
-    bulk_delete_networks: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Array of Network IDs to delete */
-        requestBody: {
-            content: {
-                "application/json": string[];
-            };
-        };
-        responses: {
-            /** @description Networks deleted successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse_BulkDeleteResponse"];
-                };
-            };
-            /** @description User not admin */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
-    export_networks_csv: {
-        parameters: {
-            query?: {
-                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
-                limit?: number | null;
-                /** @description Number of results to skip. Default: 0. */
-                offset?: number | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description CSV file containing Networks */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/csv": string;
-                };
-            };
-        };
-    };
-    get_by_id_network: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Network ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Network found */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse_Network"];
-                };
-            };
-            /** @description Network not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
-    update_network: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Network ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Network"];
-            };
-        };
-        responses: {
-            /** @description Network updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse_Network"];
-                };
-            };
-            /** @description User not admin */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-            /** @description Network not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
-    delete_network: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Network ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Network deleted */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse"];
-                };
-            };
-            /** @description User not admin */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-            /** @description Network not found */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -19616,8 +19944,8 @@ export interface operations {
             query?: {
                 /** @description Filter by host ID */
                 host_id?: string | null;
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
                 ids?: string[] | null;
                 /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
@@ -19678,7 +20006,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_Port"];
                 };
             };
-            /** @description Network mismatch or duplicate port */
+            /** @description Site mismatch or duplicate port */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -19719,8 +20047,8 @@ export interface operations {
             query?: {
                 /** @description Filter by host ID */
                 host_id?: string | null;
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
                 ids?: string[] | null;
                 /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
@@ -19807,7 +20135,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_Port"];
                 };
             };
-            /** @description Network mismatch or invalid request */
+            /** @description Site mismatch or invalid request */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -19859,11 +20187,42 @@ export interface operations {
             };
         };
     };
+    search: {
+        parameters: {
+            query?: {
+                /** @description Free text. Case-insensitive substring match against each entity type's searchable fields. */
+                q?: string | null;
+                /** @description Only entities carrying every one of these tags. Repeat for several. */
+                tag_ids?: string[] | null;
+                /** @description Search only this entity type, for its later pages. Omit for the first page of every type. */
+                entity_type?: null | components["schemas"]["EntityDiscriminants"];
+                /** @description Matches per type (1-50, default 5). */
+                limit?: number | null;
+                /** @description Matches to skip in each type. */
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matches grouped by entity type */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_GlobalSearchResponse"];
+                };
+            };
+        };
+    };
     get_all_services: {
         parameters: {
             query?: {
-                /** @description Filter by network ID. Repeat the parameter to pass several. */
-                network_ids?: string[] | null;
+                /** @description Filter by site ID. Repeat the parameter to pass several. */
+                site_ids?: string[] | null;
                 /** @description Filter by host ID. Repeat the parameter to pass several. */
                 host_ids?: string[] | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
@@ -19917,8 +20276,8 @@ export interface operations {
                 at?: string | null;
                 /**
                  * @description `true` returns only services discovery hasn't observed within their
-                 *     network's staleness window; `false` returns only those it has. Omit for
-                 *     both. Evaluated per row against the service's own network's window.
+                 *     site's staleness window; `false` returns only those it has. Omit for
+                 *     both. Evaluated per row against the service's own site's window.
                  */
                 stale?: boolean | null;
             };
@@ -19961,7 +20320,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_Service"];
                 };
             };
-            /** @description Validation error: host network mismatch, cross-host binding, or binding conflict */
+            /** @description Validation error: host site mismatch, cross-host binding, or binding conflict */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -20000,8 +20359,8 @@ export interface operations {
     export_services_csv: {
         parameters: {
             query?: {
-                /** @description Filter by network ID. Repeat the parameter to pass several. */
-                network_ids?: string[] | null;
+                /** @description Filter by site ID. Repeat the parameter to pass several. */
+                site_ids?: string[] | null;
                 /** @description Filter by host ID. Repeat the parameter to pass several. */
                 host_ids?: string[] | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
@@ -20055,8 +20414,8 @@ export interface operations {
                 at?: string | null;
                 /**
                  * @description `true` returns only services discovery hasn't observed within their
-                 *     network's staleness window; `false` returns only those it has. Omit for
-                 *     both. Evaluated per row against the service's own network's window.
+                 *     site's staleness window; `false` returns only those it has. Omit for
+                 *     both. Evaluated per row against the service's own site's window.
                  */
                 stale?: boolean | null;
             };
@@ -20080,8 +20439,8 @@ export interface operations {
     get_service_field_values: {
         parameters: {
             query?: {
-                /** @description Filter by network ID. Repeat the parameter to pass several. */
-                network_ids?: string[] | null;
+                /** @description Filter by site ID. Repeat the parameter to pass several. */
+                site_ids?: string[] | null;
                 /** @description Filter by host ID. Repeat the parameter to pass several. */
                 host_ids?: string[] | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
@@ -20135,8 +20494,8 @@ export interface operations {
                 at?: string | null;
                 /**
                  * @description `true` returns only services discovery hasn't observed within their
-                 *     network's staleness window; `false` returns only those it has. Omit for
-                 *     both. Evaluated per row against the service's own network's window.
+                 *     site's staleness window; `false` returns only those it has. Omit for
+                 *     both. Evaluated per row against the service's own site's window.
                  */
                 stale?: boolean | null;
             };
@@ -20226,7 +20585,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_Service"];
                 };
             };
-            /** @description Validation error: host network mismatch, cross-host binding, or binding conflict */
+            /** @description Validation error: host site mismatch, cross-host binding, or binding conflict */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -20281,8 +20640,8 @@ export interface operations {
     list_shares: {
         parameters: {
             query?: {
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Filter by topology ID */
                 topology_id?: string | null;
                 /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
@@ -20377,8 +20736,8 @@ export interface operations {
     export_shares_csv: {
         parameters: {
             query?: {
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Filter by topology ID */
                 topology_id?: string | null;
                 /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
@@ -20700,11 +21059,272 @@ export interface operations {
             };
         };
     };
+    get_all_sites: {
+        parameters: {
+            query?: {
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of sites */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description The page of results. Empty when nothing matched the query. */
+                        data: (components["schemas"]["SiteBase"] & {
+                            /**
+                             * Format: date-time
+                             * @description When this record was first created.
+                             */
+                            readonly created_at: string;
+                            /**
+                             * Format: int64
+                             * @description `stale_after_hours` with the server's default already applied.
+                             *
+                             *     Computed, never stored (excluded from `to_params`). Published so the
+                             *     frontend derives staleness from the *same* number the digest uses rather
+                             *     than re-declaring the default in TypeScript, where the two could drift
+                             *     and a host could read stale in the app but current in the digest email.
+                             */
+                            readonly effective_stale_after_hours?: number;
+                            /**
+                             * Format: uuid
+                             * @description Server-assigned unique identifier.
+                             */
+                            readonly id: string;
+                            /**
+                             * Format: date-time
+                             * @description When this record was last modified.
+                             */
+                            readonly updated_at: string;
+                        })[];
+                        /** @description Human-readable failure message. Omitted on success. */
+                        error?: string | null;
+                        /** @description API and server version metadata, plus pagination counters. */
+                        meta: components["schemas"]["PaginatedApiMeta"];
+                        /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+                        success: boolean;
+                    };
+                };
+            };
+        };
+    };
+    create_site: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Site"];
+            };
+        };
+        responses: {
+            /** @description Site created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_Site"];
+                };
+            };
+        };
+    };
+    bulk_delete_sites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Array of Site IDs to delete */
+        requestBody: {
+            content: {
+                "application/json": string[];
+            };
+        };
+        responses: {
+            /** @description Sites deleted successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_BulkDeleteResponse"];
+                };
+            };
+            /** @description User not admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    export_sites_csv: {
+        parameters: {
+            query?: {
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV file containing Sites */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+        };
+    };
+    get_by_id_site: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Site ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Site found */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_Site"];
+                };
+            };
+            /** @description Site not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    update_site: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Site ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Site"];
+            };
+        };
+        responses: {
+            /** @description Site updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_Site"];
+                };
+            };
+            /** @description User not admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Site not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_site: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Site ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Site deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description User not admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Site not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     list_snapshots: {
         parameters: {
             query?: {
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
                 ids?: string[] | null;
                 /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
@@ -20769,7 +21389,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
-            /** @description Network is busy with discovery; retry shortly */
+            /** @description Site is busy with discovery; retry shortly */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -20847,8 +21467,8 @@ export interface operations {
     list_subnets: {
         parameters: {
             query?: {
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
                 group_by?: null | components["schemas"]["SubnetOrderField"];
                 /** @description Secondary ordering field (sorting within groups or standalone sort). */
@@ -20866,10 +21486,15 @@ export interface operations {
                 at?: string | null;
                 /**
                  * @description `true` returns only subnets discovery hasn't observed within their
-                 *     network's staleness window; `false` returns only those it has. Omit for
-                 *     both. Evaluated per row against the subnet's own network's window.
+                 *     site's staleness window; `false` returns only those it has. Omit for
+                 *     both. Evaluated per row against the subnet's own site's window.
                  */
                 stale?: boolean | null;
+                /**
+                 * @description Free-text search. Case-insensitive substring match against the subnet's
+                 *     name, CIDR and description.
+                 */
+                search?: string | null;
             };
             header?: never;
             path?: never;
@@ -20883,7 +21508,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedApiResponse_Subnet"];
+                    "application/json": components["schemas"]["PaginatedApiResponse_SubnetResponse"];
                 };
             };
         };
@@ -20949,8 +21574,8 @@ export interface operations {
     export_subnets_csv: {
         parameters: {
             query?: {
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
                 group_by?: null | components["schemas"]["SubnetOrderField"];
                 /** @description Secondary ordering field (sorting within groups or standalone sort). */
@@ -20968,10 +21593,15 @@ export interface operations {
                 at?: string | null;
                 /**
                  * @description `true` returns only subnets discovery hasn't observed within their
-                 *     network's staleness window; `false` returns only those it has. Omit for
-                 *     both. Evaluated per row against the subnet's own network's window.
+                 *     site's staleness window; `false` returns only those it has. Omit for
+                 *     both. Evaluated per row against the subnet's own site's window.
                  */
                 stale?: boolean | null;
+                /**
+                 * @description Free-text search. Case-insensitive substring match against the subnet's
+                 *     name, CIDR and description.
+                 */
+                search?: string | null;
             };
             header?: never;
             path?: never;
@@ -21008,7 +21638,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Subnet"];
+                    "application/json": components["schemas"]["ApiResponse_SubnetResponse"];
                 };
             };
             /** @description Subnet not found */
@@ -21503,8 +22133,8 @@ export interface operations {
     get_all_topologies: {
         parameters: {
             query?: {
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
                 ids?: string[] | null;
                 /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
@@ -21532,8 +22162,8 @@ export interface operations {
     get_topology_data: {
         parameters: {
             query: {
-                /** @description Network to read entities for. Required. */
-                network_id: string;
+                /** @description Site to read entities for. Required. */
+                site_id: string;
                 /**
                  * @description When set, returns the entity set as it was when this snapshot was taken.
                  *     When omitted, returns live entities.
@@ -21585,8 +22215,8 @@ export interface operations {
     export_topologies_csv: {
         parameters: {
             query?: {
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
                 ids?: string[] | null;
                 /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
@@ -22063,13 +22693,18 @@ export interface operations {
                 limit?: number | null;
                 /** @description Number of results to skip. Default: 0. */
                 offset?: number | null;
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /**
                  * @description As-of timestamp (ISO 8601). When set, returns SCD2 state as of this
                  *     instant (snapshot view) instead of live state.
                  */
                 at?: string | null;
+                /**
+                 * @description Free-text search. Case-insensitive substring match against the VLAN ID,
+                 *     name and description.
+                 */
+                search?: string | null;
             };
             header?: never;
             path?: never;
@@ -22119,7 +22754,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
-            /** @description VLAN number already exists in this network */
+            /** @description VLAN number already exists in this site */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -22201,13 +22836,18 @@ export interface operations {
                 limit?: number | null;
                 /** @description Number of results to skip. Default: 0. */
                 offset?: number | null;
-                /** @description Filter by network ID */
-                network_id?: string | null;
+                /** @description Filter by site ID */
+                site_id?: string | null;
                 /**
                  * @description As-of timestamp (ISO 8601). When set, returns SCD2 state as of this
                  *     instant (snapshot view) instead of live state.
                  */
                 at?: string | null;
+                /**
+                 * @description Free-text search. Case-insensitive substring match against the VLAN ID,
+                 *     name and description.
+                 */
+                search?: string | null;
             };
             header?: never;
             path?: never;

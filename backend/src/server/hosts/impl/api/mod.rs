@@ -21,7 +21,7 @@ use crate::server::{
     credentials::r#impl::types::CredentialAssignment,
     hosts::r#impl::{
         attributes::{
-            HostChassisIdValue, HostFirmwareRevisionValue, HostHostnameValue,
+            HostAssetTagValue, HostChassisIdValue, HostFirmwareRevisionValue, HostHostnameValue,
             HostManagementUrlValue, HostManufacturerValue, HostModelValue, HostOsValue,
             HostSerialNumberValue, HostSoftwareRevisionValue, HostSysContactValue,
             HostSysDescrValue, HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
@@ -373,9 +373,9 @@ pub struct IPAddressInput {
 }
 
 impl IPAddressInput {
-    /// Convert to IPAddress entity with the given host_id and network_id.
+    /// Convert to IPAddress entity with the given host_id and site_id.
     /// Position must be resolved before calling this (via `resolve_and_validate_input_positions`).
-    pub fn into_ip_address(self, host_id: Uuid, network_id: Uuid) -> IPAddress {
+    pub fn into_ip_address(self, host_id: Uuid, site_id: Uuid) -> IPAddress {
         let now = chrono::Utc::now();
         IPAddress {
             id: self.id,
@@ -388,7 +388,7 @@ impl IPAddressInput {
             last_discovery_id: None,
             first_discovery_id: None,
             base: IPAddressBase {
-                network_id,
+                site_id,
                 host_id,
                 subnet_id: self.subnet_id,
                 ip_address: self.ip_address,
@@ -432,8 +432,8 @@ pub struct PortInput {
 }
 
 impl PortInput {
-    /// Convert to Port entity with the given host_id and network_id.
-    pub fn into_port(self, host_id: Uuid, network_id: Uuid) -> Port {
+    /// Convert to Port entity with the given host_id and site_id.
+    pub fn into_port(self, host_id: Uuid, site_id: Uuid) -> Port {
         let now = chrono::Utc::now();
         Port {
             id: self.id,
@@ -447,7 +447,7 @@ impl PortInput {
             first_discovery_id: None,
             base: PortBase {
                 host_id,
-                network_id,
+                site_id,
                 port_type: PortType::Custom(PortConfig {
                     number: self.number,
                     protocol: self.protocol,
@@ -489,9 +489,9 @@ pub struct ServiceInput {
 }
 
 impl ServiceInput {
-    /// Convert to Service entity with the given host_id, network_id, and source.
+    /// Convert to Service entity with the given host_id, site_id, and source.
     /// Position must be resolved before calling this (via `resolve_and_validate_input_positions`).
-    pub fn into_service(self, host_id: Uuid, network_id: Uuid, source: EntitySource) -> Service {
+    pub fn into_service(self, host_id: Uuid, site_id: Uuid, source: EntitySource) -> Service {
         let now = chrono::Utc::now();
         let service_id = self.id;
 
@@ -499,7 +499,7 @@ impl ServiceInput {
         let bindings: Vec<Binding> = self
             .bindings
             .into_iter()
-            .map(|b| b.into_binding(service_id, network_id))
+            .map(|b| b.into_binding(service_id, site_id))
             .collect();
 
         Service {
@@ -514,7 +514,7 @@ impl ServiceInput {
             updated_at: now,
             base: ServiceBase {
                 host_id,
-                network_id,
+                site_id,
                 service_definition: self.service_definition,
                 name: self.name,
                 bindings,
@@ -578,8 +578,8 @@ impl BindingInput {
         }
     }
 
-    /// Convert to a full Binding with the given service_id and network_id.
-    pub fn into_binding(self, service_id: Uuid, network_id: Uuid) -> Binding {
+    /// Convert to a full Binding with the given service_id and site_id.
+    pub fn into_binding(self, service_id: Uuid, site_id: Uuid) -> Binding {
         let (id, binding_type) = match self {
             BindingInput::IPAddress { id, ip_address_id } => {
                 (id, BindingType::IPAddress { ip_address_id })
@@ -608,7 +608,7 @@ impl BindingInput {
             last_seen_at: now,
             last_discovery_id: None,
             first_discovery_id: None,
-            base: BindingBase::new(service_id, network_id, binding_type),
+            base: BindingBase::new(service_id, site_id, binding_type),
         }
     }
 }
@@ -654,8 +654,8 @@ pub struct InterfaceInput {
 }
 
 impl InterfaceInput {
-    /// Convert to Interface entity with the given host_id and network_id.
-    pub fn into_interface(self, host_id: Uuid, network_id: Uuid) -> Interface {
+    /// Convert to Interface entity with the given host_id and site_id.
+    pub fn into_interface(self, host_id: Uuid, site_id: Uuid) -> Interface {
         let now = chrono::Utc::now();
         Interface {
             id: self.id,
@@ -670,7 +670,7 @@ impl InterfaceInput {
             display_name: None,
             base: InterfaceBase {
                 host_id,
-                network_id,
+                site_id,
                 if_index: Some(self.if_index),
                 if_descr: Some(self.if_descr),
                 if_name: None,
@@ -703,7 +703,7 @@ impl InterfaceInput {
 // =============================================================================
 
 /// Request type for creating a host with its associated ip_addresses, ports, and services.
-/// Server assigns `host_id`, `network_id`, and `source` to all children.
+/// Server assigns `host_id`, `site_id`, and `source` to all children.
 /// Client must provide UUIDs for all entities, enabling services to reference
 /// ip_addresses/ports by ID in the same request.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Validate)]
@@ -713,8 +713,8 @@ pub struct CreateHostRequest {
     /// Human-facing name for the host.
     #[validate(length(max = 100, message = "Name must be 100 characters or less"))]
     pub name: String,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// Hostname as resolved or reported by the host.
     pub hostname: Option<String>,
     /// Free-text notes about the host.
@@ -725,6 +725,9 @@ pub struct CreateHostRequest {
     /// The hypervisor service this VM runs on.
     #[serde(default)]
     pub virtualization_service_id: Option<Uuid>,
+    /// The interface on the virtualizing host that presents this host, for a network identity.
+    #[serde(default)]
+    pub virtualization_interface_id: Option<Uuid>,
     /// Hide the host from topology views without deleting it.
     #[serde(default)]
     pub hidden: bool,
@@ -794,6 +797,9 @@ pub struct UpdateHostRequest {
     /// The hypervisor service this VM runs on.
     #[serde(default)]
     pub virtualization_service_id: Option<Uuid>,
+    /// The interface on the virtualizing host that presents this host, for a network identity.
+    #[serde(default)]
+    pub virtualization_interface_id: Option<Uuid>,
     /// Hide the host from topology views without deleting it.
     pub hidden: bool,
     /// Tags assigned to this entity.
@@ -852,8 +858,16 @@ pub struct HostResponse {
     pub updated_at: DateTime<Utc>,
     /// Last time discovery observed this host. User-facing (drives the "Last
     /// seen" column and the stale badge), which is why it is carried here while
-    /// the rest of the SCD2/audit columns are not.
+    /// the version-history columns are not.
     pub last_seen_at: DateTime<Utc>,
+    /// The discovery run that first observed this host. Drives the "First found by" column.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub first_discovery_id: Option<Uuid>,
+    /// The discovery run that last observed this host. Drives the "Last found by" column.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub last_discovery_id: Option<Uuid>,
 
     // Host fields
     /// Human-facing name for the host.
@@ -885,8 +899,8 @@ pub struct HostResponse {
     #[serde(default)]
     #[schema(read_only)]
     pub name_source: AttributeSource,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// Hostname as resolved or reported by the host.
     pub hostname: Option<String>,
     /// What produced `hostname`: a PTR lookup, the host's own OS, a controller, mDNS, or a person.
@@ -907,6 +921,22 @@ pub struct HostResponse {
     /// The hypervisor service this VM runs on.
     #[serde(default)]
     pub virtualization_service_id: Option<Uuid>,
+    /// The interface on the virtualizing host that presents this host, for a network identity.
+    #[serde(default)]
+    pub virtualization_interface_id: Option<Uuid>,
+    /// The host this one runs under: the host of its virtualizing service.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub virtualization_parent_host_id: Option<Uuid>,
+    /// The host at the top of this host's virtualization chain, itself when it is the top.
+    /// `null` when the host neither runs under nor runs another host.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub virtualization_root_host_id: Option<Uuid>,
+    /// How many hosts sit above this one in its virtualization chain.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub virtualization_depth: u32,
     /// Whether the host is hidden from topology views.
     pub hidden: bool,
     /// Tags assigned to this entity.
@@ -988,6 +1018,15 @@ pub struct HostResponse {
     #[serde(default)]
     #[schema(read_only)]
     pub serial_number_source: AttributeSource,
+    /// The asset tag the device reports: ENTITY-MIB entPhysicalAssetID. Read-only: discovery is
+    /// the only writer, so it always says what the device itself carries.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schema(read_only)]
+    pub asset_tag: Option<String>,
+    /// What produced the asset tag. Read-only.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub asset_tag_source: AttributeSource,
     /// ENTITY-MIB entPhysicalFirmwareRev — firmware revision of the device. Read-only, as above.
     #[schema(required, read_only)]
     pub firmware_revision: Option<String>,

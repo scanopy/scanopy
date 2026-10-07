@@ -8,6 +8,10 @@ import {
 	moveColumn,
 	moveColumnTo,
 	movableIds,
+	buildTagColumn,
+	columnWidth,
+	MAX_COLUMN_WIDTH,
+	MIN_COLUMN_WIDTH,
 	TAG_COLUMN_ID,
 	type ColumnState
 } from '$lib/shared/components/data/table/columns';
@@ -19,18 +23,18 @@ import {
 
 interface Row {
 	name: string;
-	network_id: string;
+	site_id: string;
 	created_at: string;
 	port: number;
 }
 
-type RowOrderField = 'name' | 'network_id' | 'created_at';
+type RowOrderField = 'name' | 'site_id' | 'created_at';
 
 function fields(): FieldConfig<Row, RowOrderField>[] {
 	return defineFields<Row, RowOrderField>(
 		{
 			name: { label: 'Name', type: 'string', display: { primary: true, width: 240 } },
-			network_id: { label: 'Network', type: 'string' },
+			site_id: { label: 'Site', type: 'string' },
 			created_at: { label: 'Created', type: 'date', display: { hiddenByDefault: true } }
 		},
 		[
@@ -85,8 +89,8 @@ describe('fieldsToColumns', () => {
 
 		expect(byId.get('name')!.primary).toBe(true);
 		expect(byId.get('name')!.width).toBe(240);
-		expect(byId.get('network_id')!.primary).toBe(false);
-		expect(byId.get('network_id')!.align).toBe('left');
+		expect(byId.get('site_id')!.primary).toBe(false);
+		expect(byId.get('site_id')!.align).toBe('left');
 	});
 });
 
@@ -139,13 +143,13 @@ describe('reconcileColumnState', () => {
 	it('splices a newly added field in at its declared position', () => {
 		// Appending instead would push a mid-list addition past the date columns.
 		const columns = fieldsToColumns(fields());
-		const withoutNetwork = columns.map((c) => c.id).filter((id) => id !== 'network_id');
+		const withoutSite = columns.map((c) => c.id).filter((id) => id !== 'site_id');
 
-		const state = reconcileColumnState(columns, { visibility: {}, order: withoutNetwork });
-		const declaredIndex = columns.findIndex((c) => c.id === 'network_id');
+		const state = reconcileColumnState(columns, { visibility: {}, order: withoutSite });
+		const declaredIndex = columns.findIndex((c) => c.id === 'site_id');
 
-		expect(state.order).toContain('network_id');
-		expect(state.order.indexOf('network_id')).toBe(declaredIndex);
+		expect(state.order).toContain('site_id');
+		expect(state.order.indexOf('site_id')).toBe(declaredIndex);
 	});
 
 	it('always covers exactly the current columns', () => {
@@ -204,12 +208,12 @@ describe('column reordering', () => {
 		// A hand-edited or older blob must not be able to unpin either end.
 		const { state } = setup({
 			visibility: {},
-			order: ['progress', 'network_id', 'name', 'description', 'labels', 'created_at']
+			order: ['progress', 'site_id', 'name', 'description', 'labels', 'created_at']
 		});
 
 		expect(state.order[0]).toBe('name');
 		expect(state.order[state.order.length - 1]).toBe('progress');
-		expect(state.order.slice(1, -1)).toEqual(['network_id', 'description', 'labels', 'created_at']);
+		expect(state.order.slice(1, -1)).toEqual(['site_id', 'description', 'labels', 'created_at']);
 	});
 
 	it('moves a column one step among the movable columns', () => {
@@ -236,18 +240,18 @@ describe('column reordering', () => {
 	it('drops a dragged column before or after its target', () => {
 		const { columns, state } = setup();
 
-		const after = moveColumnTo(state.order, columns, 'network_id', 'labels', 'after');
-		expect(after.indexOf('network_id')).toBe(after.indexOf('labels') + 1);
+		const after = moveColumnTo(state.order, columns, 'site_id', 'labels', 'after');
+		expect(after.indexOf('site_id')).toBe(after.indexOf('labels') + 1);
 
-		const before = moveColumnTo(after, columns, 'network_id', 'description', 'before');
-		expect(before.indexOf('network_id')).toBe(before.indexOf('description') - 1);
+		const before = moveColumnTo(after, columns, 'site_id', 'description', 'before');
+		expect(before.indexOf('site_id')).toBe(before.indexOf('description') - 1);
 	});
 
 	it('refuses a drag that involves a pinned column', () => {
 		// Dropping before the primary column would put a column on its far side.
 		const { columns, state } = setup();
 
-		expect(moveColumnTo(state.order, columns, 'network_id', 'name', 'before')).toBe(state.order);
+		expect(moveColumnTo(state.order, columns, 'site_id', 'name', 'before')).toBe(state.order);
 		expect(moveColumnTo(state.order, columns, 'progress', 'labels', 'before')).toBe(state.order);
 	});
 
@@ -255,13 +259,13 @@ describe('column reordering', () => {
 		// The user moved created_at to the end; description is declared right after
 		// it, so it arrives beside created_at rather than at its default index.
 		const { columns } = setup();
-		const rearranged = ['name', 'network_id', 'labels', 'created_at', 'progress'];
+		const rearranged = ['name', 'site_id', 'labels', 'created_at', 'progress'];
 
 		const state = reconcileColumnState(columns, { visibility: {}, order: rearranged });
 
 		expect(state.order).toEqual([
 			'name',
-			'network_id',
+			'site_id',
 			'labels',
 			'created_at',
 			'description',
@@ -271,16 +275,12 @@ describe('column reordering', () => {
 
 	it('survives a save and reload', () => {
 		const { columns, state } = setup();
-		const moved = moveColumn(state.order, columns, 'network_id', 1);
+		const moved = moveColumn(state.order, columns, 'site_id', 1);
 
 		const reloaded = parseStoredState(
 			serializeState({
 				searchQuery: '',
 				filterState: {},
-				sortState: { field: null, direction: 'asc' },
-				selectedGroupField: null,
-				showFilters: false,
-				viewMode: 'table',
 				currentPage: 1,
 				columnOrder: moved
 			})
@@ -289,5 +289,69 @@ describe('column reordering', () => {
 		expect(
 			reconcileColumnState(columns, { visibility: {}, order: reloaded!.columnOrder }).order
 		).toEqual(moved);
+	});
+});
+
+describe('column widths', () => {
+	function reload(columnSizing: Record<string, number>) {
+		return parseStoredState(
+			serializeState({
+				searchQuery: '',
+				filterState: {},
+				currentPage: 1,
+				columnSizing
+			})
+		)!.columnSizing;
+	}
+
+	it('survives a save and reload', () => {
+		const columns = fieldsToColumns(fields());
+		const sizing = reload({ name: 180, site_id: 96 });
+
+		const state = reconcileColumnState(columns, { sizing });
+
+		expect(state.sizing).toEqual({ name: 180, site_id: 96 });
+		const byId = new Map(columns.map((c) => [c.id, c]));
+		expect(columnWidth(byId.get('name')!, state.sizing)).toBe(180);
+	});
+
+	it('drops the width of a column that no longer exists', () => {
+		const columns = fieldsToColumns(fields());
+
+		const state = reconcileColumnState(columns, { sizing: reload({ removed_field: 120 }) });
+
+		expect(state.sizing).toEqual({});
+	});
+
+	it('gives a column the user never resized its declared width, or none', () => {
+		// A newly added field has no stored entry, so it starts where the tab declared.
+		const columns = fieldsToColumns(fields());
+		const state = reconcileColumnState(columns, { sizing: { site_id: 140 } });
+		const byId = new Map(columns.map((c) => [c.id, c]));
+
+		expect(columnWidth(byId.get('name')!, state.sizing)).toBe(240);
+		expect(columnWidth(byId.get('description')!, state.sizing)).toBeUndefined();
+	});
+
+	it('keeps stored widths inside the resize bounds', () => {
+		const columns = fieldsToColumns(fields());
+
+		const state = reconcileColumnState(columns, {
+			sizing: { name: 1, site_id: 99999, description: Number.NaN }
+		});
+
+		expect(state.sizing).toEqual({ name: MIN_COLUMN_WIDTH, site_id: MAX_COLUMN_WIDTH });
+	});
+
+	it('keeps the width of the tags column the list appends', () => {
+		const columns = fieldsToColumns(fields());
+		const tagColumn = buildTagColumn<Row>('Tags', () => [], undefined);
+		const stored = { sizing: { [TAG_COLUMN_ID]: 150 } };
+
+		expect(reconcileColumnState(columns, stored, [tagColumn]).sizing).toEqual({
+			[TAG_COLUMN_ID]: 150
+		});
+		// A list without tags has no such column, so the entry is stale there.
+		expect(reconcileColumnState(columns, stored).sizing).toEqual({});
 	});
 });

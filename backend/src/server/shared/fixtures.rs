@@ -24,13 +24,15 @@ use crate::server::services::r#impl::patterns::ClientProbe;
 use crate::server::shared::attribution::{AttributeMethod, AttributeSourceDiscriminants};
 use crate::server::shared::concepts::Concept;
 use crate::server::shared::entities::EntityDiscriminants;
+use crate::server::shared::entity_metadata::EntityCategory;
 use crate::server::shared::types::entities::EntitySourceDiscriminants;
 use crate::server::shared::types::metadata::{EntityMetadata, MetadataProvider, TypeMetadata};
 use crate::server::subnets::r#impl::types::SubnetType;
+use crate::server::tags::r#impl::base::TagIcon;
 use crate::server::topology::types::edges::EdgeType;
 use crate::server::topology::types::grouping::{ContainerRule, ElementRule, ElementSort};
 use crate::server::topology::types::nodes::ContainerType;
-use crate::server::topology::types::views::TopologyView;
+use crate::server::topology::types::views::{InspectorSection, TopologyView};
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
 use std::fs;
 use std::path::Path;
@@ -158,6 +160,60 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
             .collect();
     write_fixture(&match_confidences, output_dir, "match-confidences.json");
 
+    // Which hypervisor platform a guest runs on, keyed by `virtualization_metadata.type`.
+    let host_virtualizations: Vec<TypeMetadata> =
+        crate::server::hosts::r#impl::virtualization::HostVirtualizationDiscriminants::iter()
+            .map(|v| v.to_metadata())
+            .collect();
+    write_fixture(
+        &host_virtualizations,
+        output_dir,
+        "host-virtualizations.json",
+    );
+
+    // Which container runtime a service runs in, keyed by a service's `virtualization_metadata.type`.
+    let service_virtualizations: Vec<TypeMetadata> =
+        crate::server::services::r#impl::virtualization::ServiceVirtualizationDiscriminants::iter()
+            .map(|v| v.to_metadata())
+            .collect();
+    write_fixture(
+        &service_virtualizations,
+        output_dir,
+        "service-virtualizations.json",
+    );
+
+    // The neighbor protocol that reported a physical link, keyed by `DiscoveryProtocol`.
+    let discovery_protocols: Vec<TypeMetadata> =
+        crate::server::topology::types::edges::DiscoveryProtocol::iter()
+            .map(|p| p.to_metadata())
+            .collect();
+    write_fixture(&discovery_protocols, output_dir, "discovery-protocols.json");
+
+    // A Proxmox guest's type (VM or LXC container), keyed by `ProxmoxGuestType`.
+    let proxmox_guest_types: Vec<TypeMetadata> =
+        crate::server::hosts::r#impl::virtualization::ProxmoxGuestType::iter()
+            .map(|t| t.to_metadata())
+            .collect();
+    write_fixture(&proxmox_guest_types, output_dir, "proxmox-guest-types.json");
+
+    // A container host's LAN network driver (macvlan or ipvlan), keyed by `ContainerNetworkType`.
+    let container_network_types: Vec<TypeMetadata> =
+        crate::server::hosts::r#impl::virtualization::ContainerNetworkType::iter()
+            .map(|t| t.to_metadata())
+            .collect();
+    write_fixture(
+        &container_network_types,
+        output_dir,
+        "container-network-types.json",
+    );
+
+    // A port's ifOperStatus, keyed by `IfOperStatus`: the inspector's status tag colour.
+    let if_oper_statuses: Vec<TypeMetadata> =
+        crate::server::interfaces::r#impl::base::IfOperStatus::iter()
+            .map(|s| s.to_metadata())
+            .collect();
+    write_fixture(&if_oper_statuses, output_dir, "if-oper-statuses.json");
+
     // Keyed by `CredentialQueryPayloadDiscriminants`, which is what a coded warning carries.
     // Neither `integrations.json` (keyed by display name) nor `credential-types.json` (keyed by
     // `CredentialType`) can resolve those eight values.
@@ -198,6 +254,12 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
         .map(|s| s.to_metadata())
         .collect();
     write_fixture(&entity_sources, output_dir, "entity-sources.json");
+
+    // The parts of the product entities belong to, in display order: the sidebar's sections and
+    // the global search's group order.
+    let entity_categories: Vec<TypeMetadata> =
+        EntityCategory::iter().map(|c| c.to_metadata()).collect();
+    write_fixture(&entity_categories, output_dir, "entity-categories.json");
 
     let concepts: Vec<EntityMetadata> = Concept::iter().map(|e| e.to_metadata()).collect();
     write_fixture(&concepts, output_dir, "concepts.json");
@@ -258,6 +320,11 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
         ContainerType::iter().map(|r| r.to_metadata()).collect();
     write_fixture(&container_types, output_dir, "container-types.json");
 
+    // Inspector section headings: name, one-line description, icon and colour.
+    let inspector_sections: Vec<TypeMetadata> =
+        InspectorSection::iter().map(|s| s.to_metadata()).collect();
+    write_fixture(&inspector_sections, output_dir, "inspector-sections.json");
+
     let views: Vec<TypeMetadata> = TopologyView::iter().map(|v| v.to_metadata()).collect();
     write_fixture(&views, output_dir, "views.json");
 
@@ -291,6 +358,11 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
 
     let client_probes: Vec<TypeMetadata> = ClientProbe::iter().map(|p| p.to_metadata()).collect();
     write_fixture(&client_probes, output_dir, "client-probes.json");
+
+    // Every icon a tag may carry, by the name the API stores. From the backend's lucide build so
+    // the picker can offer nothing the server would refuse.
+    let tag_icons: Vec<TagIcon> = TagIcon::all().collect();
+    write_fixture(&tag_icons, output_dir, "tag-icons.json");
 
     println!("Done! Generated all metadata fixtures.");
 }

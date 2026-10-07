@@ -27,13 +27,12 @@ use crate::server::hosts::r#impl::{
     name::{HostName, HostNameSources},
 };
 use crate::server::interfaces::r#impl::base::InterfaceDataComplete;
-use crate::server::ip_addresses::r#impl::base::{
-    IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue,
-};
+use crate::server::ip_addresses::r#impl::base::{IPAddress, MacEvidence, MacEvidenceValue};
 use crate::server::lldp::canonical_mac;
 use crate::server::services::r#impl::patterns::ClientProbe;
 use crate::server::shared::attribution::{AttributeSource, Attributed};
 use crate::server::shared::types::entities::EntitySource;
+use crate::server::subnets::r#impl::base::Subnet;
 
 /// The identity fields a controller reports for one device or client.
 ///
@@ -71,7 +70,7 @@ impl ControllerIdentity {
     ///
     /// The server deduplicates on IP and MAC, so this merges into the host another discovery
     /// path already found when there is one.
-    pub fn into_host(self, network_id: Uuid) -> Host {
+    pub fn into_host(self, site_id: Uuid) -> Host {
         let Self {
             probe,
             name,
@@ -88,7 +87,7 @@ impl ControllerIdentity {
         // into the controller — `apply_names` records that separately.
         let reported = AttributeSource::Probe(probe);
         let mut host = Host::new(HostBase {
-            network_id,
+            site_id,
             source: EntitySource::Discovery,
             // The controller's name is also what the device advertises as LLDP sysName, and
             // neighbour resolution matches `interfaces.lldp_sys_name` against this column.
@@ -192,44 +191,33 @@ pub struct MappedClient {
 }
 
 impl MappedClient {
-    /// A reported client, with its address left for the server to place.
+    /// A reported client, filed by [`IPAddress::discovered`].
     ///
-    /// `None` only when the address is missing or unparseable — there is nothing to report about a
-    /// client whose address we cannot read. It used to also return `None` for an address outside
-    /// every known subnet, on the grounds that IP-based dedup would mint a duplicate every scan;
-    /// that reasoning was sound and the remedy was not, because the subnet list it consulted
-    /// carries `0.0.0.0/0` catch-alls that contain every IPv4 address, so nothing was ever skipped
-    /// and everything landed on `Internet` instead.
-    ///
-    /// `subnet_id` is left nil the way `host_id` already is: the server places the address against
-    /// the network's authoritative subnet list and infers a range where nothing holds it, which is
-    /// the only place that decision can be made consistently across integrations.
+    /// `None` when the address is missing or unparseable, or when the submission rule drops it
+    /// (a public or global address no subnet holds). A private address outside every known subnet
+    /// is still reported, nil for the server to infer a range for, since the controller is often
+    /// the only witness for a client on a VLAN the sweep cannot reach.
     pub fn new(
         identity: ControllerIdentity,
         ip: Option<&str>,
         mac: Option<&str>,
-        network_id: Uuid,
+        site_id: Uuid,
+        subnets: &[Subnet],
     ) -> Option<Self> {
         let ip: IpAddr = ip?.trim().parse().ok()?;
         let mac = mac.and_then(canonical_mac);
         let probe = identity.probe;
+        // The controller reporting a device it manages: a known speaker that is not the subject,
+        // so weaker than an ARP reply the address itself sent us.
+        let mac_address = mac
+            .as_deref()
+            .and_then(|m| m.parse().ok())
+            .map(|m| MacEvidence::new(MacEvidenceValue(m), AttributeSource::Probe(probe)));
+        let ip_address = IPAddress::discovered(site_id, subnets, ip, mac_address, None, 0)?;
 
         Some(Self {
             identity,
-            ip_address: IPAddress::new(IPAddressBase {
-                network_id,
-                host_id: Uuid::nil(),   // server assigns
-                subnet_id: Uuid::nil(), // server places
-                ip_address: ip,
-                // The controller reporting a device it manages: a known speaker that is not the
-                // subject, so weaker than an ARP reply the address itself sent us.
-                mac_address: mac
-                    .as_deref()
-                    .and_then(|m| m.parse().ok())
-                    .map(|m| MacEvidence::new(MacEvidenceValue(m), AttributeSource::Probe(probe))),
-                name: None,
-                position: 0,
-            }),
+            ip_address,
             ip,
         })
     }
@@ -244,7 +232,7 @@ pub async fn create_client_hosts(
     ctx: &IntegrationContext<'_>,
     clients: Vec<MappedClient>,
 ) -> usize {
-    let Ok(network_id) = ctx.ops.network_id().await else {
+    let Ok(site_id) = ctx.ops.site_id().await else {
         return 0;
     };
 
@@ -261,8 +249,9 @@ pub async fn create_client_hosts(
 
         let result = ctx
             .ops
-            .create_host(
-                identity.into_host(network_id),
+            .create_integration_host(
+                ctx.integration,
+                identity.into_host(site_id),
                 vec![ip_address],
                 vec![],
                 vec![],

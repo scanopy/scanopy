@@ -36,7 +36,6 @@ use crate::server::{
     },
     interfaces::r#impl::base::{IfAdminStatus, IfOperStatus, Interface, InterfaceBase},
     ip_addresses::r#impl::base::{IPAddress, IPAddressBase},
-    networks::r#impl::{DEFAULT_STALE_AFTER_HOURS, Network, NetworkBase},
     organizations::r#impl::base::{Organization, OrganizationBase},
     ports::r#impl::base::{Port, PortBase, PortType, TransportProtocol},
     services::{
@@ -44,6 +43,7 @@ use crate::server::{
         r#impl::base::{Service, ServiceBase},
     },
     shared::types::{Color, entities::EntitySource},
+    sites::r#impl::{DEFAULT_STALE_AFTER_HOURS, Site, SiteBase},
     subnets::r#impl::{
         base::{Subnet, SubnetBase},
         types::SubnetType,
@@ -66,10 +66,10 @@ pub mod ids {
     use uuid::Uuid;
 
     pub const ORGANIZATION: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_446655440001);
-    pub const NETWORK: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_446655440002);
+    pub const SITE: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_446655440002);
     pub const HOST: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_446655440003);
     pub const SUBNET: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_446655440004);
-    pub const INTERFACE: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_446655440005);
+    pub const IP_ADDRESS: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_446655440005);
     pub const PORT: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_446655440006);
     pub const SERVICE: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_446655440007);
     pub const GROUP: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_446655440008);
@@ -79,7 +79,7 @@ pub mod ids {
     pub const DAEMON: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_44665544000c);
     pub const USER: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_44665544000d);
     pub const DISCOVERY: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_44665544000e);
-    pub const IF_ENTRY: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_44665544000f);
+    pub const INTERFACE: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_44665544000f);
 }
 
 /// Example timestamp for created_at/updated_at fields.
@@ -91,14 +91,14 @@ fn example_timestamp() -> chrono::DateTime<Utc> {
 // ENTITY EXAMPLES
 // =============================================================================
 
-/// Example Network entity.
-pub fn network() -> Network {
-    Network {
-        id: ids::NETWORK,
+/// Example Site entity.
+pub fn site() -> Site {
+    Site {
+        id: ids::SITE,
         created_at: example_timestamp(),
         updated_at: example_timestamp(),
-        base: NetworkBase {
-            name: "Home Network".to_string(),
+        base: SiteBase {
+            name: "Home Site".to_string(),
             organization_id: ids::ORGANIZATION,
             tags: vec![],
             credential_ids: vec![],
@@ -128,11 +128,12 @@ pub fn host() -> Host {
                 ),
                 crate::server::shared::attribution::AttributeSource::Manual,
             )),
-            network_id: ids::NETWORK,
+            site_id: ids::SITE,
             description: Some("Primary web server".to_string()),
             source: EntitySource::Manual,
             virtualization_metadata: None,
             virtualization_service_id: None,
+            virtualization_interface_id: None,
             hidden: false,
             tags: vec![],
             sys_descr: None,
@@ -145,6 +146,12 @@ pub fn host() -> Host {
             manufacturer: None,
             model: None,
             serial_number: None,
+            asset_tag: Some(crate::server::shared::attribution::Attributed::new(
+                crate::server::hosts::r#impl::attributes::HostAssetTagValue("IT-00412".to_string()),
+                crate::server::shared::attribution::AttributeSource::Probe(
+                    crate::server::services::r#impl::patterns::ClientProbe::Snmp,
+                ),
+            )),
             firmware_revision: None,
             software_revision: None,
             os: None,
@@ -168,7 +175,7 @@ pub fn subnet() -> Subnet {
         base: SubnetBase {
             name: "LAN".to_string(),
             description: Some("Local area network".to_string()),
-            network_id: ids::NETWORK,
+            site_id: ids::SITE,
             cidr: SubnetCidr::new(
                 SubnetCidrValue(IpCidr::V4(
                     Ipv4Cidr::new(Ipv4Addr::new(192, 168, 1, 0), 24).unwrap(),
@@ -186,7 +193,7 @@ pub fn subnet() -> Subnet {
 /// Example Interface entity.
 pub fn ip_address() -> IPAddress {
     IPAddress {
-        id: ids::INTERFACE,
+        id: ids::IP_ADDRESS,
         created_at: example_timestamp(),
         updated_at: example_timestamp(),
         valid_from: example_timestamp(),
@@ -196,7 +203,7 @@ pub fn ip_address() -> IPAddress {
         last_discovery_id: None,
         first_discovery_id: None,
         base: IPAddressBase {
-            network_id: ids::NETWORK,
+            site_id: ids::SITE,
             host_id: ids::HOST,
             subnet_id: ids::SUBNET,
             ip_address: IpAddr::V4(Ipv4Addr::new(192, 168, 1, 100)),
@@ -224,7 +231,7 @@ pub fn port() -> Port {
         first_discovery_id: None,
         base: PortBase {
             host_id: ids::HOST,
-            network_id: ids::NETWORK,
+            site_id: ids::SITE,
             port_type: PortType::Http,
         },
     }
@@ -242,7 +249,7 @@ pub fn dependency() -> Dependency {
         base: DependencyBase {
             name: "Web Services".to_string(),
             description: Some("HTTP/HTTPS services dependency".to_string()),
-            network_id: ids::NETWORK,
+            site_id: ids::SITE,
             color: Color::Blue,
             dependency_type: DependencyType::RequestPath,
             members: DependencyMembers::default(),
@@ -271,7 +278,7 @@ pub fn service() -> Service {
         base: ServiceBase {
             name: "nginx".to_string(),
             host_id: ids::HOST,
-            network_id: ids::NETWORK,
+            site_id: ids::SITE,
             service_definition: service_def,
             bindings: vec![binding()],
             virtualization_metadata: None,
@@ -285,7 +292,7 @@ pub fn service() -> Service {
 
 /// Example Binding entity.
 pub fn binding() -> Binding {
-    Binding::new_port(ids::SERVICE, ids::NETWORK, ids::PORT, Some(ids::INTERFACE))
+    Binding::new_port(ids::SERVICE, ids::SITE, ids::PORT, Some(ids::IP_ADDRESS))
 }
 
 /// Example Tag entity.
@@ -302,7 +309,8 @@ pub fn tag() -> Tag {
             description: Some("Production environment resources".to_string()),
             color: Color::Green,
             organization_id: ids::ORGANIZATION,
-            is_application: false,
+            tag_group: None,
+            icon: None,
         },
     }
 }
@@ -316,7 +324,7 @@ pub fn daemon_api_key() -> DaemonApiKey {
         base: DaemonApiKeyBase {
             name: "daemon-key-01".to_string(),
             key: "scp_d_••••••••••••••••••••••••••••••••".to_string(), // Masked in responses
-            network_id: ids::NETWORK,
+            site_id: ids::SITE,
             last_used: Some(example_timestamp()),
             expires_at: None,
             is_enabled: true,
@@ -334,7 +342,7 @@ pub fn daemon() -> Daemon {
         created_at: example_timestamp(),
         updated_at: example_timestamp(),
         base: DaemonBase {
-            network_id: ids::NETWORK,
+            site_id: ids::SITE,
             host_id: ids::HOST,
             url: "http://192.168.1.100:8080".to_string(),
             mode: DaemonMode::DaemonPoll,
@@ -369,7 +377,7 @@ pub fn user() -> User {
             oidc_provider: None,
             oidc_subject: None,
             oidc_linked_at: None,
-            network_ids: vec![ids::NETWORK],
+            site_ids: vec![ids::SITE],
             terms_accepted_at: Some(example_timestamp()),
             email_verified: true,
             email_verification_token: None,
@@ -417,6 +425,7 @@ pub fn organization() -> Organization {
             license_key_version: 0,
             license_key_issued_at: None,
             license_key_type: None,
+            license_server_version: None,
             air_gapped_key_current_until: None,
         },
     }
@@ -430,7 +439,7 @@ pub fn discovery() -> Discovery {
         updated_at: example_timestamp(),
         base: DiscoveryBase {
             name: "Network Scan".to_string(),
-            network_id: ids::NETWORK,
+            site_id: ids::SITE,
             daemon_id: ids::DAEMON,
             discovery_type: DiscoveryType::Network {
                 subnet_ids: Some(vec![ids::SUBNET]),
@@ -451,7 +460,7 @@ pub fn discovery() -> Discovery {
 /// Example Interface entity.
 pub fn interface() -> Interface {
     Interface {
-        id: ids::IF_ENTRY,
+        id: ids::INTERFACE,
         created_at: example_timestamp(),
         updated_at: example_timestamp(),
         valid_from: example_timestamp(),
@@ -465,7 +474,7 @@ pub fn interface() -> Interface {
         display_name: Some("Uplink to Core Switch".to_string()),
         base: InterfaceBase {
             host_id: ids::HOST,
-            network_id: ids::NETWORK,
+            site_id: ids::SITE,
             if_index: Some(1),
             if_descr: Some("GigabitEthernet0/1".to_string()),
             if_name: Some("Gi0/1".to_string()),
@@ -478,7 +487,7 @@ pub fn interface() -> Interface {
                 MacEvidenceValue(MacAddress::new([0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE])),
                 AttributeSource::ArpReply,
             )),
-            ip_address_id: Some(ids::INTERFACE),
+            ip_address_id: Some(ids::IP_ADDRESS),
             ip_configured: true,
             neighbor_candidates: Vec::new(),
             fdb_macs: None,
@@ -499,11 +508,12 @@ pub fn create_host_request() -> CreateHostRequest {
 
     CreateHostRequest {
         name: "web-server-01".to_string(),
-        network_id: ids::NETWORK,
+        site_id: ids::SITE,
         hostname: Some("web-server-01.local".to_string()),
         description: Some("Primary web server".to_string()),
         virtualization_metadata: None,
         virtualization_service_id: None,
+        virtualization_interface_id: None,
         hidden: false,
         tags: vec![],
         // SNMP fields (optional)
@@ -515,7 +525,7 @@ pub fn create_host_request() -> CreateHostRequest {
         chassis_id: None,
         credential_assignments: vec![],
         ip_addresses: vec![IPAddressInput {
-            id: ids::INTERFACE,
+            id: ids::IP_ADDRESS,
             subnet_id: ids::SUBNET,
             ip_address: IpAddr::V4(Ipv4Addr::new(192, 168, 1, 100)),
             mac_address: Some(MacAddress::new([0xDE, 0xAD, 0xBE, 0xEF, 0x12, 0x34])),
@@ -534,7 +544,7 @@ pub fn create_host_request() -> CreateHostRequest {
             bindings: vec![BindingInput::Port {
                 id: ids::BINDING,
                 port_id: ids::PORT,
-                ip_address_id: Some(ids::INTERFACE),
+                ip_address_id: Some(ids::IP_ADDRESS),
             }],
             virtualization_metadata: None,
             virtualization_service_id: None,

@@ -46,9 +46,9 @@ export const ERROR_CODES = {
 	entity_required: 'At least one {entity} is required',
 	entity_delete_forbidden: 'Cannot delete this {entity}: {reason}',
 	entity_update_forbidden: 'Cannot update this {entity}',
-	entity_network_mismatch: '{entity} is on a different network',
+	entity_site_mismatch: '{entity} is on a different site',
 	hosts_consolidate_failed: 'Failed to consolidate hosts: {reason}',
-	networks_access_denied: "You don't have access to network '{network}'",
+	sites_access_denied: "You don't have access to site '{site}'",
 	share_password_required: 'Password required for this share',
 	share_password_incorrect: 'Incorrect password',
 	share_token_invalid: 'Access token is invalid or expired',
@@ -57,10 +57,10 @@ export const ERROR_CODES = {
 	email_delivery_failed:
 		"Scanopy could not send this email. Ask an administrator to check the server logs for the mail server's response.",
 	discovery_historical_read_only: 'Historical discovery cannot be modified via API',
-	discovery_subnet_network_mismatch: "Subnet '{subnet}' is on a different network",
+	discovery_subnet_site_mismatch: "Subnet '{subnet}' is on a different site",
 	discovery_session_not_found: "Discovery session '{id}' not found",
 	ip_address_out_of_range: "IP address '{ip}' is not within subnet '{subnet}' range",
-	daemon_network_mismatch: 'Cannot send updates for a different network',
+	daemon_site_mismatch: 'Cannot send updates for a different site',
 	daemon_identity_mismatch: 'Cannot send updates for a different daemon',
 	daemon_standby:
 		'The daemon is on standby because it has not completed a discovery in over 30 days. Restart the daemon or start a discovery to resume.',
@@ -138,9 +138,9 @@ export interface ErrorParams {
 	entity_required: { entity: string | number };
 	entity_delete_forbidden: { entity: string | number; reason: string | number };
 	entity_update_forbidden: { entity: string | number };
-	entity_network_mismatch: { entity: string | number };
+	entity_site_mismatch: { entity: string | number };
 	hosts_consolidate_failed: { reason: string | number };
-	networks_access_denied: { network: string | number };
+	sites_access_denied: { site: string | number };
 	share_password_required: Record<string, never>;
 	share_password_incorrect: Record<string, never>;
 	share_token_invalid: Record<string, never>;
@@ -148,10 +148,10 @@ export interface ErrorParams {
 	invite_email_mismatch: Record<string, never>;
 	email_delivery_failed: Record<string, never>;
 	discovery_historical_read_only: Record<string, never>;
-	discovery_subnet_network_mismatch: { subnet: string | number };
+	discovery_subnet_site_mismatch: { subnet: string | number };
 	discovery_session_not_found: { id: string | number };
 	ip_address_out_of_range: { ip: string | number; subnet: string | number };
-	daemon_network_mismatch: Record<string, never>;
+	daemon_site_mismatch: Record<string, never>;
 	daemon_identity_mismatch: Record<string, never>;
 	daemon_standby: Record<string, never>;
 	daemon_not_registered: Record<string, never>;

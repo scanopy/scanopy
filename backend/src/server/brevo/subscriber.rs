@@ -18,7 +18,10 @@ use crate::{
             entities::EntityDiscriminants,
             events::{
                 registry::SubscriberRegistration,
-                traits::{EntityEventFilter, Event, EventFilter, NonRetryable, Subscriber},
+                traits::{
+                    EntityEventFilter, Event, EventFilter, EventScope, NonRetryable,
+                    ScopeOrganization, Subscriber,
+                },
                 types::{
                     AuthOperation, AuthOperationDiscriminants, BillingOperation, EntityOperation,
                     EntityOperationDiscriminants, OnboardingOperation,
@@ -41,6 +44,14 @@ impl Subscriber<BillingOperation> for BrevoService {
     async fn handle(&self, events: Vec<Event<BillingOperation>>) -> Result<(), Error> {
         let mut failures = Vec::new();
         for event in &events {
+            if event.operation.is_zero_dollar_notice() {
+                tracing::debug!(
+                    operation = %event.operation,
+                    organization_id = %event.scope.organization_id,
+                    "Skipping Brevo billing event for a customer paying nothing"
+                );
+                continue;
+            }
             if let Err(e) = self.handle_billing_event(event).await {
                 failures.push(anyhow!("billing {}: {e:#}", event.operation));
             }
@@ -124,7 +135,7 @@ impl Subscriber<DiscoveryPhase> for BrevoService {
         let mut failures = Vec::new();
         for event in &events {
             if event.operation == DiscoveryPhase::Scanning
-                && let Some(org_id) = self.get_org_id_from_network(&event.scope.network_id).await
+                && let Some(org_id) = self.get_org_id_from_site(&event.scope.site_id).await
                 && let Err(e) = self.update_company_last_discovery(org_id).await
             {
                 failures.push(anyhow!("discovery sync for org {org_id}: {e:#}"));
@@ -143,7 +154,7 @@ impl Subscriber<EntityOperation> for BrevoService {
             EntityOperationDiscriminants::Deleted,
         ]);
         EntityEventFilter::by_entity(HashMap::from([
-            (EntityDiscriminants::Network, create_or_delete.clone()),
+            (EntityDiscriminants::Site, create_or_delete.clone()),
             (EntityDiscriminants::Host, create_or_delete.clone()),
             (EntityDiscriminants::User, create_or_delete),
         ]))
@@ -153,13 +164,12 @@ impl Subscriber<EntityOperation> for BrevoService {
         // Aggregate org IDs whose entity counts changed; sync once per org.
         let mut org_ids_for_metrics: HashSet<Uuid> = HashSet::new();
         for event in &events {
-            if let Some(org_id) = event.scope.organization_id() {
-                org_ids_for_metrics.insert(org_id);
-            } else if let Some(network_id) = event.scope.network_id()
-                && let Some(org_id) = self.get_org_id_from_network(&network_id).await
-            {
-                org_ids_for_metrics.insert(org_id);
-            }
+            let org_id = match event.scope.organization() {
+                Some(ScopeOrganization::Org(org_id)) => Some(org_id),
+                Some(ScopeOrganization::Site(site_id)) => self.get_org_id_from_site(&site_id).await,
+                None => None,
+            };
+            org_ids_for_metrics.extend(org_id);
         }
 
         let mut failures = Vec::new();

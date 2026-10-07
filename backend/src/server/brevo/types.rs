@@ -177,10 +177,10 @@ pub struct CompanyAttributes {
     pub scanopy_plan_status: Option<String>,
     pub scanopy_lifecycle_marker: Option<String>,
     pub scanopy_mrr: Option<i64>,
-    pub scanopy_network_count: Option<i64>,
+    pub scanopy_site_count: Option<i64>,
     pub scanopy_host_count: Option<i64>,
     pub scanopy_user_count: Option<i64>,
-    pub scanopy_network_limit: Option<i64>,
+    pub scanopy_site_limit: Option<i64>,
     pub scanopy_seat_limit: Option<i64>,
     pub scanopy_created_date: Option<String>,
     pub scanopy_last_discovery_date: Option<String>,
@@ -188,7 +188,7 @@ pub struct CompanyAttributes {
     pub scanopy_first_daemon_date: Option<String>,
     pub scanopy_trial_started_date: Option<String>,
     pub scanopy_checkout_completed_date: Option<String>,
-    pub scanopy_second_network_date: Option<String>,
+    pub scanopy_second_site_date: Option<String>,
     pub scanopy_first_tag_date: Option<String>,
     pub scanopy_first_dependency_date: Option<String>,
     pub scanopy_first_application_group_tag_date: Option<String>,
@@ -256,8 +256,8 @@ impl CompanyAttributes {
         self
     }
 
-    pub fn with_network_count(mut self, count: i64) -> Self {
-        self.scanopy_network_count = Some(count);
+    pub fn with_site_count(mut self, count: i64) -> Self {
+        self.scanopy_site_count = Some(count);
         self
     }
 
@@ -271,8 +271,8 @@ impl CompanyAttributes {
         self
     }
 
-    pub fn with_network_limit(mut self, limit: i64) -> Self {
-        self.scanopy_network_limit = Some(limit);
+    pub fn with_site_limit(mut self, limit: i64) -> Self {
+        self.scanopy_site_limit = Some(limit);
         self
     }
 
@@ -326,8 +326,8 @@ impl CompanyAttributes {
         self
     }
 
-    pub fn with_second_network_date(mut self, date: DateTime<Utc>) -> Self {
-        self.scanopy_second_network_date = Some(date.to_rfc3339());
+    pub fn with_second_site_date(mut self, date: DateTime<Utc>) -> Self {
+        self.scanopy_second_site_date = Some(date.to_rfc3339());
         self
     }
 
@@ -401,8 +401,8 @@ impl CompanyAttributes {
         if let Some(v) = self.scanopy_mrr {
             attrs.insert("scanopy_mrr".to_string(), serde_json::json!(v));
         }
-        if let Some(v) = self.scanopy_network_count {
-            attrs.insert("scanopy_network_count".to_string(), serde_json::json!(v));
+        if let Some(v) = self.scanopy_site_count {
+            attrs.insert("scanopy_site_count".to_string(), serde_json::json!(v));
         }
         if let Some(v) = self.scanopy_host_count {
             attrs.insert("scanopy_host_count".to_string(), serde_json::json!(v));
@@ -410,8 +410,8 @@ impl CompanyAttributes {
         if let Some(v) = self.scanopy_user_count {
             attrs.insert("scanopy_user_count".to_string(), serde_json::json!(v));
         }
-        if let Some(v) = self.scanopy_network_limit {
-            attrs.insert("scanopy_network_limit".to_string(), serde_json::json!(v));
+        if let Some(v) = self.scanopy_site_limit {
+            attrs.insert("scanopy_site_limit".to_string(), serde_json::json!(v));
         }
         if let Some(v) = self.scanopy_seat_limit {
             attrs.insert("scanopy_seat_limit".to_string(), serde_json::json!(v));
@@ -446,11 +446,8 @@ impl CompanyAttributes {
                 serde_json::json!(v),
             );
         }
-        if let Some(v) = &self.scanopy_second_network_date {
-            attrs.insert(
-                "scanopy_second_network_date".to_string(),
-                serde_json::json!(v),
-            );
+        if let Some(v) = &self.scanopy_second_site_date {
+            attrs.insert("scanopy_second_site_date".to_string(), serde_json::json!(v));
         }
         if let Some(v) = &self.scanopy_first_tag_date {
             attrs.insert("scanopy_first_tag_date".to_string(), serde_json::json!(v));

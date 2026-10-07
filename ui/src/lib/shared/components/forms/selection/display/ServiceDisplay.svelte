@@ -1,15 +1,22 @@
 <script lang="ts" module>
-	import { concepts, serviceCategories, serviceDefinitions } from '$lib/shared/stores/metadata';
+	import {
+		concepts,
+		serviceCategories,
+		serviceDefinitions,
+		serviceVirtualizations
+	} from '$lib/shared/stores/metadata';
 	import type { Port } from '$lib/features/hosts/types/base';
+	import { services_bindingCount } from '$lib/paraglide/messages';
 
-	export interface ServiceDisplayContext {
+	export type ServiceTagRole = 'category' | 'virtualization';
+
+	export interface ServiceDisplayContext extends DisplayTagContext<ServiceTagRole> {
 		ipAddressId?: string | null;
 		ports?: Port[];
 		showEntityTagPicker?: boolean;
 		tagPickerDisabled?: boolean;
 		entityTags?: import('$lib/features/tags/types/base').Tag[];
 		allowTagCreate?: boolean;
-		compact?: boolean;
 	}
 
 	export const ServiceDisplay: EntityDisplayComponent<Service, ServiceDisplayContext> = {
@@ -54,9 +61,7 @@
 			} else {
 				// No ports in context - show binding count
 				if (bindingsOnInterface.length > 0) {
-					descriptionItems.push(
-						`${bindingsOnInterface.length} binding${bindingsOnInterface.length > 1 ? 's' : ''}`
-					);
+					descriptionItems.push(services_bindingCount({ count: bindingsOnInterface.length }));
 				}
 			}
 
@@ -67,22 +72,23 @@
 		},
 		getIconColor: (service: Service) =>
 			serviceDefinitions.getColorHelper(service.service_definition).icon,
-		getTags: (service: Service, context: ServiceDisplayContext) => {
-			if (context?.compact) return [];
+		compactHides: ['category', 'virtualization'] satisfies ServiceTagRole[],
+		getTags: (service: Service) => {
 			let tags: TagProps[] = [];
 
 			const category = serviceDefinitions.getCategory(service.service_definition);
 			if (category) {
 				tags.push({
-					label: serviceCategories.getName(category),
-					color: serviceCategories.getColorString(category)
+					...serviceCategories.getTag(category),
+					role: 'category' satisfies ServiceTagRole
 				});
 			}
 
 			if (service.virtualization_metadata) {
 				tags.push({
-					label: service.virtualization_metadata.type,
-					color: concepts.getColorHelper('Virtualization').color
+					...serviceVirtualizations.getTag(service.virtualization_metadata.type),
+					color: concepts.getColorHelper('Virtualization').color,
+					role: 'virtualization' satisfies ServiceTagRole
 				});
 			}
 
@@ -104,7 +110,7 @@
 
 <script lang="ts">
 	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
-	import type { EntityDisplayComponent } from '../types';
+	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
 	import type { Service } from '$lib/features/services/types/base';
 	import type { TagProps } from '$lib/shared/components/data/types';
 	import { formatPort } from '$lib/shared/utils/formatting';

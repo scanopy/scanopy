@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { Edit, Trash2 } from 'lucide-svelte';
 	import type { CardAction } from '$lib/shared/components/data/types';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import { networkItems } from '$lib/features/networks/columns';
-	import { permissions, entities } from '$lib/shared/stores/metadata';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
+	import { siteItems } from '$lib/features/sites/columns';
+	import { permissions } from '$lib/shared/stores/metadata';
 	import type { FieldConfig } from '$lib/shared/components/data/types';
 	import { Plus } from 'lucide-svelte';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { tooltip } from '$lib/shared/actions/tooltip';
 	import { useTagsQuery } from '$lib/features/tags/queries';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import UserApiKeyModal from './UserApiKeyModal.svelte';
 	import {
 		useUserApiKeysQuery,
@@ -38,7 +38,7 @@
 		common_create,
 		common_created,
 		common_name,
-		common_networks,
+		common_sites,
 		common_permissions,
 		common_tags,
 		common_updated,
@@ -52,7 +52,7 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { billingPlans } from '$lib/shared/stores/metadata';
 	import UpgradeButton from '$lib/shared/components/UpgradeButton.svelte';
-	import { modalState } from '$lib/shared/stores/modal-registry';
+	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 
 	let { isReadOnly = false }: TabProps = $props();
 
@@ -71,7 +71,7 @@
 	// Queries
 	const tagsQuery = useTagsQuery();
 	const userApiKeysQuery = useUserApiKeysQuery({ enabled: () => hasApiAccess });
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 
 	// Mutations
 	const updateMutation = useUpdateUserApiKeyMutation();
@@ -81,25 +81,24 @@
 	// Derived data
 	let tagsData = $derived(tagsQuery.data ?? []);
 	let userApiKeysData = $derived(userApiKeysQuery.data ?? []);
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
 	let isLoading = $derived(userApiKeysQuery.isPending);
 
 	let showModal = $state(false);
 	let editingApiKey = $state<UserApiKey | null>(null);
 
-	// Deep-link: open user API key editor from URL
+	// Deep-link: open user API key editor from URL (handles both fresh open and entity switch)
 	$effect(() => {
-		if ($modalState.name === 'user-api-key' && !showModal) {
-			if ($modalState.id) {
-				const entity = userApiKeysData.find((e) => e.id === $modalState.id);
-				if (entity) {
-					editingApiKey = entity;
-					showModal = true;
-				}
-			} else {
-				editingApiKey = null;
-				showModal = true;
-			}
+		const result = resolveModalDeepLink(
+			$modalState,
+			'user-api-key',
+			userApiKeysData,
+			showModal,
+			editingApiKey?.id
+		);
+		if (result !== undefined) {
+			editingApiKey = result;
+			showModal = true;
 		}
 	});
 
@@ -145,7 +144,7 @@
 		await downloadCsv('UserApiKey', {});
 	}
 
-	/** Row actions, matching what the card offered. */
+	/** Row actions. */
 	function userApiKeyActions(apiKey: UserApiKey): CardAction[] {
 		return [
 			{ label: common_edit(), icon: Edit, onClick: () => handleEdit(apiKey) },
@@ -157,6 +156,8 @@
 			}
 		];
 	}
+
+	const tableDefaults: TableDefaults<string> = { sort: { field: 'name', direction: 'asc' } };
 
 	const apiKeyFields: FieldConfig<UserApiKey>[] = [
 		{
@@ -193,19 +194,19 @@
 			}
 		},
 		{
-			key: 'network_ids',
+			key: 'site_ids',
 			type: 'array',
-			label: common_networks(),
+			label: common_sites(),
 			searchable: true,
-			// Keys share networks, so this filters; as an array it neither sorts nor groups.
+			// Keys share sites, so this filters; as an array it neither sorts nor groups.
 			filterable: true,
 			getValue(item) {
-				const ids = item.network_ids ?? [];
+				const ids = item.site_ids ?? [];
 				return ids
-					.map((id) => networksData.find((n) => n.id === id)?.name)
+					.map((id) => sitesData.find((n) => n.id === id)?.name)
 					.filter((name): name is string => !!name);
 			},
-			display: { getItems: (item) => networkItems(item.network_ids, networksData) }
+			display: { getItems: (item) => siteItems(item.site_ids, sitesData) }
 		},
 		{
 			key: 'is_enabled',
@@ -268,25 +269,24 @@
 	];
 </script>
 
-<div class="space-y-6">
-	<TabHeader title={common_apiKeys()} subtitle={userApiKeys_subtitle()}>
-		<svelte:fragment slot="actions">
-			{#if !isReadOnly && hasApiAccess}
-				{#if !isEmailVerified}
-					<span data-tooltip={userApiKeys_verifyEmailToCreate()} use:tooltip>
-						<button class="btn-primary flex items-center opacity-50" disabled>
-							<Plus class="h-5 w-5" />{common_create()}
-						</button>
-					</span>
-				{:else}
-					<button class="btn-primary flex items-center" onclick={handleCreate}>
-						<Plus class="h-5 w-5" />{common_create()}
-					</button>
-				{/if}
-			{/if}
-		</svelte:fragment>
-	</TabHeader>
+<!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
+{#snippet toolbarActions()}
+	{#if !isReadOnly && hasApiAccess}
+		{#if !isEmailVerified}
+			<span data-tooltip={userApiKeys_verifyEmailToCreate()} use:tooltip>
+				<button class="btn-primary toolbar-control flex items-center opacity-50" disabled>
+					<Plus class="h-5 w-5" />{common_create()}
+				</button>
+			</span>
+		{:else}
+			<button class="btn-primary toolbar-control flex items-center" onclick={handleCreate}>
+				<Plus class="h-5 w-5" />{common_create()}
+			</button>
+		{/if}
+	{/if}
+{/snippet}
 
+<div class="space-y-6">
 	{#if !hasApiAccess}
 		<EmptyState
 			title={userApiKeys_apiAccessUnavailableTitle()}
@@ -305,18 +305,18 @@
 		/>
 	{:else}
 		<DataControls
+			title={common_apiKeys()}
+			subtitle={userApiKeys_subtitle()}
+			{toolbarActions}
 			items={userApiKeysData}
 			fields={apiKeyFields}
 			onBulkDelete={isReadOnly ? undefined : handleBulkDelete}
 			entityType={isReadOnly ? undefined : 'UserApiKey'}
 			getItemTags={getUserApiKeyTags}
 			storageKey="scanopy-user-api-keys-table-state"
+			defaults={tableDefaults}
 			getItemId={(item) => item.id}
 			getActions={userApiKeyActions}
-			getIcon={() => ({
-				icon: entities.getIconComponent('UserApiKey'),
-				color: entities.getColorHelper('UserApiKey').icon
-			})}
 			onCsvExport={handleCsvExport}
 		></DataControls>
 	{/if}

@@ -168,6 +168,7 @@ pub fn entity_table() -> EntityTable {
                 manufacturer: Some("Cisco".into()),
                 model: Some("WS-C3750G-24TS-S".into()),
                 serial_number: None,
+                asset_id: None,
                 firmware_revision: None,
                 software_revision: None,
             },
@@ -181,6 +182,7 @@ pub fn entity_table() -> EntityTable {
                 manufacturer: Some("Cisco".into()),
                 model: Some("WS-C3750G-24TS-S".into()),
                 serial_number: Some("FDO1441P0CD".into()),
+                asset_id: None,
                 firmware_revision: Some("12.2(53r)SEY3".into()),
                 software_revision: Some("15.0(2)SE11".into()),
             },
@@ -194,6 +196,8 @@ pub fn entity_table() -> EntityTable {
                 manufacturer: Some("Cisco".into()),
                 model: Some("WS-C3750G-24TS-S".into()),
                 serial_number: Some("FDO1441P0AB".into()),
+                // What most switches answer: the object exists and nobody set it.
+                asset_id: Some(String::new()),
                 firmware_revision: Some("15.0(4)".into()),
                 software_revision: Some("15.0(2)SE11".into()),
             },
@@ -207,6 +211,7 @@ pub fn entity_table() -> EntityTable {
                 manufacturer: Some("Cisco".into()),
                 model: Some("C3750-SFP-2".into()),
                 serial_number: Some("FDO1441M0EF".into()),
+                asset_id: None,
                 firmware_revision: Some("1.4.2".into()),
                 software_revision: Some("1.4.2".into()),
             },
@@ -262,6 +267,11 @@ mod tests {
                 inventory.software_revision.as_deref(),
                 Some("15.0(2)SE11"),
                 "pass {pass}: entPhysicalSoftwareRev is read, and separately from the firmware"
+            );
+            // Member 1 answers entPhysicalAssetID with an empty string, which is no asset tag.
+            assert_eq!(
+                inventory.asset_id, None,
+                "pass {pass}: an empty entPhysicalAssetID is not an asset tag"
             );
         }
     }

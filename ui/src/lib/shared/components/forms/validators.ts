@@ -1,6 +1,9 @@
 import pkg from 'ipaddr.js';
 import { validate } from 'email-validator';
-import { credentials_invalidSshPrivateKey } from '$lib/paraglide/messages';
+import {
+	credentials_invalidProxmoxTokenId,
+	credentials_invalidSshPrivateKey
+} from '$lib/paraglide/messages';
 
 const { isValid, isValidCIDR, parse, parseCIDR } = pkg;
 
@@ -198,6 +201,16 @@ export function sshPrivateKey(value: FormValue): string | undefined {
 	const envelope =
 		/^-----BEGIN (OPENSSH |RSA |EC )?PRIVATE KEY-----[\s\S]*-----END (OPENSSH |RSA |EC )?PRIVATE KEY-----$/;
 	return envelope.test(trimmed) ? undefined : credentials_invalidSshPrivateKey();
+}
+
+/** Proxmox VE API token ID: `user@realm!tokenname`. Mirrors `InlineFormat::ProxmoxTokenId`. */
+export function proxmoxTokenId(value: FormValue): string | undefined {
+	if (!value || typeof value !== 'string') return undefined;
+	const trimmed = value.trim();
+	if (!trimmed) return undefined;
+	return /^[^\s@!]+@[^\s@!]+![A-Za-z][A-Za-z0-9._-]*$/.test(trimmed)
+		? undefined
+		: credentials_invalidProxmoxTokenId();
 }
 
 /** PEM private key format validator */

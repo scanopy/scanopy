@@ -19,11 +19,11 @@ impl DaemonService {
         let user_id = auth.user_id().ok_or_else(ApiError::user_required)?;
 
         // Identity is server-owned. On the re-provision path it comes from the record — the
-        // request's name/network/mode/url are ignored, since those are immutable post-provision
+        // request's name/site/mode/url are ignored, since those are immutable post-provision
         // and the record already holds whatever the daemon last reported.
-        let (network_id, name, mode, reachable_url) = match &existing_daemon {
+        let (site_id, name, mode, reachable_url) = match &existing_daemon {
             Some(daemon) => (
-                daemon.base.network_id,
+                daemon.base.site_id,
                 daemon.base.name.clone(),
                 daemon.base.mode,
                 daemon.base.url.clone(),
@@ -31,8 +31,8 @@ impl DaemonService {
             // A fresh provision must say what it is creating; only the re-provision path can
             // inherit these from a record.
             None => (
-                request.network_id.ok_or_else(|| {
-                    ApiError::bad_request("network_id is required when provisioning a new daemon")
+                request.site_id.ok_or_else(|| {
+                    ApiError::bad_request("site_id is required when provisioning a new daemon")
                 })?,
                 request.name.clone().ok_or_else(|| {
                     ApiError::bad_request("name is required when provisioning a new daemon")
@@ -44,10 +44,10 @@ impl DaemonService {
         let is_server_poll = mode == DaemonMode::ServerPoll;
 
         let org_id = self
-            .network_service
-            .get_by_id(&network_id)
+            .site_service
+            .get_by_id(&site_id)
             .await?
-            .ok_or_else(|| ApiError::entity_not_found::<Network>(network_id))?
+            .ok_or_else(|| ApiError::entity_not_found::<Site>(site_id))?
             .base
             .organization_id;
 
@@ -82,8 +82,8 @@ impl DaemonService {
 
         // The partial-UNIQUE on api_keys.daemon_id makes the binding exclusive, so any key
         // already bound to this daemon has to go before the new one can take its place. Only a
-        // *bound* key is removed: a legacy daemon's network-shared key has daemon_id = NULL, is
-        // shared with every other legacy daemon on the network, and must survive untouched —
+        // *bound* key is removed: a legacy daemon's site-shared key has daemon_id = NULL, is
+        // shared with every other legacy daemon on the site, and must survive untouched —
         // that is exactly what keeps the daemon running until it is reconfigured.
         if let Some(old_key_id) = existing_daemon.as_ref().and_then(|d| d.base.api_key_id) {
             let old_key = self.daemon_api_key_service.get_by_id(&old_key_id).await?;
@@ -112,7 +112,7 @@ impl DaemonService {
             name: format!("{} API Key", name),
             last_used: None,
             expires_at: None,
-            network_id,
+            site_id,
             is_enabled: true,
             tags: Vec::new(),
             // When the daemon already exists the binding can be set outright. On the create path
@@ -155,7 +155,7 @@ impl DaemonService {
                 let created_daemon = self
                     .create_provisioned_daemon(
                         request,
-                        network_id,
+                        site_id,
                         name,
                         mode,
                         reachable_url,
@@ -188,7 +188,7 @@ impl DaemonService {
 
         tracing::info!(
             daemon_id = %created_daemon.id,
-            network_id = %network_id,
+            site_id = %site_id,
             user_id = %user_id,
             mode = ?created_daemon.base.mode,
             reprovisioned = request.daemon_id.is_some(),
@@ -204,7 +204,7 @@ impl DaemonService {
     async fn create_provisioned_daemon(
         &self,
         request: &ProvisionDaemonRequest,
-        network_id: Uuid,
+        site_id: Uuid,
         name: String,
         mode: DaemonMode,
         reachable_url: String,
@@ -224,12 +224,13 @@ impl DaemonService {
             // unattributed name. That ranks as a guess, so the hostname the daemon later reports
             // for itself titles the host instead.
             name: HostName::unnamed(),
-            network_id,
+            site_id,
             hostname: None,
             description: None,
             source: EntitySource::System,
             virtualization_metadata: None,
             virtualization_service_id: None,
+            virtualization_interface_id: None,
             hidden: false,
             tags: Vec::new(),
             sys_descr: None,
@@ -242,6 +243,7 @@ impl DaemonService {
             manufacturer: None,
             model: None,
             serial_number: None,
+            asset_tag: None,
             firmware_revision: None,
             software_revision: None,
             os: None,
@@ -257,7 +259,7 @@ impl DaemonService {
         // Seed the daemon host's loopback so a daemon-host socket/proxy credential is probed on
         // the very first scan (the credential mapping is snapshotted before the daemon self-reports).
         if let Err(e) = host_service
-            .seed_loopback(created_host.id, network_id, auth.clone())
+            .seed_loopback(created_host.id, site_id, auth.clone())
             .await
         {
             tracing::warn!(host_id = %created_host.id, error = %e, "Failed to seed daemon host loopback");
@@ -270,7 +272,7 @@ impl DaemonService {
         // daemon read as "Current" forever and poisoned any installed-base view.
         let daemon = Daemon::new(DaemonBase {
             host_id: created_host.id,
-            network_id,
+            site_id,
             url: reachable_url,
             last_seen: None,
             mode,
@@ -309,7 +311,7 @@ impl DaemonService {
         if let Err(e) = self
             .create_default_discovery_jobs(
                 created_daemon.id,
-                network_id,
+                site_id,
                 created_host.id,
                 is_free_plan,
                 &request.seed_credential_refs,

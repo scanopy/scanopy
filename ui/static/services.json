@@ -1,5 +1,45 @@
 [
   {
+    "category": "Container",
+    "color": "Blue",
+    "description": "A container that serves the Podman API on a TCP port in front of the runtime's socket",
+    "discovery_pattern": "No match pattern provided",
+    "icon": "box",
+    "logo_needs_white_background": false,
+    "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/podman.svg",
+    "name": "Podman API Proxy"
+  },
+  {
+    "category": "ContainerRuntime",
+    "color": "Blue",
+    "description": "Daemonless container runtime",
+    "discovery_pattern": "Client probe Podman succeeded",
+    "icon": "box",
+    "logo_needs_white_background": false,
+    "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/podman.svg",
+    "name": "Podman"
+  },
+  {
+    "category": "ContainerRuntime",
+    "color": "Blue",
+    "description": "Docker",
+    "discovery_pattern": "Client probe Docker succeeded",
+    "icon": "box",
+    "logo_needs_white_background": false,
+    "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/docker.svg",
+    "name": "Docker"
+  },
+  {
+    "category": "Container",
+    "color": "Blue",
+    "description": "A container that serves the Docker API on a TCP port in front of the runtime's socket",
+    "discovery_pattern": "No match pattern provided",
+    "icon": "box",
+    "logo_needs_white_background": false,
+    "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/docker.svg",
+    "name": "Docker API Proxy"
+  },
+  {
     "category": "Media",
     "color": "Blue",
     "description": "User invitation and management system for Jellyfin, Plex, Emby etc",
@@ -1563,7 +1603,7 @@
     "category": "Hypervisor",
     "color": "Amber",
     "description": "Open-source virtualization management platform",
-    "discovery_pattern": "Endpoint response body from <ip>:8006/ contains \"proxmox\"",
+    "discovery_pattern": "Any of: (Endpoint response body from <ip>:8006/ contains \"proxmox\", Client probe Proxmox succeeded)",
     "icon": "monitor-cog",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/proxmox.svg",
@@ -1588,16 +1628,6 @@
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Podman Container"
-  },
-  {
-    "category": "ContainerRuntime",
-    "color": "Blue",
-    "description": "Daemonless container runtime",
-    "discovery_pattern": "Client probe Podman succeeded",
-    "icon": "box",
-    "logo_needs_white_background": false,
-    "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/podman.svg",
-    "name": "Podman"
   },
   {
     "category": "Orchestrator",
@@ -1658,16 +1688,6 @@
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/docker.svg",
     "name": "Docker Swarm"
-  },
-  {
-    "category": "ContainerRuntime",
-    "color": "Blue",
-    "description": "Docker",
-    "discovery_pattern": "Client probe Docker succeeded",
-    "icon": "box",
-    "logo_needs_white_background": false,
-    "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/docker.svg",
-    "name": "Docker"
   },
   {
     "category": "Container",

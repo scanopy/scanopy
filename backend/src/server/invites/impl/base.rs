@@ -41,8 +41,8 @@ pub struct InviteBase {
     pub organization_id: Uuid,
     /// Role the invited user gets on acceptance.
     pub permissions: UserOrgPermissions,
-    /// The networks this entity applies to.
-    pub network_ids: Vec<Uuid>,
+    /// The sites this entity applies to.
+    pub site_ids: Vec<Uuid>,
     /// Link the recipient follows to accept the invite.
     pub url: String,
     /// User who sent the invite.
@@ -89,7 +89,7 @@ impl Invite {
         created_by: Uuid,
         expiration_hours: i64,
         permissions: UserOrgPermissions,
-        network_ids: Vec<Uuid>,
+        site_ids: Vec<Uuid>,
         send_to: Option<EmailAddress>,
     ) -> Self {
         let now = Utc::now();
@@ -100,7 +100,7 @@ impl Invite {
             base: InviteBase {
                 organization_id,
                 permissions,
-                network_ids,
+                site_ids,
                 url,
                 created_by,
                 expires_at: now + chrono::Duration::hours(expiration_hours),
@@ -148,7 +148,7 @@ impl Storable for Invite {
                 "id",
                 "organization_id",
                 "permissions",
-                "network_ids",
+                "site_ids",
                 "url",
                 "created_by",
                 "created_at",
@@ -160,7 +160,7 @@ impl Storable for Invite {
                 SqlValue::Uuid(self.id),
                 SqlValue::Uuid(self.base.organization_id),
                 SqlValue::UserOrgPermissions(self.base.permissions),
-                SqlValue::UuidArray(self.base.network_ids.clone()),
+                SqlValue::UuidArray(self.base.site_ids.clone()),
                 SqlValue::String(self.base.url.clone()),
                 SqlValue::Uuid(self.base.created_by),
                 SqlValue::Timestamp(self.created_at),
@@ -190,7 +190,7 @@ impl Storable for Invite {
             base: InviteBase {
                 organization_id: row.get("organization_id"),
                 permissions,
-                network_ids: row.get("network_ids"),
+                site_ids: row.get("site_ids"),
                 url: row.get("url"),
                 created_by: row.get("created_by"),
                 expires_at: row.get("expires_at"),
@@ -242,10 +242,10 @@ impl Entity for Invite {
         "Organization invitations. Invite users to join your organization.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::OrganizationsAndUsers
+        EntityCategory::Platform
     }
 
-    fn network_id(&self) -> Option<Uuid> {
+    fn site_id(&self) -> Option<Uuid> {
         None
     }
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isApplicationTag } from '$lib/features/tags/groups';
 	import type { Node } from '@xyflow/svelte';
 	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
@@ -8,13 +9,13 @@
 	import { useTagsQuery, type EntityDiscriminants } from '$lib/features/tags/queries';
 	import { concepts } from '$lib/shared/stores/metadata';
 	import {
-		common_application,
 		common_ungrouped,
 		tags_inheritedFromHost,
 		tags_inheritedOverrideHint,
 		common_overrides,
 		tags_fromHost
 	} from '$lib/paraglide/messages';
+	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	/* eslint-disable @typescript-eslint/no-unused-vars -- component contract props */
 	let {
@@ -52,7 +53,7 @@
 	});
 
 	// App tags
-	let appTags = $derived(entityTags.filter((t) => t.is_application));
+	let appTags = $derived(entityTags.filter((t) => isApplicationTag(t)));
 	let appTagIds = $derived(new Set(appTags.map((t) => t.id)));
 
 	// Selected app tags: direct first, then inherited from host
@@ -106,8 +107,7 @@
 </script>
 
 {#if entityId}
-	<div class="space-y-2">
-		<span class="text-secondary block text-sm font-medium">{common_application()}</span>
+	<InspectorSection id="Application" section="Application">
 		<div class="card card-static space-y-2 p-2">
 			{#if hasAppTag && currentAppTag}
 				<div class="flex flex-wrap items-center gap-1">
@@ -156,10 +156,11 @@
 					{entityType}
 					disabled={!editState.isEditable}
 					availableTags={isAppInherited ? appTags : appAvailableTags}
-					allowCreate={false}
+					allowCreate={!hasAppTag || isAppInherited}
+					createAsApplication={true}
 					hideAddButton={showUngroupedPseudo}
 				/>
 			</div>
 		</div>
-	</div>
+	</InspectorSection>
 {/if}

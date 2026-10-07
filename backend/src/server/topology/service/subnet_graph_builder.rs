@@ -372,6 +372,7 @@ impl SubnetGraphBuilder {
                     tag_ids,
                     element_entity: EntityDiscriminants::IPAddress,
                     virtualizer_service_id: None,
+                    virtualizer_role: None,
                     deployment_group,
                     native_vlan_id: None,
                     vlan_number: None,
@@ -552,7 +553,8 @@ mod tests {
                 description: None,
                 color: Color::Yellow,
                 organization_id: Uuid::new_v4(),
-                is_application: false,
+                tag_group: None,
+                icon: None,
             },
             ..Default::default()
         }

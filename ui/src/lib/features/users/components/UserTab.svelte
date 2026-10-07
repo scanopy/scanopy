@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { useNetworksQuery } from '$lib/features/networks/queries';
-	import { networkItems } from '$lib/features/networks/columns';
+	import { useSitesQuery } from '$lib/features/sites/queries';
+	import { siteItems } from '$lib/features/sites/columns';
 	import type { LabelledCardFieldItem } from '$lib/shared/components/data/types';
 	import { Edit, UserX, Trash2 } from 'lucide-svelte';
 	import type { CardAction } from '$lib/shared/components/data/types';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import type { FieldConfig } from '$lib/shared/components/data/types';
 	import {
 		useInvitesQuery,
@@ -30,12 +30,13 @@
 	import { tooltip } from '$lib/shared/actions/tooltip';
 	import {
 		common_all,
-		common_networks,
+		common_sites,
 		common_edit,
 		common_confirmBulkDelete,
 		common_delete,
 		common_email,
 		common_emailAndPassword,
+		common_none,
 		common_expires,
 		common_joined,
 		common_revoke,
@@ -51,6 +52,7 @@
 		invites_createdBy,
 		invites_pendingInvite,
 		users_authMethod,
+		users_authMethodOidcAndPassword,
 		users_confirmDeleteUser,
 		users_emailVerified,
 		users_inviteUser,
@@ -162,25 +164,25 @@
 	}
 
 	// Only define fields for users (invites won't be filtered/sorted)
-	const networksQuery = useNetworksQuery();
-	let networksData = $derived(networksQuery.data ?? []);
+	const sitesQuery = useSitesQuery();
+	let sitesData = $derived(sitesQuery.data ?? []);
 
 	/**
-	 * The networks a user can reach.
+	 * The sites a user can reach.
 	 *
-	 * Admins and owners reach every network, which is a different statement from
+	 * Admins and owners reach every site, which is a different statement from
 	 * being assigned all of them — so it reads as one "All" chip rather than a
-	 * list that would go stale the moment a network is added.
+	 * list that would go stale the moment a site is added.
 	 */
-	function userNetworkItems(item: UserOrInvite): LabelledCardFieldItem[] {
+	function userSiteItems(item: UserOrInvite): LabelledCardFieldItem[] {
 		if (!isUser(item)) return [];
 		const user = item.data;
 
 		if (user.permissions === 'Admin' || user.permissions === 'Owner') {
-			return [{ id: 'all', label: common_all(), color: entities.getColorHelper('Network').color }];
+			return [{ id: 'all', label: common_all(), color: entities.getColorHelper('Site').color }];
 		}
 
-		return networkItems(user.network_ids ?? [], networksData);
+		return siteItems(user.site_ids ?? [], sitesData);
 	}
 
 	const revokeInviteMutation = useRevokeInviteMutation();
@@ -248,9 +250,10 @@
 
 	/**
 	 * The list holds two shapes, so every field resolves for both. A field that
-	 * only one variant has returns empty for the other rather than existing in
-	 * only one view — that asymmetry is what the card/table split used to hide.
+	 * only one variant has returns empty for the other.
 	 */
+	const tableDefaults: TableDefaults<string> = { sort: { field: 'email', direction: 'asc' } };
+
 	const userFields: FieldConfig<UserOrInvite>[] = [
 		{
 			key: 'email',
@@ -277,7 +280,6 @@
 						? common_you()
 						: common_user(),
 			display: {
-				statusTag: true,
 				getItems: (item) => {
 					if (!isUser(item)) {
 						return [{ id: 'pending', label: invites_pendingInvite(), color: 'Yellow' }];
@@ -315,14 +317,14 @@
 			}
 		},
 		{
-			key: 'network_ids',
-			label: common_networks(),
+			key: 'site_ids',
+			label: common_sites(),
 			type: 'array',
 			searchable: true,
-			// Users share networks, so this filters; as an array it neither sorts nor groups.
+			// Users share sites, so this filters; as an array it neither sorts nor groups.
 			filterable: true,
-			getValue: (item) => userNetworkItems(item).map((n) => n.label),
-			display: { getItems: userNetworkItems }
+			getValue: (item) => userSiteItems(item).map((n) => n.label),
+			display: { getItems: userSiteItems }
 		},
 		{
 			key: 'oidc_provider',
@@ -333,7 +335,14 @@
 			groupable: true,
 			sortable: true,
 			getValue(item) {
-				return isUser(item) ? item.data.oidc_provider || common_emailAndPassword() : null;
+				if (!isUser(item)) return null;
+				const { oidc_provider, has_password } = item.data;
+				if (oidc_provider) {
+					return has_password
+						? users_authMethodOidcAndPassword({ provider: oidc_provider })
+						: oidc_provider;
+				}
+				return has_password ? common_emailAndPassword() : common_none();
 			}
 		},
 		{
@@ -411,37 +420,35 @@
 	];
 </script>
 
-<div class="space-y-6">
-	<!-- Header -->
-	<TabHeader title={common_users()} subtitle={users_subtitle()}>
-		<svelte:fragment slot="actions">
-			<div class="flex items-center gap-3">
-				{#if seatLimit !== null && !canBuyMoreSeats}
-					<span class="text-sm {isAtSeatLimit ? 'text-amber-400' : 'text-tertiary'}">
-						{userCount} / {seatLimit}
-					</span>
-				{/if}
-				{#if canInviteUsers}
-					{#if isAtSeatLimit}
-						<UpgradeButton feature="seats" surface="users_tab" gate_type="limit_hit" />
-					{:else if currentUser && !currentUser.email_verified}
-						<span data-tooltip={users_verifyEmailToInvite()} use:tooltip>
-							<button class="btn-primary flex items-center opacity-50" disabled>
-								<UserPlus class="mr-2 h-5 w-5" />
-								{users_inviteUser()}
-							</button>
-						</span>
-					{:else}
-						<button class="btn-primary flex items-center" onclick={handleCreateInvite}>
-							<UserPlus class="mr-2 h-5 w-5" />
-							{users_inviteUser()}
-						</button>
-					{/if}
-				{/if}
-			</div>
-		</svelte:fragment>
-	</TabHeader>
+<!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
+{#snippet toolbarActions()}
+	<div class="flex items-center gap-3">
+		{#if seatLimit !== null && !canBuyMoreSeats}
+			<span class="text-sm {isAtSeatLimit ? 'text-amber-400' : 'text-tertiary'}">
+				{userCount} / {seatLimit}
+			</span>
+		{/if}
+		{#if canInviteUsers}
+			{#if isAtSeatLimit}
+				<UpgradeButton feature="seats" surface="users_tab" gate_type="limit_hit" />
+			{:else if currentUser && !currentUser.email_verified}
+				<span data-tooltip={users_verifyEmailToInvite()} use:tooltip>
+					<button class="btn-primary toolbar-control flex items-center opacity-50" disabled>
+						<UserPlus class="mr-2 h-5 w-5" />
+						{users_inviteUser()}
+					</button>
+				</span>
+			{:else}
+				<button class="btn-primary toolbar-control flex items-center" onclick={handleCreateInvite}>
+					<UserPlus class="mr-2 h-5 w-5" />
+					{users_inviteUser()}
+				</button>
+			{/if}
+		{/if}
+	</div>
+{/snippet}
 
+<div class="space-y-6">
 	<!-- Loading state -->
 	{#if isLoading}
 		<Loading />
@@ -450,16 +457,16 @@
 		<EmptyState title={users_noUsersFound()} subtitle={users_noUsersSubtitle()} />
 	{:else}
 		<DataControls
+			title={common_users()}
+			subtitle={users_subtitle()}
+			{toolbarActions}
 			items={combinedItems}
 			fields={userFields}
 			storageKey="scanopy-users-table-state"
+			defaults={tableDefaults}
 			onBulkDelete={handleBulkDelete}
 			getItemId={(item) => item.id}
 			getActions={userActions}
-			getIcon={() => ({
-				icon: entities.getIconComponent('User'),
-				color: entities.getColorHelper('User').icon
-			})}
 			onCsvExport={handleCsvExport}
 		></DataControls>
 	{/if}

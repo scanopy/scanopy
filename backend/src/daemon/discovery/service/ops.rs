@@ -34,6 +34,7 @@ use crate::{
             mapping::CredentialQueryPayloadDiscriminants,
             run_results::{CredentialRunOutcome, CredentialRunResult},
             types::CredentialAssignment,
+            types::CredentialIntegration,
         },
         daemons::r#impl::{
             api::{DaemonDiscoveryRequest, DiscoveryUpdatePayload},
@@ -43,16 +44,16 @@ use crate::{
         hosts::r#impl::{
             api::{DiscoveryHostRequest, HostResponse},
             attributes::{
-                HostChassisIdValue, HostFirmwareRevisionValue, HostHostnameAttributed,
-                HostHostnameValue, HostManagementUrlValue, HostManufacturerValue, HostModelValue,
-                HostOsAttributed, HostOsValue, HostSerialNumberValue, HostSoftwareRevisionValue,
-                HostSysContactValue, HostSysDescrValue, HostSysLocationValue, HostSysNameValue,
-                HostSysObjectIdValue,
+                HostAssetTagValue, HostChassisIdValue, HostFirmwareRevisionValue,
+                HostHostnameAttributed, HostHostnameValue, HostManagementUrlValue,
+                HostManufacturerValue, HostModelValue, HostOsAttributed, HostOsValue,
+                HostSerialNumberValue, HostSoftwareRevisionValue, HostSysContactValue,
+                HostSysDescrValue, HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
             },
             base::{Host, HostBase},
             name::{HostName, HostNameSources},
             os::HostOs,
-            virtualization::HostVirtualization,
+            virtualization::{HostVirtualization, undeclared_virtualization},
         },
         interfaces::{
             r#impl::base::{Interface, InterfaceDataComplete},
@@ -77,7 +78,7 @@ use crate::{
             types::entities::EntitySource,
             types::metadata::HasId,
         },
-        subnets::r#impl::base::Subnet,
+        subnets::r#impl::{base::Subnet, inference::is_inferrable_space},
     },
 };
 
@@ -114,7 +115,7 @@ const SERVER_POLL_CONFIRMATION_TIMEOUT: Duration = Duration::from_secs(120);
 /// Minimum spacing between the *start* of consecutive DaemonPoll host-create
 /// requests. Deep scans complete in near-simultaneous bursts; without this the
 /// daemon fires many host-creates at once and they pile up on the server's
-/// per-network `HostDedup` advisory lock, spiking the endpoint. ~40 req/s steady
+/// per-site `HostDedup` advisory lock, spiking the endpoint. ~40 req/s steady
 /// ceiling — matched to the server's serialized create throughput, so this
 /// flattens the arrival burst without costing real throughput.
 const MIN_HOST_SUBMIT_INTERVAL: Duration = Duration::from_millis(25);
@@ -132,6 +133,37 @@ async fn reserve_submit_slot(
     let at = (*next).max(tokio::time::Instant::now());
     *next = at + interval;
     at
+}
+
+/// Drop every address the server could place nowhere: a nil subnet id, which asks the server to
+/// infer a range, on an address outside the space it infers ranges for (public IPv4, global IPv6).
+/// The server's FK insert would otherwise fail the whole host.
+///
+/// The backstop for [`IPAddress::discovered`], the rule every integration builds its addresses
+/// with: one that builds an address another way loses that address, not the host. An interface
+/// that pointed at a dropped address keeps its other data and loses only that reference.
+fn retain_submittable_addresses(ip_addresses: &mut Vec<IPAddress>, interfaces: &mut [Interface]) {
+    let mut dropped = HashSet::new();
+    ip_addresses.retain(|a| {
+        let submittable = !a.base.subnet_id.is_nil() || is_inferrable_space(&a.base.ip_address);
+        if !submittable {
+            tracing::warn!(
+                ip = %a.base.ip_address,
+                "Dropping a discovered address no subnet holds and none may be inferred for"
+            );
+            dropped.insert(a.id);
+        }
+        submittable
+    });
+    for interface in interfaces {
+        if interface
+            .base
+            .ip_address_id
+            .is_some_and(|id| dropped.contains(&id))
+        {
+            interface.base.ip_address_id = None;
+        }
+    }
 }
 
 /// Mutable host state passed to integration execute() methods.
@@ -290,6 +322,14 @@ impl HostData {
         self
     }
 
+    pub fn with_asset_tag(&mut self, v: String, source: AttributeSource) -> &mut Self {
+        Attributed::apply(
+            &mut self.host.base.asset_tag,
+            Attributed::new(HostAssetTagValue(v), source),
+        );
+        self
+    }
+
     pub fn with_firmware_revision(&mut self, v: String, source: AttributeSource) -> &mut Self {
         Attributed::apply(
             &mut self.host.base.firmware_revision,
@@ -403,7 +443,7 @@ impl HostData {
     ///
     /// **Nothing offered here is ever discarded.** Picking a winner is not safe even between two
     /// `FullIfTable` collectors: a device can answer SNMP with a thin or empty ifTable while
-    /// answering gNMI with the real one, and with network-wide credentials which of them is asked
+    /// answering gNMI with the real one, and with site-wide credentials which of them is asked
     /// first is arbitrary. So sets are unioned, and scope only decides which row wins where two
     /// contributors describe the *same* interface.
     ///
@@ -598,7 +638,7 @@ impl HostData {
 
     /// Offer a subnet, ignoring one already present.
     ///
-    /// Keyed on `Subnet`'s own equality (CIDR + network), which is the same natural key the
+    /// Keyed on `Subnet`'s own equality (CIDR + site), which is the same natural key the
     /// server deduplicates on, so the two cannot drift apart. This was a bare push, and
     /// `container::execute` runs several times against one host — once per Docker/Podman
     /// socket/proxy credential type, and again for the sweep phase after the daemon-host phase —
@@ -677,11 +717,11 @@ impl DiscoveryOps {
         self.config_store.get_id().await
     }
 
-    pub async fn network_id(&self) -> Result<Uuid, Error> {
+    pub async fn site_id(&self) -> Result<Uuid, Error> {
         self.config_store
-            .get_network_id()
+            .get_site_id()
             .await?
-            .ok_or_else(|| anyhow!("Network ID not set"))
+            .ok_or_else(|| anyhow!("Site ID not set"))
     }
 
     pub async fn get_session(&self) -> Result<super::base::DiscoverySession, Error> {
@@ -708,15 +748,15 @@ impl DiscoveryOps {
             request.discovery_type,
             request.session_id
         );
-        let network_id = self
+        let site_id = self
             .config_store
-            .get_network_id()
+            .get_site_id()
             .await?
-            .ok_or_else(|| anyhow!("Network ID not set, aborting discovery session"))?;
+            .ok_or_else(|| anyhow!("Site ID not set, aborting discovery session"))?;
 
         let session_info = DiscoverySessionInfo {
             session_id: request.session_id,
-            network_id,
+            site_id,
             daemon_id,
             started_at: Some(Utc::now()),
             discovery_type: request.discovery_type.clone(),
@@ -991,7 +1031,7 @@ impl DiscoveryOps {
     ///
     /// The one route an integration has to the operator, and the reason the session's buffers are
     /// not `pub`. Whether an attempt is a *finding* is not an integration's call to make — it
-    /// turns on whether the user pinned this credential to this host or it is a network default
+    /// turns on whether the user pinned this credential to this host or it is a site default
     /// tried at every address in the subnet, which the integration cannot see. The judgement
     /// lives in [`warnings::issue_for_attempt`] so both callers share it.
     pub async fn record_attempt_failure(
@@ -1321,10 +1361,60 @@ impl DiscoveryOps {
         result
     }
 
+    /// Create a host an integration discovered, checked against what that integration declares
+    /// it reports ([`CredentialIntegration::host_virtualizations`]).
+    ///
+    /// The only way an integration submits a host: [`Self::create_host`] is private to this
+    /// module tree. A host carrying a kind of virtualization its integration does not declare
+    /// fails a debug assertion, so tests and debug builds catch it; a release build warns and
+    /// submits it anyway, since the gap is in the declaration (and the docs built from it), not
+    /// in the host.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn create_integration_host(
+        &self,
+        integration: CredentialIntegration,
+        host: Host,
+        ip_addresses: Vec<IPAddress>,
+        ports: Vec<Port>,
+        services: Vec<Service>,
+        interfaces: Vec<Interface>,
+        subnets: Vec<Subnet>,
+        interfaces_complete: bool,
+        interface_data_complete: InterfaceDataComplete,
+        cancel: &CancellationToken,
+    ) -> Result<HostResponse, Error> {
+        if let Some(kind) = undeclared_virtualization(integration, &host) {
+            tracing::warn!(
+                integration = ?integration,
+                virtualization = ?kind,
+                "An integration submitted a host with a virtualization it does not declare reporting"
+            );
+            debug_assert!(
+                false,
+                "{integration:?} submitted a {kind:?} host; add it to host_virtualizations()"
+            );
+        }
+        self.create_host(
+            host,
+            ip_addresses,
+            ports,
+            services,
+            interfaces,
+            subnets,
+            interfaces_complete,
+            interface_data_complete,
+            cancel,
+        )
+        .await
+    }
+
     /// Create a host with its children.
     /// DaemonPoll: POSTs to server. ServerPoll: buffers for server to poll.
+    ///
+    /// Private to the discovery service: integrations submit through
+    /// [`Self::create_integration_host`], which checks what they report.
     #[allow(clippy::too_many_arguments)]
-    pub async fn create_host(
+    pub(in crate::daemon::discovery::service) async fn create_host(
         &self,
         host: Host,
         ip_addresses: Vec<IPAddress>,
@@ -1338,6 +1428,8 @@ impl DiscoveryOps {
     ) -> Result<HostResponse, Error> {
         let mode = self.config_store.get_mode().await?;
         let pending_id = host.id;
+        let (mut ip_addresses, mut interfaces) = (ip_addresses, interfaces);
+        retain_submittable_addresses(&mut ip_addresses, &mut interfaces);
 
         let request = DiscoveryHostRequest {
             host,
@@ -1358,7 +1450,7 @@ impl DiscoveryOps {
             DaemonMode::DaemonPoll => {
                 // Stagger request starts so a burst of near-simultaneous deep-scan
                 // completions doesn't hammer the host-create endpoint (where they
-                // serialize on the server's per-network `HostDedup` lock).
+                // serialize on the server's per-site `HostDedup` lock).
                 let scheduled =
                     reserve_submit_slot(&self.host_submit_gate, MIN_HOST_SUBMIT_INTERVAL).await;
                 tokio::time::sleep_until(scheduled).await;
@@ -1389,7 +1481,7 @@ impl DiscoveryOps {
                 Ok(response)
             }
             DaemonMode::ServerPoll => {
-                let actual_host = self
+                let confirmed = self
                     .entity_buffer
                     .await_host(&pending_id, SERVER_POLL_CONFIRMATION_TIMEOUT, cancel)
                     .await
@@ -1401,12 +1493,14 @@ impl DiscoveryOps {
                         }
                     })?;
 
+                // The confirmed children, not `request.*`: the server remaps services and
+                // addresses onto existing rows, and DaemonPoll hands those real ids back too.
                 Ok(HostResponse::from_host_with_children(
-                    actual_host,
-                    request.ip_addresses,
-                    request.ports,
-                    request.services,
-                    request.interfaces,
+                    confirmed.host,
+                    confirmed.ip_addresses,
+                    confirmed.ports,
+                    confirmed.services,
+                    confirmed.interfaces,
                 ))
             }
         }
@@ -1466,14 +1560,14 @@ impl DiscoveryOps {
     pub async fn upsert_vlans(
         &self,
         vlans: &[crate::daemon::discovery::integration::snmp::types::VlanInfo],
-        network_id: Uuid,
+        site_id: Uuid,
     ) -> Result<std::collections::HashMap<u16, Uuid>, Error> {
         use crate::server::vlans::handlers::{
             VlanDiscoveryItem, VlanDiscoveryRequest, VlanDiscoveryResponse,
         };
 
         let request = VlanDiscoveryRequest {
-            network_id,
+            site_id,
             vlans: vlans
                 .iter()
                 .map(|v| VlanDiscoveryItem {
@@ -1528,7 +1622,7 @@ impl DiscoveryOps {
         baseline_params: &ServiceMatchBaselineParams,
         gateway_ips: &[IpAddr],
         daemon_id: &Uuid,
-        network_id: &Uuid,
+        site_id: &Uuid,
     ) -> Result<(Vec<Service>, Vec<Port>), Error> {
         use crate::server::services::definitions::{
             docker_container::DockerContainer, open_ports::OpenPorts,
@@ -1575,7 +1669,7 @@ impl DiscoveryOps {
                     baseline_params,
                     daemon_id,
                     discovery_type: &self.discovery_type,
-                    network_id,
+                    site_id,
                     gateway_ips,
                     host_id: &host.id,
                 };
@@ -1632,7 +1726,7 @@ impl DiscoveryOps {
         let ServiceMatchBaselineParams { ip_address, .. } = params;
 
         let daemon_id = self.daemon_id().await?;
-        let network_id = self.network_id().await?;
+        let site_id = self.site_id().await?;
         let session = self.get_session().await?;
         let gateway_ips = session.gateway_ips.clone();
 
@@ -1640,11 +1734,12 @@ impl DiscoveryOps {
             name: HostName::unnamed(),
             hostname,
             tags: Vec::new(),
-            network_id,
+            site_id,
             description: None,
             source: EntitySource::Discovery,
             virtualization_metadata: None,
             virtualization_service_id: None,
+            virtualization_interface_id: None,
             hidden: false,
             sys_descr: None,
             sys_object_id: None,
@@ -1656,6 +1751,7 @@ impl DiscoveryOps {
             manufacturer: None,
             model: None,
             serial_number: None,
+            asset_tag: None,
             firmware_revision: None,
             software_revision: None,
             os: None,
@@ -1665,7 +1761,7 @@ impl DiscoveryOps {
         let ip_addresses = vec![ip_address.clone()];
 
         let (services, ports) =
-            self.match_services(&host, &params, &gateway_ips, &daemon_id, &network_id)?;
+            self.match_services(&host, &params, &gateway_ips, &daemon_id, &site_id)?;
 
         // Determine host name
         let best_service_name = services
@@ -1961,7 +2057,7 @@ mod tests {
         use crate::server::interfaces::r#impl::base::{IfAdminStatus, IfOperStatus, InterfaceBase};
         Interface::new(InterfaceBase {
             host_id: Uuid::new_v4(),
-            network_id: Uuid::new_v4(),
+            site_id: Uuid::new_v4(),
             if_index: Some(if_index),
             if_descr: Some(name.to_string()),
             if_name: Some(name.to_string()),
@@ -2179,7 +2275,7 @@ mod tests {
 
     /// The case this replaced a hand-written guard for: two contributors of equal reach where one
     /// is thin. A device can answer SNMP with an almost-empty ifTable and gNMI with the real one,
-    /// and network-wide credentials make the order arbitrary — so neither order may lose rows.
+    /// and site-wide credentials make the order arbitrary — so neither order may lose rows.
     #[test]
     fn a_thin_view_never_erases_a_rich_one_in_either_order() {
         let rich = vec![port("eth1", 1), port("eth2", 2), port("eth3", 3)];
@@ -2241,7 +2337,7 @@ mod tests {
             subnet_type: SubnetType::DockerBridge,
             ..Default::default()
         };
-        // Distinct rows, same CIDR and network — exactly what a second execute() produces, since
+        // Distinct rows, same CIDR and site — exactly what a second execute() produces, since
         // every run mints fresh UUIDs for the subnets it reports.
         host_data.add_subnet(Subnet::new(base.clone()));
         host_data.add_subnet(Subnet::new(base));
@@ -2288,6 +2384,43 @@ mod tests {
         // The reserved slot is "now", not the stale past value — no artificial
         // wait is imposed on the first request after an idle period.
         assert!(slot >= before);
+    }
+
+    /// A nil subnet on a global address is dropped before submission, along with any interface's
+    /// reference to it; held addresses and nil ULA addresses (the server infers those) go through.
+    #[test]
+    fn an_address_the_server_could_not_place_is_not_submitted() {
+        use crate::server::interfaces::r#impl::base::InterfaceBase;
+        use crate::server::ip_addresses::r#impl::base::IPAddressBase;
+
+        let address = |ip: &str, subnet_id: Uuid| {
+            IPAddress::new(IPAddressBase {
+                subnet_id,
+                ip_address: ip.parse().unwrap(),
+                ..Default::default()
+            })
+        };
+        let held = address("192.168.4.126", Uuid::new_v4());
+        let global = address("2600:4808:58d0:3a00::5", Uuid::nil());
+        let ula = address("fd0b:d38d:98f6:1::5", Uuid::nil());
+        let mut interfaces = vec![
+            Interface::new(InterfaceBase {
+                ip_address_id: Some(global.id),
+                ..Default::default()
+            }),
+            Interface::new(InterfaceBase {
+                ip_address_id: Some(held.id),
+                ..Default::default()
+            }),
+        ];
+        let mut ip_addresses = vec![held.clone(), global, ula.clone()];
+
+        retain_submittable_addresses(&mut ip_addresses, &mut interfaces);
+
+        let kept: Vec<Uuid> = ip_addresses.iter().map(|a| a.id).collect();
+        assert_eq!(kept, vec![held.id, ula.id]);
+        assert_eq!(interfaces[0].base.ip_address_id, None);
+        assert_eq!(interfaces[1].base.ip_address_id, Some(held.id));
     }
 }
 

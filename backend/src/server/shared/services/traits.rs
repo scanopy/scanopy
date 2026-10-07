@@ -26,7 +26,7 @@ pub trait EventBusService<T: Into<EntityEnum> + Default + Clone> {
     /// Event bus and helpers
     fn event_bus(&self) -> &Arc<EventBus>;
 
-    fn get_network_id(&self, entity: &T) -> Option<Uuid>;
+    fn get_site_id(&self, entity: &T) -> Option<Uuid>;
     fn get_organization_id(&self, entity: &T) -> Option<Uuid>;
 
     /// Whether to suppress activity logs for this operation.
@@ -42,7 +42,7 @@ pub trait EventBusService<T: Into<EntityEnum> + Default + Clone> {
 }
 
 /// Build a typed entity event from the per-service identity helpers + entity.
-/// Returns `None` if neither network_id nor organization_id is available — in
+/// Returns `None` if neither site_id nor organization_id is available — in
 /// that case the publish should be skipped.
 fn build_entity_event<T, S>(
     bus_service: &S,
@@ -56,9 +56,9 @@ where
     T: Into<EntityEnum> + Default + Clone,
     S: EventBusService<T> + ?Sized,
 {
-    let network_id = bus_service.get_network_id(&entity);
+    let site_id = bus_service.get_site_id(&entity);
     let organization_id = bus_service.get_organization_id(&entity);
-    let scope = EntityScope::from_ids(entity_id, entity.into(), network_id, organization_id)?;
+    let scope = EntityScope::from_ids(entity_id, entity.into(), site_id, organization_id)?;
     Some(TypedEvent::new(scope, operation, authentication).with_flags(flags))
 }
 
@@ -195,13 +195,13 @@ where
         Ok(paginated)
     }
 
-    /// Count rows for the given networks. Scope is standardized here (not built
+    /// Count rows for the given sites. Scope is standardized here (not built
     /// at the call site): SCD2 entities are narrowed to live rows so snapshot
     /// closed-copies aren't counted; non-SCD2 entities get a plain count. For
-    /// scopes more custom than network/org (e.g. parent-scoped junctions), drop
+    /// scopes more custom than site/org (e.g. parent-scoped junctions), drop
     /// to `storage().count(filter)` with a bespoke filter.
-    async fn count_for_networks(&self, network_ids: &[Uuid]) -> Result<u64, anyhow::Error> {
-        let mut filter = StorableFilter::<T>::new_from_network_ids(network_ids);
+    async fn count_for_sites(&self, site_ids: &[Uuid]) -> Result<u64, anyhow::Error> {
+        let mut filter = StorableFilter::<T>::new_from_site_ids(site_ids);
         if T::HAS_SCD2 {
             filter = filter.live();
         }
@@ -225,8 +225,24 @@ where
             .collect())
     }
 
+    /// [`Self::count_by_group`], counting distinct values of `distinct_sql` per group.
+    async fn count_distinct_by_group(
+        &self,
+        filter: StorableFilter<T>,
+        group_sql: &str,
+        distinct_sql: &str,
+    ) -> Result<Vec<GroupCount>, anyhow::Error> {
+        Ok(self
+            .storage()
+            .count_distinct_by_group(filter, group_sql, distinct_sql)
+            .await?
+            .into_iter()
+            .map(GroupCount::from)
+            .collect())
+    }
+
     /// Count rows for an organization. Same SCD2-aware live narrowing as
-    /// [`count_for_networks`].
+    /// [`count_for_sites`].
     async fn count_for_org(&self, organization_id: &Uuid) -> Result<u64, anyhow::Error> {
         let mut filter = StorableFilter::<T>::new_from_org_id(organization_id);
         if T::HAS_SCD2 {
@@ -291,13 +307,13 @@ where
         Ok(())
     }
 
-    /// Validate that every id in `ids` refers to a live entity on a network the
-    /// caller can access. Network-keyed analogue of [`validate_ids_in_org`], for
-    /// entities scoped by `network_id` rather than `organization_id`.
-    async fn validate_ids_in_networks(
+    /// Validate that every id in `ids` refers to a live entity on a site the
+    /// caller can access. Site-keyed analogue of [`validate_ids_in_org`], for
+    /// entities scoped by `site_id` rather than `organization_id`.
+    async fn validate_ids_in_sites(
         &self,
         ids: &[Uuid],
-        user_network_ids: &[Uuid],
+        user_site_ids: &[Uuid],
     ) -> Result<(), ApiError> {
         let unique: Vec<Uuid> = ids
             .iter()
@@ -313,8 +329,8 @@ where
         let accessible: std::collections::HashSet<Uuid> = entities
             .iter()
             .filter(|e| {
-                self.get_network_id(e)
-                    .is_some_and(|n| user_network_ids.contains(&n))
+                self.get_site_id(e)
+                    .is_some_and(|n| user_site_ids.contains(&n))
             })
             .map(|e| e.id())
             .collect();
@@ -532,11 +548,11 @@ where
     async fn delete_all_for_org(
         &self,
         organization_id: &Uuid,
-        network_ids: &[Uuid],
+        site_ids: &[Uuid],
         authentication: AuthenticatedEntity,
     ) -> Result<usize, anyhow::Error> {
-        let filter = if T::is_network_keyed() {
-            StorableFilter::<T>::new_from_network_ids(network_ids)
+        let filter = if T::is_site_keyed() {
+            StorableFilter::<T>::new_from_site_ids(site_ids)
         } else {
             StorableFilter::<T>::new_from_org_id(organization_id)
         };
@@ -701,7 +717,7 @@ where
             if let Some(scope) = EntityScope::from_ids(
                 entity.id(),
                 entity.clone().into(),
-                entity.network_id(),
+                entity.site_id(),
                 entity.organization_id(),
             ) {
                 let event =
@@ -846,6 +862,65 @@ where
         }
         self.storage().update_many(&entities).await?;
         Ok(())
+    }
+}
+
+/// Advance `last_seen_at` on rows a scan observed through evidence rather than a submission.
+///
+/// A daemon's submission refreshes what it names as it is written. The server-side neighbour
+/// pass finds more: far ends a switch re-advertised, the ports and addresses they carry, and the
+/// ranges those addresses sit in. Nothing writes those rows, so without this their Last seen stays
+/// at the scan that first created them and they drift stale while every scan still sees them.
+///
+/// Called before the run's session is written, never from the discovery-FK subscriber: the digest
+/// reads `last_seen_at` off the same event, and subscriber order is not guaranteed.
+#[async_trait]
+pub trait ObservationRefresher<E: DiscoveryTracked + Display> {
+    /// Load the live rows `filter` matches, move any older `last_seen_at` up to `scan_time`, and
+    /// return every matched row.
+    async fn refresh_observed(
+        &self,
+        filter: StorableFilter<E>,
+        scan_time: chrono::DateTime<chrono::Utc>,
+    ) -> Result<Vec<E>, Error>;
+}
+
+#[async_trait]
+impl<S, E> ObservationRefresher<E> for S
+where
+    S: CrudService<E> + Sync,
+    E: Entity
+        + Into<EntityEnum>
+        + Default
+        + Display
+        + ChangeTriggersTopologyStaleness<E>
+        + DiscoveryTracked
+        + Send
+        + Sync,
+{
+    async fn refresh_observed(
+        &self,
+        filter: StorableFilter<E>,
+        scan_time: chrono::DateTime<chrono::Utc>,
+    ) -> Result<Vec<E>, Error> {
+        let mut observed = self.storage().get_all(filter.live()).await?;
+        let mut stale: Vec<E> = observed
+            .iter()
+            .filter(|e| e.last_seen_at() < scan_time)
+            .cloned()
+            .collect();
+        if !stale.is_empty() {
+            for e in stale.iter_mut() {
+                e.set_last_seen_at(scan_time);
+            }
+            self.storage().update_many(&stale).await?;
+            for e in observed.iter_mut() {
+                if e.last_seen_at() < scan_time {
+                    e.set_last_seen_at(scan_time);
+                }
+            }
+        }
+        Ok(observed)
     }
 }
 

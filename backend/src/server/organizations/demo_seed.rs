@@ -28,7 +28,7 @@ use uuid::Uuid;
 
 use super::handlers::DEMO_USER_ID;
 
-/// A demo dataset that cannot be written in a single-layer hoist.
+/// A demo dataset whose virtualization owners cannot be ordered.
 ///
 /// Both variants mean `demo_data.rs` and this module have drifted apart, not that a user did
 /// anything wrong — hence `internal_error`.
@@ -36,9 +36,9 @@ use super::handlers::DEMO_USER_ID;
 pub(crate) enum DemoSeedError {
     /// A row names a virtualizing service the dataset never defines.
     UnresolvableOwner { owner: Uuid },
-    /// A row that has to be hoisted is itself virtualized by something not yet written, so one
-    /// hoisted layer is not enough to order the batch.
-    NestedOwner { hoisted: Uuid, names: Uuid },
+    /// Owner services wait on each other in a cycle, so no order writes each one after the
+    /// service its own row (or its host's row) names.
+    CyclicOwners { stuck: Uuid, names: Uuid },
 }
 
 impl std::fmt::Display for DemoSeedError {
@@ -49,11 +49,10 @@ impl std::fmt::Display for DemoSeedError {
                 "demo data declares virtualization_service_id {owner}, which matches no service \
                  in the dataset"
             ),
-            Self::NestedOwner { hoisted, names } => write!(
+            Self::CyclicOwners { stuck, names } => write!(
                 f,
-                "demo data entity {hoisted} must be written early because something is \
-                 virtualized by it, but it is itself virtualized by {names}. The hoist below is \
-                 single-layer; extend it to order these before adding such a case."
+                "demo data owner service {stuck} waits on {names}, which waits on it in turn; \
+                 virtualization owners must form chains, not cycles"
             ),
         }
     }
@@ -65,14 +64,23 @@ impl From<DemoSeedError> for ApiError {
     }
 }
 
+/// One write step of the hoist: hosts first, then the owner services that run on them.
+#[derive(Debug, Default)]
+pub(crate) struct HoistLayer {
+    /// Hosts that own a service in this layer — written first, because `services.host_id` FKs
+    /// to them.
+    pub hosts: Vec<Host>,
+    /// The virtualizing services themselves.
+    pub services: Vec<Service>,
+}
+
 /// A batch split so that no row is written before the service its `virtualization_service_id`
 /// names.
 #[derive(Debug)]
 pub(crate) struct VirtualizationHoist {
-    /// Hosts that own a hoisted service — written first, because `services.host_id` FKs to them.
-    pub owner_hosts: Vec<Host>,
-    /// The virtualizing services themselves.
-    pub owner_services: Vec<Service>,
+    /// Owner rows in write order. A later layer may name a service from an earlier one: a
+    /// hypervisor's VM that runs a container engine is hoisted one layer after the hypervisor.
+    pub owner_layers: Vec<HoistLayer>,
     pub deferred_hosts: Vec<Host>,
     pub deferred_services: Vec<Service>,
 }
@@ -84,8 +92,12 @@ pub(crate) struct VirtualizationHoist {
 /// names its runtime — all now real foreign keys into `services`. Discovery hit the same problem
 /// and broke the cycle by materialising the owner's row early (`hosts/service/create.rs:537`);
 /// this is that idea for a bulk batch. It is not a true cycle: `services` FKs only to `hosts` and
-/// `networks` — bindings live in their own table — so an owner service can be written as soon as
+/// `sites` — bindings live in their own table — so an owner service can be written as soon as
 /// its host row exists.
+///
+/// Owners can nest: a VM under a hypervisor can itself run a container engine. Each owner service
+/// goes in the first layer where both it and its host name only services already written, so a
+/// chain of any depth orders itself; only a cycle fails.
 ///
 /// **Where this deliberately differs from discovery.** `resolve_owner_service_id`
 /// (`hosts/service/create.rs:36`) degrades an id it cannot resolve to `None`, which is right
@@ -117,52 +129,104 @@ pub(crate) fn hoist_virtualization_owners(
         .collect();
 
     let services_by_id: HashMap<Uuid, &Service> = services.iter().map(|s| (s.id, s)).collect();
+    let hosts_by_id: HashMap<Uuid, &Host> = hosts.iter().map(|h| (h.id, h)).collect();
 
-    let mut owner_host_ids: HashSet<Uuid> = HashSet::new();
+    // Resolve every owner up front, so an undefined one is reported as such rather than as a
+    // cycle the loop below cannot break.
+    let mut pending: Vec<&Service> = Vec::with_capacity(owner_ids.len());
     for owner in &owner_ids {
-        let service = services_by_id
-            .get(owner)
-            .ok_or(DemoSeedError::UnresolvableOwner { owner: *owner })?;
-        // A service to be hoisted cannot itself be waiting on an unwritten owner.
-        if let Some(names) = service.base.virtualization_service_id
-            && !already_written.contains(&names)
-        {
-            return Err(DemoSeedError::NestedOwner {
-                hoisted: service.id,
-                names,
+        pending.push(
+            services_by_id
+                .get(owner)
+                .copied()
+                .ok_or(DemoSeedError::UnresolvableOwner { owner: *owner })?,
+        );
+    }
+    // Deterministic layers regardless of HashSet iteration order.
+    pending.sort_by_key(|s| s.id);
+
+    let mut written: HashSet<Uuid> = already_written.clone();
+    let mut hoisted_host_ids: HashSet<Uuid> = HashSet::new();
+    let mut owner_layers: Vec<HoistLayer> = Vec::new();
+
+    while !pending.is_empty() {
+        // The first service this owner's row, or its host's row, names that is not yet written.
+        let blocker = |service: &Service| {
+            let host_owner = hosts_by_id
+                .get(&service.base.host_id)
+                .and_then(|h| h.base.virtualization_service_id);
+            [service.base.virtualization_service_id, host_owner]
+                .into_iter()
+                .flatten()
+                .find(|id| !written.contains(id))
+        };
+        let (ready, waiting): (Vec<&Service>, Vec<&Service>) =
+            pending.into_iter().partition(|s| blocker(s).is_none());
+
+        if ready.is_empty() {
+            let stuck = waiting[0];
+            return Err(DemoSeedError::CyclicOwners {
+                stuck: stuck.id,
+                names: blocker(stuck).unwrap_or(stuck.id),
             });
         }
-        owner_host_ids.insert(service.base.host_id);
-    }
 
-    let (owner_hosts, deferred_hosts): (Vec<Host>, Vec<Host>) = hosts
-        .iter()
-        .cloned()
-        .partition(|h| owner_host_ids.contains(&h.id));
-
-    // Nor can a host that has to be hoisted carry one.
-    for host in &owner_hosts {
-        if let Some(names) = host.base.virtualization_service_id
-            && !already_written.contains(&names)
-        {
-            return Err(DemoSeedError::NestedOwner {
-                hoisted: host.id,
-                names,
-            });
+        let mut layer = HoistLayer::default();
+        for service in ready {
+            if hoisted_host_ids.insert(service.base.host_id)
+                && let Some(host) = hosts_by_id.get(&service.base.host_id)
+            {
+                layer.hosts.push((*host).clone());
+            }
+            written.insert(service.id);
+            layer.services.push(service.clone());
         }
+        owner_layers.push(layer);
+        pending = waiting;
     }
 
-    let (owner_services, deferred_services): (Vec<Service>, Vec<Service>) = services
+    let deferred_hosts = hosts
         .iter()
+        .filter(|h| !hoisted_host_ids.contains(&h.id))
         .cloned()
-        .partition(|s| owner_ids.contains(&s.id));
+        .collect();
+    let deferred_services = services
+        .iter()
+        .filter(|s| !owner_ids.contains(&s.id))
+        .cloned()
+        .collect();
 
     Ok(VirtualizationHoist {
-        owner_hosts,
-        owner_services,
+        owner_layers,
         deferred_hosts,
         deferred_services,
     })
+}
+
+/// Write a hoist's owner layers in order, returning every host and service it created.
+async fn write_owner_layers(
+    services: &ServiceFactory,
+    hoist: &VirtualizationHoist,
+    entity: &AuthenticatedEntity,
+    entity_tags: &mut Vec<EntityTag>,
+) -> ApiResult<(Vec<Host>, Vec<Service>)> {
+    let mut created_hosts = Vec::new();
+    let mut created_services = Vec::new();
+    for layer in &hoist.owner_layers {
+        let hosts = services
+            .host_service
+            .create_many(&layer.hosts, entity.clone())
+            .await?;
+        collect_entity_tags(&hosts, entity_tags);
+        created_hosts.extend(hosts);
+        let layer_services = services
+            .service_service
+            .create_many(&layer.services, entity.clone())
+            .await?;
+        collect_entity_tags(&layer_services, entity_tags);
+        created_services.extend(layer_services);
+    }
+    Ok((created_hosts, created_services))
 }
 
 /// Collect EntityTag records from tagged entities into the accumulator.
@@ -230,29 +294,29 @@ pub(crate) async fn insert_demo_data(
         .create_many(&demo_data.credentials)
         .await?;
 
-    // 3. Networks (depends on organization, tags)
-    let created_networks = services
-        .network_service
+    // 3. Sites (depends on organization, tags)
+    let created_sites = services
+        .site_service
         .storage()
-        .create_many(&demo_data.networks)
+        .create_many(&demo_data.sites)
         .await?;
-    collect_entity_tags(&created_networks, &mut all_entity_tags);
+    collect_entity_tags(&created_sites, &mut all_entity_tags);
 
-    // 3.5. Network-credential associations — one bulk insert across all
-    // networks (no per-network lock/delete; the org was just reset).
-    let network_cred_pairs: Vec<(Uuid, Uuid)> = demo_data
-        .network_credential_assignments
+    // 3.5. Site-credential associations — one bulk insert across all
+    // sites (no per-site lock/delete; the org was just reset).
+    let site_cred_pairs: Vec<(Uuid, Uuid)> = demo_data
+        .site_credential_assignments
         .iter()
         .flat_map(|a| {
-            let network_id = a.network_id;
+            let site_id = a.site_id;
             a.credential_ids
                 .iter()
-                .map(move |&cred_id| (network_id, cred_id))
+                .map(move |&cred_id| (site_id, cred_id))
         })
         .collect();
     services
         .credential_service
-        .create_network_credentials(&network_cred_pairs)
+        .create_site_credentials(&site_cred_pairs)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
@@ -265,14 +329,14 @@ pub(crate) async fn insert_demo_data(
     let mut all_services: Vec<Service> = Vec::new();
     for hws in &demo_data.hosts_with_services {
         let host_id = hws.host.id;
-        let network_id = hws.host.base.network_id;
+        let site_id = hws.host.base.site_id;
         all_hosts.push(hws.host.clone());
         all_ip_addresses.extend(hws.ip_addresses.clone());
         all_ports.extend(
             hws.ports
                 .iter()
                 .cloned()
-                .map(|p| p.with_host(host_id, network_id)),
+                .map(|p| p.with_host(host_id, site_id)),
         );
         all_services.extend(hws.services.clone());
     }
@@ -287,30 +351,23 @@ pub(crate) async fn insert_demo_data(
         &all_services,
         &HashSet::new(),
     )?;
-    let created_owner_hosts = services
-        .host_service
-        .create_many(&hoist.owner_hosts, entity.clone())
-        .await?;
-    collect_entity_tags(&created_owner_hosts, &mut all_entity_tags);
-    let created_owner_services = services
-        .service_service
-        .create_many(&hoist.owner_services, entity.clone())
-        .await?;
-    collect_entity_tags(&created_owner_services, &mut all_entity_tags);
+    let (_, created_owner_services) =
+        write_owner_layers(services, &hoist, &entity, &mut all_entity_tags).await?;
 
-    // 4. Subnets (depends on networks, and on the owner services written above)
+    // 4. Subnets (depends on sites, and on the owner services written above)
     let created_subnets = services
         .subnet_service
         .create_many(&demo_data.subnets, entity.clone())
         .await?;
     collect_entity_tags(&created_subnets, &mut all_entity_tags);
 
-    // 4.5. VLANs (depends on networks)
-    services
+    // 4.5. VLANs (depends on sites)
+    let created_vlans = services
         .vlan_service
         .storage()
         .create_many(&demo_data.vlans)
         .await?;
+    collect_entity_tags(&created_vlans, &mut all_entity_tags);
 
     // 4.6. Subnet↔VLAN junction rows (depend on subnets + VLANs). One bulk
     // insert, no per-subnet lock (fresh org). Derived to mirror the discovery
@@ -345,16 +402,16 @@ pub(crate) async fn insert_demo_data(
             .map(|h| (h.id, h.display_name(&[]).unwrap_or_default()))
             .collect();
 
-        let mut if_entry_lookup: HashMap<(String, Option<i32>), Uuid> = HashMap::new();
+        let mut interface_lookup: HashMap<(String, Option<i32>), Uuid> = HashMap::new();
         let mut interface_context: HashMap<Uuid, (Uuid, DateTime<Utc>)> = HashMap::new();
         for entry in &demo_data.interfaces {
             if let Some(host_name) = host_id_to_name.get(&entry.base.host_id) {
-                if_entry_lookup.insert((host_name.clone(), entry.base.if_index), entry.id);
+                interface_lookup.insert((host_name.clone(), entry.base.if_index), entry.id);
             }
-            interface_context.insert(entry.id, (entry.base.network_id, entry.last_seen_at));
+            interface_context.insert(entry.id, (entry.base.site_id, entry.last_seen_at));
         }
 
-        // Build (network_id, source_interface_id, target_interface_id, scan_time) tuples.
+        // Build (site_id, source_interface_id, target_interface_id, scan_time) tuples.
         let mut links = Vec::new();
         for neighbor_update in &demo_data.neighbor_updates {
             let source_key = (
@@ -366,11 +423,11 @@ pub(crate) async fn insert_demo_data(
                 Some(neighbor_update.target_if_index),
             );
             if let (Some(&source_id), Some(&target_id)) = (
-                if_entry_lookup.get(&source_key),
-                if_entry_lookup.get(&target_key),
-            ) && let Some(&(network_id, scan_time)) = interface_context.get(&source_id)
+                interface_lookup.get(&source_key),
+                interface_lookup.get(&target_key),
+            ) && let Some(&(site_id, scan_time)) = interface_context.get(&source_id)
             {
-                links.push((network_id, source_id, target_id, scan_time));
+                links.push((site_id, source_id, target_id, scan_time));
             }
         }
         links
@@ -419,11 +476,11 @@ pub(crate) async fn insert_demo_data(
     // 5.5b. Write the resolved neighbour rows computed in 5.3, now that the interfaces they
     // reference exist. One `reconcile_interface_neighbors` call per source interface — demo data
     // is not a real discovery run, so `discovery_id` is `None`.
-    for (network_id, source_id, target_id, scan_time) in neighbor_links {
+    for (site_id, source_id, target_id, scan_time) in neighbor_links {
         services
             .interface_neighbor_service
             .reconcile_interface_neighbors(
-                network_id,
+                site_id,
                 source_id,
                 &[(Neighbor::Interface(target_id), Some(scan_time))],
                 scan_time,
@@ -443,7 +500,7 @@ pub(crate) async fn insert_demo_data(
                 .bindings
                 .iter()
                 .cloned()
-                .map(|b| b.with_service(s.id, s.base.network_id))
+                .map(|b| b.with_service(s.id, s.base.site_id))
         })
         .collect();
     services
@@ -466,11 +523,22 @@ pub(crate) async fn insert_demo_data(
             .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     }
 
-    // 6. Daemons (depends on hosts, networks, subnets)
+    // 6. Daemons (depends on hosts, sites, subnets). Inserted without their api key, which does
+    // not exist yet: each key names its daemon and each daemon its key, so the daemon side of
+    // the binding is written in 7.1, as provisioning does.
+    let unbound_daemons: Vec<_> = demo_data
+        .daemons
+        .iter()
+        .cloned()
+        .map(|mut daemon| {
+            daemon.base.api_key_id = None;
+            daemon
+        })
+        .collect();
     services
         .daemon_service
         .storage()
-        .create_many(&demo_data.daemons)
+        .create_many(&unbound_daemons)
         .await?;
 
     // 6.1. Daemon interfaced subnets (depend on daemons + subnets). Same service method the
@@ -482,14 +550,21 @@ pub(crate) async fn insert_demo_data(
             .await?;
     }
 
-    // 7. Daemon API Keys (depends on networks)
+    // 7. Daemon API Keys (depends on sites and daemons)
     services
         .daemon_api_key_service
         .storage()
         .create_many(&demo_data.api_keys)
         .await?;
 
-    // 8. Discoveries (depends on daemons, networks, subnets)
+    // 7.1. Bind each daemon to its key.
+    services
+        .daemon_service
+        .storage()
+        .update_many(&demo_data.daemons)
+        .await?;
+
+    // 8. Discoveries (depends on daemons, sites, subnets)
     services
         .discovery_service
         .storage()
@@ -559,7 +634,7 @@ pub(crate) async fn insert_demo_data(
             .await?;
     }
 
-    // 10. Topologies (depends on networks + the entities created above).
+    // 10. Topologies (depends on sites + the entities created above).
     // The graph is built on request from the persisted entities, so `create`
     // just persists the row + options. Must run before shares (step 11), whose
     // `topology_id` FK references these rows.
@@ -603,25 +678,25 @@ pub(crate) async fn insert_demo_data(
         .create(demo_admin, entity.clone())
         .await?;
 
-    // 13. User API Keys (depends on demo admin user + network access junction table)
-    for (api_key, network_ids) in demo_data.user_api_keys {
+    // 13. User API Keys (depends on demo admin user + site access junction table)
+    for (api_key, site_ids) in demo_data.user_api_keys {
         services
             .user_api_key_service
-            .create_with_networks(api_key, network_ids, entity.clone())
+            .create_with_sites(api_key, site_ids, entity.clone())
             .await
             .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     }
 
-    // 14. One snapshot per network so the snapshot UI is exercised in demo orgs.
+    // 14. One snapshot per site so the snapshot UI is exercised in demo orgs.
     // Must run last: close-and-clone captures the live entity set, so all demo
     // entities (and their entity-tags + live topology rows) must already exist.
-    // Each network's snapshot is scoped to its own network_id and runs in its
-    // own transaction, so the networks' snapshots run concurrently.
-    let snapshot_futures = created_networks.iter().map(|network| {
+    // Each site's snapshot is scoped to its own site_id and runs in its
+    // own transaction, so the sites' snapshots run concurrently.
+    let snapshot_futures = created_sites.iter().map(|site| {
         let entity = entity.clone();
         async move {
             let snapshot = Snapshot {
-                base: SnapshotBase::new(network.id, chrono::Utc::now(), Some(user_id)),
+                base: SnapshotBase::new(site.id, chrono::Utc::now(), Some(user_id)),
                 ..Default::default()
             };
             let created = services
@@ -631,7 +706,7 @@ pub(crate) async fn insert_demo_data(
                 .map_err(ApiError::from)?;
             services
                 .snapshot_service
-                .run_close_and_clone(created.base.network_id, created.base.taken_at, created.id)
+                .run_close_and_clone(created.base.site_id, created.base.taken_at, created.id)
                 .await
                 .map_err(|e| ApiError::internal_error(&e.to_string()))?;
             // No snapshot topology row — the graph is built on request from the
@@ -653,14 +728,14 @@ pub(crate) async fn insert_demo_data(
         let mut recent_services: Vec<Service> = Vec::new();
         for hws in &demo_data.recent_hosts_with_services {
             let host_id = hws.host.id;
-            let network_id = hws.host.base.network_id;
+            let site_id = hws.host.base.site_id;
             recent_hosts.push(hws.host.clone());
             recent_ips.extend(hws.ip_addresses.clone());
             recent_ports.extend(
                 hws.ports
                     .iter()
                     .cloned()
-                    .map(|p| p.with_host(host_id, network_id)),
+                    .map(|p| p.with_host(host_id, site_id)),
             );
             recent_services.extend(hws.services.clone());
         }
@@ -678,16 +753,8 @@ pub(crate) async fn insert_demo_data(
             hoist_virtualization_owners(&[], &recent_hosts, &recent_services, &already_written)?;
 
         let mut recent_entity_tags: Vec<EntityTag> = Vec::new();
-        let created_recent_owner_hosts = services
-            .host_service
-            .create_many(&recent_hoist.owner_hosts, entity.clone())
-            .await?;
-        collect_entity_tags(&created_recent_owner_hosts, &mut recent_entity_tags);
-        let created_recent_owner_services = services
-            .service_service
-            .create_many(&recent_hoist.owner_services, entity.clone())
-            .await?;
-        collect_entity_tags(&created_recent_owner_services, &mut recent_entity_tags);
+        let (_, created_recent_owner_services) =
+            write_owner_layers(services, &recent_hoist, &entity, &mut recent_entity_tags).await?;
 
         let created_recent_hosts = services
             .host_service
@@ -728,7 +795,7 @@ pub(crate) async fn insert_demo_data(
                     .bindings
                     .iter()
                     .cloned()
-                    .map(|b| b.with_service(s.id, s.base.network_id))
+                    .map(|b| b.with_service(s.id, s.base.site_id))
             })
             .collect();
         services
@@ -755,15 +822,15 @@ mod tests {
     /// The shape the demo dataset actually has: a bare-metal runtime host, the runtime service on
     /// it, a bridge subnet owned by that service, and a guest host owned by it too.
     fn dataset() -> (Vec<Subnet>, Vec<Host>, Vec<Service>) {
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
 
-        let runtime_host = host(&network_id);
-        let guest_host = host(&network_id);
-        let runtime_service = service(&network_id, &runtime_host.id);
-        let mut guest_service = service(&network_id, &guest_host.id);
+        let runtime_host = host(&site_id);
+        let guest_host = host(&site_id);
+        let runtime_service = service(&site_id, &runtime_host.id);
+        let mut guest_service = service(&site_id, &guest_host.id);
         guest_service.base.virtualization_service_id = Some(runtime_service.id);
 
-        let mut bridge = subnet(&network_id);
+        let mut bridge = subnet(&site_id);
         bridge.base.virtualization_service_id = Some(runtime_service.id);
 
         let mut guest_host = guest_host;
@@ -776,6 +843,15 @@ mod tests {
         )
     }
 
+    /// Owner service ids per layer, in write order.
+    fn layer_service_ids(hoist: &VirtualizationHoist) -> Vec<Vec<Uuid>> {
+        hoist
+            .owner_layers
+            .iter()
+            .map(|l| l.services.iter().map(|s| s.id).collect())
+            .collect()
+    }
+
     #[test]
     fn the_owner_and_its_host_are_written_before_everything_that_names_them() {
         let (subnets, hosts, services) = dataset();
@@ -785,16 +861,13 @@ mod tests {
         let hoist =
             hoist_virtualization_owners(&subnets, &hosts, &services, &HashSet::new()).unwrap();
 
+        assert_eq!(layer_service_ids(&hoist), vec![vec![runtime_service_id]]);
         assert_eq!(
-            hoist
-                .owner_services
+            hoist.owner_layers[0]
+                .hosts
                 .iter()
-                .map(|s| s.id)
+                .map(|h| h.id)
                 .collect::<Vec<_>>(),
-            vec![runtime_service_id]
-        );
-        assert_eq!(
-            hoist.owner_hosts.iter().map(|h| h.id).collect::<Vec<_>>(),
             vec![runtime_host_id]
         );
         // The guest half waits, and nothing is dropped on the floor.
@@ -817,8 +890,7 @@ mod tests {
         let hoist =
             hoist_virtualization_owners(&subnets, &hosts, &services, &already_written).unwrap();
 
-        assert!(hoist.owner_services.is_empty());
-        assert!(hoist.owner_hosts.is_empty());
+        assert!(hoist.owner_layers.is_empty());
         assert_eq!(hoist.deferred_hosts.len(), 2);
         assert_eq!(hoist.deferred_services.len(), 2);
     }
@@ -834,17 +906,54 @@ mod tests {
         assert!(matches!(err, DemoSeedError::UnresolvableOwner { .. }));
     }
 
+    /// Hypervisor → VM running a container engine → container: the engine service sits on a host
+    /// the hypervisor service virtualizes, so it can only be written one layer later.
     #[test]
-    fn a_second_layer_of_virtualization_is_rejected_rather_than_mis_ordered() {
+    fn a_nested_owner_is_written_one_layer_after_the_owner_it_names() {
+        let site_id = Uuid::new_v4();
+        let hypervisor_host = host(&site_id);
+        let hypervisor = service(&site_id, &hypervisor_host.id);
+        let mut vm_host = host(&site_id);
+        vm_host.base.virtualization_service_id = Some(hypervisor.id);
+        let engine = service(&site_id, &vm_host.id);
+        let mut container_host = host(&site_id);
+        container_host.base.virtualization_service_id = Some(engine.id);
+
+        let hosts = vec![
+            container_host.clone(),
+            vm_host.clone(),
+            hypervisor_host.clone(),
+        ];
+        let services = vec![engine.clone(), hypervisor.clone()];
+        let hoist = hoist_virtualization_owners(&[], &hosts, &services, &HashSet::new()).unwrap();
+
+        assert_eq!(
+            layer_service_ids(&hoist),
+            vec![vec![hypervisor.id], vec![engine.id]]
+        );
+        assert_eq!(hoist.owner_layers[0].hosts[0].id, hypervisor_host.id);
+        assert_eq!(hoist.owner_layers[1].hosts[0].id, vm_host.id);
+        assert_eq!(
+            hoist
+                .deferred_hosts
+                .iter()
+                .map(|h| h.id)
+                .collect::<Vec<_>>(),
+            vec![container_host.id]
+        );
+    }
+
+    #[test]
+    fn owners_that_wait_on_each_other_are_rejected_rather_than_mis_ordered() {
         let (subnets, hosts, mut services) = dataset();
-        // The runtime service is now itself virtualized by the guest service — one hoisted layer
-        // can no longer order this batch.
+        // The runtime service is now itself virtualized by the guest service, which the runtime
+        // virtualizes: no write order satisfies both.
         let guest_service_id = services[1].id;
         services[0].base.virtualization_service_id = Some(guest_service_id);
 
         let err = hoist_virtualization_owners(&subnets, &hosts, &services, &HashSet::new())
-            .expect_err("a nested owner must fail loudly, not reach Postgres");
+            .expect_err("a cycle must fail loudly, not reach Postgres");
 
-        assert!(matches!(err, DemoSeedError::NestedOwner { .. }));
+        assert!(matches!(err, DemoSeedError::CyclicOwners { .. }));
     }
 }

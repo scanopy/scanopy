@@ -13,4 +13,8 @@ impl CrudHandlers for Discovery {
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.discovery_service
     }
+
+    fn search_order() -> Option<Self::OrderField> {
+        Some(Self::OrderField::Name)
+    }
 }

@@ -11,7 +11,8 @@ use validator::Validate;
 use crate::server::{
     billing::types::base::{BillingPlan, PlanStatus},
     shared::{
-        entities::ChangeTriggersTopologyStaleness, events::types::OnboardingOperationDiscriminants,
+        entities::ChangeTriggersTopologyStaleness,
+        events::types::{BillingOperation, OnboardingOperationDiscriminants},
     },
 };
 
@@ -69,7 +70,7 @@ pub enum LimitNotificationLevel {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Hash)]
 pub struct OrgNotifications {
     pub hosts: LimitNotificationLevel,
-    pub networks: LimitNotificationLevel,
+    pub sites: LimitNotificationLevel,
     pub seats: LimitNotificationLevel,
     /// The **highest** announced daemon-sunset floor this org has already been
     /// emailed about (e.g. "0.17.5"); every cutover at or below it counts as
@@ -86,6 +87,12 @@ pub struct OrgNotifications {
     /// first one.
     #[serde(default)]
     pub airgap_expiry_notified_through: Option<DateTime<Utc>>,
+    /// The `license_checkin_at` already reported as the last check-in before a
+    /// silence. Reported once per silence; the next check-in moves
+    /// `license_checkin_at` off it, which re-arms the report and marks the key
+    /// as resumed. `None` until the first silence.
+    #[serde(default)]
+    pub license_silence_reported_for: Option<DateTime<Utc>>,
 }
 
 #[derive(
@@ -213,6 +220,12 @@ pub struct OrganizationBase {
     /// to API. `None` reads as online. Switching retires the previous key.
     #[serde(default, skip_serializing)]
     pub license_key_type: Option<crate::server::license::types::LicenseKeyType>,
+    /// Highest server version a check-in with this org's online key has
+    /// reported - internal, not exposed to API. Several servers can share a
+    /// key, so it only ever rises. `None` until a server new enough to send
+    /// its version checks in.
+    #[serde(default, skip_serializing)]
+    pub license_server_version: Option<Version>,
     /// The date this org's air-gapped key stays current until, or `None` when
     /// it holds an online key or that date has passed.
     ///
@@ -285,7 +298,112 @@ impl Organization {
             && Utc::now() < paid_through)
             .then_some(paid_through)
     }
+
+    /// Record a successful check-in at `at` from a server reporting
+    /// `server_version`, and return the events it produces, decided from the
+    /// state before the write:
+    ///
+    /// - `LicenseCheckInsResumed` when the previous check-in is the one a
+    ///   silence was reported for.
+    /// - `LicenseActivated` on the first check-in of the current key. Rotating
+    ///   or switching moves `license_key_issued_at`, and a retired key is
+    ///   refused before it gets here, so an earlier check-in belongs to a key
+    ///   that no longer works.
+    /// - `LicenseServerUpgraded` when the version beats every one reported
+    ///   before. Skipped on a first activation, which already carries it.
+    pub fn record_license_check_in(
+        &mut self,
+        at: DateTime<Utc>,
+        server_version: Option<Version>,
+    ) -> Vec<BillingOperation> {
+        let previous = self.base.license_checkin_at;
+        let mut events = Vec::new();
+
+        if let Some(previous) = previous
+            && self.base.notifications.license_silence_reported_for == Some(previous)
+        {
+            events.push(BillingOperation::LicenseCheckInsResumed {
+                silent_days: (at - previous).num_days(),
+            });
+        }
+
+        let activated = match (previous, self.base.license_key_issued_at) {
+            (None, _) => true,
+            (Some(previous), Some(issued_at)) => previous < issued_at,
+            (Some(_), None) => false,
+        };
+        if activated {
+            events.push(BillingOperation::LicenseActivated {
+                server_version: server_version.as_ref().map(Version::to_string),
+            });
+        }
+
+        if let Some(version) = server_version
+            && self
+                .base
+                .license_server_version
+                .as_ref()
+                .is_none_or(|highest| version > *highest)
+        {
+            let from = self.base.license_server_version.replace(version.clone());
+            if from.is_some() || !activated {
+                events.push(BillingOperation::LicenseServerUpgraded {
+                    from: from.map(|v| v.to_string()),
+                    to: version.to_string(),
+                });
+            }
+        }
+
+        self.base.license_checkin_at = Some(at);
+        events
+    }
+
+    /// The `LicenseCheckInsStopped` report for an online key that has gone
+    /// [`LICENSE_SILENCE_THRESHOLD_DAYS`] without checking in, marking it
+    /// reported so the daily sweep sends it once per silence. `None` when the
+    /// key is still checking in, was already reported, or is not expected to
+    /// check in at all: an air-gapped key, a non-license plan, a lapsed
+    /// subscription, or a license past its expiry, where the server stopping
+    /// is the license ending rather than an uninstall.
+    pub fn report_license_silence(&mut self, now: DateTime<Utc>) -> Option<BillingOperation> {
+        use crate::server::license::mint::{GRACE_PERIOD_DAYS, PAID_THROUGH_BUFFER_DAYS};
+        use crate::server::license::types::LicenseKeyType;
+
+        let last_check_in_at = self.base.license_checkin_at?;
+        let paid_through = self.base.license_paid_through?;
+        let licensed = self
+            .base
+            .plan
+            .is_some_and(|plan| plan.license_plan().is_some());
+        let online = self.base.license_key_type.unwrap_or_default() == LicenseKeyType::Online;
+        let expires_at =
+            paid_through + chrono::Duration::days(PAID_THROUGH_BUFFER_DAYS + GRACE_PERIOD_DAYS);
+        let silent =
+            now - last_check_in_at >= chrono::Duration::days(LICENSE_SILENCE_THRESHOLD_DAYS);
+        let reported =
+            self.base.notifications.license_silence_reported_for == Some(last_check_in_at);
+
+        if !licensed || !online || self.is_lapsed() || now >= expires_at || !silent || reported {
+            return None;
+        }
+
+        self.base.notifications.license_silence_reported_for = Some(last_check_in_at);
+        Some(BillingOperation::LicenseCheckInsStopped {
+            last_check_in_at,
+            server_version: self
+                .base
+                .license_server_version
+                .as_ref()
+                .map(Version::to_string),
+        })
+    }
 }
+
+/// Days an online key goes without checking in before it counts as stopped.
+/// Servers check in every 6 hours, so this is about 28 missed check-ins: long
+/// enough to rule out a maintenance window, and the same span as the
+/// entitlement grace period.
+pub const LICENSE_SILENCE_THRESHOLD_DAYS: i64 = 7;
 
 impl Display for Organization {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -368,5 +486,160 @@ mod tests {
             org(Some(LicenseKeyType::Offline), None).air_gapped_key_current_until(),
             None
         );
+    }
+
+    fn at(day: i64) -> DateTime<Utc> {
+        DateTime::<Utc>::from_timestamp(1_800_000_000, 0).unwrap() + chrono::Duration::days(day)
+    }
+
+    fn names(events: &[BillingOperation]) -> Vec<String> {
+        events.iter().map(|e| e.to_string()).collect()
+    }
+
+    /// An org issued a key on day 0 that has never checked in.
+    fn issued() -> Organization {
+        let mut org = Organization::default();
+        org.base.license_key_issued_at = Some(at(0));
+        org
+    }
+
+    #[test]
+    fn a_key_activates_on_its_first_check_in_and_again_after_rotation() {
+        let mut org = issued();
+        let v = Version::new(0, 17, 20);
+
+        let first = org.record_license_check_in(at(1), Some(v.clone()));
+        assert_eq!(
+            first,
+            vec![BillingOperation::LicenseActivated {
+                server_version: Some("0.17.20".to_string())
+            }],
+            "the activation carries the version, so no separate upgrade"
+        );
+        assert_eq!(org.base.license_checkin_at, Some(at(1)));
+        assert_eq!(org.base.license_server_version, Some(v.clone()));
+
+        assert!(
+            org.record_license_check_in(at(2), Some(v.clone()))
+                .is_empty()
+        );
+
+        // Rotation moves the stamp past the last check-in.
+        org.base.license_key_issued_at = Some(at(3));
+        assert_eq!(
+            names(&org.record_license_check_in(at(4), Some(v))),
+            vec!["license_activated"]
+        );
+    }
+
+    #[test]
+    fn only_a_new_highest_version_counts_as_an_upgrade() {
+        let mut org = issued();
+        org.record_license_check_in(at(1), Some(Version::new(0, 17, 20)));
+
+        assert_eq!(
+            org.record_license_check_in(at(2), Some(Version::new(0, 17, 21))),
+            vec![BillingOperation::LicenseServerUpgraded {
+                from: Some("0.17.20".to_string()),
+                to: "0.17.21".to_string(),
+            }]
+        );
+
+        // A second server on the same key still runs the older release.
+        assert!(
+            org.record_license_check_in(at(3), Some(Version::new(0, 17, 20)))
+                .is_empty()
+        );
+        assert!(
+            org.record_license_check_in(at(4), Some(Version::new(0, 17, 21)))
+                .is_empty()
+        );
+        assert!(org.record_license_check_in(at(5), None).is_empty());
+        assert_eq!(
+            org.base.license_server_version,
+            Some(Version::new(0, 17, 21))
+        );
+    }
+
+    #[test]
+    fn a_server_activated_before_the_version_header_reports_its_first_version_as_an_upgrade() {
+        let mut org = issued();
+        org.record_license_check_in(at(1), None);
+
+        assert_eq!(
+            org.record_license_check_in(at(2), Some(Version::new(0, 17, 21))),
+            vec![BillingOperation::LicenseServerUpgraded {
+                from: None,
+                to: "0.17.21".to_string(),
+            }]
+        );
+    }
+
+    /// A self-hosted org whose online key last checked in on day 1, paid
+    /// well past every day these tests look at.
+    fn checking_in() -> Organization {
+        use crate::server::billing::plans::get_self_hosted_standard_plan;
+        let mut org = issued();
+        org.base.plan = Some(get_self_hosted_standard_plan());
+        org.base.plan_status = Some(PlanStatus::Active);
+        org.base.license_paid_through = Some(at(365));
+        org.record_license_check_in(at(1), Some(Version::new(0, 17, 20)));
+        org
+    }
+
+    #[test]
+    fn a_silent_key_is_reported_once_and_resumes_on_its_next_check_in() {
+        let mut org = checking_in();
+
+        assert_eq!(
+            org.report_license_silence(at(7)),
+            None,
+            "six days is not yet silent"
+        );
+
+        assert_eq!(
+            org.report_license_silence(at(8)),
+            Some(BillingOperation::LicenseCheckInsStopped {
+                last_check_in_at: at(1),
+                server_version: Some("0.17.20".to_string()),
+            })
+        );
+        assert_eq!(org.report_license_silence(at(9)), None, "already reported");
+
+        assert_eq!(
+            org.record_license_check_in(at(11), None),
+            vec![BillingOperation::LicenseCheckInsResumed { silent_days: 10 }]
+        );
+
+        // The next silence is a new one.
+        assert!(org.report_license_silence(at(18)).is_some());
+    }
+
+    #[test]
+    fn a_key_not_expected_to_check_in_is_never_reported_silent() {
+        use crate::server::billing::plans::get_free_plan;
+        let silent_day = at(30);
+
+        let mut air_gapped = checking_in();
+        air_gapped.base.license_key_type = Some(LicenseKeyType::Offline);
+        assert_eq!(air_gapped.report_license_silence(silent_day), None);
+
+        let mut cancelled = checking_in();
+        cancelled.base.plan_status = Some(PlanStatus::Cancelled);
+        assert_eq!(cancelled.report_license_silence(silent_day), None);
+
+        // The license ran out: the server stopping is the license ending.
+        let mut expired = checking_in();
+        expired.base.license_paid_through = Some(at(10));
+        assert_eq!(expired.report_license_silence(silent_day), None);
+
+        let mut not_licensed = checking_in();
+        not_licensed.base.plan = Some(get_free_plan());
+        assert_eq!(not_licensed.report_license_silence(silent_day), None);
+
+        let mut never_checked_in = issued();
+        never_checked_in.base.plan = checking_in().base.plan;
+        never_checked_in.base.license_paid_through = Some(at(365));
+        assert_eq!(never_checked_in.report_license_silence(silent_day), None);
     }
 }

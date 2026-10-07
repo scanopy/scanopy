@@ -74,7 +74,7 @@ impl ViewBuilder for ApplicationBuilder {
         let app_tags: HashMap<Uuid, &Tag> = ctx
             .entity_tags
             .iter()
-            .filter(|t| t.base.is_application)
+            .filter(|t| t.is_application())
             .map(|t| (t.id, t))
             .collect();
 
@@ -204,6 +204,7 @@ impl ViewBuilder for ApplicationBuilder {
                     tag_ids,
                     element_entity: EntityDiscriminants::Service,
                     virtualizer_service_id: None,
+                    virtualizer_role: None,
                     deployment_group,
                     native_vlan_id: None,
                     vlan_number: None,
@@ -431,7 +432,7 @@ mod tests {
             updated_at: Utc::now(),
             base: BindingBase {
                 service_id,
-                network_id: Uuid::new_v4(),
+                site_id: Uuid::new_v4(),
                 binding_type: BindingType::IPAddress {
                     ip_address_id: Uuid::new_v4(),
                 },
@@ -778,7 +779,8 @@ mod tests {
                 description: None,
                 color: Color::Blue,
                 organization_id: Uuid::new_v4(),
-                is_application: true,
+                tag_group: Some(crate::server::tags::r#impl::base::TagGroup::Application),
+                icon: None,
             },
             ..Default::default()
         };
@@ -791,7 +793,8 @@ mod tests {
                 description: None,
                 color: Color::Green,
                 organization_id: Uuid::new_v4(),
-                is_application: true,
+                tag_group: Some(crate::server::tags::r#impl::base::TagGroup::Application),
+                icon: None,
             },
             ..Default::default()
         };
@@ -928,7 +931,8 @@ mod tests {
                 description: None,
                 color: Color::Blue,
                 organization_id: Uuid::new_v4(),
-                is_application: true,
+                tag_group: Some(crate::server::tags::r#impl::base::TagGroup::Application),
+                icon: None,
             },
             ..Default::default()
         };
@@ -941,7 +945,8 @@ mod tests {
                 description: None,
                 color: Color::Green,
                 organization_id: Uuid::new_v4(),
-                is_application: true,
+                tag_group: Some(crate::server::tags::r#impl::base::TagGroup::Application),
+                icon: None,
             },
             ..Default::default()
         };

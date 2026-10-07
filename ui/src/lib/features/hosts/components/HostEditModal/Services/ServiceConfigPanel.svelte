@@ -10,6 +10,8 @@
 	import { PortBindingDisplay } from '$lib/shared/components/forms/selection/display/PortBindingDisplay.svelte';
 	import { IPAddressBindingDisplay } from '$lib/shared/components/forms/selection/display/IPAddressBindingDisplay.svelte';
 	import MatchDetails from './MatchDetails.svelte';
+	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
+	import ConfigHeader from '$lib/shared/components/forms/config/ConfigHeader.svelte';
 	import type { HostFormData } from '$lib/features/hosts/types/base';
 	import TagPicker from '$lib/features/tags/components/TagPicker.svelte';
 	import { usePortsQuery } from '$lib/features/ports/queries';
@@ -31,6 +33,8 @@
 		hosts_services_newBinding,
 		hosts_services_noAvailableInterfaces,
 		hosts_services_noAvailablePortCombos,
+		hosts_services_networkIdentitiesHint,
+		hosts_services_networkIdentitiesLearnMore,
 		hosts_services_noInterfaces,
 		hosts_services_noPorts,
 		hosts_services_portBindingsHelp,
@@ -224,7 +228,7 @@
 			type: 'Port',
 			id: uuidv4(),
 			service_id: service.id,
-			network_id: service.network_id,
+			site_id: service.site_id,
 			port_id: firstAvailable.port.id,
 			ip_address_id: firstAvailable.iface.id,
 			created_at: new Date().toISOString(),
@@ -293,7 +297,7 @@
 			type: 'IPAddress',
 			id: uuidv4(),
 			service_id: service.id,
-			network_id: service.network_id,
+			site_id: service.site_id,
 			ip_address_id: firstAvailable.id,
 			created_at: new Date().toISOString(),
 			updated_at: new Date().toISOString()
@@ -341,21 +345,17 @@
 
 {#if service && serviceMetadata}
 	<div class="space-y-6">
-		<div class="flex items-start justify-between gap-2 border-b border-gray-600 pb-4">
-			<div>
-				<h3 class="text-primary text-sm font-medium">{serviceMetadata.name ?? ''}</h3>
-				{#if serviceMetadata.description}
-					<p class="text-secondary text-sm">{serviceMetadata.description}</p>
+		<ConfigHeader title={serviceMetadata.name ?? ''} subtitle={serviceMetadata.description || null}>
+			{#snippet aside()}
+				{#if categoryId}
+					<Tag
+						label={serviceCategories.getName(categoryId)}
+						color={serviceCategories.getColorString(categoryId)}
+						title={serviceCategories.getDescription(categoryId) || ''}
+					/>
 				{/if}
-			</div>
-			{#if categoryId}
-				<Tag
-					label={serviceCategories.getName(categoryId)}
-					color={serviceCategories.getColorString(categoryId)}
-					title={serviceCategories.getDescription(categoryId) || ''}
-				/>
-			{/if}
-		</div>
+			{/snippet}
+		</ConfigHeader>
 
 		{#if serviceMetadata.category === 'OpenPorts'}
 			<DocsHint
@@ -363,11 +363,15 @@
 				href="https://scanopy.net/docs/using-scanopy/network-data/#unclaimed-open-ports"
 				linkText={hosts_services_unclaimedPortsLearnMore()}
 			/>
+		{:else if serviceMetadata.category === 'NetworkIdentities'}
+			<DocsHint
+				text={hosts_services_networkIdentitiesHint()}
+				href="https://scanopy.net/docs/using-scanopy/network-data/#network-identities"
+				linkText={hosts_services_networkIdentitiesLearnMore()}
+			/>
 		{/if}
 
-		<!-- Basic Configuration -->
-		<div class="space-y-4">
-			<div class="text-primary font-medium">{common_details()}</div>
+		<InfoCard title={common_details()}>
 			<!-- Service Name Field -->
 			<form.Field
 				name={nameFieldName}
@@ -395,16 +399,13 @@
 				selectedTagIds={service.tags}
 				onChange={(tags) => onChange({ ...service, tags })}
 			/>
-		</div>
+		</InfoCard>
 
-		<div>
-			<div class="text-primary font-medium">{common_bindings()}</div>
-			<span class="text-muted text-xs">
+		<InfoCard title={common_bindings()}>
+			<p class="text-muted text-xs">
 				{hosts_services_bindingsHelp()}
-			</span>
-		</div>
-		<!-- Port Bindings -->
-		<div class="space-y-4">
+			</p>
+			<!-- Port Bindings -->
 			{#key `${service.id}`}
 				<ListManager
 					label={common_portBindings()}
@@ -456,10 +457,8 @@
 					{/snippet}
 				</form.Field>
 			{/each}
-		</div>
 
-		<!-- Interface Bindings -->
-		<div class="space-y-4">
+			<!-- Interface Bindings -->
 			{#key service.id}
 				<ListManager
 					label={common_ipAddressBindings()}
@@ -491,7 +490,7 @@
 						handleUpdateIPAddressBinding({ ...binding, ...updates }, index)}
 				/>
 			{/key}
-		</div>
+		</InfoCard>
 
 		{#if service.source.type === 'DiscoveryWithMatch' && service.source.details}
 			<MatchDetails details={service.source.details} />

@@ -28,17 +28,22 @@ use crate::server::{
     daemons::{r#impl::base::Daemon, service::DaemonService},
     digest::payload::DiscoveryDigestPayload,
     hosts::service::HostService,
-    networks::{r#impl::Network, service::NetworkService},
     organizations::{
         r#impl::base::{LimitNotificationLevel, OrgNotifications, Organization},
         service::OrganizationService,
     },
     services::service::ServiceService,
     shared::{
-        services::traits::CrudService, storage::filter::StorableFilter,
+        events::{
+            traits::{Event, OrgScope},
+            types::AnalyticsOperation,
+        },
+        services::traits::{CrudService, EventBusService},
+        storage::filter::StorableFilter,
         types::metadata::TypeMetadataProvider,
     },
-    users::service::UserService,
+    sites::{r#impl::Site, service::SiteService},
+    users::{r#impl::base::User, service::UserService},
 };
 
 /// How far ahead an air-gapped organization is warned that its licence period
@@ -51,7 +56,7 @@ const AIRGAP_EXPIRY_WARNING_DAYS: i64 = 14;
 /// value recap card.
 pub struct TrialRecapMetrics {
     pub hosts_count: u64,
-    pub networks_count: u64,
+    pub sites_count: u64,
     pub daemons_count: u64,
     pub services_count: u64,
     pub days_into_trial: i64,
@@ -86,7 +91,7 @@ impl LimitLevelChange {
         }
         let stored = match self.limit_type {
             "hosts" => &mut notifications.hosts,
-            "networks" => &mut notifications.networks,
+            "sites" => &mut notifications.sites,
             "seats" => &mut notifications.seats,
             _ => return false,
         };
@@ -102,7 +107,7 @@ pub struct EmailService {
     pub user_service: Arc<UserService>,
     pub organization_service: Arc<OrganizationService>,
     pub host_service: Arc<HostService>,
-    pub network_service: Arc<NetworkService>,
+    pub site_service: Arc<SiteService>,
     pub service_service: Arc<ServiceService>,
     pub daemon_service: Arc<DaemonService>,
     pub public_url: String,
@@ -121,7 +126,7 @@ impl EmailService {
         user_service: Arc<UserService>,
         organization_service: Arc<OrganizationService>,
         host_service: Arc<HostService>,
-        network_service: Arc<NetworkService>,
+        site_service: Arc<SiteService>,
         service_service: Arc<ServiceService>,
         daemon_service: Arc<DaemonService>,
         public_url: String,
@@ -132,7 +137,7 @@ impl EmailService {
             user_service,
             organization_service,
             host_service,
-            network_service,
+            site_service,
             service_service,
             daemon_service,
             public_url,
@@ -148,8 +153,9 @@ impl EmailService {
     /// Required emails always send, and a recipient with no account yet
     /// (pre-signup) defaults to sending.
     async fn dispatch(&self, to: EmailAddress, email: &dyn Email) -> Result<()> {
+        let recipient = self.user_service.get_by_email(&to).await?;
         if matches!(email.preference(), EmailPreference::Pausable(_))
-            && let Some(user) = self.user_service.get_by_email(&to).await?
+            && let Some(user) = &recipient
             && !user.base.email_settings.allows(email.preference())
         {
             return Ok(());
@@ -161,7 +167,41 @@ impl EmailService {
                 &self.public_url,
                 self.deployment_type.is_self_hosted(),
             )
+            .await?;
+
+        // A recipient without an account (verification, invite) has no org
+        // to attribute the send to.
+        if let Some(user) = recipient {
+            self.publish_email_sent(&user, email).await;
+        }
+        Ok(())
+    }
+
+    /// Record a send for analytics. Best-effort: the email has already gone.
+    async fn publish_email_sent(&self, user: &User, email: &dyn Email) {
+        if let Err(e) = self
+            .organization_service
+            .event_bus()
+            .publish(Event::new(
+                OrgScope {
+                    organization_id: user.base.organization_id,
+                },
+                AnalyticsOperation::EmailSent {
+                    utm_campaign: email.campaign().to_string(),
+                    utm_medium: email.utm_medium().to_string(),
+                    user_id: user.id,
+                },
+                AuthenticatedEntity::System,
+            ))
             .await
+        {
+            tracing::warn!(
+                user_id = %user.id,
+                campaign = email.campaign(),
+                error = %e,
+                "Failed to publish email send",
+            );
+        }
     }
 
     /// True when an org on `plan` is locked out of this cloud app because it
@@ -314,7 +354,7 @@ impl EmailService {
                 plan_name,
                 billing_period,
                 hosts_count: metrics.hosts_count,
-                networks_count: metrics.networks_count,
+                sites_count: metrics.sites_count,
                 daemons_count: metrics.daemons_count,
                 services_count: metrics.services_count,
                 days_into_trial: metrics.days_into_trial,
@@ -772,13 +812,13 @@ impl EmailService {
         &self,
         to: EmailAddress,
         daemon_name: &str,
-        network_name: &str,
+        site_name: &str,
     ) -> Result<()> {
         self.dispatch(
             to,
             &DaemonStandby {
                 daemon_name,
-                network_name,
+                site_name,
             },
         )
         .await
@@ -788,13 +828,13 @@ impl EmailService {
         &self,
         to: EmailAddress,
         daemon_name: &str,
-        network_name: &str,
+        site_name: &str,
     ) -> Result<()> {
         self.dispatch(
             to,
             &DaemonUnreachable {
                 daemon_name,
-                network_name,
+                site_name,
             },
         )
         .await
@@ -865,13 +905,13 @@ impl EmailService {
         &self,
         to: EmailAddress,
         daemon_name: &str,
-        network_name: &str,
+        site_name: &str,
     ) -> Result<()> {
         self.dispatch(
             to,
             &DiscoveryGuide {
                 daemon_name,
-                network_name,
+                site_name,
             },
         )
         .await
@@ -883,7 +923,7 @@ impl EmailService {
         &self,
         org_id: Uuid,
         daemon_name: &str,
-        network_name: &str,
+        site_name: &str,
     ) -> Result<()> {
         let organization = self
             .organization_service
@@ -900,7 +940,7 @@ impl EmailService {
 
         let owner_email = self.get_owner_email(&org_id).await?;
 
-        self.send_discovery_guide_email(owner_email, daemon_name, network_name)
+        self.send_discovery_guide_email(owner_email, daemon_name, site_name)
             .await
     }
 
@@ -919,7 +959,7 @@ impl EmailService {
             .base
             .plan
             .unwrap_or_else(crate::server::billing::plans::get_free_plan);
-        // On the cloud app a self-hosted plan's seat and network limits govern
+        // On the cloud app a self-hosted plan's seat and site limits govern
         // the customer's own server. The cloud org's rows are left over from
         // before the switch (or an invite accepted after it), and an upgrade
         // nudge about them is noise. Returns before the ratchet write, so an
@@ -940,18 +980,18 @@ impl EmailService {
             has_overage: bool,
         }
 
-        let network_filter = StorableFilter::<Network>::new_from_org_id(&org_id);
-        let network_count = self.network_service.get_all(network_filter).await?.len() as u64;
+        let site_filter = StorableFilter::<Site>::new_from_org_id(&org_id);
+        let site_count = self.site_service.get_all(site_filter).await?.len() as u64;
 
-        let networks = self
-            .network_service
-            .get_all(StorableFilter::<Network>::new_from_org_id(&org_id))
+        let sites = self
+            .site_service
+            .get_all(StorableFilter::<Site>::new_from_org_id(&org_id))
             .await?;
-        let network_ids: Vec<Uuid> = networks.iter().map(|n| n.id).collect();
+        let site_ids: Vec<Uuid> = sites.iter().map(|n| n.id).collect();
 
         // count_for_* narrow SCD2 entities to live rows so snapshot closed-copies
         // don't trip plan-limit warnings.
-        let host_count = self.host_service.count_for_networks(&network_ids).await?;
+        let host_count = self.host_service.count_for_sites(&site_ids).await?;
         let seat_count = self.user_service.count_for_org(&org_id).await?;
 
         let config = plan.config();
@@ -964,11 +1004,11 @@ impl EmailService {
                 has_overage: config.host_cents.is_some(),
             },
             LimitCheck {
-                limit: plan.network_limit(),
-                count: network_count,
-                limit_type: "networks",
-                level: notifications.networks.clone(),
-                has_overage: config.network_cents.is_some(),
+                limit: plan.site_limit(),
+                count: site_count,
+                limit_type: "sites",
+                level: notifications.sites.clone(),
+                has_overage: config.site_cents.is_some(),
             },
             LimitCheck {
                 limit: plan.seat_limit(),
@@ -1221,15 +1261,11 @@ impl EmailService {
             let Some((floor, effective_on)) = applicable_sunset(version) else {
                 continue;
             };
-            let Some(network) = self
-                .network_service
-                .get_by_id(&daemon.base.network_id)
-                .await?
-            else {
+            let Some(site) = self.site_service.get_by_id(&daemon.base.site_id).await? else {
                 continue;
             };
             by_org_floor
-                .entry((network.base.organization_id, floor))
+                .entry((site.base.organization_id, floor))
                 .or_insert_with(|| (effective_on, Vec::new()))
                 .1
                 .push(daemon);
@@ -1355,29 +1391,26 @@ impl EmailService {
             .await?
             .ok_or_else(|| anyhow::anyhow!("Organization not found"))?;
 
-        let networks = self
-            .network_service
-            .get_all(StorableFilter::<Network>::new_from_org_id(&org_id))
+        let sites = self
+            .site_service
+            .get_all(StorableFilter::<Site>::new_from_org_id(&org_id))
             .await?;
-        let networks_count = networks.len() as u64;
-        let network_ids: Vec<Uuid> = networks.iter().map(|n| n.id).collect();
+        let sites_count = sites.len() as u64;
+        let site_ids: Vec<Uuid> = sites.iter().map(|n| n.id).collect();
 
-        // count_for_networks narrows SCD2 entities to live rows so snapshot
+        // count_for_sites narrows SCD2 entities to live rows so snapshot
         // closed-copies don't inflate digest counts.
-        let hosts_count = self.host_service.count_for_networks(&network_ids).await?;
+        let hosts_count = self.host_service.count_for_sites(&site_ids).await?;
 
-        let services_count = self
-            .service_service
-            .count_for_networks(&network_ids)
-            .await?;
+        let services_count = self.service_service.count_for_sites(&site_ids).await?;
 
-        let daemons_count = self.daemon_service.count_for_networks(&network_ids).await?;
+        let daemons_count = self.daemon_service.count_for_sites(&site_ids).await?;
 
         let days_into_trial = (chrono::Utc::now() - org.created_at).num_days();
 
         Ok(TrialRecapMetrics {
             hosts_count,
-            networks_count,
+            sites_count,
             daemons_count,
             services_count,
             days_into_trial,
@@ -1446,14 +1479,14 @@ mod tests {
     fn limit_level_advances_only_when_its_send_succeeded() {
         let mut notifications = OrgNotifications::default();
         let sent = change("hosts", LimitNotificationLevel::Reached);
-        let failed = change("networks", LimitNotificationLevel::Approaching);
+        let failed = change("sites", LimitNotificationLevel::Approaching);
 
         assert!(sent.record(&mut notifications, &Ok(())));
         assert!(!failed.record(&mut notifications, &Err(anyhow::anyhow!("smtp down"))));
 
         assert_eq!(notifications.hosts, LimitNotificationLevel::Reached);
         // The failed limit keeps its old level, so the next crossing retries.
-        assert_eq!(notifications.networks, LimitNotificationLevel::None);
+        assert_eq!(notifications.sites, LimitNotificationLevel::None);
         assert_eq!(notifications.seats, LimitNotificationLevel::None);
     }
 }

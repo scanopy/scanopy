@@ -81,9 +81,9 @@
 					rate: p.metadata.rate,
 					trial_days: p.metadata.trial_days,
 					seat_cents: p.metadata.seat_cents,
-					network_cents: p.metadata.network_cents,
+					site_cents: p.metadata.site_cents,
 					included_seats: p.metadata.included_seats,
-					included_networks: p.metadata.included_networks,
+					included_sites: p.metadata.included_sites,
 					// Checkout validates the whole plan config against the server's.
 					included_orgs: p.metadata.included_orgs ?? null,
 					host_cents: p.metadata.host_cents ?? null,

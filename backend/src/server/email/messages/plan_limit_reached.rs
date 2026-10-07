@@ -1,6 +1,6 @@
 use super::{Body, Content, Email, EmailCategory, EmailPreference, PausableCategory, links};
 
-/// Sent when an organization hits a plan limit (hosts/networks/seats).
+/// Sent when an organization hits a plan limit (hosts/sites/seats).
 pub struct PlanLimitReached<'a> {
     pub first_name: Option<&'a str>,
     pub limit_type: &'a str,

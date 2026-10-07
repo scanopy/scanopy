@@ -3,7 +3,12 @@
 
 	type ServiceType = TypedTypeMetadata<ServicedDefinitionMetadata>;
 
-	export const ServiceTypeDisplay: EntityDisplayComponent<ServiceType, object> = {
+	export type ServiceTypeTagRole = 'category';
+
+	export const ServiceTypeDisplay: EntityDisplayComponent<
+		ServiceType,
+		DisplayTagContext<ServiceTypeTagRole>
+	> = {
 		getId: (serviceType: ServiceType) => serviceType.id,
 		getLabel: (serviceType: ServiceType) => serviceType.name ?? '',
 		getDescription: (serviceType: ServiceType) => serviceType.description ?? '',
@@ -12,8 +17,8 @@
 			serviceDefinitions.getColorHelper(serviceType.id).icon,
 		getTags: (serviceType: ServiceType) => [
 			{
-				label: serviceType.category ?? '',
-				color: serviceType.color ?? undefined
+				...serviceCategories.getTag(serviceType.category),
+				role: 'category' satisfies ServiceTypeTagRole
 			}
 		],
 		getCategory: (serviceType: ServiceType) => serviceType.category ?? ''
@@ -22,11 +27,11 @@
 
 <script lang="ts">
 	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
-	import { serviceDefinitions } from '$lib/shared/stores/metadata';
-	import type { EntityDisplayComponent } from '../types';
+	import { serviceCategories, serviceDefinitions } from '$lib/shared/stores/metadata';
+	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
 
 	export let item: ServiceType;
-	export let context = {};
+	export let context: DisplayTagContext<ServiceTypeTagRole> = {};
 </script>
 
 <ListSelectItem {item} {context} displayComponent={ServiceTypeDisplay} />

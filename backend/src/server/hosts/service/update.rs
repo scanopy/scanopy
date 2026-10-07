@@ -15,7 +15,7 @@ impl HostService {
             .await?
             .ok_or_else(|| anyhow!("Host '{}' not found", request.id))?;
 
-        let network_id = existing.base.network_id;
+        let site_id = existing.base.site_id;
         let UpdateHostRequest {
             id,
             name,
@@ -23,6 +23,7 @@ impl HostService {
             description,
             virtualization_metadata,
             virtualization_service_id,
+            virtualization_interface_id,
             hidden,
             tags,
             expected_updated_at: _,
@@ -56,6 +57,12 @@ impl HostService {
         // a validation error, not a foreign-key 500.
         self.validate_virtualization_service(virtualization_service_id)
             .await?;
+        self.validate_virtualization_interface(
+            site_id,
+            virtualization_service_id,
+            virtualization_interface_id,
+        )
+        .await?;
 
         let mut updated_host = Host {
             id,
@@ -71,13 +78,14 @@ impl HostService {
                 // Carried over, then reconciled below — the request alone cannot say whether a
                 // person renamed the host or merely saved some other field.
                 name: existing.base.name.clone(),
-                network_id,
+                site_id,
                 source: existing.base.source,
                 // Carried over and reconciled below, for the same reason as the name.
                 hostname: existing.base.hostname.clone(),
                 description,
                 virtualization_metadata,
                 virtualization_service_id,
+                virtualization_interface_id,
                 hidden,
                 tags: tags.clone(),
                 // Preserve existing SNMP fields on update
@@ -91,6 +99,7 @@ impl HostService {
                 manufacturer: existing.base.manufacturer.clone(),
                 model: existing.base.model.clone(),
                 serial_number: existing.base.serial_number.clone(),
+                asset_tag: existing.base.asset_tag.clone(),
                 firmware_revision: existing.base.firmware_revision.clone(),
                 software_revision: existing.base.software_revision.clone(),
                 os: existing.base.os.clone(),
@@ -134,30 +143,25 @@ impl HostService {
 
         // Sync ip_addresses only if provided (None means preserve existing)
         if let Some(ip_addresses) = ip_addresses {
-            self.sync_ip_addresses(
-                &updated.id,
-                &network_id,
-                ip_addresses,
-                authentication.clone(),
-            )
-            .await?;
+            self.sync_ip_addresses(&updated.id, &site_id, ip_addresses, authentication.clone())
+                .await?;
         }
 
         // Sync ports only if provided (None means preserve existing)
         if let Some(ports) = ports {
-            self.sync_ports(&updated.id, &network_id, ports, authentication.clone())
+            self.sync_ports(&updated.id, &site_id, ports, authentication.clone())
                 .await?;
         }
 
         // Sync services only if provided (None means preserve existing)
         if let Some(services) = services {
-            self.sync_services(&updated.id, &network_id, services, authentication.clone())
+            self.sync_services(&updated.id, &site_id, services, authentication.clone())
                 .await?;
         }
 
         // Sync interfaces only if provided (None means preserve existing)
         if let Some(interfaces) = interfaces {
-            self.sync_interfaces(&updated.id, &network_id, interfaces, authentication.clone())
+            self.sync_interfaces(&updated.id, &site_id, interfaces, authentication.clone())
                 .await?;
         }
 
@@ -179,7 +183,7 @@ impl HostService {
     async fn sync_ip_addresses(
         &self,
         host_id: &Uuid,
-        network_id: &Uuid,
+        site_id: &Uuid,
         inputs: Vec<IPAddressInput>,
         authentication: AuthenticatedEntity,
     ) -> Result<()> {
@@ -208,7 +212,7 @@ impl HostService {
         // Process each input - create or update based on whether ID exists for this host
         for input in inputs {
             let id = input.id;
-            let mut ip_address = input.into_ip_address(*host_id, *network_id);
+            let mut ip_address = input.into_ip_address(*host_id, *site_id);
 
             if existing_ids.contains(&id) {
                 // Update existing interface - preserve created_at from existing
@@ -235,7 +239,7 @@ impl HostService {
     async fn sync_ports(
         &self,
         host_id: &Uuid,
-        network_id: &Uuid,
+        site_id: &Uuid,
         inputs: Vec<PortInput>,
         authentication: AuthenticatedEntity,
     ) -> Result<()> {
@@ -259,7 +263,7 @@ impl HostService {
         // Process each input - create or update based on whether ID exists for this host
         for input in inputs {
             let id = input.id;
-            let mut port = input.into_port(*host_id, *network_id);
+            let mut port = input.into_port(*host_id, *site_id);
 
             if existing_ids.contains(&id) {
                 // Update existing port - preserve created_at from existing
@@ -286,7 +290,7 @@ impl HostService {
     async fn sync_interfaces(
         &self,
         host_id: &Uuid,
-        network_id: &Uuid,
+        site_id: &Uuid,
         inputs: Vec<InterfaceInput>,
         authentication: AuthenticatedEntity,
     ) -> Result<()> {
@@ -310,7 +314,7 @@ impl HostService {
         // Process each input - create or update based on whether ID exists for this host
         for input in inputs {
             let id = input.id;
-            let mut interface = input.into_interface(*host_id, *network_id);
+            let mut interface = input.into_interface(*host_id, *site_id);
 
             if existing_ids.contains(&id) {
                 // Update existing interface - preserve created_at from existing
@@ -337,7 +341,7 @@ impl HostService {
     async fn sync_services(
         &self,
         host_id: &Uuid,
-        network_id: &Uuid,
+        site_id: &Uuid,
         inputs: Vec<ServiceInput>,
         authentication: AuthenticatedEntity,
     ) -> Result<()> {
@@ -411,7 +415,7 @@ impl HostService {
             let id = input.id;
             // For new services, source is Manual (API-created)
             // For existing services, we'll preserve their source below
-            let mut service = input.into_service(*host_id, *network_id, EntitySource::Manual);
+            let mut service = input.into_service(*host_id, *site_id, EntitySource::Manual);
 
             if existing_ids.contains(&id) {
                 // Update existing service - preserve immutable fields

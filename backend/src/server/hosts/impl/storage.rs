@@ -30,7 +30,7 @@ pub struct HostCsvRow {
     pub name: String,
     pub hostname: Option<String>,
     pub description: Option<String>,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub source: String,
     pub hidden: bool,
     // Everything the device reported about itself. Field order is column order — headers are
@@ -46,6 +46,7 @@ pub struct HostCsvRow {
     pub manufacturer: Option<String>,
     pub model: Option<String>,
     pub serial_number: Option<String>,
+    pub asset_tag: Option<String>,
     pub firmware_revision: Option<String>,
     pub software_revision: Option<String>,
     pub os: Option<String>,
@@ -77,6 +78,9 @@ impl Storable for Host {
     /// by default: a host that never got a name is *listed* under one of them,
     /// and searching for the title on screen has to find the host wearing it.
     ///
+    /// Serial number and asset tag are the identifiers someone holding the
+    /// physical device reads off its label, so they find it too.
+    ///
     /// Children are matched with `EXISTS` rather than a JOIN so a host with
     /// many IPs or services is not duplicated in the result set — which would
     /// also corrupt the paginated `COUNT(*)`. The `valid_to IS NULL` guards
@@ -90,6 +94,8 @@ impl Storable for Host {
             "hosts.hostname ILIKE {}",
             "hosts.sys_name ILIKE {}",
             "hosts.chassis_id ILIKE {}",
+            "hosts.serial_number ILIKE {}",
+            "hosts.asset_tag ILIKE {}",
             "hosts.description ILIKE {}",
             "EXISTS (SELECT 1 FROM ip_addresses ia WHERE ia.host_id = hosts.id \
              AND ia.valid_to IS NULL AND host(ia.ip_address) ILIKE {})",
@@ -145,11 +151,12 @@ impl Storable for Host {
                     name,
                     description,
                     hostname,
-                    network_id,
+                    site_id,
                     hidden,
                     source,
                     virtualization_metadata,
                     virtualization_service_id,
+                    virtualization_interface_id,
                     tags: _, // Stored in entity_tags junction table
                     sys_descr,
                     sys_object_id,
@@ -161,6 +168,7 @@ impl Storable for Host {
                     manufacturer,
                     model,
                     serial_number,
+                    asset_tag,
                     firmware_revision,
                     software_revision,
                     os,
@@ -185,6 +193,7 @@ impl Storable for Host {
         let [model_value, model_source] = attributed::optional_params(&model);
         let [serial_number_value, serial_number_source] =
             attributed::optional_params(&serial_number);
+        let [asset_tag_value, asset_tag_source] = attributed::optional_params(&asset_tag);
         let [firmware_revision_value, firmware_revision_source] =
             attributed::optional_params(&firmware_revision);
         let [software_revision_value, software_revision_source] =
@@ -199,13 +208,14 @@ impl Storable for Host {
                 "name",
                 "name_source",
                 "description",
-                "network_id",
+                "site_id",
                 "source",
                 "hostname",
                 "hostname_source",
                 "hidden",
                 "virtualization_metadata",
                 "virtualization_service_id",
+                "virtualization_interface_id",
                 "sys_descr",
                 "sys_descr_source",
                 "sys_object_id",
@@ -226,6 +236,8 @@ impl Storable for Host {
                 "model_source",
                 "serial_number",
                 "serial_number_source",
+                "asset_tag",
+                "asset_tag_source",
                 "firmware_revision",
                 "firmware_revision_source",
                 "software_revision",
@@ -246,13 +258,14 @@ impl Storable for Host {
                 name_value,
                 name_source,
                 SqlValue::OptionalString(description),
-                SqlValue::Uuid(network_id),
+                SqlValue::Uuid(site_id),
                 SqlValue::EntitySource(source),
                 hostname_value,
                 hostname_source,
                 SqlValue::Bool(hidden),
                 SqlValue::OptionalHostVirtualization(virtualization_metadata),
                 SqlValue::OptionalUuid(virtualization_service_id),
+                SqlValue::OptionalUuid(virtualization_interface_id),
                 sys_descr_value,
                 sys_descr_source,
                 sys_object_id_value,
@@ -273,6 +286,8 @@ impl Storable for Host {
                 model_source,
                 serial_number_value,
                 serial_number_source,
+                asset_tag_value,
+                asset_tag_source,
                 firmware_revision_value,
                 firmware_revision_source,
                 software_revision_value,
@@ -325,12 +340,13 @@ impl Storable for Host {
             base: HostBase {
                 name,
                 description: row.get("description"),
-                network_id: row.get("network_id"),
+                site_id: row.get("site_id"),
                 source,
                 hostname: attributed::read_optional(row)?,
                 hidden: row.get("hidden"),
                 virtualization_metadata,
                 virtualization_service_id: row.get("virtualization_service_id"),
+                virtualization_interface_id: row.get("virtualization_interface_id"),
                 tags: Vec::new(), // Hydrated from entity_tags junction table
                 sys_descr: attributed::read_optional(row)?,
                 sys_object_id: attributed::read_optional(row)?,
@@ -342,6 +358,7 @@ impl Storable for Host {
                 manufacturer: attributed::read_optional(row)?,
                 model: attributed::read_optional(row)?,
                 serial_number: attributed::read_optional(row)?,
+                asset_tag: attributed::read_optional(row)?,
                 firmware_revision: attributed::read_optional(row)?,
                 software_revision: attributed::read_optional(row)?,
                 os: attributed::read_optional(row)?,
@@ -376,7 +393,7 @@ impl Entity for Host {
             name: self.base.name.to_string(),
             hostname: attribution::text_of(&self.base.hostname),
             description: self.base.description.clone(),
-            network_id: self.base.network_id,
+            site_id: self.base.site_id,
             source: format!("{:?}", self.base.source),
             hidden: self.base.hidden,
             sys_descr: attribution::text_of(&self.base.sys_descr),
@@ -389,6 +406,7 @@ impl Entity for Host {
             manufacturer: attribution::text_of(&self.base.manufacturer),
             model: attribution::text_of(&self.base.model),
             serial_number: attribution::text_of(&self.base.serial_number),
+            asset_tag: attribution::text_of(&self.base.asset_tag),
             firmware_revision: attribution::text_of(&self.base.firmware_revision),
             software_revision: attribution::text_of(&self.base.software_revision),
             os: attribution::text_of(&self.base.os),
@@ -407,11 +425,11 @@ impl Entity for Host {
         "Network hosts (devices). Manage discovered or manually created hosts on your network.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::NetworkInfrastructure
+        EntityCategory::Assets
     }
 
-    fn network_id(&self) -> Option<Uuid> {
-        Some(self.base.network_id)
+    fn site_id(&self) -> Option<Uuid> {
+        Some(self.base.site_id)
     }
 
     fn organization_id(&self) -> Option<Uuid> {

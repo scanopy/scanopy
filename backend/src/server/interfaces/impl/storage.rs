@@ -33,7 +33,7 @@ fn csv_status<S: std::fmt::Debug>(status: Option<S>) -> String {
 pub struct InterfaceCsvRow {
     pub id: Uuid,
     pub host_id: Uuid,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub if_index: Option<i32>,
     pub if_descr: Option<String>,
     pub if_name: Option<String>,
@@ -102,7 +102,7 @@ impl Storable for Interface {
             base:
                 Self::BaseData {
                     host_id,
-                    network_id,
+                    site_id,
                     if_index,
                     if_descr,
                     if_name,
@@ -129,7 +129,7 @@ impl Storable for Interface {
         let columns = vec![
             "id",
             "host_id",
-            "network_id",
+            "site_id",
             "if_index",
             "if_descr",
             "if_name",
@@ -158,7 +158,7 @@ impl Storable for Interface {
         let values = vec![
             SqlValue::Uuid(id),
             SqlValue::Uuid(host_id),
-            SqlValue::Uuid(network_id),
+            SqlValue::Uuid(site_id),
             SqlValue::OptionalI32(if_index),
             SqlValue::OptionalString(if_descr),
             SqlValue::OptionalString(if_name),
@@ -200,7 +200,7 @@ impl Storable for Interface {
         // Read mac_address from MACADDR column
         let mac_address = attributed::read_optional::<MacEvidenceValue>(row)?;
 
-        Ok(Interface {
+        let mut interface = Interface {
             id: row.get("id"),
             created_at: row.get("created_at"),
             updated_at: row.get("updated_at"),
@@ -210,12 +210,12 @@ impl Storable for Interface {
             last_seen_at: row.get("last_seen_at"),
             last_discovery_id: row.get("last_discovery_id"),
             first_discovery_id: row.get("first_discovery_id"),
-            // Never stored — computed at response-serialization time, see
-            // `HostResponse::from_host_with_children`.
+            // Never stored: computed below from the row, so every endpoint that returns an
+            // interface names it the same way.
             display_name: None,
             base: InterfaceBase {
                 host_id: row.get("host_id"),
-                network_id: row.get("network_id"),
+                site_id: row.get("site_id"),
                 if_index: row.get("if_index"),
                 if_descr: row.get("if_descr"),
                 if_name: row.get("if_name"),
@@ -240,7 +240,9 @@ impl Storable for Interface {
                     .flatten()
                     .and_then(|v| serde_json::from_value(v).ok()),
             },
-        })
+        };
+        interface.display_name = Some(interface.display_name());
+        Ok(interface)
     }
 }
 
@@ -267,7 +269,7 @@ impl Entity for Interface {
         InterfaceCsvRow {
             id: self.id,
             host_id: self.base.host_id,
-            network_id: self.base.network_id,
+            site_id: self.base.site_id,
             if_index: self.base.if_index,
             if_descr: self.base.if_descr.clone(),
             if_name: self.base.if_name.clone(),
@@ -305,11 +307,11 @@ impl Entity for Interface {
         "SNMP ifTable entries. Physical and logical interfaces discovered via SNMP on hosts.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::NetworkInfrastructure
+        EntityCategory::Assets
     }
 
-    fn network_id(&self) -> Option<Uuid> {
-        Some(self.base.network_id)
+    fn site_id(&self) -> Option<Uuid> {
+        Some(self.base.site_id)
     }
 
     fn organization_id(&self) -> Option<Uuid> {
@@ -429,7 +431,7 @@ impl Snapshotable for Interface {
             self.base.native_vlan_id = Some(*closed);
         }
         // `vlan_ids` (JSONB array) stays as-is — a cross-host reference that may point outside
-        // this network's snapshot; as-of joins handle resolution.
+        // this site's snapshot; as-of joins handle resolution.
     }
 }
 
@@ -479,7 +481,7 @@ mod tests {
     fn make_interface(if_index: i32, if_name: Option<&str>, mac: Option<&str>) -> Interface {
         Interface::new(InterfaceBase {
             host_id: Uuid::new_v4(),
-            network_id: Uuid::new_v4(),
+            site_id: Uuid::new_v4(),
             if_index: Some(if_index),
             if_name: if_name.map(String::from),
             mac_address: mac
@@ -573,7 +575,7 @@ mod tests {
 
         let mut incoming = Interface::new(InterfaceBase {
             host_id: existing.base.host_id,
-            network_id: existing.base.network_id,
+            site_id: existing.base.site_id,
             ..Default::default()
         });
 

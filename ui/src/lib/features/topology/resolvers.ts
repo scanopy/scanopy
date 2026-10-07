@@ -1,5 +1,5 @@
 import type { components } from '$lib/api/schema';
-import type { RenderableTopology, TopologyNode } from './types/base';
+import type { RenderableTopology, TopologyEdge, TopologyNode } from './types/base';
 import { entities } from '$lib/shared/stores/metadata';
 import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 import { getTopologyIndex, type ContainerContents } from './entity-index';
@@ -39,6 +39,7 @@ export function entityCollection(
 
 type ElementEntityType = components['schemas']['ElementEntityType'];
 type ElementEntityTypeDiscriminant = ElementEntityType['element_type'];
+type InlineGroup = components['schemas']['InlineGroup'];
 
 // Resolver return types
 export interface ElementRenderContext {
@@ -324,6 +325,57 @@ export function resolveDependencyTargets(
 	return targets;
 }
 
+/**
+ * Targets of a dependency being edited: its saved members, in order and minus any the user
+ * removed, then whatever else is selected, resolved like a new dependency's targets.
+ *
+ * Editing selects each saved member as the node that shows it: the service itself, or (L3) the
+ * IP card its binding sits on. Those nodes, removed members' included, are not new targets.
+ */
+export function resolveEditDependencyTargets(
+	dependency: components['schemas']['Dependency'],
+	selectedNodes: { id: string; data: unknown }[],
+	topology: RenderableTopology,
+	removedServiceIds: ReadonlySet<string>
+): DependencyTarget[] {
+	const members = dependency.members;
+	const serviceIds: string[] =
+		members.type === 'Services'
+			? [...members.service_ids]
+			: members.binding_ids
+					.map((bid) => topology.services.find((s) => s.bindings.some((b) => b.id === bid))?.id)
+					.filter((id): id is string => !!id);
+
+	const memberTargets = serviceIds
+		.filter((sid) => !removedServiceIds.has(sid))
+		.map((sid): DependencyTarget => {
+			const svc = topology.services.find((s) => s.id === sid);
+			const host = svc ? topology.hosts.find((h) => h.id === svc.host_id) : undefined;
+			return {
+				type: 'service',
+				serviceId: sid,
+				elementId: sid,
+				label: svc?.name ?? '',
+				hostName: host ? hostDisplayName(host) : ''
+			};
+		});
+
+	const memberNodeIds = new Set<string>();
+	for (const sid of serviceIds) {
+		memberNodeIds.add(sid);
+		const svc = topology.services.find((s) => s.id === sid);
+		for (const b of svc?.bindings ?? []) {
+			if (b.ip_address_id) memberNodeIds.add(b.ip_address_id);
+		}
+	}
+	const addedTargets = resolveDependencyTargets(
+		selectedNodes.filter((n) => !memberNodeIds.has(n.id)),
+		topology
+	);
+
+	return [...memberTargets, ...addedTargets];
+}
+
 // Resolve the taggable entity behind an element node. Walks the element_type's
 // parent_taggable_entity chain (per entity metadata) until a taggable entity is reached.
 // Returns null for containers, unknown elements, or chains with no taggable ancestor.
@@ -487,13 +539,56 @@ export function resolveInlineServiceIds(
 				if (!elementServiceIds.has(s.id)) out.add(s.id);
 			}
 		} else if (node.element_type === 'Host') {
-			for (const s of hostServices) {
+			// The card also draws the services of hosts inlined on it (a guest's network
+			// identities, a runtime's macvlan containers).
+			const memberHostIds = ((node as { inline_groups?: InlineGroup[] }).inline_groups ?? [])
+				.filter((g) => g.entity_type === 'Host')
+				.map((g) => g.entity_id);
+			const memberServices = memberHostIds.flatMap((h) => servicesByHostId.get(h) ?? []);
+			for (const s of [...hostServices, ...memberServices]) {
 				if (!elementServiceIds.has(s.id)) out.add(s.id);
 			}
 		}
 	}
 
 	return out;
+}
+
+/**
+ * The container hosts (macvlan, ipvlan) a ContainerRuntime edge stands for. An edge to a
+ * container host names no containerized services; its containers are the runtime's hosts with an
+ * address on the subnet the edge reaches. Empty for an edge to bridge-network containers.
+ */
+export function containerHostsOfEdge(
+	topology: RenderableTopology,
+	edge: TopologyEdge
+): RenderableTopology['hosts'] {
+	if (edge.edge_type !== 'ContainerRuntime' || edge.containerized_service_ids.length > 0) {
+		return [];
+	}
+	return topology.hosts.filter(
+		(h) =>
+			h.virtualization_service_id === edge.service_id &&
+			topology.ip_addresses.some(
+				(ip) => ip.host_id === h.id && edge.subnet_ids.includes(ip.subnet_id)
+			)
+	);
+}
+
+/**
+ * The identity hosts a NetworkIdentity edge reaches: the host of the address the backend drew it
+ * to. Edge elevation can replace that endpoint with the id of a box that accepts edges, and then
+ * every identity of the edge's Network Identities service is returned.
+ */
+export function identityHostsOfEdge(
+	topology: RenderableTopology,
+	edge: TopologyEdge
+): RenderableTopology['hosts'] {
+	if (edge.edge_type !== 'NetworkIdentity') return [];
+	const address = topology.ip_addresses.find((ip) => ip.id === edge.target);
+	const addressHost = address ? topology.hosts.find((h) => h.id === address.host_id) : undefined;
+	if (addressHost) return [addressHost];
+	return topology.hosts.filter((h) => h.virtualization_service_id === edge.identities_service_id);
 }
 
 // Entity→Node index — canonical resolver for mapping entity IDs to topology node IDs
@@ -611,7 +706,7 @@ export function resolveContainerNode(
 }
 
 /** An entity a topology node stands for, as the filter extractors and freshness helpers read it. */
-export type NodeEntity = FreshnessSubject & { id: string; network_id?: string };
+export type NodeEntity = FreshnessSubject & { id: string; site_id?: string };
 
 /**
  * The entity an element card depicts: its service, address or interface, and otherwise its host.
@@ -628,6 +723,26 @@ export function elementEntity(resolved: ElementRenderContext): NodeEntity | unde
 		default:
 			return resolved.host;
 	}
+}
+
+/**
+ * The entity a card is judged by for a filter on `entityType`: its own when the filter is on its
+ * type, its host when a Host filter meets an IPAddress or Interface card. The filter-value hover
+ * ring and the view's element marks both read it, so a coloured card is always one the matching
+ * chip rings.
+ */
+export function cardEntityForFilter(
+	resolved: ElementRenderContext,
+	entityType: string
+): NodeEntity | undefined {
+	if (resolved.elementType === entityType) return elementEntity(resolved);
+	if (
+		entityType === 'Host' &&
+		(resolved.elementType === 'IPAddress' || resolved.elementType === 'Interface')
+	) {
+		return resolved.host;
+	}
+	return undefined;
 }
 
 /**

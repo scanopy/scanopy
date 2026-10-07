@@ -16,6 +16,7 @@ use utoipa::ToSchema;
 pub mod container_proxy;
 pub mod instant_on;
 pub mod paths;
+pub mod proxmox;
 pub mod snmp;
 pub mod ssh;
 pub mod ssh_script;
@@ -46,6 +47,7 @@ pub use secrets::{
 pub use snmp::{SnmpV3AuthProtocol, SnmpV3PrivProtocol, SnmpVersion};
 
 pub use instant_on::InstantOnQueryCredential;
+pub use proxmox::{ProxmoxQueryCredential, default_proxmox_port};
 pub use ssh::{
     ScriptSource, SshAuth, SshQueryCredential, default_ssh_port, default_ssh_timeout_seconds,
 };
@@ -339,6 +341,19 @@ pub enum CredentialType {
         )]
         secure_on_password: Option<SecretValue>,
     },
+    /// Proxmox VE API token. Any node's API answers for its whole cluster, so one credential on
+    /// one node reports every node, VM and LXC container. Use a read-only token: the PVEAuditor
+    /// role on `/`, plus guest-agent read access for VM addresses.
+    #[schema(title = "ProxmoxApiToken")]
+    ProxmoxApiToken {
+        /// Proxmox VE API port (default 8006).
+        #[serde(default = "default_proxmox_port")]
+        port: u16,
+        /// Token ID in `user@realm!tokenname` form, e.g. `scanopy@pve!discovery`.
+        token_id: String,
+        /// The token's secret (a UUID), shown once when the token is created.
+        token_secret: SecretValue,
+    },
 }
 
 /// Convert a stored `SecretValue` into a daemon-bound `ResolvableSecret`,
@@ -512,6 +527,17 @@ impl CredentialType {
                     *secure_on_password = existing_password.clone();
                 }
             }
+            (
+                Self::ProxmoxApiToken { token_secret, .. },
+                Self::ProxmoxApiToken {
+                    token_secret: existing_secret,
+                    ..
+                },
+            ) => {
+                if token_secret.is_redacted_sentinel() {
+                    *token_secret = existing_secret.clone();
+                }
+            }
             // Every remaining arm is "nothing to merge": either the variant holds no secret, or
             // the credential's type was changed in this edit so there is no prior secret of the
             // same shape to restore.
@@ -533,7 +559,8 @@ impl CredentialType {
             | (Self::InstantOnAccount { .. }, _)
             | (Self::SshPassword { .. }, _)
             | (Self::SshKey { .. }, _)
-            | (Self::WakeOnLan { .. }, _) => {}
+            | (Self::WakeOnLan { .. }, _)
+            | (Self::ProxmoxApiToken { .. }, _) => {}
         }
     }
 
@@ -544,16 +571,16 @@ impl CredentialType {
     }
 
     /// Where this credential type can be applied: the daemon's own host, specific
-    /// hosts, and/or a whole network (broadcast).
+    /// hosts, and/or a whole site (broadcast).
     pub fn targets(&self) -> Vec<Target> {
         match self {
             // SNMP can target the daemon's own host too (a 127.0.0.1 IP-override),
-            // specific hosts, or a whole network.
+            // specific hosts, or a whole site.
             Self::SnmpV1 { .. } | Self::SnmpV2c { .. } | Self::SnmpV3 { .. } => {
-                vec![Target::DaemonHost, Target::Hosts, Target::Network]
+                vec![Target::DaemonHost, Target::Hosts, Target::Site]
             }
             // gNMI behaves like SNMP: broadcastable, and a device credential.
-            Self::Gnmi { .. } => vec![Target::DaemonHost, Target::Hosts, Target::Network],
+            Self::Gnmi { .. } => vec![Target::DaemonHost, Target::Hosts, Target::Site],
             // Docker/Podman proxy: on the daemon host (localhost proxy) or remote hosts.
             Self::DockerProxy { .. } | Self::PodmanProxy { .. } => {
                 vec![Target::DaemonHost, Target::Hosts]
@@ -561,7 +588,7 @@ impl CredentialType {
             // Local socket: only the daemon's own host.
             Self::DockerSocket { .. } | Self::PodmanSocket { .. } => vec![Target::DaemonHost],
             // A controller is one specific endpoint: the daemon's own host (self-hosted
-            // controller) or a named host. Deliberately NOT `Network` — a network target is
+            // controller) or a named host. Deliberately NOT `Site` — a site target is
             // broadcast as the default credential for every IP in the subnet, which would
             // spray controller credentials at unrelated hosts.
             Self::UnifiApiKey { .. } | Self::UnifiLocalAdmin { .. } => {
@@ -571,16 +598,19 @@ impl CredentialType {
             // it to the switch it reports on: an IP binding names what a credential produces data
             // about, and this credential says nothing about the machine running the daemon, so
             // `DaemonHost` is wrong here even though it is right for a self-hosted controller.
-            // Not `Network` either, for the same reason as UniFi.
+            // Not `Site` either, for the same reason as UniFi.
             Self::InstantOnAccount { .. } => vec![Target::Hosts],
-            // A login, like SNMP: the same account and script can serve a fleet, so a network
+            // A login, like SNMP: the same account and script can serve a fleet, so a site
             // assignment is a reasonable way to apply it.
             Self::SshPassword { .. } | Self::SshKey { .. } => {
-                vec![Target::Hosts, Target::Network]
+                vec![Target::Hosts, Target::Site]
             }
-            // Named hosts only. A network assignment would wake every device on the subnet the
+            // Named hosts only. A site assignment would wake every device on the subnet the
             // server holds a MAC for, which nobody asking to wake a NAS intends.
             Self::WakeOnLan { .. } => vec![Target::Hosts],
+            // One API endpoint per node, like a controller: a daemon running on a node, or a
+            // named node. Not `Site`, for the same reason as UniFi.
+            Self::ProxmoxApiToken { .. } => vec![Target::DaemonHost, Target::Hosts],
         }
     }
 
@@ -612,13 +642,15 @@ impl CredentialType {
             | Self::UnifiApiKey { .. }
             | Self::UnifiLocalAdmin { .. }
             // One Instant On site reports a given switch, and there is one way to reach it.
-            | Self::InstantOnAccount { .. } => true,
+            | Self::InstantOnAccount { .. }
+            // One Proxmox VE API per node, with one way in.
+            | Self::ProxmoxApiToken { .. } => true,
             Self::SnmpV1 { .. } | Self::SnmpV2c { .. } | Self::SnmpV3 { .. } => false,
             // Try-many like SNMP: two gNMI credentials (Arista on 6030, ArcOS on 9339) must be
-            // broadcastable on one network, which `true` would forbid.
+            // broadcastable on one site, which `true` would forbid.
             Self::Gnmi { .. } => false,
             // Try-many: two SSH credentials (different accounts, different scripts) on one host
-            // are both meaningful, and network-wide SSH must stay broadcastable.
+            // are both meaningful, and site-wide SSH must stay broadcastable.
             Self::SshPassword { .. } | Self::SshKey { .. } => false,
             // Two WoL credentials on one host only send two packets; nothing to forbid.
             Self::WakeOnLan { .. } => false,
@@ -696,6 +728,15 @@ impl CredentialType {
                 secure_on_password, ..
             } => match field_id {
                 "secure_on_password" => inline_secret(secure_on_password.as_ref()?),
+                _ => None,
+            },
+            Self::ProxmoxApiToken {
+                token_id,
+                token_secret,
+                ..
+            } => match field_id {
+                "token_id" => Some(token_id.clone()),
+                "token_secret" => inline_secret(token_secret),
                 _ => None,
             },
             Self::DockerSocket { .. } | Self::PodmanSocket { .. } => None,
@@ -800,6 +841,9 @@ impl CredentialType {
                     .as_ref()
                     .and_then(|s| secret("secure_on_password", s)),
             ],
+            Self::ProxmoxApiToken { token_secret, .. } => {
+                vec![secret("token_secret", token_secret)]
+            }
         };
         paths.into_iter().flatten().collect()
     }
@@ -1040,6 +1084,15 @@ impl CredentialType {
                 wait_seconds: *wait_seconds,
                 broadcast_address: *broadcast_address,
                 secure_on_password: secure_on_password.as_ref().map(secret_to_resolvable),
+            }),
+            CredentialType::ProxmoxApiToken {
+                port,
+                token_id,
+                token_secret,
+            } => CredentialQueryPayload::Proxmox(ProxmoxQueryCredential {
+                port: *port,
+                token_id: token_id.trim().to_string(),
+                token_secret: secret_to_resolvable(token_secret),
             }),
         }
     }
@@ -1783,9 +1836,57 @@ mod tests {
         assert!(!format!("{:?}", cred.to_query_payload()).contains("portal-pw"));
     }
 
+    /// The token secret carries the same redacted round-trip risk as every other secret.
+    #[test]
+    fn merge_redacted_secrets_preserves_the_proxmox_token_secret() {
+        let token = |secret: &str| CredentialType::ProxmoxApiToken {
+            port: 8006,
+            token_id: "scanopy@pve!discovery".to_string(),
+            token_secret: inline(secret),
+        };
+        let mut updated = token(REDACTED_SECRET_SENTINEL);
+        updated.merge_redacted_secrets(&token("real-token-secret"));
+        assert_eq!(updated, token("real-token-secret"));
+    }
+
+    /// The token ID must be the full `user@realm!tokenname`: the bare user or the bare token name
+    /// is the usual paste mistake, and Proxmox answers either with a 401 that reads like a wrong
+    /// secret.
+    #[test]
+    fn proxmox_token_id_must_name_user_realm_and_token() {
+        let with_id = |token_id: &str| CredentialType::ProxmoxApiToken {
+            port: 8006,
+            token_id: token_id.to_string(),
+            token_secret: inline("secret"),
+        };
+        for valid in [
+            "scanopy@pve!discovery",
+            "root@pam!scan_01",
+            " ops@ldap!a.b-c ",
+        ] {
+            assert!(
+                with_id(valid).validate().is_ok(),
+                "{valid} should be accepted"
+            );
+        }
+        for invalid in [
+            "scanopy@pve",
+            "discovery",
+            "scanopy!discovery",
+            "scanopy@pve!",
+            "scanopy@pve!1token",
+            "scan opy@pve!discovery",
+        ] {
+            assert!(
+                with_id(invalid).validate().is_err(),
+                "{invalid} should be rejected"
+            );
+        }
+    }
+
     /// Binding is what says *which host a credential produces data about*. Instant On describes
     /// the switch it reports on — never the daemon's own machine, which runs nothing Instant On,
-    /// and never a whole network, which would spray portal credentials at unrelated hosts.
+    /// and never a whole site, which would spray portal credentials at unrelated hosts.
     #[test]
     fn instant_on_targets_hosts_only() {
         let cred = CredentialTypeDiscriminants::InstantOnAccount.to_credential_type();

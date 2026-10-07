@@ -23,7 +23,9 @@ use crate::daemon::utils::base::PlatformDaemonUtils;
 use crate::server::credentials::r#impl::mapping::{
     CredentialMapping, CredentialQueryPayload, CredentialQueryPayloadDiscriminants,
 };
-use crate::server::credentials::r#impl::types::CredentialAssignment;
+use crate::server::credentials::r#impl::types::{
+    CredentialAssignment, CredentialTypeDiscriminants,
+};
 use crate::server::discovery::r#impl::types::HostNamingFallback;
 use crate::server::ports::r#impl::base::PortType;
 use crate::server::services::r#impl::patterns::{ClientProbe, Pattern};
@@ -63,7 +65,7 @@ async fn attempt_credential(
     };
     let outcome = failure.outcome();
 
-    // Whether this is a finding is `issue_for_attempt`'s call, not ours — a network default
+    // Whether this is a finding is `issue_for_attempt`'s call, not ours — a site default
     // failing is routine (it is broadcast at every address in the subnet) and a cancelled attempt
     // is not news at all. The log level follows the same verdict, so an operator reading the log
     // and an operator reading the scan warnings see the same set of problems.
@@ -185,16 +187,16 @@ pub struct IntegrationProbeResults {
     pub probe_handles: HashMap<CredentialQueryPayloadDiscriminants, Box<dyn Any + Send + Sync>>,
     /// The credential that successfully probed per integration — `cred_id` is
     /// `Some` for user-configured (host-assigned) credentials and `None` for
-    /// network-default fallbacks. Execute reads from this to run against the
+    /// site-default fallbacks. Execute reads from this to run against the
     /// credential that actually worked; only `Some` entries participate in
-    /// credential_assignments (defaults are network-wide, not host-scoped).
+    /// credential_assignments (defaults are site-wide, not host-scoped).
     pub working_credential_ids:
         HashMap<CredentialQueryPayloadDiscriminants, (Option<Uuid>, CredentialQueryPayload)>,
     /// Ports discovered by integration probes (added to open_ports).
     pub additional_ports: Vec<PortType>,
     /// IP-targeted credentials that produced nothing at this address, for the caller to
     /// surface. Only credentials the user deliberately assigned to a host appear here — a
-    /// network default failing is routine, since it is tried at every address in the subnet.
+    /// site default failing is routine, since it is tried at every address in the subnet.
     pub credential_issues: Vec<CredentialIssue>,
 }
 
@@ -263,7 +265,7 @@ pub async fn probe_integrations(
         // Same rule `resolve_credentials_for_ip` applies: an override counts only at the address
         // it names, and a nil id means a broadcast default rather than something a user pinned
         // here. Without the address filter a mapping targeting some *other* host would make this
-        // one look user-assigned and start reporting network defaults at every address in a /24.
+        // one look user-assigned and start reporting site defaults at every address in a /24.
         let user_assigned = mapping
             .ip_overrides
             .iter()
@@ -324,7 +326,7 @@ pub async fn probe_integrations(
                         Disposition::Suppressed("gate closed; reported as GateClosed");
                 } else {
                     ledger[entry].disposition = Disposition::Suppressed(
-                        "gate closed on a network default, which is routine on a sweep",
+                        "gate closed on a site default, which is routine on a sweep",
                     );
                 }
                 continue;
@@ -406,7 +408,7 @@ pub async fn probe_integrations(
             // Nothing in this mapping worked. `attempt_credential` already applied the reporting
             // policy, so the ledger records that this was accounted for rather than repeating it.
             let disposition = if targeted_failures.is_empty() {
-                Disposition::Suppressed("every credential here is a network default; routine")
+                Disposition::Suppressed("every credential here is a site default; routine")
             } else {
                 Disposition::Suppressed("reported by attempt_credential")
             };
@@ -427,7 +429,7 @@ pub async fn probe_integrations(
         ledger[entry].disposition = disposition;
         // Reported even when another credential of the same integration worked here: each
         // credential is its own mapping, and a host-assigned credential that cannot log in where
-        // it is assigned is worth knowing, under its own row. Network defaults never reach this
+        // it is assigned is worth knowing, under its own row. Site defaults never reach this
         // list (`attempt_credential` keeps their failures quiet).
         results.credential_issues.extend(failures);
         winners.push(winner);
@@ -456,7 +458,7 @@ pub async fn probe_integrations(
         if let Some(handle) = handle {
             results.probe_handles.insert(discriminant, handle);
         }
-        // `cred_id` is Some for user-configured creds and None for network-default
+        // `cred_id` is Some for user-configured creds and None for site-default
         // fallbacks; execute needs the payload either way, so we insert unconditionally.
         results
             .working_credential_ids
@@ -621,6 +623,8 @@ pub async fn execute_integrations(
                 credential: discriminant,
                 scope: integration.interface_view_scope(),
             },
+            integration: CredentialTypeDiscriminants::from(integration.credential_type())
+                .integration(),
             cancel: params.cancel,
             ops: params.ops,
             utils: params.utils,
@@ -705,7 +709,7 @@ pub async fn execute_integrations(
 ///
 /// Two types are deliberately excluded:
 /// - **SNMP**, which records its own assignments in `SnmpIntegration::execute`.
-/// - **Network defaults** (`None` id), which are network-wide by definition and
+/// - **Site defaults** (`None` id), which are site-wide by definition and
 ///   must not be pinned to whichever host happened to answer them.
 ///
 /// Runs on probe success alone — a matched-service skip or a failed `execute()`
@@ -847,11 +851,11 @@ mod tests {
     }
 
     /// Two types must never be promoted here: SNMP records its own assignments inside
-    /// `SnmpIntegration::execute`, and a network default (`None` id) is network-wide by
+    /// `SnmpIntegration::execute`, and a site default (`None` id) is site-wide by
     /// definition — pinning it to whichever host answered would turn a broadcast credential
     /// into a host-scoped one.
     #[test]
-    fn snmp_and_network_defaults_are_not_promoted() {
+    fn snmp_and_site_defaults_are_not_promoted() {
         let w = winners(vec![
             (
                 CredentialQueryPayloadDiscriminants::Snmp,
@@ -867,7 +871,7 @@ mod tests {
 
         assert!(
             credential_assignments_from_probes(&w, Some(Uuid::new_v4())).is_empty(),
-            "neither an SNMP winner nor an unidentified network default earns a host assignment"
+            "neither an SNMP winner nor an unidentified site default earns a host assignment"
         );
     }
 }
@@ -923,12 +927,12 @@ mod ledger_tests {
         ));
     }
 
-    /// The same failure on a network default stays quiet. It is broadcast at every address in the
+    /// The same failure on a site default stays quiet. It is broadcast at every address in the
     /// subnet, so reporting it would put a line per unresponsive host into the notification —
     /// the policy lives in `issue_for_attempt` and the ledger defers to it rather than
     /// second-guessing it.
     #[test]
-    fn a_recorded_failure_on_a_network_default_stays_quiet() {
+    fn a_recorded_failure_on_a_site_default_stays_quiet() {
         let issues = resolve_ledger(
             vec![entry(
                 false,

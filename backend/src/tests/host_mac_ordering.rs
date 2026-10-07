@@ -19,7 +19,7 @@ use crate::server::shared::storage::factory::StorageFactory;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::Storage;
 
-use super::{host, ip_address, network, organization, subnet, test_services};
+use super::{host, ip_address, organization, site, subnet, test_services};
 
 const PAGE_SIZE: u32 = 2;
 
@@ -32,19 +32,19 @@ fn mac(m: &str) -> Option<MacEvidence> {
 
 struct Fixture {
     storage: StorageFactory,
-    network_id: Uuid,
+    site_id: Uuid,
     subnet_id: Uuid,
 }
 
 impl Fixture {
     async fn host(&self) -> Uuid {
-        let h = host(&self.network_id);
+        let h = host(&self.site_id);
         self.storage.hosts.create(&h).await.unwrap();
         h.id
     }
 
     fn ip_address(&self, host_id: Uuid, m: Option<&str>) -> IPAddress {
-        let mut ip = ip_address(&self.network_id, &self.subnet_id);
+        let mut ip = ip_address(&self.site_id, &self.subnet_id);
         ip.base.host_id = host_id;
         ip.base.mac_address = m.and_then(mac);
         ip
@@ -65,7 +65,7 @@ impl Fixture {
     async fn interface(&self, host_id: Uuid, m: &str) {
         let entry = Interface::new(InterfaceBase {
             host_id,
-            network_id: self.network_id,
+            site_id: self.site_id,
             mac_address: mac(m),
             ..Default::default()
         });
@@ -78,7 +78,7 @@ impl Fixture {
         let mut totals = Vec::new();
         let mut offset = 0;
         loop {
-            let filter = StorableFilter::<Host>::new_from_network_ids(&[self.network_id])
+            let filter = StorableFilter::<Host>::new_from_site_ids(&[self.site_id])
                 .limit(PAGE_SIZE)
                 .offset(offset);
             let (filter, order_by) = apply_ordering(
@@ -110,14 +110,14 @@ async fn hosts_sort_by_lowest_live_mac_with_mac_less_hosts_last() {
 
     let org = organization();
     storage.organizations.create(&org).await.unwrap();
-    let net = network(&org.id);
-    storage.networks.create(&net).await.unwrap();
+    let net = site(&org.id);
+    storage.sites.create(&net).await.unwrap();
     let sub = subnet(&net.id);
     storage.subnets.create(&sub).await.unwrap();
 
     let fx = Fixture {
         storage,
-        network_id: net.id,
+        site_id: net.id,
         subnet_id: sub.id,
     };
 

@@ -16,6 +16,7 @@ use crate::server::{
         },
         base::{Host, HostBase},
         name::{HostName, HostNameSources},
+        virtualization::HostVirtualization,
     },
     interface_neighbors::{r#impl::base::Neighbor, service::InterfaceNeighborService},
     interfaces::{
@@ -27,7 +28,6 @@ use crate::server::{
         service::IPAddressService,
     },
     lldp::{IdentityResolution, LldpInventorySnapshot, LldpResolver, resolver::LldpResolverImpl},
-    networks::service::NetworkService,
     organizations::service::OrganizationService,
     ports::{r#impl::base::Port, service::PortService},
     services::{
@@ -51,6 +51,7 @@ use crate::server::{
             entities::{EntitySource, EntitySourceDiscriminants},
         },
     },
+    sites::service::SiteService,
     subnets::{r#impl::base::Subnet, service::SubnetService},
     tags::entity_tags::EntityTagService,
     vlans::service::VlanService,
@@ -70,7 +71,7 @@ use uuid::Uuid;
 pub struct HostLimitContext {
     pub limit: u64,
     pub org_id: Uuid,
-    pub org_network_ids: Vec<Uuid>,
+    pub org_site_ids: Vec<Uuid>,
     pub plan: crate::server::billing::types::base::BillingPlan,
 }
 
@@ -85,10 +86,10 @@ pub struct HostService {
     credential_service: Arc<CredentialService>,
     subnet_service: Arc<SubnetService>,
     vlan_service: Arc<VlanService>,
-    /// Reads the network's staleness window, which is what decides whether a link's neighbour
+    /// Reads the site's staleness window, which is what decides whether a link's neighbour
     /// evidence still counts. Via the service, never the storage layer.
-    network_service: Arc<NetworkService>,
-    /// Reads the plan a network's organization is on, so minting a host for an unplaceable far end
+    site_service: Arc<SiteService>,
+    /// Reads the plan a site's organization is on, so minting a host for an unplaceable far end
     /// is gated by the same limit every other creation path is. Via the service, never storage.
     organization_service: Arc<OrganizationService>,
     event_bus: Arc<EventBus>,
@@ -100,8 +101,8 @@ impl EventBusService<Host> for HostService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, entity: &Host) -> Option<Uuid> {
-        Some(entity.base.network_id)
+    fn get_site_id(&self, entity: &Host) -> Option<Uuid> {
+        Some(entity.base.site_id)
     }
     fn get_organization_id(&self, _entity: &Host) -> Option<Uuid> {
         None
@@ -129,8 +130,8 @@ impl CrudService<Host> for HostService {
     /// - Both hosts are from discovery (merges discovery metadata)
     /// - OR the IDs already match (handles re-discovery of known hosts)
     async fn create(&self, host: Host, authentication: AuthenticatedEntity) -> Result<Host> {
-        // DB-level lock, scoped to the network: serializes the dedup in
-        // `create_unlocked` across all backend instances. Keyed by network
+        // DB-level lock, scoped to the site: serializes the dedup in
+        // `create_unlocked` across all backend instances. Keyed by site
         // (not host id) because two concurrent submissions of the same NEW
         // device carry distinct fresh UUIDs. Error paths release via Drop.
         //
@@ -143,7 +144,7 @@ impl CrudService<Host> for HostService {
             .storage()
             .session_lock(
                 LockKey::HostDedup {
-                    network_id: host.base.network_id,
+                    site_id: host.base.site_id,
                 },
                 DEFAULT_LOCK_TIMEOUT,
             )
@@ -174,7 +175,7 @@ impl CrudService<Host> for HostService {
         if let Some(scope) = EntityScope::from_ids(
             updated.id(),
             updated.clone().into(),
-            self.get_network_id(&updated),
+            self.get_site_id(&updated),
             self.get_organization_id(&updated),
         ) {
             self.event_bus()
@@ -197,11 +198,16 @@ impl CrudService<Host> for HostService {
 mod consolidate;
 mod create;
 mod delete;
+mod detach;
 mod discovery;
 mod lifecycle;
 pub(crate) mod mac_identity;
+mod same_device;
 mod topology;
 mod update;
+mod virtualization_tree;
+
+pub(crate) use same_device::{SameDevice, hosts_proven_same_device};
 
 /// Statistics from LLDP link resolution.
 ///
@@ -233,6 +239,19 @@ pub struct LldpResolutionStats {
     pub host_no_strategy: usize,
 }
 
+/// A host as discovery stored it, plus the subnets that submission touched.
+///
+/// Server-side only, never on the wire. The daemon reports the entities it learns ids for, but
+/// the subnets riding in a host request (container bridges, whose owner only resolves inside that
+/// request) and the ranges the server places addresses into are stored here, out of its sight. The
+/// caller latches these ids against the daemon so the scan's terminal update can stamp them with
+/// the run's discovery FKs like every other entity it touched.
+pub struct DiscoveredHost {
+    pub host: HostResponse,
+    /// Stored ids of the subnets this submission created, matched or placed addresses into.
+    pub subnet_ids: Vec<Uuid>,
+}
+
 /// What one LLDP/CDP resolution pass produced.
 ///
 /// The stats go to the summary log line; the warnings go onto the scan record the operator reads,
@@ -242,11 +261,13 @@ pub struct LldpResolutionOutcome {
     /// One coded warning per far end that could not be placed, carrying the evidence needed to
     /// triage it. Coded like the daemon's, so both producers reach the same metric.
     pub warnings: Vec<DiscoveryWarning>,
-    /// Hosts this pass minted for far ends nothing had scanned.
+    /// What this pass stored or re-observed for far ends nothing had scanned: minted hosts with
+    /// their ports and addresses, far ends neighbours re-advertised (Last seen already advanced),
+    /// the ports recorded from advertisements, and the ranges all of those sit in.
     ///
     /// The caller folds these into the session's scanned set before the scan record is written, so
     /// they pick up the discovery FKs and the digest entry every other entity of that scan gets.
-    pub minted_host_ids: Vec<Uuid>,
+    pub observed: crate::server::daemons::r#impl::api::ScannedEntityIds,
 }
 
 impl LldpResolutionStats {
@@ -427,28 +448,38 @@ fn select_matching_host(
     if !physical_incoming.is_empty() {
         let incoming_mac_counts = mac_counts_for_payload(physical_incoming.iter().copied());
 
-        for HostCandidate {
-            id: host_id,
-            ip_addresses: host_ip_addresses,
-            ..
-        } in candidates
-        {
-            for incoming_ip in &physical_incoming {
-                for existing_ip in host_ip_addresses {
-                    if should_skip_for_matching(existing_ip) {
-                        continue;
-                    }
-                    if ip_addresses_match(incoming_ip, existing_ip, &incoming_mac_counts) {
-                        tracing::debug!(
-                            incoming_ip = %incoming_ip.base.ip_address,
-                            existing_ip = %existing_ip.base.ip_address,
-                            existing_host_id = %host_id,
-                            "Found matching host via IP-address comparison"
-                        );
-                        return Some(*host_id);
-                    }
-                }
-            }
+        // The same address (or row id) on any host first, the same MAC only after. Checked per
+        // host, an older host's MAC match won before a newer host holding the exact address was
+        // looked at: an ipvlan endpoint's address, swept into its own host, went to the VM whose
+        // second NIC answers with the same MAC.
+        let pairs = || {
+            candidates.iter().flat_map(|candidate| {
+                physical_incoming.iter().flat_map(move |incoming_ip| {
+                    candidate
+                        .ip_addresses
+                        .iter()
+                        .filter(|existing_ip| !should_skip_for_matching(existing_ip))
+                        .map(move |existing_ip| (candidate, *incoming_ip, existing_ip))
+                })
+            })
+        };
+        let found = pairs()
+            .find(|(_, incoming_ip, existing_ip)| ip_addresses_coincide(incoming_ip, existing_ip))
+            .or_else(|| {
+                pairs().find(|(candidate, incoming_ip, existing_ip)| {
+                    candidate.macs_identify_host()
+                        && macs_match(incoming_ip, existing_ip, &incoming_mac_counts)
+                        && !candidate.lists_other_addresses_for(incoming_ip)
+                })
+            });
+        if let Some((candidate, incoming_ip, existing_ip)) = found {
+            tracing::debug!(
+                incoming_ip = %incoming_ip.base.ip_address,
+                existing_ip = %existing_ip.base.ip_address,
+                existing_host_id = %candidate.id,
+                "Found matching host via IP-address comparison"
+            );
+            return Some(candidate.id);
         }
 
         return match_by_chassis_id(incoming_chassis_id, candidates);
@@ -523,6 +554,15 @@ fn match_by_chassis_id(chassis_id: Option<&str>, candidates: &[HostCandidate]) -
     Some(first.id)
 }
 
+/// The host a payload matched, with its **full, unfiltered** live IP rows (discovery derives
+/// `previous_subnets` from them, so loopback and virtual-router rows stay in), and the other hosts
+/// the payload proves are the same device.
+pub(crate) struct HostMatch {
+    pub host: Host,
+    pub ip_addresses: Vec<IPAddress>,
+    pub same_device: Vec<SameDevice>,
+}
+
 /// A host dedup may match against, and the identities it can be matched on.
 pub(crate) struct HostCandidate {
     pub id: Uuid,
@@ -531,6 +571,48 @@ pub(crate) struct HostCandidate {
     /// Its **full, unfiltered** live IP rows — loopback and virtual-router rows included, because
     /// the passes above decide for themselves which to skip.
     pub ip_addresses: Vec<IPAddress>,
+    /// How it is virtualized, which says whether the MACs on its rows are its own.
+    pub virtualization: Option<HostVirtualization>,
+    /// The interface on another host that presents this one, for a network identity.
+    pub virtualization_interface_id: Option<Uuid>,
+}
+
+impl HostCandidate {
+    /// Whether a MAC on one of its rows may identify it. An ipvlan container host answers with its
+    /// runtime's MAC, so a MAC match there would merge the runtime into the container.
+    pub(crate) fn macs_identify_host(&self) -> bool {
+        self.virtualization
+            .as_ref()
+            .is_none_or(HostVirtualization::macs_identify_host)
+    }
+
+    /// Whether a hypervisor listed this host's addresses for the incoming address's MAC, and the
+    /// incoming address is not among them.
+    ///
+    /// A guest's addresses filed with `HypervisorConfig` came from its hypervisor matching the
+    /// guest agent's interfaces (or its static config) to a NIC from the guest's config, so they
+    /// are that NIC's addresses. Another address seen behind the same MAC belongs to something
+    /// sharing the NIC (an ipvlan endpoint, a VIP, a shim), not to the guest. With no such list
+    /// for the MAC (no agent, a non-hypervisor host), nothing is excluded.
+    pub(crate) fn lists_other_addresses_for(&self, incoming: &IPAddress) -> bool {
+        let Some(mac) = mac_of(&incoming.base.mac_address) else {
+            return false;
+        };
+        let mut listed = self.ip_addresses.iter().filter(|row| {
+            mac_of(&row.base.mac_address) == Some(mac)
+                && row
+                    .base
+                    .mac_address
+                    .as_ref()
+                    .is_some_and(|e| e.source() == AttributeSource::HypervisorConfig)
+        });
+        let first = listed.next();
+        first.is_some()
+            && first
+                .into_iter()
+                .chain(listed)
+                .all(|row| row.base.ip_address != incoming.base.ip_address)
+    }
 }
 
 /// Same IP on the same subnet — the same logical interface.
@@ -547,26 +629,40 @@ fn ip_addresses_share_address(a: &IPAddress, b: &IPAddress) -> bool {
 ///    among incoming ip_addresses (count == 1). Shared MACs (count > 1) indicate VLAN
 ///    sub-interfaces, bridge members, or bond members — distinct ip_addresses that must
 ///    not be collapsed. Unique MACs indicate a standalone interface (e.g., a Docker
-///    container whose IP changed via DHCP) where MAC is a valid identity anchor.
+///    container whose IP changed via DHCP) where MAC is a valid identity anchor. Never when
+///    `existing` belongs to a host whose MACs do not identify it
+///    ([`HostCandidate::macs_identify_host`]), such as an ipvlan container answering with its
+///    runtime's MAC.
+#[cfg(test)]
 fn ip_addresses_match(
     incoming: &IPAddress,
     existing: &IPAddress,
     incoming_mac_counts: &HashMap<MacAddress, usize>,
+    macs_identify_host: bool,
 ) -> bool {
-    // Primary: same IP on same subnet
+    ip_addresses_coincide(incoming, existing)
+        || (macs_identify_host && macs_match(incoming, existing, incoming_mac_counts))
+}
+
+/// The same row: the same IP on the same subnet, or the same non-nil id.
+fn ip_addresses_coincide(incoming: &IPAddress, existing: &IPAddress) -> bool {
     ip_addresses_share_address(incoming, existing)
-    // Secondary: same non-nil ID
-    || (incoming.id == existing.id
-        && incoming.id != Uuid::nil()
-        && existing.id != Uuid::nil())
-    // Tertiary: MAC match, gated on incoming MAC uniqueness.
-    //
-    // On the *value*, never on the evidence. `mac_address` carries its provenance since §7, and
-    // `Attributed` compares both halves — so a bare `==` on the field silently demanded that the
-    // two scans have learned the address the same way before it would call them the same NIC. A
-    // MAC first read from a router's forwarding table and later confirmed by our own ARP reply is
-    // one NIC, and the branch is asking whether it is the same hardware, not the same paperwork.
-    || (match (
+        || (incoming.id == existing.id && incoming.id != Uuid::nil() && existing.id != Uuid::nil())
+}
+
+/// The same NIC by MAC, gated on the MAC being unique in the incoming payload.
+///
+/// On the *value*, never on the evidence. `mac_address` carries its provenance since §7, and
+/// `Attributed` compares both halves — so a bare `==` on the field silently demanded that the
+/// two scans have learned the address the same way before it would call them the same NIC. A
+/// MAC first read from a router's forwarding table and later confirmed by our own ARP reply is
+/// one NIC, and the branch is asking whether it is the same hardware, not the same paperwork.
+fn macs_match(
+    incoming: &IPAddress,
+    existing: &IPAddress,
+    incoming_mac_counts: &HashMap<MacAddress, usize>,
+) -> bool {
+    match (
         mac_of(&incoming.base.mac_address),
         mac_of(&existing.base.mac_address),
     ) {
@@ -575,12 +671,15 @@ fn ip_addresses_match(
                 && incoming_mac_counts.get(&incoming_mac).copied().unwrap_or(0) == 1
         }
         _ => false,
-    })
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::server::hosts::r#impl::virtualization::{
+        ContainerHostVirtualization, ContainerNetworkType,
+    };
     use crate::server::ip_addresses::r#impl::base::IPAddressBase;
     use crate::server::ip_addresses::r#impl::base::{MacEvidence, MacEvidenceValue};
 
@@ -645,7 +744,7 @@ mod tests {
         let a = make_interface(ip, subnet, None);
         let b = make_interface(ip, subnet, None);
         let counts = HashMap::new();
-        assert!(ip_addresses_match(&a, &b, &counts));
+        assert!(ip_addresses_match(&a, &b, &counts, true));
     }
 
     #[test]
@@ -653,7 +752,7 @@ mod tests {
         let a = make_interface("10.0.0.1".parse().unwrap(), Uuid::new_v4(), None);
         let b = make_interface("20.0.0.1".parse().unwrap(), Uuid::new_v4(), None);
         let counts = HashMap::new();
-        assert!(!ip_addresses_match(&a, &b, &counts));
+        assert!(!ip_addresses_match(&a, &b, &counts, true));
     }
 
     #[test]
@@ -664,7 +763,7 @@ mod tests {
         // MAC appears only once in the incoming batch — standalone ip_address, safe to match
         let counts = HashMap::from([(mac, 1)]);
         assert!(
-            ip_addresses_match(&a, &b, &counts),
+            ip_addresses_match(&a, &b, &counts, true),
             "Unique MAC in batch should allow MAC matching (Docker/DHCP case)"
         );
     }
@@ -677,7 +776,7 @@ mod tests {
         // MAC appears 3 times in the incoming batch — VLAN sub-interfaces, must not match
         let counts = HashMap::from([(mac, 3)]);
         assert!(
-            !ip_addresses_match(&a, &b, &counts),
+            !ip_addresses_match(&a, &b, &counts, true),
             "Shared MAC in batch (VLANs) must not match"
         );
     }
@@ -700,7 +799,7 @@ mod tests {
         let b = make_interface("192.168.1.11".parse().unwrap(), subnet, Some(mac));
         let counts = HashMap::from([(mac, 1)]);
         assert!(
-            ip_addresses_match(&a, &b, &counts),
+            ip_addresses_match(&a, &b, &counts, true),
             "Same MAC + same subnet, unique in batch, should match (IP-alias multi-homing)"
         );
     }
@@ -724,7 +823,7 @@ mod tests {
         assert_eq!(counts_for_second.get(&mac), Some(&1));
 
         assert!(
-            ip_addresses_match(&second, &first, &counts_for_second),
+            ip_addresses_match(&second, &first, &counts_for_second, true),
             "Independently scanned same-MAC IPs must merge into one host (model a)"
         );
     }
@@ -741,7 +840,7 @@ mod tests {
         let counts = mac_counts_for_payload(&[a.clone(), b.clone()]);
         assert_eq!(counts.get(&mac), Some(&2));
         assert!(
-            !ip_addresses_match(&a, &b, &counts),
+            !ip_addresses_match(&a, &b, &counts, true),
             "Two same-MAC IPs in one payload must not MAC-merge (VLAN sub-interface guard)"
         );
     }
@@ -764,6 +863,8 @@ mod tests {
             id: host_id,
             chassis_id: None,
             ip_addresses,
+            virtualization: None,
+            virtualization_interface_id: None,
         }
     }
 
@@ -777,13 +878,15 @@ mod tests {
             id: host_id,
             chassis_id: Some(chassis_id.to_string()),
             ip_addresses,
+            virtualization: None,
+            virtualization_interface_id: None,
         }
     }
 
     /// A device that changed address between scans, or one minted from a neighbour's report into
     /// a range later scanned under a different subnet id. Every address tier fails — the IP is new
     /// and the subnet id differs — and without the chassis tier the scan creates a second host for
-    /// a device this network already holds.
+    /// a device this site already holds.
     #[test]
     fn a_device_that_changed_address_still_matches_on_its_chassis_id() {
         let known = Uuid::new_v4();
@@ -1142,6 +1245,257 @@ mod tests {
             select_matching_host(&incoming, None, &[candidate(host, vec![existing])]),
             Some(host),
             "a NIC is the same NIC however each scan came to hear about it"
+        );
+    }
+
+    /// The lab's case: VM 103's ens19 MAC, which the ipvlan container also answers ARP with.
+    fn parent_mac() -> MacAddress {
+        MacAddress::new([0xbc, 0x24, 0x11, 0x9b, 0x24, 0x86])
+    }
+
+    fn row(ip: &str, subnet_id: Uuid, mac: MacAddress) -> IPAddress {
+        IPAddress::new(IPAddressBase {
+            ip_address: ip.parse().unwrap(),
+            subnet_id,
+            mac_address: Some(MacEvidence::new(
+                MacEvidenceValue(mac),
+                AttributeSource::ArpReply,
+            )),
+            ..Default::default()
+        })
+    }
+
+    fn container_host(
+        id: Uuid,
+        row: IPAddress,
+        network_type: ContainerNetworkType,
+    ) -> HostCandidate {
+        HostCandidate {
+            id,
+            chassis_id: None,
+            ip_addresses: vec![row],
+            virtualization: Some(HostVirtualization::Docker(ContainerHostVirtualization {
+                container_name: Some("test".to_string()),
+                container_id: Some("aec2a3e9".to_string()),
+                compose_project: None,
+                network_type,
+            })),
+            virtualization_interface_id: None,
+        }
+    }
+
+    /// Another address answering with the parent's MAC is the runtime's, not the container's: an
+    /// ipvlan host never takes it by MAC. Its own address still finds it.
+    #[test]
+    fn an_ipvlan_host_is_matched_by_its_address_never_by_its_parents_mac() {
+        let lan = Uuid::new_v4();
+        let ipvlan = Uuid::new_v4();
+        let candidates = vec![container_host(
+            ipvlan,
+            row("192.168.7.231", lan, parent_mac()),
+            ContainerNetworkType::IpVlan,
+        )];
+
+        let runtime_address = vec![row("192.168.4.63", lan, parent_mac())];
+        assert_eq!(
+            select_matching_host(&runtime_address, None, &candidates),
+            None
+        );
+
+        let own_address = vec![row("192.168.7.231", lan, parent_mac())];
+        assert_eq!(
+            select_matching_host(&own_address, None, &candidates),
+            Some(ipvlan)
+        );
+    }
+
+    /// A macvlan endpoint's MAC is its own, so it keeps re-matching by MAC after an address change.
+    #[test]
+    fn a_macvlan_host_still_rematches_by_its_own_mac() {
+        let lan = Uuid::new_v4();
+        let macvlan = Uuid::new_v4();
+        let own_mac = MacAddress::new([0x26, 0xb6, 0xd3, 0xde, 0x10, 0xb5]);
+        let candidates = vec![container_host(
+            macvlan,
+            row("192.168.7.230", lan, own_mac),
+            ContainerNetworkType::MacVlan,
+        )];
+
+        let moved = vec![row("192.168.7.240", lan, own_mac)];
+        assert_eq!(
+            select_matching_host(&moved, None, &candidates),
+            Some(macvlan)
+        );
+    }
+
+    /// The MAC tier sees the same thing: a MAC carried by an ipvlan host and by its runtime
+    /// resolves to the runtime alone, where without the guard two carriers would resolve to
+    /// neither.
+    #[test]
+    fn the_mac_tier_never_resolves_to_an_ipvlan_host() {
+        let lan = Uuid::new_v4();
+        let ipvlan = Uuid::new_v4();
+        let runtime = Uuid::new_v4();
+        let mut ipvlan_row = row("192.168.7.231", lan, parent_mac());
+        ipvlan_row.base.host_id = ipvlan;
+        let mut runtime_row = row("192.168.4.126", lan, parent_mac());
+        runtime_row.base.host_id = runtime;
+        let candidates = vec![
+            container_host(ipvlan, ipvlan_row.clone(), ContainerNetworkType::IpVlan),
+            HostCandidate {
+                id: runtime,
+                chassis_id: None,
+                ip_addresses: vec![runtime_row.clone()],
+                virtualization: None,
+                virtualization_interface_id: None,
+            },
+        ];
+
+        let carriers = consolidate::mac_carriers(&[ipvlan_row, runtime_row], &[], &[], &candidates);
+        let incoming = [MacEvidence::new(
+            MacEvidenceValue(parent_mac()),
+            AttributeSource::ArpReply,
+        )];
+        assert_eq!(
+            mac_identity::select_matching_host_by_mac(&incoming, &carriers),
+            Some(runtime)
+        );
+    }
+
+    /// An exact address on any host beats a MAC on another: the lab's ipvlan endpoint, swept into
+    /// its own host, went to the older VM whose second NIC answers with the same MAC.
+    #[test]
+    fn an_exact_address_on_a_newer_host_beats_a_mac_on_an_older_one() {
+        let lan = Uuid::new_v4();
+        let ens19 = MacAddress::new([0xbc, 0x24, 0x11, 0x9b, 0x24, 0x86]);
+        let (older, newer) = (Uuid::new_v4(), Uuid::new_v4());
+        let candidates = vec![
+            candidate(
+                older,
+                vec![make_interface(
+                    "192.168.4.63".parse().unwrap(),
+                    lan,
+                    Some(ens19),
+                )],
+            ),
+            candidate(
+                newer,
+                vec![make_interface(
+                    "192.168.7.231".parse().unwrap(),
+                    lan,
+                    Some(ens19),
+                )],
+            ),
+        ];
+        let incoming = vec![make_interface(
+            "192.168.7.231".parse().unwrap(),
+            lan,
+            Some(ens19),
+        )];
+        assert_eq!(
+            select_matching_host(&incoming, None, &candidates),
+            Some(newer)
+        );
+    }
+
+    fn lab_ens19() -> MacAddress {
+        MacAddress::new([0xbc, 0x24, 0x11, 0x9b, 0x24, 0x86])
+    }
+
+    /// VM 103's ens19 row as the Proxmox integration files it: the agent's address, the config's MAC.
+    fn listed_by_hypervisor(host_id: Uuid, ip: &str, subnet: Uuid) -> IPAddress {
+        let mut row = make_interface(ip.parse().unwrap(), subnet, Some(lab_ens19()));
+        row.base.host_id = host_id;
+        row.base.mac_address = Some(MacEvidence::new(
+            MacEvidenceValue(lab_ens19()),
+            AttributeSource::HypervisorConfig,
+        ));
+        row
+    }
+
+    /// The lab case: the hypervisor lists .63 for ens19, so .231 behind ens19's MAC is something
+    /// sharing the NIC, and neither the MAC pass nor the MAC tier hands it to the VM.
+    #[test]
+    fn a_hypervisor_address_list_bounds_mac_matches_on_its_nic() {
+        let lan = Uuid::new_v4();
+        let vm = Uuid::new_v4();
+        let listed = listed_by_hypervisor(vm, "192.168.4.63", lan);
+        let candidates = vec![candidate(vm, vec![listed.clone()])];
+        let incoming = vec![make_interface(
+            "192.168.7.231".parse().unwrap(),
+            lan,
+            Some(lab_ens19()),
+        )];
+
+        assert_eq!(select_matching_host(&incoming, None, &candidates), None);
+
+        let carriers = consolidate::mac_carriers(&[listed], &[], &incoming, &candidates);
+        let macs = [MacEvidence::new(
+            MacEvidenceValue(lab_ens19()),
+            AttributeSource::ArpReply,
+        )];
+        assert_eq!(
+            mac_identity::select_matching_host_by_mac(&macs, &carriers),
+            None
+        );
+    }
+
+    /// With the MAC known only from ARP there is no list, and the moved address follows the MAC.
+    #[test]
+    fn without_a_hypervisor_list_a_mac_still_matches() {
+        let lan = Uuid::new_v4();
+        let host = Uuid::new_v4();
+        let candidates = vec![candidate(
+            host,
+            vec![make_interface(
+                "192.168.4.63".parse().unwrap(),
+                lan,
+                Some(lab_ens19()),
+            )],
+        )];
+        let incoming = vec![make_interface(
+            "192.168.7.231".parse().unwrap(),
+            lan,
+            Some(lab_ens19()),
+        )];
+        assert_eq!(
+            select_matching_host(&incoming, None, &candidates),
+            Some(host)
+        );
+    }
+
+    /// An address the hypervisor listed for the NIC is the guest's, whichever subnet it arrives on.
+    #[test]
+    fn an_address_in_the_hypervisor_list_matches() {
+        let (lan, other) = (Uuid::new_v4(), Uuid::new_v4());
+        let vm = Uuid::new_v4();
+        let candidates = vec![candidate(
+            vm,
+            vec![listed_by_hypervisor(vm, "192.168.4.63", lan)],
+        )];
+        let incoming = vec![make_interface(
+            "192.168.4.63".parse().unwrap(),
+            other,
+            Some(lab_ens19()),
+        )];
+        assert_eq!(select_matching_host(&incoming, None, &candidates), Some(vm));
+    }
+
+    /// A payload with no addresses claims no address, so the list excludes nothing from the tier.
+    #[test]
+    fn a_payload_without_addresses_is_not_bounded_by_the_list() {
+        let lan = Uuid::new_v4();
+        let vm = Uuid::new_v4();
+        let listed = listed_by_hypervisor(vm, "192.168.4.63", lan);
+        let candidates = vec![candidate(vm, vec![listed.clone()])];
+        let carriers = consolidate::mac_carriers(&[listed], &[], &[], &candidates);
+        let macs = [MacEvidence::new(
+            MacEvidenceValue(lab_ens19()),
+            AttributeSource::ArpReply,
+        )];
+        assert_eq!(
+            mac_identity::select_matching_host_by_mac(&macs, &carriers),
+            Some(vm)
         );
     }
 }

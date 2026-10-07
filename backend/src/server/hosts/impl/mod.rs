@@ -8,3 +8,4 @@ pub mod name_ladder;
 pub mod os;
 pub mod storage;
 pub mod virtualization;
+pub mod virtualization_tree;

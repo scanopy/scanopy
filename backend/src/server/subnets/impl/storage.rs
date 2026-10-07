@@ -32,7 +32,7 @@ pub struct SubnetCsvRow {
     pub subnet_type: String,
     pub cidr_source: String,
     pub description: Option<String>,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub source: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -43,6 +43,16 @@ impl Storable for Subnet {
 
     fn table_name() -> &'static str {
         "subnets"
+    }
+
+    /// The columns the subnet list shows: a range is found by its name, its CIDR as typed, or the
+    /// notes on it.
+    fn search_predicates() -> &'static [&'static str] {
+        &[
+            "subnets.name ILIKE {}",
+            "subnets.cidr ILIKE {}",
+            "subnets.description ILIKE {}",
+        ]
     }
 
     const HAS_SCD2: bool = true;
@@ -86,7 +96,7 @@ impl Storable for Subnet {
             base:
                 Self::BaseData {
                     name,
-                    network_id,
+                    site_id,
                     source,
                     cidr,
                     subnet_type,
@@ -108,7 +118,7 @@ impl Storable for Subnet {
                 "source",
                 "subnet_type",
                 "virtualization_service_id",
-                "network_id",
+                "site_id",
                 "created_at",
                 "updated_at",
                 "valid_from",
@@ -127,7 +137,7 @@ impl Storable for Subnet {
                 SqlValue::EntitySource(source),
                 SqlValue::String(subnet_type.id().to_string()),
                 SqlValue::OptionalUuid(virtualization_service_id),
-                SqlValue::Uuid(network_id),
+                SqlValue::Uuid(site_id),
                 SqlValue::Timestamp(created_at),
                 SqlValue::Timestamp(updated_at),
                 SqlValue::Timestamp(valid_from),
@@ -165,7 +175,7 @@ impl Storable for Subnet {
             base: SubnetBase {
                 name: row.get("name"),
                 description: row.get("description"),
-                network_id: row.get("network_id"),
+                site_id: row.get("site_id"),
                 source,
                 cidr,
                 subnet_type,
@@ -234,9 +244,15 @@ impl DiscoveryTracked for Subnet {
     fn scanned_in_session_filter(
         scanned: &crate::server::daemons::r#impl::api::ScannedEntityIds,
     ) -> crate::server::shared::storage::filter::StorableFilter<Self> {
+        // Swept and found alike: the run touched both, whatever the digest counts as coverage.
+        let ids: Vec<Uuid> = scanned
+            .subnet_ids
+            .iter()
+            .chain(&scanned.found_subnet_ids)
+            .copied()
+            .collect();
         crate::server::shared::storage::filter::StorableFilter::<Self>::new_from_uuids_column(
-            "id",
-            &scanned.subnet_ids,
+            "id", &ids,
         )
     }
 }
@@ -268,7 +284,7 @@ impl Entity for Subnet {
             subnet_type: self.base.subnet_type.id().to_string(),
             cidr_source: self.base.cidr.source().to_string(),
             description: self.base.description.clone(),
-            network_id: self.base.network_id,
+            site_id: self.base.site_id,
             source: format!("{:?}", self.base.source),
             created_at: self.created_at,
             updated_at: self.updated_at,
@@ -282,14 +298,14 @@ impl Entity for Subnet {
     const ENTITY_NAME_SINGULAR: &'static str = "Subnet";
     const ENTITY_NAME_PLURAL: &'static str = "Subnets";
     const ENTITY_DESCRIPTION: &'static str =
-        "IP subnets within networks. Define address ranges and organize hosts by subnet.";
+        "IP subnets within sites. Define address ranges and organize hosts by subnet.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::NetworkInfrastructure
+        EntityCategory::Assets
     }
 
-    fn network_id(&self) -> Option<Uuid> {
-        Some(self.base.network_id)
+    fn site_id(&self) -> Option<Uuid> {
+        Some(self.base.site_id)
     }
 
     fn organization_id(&self) -> Option<Uuid> {

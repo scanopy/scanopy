@@ -100,7 +100,7 @@
 	<div class="relative min-h-0 flex-1">
 		<div class="absolute inset-0 flex gap-6">
 			<!-- Left Panel - List Manager -->
-			<div class="{listPanelWidth} min-h-0 overflow-y-auto">
+			<div class="list-config-pane {listPanelWidth} min-h-0 overflow-y-auto">
 				<div class="p-6">
 					<slot
 						name="list"
@@ -120,7 +120,9 @@
 			</div>
 
 			<!-- Right Panel - Configuration -->
-			<div class="{configPanelWidth} min-h-0 overflow-y-auto border-l border-gray-600 p-6">
+			<div
+				class="list-config-pane {configPanelWidth} min-h-0 overflow-y-auto border-l border-[var(--color-border)] p-6"
+			>
 				<slot name="config" {selectedItem} {selectedIndex} onChange={handleItemChange}>
 					<div class="text-tertiary flex h-32 items-center justify-center">
 						<p>Select an item to configure</p>

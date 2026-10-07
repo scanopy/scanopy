@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-	visibleItems,
 	isAllSelected,
 	isPartiallySelected,
 	visibleIds,
@@ -16,17 +15,6 @@ const getId = (r: Row) => r.id;
 function page(prefix: string, count: number): Row[] {
 	return Array.from({ length: count }, (_, i) => ({ id: `${prefix}-${i}` }));
 }
-
-describe('visibleItems', () => {
-	it('is the page slice when ungrouped, and every processed row when grouped', () => {
-		// Grouped mode renders all processed items; ungrouped renders only the page.
-		const processed = page('p', 50);
-		const paginated = processed.slice(0, 20);
-
-		expect(visibleItems(false, processed, paginated)).toHaveLength(20);
-		expect(visibleItems(true, processed, paginated)).toHaveLength(50);
-	});
-});
 
 describe('isAllSelected', () => {
 	it('is false when the selection came from a different page', () => {

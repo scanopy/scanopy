@@ -1,5 +1,5 @@
 import { writable, get } from 'svelte/store';
-import type { UseCase, NetworkSetup } from '../types/base';
+import type { UseCase, SiteSetup } from '../types/base';
 import type { PlanPickerHosting } from '$lib/features/billing/types';
 
 export interface OnboardingState {
@@ -7,11 +7,20 @@ export interface OnboardingState {
 	/** Plan-picker tab requested at signup (`?hosting=self_hosted`). */
 	hosting: PlanPickerHosting | null;
 	organizationName: string;
-	network: NetworkSetup;
+	site: SiteSetup;
 	populateSeedData: boolean;
 }
 
 const STORAGE_KEY = 'scanopy_onboarding';
+
+/**
+ * Whether signup asks for a first site. A self-hosted license buyer on
+ * cloud skips it: their org gets a site only if it later moves to a cloud
+ * plan. A self-hosted instance always asks, because nothing creates one later.
+ */
+export function asksForSite(hosting: PlanPickerHosting | null, cloudDeployment: boolean) {
+	return !(cloudDeployment && hosting === 'self_hosted');
+}
 
 // Fields to persist to localStorage (for billing page autofill)
 interface PersistedState {
@@ -53,7 +62,7 @@ const initialState: OnboardingState = {
 	useCase: persisted.useCase,
 	hosting: persisted.hosting,
 	organizationName: '',
-	network: { name: '' },
+	site: { name: '' },
 	populateSeedData: true
 };
 
@@ -78,7 +87,7 @@ function createOnboardingStore() {
 		reset: () =>
 			updateAndPersist((state) => ({
 				...initialState,
-				network: { name: '' },
+				site: { name: '' },
 				useCase: state.useCase, // Preserve for billing page
 				hosting: state.hosting // Preserve for billing page
 			})),
@@ -101,16 +110,16 @@ function createOnboardingStore() {
 				organizationName: name
 			})),
 
-		setNetwork: (network: NetworkSetup) =>
+		setSite: (site: SiteSetup) =>
 			update((state) => ({
 				...state,
-				network
+				site
 			})),
 
-		setNetworkId: (networkId: string) =>
+		setSiteId: (siteId: string) =>
 			update((state) => ({
 				...state,
-				network: { ...state.network, id: networkId }
+				site: { ...state.site, id: siteId }
 			})),
 
 		setPopulateSeedData: (populate: boolean) =>

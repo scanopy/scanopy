@@ -117,3 +117,50 @@ export function boundsOfNodes(nodes: readonly BoundableNode[]): Rect | null {
 	if (!found) return null;
 	return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 }
+
+/** The parts of an adopted SvelteFlow node `boundsOfAdoptedNodes` reads. */
+export interface AdoptedNode {
+	internals: { positionAbsolute: { x: number; y: number } };
+	measured?: { width?: number; height?: number };
+	width?: number;
+	height?: number;
+}
+
+/**
+ * Bounding box of specific nodes, in graph coordinates, from SvelteFlow's adopted internal nodes.
+ *
+ * For moving the camera onto a node: search matches and the inspector's focus button. Unlike
+ * `boundsOfNodes` it takes children, so it reads `positionAbsolute` rather than the parent-relative
+ * `position`. Pair it with `fitBounds`, not `fitView({ nodes })`: `fitView` only queues a fit until
+ * every node is measured, and the canvas's own whole-graph fit wins that race, so the camera never
+ * reached the node.
+ *
+ * Returns `null` when none of the ids is adopted.
+ */
+export function boundsOfAdoptedNodes(
+	ids: readonly string[],
+	lookup: (id: string) => AdoptedNode | undefined
+): Rect | null {
+	const nodes = ids
+		.map((id) => lookup(id))
+		.filter((node): node is AdoptedNode => !!node)
+		.map((node) => ({
+			position: node.internals.positionAbsolute,
+			measured: node.measured,
+			width: node.width,
+			height: node.height
+		}));
+	return boundsOfNodes(nodes);
+}
+
+/** The SvelteFlow calls `focusNodes` needs, from `useSvelteFlow()`. */
+export interface FocusableFlow {
+	fitBounds: (bounds: Rect, options?: { padding?: number; duration?: number }) => Promise<boolean>;
+	getInternalNode: (id: string) => AdoptedNode | undefined;
+}
+
+/** Move the camera onto the given nodes: search matches, Focus buttons, the F shortcut. */
+export function focusNodes(flow: FocusableFlow, ids: readonly string[]): void {
+	const bounds = boundsOfAdoptedNodes(ids, flow.getInternalNode);
+	if (bounds) void flow.fitBounds(bounds, { padding: 0.5, duration: 300 });
+}

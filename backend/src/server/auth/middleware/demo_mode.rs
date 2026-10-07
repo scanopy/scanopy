@@ -8,7 +8,7 @@
 //! mutating operations since they don't have owner permissions.
 
 use crate::server::{
-    auth::middleware::{auth::AuthenticatedEntity, cache::CachedNetwork},
+    auth::middleware::{auth::AuthenticatedEntity, cache::CachedSite},
     billing::types::base::BillingPlan,
     config::AppState,
     shared::types::api::ApiError,
@@ -64,10 +64,10 @@ pub async fn demo_mode_middleware(
             permissions,
             ..
         }) => (Some(*organization_id), Some(*permissions)),
-        Some(AuthenticatedEntity::Daemon { network_id, .. }) => {
-            // Daemons: look up org from network
-            match CachedNetwork::get_or_load(&mut parts, &state, network_id).await {
-                Ok(network) => (Some(network.base.organization_id), None),
+        Some(AuthenticatedEntity::Daemon { site_id, .. }) => {
+            // Daemons: look up org from site
+            match CachedSite::get_or_load(&mut parts, &state, site_id).await {
+                Ok(site) => (Some(site.base.organization_id), None),
                 Err(_) => (None, None),
             }
         }

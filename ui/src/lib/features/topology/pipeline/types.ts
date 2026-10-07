@@ -38,6 +38,8 @@ export interface LayoutState {
 	lastSeenTopologyId: string;
 	fitViewPending: boolean;
 	prevExpandedPortIds: Set<string>;
+	/** Open manager boxes the last layout was run with; a change re-runs ELK. */
+	prevExpandedInlineGroups: Set<string>;
 	lastRenderedTopoKey: string;
 	lastRenderedView: string;
 	layoutGeneration: number;
@@ -87,6 +89,7 @@ export function createInitialState(): LayoutState {
 		lastSeenTopologyId: '',
 		fitViewPending: false,
 		prevExpandedPortIds: new Set(),
+		prevExpandedInlineGroups: new Set(),
 		lastRenderedTopoKey: '',
 		lastRenderedView: '',
 		layoutGeneration: 0

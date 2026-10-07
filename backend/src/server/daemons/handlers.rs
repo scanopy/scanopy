@@ -24,7 +24,7 @@ use crate::server::shared::trusted_ca::TrustedCaBundle;
 use crate::server::shared::types::api::ApiErrorResponse;
 use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::error_codes::ErrorCode;
-use crate::server::shared::validation::validate_network_access;
+use crate::server::shared::validation::validate_site_access;
 use crate::server::{
     config::AppState,
     daemons::r#impl::{
@@ -70,7 +70,7 @@ pub enum DaemonOrderField {
     Name,
     LastSeen,
     UpdatedAt,
-    NetworkId,
+    SiteId,
 }
 
 impl OrderField for DaemonOrderField {
@@ -80,7 +80,7 @@ impl OrderField for DaemonOrderField {
             Self::Name => "daemons.name",
             Self::LastSeen => "daemons.last_seen",
             Self::UpdatedAt => "daemons.updated_at",
-            Self::NetworkId => "daemons.network_id",
+            Self::SiteId => "daemons.site_id",
         }
     }
 }
@@ -92,8 +92,8 @@ impl OrderField for DaemonOrderField {
 /// Query parameters for filtering and ordering daemons.
 #[derive(Deserialize, Default, Debug, Clone, IntoParams)]
 pub struct DaemonFilterQuery {
-    /// Filter by network ID
-    pub network_id: Option<Uuid>,
+    /// Filter by site ID
+    pub site_id: Option<Uuid>,
     /// Primary ordering field (used for grouping). Always sorts ASC to keep groups together.
     pub group_by: Option<DaemonOrderField>,
     /// Secondary ordering field (sorting within groups or standalone sort).
@@ -128,13 +128,13 @@ impl FilterQueryExtractor for DaemonFilterQuery {
     fn apply_to_filter<T: Storable>(
         &self,
         filter: StorableFilter<T>,
-        user_network_ids: &[Uuid],
+        user_site_ids: &[Uuid],
         _user_organization_id: Uuid,
     ) -> StorableFilter<T> {
-        match self.network_id {
-            Some(id) if user_network_ids.contains(&id) => filter.network_ids(&[id]),
-            Some(_) => filter.network_ids(&[]), // User doesn't have access - return empty
-            None => filter.network_ids(user_network_ids),
+        match self.site_id {
+            Some(id) if user_site_ids.contains(&id) => filter.site_ids(&[id]),
+            Some(_) => filter.site_ids(&[]), // User doesn't have access - return empty
+            None => filter.site_ids(user_site_ids),
         }
     }
 
@@ -168,7 +168,7 @@ fn active_session_error() -> ApiError {
 /// Update a Daemon
 ///
 /// Edits the server-side daemon record: its name, maintainer, tags, and — for ServerPoll —
-/// the url the server dials. Identity and server-managed fields (network, mode, host, key
+/// the url the server dials. Identity and server-managed fields (site, mode, host, key
 /// binding, version, liveness) are restored from the existing record by
 /// `preserve_immutable_fields`.
 #[utoipa::path(
@@ -192,16 +192,16 @@ async fn update_daemon(
     Path(id): Path<Uuid>,
     ApiJson(mut request): ApiJson<Daemon>,
 ) -> ApiResult<Json<ApiResponse<Daemon>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
 
     let existing = Daemon::get_service(&state)
         .get_by_id(&id)
         .await?
         .ok_or_else(|| ApiError::entity_not_found::<Daemon>(id))?;
 
-    // Tenant isolation: the caller must have access to the daemon's *current* network.
-    // network_id is restored below, so an update cannot move a daemon between networks.
-    validate_network_access(Some(existing.base.network_id), &network_ids, "update")?;
+    // Tenant isolation: the caller must have access to the daemon's *current* site.
+    // site_id is restored below, so an update cannot move a daemon between sites.
+    validate_site_access(Some(existing.base.site_id), &site_ids, "update")?;
 
     // A DaemonPoll daemon dials out and is never dialed, so its url is unused — silently
     // storing one would suggest a reachability that does not exist.
@@ -308,18 +308,14 @@ async fn get_install_command(
     Query(query): Query<InstallCommandQuery>,
 ) -> ApiResult<Json<ApiResponse<crate::server::daemons::r#impl::install_artifacts::InstallArtifacts>>>
 {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
 
     let daemon = Daemon::get_service(&state)
         .get_by_id(&id)
         .await?
         .ok_or_else(|| ApiError::entity_not_found::<Daemon>(id))?;
 
-    validate_network_access(
-        Some(daemon.base.network_id),
-        &network_ids,
-        "get install command",
-    )?;
+    validate_site_access(Some(daemon.base.site_id), &site_ids, "get install command")?;
 
     let install_config = query.install_config();
     let artifacts = crate::server::daemons::r#impl::install_artifacts::build_install_artifacts(
@@ -566,14 +562,14 @@ async fn get_all(
     auth: Authorized<Viewer>,
     query: Query<DaemonFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<DaemonResponse>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
 
-    // Apply network filter and pagination
-    let base_filter = StorableFilter::<Daemon>::new_from_network_ids(&network_ids);
-    let filter = query.apply_to_filter(base_filter, &network_ids, organization_id);
+    // Apply site filter and pagination
+    let base_filter = StorableFilter::<Daemon>::new_from_site_ids(&site_ids);
+    let filter = query.apply_to_filter(base_filter, &site_ids, organization_id);
     let pagination = query.pagination();
     let filter = pagination.apply_to_filter(filter);
 
@@ -645,7 +641,7 @@ async fn get_by_id(
     auth: Authorized<Viewer>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<DaemonResponse>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
 
     let mut daemon = state
         .services
@@ -654,8 +650,8 @@ async fn get_by_id(
         .await?
         .ok_or_else(|| ApiError::entity_not_found::<Daemon>(id))?;
 
-    // Validate user has access to this daemon's network
-    if !network_ids.contains(&daemon.base.network_id) {
+    // Validate user has access to this daemon's site
+    if !site_ids.contains(&daemon.base.site_id) {
         return Err(ApiError::entity_access_denied::<Daemon>(id));
     }
 
@@ -740,9 +736,9 @@ async fn daemon_startup(
     Path(id): Path<Uuid>,
     ApiJson(request): ApiJson<DaemonStartupRequest>,
 ) -> ApiResult<Json<ApiResponse<ServerCapabilities>>> {
-    let daemon_network_id = auth.network_ids()[0];
+    let daemon_site_id = auth.site_ids()[0];
 
-    // Validate daemon exists and belongs to the authenticated daemon's network
+    // Validate daemon exists and belongs to the authenticated daemon's site
     let daemon = state
         .services
         .daemon_service
@@ -751,7 +747,7 @@ async fn daemon_startup(
         .map_err(|e| ApiError::internal_error(&format!("Failed to get daemon: {}", e)))?
         .ok_or_else(|| ApiError::entity_not_found::<Daemon>(id))?;
 
-    if daemon.base.network_id != daemon_network_id {
+    if daemon.base.site_id != daemon_site_id {
         return Err(ApiError::entity_access_denied::<Daemon>(id));
     }
 
@@ -789,9 +785,9 @@ async fn update_capabilities(
     Path(id): Path<Uuid>,
     ApiJson(updated_capabilities): ApiJson<LegacyCapabilities>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
-    let daemon_network_id = auth.network_ids()[0];
+    let daemon_site_id = auth.site_ids()[0];
 
-    // Validate daemon exists and belongs to the authenticated daemon's network
+    // Validate daemon exists and belongs to the authenticated daemon's site
     let daemon = state
         .services
         .daemon_service
@@ -800,7 +796,7 @@ async fn update_capabilities(
         .map_err(|e| ApiError::internal_error(&format!("Failed to get daemon: {}", e)))?
         .ok_or_else(|| ApiError::entity_not_found::<Daemon>(id))?;
 
-    if daemon.base.network_id != daemon_network_id {
+    if daemon.base.site_id != daemon_site_id {
         return Err(ApiError::entity_access_denied::<Daemon>(id));
     }
 
@@ -837,9 +833,9 @@ async fn receive_work_request(
     Path(daemon_id): Path<Uuid>,
     ApiJson(status): ApiJson<DaemonStatus>,
 ) -> ApiResult<Json<ApiResponse<(Option<serde_json::Value>, bool)>>> {
-    let daemon_network_id = auth.network_ids()[0];
+    let daemon_site_id = auth.site_ids()[0];
 
-    // Validate daemon exists and belongs to the authenticated daemon's network
+    // Validate daemon exists and belongs to the authenticated daemon's site
     let daemon = state
         .services
         .daemon_service
@@ -871,7 +867,7 @@ async fn receive_work_request(
         }
     };
 
-    if daemon.base.network_id != daemon_network_id {
+    if daemon.base.site_id != daemon_site_id {
         return Err(ApiError::entity_access_denied::<Daemon>(daemon_id));
     }
 
@@ -939,13 +935,13 @@ async fn receive_work_request(
                 .discovery_service
                 .build_daemon_request(
                     &payload,
-                    daemon_network_id,
+                    daemon_site_id,
                     &integration_targets,
                     daemon.base.version.as_ref(),
                     state
                         .services
                         .daemon_service
-                        .network_subnets(daemon_network_id)
+                        .site_subnets(daemon_site_id)
                         .await,
                 )
                 .await
@@ -994,9 +990,9 @@ async fn receive_heartbeat(
     Path(id): Path<Uuid>,
     ApiJson(request): ApiJson<DaemonHeartbeatPayload>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
-    let daemon_network_id = auth.network_ids()[0];
+    let daemon_site_id = auth.site_ids()[0];
 
-    // Validate daemon exists and belongs to the authenticated daemon's network
+    // Validate daemon exists and belongs to the authenticated daemon's site
     let daemon = state
         .services
         .daemon_service
@@ -1005,7 +1001,7 @@ async fn receive_heartbeat(
         .map_err(|e| ApiError::internal_error(&format!("Failed to get daemon: {}", e)))?
         .ok_or_else(|| ApiError::entity_not_found::<Daemon>(id))?;
 
-    if daemon.base.network_id != daemon_network_id {
+    if daemon.base.site_id != daemon_site_id {
         return Err(ApiError::entity_access_denied::<Daemon>(id));
     }
 
@@ -1039,14 +1035,14 @@ async fn receive_heartbeat(
 ///
 /// Re-provisioning always mints a new key, which is safe in exactly two situations: a daemon
 /// that has never checked in (the create flow re-running because advanced settings changed),
-/// and a legacy daemon with no bound key (its separate network-shared key row is untouched, so
+/// and a legacy daemon with no bound key (its separate site-shared key row is untouched, so
 /// it keeps authenticating until it is reconfigured). For a live provisioned daemon the new key
 /// would take effect with no way for the daemon to learn it — silently cutting it off — so that
 /// case is refused. Rotating a live daemon's key has its own endpoint.
 async fn load_reprovision_target(
     state: &AppState,
     daemon_id: Uuid,
-    network_ids: &[Uuid],
+    site_ids: &[Uuid],
 ) -> ApiResult<Daemon> {
     let daemon = state
         .services
@@ -1055,11 +1051,7 @@ async fn load_reprovision_target(
         .await?
         .ok_or_else(|| ApiError::entity_not_found::<Daemon>(daemon_id))?;
 
-    validate_network_access(
-        Some(daemon.base.network_id),
-        network_ids,
-        "re-provision daemon",
-    )?;
+    validate_site_access(Some(daemon.base.site_id), site_ids, "re-provision daemon")?;
 
     if daemon.base.last_seen.is_some() && daemon.base.api_key_id.is_some() {
         return Err(ApiError::conflict(
@@ -1103,19 +1095,19 @@ async fn provision_daemon(
     auth: Authorized<Member>,
     ApiJson(request): ApiJson<ProvisionDaemonRequest>,
 ) -> ApiResult<Json<ApiResponse<ProvisionDaemonResponse>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
 
     // ---- Resolve the target daemon, enforcing tenant access ---------------------------
     // `load_reprovision_target` access-checks the existing record; the create path is checked
-    // here against the requested network. Everything past this point is mechanics, and lives
+    // here against the requested site. Everything past this point is mechanics, and lives
     // in the service so the integrated-daemon bootstrap can share it.
     let existing_daemon = match request.daemon_id {
-        Some(daemon_id) => Some(load_reprovision_target(&state, daemon_id, &network_ids).await?),
+        Some(daemon_id) => Some(load_reprovision_target(&state, daemon_id, &site_ids).await?),
         None => {
-            let network_id = request.network_id.ok_or_else(|| {
-                ApiError::bad_request("network_id is required when provisioning a new daemon")
+            let site_id = request.site_id.ok_or_else(|| {
+                ApiError::bad_request("site_id is required when provisioning a new daemon")
             })?;
-            validate_network_access(Some(network_id), &network_ids, "provision daemon")?;
+            validate_site_access(Some(site_id), &site_ids, "provision daemon")?;
             None
         }
     };
@@ -1171,7 +1163,7 @@ async fn retry_connection(
     auth: Authorized<Member>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
 
     let mut daemon = state
         .services
@@ -1180,8 +1172,8 @@ async fn retry_connection(
         .await?
         .ok_or_else(|| ApiError::entity_not_found::<Daemon>(id))?;
 
-    // Validate user has access to this daemon's network
-    if !network_ids.contains(&daemon.base.network_id) {
+    // Validate user has access to this daemon's site
+    if !site_ids.contains(&daemon.base.site_id) {
         return Err(ApiError::entity_access_denied::<Daemon>(id));
     }
 

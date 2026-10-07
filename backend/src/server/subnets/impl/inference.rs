@@ -1,4 +1,4 @@
-//! Inferring the address space behind far ends this network cannot place.
+//! Inferring the address space behind far ends this site cannot place.
 //!
 //! **LLDP carries no prefix.** There is no netmask TLV in IEEE 802.1AB — `lldpRemManAddrTable`
 //! gives an address, its family, and the interface it sits on, and nothing about the range around
@@ -22,7 +22,7 @@
 //! and hence a VLAN group whose addresses are further apart than that is not treated as one segment
 //! at all.
 //!
-//! This module is deliberately free of the database: it takes what was observed and what the network
+//! This module is deliberately free of the database: it takes what was observed and what the site
 //! already holds, and returns what it believes. Everything it decides is therefore testable without
 //! a Postgres.
 //!
@@ -110,7 +110,7 @@ impl UnplacedFarEnd {
     }
 }
 
-/// A range this network probably has, and the evidence that says so.
+/// A range this site probably has, and the evidence that says so.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InferredRange {
     pub cidr: IpCidr,
@@ -128,7 +128,7 @@ pub struct InferredRange {
 /// link-local *into* "private" because it is answering a different question (may this be fetched?).
 /// Those are excluded upstream by `is_usable_identity_address`, and would be wrong to build a
 /// subnet around in any case.
-fn is_inferrable_space(addr: &IpAddr) -> bool {
+pub(crate) fn is_inferrable_space(addr: &IpAddr) -> bool {
     match addr {
         IpAddr::V4(v4) => {
             let [a, b, ..] = v4.octets();
@@ -149,8 +149,8 @@ fn network_of(addr: IpAddr, prefix: u8) -> IpCidr {
             } else {
                 u32::MAX << (32 - prefix)
             };
-            let network = Ipv4Addr::from(u32::from(v4) & mask);
-            IpCidr::V4(Ipv4Cidr::new(network, prefix).expect("masked address aligns with prefix"))
+            let site = Ipv4Addr::from(u32::from(v4) & mask);
+            IpCidr::V4(Ipv4Cidr::new(site, prefix).expect("masked address aligns with prefix"))
         }
         IpAddr::V6(v6) => {
             let mask = if prefix == 0 {
@@ -158,8 +158,8 @@ fn network_of(addr: IpAddr, prefix: u8) -> IpCidr {
             } else {
                 u128::MAX << (128 - prefix)
             };
-            let network = Ipv6Addr::from(u128::from(v6) & mask);
-            IpCidr::V6(Ipv6Cidr::new(network, prefix).expect("masked address aligns with prefix"))
+            let site = Ipv6Addr::from(u128::from(v6) & mask);
+            IpCidr::V6(Ipv6Cidr::new(site, prefix).expect("masked address aligns with prefix"))
         }
     }
 }
@@ -210,12 +210,40 @@ fn conventional_bucket(addr: IpAddr) -> IpCidr {
 /// addresses a *person* deliberately files there — an internet service, a branch office — and
 /// treating them as placement targets means an address nothing holds silently lands on one instead
 /// of being reported unplaceable.
+///
+/// For an address a daemon *submits*, the rule is [`submitted_placement`], which also decides
+/// what happens to an address no subnet holds.
 pub fn placeable_subnet(live_subnets: &[Subnet], ip: IpAddr) -> Option<&Subnet> {
     live_subnets
         .iter()
         .filter(|s| !s.is_organizational_subnet())
         .filter(|s| s.base.cidr.contains(&ip))
         .max_by_key(|s| s.base.cidr.network_length())
+}
+
+/// Where an address a daemon submits is filed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SubmittedPlacement {
+    /// The most specific live subnet that holds it.
+    Held(Uuid),
+    /// No subnet holds it, but it is private, shared or ULA space the server infers a range for
+    /// (`SubnetService::place_address`). Submitted with a nil subnet id.
+    ServerInfers,
+}
+
+/// Where a discovered address is filed when a daemon submits it, or `None` when it must not be
+/// sent at all.
+///
+/// The one rule for every integration. An address in a held subnet goes there; one the server can
+/// infer a range for goes nil and the server creates the range; anything else (public IPv4, global
+/// IPv6, a private address whose conventional range would overlap one already held) is dropped,
+/// because the server can place it nowhere and its FK insert would fail the whole host. To start
+/// recording addresses of a new kind, change this function.
+pub fn submitted_placement(live: &[Subnet], ip: IpAddr) -> Option<SubmittedPlacement> {
+    if let Some(subnet) = placeable_subnet(live, ip) {
+        return Some(SubmittedPlacement::Held(subnet.id));
+    }
+    infer_range_for(ip, live).map(|_| SubmittedPlacement::ServerInfers)
 }
 
 /// The range a *single* address implies, or `None` where none may be invented for it.
@@ -239,12 +267,12 @@ pub fn infer_range_for(address: IpAddr, live: &[Subnet]) -> Option<IpCidr> {
     (!held.iter().any(|c| overlaps(c, &bucket))).then_some(bucket)
 }
 
-/// The ranges this network actually holds, for the guards below.
+/// The ranges this site actually holds, for the guards below.
 ///
-/// **The organizational rows are not among them.** Every network is seeded with an `Internet` and a
+/// **The organizational rows are not among them.** Every site is seeded with an `Internet` and a
 /// `Remote Network` subnet, both `0.0.0.0/0`, so a guard that asks "does anything already hold this
 /// address" or "would this overlap something" against the raw subnet list answers yes for every
-/// address on earth — and no range is ever inferred, on any real network. That is why these take
+/// address on earth — and no range is ever inferred, on any real site. That is why these take
 /// `&[Subnet]` rather than a list of CIDRs a caller assembles: the exclusion is not something a
 /// call site can forget.
 fn held_ranges(live: &[Subnet]) -> Vec<IpCidr> {
@@ -254,16 +282,16 @@ fn held_ranges(live: &[Subnet]) -> Vec<IpCidr> {
         .collect()
 }
 
-/// The ranges these far ends imply, given what the network already holds.
+/// The ranges these far ends imply, given what the site already holds.
 ///
-/// `live` is every subnet on the network, whatever its confidence — minus the organizational
+/// `live` is every subnet on the site, whatever its confidence — minus the organizational
 /// catch-alls, which [`held_ranges`] drops. Two separate jobs:
 /// an address already inside one is not evidence of anything missing — the range is known, the
 /// *host* at that address simply is not — and a range that would overlap an existing subnet is a
 /// symptom rather than an opportunity, so it is dropped rather than created.
 ///
-/// Grouping is **network-wide, not per device**. Two switches naming far ends in the same range
-/// must produce one subnet, and only the server sees both: a network can have several daemons, each
+/// Grouping is **site-wide, not per device**. Two switches naming far ends in the same range
+/// must produce one subnet, and only the server sees both: a site can have several daemons, each
 /// scanning a slice, and the pair may never appear in one daemon's report.
 pub fn infer_ranges(far_ends: &[UnplacedFarEnd], live: &[Subnet]) -> Vec<InferredRange> {
     let held = held_ranges(live);
@@ -428,7 +456,7 @@ mod tests {
             .collect()
     }
 
-    /// What a network's subnet list actually looks like: whatever it holds, **plus** the `Internet`
+    /// What a site's subnet list actually looks like: whatever it holds, **plus** the `Internet`
     /// and `Remote Network` rows seeded at creation, both `0.0.0.0/0`.
     ///
     /// Every test here goes through this rather than building a bare list, because a bare list is
@@ -441,7 +469,7 @@ mod tests {
         subnets
     }
 
-    /// Every network is seeded with an `Internet` and a `Remote Network` subnet, both `0.0.0.0/0`,
+    /// Every site is seeded with an `Internet` and a `Remote Network` subnet, both `0.0.0.0/0`,
     /// so they contain every IPv4 address. They are places a *person* files something, never
     /// placement targets — without this an address nothing holds silently lands on one.
     #[test]
@@ -456,6 +484,35 @@ mod tests {
         let subnets = live(&["0.0.0.0/0", "10.0.0.0/8", "10.20.30.0/24"]);
         let chosen = placeable_subnet(&subnets, "10.20.30.11".parse().unwrap()).expect("a subnet");
         assert_eq!(chosen.base.cidr.to_string(), "10.20.30.0/24");
+    }
+
+    /// A submitted address goes to the subnet that holds it, goes nil where the server can infer
+    /// its range, and is not sent where the server could place it nowhere.
+    #[test]
+    fn a_submitted_address_is_held_inferred_or_dropped() {
+        let subnets = live(&["192.168.4.0/22", "10.0.5.128/25"]);
+        let held = placeable_subnet(&subnets, "192.168.4.126".parse().unwrap())
+            .unwrap()
+            .id;
+        let placement = |ip: &str| submitted_placement(&subnets, ip.parse().unwrap());
+
+        assert_eq!(
+            placement("192.168.4.126"),
+            Some(SubmittedPlacement::Held(held))
+        );
+        assert_eq!(
+            placement("172.20.1.5"),
+            Some(SubmittedPlacement::ServerInfers)
+        );
+        assert_eq!(
+            placement("fd0b:d38d:98f6:1::5"),
+            Some(SubmittedPlacement::ServerInfers)
+        );
+        // Global IPv6 and public IPv4: nobody's range to invent.
+        assert_eq!(placement("2600:4808:58d0:3a00::5"), None);
+        assert_eq!(placement("8.8.8.8"), None);
+        // Private, but its /24 would overlap the held /25.
+        assert_eq!(placement("10.0.5.7"), None);
     }
 
     /// The single-address entry point produces the conventional prefix: a lone address carries no
@@ -517,7 +574,7 @@ mod tests {
     }
 
     /// The reason this is server-side. Two switches naming far ends in one range must produce one
-    /// subnet — a network can have several daemons and the pair may never appear in one report.
+    /// subnet — a site can have several daemons and the pair may never appear in one report.
     #[test]
     fn far_ends_in_one_range_seen_by_different_devices_produce_one_subnet() {
         let ranges = infer_ranges(
@@ -624,7 +681,7 @@ mod tests {
     }
 
     /// The range is already known; only the *host* at that address is missing. Inferring here
-    /// would create a duplicate of a subnet the network already holds.
+    /// would create a duplicate of a subnet the site already holds.
     #[test]
     fn an_address_inside_a_known_subnet_infers_nothing() {
         let ranges = infer_ranges(&[far_end("192.168.7.99", None)], &live(&["192.168.7.0/24"]));

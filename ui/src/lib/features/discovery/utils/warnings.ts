@@ -459,7 +459,7 @@ function attemptParams(
  * before names were resolved at all.
  *
  * The address is the segment that says which type of gap this is. A far end that published one and
- * still matched nothing is a device on a range this network has not scanned, which an operator can
+ * still matched nothing is a device on a range this site has not scanned, which an operator can
  * act on; one that published none cannot be placed however much gets scanned. Reading the two apart
  * used to cost a round trip to whoever reported the scan.
  */
@@ -477,7 +477,7 @@ function describeNeighbour(
 	return {
 		near: hostSubject(w.host_id, hostName),
 		nearText: w.if_descr,
-		// The far end is the whole point of this warning: nothing on this network matched it, so
+		// The far end is the whole point of this warning: nothing on this site matched it, so
 		// there is no device to tag, only the identifier it advertised.
 		far: null,
 		farText: w.address ? `${named} ${discovery_warningAtAddress({ address: w.address })}` : named

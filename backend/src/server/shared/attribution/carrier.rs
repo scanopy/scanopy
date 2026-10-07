@@ -57,6 +57,14 @@ pub trait AttributeValue:
     fn is_blank(&self) -> bool {
         false
     }
+
+    /// Whether this value says everything `other` says and more: the same reading in greater
+    /// detail. A refinement replaces the vaguer value whatever the two sources rank, and a vaguer
+    /// value never replaces its refinement, because neither disputes the other and detail would
+    /// otherwise be lost to scan order. `false` unless a type defines it.
+    fn refines(&self, _other: &Self) -> bool {
+        false
+    }
 }
 
 /// The schema most provenanced values want: a described string.
@@ -128,7 +136,20 @@ impl<T: AttributeValue> Attributed<T> {
     /// Whether `candidate` may replace `existing`. The ordering rules, in one place, so the two
     /// appliers below cannot drift apart.
     fn supersedes(existing: &Self, candidate: &Self) -> bool {
-        if candidate.rank() < existing.rank() || existing == candidate {
+        if existing == candidate {
+            return false;
+        }
+        // Detail that agrees with the incumbent is not a dispute, so rank does not decide it. A
+        // person's entry is the exception: discovery never overwrites it.
+        if existing.source != AttributeSource::Manual {
+            if candidate.value.refines(&existing.value) {
+                return true;
+            }
+            if existing.value.refines(&candidate.value) {
+                return false;
+            }
+        }
+        if candidate.rank() < existing.rank() {
             return false;
         }
         // An incumbent nobody could attribute makes no claim to authority, so it must not outlive

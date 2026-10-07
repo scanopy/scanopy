@@ -27,7 +27,7 @@ import SectionVirtualization from './sections/SectionVirtualization.svelte';
 
 export type InspectorSection =
 	| 'Identity'
-	| 'IfEntryData'
+	| 'InterfaceData'
 	| 'Services'
 	| 'Dependencies'
 	| 'HostDetail'
@@ -50,7 +50,7 @@ export interface ViewInspectorConfig {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const SECTION_COMPONENTS: Record<InspectorSection, Component<any>> = {
 	Identity: SectionIdentity,
-	IfEntryData: SectionInterfaceData,
+	InterfaceData: SectionInterfaceData,
 	Services: SectionServices,
 	Dependencies: SectionDependencies,
 	HostDetail: SectionHostDetail,

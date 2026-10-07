@@ -29,7 +29,7 @@ import {
 	credentials_betaTooltip,
 	credentials_unofficialApi,
 	credentials_unofficialApiTooltip,
-	credentials_targetNetworkTooltip,
+	credentials_targetSiteTooltip,
 	credentials_targetDaemonHostTooltip,
 	credentials_targetHostTooltip,
 	snmp_adminStatusDown,
@@ -56,7 +56,7 @@ export function createDefaultCredential(organization_id: string): Credential {
 		daemon_os: null,
 		organization_id,
 		tags: [],
-		assigned_network_ids: [],
+		assigned_site_ids: [],
 		host_assignments: [],
 		id: uuidv4Sentinel,
 		created_at: utcTimeZoneSentinel,
@@ -131,7 +131,7 @@ export function getOperStatusLabels(): Record<IfOperStatus, string> {
  * A scope chip, drawn as the entity it actually reaches.
  *
  * Each scope names a real entity, so it borrows that entity's colour *and* icon rather than an
- * arbitrary one: a network scope reads as a network, a daemon-host scope as a daemon, and a
+ * arbitrary one: a site scope reads as a site, a daemon-host scope as a daemon, and a
  * remote-host scope as a host. That way a scope means the same thing here as the thing it points
  * at does everywhere else.
  *
@@ -141,11 +141,11 @@ export function getOperStatusLabels(): Record<IfOperStatus, string> {
  * scope on hover and keeps it searchable in the type dropdown.
  */
 export function getTargetTagProps(target: string): TagProps {
-	if (target === 'Network') {
+	if (target === 'Site') {
 		return {
-			color: entities.getColorHelper('Network').color,
-			icon: entities.getIconComponent('Network'),
-			title: credentials_targetNetworkTooltip()
+			color: entities.getColorHelper('Site').color,
+			icon: entities.getIconComponent('Site'),
+			title: credentials_targetSiteTooltip()
 		};
 	}
 	if (target === 'DaemonHost') {
@@ -204,7 +204,7 @@ export function getUpstreamSupportTagProps(
 /**
  * A credential type that applies *only* to the daemon's own host (e.g. the Docker/Podman
  * socket). Derived from the target scheme — this replaces the former `is_local_auto` flag.
- * Such types target only the daemon host (a `<uuid>@127.0.0.1` token) — no remote/network scope.
+ * Such types target only the daemon host (a `<uuid>@127.0.0.1` token) — no remote/site scope.
  */
 export function isDaemonHostOnly(targets: string[] | undefined): boolean {
 	return targets?.length === 1 && targets[0] === 'DaemonHost';

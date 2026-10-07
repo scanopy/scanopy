@@ -1,0 +1,22 @@
+{
+  "data": {
+    "vga": "serial0",
+    "cores": 1,
+    "vmgenid": "523bf914-a318-4ca0-9589-72b40700ea83",
+    "ostype": "l26",
+    "scsihw": "virtio-scsi-pci",
+    "boot": "order=scsi0",
+    "net0": "virtio=BC:24:11:69:A3:E1,bridge=vmbr0",
+    "meta": "creation-qemu=9.2.0,ctime=1790889735",
+    "ciuser": "debian",
+    "digest": "f247caed7b213128d4f7f65293efe60897493b81",
+    "scsi0": "local-lvm:vm-110-disk-0,size=3G",
+    "sshkeys": "%0Assh-ed25519%20REDACTED%20scrubbed%40capture%0A",
+    "ide2": "local-lvm:vm-110-cloudinit,media=cdrom,size=4M",
+    "serial0": "socket",
+    "ipconfig0": "ip=192.168.7.170/22,gw=192.168.4.1",
+    "smbios1": "uuid=9b9c11e4-2675-4475-a85b-5164212352f3",
+    "name": "scanopy-wol-target",
+    "memory": "1024"
+  }
+}

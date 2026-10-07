@@ -246,18 +246,20 @@ const NAMING: &str = "derived by Scanopy from the host's identifiers; scripts se
 const USER_SET: &str = "set by a person in Scanopy";
 const VIRTUALIZATION: &str = "set by the hypervisor and container integrations";
 const NEIGHBOURS: &str = "neighbour data comes from LLDP, CDP and forwarding tables";
+const ASSET_TAG: &str = "read from ENTITY-MIB entPhysicalAssetID or set by a person in Scanopy";
 
 pub fn host_coverage() -> Vec<(&'static str, ScriptCoverage)> {
     use ScriptCoverage::{NotWritable, Writable};
     use SshScriptField as F;
     script_coverage!(HostBase {
         name => NotWritable(NAMING),
-        network_id => NotWritable(IDENTITY),
+        site_id => NotWritable(IDENTITY),
         hostname => Writable(F::Hostname),
         description => NotWritable(USER_SET),
         source => NotWritable(IDENTITY),
         virtualization_metadata => NotWritable(VIRTUALIZATION),
         virtualization_service_id => NotWritable(VIRTUALIZATION),
+        virtualization_interface_id => NotWritable(VIRTUALIZATION),
         hidden => NotWritable(USER_SET),
         tags => NotWritable(USER_SET),
         sys_descr => Writable(F::SysDescr),
@@ -270,6 +272,7 @@ pub fn host_coverage() -> Vec<(&'static str, ScriptCoverage)> {
         manufacturer => Writable(F::Manufacturer),
         model => Writable(F::Model),
         serial_number => Writable(F::SerialNumber),
+        asset_tag => NotWritable(ASSET_TAG),
         firmware_revision => Writable(F::FirmwareRevision),
         software_revision => Writable(F::SoftwareRevision),
         os => Writable(F::Os),
@@ -282,7 +285,7 @@ pub fn interface_coverage() -> Vec<(&'static str, ScriptCoverage)> {
     use SshScriptField as F;
     script_coverage!(InterfaceBase {
         host_id => NotWritable(IDENTITY),
-        network_id => NotWritable(IDENTITY),
+        site_id => NotWritable(IDENTITY),
         if_index => NotWritable("an SNMP table index; interfaces are matched by name, then MAC"),
         if_descr => Writable(F::InterfaceDescr),
         if_name => Writable(F::InterfaceName),

@@ -20,18 +20,14 @@ impl BillingService {
             .get_or_create_customer(organization_id, authentication)
             .await?;
 
-        let mut automatic_payment_methods = CreateSetupIntentAutomaticPaymentMethods::new(true);
-        automatic_payment_methods.allow_redirects =
-            Some(CreateSetupIntentAutomaticPaymentMethodsAllowRedirects::Never);
-
-        let setup_intent = CreateSetupIntent::new()
-            .customer(customer_id.to_string())
-            .automatic_payment_methods(automatic_payment_methods)
-            .usage(CreateSetupIntentUsage::OffSession)
-            .metadata(StripeOrgMetadata::new(organization_id).to_stripe())
-            .send(&self.stripe)
-            .await
-            .map_err(|e| anyhow!(e.to_string()))?;
+        let setup_intent = setup_intent_request(
+            &customer_id,
+            organization_id,
+            self.payment_method_configuration_id(),
+        )
+        .send(&self.stripe)
+        .await
+        .map_err(|e| anyhow!(e.to_string()))?;
 
         tracing::info!(
             organization_id = %organization_id,
@@ -257,14 +253,14 @@ impl BillingService {
         organization_id: Uuid,
         target_plan: BillingPlan,
     ) -> Result<ChangePlanPreview, Error> {
-        let org_filter = StorableFilter::<Network>::new_from_org_id(&organization_id);
-        let networks = self.network_service.get_all(org_filter.clone()).await?;
-        let network_ids: Vec<Uuid> = networks.iter().map(|n| n.id).collect();
+        let org_filter = StorableFilter::<Site>::new_from_org_id(&organization_id);
+        let sites = self.site_service.get_all(org_filter.clone()).await?;
+        let site_ids: Vec<Uuid> = sites.iter().map(|n| n.id).collect();
 
-        // count_for_networks/count_for_org narrow to live rows, so snapshot
+        // count_for_sites/count_for_org narrow to live rows, so snapshot
         // closed-copies don't inflate the billable host/seat counts against
         // plan limits.
-        let host_count = self.host_service.count_for_networks(&network_ids).await?;
+        let host_count = self.host_service.count_for_sites(&site_ids).await?;
         let seat_count = self.user_service.count_for_org(&organization_id).await?;
 
         let target_config = target_plan.config();
@@ -274,9 +270,9 @@ impl BillingService {
             .map(|limit| host_count.saturating_sub(limit))
             .unwrap_or(0);
 
-        let excess_networks = target_config
-            .included_networks
-            .map(|limit| (networks.len() as u64).saturating_sub(limit))
+        let excess_sites = target_config
+            .included_sites
+            .map(|limit| (sites.len() as u64).saturating_sub(limit))
             .unwrap_or(0);
 
         let excess_seats = target_config
@@ -286,7 +282,7 @@ impl BillingService {
 
         Ok(ChangePlanPreview {
             excess_hosts,
-            excess_networks,
+            excess_sites,
             excess_seats,
         })
     }
@@ -374,12 +370,12 @@ impl BillingService {
                 ..Default::default()
             }];
             // A plan with no add-on prices (the self-hosted tiers, Starter)
-            // also drops any seat/network add-on items. They are priced for
+            // also drops any seat/site add-on items. They are priced for
             // the old plan, and Stripe rejects a subscription whose items
             // bill on different intervals, such as a monthly add-on beside a
             // yearly self-hosted base.
             let target_config = target_plan.config();
-            if target_config.seat_cents.is_none() && target_config.network_cents.is_none() {
+            if target_config.seat_cents.is_none() && target_config.site_cents.is_none() {
                 items.extend(
                     sub.items
                         .data
@@ -592,6 +588,30 @@ impl BillingService {
     }
 }
 
+/// The SetupIntent behind the in-app payment form. With a
+/// `payment_method_configuration` the form offers that configuration's
+/// methods; without one Stripe uses the account's default configuration.
+fn setup_intent_request(
+    customer_id: &CustomerId,
+    organization_id: Uuid,
+    payment_method_configuration: Option<&str>,
+) -> CreateSetupIntent {
+    let mut automatic_payment_methods = CreateSetupIntentAutomaticPaymentMethods::new(true);
+    automatic_payment_methods.allow_redirects =
+        Some(CreateSetupIntentAutomaticPaymentMethodsAllowRedirects::Never);
+
+    let request = CreateSetupIntent::new()
+        .customer(customer_id.to_string())
+        .automatic_payment_methods(automatic_payment_methods)
+        .usage(CreateSetupIntentUsage::OffSession)
+        .metadata(StripeOrgMetadata::new(organization_id).to_stripe());
+
+    match payment_method_configuration {
+        Some(id) => request.payment_method_configuration(id),
+        None => request,
+    }
+}
+
 /// Whether `target` sits below the org's current plan on its own ladder.
 ///
 /// `PartialOrd for BillingPlanDiscriminants` keeps the self-hosted ladder
@@ -637,5 +657,32 @@ mod tests {
             get_free_plan()
         ));
         assert!(!is_tier_downgrade(None, get_self_hosted_standard_plan()));
+    }
+
+    fn setup_intent_form(payment_method_configuration: Option<&str>) -> Vec<(String, String)> {
+        let body = setup_intent_request(
+            &CustomerId::from("cus_123".to_string()),
+            Uuid::nil(),
+            payment_method_configuration,
+        )
+        .build()
+        .body
+        .unwrap();
+        url::form_urlencoded::parse(body.as_bytes())
+            .into_owned()
+            .collect()
+    }
+
+    #[test]
+    fn setup_intent_carries_the_configuration_when_one_is_set() {
+        let with = setup_intent_form(Some("pmc_123"));
+        let without = setup_intent_form(None);
+
+        assert!(with.contains(&("payment_method_configuration".into(), "pmc_123".into())));
+        let rest: Vec<_> = with
+            .into_iter()
+            .filter(|(key, _)| key != "payment_method_configuration")
+            .collect();
+        assert_eq!(rest, without);
     }
 }

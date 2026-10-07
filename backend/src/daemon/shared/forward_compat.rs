@@ -178,7 +178,7 @@ impl DaemonResponse for Subnet {
             base:
                 SubnetBase {
                     cidr: _,
-                    network_id: _,
+                    site_id: _,
                     name: _,
                     description: _,
                     subnet_type: _,
@@ -207,6 +207,9 @@ impl DaemonResponse for HostResponse {
             created_at: _,
             updated_at: _,
             last_seen_at: _,
+            // Plain optional UUIDs: an older daemon ignores them, and the daemon never reads them.
+            first_discovery_id: _,
+            last_discovery_id: _,
             name: _,
             display_name: _,
             // A plain enum and a list of plain structs. The server adds rungs only alongside a
@@ -214,13 +217,19 @@ impl DaemonResponse for HostResponse {
             display_name_rung: _,
             name_ladder: _,
             name_source: _,
-            network_id: _,
+            site_id: _,
             hostname: _,
             hostname_source: _,
             description: _,
             source: _,
             virtualization_metadata: _,
             virtualization_service_id: _,
+            virtualization_interface_id: _,
+            // A plain optional UUID pair and a number, derived for the UI; the daemon never reads
+            // them.
+            virtualization_parent_host_id: _,
+            virtualization_root_host_id: _,
+            virtualization_depth: _,
             hidden: _,
             tags: _,
             sys_descr: _,
@@ -245,6 +254,8 @@ impl DaemonResponse for HostResponse {
             model_source: _,
             serial_number: _,
             serial_number_source: _,
+            asset_tag: _,
+            asset_tag_source: _,
             firmware_revision: _,
             firmware_revision_source: _,
             software_revision: _,

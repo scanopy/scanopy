@@ -14,7 +14,8 @@
 	import { pushSuccess } from '$lib/shared/stores/feedback';
 	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
 	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
+	import CollapsibleCard from '$lib/shared/components/data/CollapsibleCard.svelte';
+	import type { Snippet } from 'svelte';
 	import type { components } from '$lib/api/schema';
 	import {
 		common_browserDefault,
@@ -30,10 +31,12 @@
 		common_clock,
 		common_12Hour,
 		common_24Hour,
+		common_comfortable,
+		common_compact,
+		common_tables,
 		settings_system_copyright,
 		settings_system_dashboardIconsAttribution,
 		settings_system_dateAndTime,
-		settings_system_dateAndTimeDesc,
 		settings_system_dateOrder,
 		settings_system_dateOrderDayFirst,
 		settings_system_dateOrderIso,
@@ -44,6 +47,8 @@
 		settings_system_preview,
 		settings_system_recogAttribution,
 		settings_system_simpleIconsAttribution,
+		settings_system_tablesDesc,
+		settings_system_tablesUpdated,
 		settings_system_themeDesc,
 		settings_system_timeZoneBrowser,
 		settings_system_timestamps,
@@ -58,6 +63,7 @@
 	type ClockFormat = components['schemas']['ClockFormat'];
 	type WeekStart = components['schemas']['WeekStart'];
 	type TimestampStyle = components['schemas']['TimestampStyle'];
+	type TableDensity = components['schemas']['TableDensity'];
 
 	const options = [
 		{ id: 'system' as const, label: common_system(), icon: Monitor },
@@ -87,6 +93,10 @@
 		{ value: 'relative', label: settings_system_timestampsRelative() },
 		{ value: 'absolute', label: settings_system_timestampsAbsolute() }
 	];
+	const tableDensityOptions: { value: TableDensity; label: string }[] = [
+		{ value: 'comfortable', label: common_comfortable() },
+		{ value: 'compact', label: common_compact() }
+	];
 	// '' stands for "no zone chosen" (null on the server), since a <select> value is a string.
 	const timeZoneSelectOptions = [
 		{ value: '', label: settings_system_timeZoneBrowser({ zone: browserTimeZone() }) },
@@ -115,7 +125,11 @@
 			if (!user) return;
 			try {
 				await updateSelfMutation.mutateAsync({ ...user, display_settings: fromFormValues(value) });
-				pushSuccess(settings_system_displayUpdated());
+				pushSuccess(
+					lastChanged === 'tables'
+						? settings_system_tablesUpdated()
+						: settings_system_displayUpdated()
+				);
 			} catch {
 				// The API client reports the error. Put the form and every displayed date back on
 				// the last value the server accepted.
@@ -141,9 +155,21 @@
 		}
 	});
 
-	// Apply the change to every date on screen at once, then persist it.
+	// Which card the last saved change came from, so the toast names it.
+	let lastChanged: 'dateAndTime' | 'tables' = 'dateAndTime';
+
+	// Apply the change to every date and table on screen at once, then persist it.
 	function onSettingChange() {
+		saveSetting('dateAndTime');
+	}
+
+	function onTableSettingChange() {
+		saveSetting('tables');
+	}
+
+	function saveSetting(card: typeof lastChanged) {
 		if (suppressSave || !hydrated) return;
+		lastChanged = card;
 		displaySettings.set(fromFormValues(form.state.values));
 		void form.handleSubmit();
 	}
@@ -154,35 +180,81 @@
 	const previewRecent = new Date(previewNow.getTime() - 3 * 60 * 60 * 1000);
 </script>
 
-<div class="flex h-full flex-col gap-6 overflow-y-auto p-6">
-	<InfoCard title={common_theme()}>
-		<p class="text-tertiary text-sm">{settings_system_themeDesc()}</p>
-		<div class="flex gap-2">
-			{#each options as option (option.id)}
-				<button
-					type="button"
-					class="btn-secondary flex flex-1 items-center justify-center gap-1.5 {themeStore.themeMode ===
-					option.id
-						? 'ring-primary ring-2'
-						: ''}"
-					onclick={() => themeStore.setTheme(option.id)}
-				>
-					<option.icon size={16} />
-					{option.label}
-				</button>
-			{/each}
+<!--
+	A setting whose control fits beside its description sits on one row, so the
+	whole tab fits above the fold. `labelFor` makes the title the control's label.
+-->
+{#snippet inlineSetting(
+	title: string,
+	description: string,
+	labelFor: string | null,
+	control: Snippet
+)}
+	<div class="card card-static flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+		<div class="min-w-0">
+			{#if labelFor}
+				<label for={labelFor} class="text-primary text-sm font-semibold">{title}</label>
+			{:else}
+				<h3 class="text-primary text-sm font-semibold">{title}</h3>
+			{/if}
+			<p class="text-tertiary mt-0.5 text-xs">{description}</p>
 		</div>
-	</InfoCard>
+		<div class="shrink-0 sm:w-80">
+			{@render control()}
+		</div>
+	</div>
+{/snippet}
 
-	<InfoCard title={settings_system_dateAndTime()}>
-		<p class="text-tertiary text-sm">{settings_system_dateAndTimeDesc()}</p>
-		<p class="text-secondary text-sm">
-			{settings_system_preview({
-				date: formatDate(previewNow),
-				timestamp: formatTimestamp(previewNow),
-				relative: formatRelativeTime(previewRecent)
-			})}
-		</p>
+{#snippet themeControl()}
+	<div class="flex gap-2" role="group" aria-label={common_theme()}>
+		{#each options as option (option.id)}
+			<button
+				type="button"
+				class="btn-secondary flex flex-1 items-center justify-center gap-1.5 {themeStore.themeMode ===
+				option.id
+					? 'ring-primary ring-2'
+					: ''}"
+				onclick={() => themeStore.setTheme(option.id)}
+			>
+				<option.icon size={16} />
+				{option.label}
+			</button>
+		{/each}
+	</div>
+{/snippet}
+
+{#snippet densityControl()}
+	<form.Field name="table_density" listeners={{ onChange: onTableSettingChange }}>
+		{#snippet children(field)}
+			<!-- Labelled by the card title, so no second label above the select. -->
+			<SelectInput id="display-table-density" label="" options={tableDensityOptions} {field} />
+		{/snippet}
+	</form.Field>
+{/snippet}
+
+<div class="flex h-full flex-col gap-4 overflow-y-auto p-6">
+	{@render inlineSetting(common_theme(), settings_system_themeDesc(), null, themeControl)}
+
+	{@render inlineSetting(
+		common_tables(),
+		settings_system_tablesDesc(),
+		'display-table-density',
+		densityControl
+	)}
+
+	<!--
+		The preview stands in for a description: it shows the current formats while
+		the card is collapsed and updates live as the selects change.
+	-->
+	<CollapsibleCard
+		title={settings_system_dateAndTime()}
+		description={settings_system_preview({
+			date: formatDate(previewNow),
+			timestamp: formatTimestamp(previewNow),
+			relative: formatRelativeTime(previewRecent)
+		})}
+		expanded={false}
+	>
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 			<form.Field name="date_order" listeners={{ onChange: onSettingChange }}>
 				{#snippet children(field)}
@@ -230,7 +302,7 @@
 				{/snippet}
 			</form.Field>
 		</div>
-	</InfoCard>
+	</CollapsibleCard>
 
 	<div class="mt-auto flex flex-col gap-1">
 		<p class="text-tertiary text-xs">{settings_system_copyright({ year: copyrightYear })}</p>

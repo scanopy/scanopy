@@ -127,6 +127,9 @@ pub struct DeviceInventory {
     pub model: Option<String>,
     /// entPhysicalSerialNum - serial number
     pub serial_number: Option<String>,
+    /// entPhysicalAssetID - asset tag an administrator set on the device. Empty on most devices,
+    /// since nothing sets it but a person.
+    pub asset_id: Option<String>,
     /// entPhysicalFirmwareRev - firmware revision
     pub firmware_revision: Option<String>,
     /// entPhysicalSoftwareRev - software revision

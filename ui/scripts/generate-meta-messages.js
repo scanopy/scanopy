@@ -65,6 +65,7 @@ export const COVERED_FIXTURES = [
 	{ file: 'element-rule-types.json', key: 'element_rule_types', kind: 'typeMetadata' },
 	{ file: 'element-sorts.json', key: 'element_sorts', kind: 'typeMetadata' },
 	{ file: 'views.json', key: 'views', kind: 'typeMetadata' },
+	{ file: 'inspector-sections.json', key: 'inspector_sections', kind: 'typeMetadata' },
 	{ file: 'ports.json', key: 'ports', kind: 'typeMetadata' },
 	{ file: 'cancel-reasons.json', key: 'cancel_reasons', kind: 'typeMetadata' },
 	{ file: 'save-offers.json', key: 'save_offers', kind: 'typeMetadata' },
@@ -79,8 +80,20 @@ export const COVERED_FIXTURES = [
 	// How an entity came to exist, keyed by its `source.type`. The descriptions are operator-facing
 	// explanations (the Inferred one is the notice on an inferred host), not internal notes.
 	{ file: 'entity-sources.json', key: 'entity_sources', kind: 'typeMetadata' },
+	// The parts of the product entities belong to: the sidebar's section names.
+	{ file: 'entity-categories.json', key: 'entity_categories', kind: 'typeMetadata' },
 	// How confidently discovery matched a service to its definition, keyed by `MatchConfidence`.
 	{ file: 'match-confidences.json', key: 'match_confidences', kind: 'typeMetadata' },
+	// The hypervisor platform a guest runs on, keyed by `virtualization_metadata.type`.
+	{ file: 'host-virtualizations.json', key: 'host_virtualizations', kind: 'typeMetadata' },
+	// The container runtime a service runs in, keyed by a service's `virtualization_metadata.type`.
+	{ file: 'service-virtualizations.json', key: 'service_virtualizations', kind: 'typeMetadata' },
+	// The neighbor protocol that reported a physical link, keyed by `DiscoveryProtocol`.
+	{ file: 'discovery-protocols.json', key: 'discovery_protocols', kind: 'typeMetadata' },
+	// A Proxmox guest's type (VM or LXC container), keyed by `ProxmoxGuestType`.
+	{ file: 'proxmox-guest-types.json', key: 'proxmox_guest_types', kind: 'typeMetadata' },
+	// A container host's LAN network driver (macvlan or ipvlan), keyed by `ContainerNetworkType`.
+	{ file: 'container-network-types.json', key: 'container_network_types', kind: 'typeMetadata' },
 	// Scan warnings. Descriptions here are templates with `{named}` slots, unlike every other
 	// entry above: the values are copied through verbatim, paraglide compiles them into functions
 	// that take an inputs object, and `metaDescriptionWith` in src/lib/i18n/metadata.ts is what

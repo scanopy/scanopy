@@ -1,4 +1,4 @@
-//! Credentials, and network-to-credential junction assignments
+//! Credentials, and site-to-credential junction assignments
 
 use super::*;
 use crate::server::credentials::r#impl::types::{
@@ -20,7 +20,7 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
             description: Some(description.to_string()),
             credential_type,
             tags: Vec::new(),
-            assigned_network_ids: Vec::new(),
+            assigned_site_ids: Vec::new(),
             host_assignments: Vec::new(),
         },
     };
@@ -188,6 +188,16 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
             },
         ),
         credential(
+            "Proxmox Cluster API",
+            "Read-only API token (PVEAuditor) for the HQ Proxmox cluster. Either node reports both.",
+            None,
+            CredentialType::ProxmoxApiToken {
+                port: 8006,
+                token_id: "scanopy@pve!discovery".to_string(),
+                token_secret: inline("3f9c2a7e-5b1d-4c8e-9a6f-2d7b8e1c4a90"),
+            },
+        ),
+        credential(
             "Backup NAS Wake",
             "Wakes the backup NAS, which sleeps between weekly backup windows.",
             None,
@@ -202,16 +212,11 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
     ]
 }
 
-pub(super) fn generate_network_credential_assignments(
-    networks: &[Network],
+pub(super) fn generate_site_credential_assignments(
+    sites: &[Site],
     credentials: &[Credential],
-) -> Vec<NetworkCredentialAssignment> {
-    let find_network = |name: &str| {
-        networks
-            .iter()
-            .find(|n| n.base.name.contains(name))
-            .unwrap()
-    };
+) -> Vec<SiteCredentialAssignment> {
+    let find_site = |name: &str| sites.iter().find(|n| n.base.name.contains(name)).unwrap();
     let find_cred = |name: &str| {
         credentials
             .iter()
@@ -221,18 +226,18 @@ pub(super) fn generate_network_credential_assignments(
 
     let default_snmp = find_cred("Default SNMPv2c");
     let network_snmp = find_cred("Network Devices");
-    let hq = find_network("Headquarters");
-    let dc = find_network("Data Center");
+    let hq = find_site("Headquarters");
+    let dc = find_site("Data Center");
 
     vec![
         // HQ: both SNMP credentials + Docker proxy
-        NetworkCredentialAssignment {
-            network_id: hq.id,
+        SiteCredentialAssignment {
+            site_id: hq.id,
             credential_ids: vec![default_snmp.id, network_snmp.id],
         },
         // DC: both SNMP credentials
-        NetworkCredentialAssignment {
-            network_id: dc.id,
+        SiteCredentialAssignment {
+            site_id: dc.id,
             credential_ids: vec![default_snmp.id, network_snmp.id],
         },
     ]

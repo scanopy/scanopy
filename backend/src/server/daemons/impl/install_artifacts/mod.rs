@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use super::base::{Daemon, DaemonMode};
-use crate::daemon::shared::config::DaemonArgs;
+use crate::daemon::shared::config::{DOCKER_CONFIG_DIR, DaemonArgs};
 use crate::server::credentials::r#impl::mapping::IntegrationTarget;
 
 /// The `install.sh` one-liner that fetches + runs the Unix installer bootstrap.
@@ -293,7 +293,7 @@ fn is_shell_safe(value: &str) -> bool {
 }
 
 /// The `install` flags for a resolved config. DaemonPoll dials the server (so it carries
-/// `--server-url`), ServerPoll is dialed by the server (so it does not). Name and network never
+/// `--server-url`), ServerPoll is dialed by the server (so it does not). Name and site never
 /// reach the CLI — the daemon learns its name via the handshake — so the command carries
 /// neither; everything else set on `args` is emitted, including the `--instance` selector that
 /// tells a multi-daemon host which install the command is for.
@@ -335,7 +335,7 @@ fn quote_yaml(value: &str) -> String {
 /// lines. This is the daemon's config expressed for compose.
 ///
 /// The set comes from the same [`DaemonArgs::install_config_pairs`] table as the CLI and MSI
-/// artifacts, so they cannot drift. Notably no network id, user id, name or mode: those are
+/// artifacts, so they cannot drift. Notably no site id, user id, name or mode: those are
 /// `#[serde(skip)]` on [`DaemonArgs`] precisely because a client must not assert them, and the
 /// binary install command dropped them for the same reason — identity comes from the 1:1
 /// api-key binding and the handshake. A compose that asserted them could disagree with the
@@ -379,9 +379,9 @@ fn docker_compose(env_lines: &[String], daemon: &Daemon) -> String {
     }
 
     let volumes = [
-        "daemon-config:/root/.config/scanopy/daemon",
-        "/var/run/docker.sock:/var/run/docker.sock:ro",
-        "/var/log/scanopy:/var/log/scanopy",
+        format!("daemon-config:{DOCKER_CONFIG_DIR}"),
+        "/var/run/docker.sock:/var/run/docker.sock:ro".to_string(),
+        "/var/log/scanopy:/var/log/scanopy".to_string(),
     ];
 
     let mut lines = vec![

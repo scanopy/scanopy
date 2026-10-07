@@ -8,18 +8,18 @@ use tower_sessions_sqlx_store::PostgresStore;
 
 use crate::server::dependencies::dependency_members::DependencyMemberStorage;
 use crate::server::tags::entity_tags::EntityTagStorage;
-use crate::server::user_api_keys::r#impl::network_access::UserApiKeyNetworkAccessStorage;
-use crate::server::users::UserNetworkAccessStorage;
+use crate::server::user_api_keys::r#impl::site_access::UserApiKeySiteAccessStorage;
+use crate::server::users::UserSiteAccessStorage;
 use crate::server::vlans::r#impl::subnet_vlans::SubnetVlanStorage;
 use crate::server::{
     bindings::r#impl::base::Binding, credentials::r#impl::base::Credential,
     daemon_api_keys::r#impl::base::DaemonApiKey, daemons::r#impl::base::Daemon,
     dependencies::r#impl::base::Dependency, discovery::r#impl::base::Discovery,
     hosts::r#impl::base::Host, interfaces::r#impl::base::Interface, invites::r#impl::base::Invite,
-    ip_addresses::r#impl::base::IPAddress, networks::r#impl::Network,
-    organizations::r#impl::base::Organization, ports::r#impl::base::Port,
-    services::r#impl::base::Service, shared::storage::generic::GenericPostgresStorage,
-    shares::r#impl::base::Share, snapshots::types::base::Snapshot, subnets::r#impl::base::Subnet,
+    ip_addresses::r#impl::base::IPAddress, organizations::r#impl::base::Organization,
+    ports::r#impl::base::Port, services::r#impl::base::Service,
+    shared::storage::generic::GenericPostgresStorage, shares::r#impl::base::Share,
+    sites::r#impl::Site, snapshots::types::base::Snapshot, subnets::r#impl::base::Subnet,
     tags::r#impl::base::Tag, topology::types::base::Topology,
     user_api_keys::r#impl::base::UserApiKey, users::r#impl::base::User, vlans::r#impl::base::Vlan,
 };
@@ -30,7 +30,7 @@ pub struct StorageFactory {
     pub daemon_api_keys: Arc<GenericPostgresStorage<DaemonApiKey>>,
     pub user_api_keys: Arc<GenericPostgresStorage<UserApiKey>>,
     pub users: Arc<GenericPostgresStorage<User>>,
-    pub networks: Arc<GenericPostgresStorage<Network>>,
+    pub sites: Arc<GenericPostgresStorage<Site>>,
     pub hosts: Arc<GenericPostgresStorage<Host>>,
     pub ip_addresses: Arc<GenericPostgresStorage<IPAddress>>,
     pub dependencies: Arc<GenericPostgresStorage<Dependency>>,
@@ -51,8 +51,8 @@ pub struct StorageFactory {
     pub vlans: Arc<GenericPostgresStorage<Vlan>>,
     // Junction tables
     pub entity_tags: Arc<EntityTagStorage>,
-    pub user_api_key_network_access: Arc<UserApiKeyNetworkAccessStorage>,
-    pub user_network_access: Arc<UserNetworkAccessStorage>,
+    pub user_api_key_site_access: Arc<UserApiKeySiteAccessStorage>,
+    pub user_site_access: Arc<UserSiteAccessStorage>,
     pub dependency_members: Arc<DependencyMemberStorage>,
     pub subnet_vlan: Arc<SubnetVlanStorage>,
 }
@@ -92,7 +92,7 @@ impl StorageFactory {
             daemon_api_keys: Arc::new(GenericPostgresStorage::new(pool.clone())),
             user_api_keys: Arc::new(GenericPostgresStorage::new(pool.clone())),
             users: Arc::new(GenericPostgresStorage::new(pool.clone())),
-            networks: Arc::new(GenericPostgresStorage::new(pool.clone())),
+            sites: Arc::new(GenericPostgresStorage::new(pool.clone())),
             hosts: Arc::new(GenericPostgresStorage::new(pool.clone())),
             ip_addresses: Arc::new(GenericPostgresStorage::new(pool.clone())),
             dependencies: Arc::new(GenericPostgresStorage::new(pool.clone())),
@@ -109,12 +109,10 @@ impl StorageFactory {
             vlans: Arc::new(GenericPostgresStorage::new(pool.clone())),
             // Junction tables
             entity_tags: Arc::new(EntityTagStorage::new(pool.clone())),
-            user_api_key_network_access: Arc::new(UserApiKeyNetworkAccessStorage::new(
-                pool.clone(),
-            )),
+            user_api_key_site_access: Arc::new(UserApiKeySiteAccessStorage::new(pool.clone())),
             dependency_members: Arc::new(DependencyMemberStorage::new(pool.clone())),
             subnet_vlan: Arc::new(SubnetVlanStorage::new(pool.clone())),
-            user_network_access: Arc::new(UserNetworkAccessStorage::new(pool.clone())),
+            user_site_access: Arc::new(UserSiteAccessStorage::new(pool.clone())),
         })
     }
 }

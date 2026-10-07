@@ -475,6 +475,13 @@ impl EntityTable {
                     PassValue::Str(serial.clone()),
                 ));
             }
+            if let Some(asset_id) = &inventory.asset_id {
+                rows.push(Row::at(
+                    entity::entry::ENT_PHYSICAL_ASSET_ID,
+                    &idx,
+                    PassValue::Str(asset_id.clone()),
+                ));
+            }
             if let Some(mfg) = &inventory.manufacturer {
                 rows.push(Row::at(
                     entity::entry::ENT_PHYSICAL_MFG_NAME,

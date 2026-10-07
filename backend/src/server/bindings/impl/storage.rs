@@ -23,7 +23,7 @@ pub struct BindingCsvRow {
     pub binding_type: String,
     pub ip_address_id: Option<Uuid>,
     pub port_id: Option<Uuid>,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -62,7 +62,7 @@ impl Storable for Binding {
             vec![
                 "id",
                 "service_id",
-                "network_id",
+                "site_id",
                 "binding_type",
                 "ip_address_id",
                 "port_id",
@@ -78,7 +78,7 @@ impl Storable for Binding {
             vec![
                 SqlValue::Uuid(self.id),
                 SqlValue::Uuid(self.base.service_id),
-                SqlValue::Uuid(self.base.network_id),
+                SqlValue::Uuid(self.base.site_id),
                 SqlValue::String(binding_type.to_string()),
                 SqlValue::OptionalUuid(ip_address_id),
                 SqlValue::OptionalUuid(port_id),
@@ -97,7 +97,7 @@ impl Storable for Binding {
     fn from_row(row: &PgRow) -> Result<Self, anyhow::Error> {
         let id: Uuid = row.get("id");
         let service_id: Uuid = row.get("service_id");
-        let network_id: Uuid = row.get("network_id");
+        let site_id: Uuid = row.get("site_id");
         let created_at: DateTime<Utc> = row.get("created_at");
         let updated_at: DateTime<Utc> = row.get("updated_at");
         let binding_type_str: String = row.get("binding_type");
@@ -138,7 +138,7 @@ impl Storable for Binding {
             first_discovery_id: row.get("first_discovery_id"),
             base: BindingBase {
                 service_id,
-                network_id,
+                site_id,
                 binding_type,
             },
         })
@@ -262,7 +262,7 @@ impl Entity for Binding {
             binding_type: binding_type.to_string(),
             ip_address_id,
             port_id,
-            network_id: self.base.network_id,
+            site_id: self.base.site_id,
             created_at: self.created_at,
             updated_at: self.updated_at,
         }
@@ -277,11 +277,11 @@ impl Entity for Binding {
     const ENTITY_DESCRIPTION: &'static str = "Service bindings linking services to IP addresses and/or ports. Defines where a service is accessible.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::NetworkInfrastructure
+        EntityCategory::Assets
     }
 
-    fn network_id(&self) -> Option<Uuid> {
-        Some(self.base.network_id)
+    fn site_id(&self) -> Option<Uuid> {
+        Some(self.base.site_id)
     }
 
     fn organization_id(&self) -> Option<Uuid> {
@@ -365,7 +365,7 @@ mod remap_tests {
         }
     }
 
-    // FKs with no entry in the maps (e.g. a parent outside this network's
+    // FKs with no entry in the maps (e.g. a parent outside this site's
     // snapshot) must be left untouched rather than zeroed.
     #[test]
     fn unmapped_fks_are_left_unchanged() {

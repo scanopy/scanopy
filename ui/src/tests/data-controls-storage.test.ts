@@ -1,49 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import {
-	migrateViewMode,
 	parseStoredState,
+	resolveOrdering,
 	serializeState,
-	DEFAULT_VIEW_MODE,
+	STORED_STATE_VERSION,
 	type StoredState
 } from '$lib/shared/components/data/controls/dataControlsStorage';
 
 function baseState(overrides: Partial<StoredState> = {}): StoredState {
 	return {
+		version: STORED_STATE_VERSION,
 		searchQuery: '',
 		filterState: {},
 		sortState: { field: null, direction: 'asc' },
 		selectedGroupField: null,
-		showFilters: false,
-		viewMode: 'card',
 		currentPage: 1,
 		...overrides
 	};
 }
-
-describe('migrateViewMode', () => {
-	it('carries a stored list view onto the table', () => {
-		// List view was folded into the table, so someone who chose the dense view
-		// keeps a dense view rather than being reset to cards.
-		expect(migrateViewMode('list')).toBe('table');
-	});
-
-	it('preserves the two live modes', () => {
-		expect(migrateViewMode('table')).toBe('table');
-		expect(migrateViewMode('card')).toBe('card');
-	});
-
-	it('never yields a value outside the union, whatever is stored', () => {
-		const junk = [undefined, null, '', 'grid', 'LIST', 0, 1, {}, [], true, 'table ', 'Card'];
-
-		for (const raw of junk) {
-			expect(['card', 'table']).toContain(migrateViewMode(raw));
-		}
-	});
-
-	it('falls back to the default for unrecognised values', () => {
-		expect(migrateViewMode('grid')).toBe(DEFAULT_VIEW_MODE);
-	});
-});
 
 describe('parseStoredState', () => {
 	it('round-trips filter selections through serialization', () => {
@@ -54,7 +28,7 @@ describe('parseStoredState', () => {
 				hidden: { type: 'boolean', values: [], showTrue: true, showFalse: false }
 			},
 			sortState: { field: 'name', direction: 'desc' },
-			selectedGroupField: 'network_id',
+			selectedGroupField: 'site_id',
 			currentPage: 3,
 			pageSize: 50
 		});
@@ -67,15 +41,38 @@ describe('parseStoredState', () => {
 		expect(parsed!.filterState.hidden.showFalse).toBe(false);
 		expect(parsed!.sortState).toEqual({ field: 'name', direction: 'desc' });
 		expect(parsed!.searchQuery).toBe('switch');
-		expect(parsed!.selectedGroupField).toBe('network_id');
+		expect(parsed!.selectedGroupField).toBe('site_id');
 		expect(parsed!.currentPage).toBe(3);
 		expect(parsed!.pageSize).toBe(50);
 	});
 
-	it('migrates a stored list view while parsing', () => {
-		const raw = JSON.stringify({ ...baseState(), viewMode: 'list' });
+	it('opens a blob that chose card view on the table, keeping its other choices', () => {
+		const raw = JSON.stringify({
+			...baseState({ selectedGroupField: 'site_id' }),
+			viewMode: 'card',
+			showFilters: true
+		});
+		const parsed = parseStoredState(raw)!;
 
-		expect(parseStoredState(raw)!.viewMode).toBe('table');
+		expect(parsed).not.toHaveProperty('viewMode');
+		expect(parsed).not.toHaveProperty('showFilters');
+		expect(parsed.selectedGroupField).toBe('site_id');
+	});
+
+	it("reads an older build's null sort and group as no choice", () => {
+		// Builds before version 2 wrote both as null on first mount, so the null was never picked.
+		const raw = JSON.stringify({ ...baseState(), version: undefined });
+		const parsed = parseStoredState(raw)!;
+
+		expect(parsed.sortState).toBeUndefined();
+		expect(parsed.selectedGroupField).toBeUndefined();
+	});
+
+	it('keeps a chosen "none" from the current build', () => {
+		const parsed = parseStoredState(serializeState(baseState()))!;
+
+		expect(parsed.sortState).toEqual({ field: null, direction: 'asc' });
+		expect(parsed.selectedGroupField).toBeNull();
 	});
 
 	it('returns null rather than throwing on malformed input', () => {
@@ -94,8 +91,8 @@ describe('parseStoredState', () => {
 		expect(parsed).not.toBeNull();
 		expect(parsed!.searchQuery).toBe('x');
 		expect(parsed!.filterState).toEqual({});
-		expect(parsed!.sortState).toEqual({ field: null, direction: 'asc' });
-		expect(parsed!.viewMode).toBe(DEFAULT_VIEW_MODE);
+		expect(parsed!.sortState).toBeUndefined();
+		expect(parsed!.selectedGroupField).toBeUndefined();
 		expect(parsed!.currentPage).toBe(1);
 		expect(parsed!.pageSize).toBeUndefined();
 	});
@@ -140,5 +137,64 @@ describe('parseStoredState', () => {
 		expect(parsed!.columnVisibility).toEqual({ name: true, created_at: false });
 		expect(parsed!.columnOrder).toEqual(['name', 'created_at']);
 		expect(parsed!.columnSizing).toEqual({ name: 240 });
+	});
+});
+
+describe('resolveOrdering', () => {
+	const fieldKeys = new Set(['name', 'cidr', 'site_id']);
+	const defaults = {
+		group: 'cidr',
+		sort: { field: 'name', direction: 'asc' as const }
+	};
+
+	it('applies the defaults when the user has chosen nothing', () => {
+		expect(resolveOrdering({}, defaults, fieldKeys)).toEqual({
+			sortState: { field: 'name', direction: 'asc' },
+			groupField: 'cidr'
+		});
+	});
+
+	it("keeps the user's sort and grouping over the defaults", () => {
+		const resolved = resolveOrdering(
+			{ sort: { field: 'site_id', direction: 'desc' }, group: 'site_id' },
+			defaults,
+			fieldKeys
+		);
+
+		expect(resolved).toEqual({
+			sortState: { field: 'site_id', direction: 'desc' },
+			groupField: 'site_id'
+		});
+	});
+
+	it('keeps a chosen "no grouping" over a default grouping', () => {
+		expect(resolveOrdering({ group: null }, defaults, fieldKeys).groupField).toBeNull();
+	});
+
+	it('falls back to the default for a choice on a field the tab no longer has', () => {
+		const resolved = resolveOrdering(
+			{ sort: { field: 'retired', direction: 'desc' }, group: 'retired' },
+			defaults,
+			fieldKeys
+		);
+
+		expect(resolved).toEqual({
+			sortState: { field: 'name', direction: 'asc' },
+			groupField: 'cidr'
+		});
+	});
+
+	it('lands a legacy blob on the defaults', () => {
+		const stored = parseStoredState(
+			JSON.stringify({ sortState: { field: null, direction: 'asc' }, selectedGroupField: null })
+		)!;
+		const resolved = resolveOrdering(
+			{ sort: stored.sortState, group: stored.selectedGroupField },
+			defaults,
+			fieldKeys
+		);
+
+		expect(resolved.groupField).toBe('cidr');
+		expect(resolved.sortState.field).toBe('name');
 	});
 });

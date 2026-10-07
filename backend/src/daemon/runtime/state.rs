@@ -176,7 +176,7 @@ impl DaemonState {
 
     /// Detect subnets from daemon's network ip_addresses.
     async fn detect_interfaced_subnets(&self) -> anyhow::Result<Vec<Subnet>> {
-        let network_id = match self.config.get_network_id().await? {
+        let site_id = match self.config.get_site_id().await? {
             Some(id) => id,
             None => return Ok(Vec::new()),
         };
@@ -184,7 +184,7 @@ impl DaemonState {
 
         let (_, subnets, _) = self
             .utils
-            .get_own_interfaces(network_id, &interface_filter)
+            .get_own_interfaces(site_id, &interface_filter)
             .await?;
 
         Ok(subnets)
@@ -216,7 +216,7 @@ impl DaemonState {
             return Some(DiscoveryUpdatePayload {
                 session_id: s.info.session_id,
                 daemon_id: s.info.daemon_id,
-                network_id: s.info.network_id,
+                site_id: s.info.site_id,
                 phase: crate::daemon::discovery::types::base::DiscoveryPhase::Scanning,
                 discovery_type: s.info.discovery_type.clone(),
                 progress,

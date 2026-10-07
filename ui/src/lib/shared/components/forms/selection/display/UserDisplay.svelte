@@ -1,5 +1,7 @@
 <script lang="ts" module>
-	export const UserDisplay: EntityDisplayComponent<User, object> = {
+	export type UserTagRole = 'permission';
+
+	export const UserDisplay: EntityDisplayComponent<User, DisplayTagContext<UserTagRole>> = {
 		getId: (user) => user.id,
 		// The User type carries no name or avatar — email is the identity everywhere in the UI.
 		getLabel: (user) => user.email,
@@ -7,8 +9,8 @@
 		getIconColor: () => entities.getColorHelper('User').icon,
 		getTags: (user) => [
 			{
-				label: permissions.getName(user.permissions),
-				color: permissions.getColorHelper(user.permissions).color
+				...permissions.getTag(user.permissions),
+				role: 'permission' satisfies UserTagRole
 			}
 		],
 		getCategory: () => null
@@ -17,13 +19,13 @@
 
 <script lang="ts">
 	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
-	import type { EntityDisplayComponent } from '../types';
+	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
 	import type { User } from '$lib/features/users/types';
 	import { entities, permissions } from '$lib/shared/stores/metadata';
 
 	interface Props {
 		item: User;
-		context?: object;
+		context?: DisplayTagContext<UserTagRole>;
 	}
 
 	let { item, context = {} }: Props = $props();

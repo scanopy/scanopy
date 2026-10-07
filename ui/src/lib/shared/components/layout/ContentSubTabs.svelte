@@ -1,11 +1,13 @@
 <script lang="ts">
 	import type { IconComponent } from '$lib/shared/utils/types';
 	import type { Component } from 'svelte';
-	import { common_contentTabs } from '$lib/paraglide/messages';
+	import PageTitle, { providePageTabs } from './PageTitle.svelte';
 
 	export interface SubTab {
 		id: string;
 		label: string;
+		/** Hover note on the tab row's (i) while this tab is active. */
+		subtitle?: string;
 		icon: IconComponent;
 		component: Component;
 	}
@@ -21,42 +23,26 @@
 		isReadOnly: boolean;
 		notifications?: Record<string, string>;
 	} = $props();
+
+	let showsTabs = $derived(tabs.length > 1);
+	providePageTabs(() => showsTabs);
+	let active = $derived(tabs.find((tab) => tab.id === activeTab));
 </script>
 
 <div>
-	<!-- Sub-tab navigation bar. Hidden when only one tab is visible so the group renders
-	     as a plain single-entity page (no tab strip for a single item). -->
-	{#if tabs.length > 1}
-		<nav
-			class="mb-6 flex space-x-6 border-b"
-			style="border-color: var(--color-border)"
-			aria-label={common_contentTabs()}
-		>
-			{#each tabs as tab (tab.id)}
-				<button
-					type="button"
-					onclick={() => (activeTab = tab.id)}
-					class="border-b-2 px-1 pb-3 text-sm font-medium transition-colors
-				{activeTab === tab.id
-						? 'text-primary border-blue-500'
-						: 'text-muted hover:text-secondary border-transparent'}"
-					aria-current={activeTab === tab.id ? 'page' : undefined}
-				>
-					<div class="flex items-center gap-2">
-						<span class="relative">
-							<tab.icon class="h-4 w-4" />
-							{#if notifications?.[tab.id]}
-								<span
-									class="absolute -right-1 -top-1 h-2 w-2 rounded-full"
-									style="background-color: {notifications[tab.id]}"
-								></span>
-							{/if}
-						</span>
-						{tab.label}
-					</div>
-				</button>
-			{/each}
-		</nav>
+	<!-- The tabs take the page title's row, so the toolbar lines up with a single page's. Hidden
+	     with one visible tab, so the group renders as a plain single-entity page. -->
+	{#if showsTabs}
+		<PageTitle
+			tabs={tabs.map((tab) => ({
+				id: tab.id,
+				label: tab.label,
+				notification: notifications?.[tab.id]
+			}))}
+			{activeTab}
+			subtitle={active?.subtitle ?? null}
+			onSelectTab={(id) => (activeTab = id)}
+		/>
 	{/if}
 
 	<!--

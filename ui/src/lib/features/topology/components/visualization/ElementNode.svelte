@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { type NodeProps, useInternalNode } from '@xyflow/svelte';
 	import NodeHandles from './NodeHandles.svelte';
-	import { concepts, entities, serviceDefinitions } from '$lib/shared/stores/metadata';
+	import { entities, serviceDefinitions } from '$lib/shared/stores/metadata';
 	import {
 		selectedEdge as globalSelectedEdge,
 		selectedNode as globalSelectedNode,
@@ -11,29 +10,39 @@
 	} from '../../queries';
 	import { useTopology, selectedTopologyId } from '../../context';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	import type { TopologyNode, ElementRenderData, RenderableTopology } from '../../types/base';
-	import { elementEntity, resolveElementNode } from '../../resolvers';
+	import { cardEntityForFilter, resolveElementNode } from '../../resolvers';
 	import { buildElementRender } from '../../element-render-data';
 	import { getTopologyIndex } from '../../entity-index';
 	import type { Writable } from 'svelte/store';
 	import { formatPort } from '$lib/shared/utils/formatting';
 	import {
 		matchesHoveredMetadata,
+		inlineHostsMatching,
 		expandedPortNodeIds,
 		toggleExpandedPorts,
 		UNTAGGED_SENTINEL
 	} from '../../interactions';
+	import { toggleInlineGroup } from '../../collapse';
 	import * as sharedStores from '../../reactive-stores.svelte';
 	import { createColorHelper } from '$lib/shared/utils/styling';
 	import { getContext } from 'svelte';
 	import type { Port } from '$lib/features/hosts/types/base';
 	import type { Node, Edge } from '@xyflow/svelte';
-	import { topology_hideOpenPorts, topology_openPortsSummary } from '$lib/paraglide/messages';
+	import {
+		common_collapse,
+		common_containers,
+		common_expand,
+		topology_hideOpenPorts,
+		topology_openPortsSummary
+	} from '$lib/paraglide/messages';
+	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import { ChevronDown, ChevronRight } from 'lucide-svelte';
 	import { ELEMENT_HANDLE_SIZE_PX } from '../../pipeline/build-flow-nodes';
-	import { ELEMENT_STATE_FILL, elementState, portStatusDotColor } from '../../element-state-color';
+	import { stateFill as markedStateFill, statusDot } from '../../element-marks';
 
 	let { id, data, width }: NodeProps = $props();
 
@@ -68,6 +77,7 @@
 	 */
 	let pinnedHeight = $derived(useInternalNode(id).current?.measured?.height);
 	let hiddenEntities = $derived(sharedStores.hiddenEntities.current);
+	let expandedInlineGroupKeys = $derived(sharedStores.expandedInlineGroupKeys.current);
 	let searchHiddenNodes = $derived(sharedStores.searchHiddenNodes.current);
 	let connectedNodes = $derived(sharedStores.connectedNodes.current);
 	let edgeHandles = $derived(sharedStores.edgeHandles.current);
@@ -97,10 +107,10 @@
 
 	let resolved = $derived(topology ? resolveElementNode(id, data as TopologyNode, topology) : null);
 
-	// Networks are still needed locally for the metadata-filter extractors below.
-	let networksData = $derived(networksQuery.data ?? []);
-	const networkFor = (entity: { network_id?: string } | undefined | null) =>
-		networksData.find((n) => n.id === entity?.network_id);
+	// Sites are still needed locally for the metadata-filter extractors below.
+	let sitesData = $derived(sitesQuery.data ?? []);
+	const siteFor = (entity: { site_id?: string } | undefined | null) =>
+		sitesData.find((n) => n.id === entity?.site_id);
 
 	let effectiveWidth = $derived(width ? width : 0);
 
@@ -120,7 +130,8 @@
 					activeView: $activeView,
 					options: $topologyOptions,
 					hiddenEntityIds: hiddenEntities,
-					networks: networksData
+					expandedInlineGroups: expandedInlineGroupKeys,
+					sites: sitesData
 				})
 			: null
 	);
@@ -139,13 +150,10 @@
 	 * An element is never `hidden` or `labelled` — it has no name worth showing at this size and it
 	 * is the graph's texture, so it always keeps its box. What varies is the colour.
 	 */
-	let stateFill = $derived(
-		ELEMENT_STATE_FILL[
-			elementState({
-				operStatus: nodeRenderData?.portStatus?.operStatus,
-				isStale: staleTag !== null
-			})
-		]
+	let marks = $derived(elementRender?.marks ?? {});
+	let stateFill = $derived(markedStateFill(marks));
+	let titleColorClass = $derived(
+		marks.Title ? createColorHelper(marks.Title).text : 'text-tertiary'
 	);
 
 	// Called once per service binding while rendering, so this must not scan
@@ -154,73 +162,6 @@
 	function getPortById(portId: string): Port | null {
 		return portsById?.get(portId) ?? null;
 	}
-
-	// Group services into bare vs containerized for dotted-border rendering.
-	// Uses inline_groups from the topology node (populated by element rules)
-	// instead of re-deriving from virtualization entity fields.
-	type ServiceList = ElementRenderData['services'];
-	type ServiceGroup = {
-		runtimeService: ServiceList[number] | null;
-		containers: ServiceList;
-		runtimeId: string;
-	};
-	let serviceGroups = $derived.by(
-		(): {
-			bare: ServiceList;
-			containerized: ServiceGroup[];
-		} => {
-			const services = nodeRenderData?.services ?? [];
-			if (nodeRenderData?.elementType !== 'Host' || services.length === 0) {
-				return { bare: services, containerized: [] };
-			}
-
-			// Read inline_groups from the topology node data.
-			// Each entry has entity_id (the service), group_id (shared by group members), and role.
-			const inlineGroups = ((data as Record<string, unknown>).inline_groups ?? []) as Array<{
-				entity_id: string;
-				group_id: string;
-				role: string;
-			}>;
-
-			if (inlineGroups.length === 0) {
-				return { bare: services, containerized: [] };
-			}
-
-			// Build groups from inline_groups — generic matching by entity_id, no domain logic
-			const groupMembers = new SvelteMap<string, ServiceList>();
-			const groupHeaders = new SvelteMap<string, ServiceList[number] | null>();
-			const memberServiceIds = new SvelteSet<string>();
-
-			for (const ig of inlineGroups) {
-				if (!groupMembers.has(ig.group_id)) {
-					groupMembers.set(ig.group_id, []);
-					groupHeaders.set(ig.group_id, null);
-				}
-				const svc = services.find((s) => s.id === ig.entity_id);
-				if (!svc) continue;
-				memberServiceIds.add(svc.id);
-				if (ig.role === 'Header') {
-					groupHeaders.set(ig.group_id, svc);
-				} else {
-					groupMembers.get(ig.group_id)!.push(svc);
-				}
-			}
-
-			const bareServices = services.filter((s) => !memberServiceIds.has(s.id));
-			const groups: ServiceGroup[] = [];
-			for (const [groupId, containers] of groupMembers) {
-				if (containers.length > 0 || groupHeaders.get(groupId)) {
-					groups.push({
-						runtimeService: groupHeaders.get(groupId) ?? null,
-						containers,
-						runtimeId: groupId
-					});
-				}
-			}
-
-			return { bare: bareServices, containerized: groups };
-		}
-	);
 
 	let isNewNode = $derived(nodeRenderData ? highlightedNewNodes.has(id) : false);
 
@@ -248,10 +189,9 @@
 
 	let nodeOpacity = $derived(shouldFadeOut ? 0.3 : 1);
 
-	// Only the handle styling used this, and `NodeHandles` renders the geometry statically now.
-	// const hostColorHelper = entities.getColorHelper('Host');
-	const virtualizationColorHelper = concepts.getColorHelper('Virtualization');
-	const containerizationColorHelper = concepts.getColorHelper('Containerization');
+	// Marks a host inlined in a manager's box (a network identity, a macvlan container).
+	const hostColorHelper = entities.getColorHelper('Host');
+	const HostIcon = entities.getIconComponent('Host');
 	const discoveryColorHelper = entities.getColorHelper('Discovery');
 
 	// How does the hovered entity type relate to this card?
@@ -291,6 +231,24 @@
 		return [];
 	}
 
+	// Member hosts in this card's manager boxes that carry the hovered Host filter value.
+	let matchingInlineHosts = $derived(
+		inlineHostsMatching(
+			nodeRenderData?.inlineGroups ?? [],
+			currentHoveredMetadata,
+			siteFor,
+			topology
+		)
+	);
+	// Pulse colour for a matching member host row.
+	let inlineHostPulseStyle = $derived.by(() => {
+		if (!currentHoveredMetadata) return '';
+		const ch = createColorHelper(
+			currentHoveredMetadata.color as Parameters<typeof createColorHelper>[0]
+		);
+		return `color: ${ch.rgb}; --text-pulse-color: ${ch.rgb};`;
+	});
+
 	// Metadata hover context — mirrors `hoveredRelationship` + tag ring/pulse
 	// but driven by `hoveredMetadata`. Element-mode when this card's own
 	// entity matches the extractor, inline-mode when an inline row matches.
@@ -303,29 +261,25 @@
 		} | null => {
 			if (!currentHoveredMetadata || !resolved) return null;
 			const hovered = currentHoveredMetadata;
-			const { entityType, color } = hovered;
+			const { color } = hovered;
 
-			// The card's own entity when the hovered filter is on its type — any element type,
-			// through the same `elementEntity` its stale pill reads.
-			const elType = nodeRenderData?.elementType;
-			let cardEntity: { network_id?: string } | undefined;
-			if (elType === entityType) {
-				cardEntity = elementEntity(resolved);
-			} else if (entityType === 'Host' && (elType === 'IPAddress' || elType === 'Interface')) {
-				cardEntity = resolved.host;
-			}
-			if (
-				cardEntity &&
-				matchesHoveredMetadata(cardEntity, hovered, networkFor(cardEntity), topology)
-			) {
-				return { mode: 'element', color };
-			}
-
-			if (entityType === 'Service' && nodeRenderData?.services?.length) {
-				for (const service of nodeRenderData.services) {
-					if (matchesHoveredMetadata(service, hovered, networkFor(service), topology))
-						return { mode: 'inline', color };
+			// The card's own entity for each entity the hovered filter covers — any element type,
+			// through the same `elementEntity` its stale pill reads, and the view's element marks.
+			for (const entityType of hovered.entityTypes) {
+				const cardEntity = cardEntityForFilter(resolved, entityType);
+				if (
+					cardEntity &&
+					matchesHoveredMetadata(cardEntity, entityType, hovered, siteFor(cardEntity), topology)
+				) {
+					return { mode: 'element', color };
 				}
+			}
+
+			if (matchingInlineHosts.size > 0) return { mode: 'inline', color };
+
+			for (const service of nodeRenderData?.services ?? []) {
+				if (matchesHoveredMetadata(service, 'Service', hovered, siteFor(service), topology))
+					return { mode: 'inline', color };
 			}
 			return null;
 		}
@@ -472,7 +426,7 @@
 			     them contributed one element per card and nothing else. -->
 				<div
 					data-entity-header
-					class={`relative flex-shrink-0 truncate px-2 pt-2 text-center text-xs font-medium leading-none ${nodeRenderData.isVirtualized ? virtualizationColorHelper.text : nodeRenderData.isContainerized ? containerizationColorHelper.text : 'text-tertiary'}`}
+					class={`relative flex-shrink-0 truncate px-2 pt-2 text-center text-xs font-medium leading-none ${titleColorClass}`}
 				>
 					{nodeRenderData.headerText}
 				</div>
@@ -508,13 +462,13 @@
 						{@const serviceTagHighlight = inlineRowPulse('Service', service.tags)}
 						{@const serviceMetadataHighlight = (() => {
 							if (metadataHoverContext?.mode !== 'inline') return '';
-							if (!currentHoveredMetadata || currentHoveredMetadata.entityType !== 'Service')
-								return '';
+							if (!currentHoveredMetadata) return '';
 							if (
 								!matchesHoveredMetadata(
 									service,
+									'Service',
 									currentHoveredMetadata,
-									networkFor(service),
+									siteFor(service),
 									topology
 								)
 							)
@@ -582,36 +536,86 @@
 					{/snippet}
 					<!-- Show services list -->
 					<div class="flex w-full flex-col items-center" style="min-width: 0; max-width: 100%;">
-						{#if serviceGroups.containerized.length > 0}
-							<!-- Grouped rendering: bare services + containerized groups with dotted border -->
-							{#each serviceGroups.bare as service (service.id)}
-								{@render serviceCard(service)}
-							{/each}
-							{#each serviceGroups.containerized as group (group.runtimeId)}
-								{@const RuntimeIcon = group.runtimeService
-									? serviceDefinitions.getIconComponent(group.runtimeService.service_definition)
-									: null}
-								<div
-									class="mb-1 mt-1 w-full rounded-md border border-dashed border-gray-300 px-1 py-0.5 dark:border-gray-600"
+						{#each nodeRenderData.services as service (service.id)}
+							{@render serviceCard(service)}
+						{/each}
+						<!-- Manager groups from inline_groups, each in a dashed box: a runtime with its
+						  containers, a guest's Network Identities with its identity hosts. -->
+						{#each nodeRenderData.inlineGroups as group (group.groupId)}
+							{@const HeaderIcon = group.header
+								? serviceDefinitions.getIconComponent(group.header.service_definition)
+								: null}
+							<div
+								class="mb-1 mt-1 w-full rounded-md border border-dashed border-gray-300 px-1 py-0.5 dark:border-gray-600"
+							>
+								<button
+									type="button"
+									class="nopan flex w-full cursor-pointer items-center gap-1 px-1 pt-1 {group.collapsed
+										? 'pb-1'
+										: 'pb-2'}"
+									aria-expanded={!group.collapsed}
+									aria-label={group.collapsed ? common_expand() : common_collapse()}
+									onclick={(e) => {
+										e.stopPropagation();
+										toggleInlineGroup(id, group.groupId);
+									}}
 								>
-									<div class="flex items-center gap-1 px-1 pb-2 pt-1">
-										{#if RuntimeIcon}
-											<RuntimeIcon class="h-5 w-5 flex-shrink-0" />
-										{/if}
-										<span class="text-secondary truncate text-xs font-medium">
-											{group.runtimeService?.name ?? 'Containers'}
-										</span>
+									{#if group.collapsed}
+										<ChevronRight class="text-tertiary h-3.5 w-3.5 flex-shrink-0" />
+									{:else}
+										<ChevronDown class="text-tertiary h-3.5 w-3.5 flex-shrink-0" />
+									{/if}
+									{#if HeaderIcon}
+										<HeaderIcon class="h-5 w-5 flex-shrink-0" />
+									{/if}
+									<span class="text-secondary truncate text-xs font-medium">
+										{group.header?.name ?? common_containers()}
+									</span>
+									<span class="text-tertiary ml-auto flex-shrink-0 text-xs tabular-nums">
+										{group.services.length + group.hosts.length}
+									</span>
+								</button>
+								{#if !group.collapsed}
+									<!-- One rule between children, so each container or identity reads as its
+								  own entry even when it carries no services. -->
+									<div class="w-full divide-y divide-dashed divide-gray-200 dark:divide-gray-700">
+										{#each group.services as service (service.id)}
+											<div class="w-full">
+												{@render serviceCard(service)}
+											</div>
+										{/each}
+										{#each group.hosts as member (member.host.id)}
+											{@const hostPulse = matchingInlineHosts.has(member.host.id)
+												? inlineHostPulseStyle
+												: ''}
+											<div
+												class="flex w-full flex-col items-center py-1"
+												style="min-width: 0; max-width: 100%;"
+											>
+												<div
+													class="flex w-full items-center justify-center gap-1 pt-1"
+													style="min-width: 0;"
+													title={hostDisplayName(member.host)}
+												>
+													<HostIcon class="h-4 w-4 flex-shrink-0 {hostColorHelper.icon}" />
+													<span
+														class="text-secondary truncate text-xs font-medium {hostPulse
+															? 'animate-text-pulse-highlight'
+															: ''}"
+														style="transition: color 0.15s; {hostPulse}"
+													>
+														{hostDisplayName(member.host)}
+													</span>
+												</div>
+												{#each member.services as service (service.id)}
+													{@render serviceCard(service)}
+												{/each}
+											</div>
+										{/each}
 									</div>
-									{#each group.containers as service (service.id)}
-										{@render serviceCard(service)}
-									{/each}
-								</div>
-							{/each}
-						{:else}
-							{#each nodeRenderData.services as service (service.id)}
-								{@render serviceCard(service)}
-							{/each}
-						{/if}
+								{/if}
+							</div>
+						{/each}
 						{#if nodeRenderData.hiddenOpenPorts.length > 0 && nodeRenderData.elementType !== 'Host'}
 							{#if expandedOpenPorts}
 								{#each nodeRenderData.hiddenOpenPorts as service (service.id)}
@@ -717,9 +721,8 @@
 					     `::before` on the speed text. Three elements per port card became one. -->
 						<span
 							class="status-line text-tertiary text-xs"
-							style="--status-dot-color: {portStatusDotColor(
-								nodeRenderData.portStatus?.operStatus
-							)}">{nodeRenderData.portStatus?.speed ?? ''}</span
+							style="--status-dot-color: {statusDot(marks)}"
+							>{nodeRenderData.portStatus?.speed ?? ''}</span
 						>
 					{/snippet}
 

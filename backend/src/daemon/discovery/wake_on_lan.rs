@@ -48,7 +48,7 @@ pub struct WakeTarget {
 }
 
 /// The addresses Wake-on-LAN credentials are assigned to. A WoL credential targets hosts only, so
-/// only overrides are read; a default (network-wide) WoL mapping would be a server bug.
+/// only overrides are read; a default (site-wide) WoL mapping would be a server bug.
 pub fn wake_targets(mappings: &[CredentialMapping<CredentialQueryPayload>]) -> Vec<WakeTarget> {
     let mut seen = HashSet::new();
     mappings

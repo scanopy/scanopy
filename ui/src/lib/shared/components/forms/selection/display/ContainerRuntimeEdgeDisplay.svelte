@@ -2,6 +2,8 @@
 	import { edgeTypes, serviceDefinitions } from '$lib/shared/stores/metadata';
 	import type { RenderableTopology, TopologyEdge } from '$lib/features/topology/types/base';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import { topology_containerCount } from '$lib/paraglide/messages';
+	import { containerHostsOfEdge } from '$lib/features/topology/resolvers';
 
 	export const ContainerRuntimeEdgeDisplay: EntityDisplayComponent<
 		TopologyEdge,
@@ -9,17 +11,20 @@
 	> = {
 		getId: (edge) => edge.id,
 		getLabel: (edge, context) => {
-			if (!context?.topology || !('service_id' in edge)) return 'Container Runtime';
-			// Find containerized services (services whose virtualization points to this containerizer)
-			const containerizingId = edge.service_id;
-			// Any container runtime, not just Docker — the runtime is whichever service this
-			// points at, so Podman containers are counted here too.
-			const containerized = context.topology.services.filter(
-				(s) => s.virtualization_service_id === containerizingId
-			);
-			if (containerized.length === 0) return 'Container Runtime';
-			if (containerized.length === 1) return containerized[0].name;
-			return `${containerized.length} containerized services`;
+			const fallback = edgeTypes.getName('ContainerRuntime');
+			if (!context?.topology || edge.edge_type !== 'ContainerRuntime') return fallback;
+			const topology = context.topology;
+			// The containers this edge stands for: the containerized services it names, or, on an
+			// edge to a container host (macvlan, ipvlan), which names none, those hosts.
+			const containerNames = [
+				...edge.containerized_service_ids.flatMap(
+					(id) => topology.services.find((s) => s.id === id)?.name ?? []
+				),
+				...containerHostsOfEdge(topology, edge).map(hostDisplayName)
+			];
+			if (containerNames.length === 0) return fallback;
+			if (containerNames.length === 1) return containerNames[0];
+			return topology_containerCount({ count: containerNames.length });
 		},
 		getDescription: (edge, context) => {
 			if (!context?.topology || !('service_id' in edge)) return '';

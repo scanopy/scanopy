@@ -36,6 +36,13 @@ impl Storable for Credential {
         "credentials"
     }
 
+    fn search_predicates() -> &'static [&'static str] {
+        &[
+            "credentials.name ILIKE {}",
+            "credentials.description ILIKE {}",
+        ]
+    }
+
     fn new(base: Self::BaseData) -> Self {
         let now = Utc::now();
         Self {
@@ -62,9 +69,9 @@ impl Storable for Credential {
                     description,
                     credential_type,
                     daemon_os,
-                    tags: _,                 // Stored in entity_tags junction table
-                    assigned_network_ids: _, // Stored in network_credentials junction table
-                    host_assignments: _,     // Stored in host_credentials junction table
+                    tags: _,              // Stored in entity_tags junction table
+                    assigned_site_ids: _, // Stored in site_credentials junction table
+                    host_assignments: _,  // Stored in host_credentials junction table
                 },
         } = self.clone();
 
@@ -111,8 +118,8 @@ impl Storable for Credential {
                 credential_type,
                 daemon_os,
                 tags: Vec::new(), // Hydrated from entity_tags junction table
-                assigned_network_ids: Vec::new(), // Hydrated from network_credentials junction table
-                host_assignments: Vec::new(),     // Hydrated from host_credentials junction table
+                assigned_site_ids: Vec::new(), // Hydrated from site_credentials junction table
+                host_assignments: Vec::new(), // Hydrated from host_credentials junction table
             },
         })
     }
@@ -157,10 +164,10 @@ impl Entity for Credential {
     const ENTITY_DESCRIPTION: &'static str = "Credentials for network device discovery and management. Supports SNMP, Docker proxy, and other credential types.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::DiscoveryAndDaemons
+        EntityCategory::Platform
     }
 
-    fn network_id(&self) -> Option<Uuid> {
+    fn site_id(&self) -> Option<Uuid> {
         None
     }
 

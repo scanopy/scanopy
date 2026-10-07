@@ -8,9 +8,13 @@
 		max
 	} from '$lib/shared/components/forms/validators';
 	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
+	import Tag from '$lib/shared/components/data/Tag.svelte';
+	import type { Site } from '$lib/features/sites/types';
+	import { getFreshnessTag } from '$lib/shared/utils/freshness';
 	import { entityRef } from '$lib/shared/components/data/types';
 	import type { Subnet } from '$lib/features/subnets/types/base';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
+	import ConfigHeader from '$lib/shared/components/forms/config/ConfigHeader.svelte';
 	import { entities } from '$lib/shared/stores/metadata';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import {
@@ -32,9 +36,25 @@
 		form: { Field: any };
 		onChange?: (iface: IPAddress) => void;
 		isEditing?: boolean;
+		/** The address's site, whose window judges its staleness. Without it, no Stale tag. */
+		site?: Site;
 	}
 
-	let { iface, subnet, index, form, onChange = () => {}, isEditing = false }: Props = $props();
+	let {
+		iface,
+		subnet,
+		index,
+		form,
+		onChange = () => {},
+		isEditing = false,
+		site = undefined
+	}: Props = $props();
+
+	let staleTag = $derived(
+		getFreshnessTag(iface, site, {
+			entityTypeLabel: entities.getName('IPAddress') || undefined
+		})
+	);
 
 	// Field names for this interface in the form array
 	let ipFieldName = $derived(`ip_addresses[${index}].ip_address`);
@@ -59,8 +79,8 @@
 
 {#if subnet}
 	<div class="space-y-6">
-		<div class="border-b border-gray-600 pb-4">
-			<h3 class="text-primary flex items-center gap-1.5 text-sm font-medium">
+		<ConfigHeader subtitle={subnet?.description || null}>
+			{#snippet heading()}
 				{common_ipAddress()} on
 				<EntityTag
 					entityRef={entityRef('Subnet', subnet.id, subnet)}
@@ -70,11 +90,11 @@
 					icon={entities.getIconComponent('Subnet')}
 					color={entities.getColorHelper('Subnet').color}
 				/>
-			</h3>
-			{#if subnet?.description}
-				<p class="text-secondary mt-1 text-sm">{subnet.description}</p>
-			{/if}
-		</div>
+				{#if staleTag}
+					<Tag {...staleTag} />
+				{/if}
+			{/snippet}
+		</ConfigHeader>
 
 		<div class="space-y-4">
 			<form.Field
@@ -96,50 +116,56 @@
 				{/snippet}
 			</form.Field>
 
-			<form.Field
-				name={ipFieldName}
-				validators={{
-					onBlur: ({ value }: { value: string }) =>
-						required(value) || ipAddressFormat(value) || ipAddressInCidrFormat(subnet.cidr)(value),
-					onChange: ({ value }: { value: string }) =>
-						required(value) || ipAddressFormat(value) || ipAddressInCidrFormat(subnet.cidr)(value)
-				}}
-				listeners={{
-					onChange: ({ value }: { value: string }) => handleIpChange(value)
-				}}
-			>
-				{#snippet children(field: AnyFieldApi)}
-					<TextInput
-						label={common_ipAddress()}
-						id="interface_ip_{iface.id}"
-						placeholder={subnet.cidr.includes(':') ? '2001:db8::1' : common_placeholderIpAddress()}
-						required={true}
-						helpText={hosts_ipAddresses_ipMustBeWithin({ cidr: subnet.cidr })}
-						{field}
-					/>
-				{/snippet}
-			</form.Field>
+			<div class="grid grid-cols-2 items-start gap-4">
+				<form.Field
+					name={ipFieldName}
+					validators={{
+						onBlur: ({ value }: { value: string }) =>
+							required(value) ||
+							ipAddressFormat(value) ||
+							ipAddressInCidrFormat(subnet.cidr)(value),
+						onChange: ({ value }: { value: string }) =>
+							required(value) || ipAddressFormat(value) || ipAddressInCidrFormat(subnet.cidr)(value)
+					}}
+					listeners={{
+						onChange: ({ value }: { value: string }) => handleIpChange(value)
+					}}
+				>
+					{#snippet children(field: AnyFieldApi)}
+						<TextInput
+							label={common_ipAddress()}
+							id="interface_ip_{iface.id}"
+							placeholder={subnet.cidr.includes(':')
+								? '2001:db8::1'
+								: common_placeholderIpAddress()}
+							required={true}
+							helpText={hosts_ipAddresses_ipMustBeWithin({ cidr: subnet.cidr })}
+							{field}
+						/>
+					{/snippet}
+				</form.Field>
 
-			<form.Field
-				name={macFieldName}
-				validators={{
-					onBlur: ({ value }: { value: string }) => macFormat(value)
-				}}
-				listeners={{
-					onChange: ({ value }: { value: string }) => handleMacChange(value)
-				}}
-			>
-				{#snippet children(field: AnyFieldApi)}
-					<TextInput
-						label={common_macAddress()}
-						id="interface_mac_{iface.id}"
-						placeholder="00:1B:44:11:3A:B7"
-						helpText={isEditing ? hosts_ipAddresses_macReadOnly() : hosts_ipAddresses_macFormat()}
-						disabled={isEditing}
-						{field}
-					/>
-				{/snippet}
-			</form.Field>
+				<form.Field
+					name={macFieldName}
+					validators={{
+						onBlur: ({ value }: { value: string }) => macFormat(value)
+					}}
+					listeners={{
+						onChange: ({ value }: { value: string }) => handleMacChange(value)
+					}}
+				>
+					{#snippet children(field: AnyFieldApi)}
+						<TextInput
+							label={common_macAddress()}
+							id="interface_mac_{iface.id}"
+							placeholder="00:1B:44:11:3A:B7"
+							helpText={isEditing ? hosts_ipAddresses_macReadOnly() : hosts_ipAddresses_macFormat()}
+							disabled={isEditing}
+							{field}
+						/>
+					{/snippet}
+				</form.Field>
+			</div>
 		</div>
 	</div>
 {/if}

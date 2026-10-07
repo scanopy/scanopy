@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { entities, billingPlans, discoveryTypes } from '$lib/shared/stores/metadata';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
+	import { billingPlans, discoveryTypes } from '$lib/shared/stores/metadata';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import type { Discovery } from '../../types/base';
 	import {
 		discoveryFields,
@@ -34,7 +34,7 @@
 	import { SvelteMap } from 'svelte/reactivity';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import { isPreUnifiedDaemon } from '$lib/features/daemons/utils';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { isPlanLapsed } from '$lib/features/organizations/types';
@@ -76,6 +76,7 @@
 		discovery_completedScans,
 		discovery_forceFullScan,
 		discovery_legacyDaemonsWarning,
+		discovery_legacyTagTitle,
 		discovery_noScheduledSessions,
 		discovery_runType
 	} from '$lib/paraglide/messages';
@@ -94,7 +95,7 @@
 	// subscribers must be gated for the query to actually go inactive.
 	const discoveriesQuery = useDiscoveriesQuery(() => isActive);
 	const daemonsQuery = useDaemonsQuery();
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 
 	// Active sessions
 	const sessionsQuery = useActiveSessionsQuery();
@@ -111,7 +112,7 @@
 	let tagsData = $derived(tagsQuery.data ?? []);
 	let discoveriesData = $derived(discoveriesQuery.data ?? []);
 	let daemonsData = $derived(daemonsQuery.data ?? []);
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
 	let sessionsList = $derived(sessionsQuery.data ?? []);
 
 	// Only the hosts the daemons run on. This was an unpaginated org-wide hosts
@@ -230,10 +231,10 @@
 	}
 
 	/**
-	 * Row actions for table mode, matching what the card offers.
+	 * Row actions.
 	 *
 	 * A run in flight blocks the destructive and scheduling actions, and the
-	 * tooltip carries the reason — same gating the card applies.
+	 * tooltip carries the reason.
 	 */
 	function discoveryActions(discovery: Discovery): CardAction[] {
 		if (isReadOnly) return [];
@@ -319,7 +320,7 @@
 	const SHARED_FIELD_DISPLAY: Partial<Record<DiscoveryConfigOrderField, DisplayConfig<Discovery>>> =
 		{
 			name: { order: 0 },
-			network_id: { order: 2 },
+			site_id: { order: 2 },
 			daemon_id: { order: 3 },
 			discovery_type: { hiddenByDefault: true },
 			created_at: { hiddenByDefault: true },
@@ -340,9 +341,13 @@
 		return fields;
 	}
 
+	const tableDefaults: TableDefaults<DiscoveryConfigOrderField> = {
+		sort: { field: 'name', direction: 'asc' }
+	};
+
 	let fields = $derived(
 		defineFields<Discovery, DiscoveryConfigOrderField>(
-			withSharedDisplay(discoveryFields(daemonsData, networksData)),
+			withSharedDisplay(discoveryFields(daemonsData, sitesData)),
 			[
 				{
 					key: 'scan_count',
@@ -374,10 +379,16 @@
 					getValue: (item) =>
 						discoveryTypes.getMetadata(item.discovery_type.type).is_legacy ? common_legacy() : '',
 					display: {
-						statusTag: true,
 						getItems: (item) =>
 							discoveryTypes.getMetadata(item.discovery_type.type).is_legacy
-								? [{ id: 'legacy', label: common_legacy(), color: 'Yellow' }]
+								? [
+										{
+											id: 'legacy',
+											label: common_legacy(),
+											color: 'Yellow',
+											title: discovery_legacyTagTitle()
+										}
+									]
 								: []
 					}
 				},
@@ -418,14 +429,14 @@
 						item.run_type.type !== 'Historical' && item.run_type.last_run
 							? item.run_type.last_run
 							: null,
-					display: { hiddenByDefault: true, recency: true }
+					display: { recency: true }
 				},
 				{
 					key: 'progress',
 					label: common_progress(),
 					// Progress belongs to the run, not the record, so there is nothing to
 					// sort, filter or group by — but it is still a field, so a running scan
-					// shows its tracker in the table as well as on the card.
+					// shows its tracker in the table.
 					type: 'string',
 					getValue: (item) => getActiveSession(item)?.phase ?? '',
 					// After the tags column, immediately before the row actions: it is the
@@ -480,18 +491,16 @@
 	{/if}
 {/snippet}
 
-<div class="space-y-6">
-	<!-- Header -->
-	<TabHeader title={common_scans()}>
-		<svelte:fragment slot="actions">
-			{#if hasDaemon(onboarding) && !isReadOnly}
-				<button class="btn-primary flex items-center" onclick={handleCreateDiscovery}
-					><Plus class="h-5 w-5" />{common_create()}</button
-				>
-			{/if}
-		</svelte:fragment>
-	</TabHeader>
+<!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
+{#snippet toolbarActions()}
+	{#if hasDaemon(onboarding) && !isReadOnly}
+		<button class="btn-primary toolbar-control flex items-center" onclick={handleCreateDiscovery}
+			><Plus class="h-5 w-5" />{common_create()}</button
+		>
+	{/if}
+{/snippet}
 
+<div class="space-y-6">
 	{#if hasLegacyDaemons}
 		<InlineWarning
 			title=""
@@ -514,17 +523,16 @@
 		/>
 	{:else}
 		<DataControls
+			title={common_scans()}
+			{toolbarActions}
 			items={discoveriesData.filter(
 				(d) => d.run_type.type == 'AdHoc' || d.run_type.type == 'Scheduled'
 			)}
 			{fields}
 			onBulkDelete={isReadOnly ? undefined : handleBulkDelete}
 			storageKey="scanopy-discovery-scans-table-state"
+			defaults={tableDefaults}
 			getItemId={(item) => item.id}
-			getIcon={() => ({
-				icon: entities.getIconComponent('Discovery'),
-				color: entities.getColorHelper('Discovery').icon
-			})}
 			entityType={isReadOnly ? undefined : 'Discovery'}
 			getItemTags={(item) => item.tags}
 			onCsvExport={handleCsvExport}

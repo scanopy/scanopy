@@ -6,7 +6,6 @@ use crate::server::{
     },
     billing::types::base::{BillingPlan, LimitSource, LimitType},
     config::AppState,
-    networks::r#impl::Network,
     organizations::r#impl::base::Organization,
     shared::{
         events::{
@@ -17,6 +16,7 @@ use crate::server::{
         storage::filter::StorableFilter,
         types::api::ApiError,
     },
+    sites::r#impl::Site,
     users::r#impl::permissions::UserOrgPermissions,
 };
 use async_trait::async_trait;
@@ -246,27 +246,27 @@ impl FeatureCheck for TakeSnapshotFeature {
 }
 
 #[derive(Default)]
-pub struct CreateNetworkFeature;
+pub struct CreateSiteFeature;
 
 #[async_trait]
-impl FeatureCheck for CreateNetworkFeature {
+impl FeatureCheck for CreateSiteFeature {
     async fn check(&self, ctx: &FeatureCheckContext<'_>) -> FeatureCheckResult {
-        // Check networks quota if there's a limit and user doesn't have a plan that lets them buy more networks
-        if let Some(max_networks) = ctx.plan.config().included_networks
-            && ctx.plan.config().network_cents.is_none()
+        // Check sites quota if there's a limit and user doesn't have a plan that lets them buy more sites
+        if let Some(max_sites) = ctx.plan.config().included_sites
+            && ctx.plan.config().site_cents.is_none()
         {
-            let org_filter = StorableFilter::<Network>::new_from_org_id(&ctx.organization.id);
+            let org_filter = StorableFilter::<Site>::new_from_org_id(&ctx.organization.id);
 
-            let current_networks = ctx
+            let current_sites = ctx
                 .app_state
                 .services
-                .network_service
+                .site_service
                 .get_all(org_filter)
                 .await
                 .map(|o| o.len())
                 .unwrap_or(0);
 
-            if current_networks >= max_networks as usize {
+            if current_sites >= max_sites as usize {
                 let _ = ctx
                     .app_state
                     .services
@@ -276,9 +276,9 @@ impl FeatureCheck for CreateNetworkFeature {
                             organization_id: ctx.organization.id,
                         },
                         BillingOperation::FeatureLimitHit {
-                            limit_type: LimitType::Networks,
-                            current_count: current_networks as u64,
-                            limit: max_networks,
+                            limit_type: LimitType::Sites,
+                            current_count: current_sites as u64,
+                            limit: max_sites,
                             plan: ctx.plan,
                             source: LimitSource::Api,
                         },
@@ -287,8 +287,8 @@ impl FeatureCheck for CreateNetworkFeature {
                     .await;
 
                 return FeatureCheckResult::denied(format!(
-                    "Network limit reached ({}/{}). Upgrade your plan for more networks.",
-                    current_networks, max_networks
+                    "Site limit reached ({}/{}). Upgrade your plan for more sites.",
+                    current_sites, max_sites
                 ));
             }
         }

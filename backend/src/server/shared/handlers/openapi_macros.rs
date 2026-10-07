@@ -14,7 +14,7 @@
 //! // In a module block inside handlers.rs:
 //! mod generated {
 //!     use super::*;
-//!     // For entities with network filtering:
+//!     // For entities with site filtering:
 //!     crate::crud_get_all_handler!(Daemon);
 //!     // Other CRUD operations:
 //!     crate::crud_get_by_id_handler!(Port);
@@ -273,7 +273,7 @@ macro_rules! crud_export_csv_handler {
 ///
 /// # Example
 /// ```ignore
-/// // For entities with network filtering:
+/// // For entities with site filtering:
 /// crud_get_all_handler!(Daemon);
 /// // With custom response type:
 /// crud_get_all_handler!(Group, GroupResponse);

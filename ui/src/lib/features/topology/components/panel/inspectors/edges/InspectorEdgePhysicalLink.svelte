@@ -6,7 +6,10 @@
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import type { RenderableTopology } from '$lib/features/topology/types/base';
 	import { common_source, common_target, topology_neighborEvidence } from '$lib/paraglide/messages';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { discoveryProtocols, entities } from '$lib/shared/stores/metadata';
+	import type { components } from '$lib/api/schema';
+	import InspectorSection from '../shared/InspectorSection.svelte';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { neighborEvidenceTag } from '$lib/shared/utils/freshness';
 	import { formatRelativeTime } from '$lib/shared/utils/formatting';
 
@@ -17,7 +20,7 @@
 	}: {
 		sourceEntityId?: string;
 		targetEntityId?: string;
-		protocol?: 'LLDP' | 'CDP';
+		protocol?: components['schemas']['DiscoveryProtocol'];
 	} = $props();
 
 	const topo = useTopology();
@@ -50,7 +53,7 @@
 	// — a port can resolve to several neighbours now, so "the row for this edge" is the one naming
 	// the *other* endpoint specifically, not a generic per-interface value. Checked from both
 	// directions since a link is recorded on one side and either endpoint's row could be it.
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	let evidenceRow = $derived(
 		(topology?.neighbours ?? [])
 			.filter(
@@ -65,18 +68,16 @@
 	let evidenceInterface = $derived(
 		evidenceRow ? topology?.interfaces.find((i) => i.id === evidenceRow!.interface_id) : undefined
 	);
-	let evidenceNetwork = $derived(
-		(networksQuery.data ?? []).find((n) => n.id === evidenceInterface?.network_id)
+	let evidenceSite = $derived(
+		(sitesQuery.data ?? []).find((n) => n.id === evidenceInterface?.site_id)
 	);
-	let evidenceTag = $derived(
-		evidenceRow ? neighborEvidenceTag(evidenceRow, evidenceNetwork) : null
-	);
+	let evidenceTag = $derived(evidenceRow ? neighborEvidenceTag(evidenceRow, evidenceSite) : null);
 </script>
 
-<div class="space-y-3">
+<div class="space-y-4">
 	{#if protocol}
 		<div class="flex items-center gap-2">
-			<Tag label={protocol} color={protocol == 'CDP' ? 'Blue' : 'Green'} />
+			<Tag {...discoveryProtocols.getTag(protocol)} />
 		</div>
 	{/if}
 
@@ -91,52 +92,74 @@
 	{/if}
 
 	{#if sourceHost || sourceInterface}
-		<span class="text-secondary mb-2 block text-sm font-medium">{common_source()}</span>
-		{#if sourceHost}
-			<div class="card card-static">
-				<EntityDisplayWrapper
-					context={{
-						services: topology?.services.filter((s) => s.host_id === sourceHost.id) ?? [],
-						compact: true
-					}}
-					item={sourceHost}
-					displayComponent={HostDisplay}
-				/>
+		<InspectorSection
+			id="edge:PhysicalLink:source"
+			title={common_source()}
+			icon={entities.getIconComponent('Interface')}
+			iconClass={entities.getColorHelper('Interface').icon}
+			description={null}
+		>
+			<div class="space-y-1">
+				{#if sourceHost}
+					<div class="card card-static">
+						<EntityDisplayWrapper
+							context={{
+								services: topology?.services.filter((s) => s.host_id === sourceHost.id) ?? [],
+								compact: true,
+								// The link is about which port meets which; the guest type is noise.
+								hideTags: ['guest']
+							}}
+							item={sourceHost}
+							displayComponent={HostDisplay}
+						/>
+					</div>
+				{/if}
+				{#if sourceInterface}
+					<div class="card card-static">
+						<EntityDisplayWrapper
+							context={{ compact: true }}
+							item={sourceInterface}
+							displayComponent={InterfaceDisplay}
+						/>
+					</div>
+				{/if}
 			</div>
-		{/if}
-		{#if sourceInterface}
-			<div class="card card-static">
-				<EntityDisplayWrapper
-					context={undefined}
-					item={sourceInterface}
-					displayComponent={InterfaceDisplay}
-				/>
-			</div>
-		{/if}
+		</InspectorSection>
 	{/if}
 
 	{#if targetHost || targetInterface}
-		<span class="text-secondary mb-2 block text-sm font-medium">{common_target()}</span>
-		{#if targetHost}
-			<div class="card card-static">
-				<EntityDisplayWrapper
-					context={{
-						services: topology?.services.filter((s) => s.host_id === targetHost.id) ?? [],
-						compact: true
-					}}
-					item={targetHost}
-					displayComponent={HostDisplay}
-				/>
+		<InspectorSection
+			id="edge:PhysicalLink:target"
+			title={common_target()}
+			icon={entities.getIconComponent('Interface')}
+			iconClass={entities.getColorHelper('Interface').icon}
+			description={null}
+		>
+			<div class="space-y-1">
+				{#if targetHost}
+					<div class="card card-static">
+						<EntityDisplayWrapper
+							context={{
+								services: topology?.services.filter((s) => s.host_id === targetHost.id) ?? [],
+								compact: true,
+								// The link is about which port meets which; the guest type is noise.
+								hideTags: ['guest']
+							}}
+							item={targetHost}
+							displayComponent={HostDisplay}
+						/>
+					</div>
+				{/if}
+				{#if targetInterface}
+					<div class="card card-static">
+						<EntityDisplayWrapper
+							context={{ compact: true }}
+							item={targetInterface}
+							displayComponent={InterfaceDisplay}
+						/>
+					</div>
+				{/if}
 			</div>
-		{/if}
-		{#if targetInterface}
-			<div class="card card-static">
-				<EntityDisplayWrapper
-					context={undefined}
-					item={targetInterface}
-					displayComponent={InterfaceDisplay}
-				/>
-			</div>
-		{/if}
+		</InspectorSection>
 	{/if}
 </div>

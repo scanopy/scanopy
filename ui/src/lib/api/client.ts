@@ -86,7 +86,7 @@ const TIMEOUT_OVERRIDES: {
 	path: keyof paths;
 	timeoutMs: number | null;
 }[] = [
-	// The whole network's entities are copied in one transaction inside the request.
+	// The whole site's entities are copied in one transaction inside the request.
 	{ method: 'POST', path: '/api/v1/snapshots', timeoutMs: null },
 	{ method: 'POST', path: '/api/v1/organizations/{id}/reset', timeoutMs: null },
 	{ method: 'POST', path: '/api/v1/organizations/{id}/populate-demo', timeoutMs: null },
@@ -104,7 +104,7 @@ const TIMEOUT_OVERRIDES: {
 	// Sends an email over the organisation's mail server.
 	{ method: 'POST', path: '/api/v1/daemons/email-install-command', timeoutMs: 120_000 },
 	{ method: 'POST', path: '/api/v1/subnets/{id}/merge', timeoutMs: 120_000 },
-	// Graph builds over the whole network.
+	// Graph builds over the whole site.
 	{ method: 'GET', path: '/api/v1/topology', timeoutMs: 120_000 },
 	{ method: 'GET', path: '/api/v1/topology/data', timeoutMs: 120_000 },
 	{ method: 'GET', path: '/api/v1/topology/{id}', timeoutMs: 120_000 }
@@ -465,7 +465,7 @@ const errorMiddleware: Middleware = {
  * Create the typed API client
  *
  * Note: baseUrl does NOT include '/api' because the OpenAPI schema paths
- * already include the '/api' prefix (e.g., '/api/hosts', '/api/networks').
+ * already include the '/api' prefix (e.g., '/api/hosts', '/api/sites').
  */
 export const apiClient = createClient<paths>({
 	baseUrl: getServerUrl(),

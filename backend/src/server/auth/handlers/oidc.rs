@@ -480,10 +480,8 @@ async fn handle_register_flow(
     } = params;
 
     // Process pending invite if present
-    let (org_id, permissions, network_ids) = match process_pending_invite(&state, &session).await {
-        Ok(Some((org_id, permissions, network_ids))) => {
-            (Some(org_id), Some(permissions), network_ids)
-        }
+    let (org_id, permissions, site_ids) = match process_pending_invite(&state, &session).await {
+        Ok(Some((org_id, permissions, site_ids))) => (Some(org_id), Some(permissions), site_ids),
         Ok(_) => (None, None, vec![]),
         Err(e) => {
             return Err(Redirect::to(&format!(
@@ -527,7 +525,7 @@ async fn handle_register_flow(
                 permissions,
                 ip,
                 user_agent,
-                network_ids,
+                site_ids,
             },
             OidcRegisterParams {
                 terms_accepted_at,
@@ -579,7 +577,7 @@ async fn handle_register_flow(
                 )));
             }
 
-            // If this is a new org, create network/topology
+            // If this is a new org, create site/topology
             if let ProvisionOrg::New(setup) = provision_org
                 && let Err(e) = apply_pending_setup(&state, &user, setup).await
             {

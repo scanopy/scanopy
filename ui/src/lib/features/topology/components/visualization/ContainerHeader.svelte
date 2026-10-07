@@ -3,6 +3,8 @@
 	import { Search } from 'lucide-svelte';
 	// ChevronDown / ChevronRight replaced by the CSS `.caret` below — see the note on that rule.
 	import Tag from '$lib/shared/components/data/Tag.svelte';
+	import HiddenTagsChip from '$lib/shared/components/forms/selection/HiddenTagsChip.svelte';
+	import { HIDDEN_TAGS_CHIP_WIDTH } from '$lib/shared/components/forms/selection/display-tags';
 	import type { ColorStyle, Color } from '$lib/shared/utils/styling';
 	import type { IconComponent } from '$lib/shared/utils/types';
 	import type { TagProps } from '$lib/shared/components/data/types';
@@ -12,10 +14,13 @@
 		topology_searchContainerMatches
 	} from '$lib/paraglide/messages';
 
+	/** A group container's pill: a category or tag the group collects, with its tooltip. */
+	export type GroupPill = { label: string; color: Color; title?: string };
+
 	export type SubgroupRow = {
 		logoComponent: IconComponent | null;
 		headerText: string;
-		labels: Array<{ label: string; color: Color }>;
+		labels: GroupPill[];
 		childCount: number;
 		/** Pre-formatted entity-count summary, e.g. "5 services" or "3 services, 2 hosts". */
 		childSummary: string;
@@ -52,7 +57,7 @@
 		logoComponent: IconComponent | null;
 		fillIcon: boolean;
 		colorHelper: ColorStyle;
-		groupLabels: Array<{ label: string; color: Color }>;
+		groupLabels: GroupPill[];
 		childCount: number;
 		/** Pre-formatted entity-count summary for the container's children, e.g. "5 services, 2 hosts". */
 		childSummary: string;
@@ -73,9 +78,9 @@
 	let subgroupTotal = $derived(subgroupSummaries.reduce((sum, s) => sum + s.childCount, 0));
 	let ungroupedCount = $derived(childCount - subgroupTotal);
 
-	// Tag truncation for inline variant: measure available space, show "+X more" for overflow
+	// Tag truncation for inline variant: measure available space, show the (i) icon for overflow
 	const TAG_GAP = 4;
-	const MORE_WIDTH = 50;
+	const MORE_WIDTH = HIDDEN_TAGS_CHIP_WIDTH;
 	let inlineContainerEl: HTMLDivElement | undefined = $state(undefined);
 	let inlineMeasureEl: HTMLDivElement | undefined = $state(undefined);
 	// Derived from the label count by default; `calculateVisibleLabels`
@@ -161,7 +166,7 @@
 		aria-hidden="true"
 	>
 		{#each groupLabels as pill (pill.label)}
-			<span data-tag><Tag label={pill.label} color={pill.color} /></span>
+			<span data-tag><Tag label={pill.label} color={pill.color} title={pill.title ?? ''} /></span>
 		{/each}
 	</div>
 {/if}
@@ -205,7 +210,7 @@
 		class="nopan nodrag text-secondary absolute left-2 right-2 top-2 flex items-center gap-1 overflow-hidden rounded-t px-2 py-0.5"
 	>
 		{#if isCollapsible}
-			<span data-fixed><span class="caret text-secondary"></span></span>
+			<span data-fixed class="flex items-center"><span class="caret text-secondary"></span></span>
 		{/if}
 		{#if logoComponent}
 			{@const LogoComp = logoComponent}
@@ -224,10 +229,10 @@
 			<span data-fixed class="flex-shrink-0"><Tag {...staleTag} pill /></span>
 		{/if}
 		{#each visibleLabels as pill (pill.label)}
-			<Tag label={pill.label} color={pill.color} />
+			<Tag label={pill.label} color={pill.color} title={pill.title ?? ''} />
 		{/each}
 		{#if hiddenLabelCount > 0}
-			<Tag label="+{hiddenLabelCount} tags" color="Gray" />
+			<HiddenTagsChip tags={groupLabels.slice(visibleLabelCount)} interactive />
 		{/if}
 	</div>
 {:else if variant === 'collapsed-sub'}
@@ -244,7 +249,9 @@
 		}}
 	>
 		{#if isCollapsible}
-			<span data-fixed><span class="caret caret-collapsed text-secondary"></span></span>
+			<span data-fixed class="flex items-center"
+				><span class="caret caret-collapsed text-secondary"></span></span
+			>
 		{/if}
 		{#if iconComponent}
 			{@const IconComp = iconComponent}
@@ -269,12 +276,12 @@
 			</span>
 		{/if}
 		{#each visibleLabels.slice(0, 2) as pill (pill.label)}
-			<Tag label={pill.label} color={pill.color} />
+			<Tag label={pill.label} color={pill.color} title={pill.title ?? ''} />
 		{/each}
 		{#if visibleLabels.length > 2}
-			<Tag label="+{visibleLabels.length - 2} tags" color="Gray" />
+			<HiddenTagsChip tags={groupLabels.slice(2)} interactive />
 		{:else if hiddenLabelCount > 0}
-			<Tag label="+{hiddenLabelCount} tags" color="Gray" />
+			<HiddenTagsChip tags={groupLabels.slice(visibleLabelCount)} interactive />
 		{/if}
 		{#if searchMatchCount > 0}
 			<span
@@ -339,10 +346,10 @@
 						>
 					{/if}
 					{#each summary.labels.slice(0, 2) as pill, j (j)}
-						<Tag label={pill.label} color={pill.color} />
+						<Tag label={pill.label} color={pill.color} title={pill.title ?? ''} />
 					{/each}
 					{#if summary.labels.length > 2}
-						<Tag label="+{summary.labels.length - 2} tags" color="Gray" />
+						<HiddenTagsChip tags={summary.labels.slice(2)} interactive />
 					{/if}
 					{#if !summary.hideCount}
 						<span class="text-tertiary text-xs">
@@ -375,10 +382,16 @@
 		height: 0.35rem;
 		border-right: 1.5px solid currentColor;
 		border-bottom: 1.5px solid currentColor;
-		transform: rotate(45deg);
+		/*
+		 * Rotated +45° the two borders draw a "v" that fills only the lower half of the box
+		 * (its point sits ~0.35 of the box's height below centre), so it is lifted by that much
+		 * to sit on the text's centre line. Rotated -45° the ">" spans the full height and is
+		 * already centred.
+		 */
+		transform: translateY(-35%) rotate(45deg);
 		transition: transform 150ms ease-in-out;
 	}
 	.caret-collapsed {
-		transform: rotate(-45deg);
+		transform: translateY(0) rotate(-45deg);
 	}
 </style>

@@ -57,7 +57,7 @@ impl BillingService {
             webhook_secret,
             organization_service,
             user_service,
-            network_service,
+            site_service,
             host_service,
             event_bus,
         } = params;
@@ -68,10 +68,11 @@ impl BillingService {
             files_http: reqwest::Client::new(),
             webhook_secret,
             organization_service,
-            network_service,
+            site_service,
             host_service,
             user_service,
             plans: OnceLock::new(),
+            payment_method_configuration: OnceLock::new(),
             event_bus,
         }
     }
@@ -103,6 +104,8 @@ impl BillingService {
     }
 
     pub async fn initialize_products(&self, plans: Vec<BillingPlan>) -> Result<(), Error> {
+        self.initialize_payment_method_configuration().await?;
+
         let mut created_plans = Vec::new();
 
         tracing::info!(
@@ -110,7 +113,7 @@ impl BillingService {
             "Initializing Stripe products and prices"
         );
 
-        // Create seat and network products
+        // Create seat and site products
         let seat_product = self
             .get_or_create_product(
                 SEAT_PRODUCT_ID,
@@ -120,12 +123,12 @@ impl BillingService {
             )
             .await?;
 
-        let network_product = self
+        let site_product = self
             .get_or_create_product(
-                NETWORK_PRODUCT_ID,
-                CreateProduct::new(NETWORK_PRODUCT_NAME)
-                    .id(NETWORK_PRODUCT_ID)
-                    .description("Additional networks over what's included in the base plan"),
+                SITE_PRODUCT_ID,
+                CreateProduct::new(SITE_PRODUCT_NAME)
+                    .id(SITE_PRODUCT_ID)
+                    .description("Additional sites over what's included in the base plan"),
             )
             .await?;
 
@@ -227,14 +230,14 @@ impl BillingService {
                 };
             }
 
-            // Create network prices
-            if let (Some(network_lookup_key), Some(network_cents)) = (
-                plan.stripe_network_addon_price_lookup_key(),
-                plan.config().network_cents,
+            // Create site prices
+            if let (Some(site_lookup_key), Some(site_cents)) = (
+                plan.stripe_site_addon_price_lookup_key(),
+                plan.config().site_cents,
             ) {
-                // Create network addon price
+                // Create site addon price
                 match self
-                    .get_price_from_lookup_key(network_lookup_key.clone())
+                    .get_price_from_lookup_key(site_lookup_key.clone())
                     .await?
                 {
                     Some(p) => {
@@ -242,10 +245,10 @@ impl BillingService {
                     }
                     None => {
                         // Create price
-                        let create_network_price = CreatePrice::new(stripe_types::Currency::USD)
-                            .lookup_key(network_lookup_key)
-                            .product(network_product.id.clone())
-                            .unit_amount(network_cents)
+                        let create_site_price = CreatePrice::new(stripe_types::Currency::USD)
+                            .lookup_key(site_lookup_key)
+                            .product(site_product.id.clone())
+                            .unit_amount(site_cents)
                             .recurring(CreatePriceRecurring {
                                 interval: plan.config().rate.stripe_recurring_interval(),
                                 interval_count: Some(1),
@@ -254,7 +257,7 @@ impl BillingService {
                                 usage_type: Some(CreatePriceRecurringUsageType::Licensed),
                             });
 
-                        let price = create_network_price.send(&self.stripe).await?;
+                        let price = create_site_price.send(&self.stripe).await?;
 
                         tracing::debug!("Created price: {}", price.id);
                     }

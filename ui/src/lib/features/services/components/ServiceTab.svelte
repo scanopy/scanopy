@@ -1,9 +1,9 @@
 <script lang="ts">
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import {
 		defineFields,
 		entityRef,
@@ -13,12 +13,12 @@
 	import { usePortsQuery } from '$lib/features/ports/queries';
 	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
 	import { useSubnetsQuery, isContainerSubnet } from '$lib/features/subnets/queries';
-	import { formatIPAddress } from '$lib/features/hosts/queries';
+	import { formatIPAddress } from '$lib/features/hosts/address-labels';
 	import { formatPort } from '$lib/shared/utils/formatting';
 	import { lastSeenItems } from '$lib/shared/utils/freshness';
 	import type { IPAddress, Port } from '$lib/features/hosts/types/base';
 	import { tagNames } from '$lib/features/tags/columns';
-	import { networkItems } from '$lib/features/networks/columns';
+	import { siteItems } from '$lib/features/sites/columns';
 	import { entities, entitySources, matchConfidences } from '$lib/shared/stores/metadata';
 	import { entitySourceItems } from '$lib/shared/utils/entity-source';
 	import { Trash2, Edit } from 'lucide-svelte';
@@ -31,11 +31,13 @@
 		useDeleteServiceMutation,
 		useBulkDeleteServicesMutation,
 		type ServicesQueryParams,
-		useServicesCacheQuery
+		useServicesByIds
 	} from '../queries';
+	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
+	import { discoveryRunIds, discoveryRunItems } from '$lib/features/discovery/columns';
 	import { useHostsByIds, useHostSummariesQuery } from '$lib/features/hosts/queries';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import type { TabProps } from '$lib/shared/types';
 	import type { components } from '$lib/api/schema';
@@ -45,7 +47,9 @@
 	import {
 		common_confirmBulkDelete,
 		common_confirmDeleteName,
-		common_containerized,
+		common_containerizedBy,
+		common_firstFoundBy,
+		common_lastFoundBy,
 		common_created,
 		common_delete,
 		common_edit,
@@ -53,7 +57,7 @@
 		common_lastSeen,
 		common_category,
 		common_name,
-		common_network,
+		common_site,
 		common_noEntityYet,
 		common_position,
 		common_services,
@@ -65,7 +69,7 @@
 		common_ipAddressBindings,
 		common_unknown,
 		common_unknownEntity,
-		common_unknownNetwork,
+		common_unknownSite,
 		common_updated,
 		daemons_installPromptServices,
 		services_matchConfidence,
@@ -122,10 +126,15 @@
 	let pageSize = $state(20);
 	let currentPage = $state(1);
 
-	// Ordering state (for server-side ordering)
-	let groupBy = $state<ServiceOrderField | undefined>(undefined);
-	let orderBy = $state<ServiceOrderField | undefined>(undefined);
-	let orderDirection = $state<OrderDirection>('asc');
+	// Ordering state (for server-side ordering).
+	// The grouping and sort the table opens with. Declared ahead of the query state so the
+	// first request already carries them; DataControls replaces them with a saved choice.
+	const tableDefaults: TableDefaults<ServiceOrderField> = {
+		sort: { field: 'name', direction: 'asc' }
+	};
+	let groupBy = $state<ServiceOrderField | undefined>(tableDefaults.group);
+	let orderBy = $state<ServiceOrderField | undefined>(tableDefaults.sort?.field);
+	let orderDirection = $state<OrderDirection>(tableDefaults.sort?.direction ?? 'asc');
 
 	// Tag filter state (for server-side filtering)
 	let tagIds = $state<string[]>([]);
@@ -147,7 +156,7 @@
 	// holds one page of services, so filtering here would narrow that page while
 	// the total count kept describing every match.
 	let filterHostIds = $state<string[]>([]);
-	let filterNetworkIds = $state<string[]>([]);
+	let filterSiteIds = $state<string[]>([]);
 	let filterServiceDefinitions = $state<string[]>([]);
 	let filterVirtualizationServiceNames = $state<string[]>([]);
 	let filterIncludeUncontainerized = $state(false);
@@ -172,7 +181,7 @@
 				? (excludeCategories as components['schemas']['ServiceCategory'][])
 				: undefined,
 		host_ids: filterHostIds.length > 0 ? filterHostIds : undefined,
-		network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
+		site_ids: filterSiteIds.length > 0 ? filterSiteIds : undefined,
 		service_definitions: filterServiceDefinitions.length > 0 ? filterServiceDefinitions : undefined,
 		virtualization_service_names:
 			filterVirtualizationServiceNames.length > 0 ? filterVirtualizationServiceNames : undefined,
@@ -180,7 +189,7 @@
 		sources: filterSources.length > 0 ? filterSources : undefined,
 		match_confidences: filterMatchConfidences.length > 0 ? filterMatchConfidences : undefined
 	}));
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	const portsQuery = usePortsQuery();
 	// Option sources for the server-side filters. The lists below are the tab's
 	// display data, scoped to the loaded page — filter options have to come from
@@ -190,12 +199,23 @@
 	// None of these takes the tab's active filters, so the options do not shrink as the user
 	// filters.
 	const hostValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'host');
-	const networkValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'network_id');
+	const siteValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'site_id');
 	const definitionValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'service_definition');
 	const containerizedByValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'containerized_by');
 	const matchConfidenceValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'match_confidence');
 	const sourceValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'source');
-	const servicesCacheQuery = useServicesCacheQuery();
+	// The runtimes containerizing the visible services. Rarely on the same page as the services
+	// they run, so fetched by id.
+	const runtimesQuery = useServicesByIds(() => [
+		...new Set(
+			(servicesQuery.data?.items ?? [])
+				.map((s) => s.virtualization_service_id)
+				.filter((id): id is string => id != null)
+		)
+	]);
+	const discoveryRunsQuery = useDiscoveriesByIds(() =>
+		discoveryRunIds(servicesQuery.data?.items ?? [])
+	);
 	const ipAddressesQuery = useIPAddressesQuery();
 	const subnetsQuery = useSubnetsQuery();
 
@@ -224,10 +244,11 @@
 	let tagsData = $derived(tagsQuery.data ?? []);
 	let servicesData = $derived(servicesQuery.data?.items ?? []);
 	let allHostsData = $derived(allHostsQuery.data?.items ?? []);
-	let allServicesData = $derived(servicesCacheQuery.data ?? []);
+	let runtimesData = $derived(runtimesQuery.data ?? []);
+	let discoveryRunsData = $derived(discoveryRunsQuery.data ?? []);
 	let servicesPagination = $derived(servicesQuery.data?.pagination ?? null);
 	let hostsData = $derived(hostsQuery.data ?? []);
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
 	let portsData = $derived(portsQuery.data ?? []);
 	let ipAddressesData = $derived(ipAddressesQuery.data ?? []);
 	let subnetsData = $derived(subnetsQuery.data ?? []);
@@ -319,7 +340,7 @@
 	/**
 	 * Server-side field filter handler.
 	 *
-	 * The panel offers what the user reads — a host's title, a network's name —
+	 * The panel offers what the user reads — a host's title, a site's name —
 	 * while the API filters on ids, so each case resolves the labels back
 	 * through the same data the options were built from. Every key here must
 	 * match a field marked `serverFiltered`; an unhandled one would filter
@@ -340,11 +361,9 @@
 					.map((host) => host.id);
 				break;
 			}
-			case 'network_id': {
+			case 'site_id': {
 				const wanted = new Set(values);
-				filterNetworkIds = networksData
-					.filter((network) => wanted.has(network.name))
-					.map((network) => network.id);
+				filterSiteIds = sitesData.filter((site) => wanted.has(site.name)).map((site) => site.id);
 				break;
 			}
 			case 'service_definition': {
@@ -425,7 +444,7 @@
 		}
 	});
 
-	/** Row actions for table mode, matching what the card offers. */
+	/** Row actions. */
 	function serviceActions(service: Service): CardAction[] {
 		if (isReadOnly) return [];
 
@@ -561,23 +580,23 @@
 						}
 					}
 				},
-				network_id: {
-					label: common_network(),
+				site_id: {
+					label: common_site(),
 					type: 'string',
 					searchable: true,
 					filterable: true,
 					serverFiltered: true,
-					// The networks some service is on, by name.
+					// The sites some service is on, by name.
 					filterOptions: labelledFieldValueOptions(
-						networkValuesQuery.data,
-						(id) => networksData.find((n) => n.id === id)?.name
+						siteValuesQuery.data,
+						(id) => sitesData.find((n) => n.id === id)?.name
 					),
 					groupable: true,
 					// Displayed as a name, but grouped by id on the server.
-					getGroupValue: (item) => item.network_id,
+					getGroupValue: (item) => item.site_id,
 					getValue: (item) =>
-						networksData.find((n) => n.id == item.network_id)?.name || common_unknownNetwork(),
-					display: { order: 2, getItems: (item) => networkItems(item.network_id, networksData) }
+						sitesData.find((n) => n.id == item.site_id)?.name || common_unknownSite(),
+					display: { order: 2, getItems: (item) => siteItems(item.site_id, sitesData) }
 				},
 				// Per-service ordinal, so grouping by it is one header per service.
 				position: {
@@ -606,8 +625,7 @@
 						getItems: (service) => [
 							{
 								id: service.service_definition,
-								label: serviceDefinitions.getName(service.service_definition),
-								color: serviceDefinitions.getColorHelper(service.service_definition).color,
+								...serviceDefinitions.getTag(service.service_definition),
 								icon: serviceDefinitions.getIconComponent(service.service_definition)
 							}
 						]
@@ -617,7 +635,7 @@
 				updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } },
 				// Staleness rides on the date rather than a Status column of its own: a
 				// service has no status, and `getFreshnessTag` returns a tag only when
-				// the row is past its network's window — so the column was empty on
+				// the row is past its site's window — so the column was empty on
 				// every healthy service. `getItems` returning undefined falls back to
 				// the date.
 				last_seen_at: {
@@ -627,12 +645,12 @@
 					display: {
 						recency: true,
 						order: 1,
-						getItems: lastSeenItems(() => networksData, 'Service')
+						getItems: lastSeenItems(() => sitesData, 'Service')
 					}
 				},
 				containerized_by: {
 					type: 'string',
-					label: common_containerized(),
+					label: common_containerizedBy(),
 					searchable: true,
 					filterable: true,
 					serverFiltered: true,
@@ -641,22 +659,20 @@
 					filterOptions: fieldValueOptions(containerizedByValuesQuery.data).concat(
 						hasEmptyFieldValue(containerizedByValuesQuery.data) ? [services_notContainerized()] : []
 					),
-					// From the full services cache: the runtime is rarely on the same page as
-					// the services it runs.
 					getValue: (item) =>
-						allServicesData.find((s) => s.id == item.virtualization_service_id)?.name ||
+						runtimesData.find((s) => s.id == item.virtualization_service_id)?.name ||
 						services_notContainerized(),
 					// The server groups on the containerizing service's name, coalescing
 					// services without one to an empty string.
 					getGroupValue: (item) =>
-						allServicesData.find((s) => s.id == item.virtualization_service_id)?.name ?? '',
+						runtimesData.find((s) => s.id == item.virtualization_service_id)?.name ?? '',
 					display: {
 						hiddenByDefault: true,
 						// No chip when a service isn't containerized, so the cell shows an
 						// em dash rather than repeating the phrase down the column. The
 						// phrase stays in `getValue`, so the filter still offers it.
 						getItems: (item) => {
-							const runtime = allServicesData.find((s) => s.id == item.virtualization_service_id);
+							const runtime = runtimesData.find((s) => s.id == item.virtualization_service_id);
 							if (!runtime) return [];
 							return [
 								{
@@ -752,12 +768,29 @@
 							return [
 								{
 									id: category,
-									label: serviceCategoryMeta.getName(category) || category,
-									color: serviceCategoryMeta.getColorHelper(category).color,
+									...serviceCategoryMeta.getTag(category),
 									icon: serviceCategoryMeta.getIconComponent(category)
 								}
 							];
 						}
+					}
+				},
+				{
+					key: 'first_found_by',
+					label: common_firstFoundBy(),
+					type: 'string',
+					display: {
+						hiddenByDefault: true,
+						getItems: (item) => discoveryRunItems(item.first_discovery_id, discoveryRunsData)
+					}
+				},
+				{
+					key: 'last_found_by',
+					label: common_lastFoundBy(),
+					type: 'string',
+					display: {
+						hiddenByDefault: true,
+						getItems: (item) => discoveryRunItems(item.last_discovery_id, discoveryRunsData)
 					}
 				},
 				{
@@ -774,9 +807,6 @@
 </script>
 
 <div class="space-y-6">
-	<!-- Header -->
-	<TabHeader title={common_services()} subtitle={services_subtitle()} />
-
 	{#if !hasDaemon(onboarding)}
 		<PreDaemonEmptyState title={daemons_installPromptServices()} {isReadOnly} />
 	{:else if isInitialLoading}
@@ -787,17 +817,16 @@
 		<EmptyState title={common_noEntityYet({ entity: common_services() })} subtitle="" />
 	{:else}
 		<DataControls
+			title={common_services()}
+			subtitle={services_subtitle()}
 			items={servicesData}
 			fields={serviceFields}
 			storageKey="scanopy-services-table-state"
+			defaults={tableDefaults}
 			onBulkDelete={isReadOnly ? undefined : handleBulkDelete}
 			entityType={isReadOnly ? undefined : 'Service'}
 			getItemTags={getServiceTags}
 			getItemId={(item) => item.id}
-			getIcon={(service) => ({
-				icon: serviceDefinitions.getIconComponent(service.service_definition),
-				color: serviceDefinitions.getColorHelper(service.service_definition).icon
-			})}
 			serverPagination={servicesPagination}
 			onPageChange={handlePageChange}
 			onOrderChange={handleOrderChange}

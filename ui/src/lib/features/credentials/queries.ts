@@ -16,12 +16,12 @@ import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import type { Credential } from './types/base';
 
 /**
- * A credential's assignments live in the network/host junction tables, so any
- * credential mutation can change `Network.credential_ids` / `Host.credential_assignments`.
- * Invalidate those caches so the Networks/Hosts views reflect changes without a reload.
+ * A credential's assignments live in the site/host junction tables, so any
+ * credential mutation can change `Site.credential_ids` / `Host.credential_assignments`.
+ * Invalidate those caches so the Sites/Hosts views reflect changes without a reload.
  */
 function invalidateAssignmentTargets(queryClient: QueryClient): void {
-	queryClient.invalidateQueries({ queryKey: queryKeys.networks.all });
+	queryClient.invalidateQueries({ queryKey: queryKeys.sites.all });
 	queryClient.invalidateQueries({ queryKey: queryKeys.hosts.all });
 }
 
@@ -72,7 +72,7 @@ export function useCreateCredentialMutation() {
 			queryClient.setQueryData<Credential[]>(queryKeys.credentials.all, (old) =>
 				old ? [...old, newCredential] : [newCredential]
 			);
-			// Assignments are written server-side to the network/host junctions
+			// Assignments are written server-side to the site/host junctions
 			invalidateAssignmentTargets(queryClient);
 		}
 	}));

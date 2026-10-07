@@ -129,45 +129,6 @@
 </script>
 
 <div class="space-y-4">
-	<form.Field
-		name="name"
-		validators={{
-			onBlur: ({ value }: { value: string }) => required(value) || max(100)(value)
-		}}
-	>
-		{#snippet children(field: AnyFieldApi)}
-			<TextInput
-				label={common_entityName({ entity: common_discovery() })}
-				id="name"
-				placeholder={discovery_namePlaceholder()}
-				required={true}
-				{field}
-				disabled={readOnly}
-			/>
-		{/snippet}
-	</form.Field>
-
-	<!-- Daemon Selection -->
-	<div class="space-y-2">
-		<RichSelect
-			label={common_daemon()}
-			required={true}
-			placeholder={discovery_daemonSelect()}
-			disabled={readOnly}
-			selectedValue={formData.daemon_id}
-			options={daemons}
-			displayComponent={DaemonDisplay}
-			getOptionContext={() => ({ hosts, subnets })}
-			onSelect={(value) => {
-				const selectedDaemon = daemons.find((d) => d.id === value);
-				if (selectedDaemon) {
-					formData = { ...formData, daemon_id: value, network_id: selectedDaemon.network_id };
-				}
-			}}
-		/>
-		<p class="text-tertiary text-xs">{discovery_daemonHelp()}</p>
-	</div>
-
 	{#if daemon && isPreUnifiedDaemon(daemon)}
 		<InlineWarning
 			title={discovery_upgradeRequiredTitle()}
@@ -175,55 +136,99 @@
 		/>
 	{/if}
 
-	<!-- Run Type Selection -->
-	<form.Field
-		name="run_type_type"
-		listeners={{
-			onChange: ({ value }: { value: string }) => handleRunTypeChange(value)
-		}}
-	>
-		{#snippet children(field: AnyFieldApi)}
-			<RichSelect
-				label={discovery_runType()}
-				selectedValue={field.state.value}
-				options={runTypeOptions}
-				onSelect={(value) => field.handleChange(value)}
-				onDisabledClick={() =>
-					triggerUpgrade({
-						feature: 'scheduled_discovery',
-						source: 'discovery_form',
-						surface: 'discovery_form'
-					})}
-				displayComponent={SimpleOptionDisplay}
-				disabled={readOnly}
-			/>
-			<p class="text-tertiary mt-1 text-xs">
-				{field.state.value === 'AdHoc'
-					? discovery_adHocDescription()
-					: discovery_scheduledDescription()}
-			</p>
-		{/snippet}
-	</form.Field>
-
-	{#if formData.discovery_type.type == 'Docker' || formData.discovery_type.type == 'Network' || formData.discovery_type.type == 'Unified'}
+	<div class="space-y-3">
 		<form.Field
-			name="host_naming_fallback"
-			listeners={{
-				onChange: ({ value }: { value: string }) => handleHostNameFallbackChange(value)
+			name="name"
+			validators={{
+				onBlur: ({ value }: { value: string }) => required(value) || max(100)(value)
 			}}
 		>
 			{#snippet children(field: AnyFieldApi)}
-				<SelectInput
-					label={discovery_hostNameFallback()}
-					id="host_name_fallback"
-					options={hostNameFallbackOptions}
+				<TextInput
+					label={common_entityName({ entity: common_discovery() })}
+					id="name"
+					placeholder={discovery_namePlaceholder()}
+					required={true}
 					{field}
 					disabled={readOnly}
-					helpText={discovery_hostNameFallbackHelp()}
 				/>
 			{/snippet}
 		</form.Field>
-	{/if}
+
+		<!-- Daemon Selection -->
+		<div class="space-y-2">
+			<RichSelect
+				label={common_daemon()}
+				required={true}
+				placeholder={discovery_daemonSelect()}
+				disabled={readOnly}
+				selectedValue={formData.daemon_id}
+				options={daemons}
+				displayComponent={DaemonDisplay}
+				getOptionContext={() => ({ hosts, subnets })}
+				onSelect={(value) => {
+					const selectedDaemon = daemons.find((d) => d.id === value);
+					if (selectedDaemon) {
+						formData = { ...formData, daemon_id: value, site_id: selectedDaemon.site_id };
+					}
+				}}
+			/>
+			<p class="text-tertiary text-xs">{discovery_daemonHelp()}</p>
+		</div>
+
+		<!-- Run Type Selection -->
+		<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+			<div>
+				<form.Field
+					name="run_type_type"
+					listeners={{
+						onChange: ({ value }: { value: string }) => handleRunTypeChange(value)
+					}}
+				>
+					{#snippet children(field: AnyFieldApi)}
+						<RichSelect
+							label={discovery_runType()}
+							selectedValue={field.state.value}
+							options={runTypeOptions}
+							onSelect={(value) => field.handleChange(value)}
+							onDisabledClick={() =>
+								triggerUpgrade({
+									feature: 'scheduled_discovery',
+									source: 'discovery_form',
+									surface: 'discovery_form'
+								})}
+							displayComponent={SimpleOptionDisplay}
+							disabled={readOnly}
+						/>
+						<p class="text-tertiary mt-1 text-xs">
+							{field.state.value === 'AdHoc'
+								? discovery_adHocDescription()
+								: discovery_scheduledDescription()}
+						</p>
+					{/snippet}
+				</form.Field>
+			</div>
+			{#if formData.discovery_type.type == 'Docker' || formData.discovery_type.type == 'Network' || formData.discovery_type.type == 'Unified'}
+				<form.Field
+					name="host_naming_fallback"
+					listeners={{
+						onChange: ({ value }: { value: string }) => handleHostNameFallbackChange(value)
+					}}
+				>
+					{#snippet children(field: AnyFieldApi)}
+						<SelectInput
+							label={discovery_hostNameFallback()}
+							id="host_name_fallback"
+							options={hostNameFallbackOptions}
+							{field}
+							disabled={readOnly}
+							helpText={discovery_hostNameFallbackHelp()}
+						/>
+					{/snippet}
+				</form.Field>
+			{/if}
+		</div>
+	</div>
 
 	{#if formData.discovery_type.type === 'Unified' && formData.scan_count !== undefined}
 		{@const scanCount = formData.scan_count ?? 0}

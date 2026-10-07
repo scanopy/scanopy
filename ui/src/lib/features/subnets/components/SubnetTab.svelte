@@ -1,18 +1,20 @@
 <script lang="ts">
 	import { lastSeenItems } from '$lib/shared/utils/freshness';
 	import { cidrSourceItems, isProvisionalCidr } from '$lib/shared/utils/cidr-source';
-	import { cidrContains } from '$lib/shared/utils/cidr';
+	import { cidrContains, compareCidr } from '$lib/shared/utils/cidr';
+	import SubnetUtilization from './SubnetUtilization.svelte';
+	import { nestedRangeOf, subnetNesting, utilizationRatio } from '../nesting';
 	import SubnetEditModal from './SubnetEditModal/SubnetEditModal.svelte';
 	import ProvisionalRangeModal from './ProvisionalRangeModal.svelte';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import type { Subnet } from '../types/base';
+	import type { Subnet, SubnetResponse } from '../types/base';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import { defineFields, type CardAction } from '$lib/shared/components/data/types';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
+	import { defineFields, entityRef, type CardAction } from '$lib/shared/components/data/types';
 	import { tagNames } from '$lib/features/tags/columns';
-	import { networkItems } from '$lib/features/networks/columns';
+	import { siteItems } from '$lib/features/sites/columns';
 	import { Plus, Trash2, Edit, CloudAlert } from 'lucide-svelte';
 	import { useTagsQuery } from '$lib/features/tags/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
@@ -25,7 +27,11 @@
 		useDeleteSubnetMutation,
 		useBulkDeleteSubnetsMutation
 	} from '../queries';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
+	import { useServicesByIds } from '$lib/features/services/queries';
+	import type { Service } from '$lib/features/services/types/base';
+	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
+	import { discoveryRunIds, discoveryRunItems } from '$lib/features/discovery/columns';
 	import type { TabProps } from '$lib/shared/types';
 	import type { components } from '$lib/api/schema';
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
@@ -34,26 +40,31 @@
 		common_cidr,
 		common_confirmDeleteName,
 		common_create,
+		common_nested,
 		common_confirmBulkDelete,
 		common_created,
 		common_description,
 		common_lastSeen,
 		common_name,
-		common_network,
+		common_site,
 		common_noEntityYet,
 		common_delete,
 		common_source,
 		common_edit,
+		common_firstFoundBy,
+		common_lastFoundBy,
 		common_subnets,
 		common_tags,
-		common_unknownNetwork,
+		common_unknownSite,
 		common_updated,
 		daemons_installPromptSubnets,
+		subnets_managedBy,
 		subnets_resolveRange,
-		subnets_subnetType
+		subnets_subnetType,
+		common_utilization
 	} from '$lib/paraglide/messages';
 	import { hasDaemon } from '$lib/shared/onboarding/checklist';
-	import { entitySources, subnetTypes } from '$lib/shared/stores/metadata';
+	import { concepts, entitySources, subnetTypes } from '$lib/shared/stores/metadata';
 	import { entitySourceItems } from '$lib/shared/utils/entity-source';
 
 	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
@@ -75,7 +86,16 @@
 	function handleStaleFilterChange(next: boolean | null) {
 		stale = next;
 	}
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
+	// The container runtimes that manage the bridge subnets, fetched by id.
+	const runtimesQuery = useServicesByIds(() => [
+		...new Set(
+			(subnetsQuery.data ?? [])
+				.map((s) => s.virtualization_service_id)
+				.filter((id): id is string => id != null)
+		)
+	]);
+	const discoveryRunsQuery = useDiscoveriesByIds(() => discoveryRunIds(subnetsQuery.data ?? []));
 
 	// Mutations
 	const createSubnetMutation = useCreateSubnetMutation();
@@ -87,7 +107,15 @@
 	// Derived data
 	let tagsData = $derived(tagsQuery.data ?? []);
 	let subnetsData = $derived((subnetsQuery.data ?? []).filter(isUserManagedSubnet));
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
+	let runtimesData = $derived(runtimesQuery.data ?? []);
+	let discoveryRunsData = $derived(discoveryRunsQuery.data ?? []);
+
+	let nesting = $derived(subnetNesting(subnetsData));
+
+	function runtimeOf(subnet: Subnet): Service | undefined {
+		return runtimesData.find((s) => s.id === subnet.virtualization_service_id);
+	}
 	let isLoading = $derived(subnetsQuery.isPending);
 
 	let showSubnetEditor = $state(false);
@@ -139,7 +167,7 @@
 		showSubnetEditor = true;
 	}
 
-	/** Row actions for table mode, matching what the card offers. */
+	/** Row actions. */
 	function subnetActions(subnet: Subnet): CardAction[] {
 		if (isReadOnly) return [];
 
@@ -177,7 +205,7 @@
 	}
 
 	/**
-	 * A settled range that already covers the one being resolved, if the network holds one.
+	 * A settled range that already covers the one being resolved, if the site holds one.
 	 *
 	 * This is the state discovery deliberately leaves alone: where a reading covers *several*
 	 * assumed ranges it corrects none of them, because folding them into one means deleting rows.
@@ -185,7 +213,7 @@
 	 *
 	 * Searching `subnetsData` rather than the raw query is what keeps the `0.0.0.0/0` catch-alls
 	 * out: they are synthetic, so `isUserManagedSubnet` has already dropped them, and either would
-	 * otherwise "cover" every range on the network.
+	 * otherwise "cover" every range on the site.
 	 */
 	let coveringSubnet = $derived.by(() => {
 		if (!resolvingSubnet) return null;
@@ -194,7 +222,7 @@
 			subnetsData.find(
 				(candidate) =>
 					candidate.id !== target.id &&
-					candidate.network_id === target.network_id &&
+					candidate.site_id === target.site_id &&
 					!isProvisionalCidr(candidate) &&
 					cidrContains(candidate.cidr, target.cidr)
 			) ?? null
@@ -289,10 +317,15 @@
 		await downloadCsv('Subnet', {});
 	}
 
+	const tableDefaults: TableDefaults<SubnetOrderField> = {
+		group: 'cidr',
+		sort: { field: 'cidr', direction: 'asc' }
+	};
+
 	// Define field configuration for the DataTableControls
 	// Uses defineFields to ensure all SubnetOrderField values are covered
 	let subnetFields = $derived(
-		defineFields<Subnet, SubnetOrderField>(
+		defineFields<SubnetResponse, SubnetOrderField>(
 			{
 				// Identity fields: grouping by one would render a header per subnet.
 				name: {
@@ -306,7 +339,18 @@
 					label: common_cidr(),
 					type: 'string',
 					searchable: true,
-					groupable: false,
+					// Groups each range with every range nested inside it, as nested sections. A subnet
+					// that nests with nothing falls in the ungrouped bucket rather than heading a
+					// group of one.
+					getGroupLabel: (subnet) => nestedRangeOf(subnet, nesting),
+					// Address order, not text order, which is also the tree order: each range sorts
+					// directly before the ranges inside it.
+					compare: (a, b) => compareCidr(a.cidr, b.cidr),
+					tree: {
+						key: (subnet) => subnet.id,
+						parentKey: (subnet) => subnet.parent_subnet_id ?? null,
+						rootsLabel: () => common_nested()
+					},
 					display: { order: 3, getItems: cidrSourceItems() }
 				},
 				subnet_type: {
@@ -322,22 +366,21 @@
 						getItems: (subnet) => [
 							{
 								id: subnet.subnet_type,
-								label: subnetTypes.getName(subnet.subnet_type),
-								color: subnetTypes.getColorHelper(subnet.subnet_type).color,
+								...subnetTypes.getTag(subnet.subnet_type),
 								icon: subnetTypes.getIconComponent(subnet.subnet_type)
 							}
 						]
 					}
 				},
-				network_id: {
-					label: common_network(),
+				site_id: {
+					label: common_site(),
 					type: 'string',
 					searchable: true,
 					filterable: true,
 					groupable: true,
 					getValue: (item) =>
-						networksData.find((n) => n.id == item.network_id)?.name || common_unknownNetwork(),
-					display: { order: 2, getItems: (item) => networkItems(item.network_id, networksData) }
+						sitesData.find((n) => n.id == item.site_id)?.name || common_unknownSite(),
+					display: { order: 2, getItems: (item) => siteItems(item.site_id, sitesData) }
 				},
 				created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
 				updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } },
@@ -348,11 +391,20 @@
 					display: {
 						recency: true,
 						order: 1,
-						getItems: lastSeenItems(() => networksData, 'Subnet')
+						getItems: lastSeenItems(() => sitesData, 'Subnet')
 					}
 				}
 			},
 			[
+				{
+					key: 'utilization',
+					label: common_utilization(),
+					type: 'string',
+					sortable: true,
+					getValue: (subnet) => `${Math.round(utilizationRatio(subnet) * 100)}%`,
+					compare: (a, b) => utilizationRatio(a) - utilizationRatio(b),
+					display: { order: 5, cell: utilizationCell }
+				},
 				{
 					key: 'description',
 					label: common_description(),
@@ -376,6 +428,50 @@
 					}
 				},
 				{
+					// The container runtime that created this bridge network. Only bridge subnets have one.
+					key: 'managed_by',
+					label: subnets_managedBy(),
+					type: 'string',
+					searchable: true,
+					filterable: true,
+					groupable: true,
+					sortable: true,
+					getValue: (subnet) => runtimeOf(subnet)?.name ?? null,
+					display: {
+						hiddenByDefault: true,
+						getItems: (subnet) => {
+							const runtime = runtimeOf(subnet);
+							if (!runtime) return [];
+							return [
+								{
+									id: runtime.id,
+									label: runtime.name,
+									color: concepts.getColorHelper('Containerization').color,
+									entityRef: entityRef('Service', runtime.id, runtime)
+								}
+							];
+						}
+					}
+				},
+				{
+					key: 'first_found_by',
+					label: common_firstFoundBy(),
+					type: 'string',
+					display: {
+						hiddenByDefault: true,
+						getItems: (item) => discoveryRunItems(item.first_discovery_id, discoveryRunsData)
+					}
+				},
+				{
+					key: 'last_found_by',
+					label: common_lastFoundBy(),
+					type: 'string',
+					display: {
+						hiddenByDefault: true,
+						getItems: (item) => discoveryRunItems(item.last_discovery_id, discoveryRunsData)
+					}
+				},
+				{
 					key: 'tags',
 					label: common_tags(),
 					type: 'array',
@@ -388,18 +484,20 @@
 	);
 </script>
 
-<div class="space-y-6">
-	<!-- Header -->
-	<TabHeader title={common_subnets()}>
-		<svelte:fragment slot="actions">
-			{#if hasDaemon(onboarding) && !isReadOnly}
-				<button class="btn-primary flex items-center" onclick={handleCreateSubnet}
-					><Plus class="h-5 w-5" />{common_create()}</button
-				>
-			{/if}
-		</svelte:fragment>
-	</TabHeader>
+{#snippet utilizationCell(subnet: SubnetResponse)}
+	<SubnetUtilization {subnet} />
+{/snippet}
 
+<!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
+{#snippet toolbarActions()}
+	{#if hasDaemon(onboarding) && !isReadOnly}
+		<button class="btn-primary toolbar-control flex items-center" onclick={handleCreateSubnet}
+			><Plus class="h-5 w-5" />{common_create()}</button
+		>
+	{/if}
+{/snippet}
+
+<div class="space-y-6">
 	{#if !hasDaemon(onboarding)}
 		<PreDaemonEmptyState title={daemons_installPromptSubnets()} {isReadOnly} />
 	{:else if isLoading}
@@ -420,17 +518,16 @@
 		/>
 	{:else}
 		<DataControls
+			title={common_subnets()}
+			{toolbarActions}
 			items={subnetsData}
 			fields={subnetFields}
 			storageKey="scanopy-subnets-table-state"
+			defaults={tableDefaults}
 			onBulkDelete={isReadOnly ? undefined : handleBulkDelete}
 			entityType={isReadOnly ? undefined : 'Subnet'}
 			getItemTags={getSubnetTags}
 			getItemId={(item) => item.id}
-			getIcon={(subnet) => ({
-				icon: subnetTypes.getIconComponent(subnet.subnet_type),
-				color: subnetTypes.getColorHelper(subnet.subnet_type).icon
-			})}
 			onStaleFilterChange={handleStaleFilterChange}
 			onCsvExport={handleCsvExport}
 			getActions={subnetActions}

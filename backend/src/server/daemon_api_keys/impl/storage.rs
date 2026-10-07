@@ -19,7 +19,7 @@ use crate::server::{
 pub struct DaemonApiKeyCsvRow {
     pub id: Uuid,
     pub name: String,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub is_enabled: bool,
     pub last_used: Option<DateTime<Utc>>,
     pub expires_at: Option<DateTime<Utc>>,
@@ -63,7 +63,7 @@ impl Storable for DaemonApiKey {
                     name,
                     last_used,
                     expires_at,
-                    network_id,
+                    site_id,
                     is_enabled,
                     tags: _, // Stored in entity_tags junction table
                     daemon_id,
@@ -81,7 +81,7 @@ impl Storable for DaemonApiKey {
                 "updated_at",
                 "last_used",
                 "expires_at",
-                "network_id",
+                "site_id",
                 "name",
                 "is_enabled",
                 "key",
@@ -94,7 +94,7 @@ impl Storable for DaemonApiKey {
                 SqlValue::Timestamp(updated_at),
                 SqlValue::OptionTimestamp(last_used),
                 SqlValue::OptionTimestamp(expires_at),
-                SqlValue::Uuid(network_id),
+                SqlValue::Uuid(site_id),
                 SqlValue::String(name),
                 SqlValue::Bool(is_enabled),
                 SqlValue::String(key),
@@ -120,7 +120,7 @@ impl Storable for DaemonApiKey {
                 name: row.get("name"),
                 key: row.get("key"),
                 is_enabled: row.get("is_enabled"),
-                network_id: row.get("network_id"),
+                site_id: row.get("site_id"),
                 tags: Vec::new(), // Hydrated from entity_tags junction table
                 daemon_id: row.get("daemon_id"),
                 plaintext,
@@ -152,7 +152,7 @@ impl Entity for DaemonApiKey {
         DaemonApiKeyCsvRow {
             id: self.id,
             name: self.base.name.clone(),
-            network_id: self.base.network_id,
+            site_id: self.base.site_id,
             is_enabled: self.base.is_enabled,
             last_used: self.base.last_used,
             expires_at: self.base.expires_at,
@@ -170,11 +170,11 @@ impl Entity for DaemonApiKey {
     const ENTITY_DESCRIPTION: &'static str = "API keys for daemon authentication. Create and manage keys that allow daemons to communicate with the server.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::DiscoveryAndDaemons
+        EntityCategory::Discover
     }
 
-    fn network_id(&self) -> Option<Uuid> {
-        Some(self.base.network_id)
+    fn site_id(&self) -> Option<Uuid> {
+        Some(self.base.site_id)
     }
 
     fn organization_id(&self) -> Option<Uuid> {

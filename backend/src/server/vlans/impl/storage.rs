@@ -23,7 +23,7 @@ pub struct VlanCsvRow {
     pub vlan_number: u16,
     pub name: String,
     pub description: Option<String>,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub organization_id: Uuid,
     pub source: String,
     pub created_at: DateTime<Utc>,
@@ -35,6 +35,15 @@ impl Storable for Vlan {
 
     fn table_name() -> &'static str {
         "vlans"
+    }
+
+    /// The VLAN ID as text, so typing `20` finds VLAN 20 (and 120, 200, ...), plus its name and notes.
+    fn search_predicates() -> &'static [&'static str] {
+        &[
+            "vlans.vlan_number::text ILIKE {}",
+            "vlans.name ILIKE {}",
+            "vlans.description ILIKE {}",
+        ]
     }
 
     const HAS_SCD2: bool = true;
@@ -80,12 +89,13 @@ impl Storable for Vlan {
                     vlan_number,
                     name,
                     description,
-                    network_id,
+                    site_id,
                     organization_id,
                     source,
                     // Hydrated from the `subnet_vlans` junction on read; not a
                     // column, so nothing sent by a client is persisted.
                     subnet_ids: _,
+                    tags: _, // Stored in entity_tags junction table
                 },
         } = self.clone();
 
@@ -95,7 +105,7 @@ impl Storable for Vlan {
                 "vlan_number",
                 "name",
                 "description",
-                "network_id",
+                "site_id",
                 "organization_id",
                 "source",
                 "created_at",
@@ -112,7 +122,7 @@ impl Storable for Vlan {
                 SqlValue::U16(vlan_number),
                 SqlValue::String(name),
                 SqlValue::OptionalString(description),
-                SqlValue::Uuid(network_id),
+                SqlValue::Uuid(site_id),
                 SqlValue::Uuid(organization_id),
                 SqlValue::EntitySource(source),
                 SqlValue::Timestamp(created_at),
@@ -143,12 +153,13 @@ impl Storable for Vlan {
                 vlan_number: vlan_number_i16 as u16,
                 name: row.get("name"),
                 description: row.get("description"),
-                network_id: row.get("network_id"),
+                site_id: row.get("site_id"),
                 organization_id: row.get("organization_id"),
                 source: serde_json::from_value(row.get::<serde_json::Value, _>("source"))
                     .map_err(|e| anyhow::anyhow!("Failed to deserialize source: {}", e))?,
                 // Populated by `VlanService` from the junction, not from this row.
                 subnet_ids: Vec::new(),
+                tags: Vec::new(), // Hydrated from entity_tags junction table
             },
         })
     }
@@ -244,7 +255,7 @@ impl Entity for Vlan {
             vlan_number: self.base.vlan_number,
             name: self.base.name.clone(),
             description: self.base.description.clone(),
-            network_id: self.base.network_id,
+            site_id: self.base.site_id,
             organization_id: self.base.organization_id,
             source: serde_json::to_string(&self.base.source).unwrap_or_default(),
             created_at: self.created_at,
@@ -261,11 +272,11 @@ impl Entity for Vlan {
     const ENTITY_DESCRIPTION: &'static str = "VLANs (802.1Q virtual LANs) defined or discovered on the network. Each VLAN has a number (1-4094), a name, and an optional description, and is referenced by interfaces that participate in it.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::NetworkInfrastructure
+        EntityCategory::Assets
     }
 
-    fn network_id(&self) -> Option<Uuid> {
-        Some(self.base.network_id)
+    fn site_id(&self) -> Option<Uuid> {
+        Some(self.base.site_id)
     }
 
     fn organization_id(&self) -> Option<Uuid> {
@@ -278,5 +289,60 @@ impl Entity for Vlan {
 
     fn set_updated_at(&mut self, time: DateTime<Utc>) {
         self.updated_at = time;
+    }
+
+    fn get_tags(&self) -> Option<&Vec<Uuid>> {
+        Some(&self.base.tags)
+    }
+
+    fn set_tags(&mut self, tags: Vec<Uuid>) {
+        self.base.tags = tags;
+    }
+
+    fn preserve_immutable_fields(&mut self, existing: &Self) {
+        // A VLAN is identified by (site_id, vlan_number). Create enforces that pair is unique
+        // per site; an update has no such check, so neither half may move on update.
+        self.base.vlan_number = existing.base.vlan_number;
+        self.base.site_id = existing.base.site_id;
+        self.base.organization_id = existing.base.organization_id;
+        self.base.source = existing.base.source.clone();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::server::shared::types::entities::EntitySource;
+
+    #[test]
+    fn update_cannot_change_vlan_identity() {
+        let existing = Vlan {
+            base: VlanBase {
+                vlan_number: 20,
+                name: "Servers".to_string(),
+                site_id: Uuid::new_v4(),
+                organization_id: Uuid::new_v4(),
+                source: EntitySource::Manual,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let mut request = existing.clone();
+        request.base.name = "Server farm".to_string();
+        request.base.description = Some("Rack A".to_string());
+        request.base.tags = vec![Uuid::new_v4()];
+        request.base.vlan_number = 30;
+        request.base.site_id = Uuid::new_v4();
+        request.base.organization_id = Uuid::new_v4();
+
+        request.preserve_immutable_fields(&existing);
+
+        assert_eq!(request.base.name, "Server farm");
+        assert_eq!(request.base.description.as_deref(), Some("Rack A"));
+        assert_ne!(request.base.tags, existing.base.tags, "tags stay editable");
+        assert_eq!(request.base.vlan_number, 20);
+        assert_eq!(request.base.site_id, existing.base.site_id);
+        assert_eq!(request.base.organization_id, existing.base.organization_id);
     }
 }

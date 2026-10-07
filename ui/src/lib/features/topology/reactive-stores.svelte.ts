@@ -43,7 +43,7 @@ import {
 	hiddenEntityIds
 } from './interactions';
 import { selectedNodes } from './queries';
-import { collapsedContainers } from './collapse';
+import { collapsedContainers, expandedInlineGroups } from './collapse';
 
 export const connectedNodes = fromStore(connectedNodeIds);
 // The handles a node renders: its real edges', plus the dependency preview's. `derived` updates
@@ -64,3 +64,4 @@ export const multiSelectedNodes = fromStore(selectedNodes);
 export const currentHoveredTag = fromStore(hoveredTag);
 export const currentHoveredMetadata = fromStore(hoveredMetadata);
 export const collapsedNodes = fromStore(collapsedContainers);
+export const expandedInlineGroupKeys = fromStore(expandedInlineGroups);

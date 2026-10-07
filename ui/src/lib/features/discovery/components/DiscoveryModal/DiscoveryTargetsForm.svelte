@@ -36,7 +36,7 @@
 			(s) =>
 				(formData.discovery_type.type === 'Network' ||
 					formData.discovery_type.type === 'Unified') &&
-				s.network_id == formData.network_id &&
+				s.site_id == formData.site_id &&
 				!formData.discovery_type.subnet_ids?.includes(s.id) &&
 				subnetTypes.getMetadata(s.subnet_type).network_scan_discovery_eligible
 		)
@@ -124,23 +124,6 @@
 	{/if}
 
 	{#if formData.discovery_type.type === 'Network' || formData.discovery_type.type === 'Unified'}
-		<div class="card">
-			<ListManager
-				label={discovery_targetSubnets()}
-				helpText={discovery_targetSubnetsHelp()}
-				placeholder={discovery_selectSubnet()}
-				emptyMessage={discovery_allSubnetsScanned()}
-				allowReorder={false}
-				allowItemEdit={() => false}
-				showSearch={true}
-				options={availableSubnets}
-				items={selectedSubnets}
-				optionDisplayComponent={SubnetDisplay}
-				itemDisplayComponent={SubnetDisplay}
-				onAdd={handleAddSubnet}
-				onRemove={handleRemoveSubnet}
-			/>
-		</div>
 		{#if nonInterfacedSubnetNames.length > 0}
 			{#if hasLargeNonInterfacedSubnet}
 				<InlineWarning
@@ -159,5 +142,20 @@
 				/>
 			{/if}
 		{/if}
+		<ListManager
+			label={discovery_targetSubnets()}
+			helpText={discovery_targetSubnetsHelp()}
+			placeholder={discovery_selectSubnet()}
+			emptyMessage={discovery_allSubnetsScanned()}
+			allowReorder={false}
+			allowItemEdit={() => false}
+			showSearch={true}
+			options={availableSubnets}
+			items={selectedSubnets}
+			optionDisplayComponent={SubnetDisplay}
+			itemDisplayComponent={SubnetDisplay}
+			onAdd={handleAddSubnet}
+			onRemove={handleRemoveSubnet}
+		/>
 	{/if}
 </div>

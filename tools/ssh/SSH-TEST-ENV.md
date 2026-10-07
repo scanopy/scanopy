@@ -214,7 +214,7 @@ jq -n \
        target_os: "Unix",
        timeout_seconds: 60
      },
-     assigned_network_ids: [],
+     assigned_site_ids: [],
      host_assignments: [{host_id: $host, ip_address_ids: null}],
      tags: []
    }' |

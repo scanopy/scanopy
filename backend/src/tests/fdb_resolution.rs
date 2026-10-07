@@ -30,15 +30,15 @@ use crate::server::{
     },
 };
 
-use super::{host, network, organization, subnet, test_services};
+use super::{host, organization, site, subnet, test_services};
 
-/// Everything an FDB resolution test needs: a network with hosts and interfaces in it, and the
+/// Everything an FDB resolution test needs: a site with hosts and interfaces in it, and the
 /// two services `resolve_fdb_links` reads and writes through.
 struct Lab {
     host_service: std::sync::Arc<HostService>,
     interface_neighbor_service: std::sync::Arc<InterfaceNeighborService>,
     storage: StorageFactory,
-    network_id: Uuid,
+    site_id: Uuid,
     _container: testcontainers::ContainerAsync<testcontainers::GenericImage>,
 }
 
@@ -48,22 +48,22 @@ impl Lab {
 
         let org = organization();
         storage.organizations.create(&org).await.unwrap();
-        let network = network(&org.id);
-        storage.networks.create(&network).await.unwrap();
-        let subnet = subnet(&network.id);
+        let site = site(&org.id);
+        storage.sites.create(&site).await.unwrap();
+        let subnet = subnet(&site.id);
         storage.subnets.create(&subnet).await.unwrap();
 
         Self {
             host_service: services.host_service.clone(),
             interface_neighbor_service: services.interface_neighbor_service.clone(),
-            network_id: network.id,
+            site_id: site.id,
             storage,
             _container,
         }
     }
 
     async fn host(&self, name: &str) -> Host {
-        let mut h = host(&self.network_id);
+        let mut h = host(&self.site_id);
         h.base.name = crate::server::hosts::r#impl::name::HostName::manual(name.to_string());
         self.storage.hosts.create(&h).await.unwrap();
         h
@@ -80,7 +80,7 @@ impl Lab {
     ) -> Interface {
         let entry = Interface::new(InterfaceBase {
             host_id,
-            network_id: self.network_id,
+            site_id: self.site_id,
             if_index: Some(if_index),
             if_descr: Some(descr.to_string()),
             if_type: Some(if_type::ETHERNET_CSMA_CD),
@@ -99,7 +99,7 @@ impl Lab {
     }
 
     /// A switch port whose bridge FDB learned exactly one MAC — the shape
-    /// `new_for_unresolved_fdb_in_network` selects, before any candidate/resolved row exists.
+    /// `new_for_unresolved_fdb_in_site` selects, before any candidate/resolved row exists.
     async fn fdb_port(
         &self,
         host_id: Uuid,
@@ -109,7 +109,7 @@ impl Lab {
     ) -> Interface {
         let entry = Interface::new(InterfaceBase {
             host_id,
-            network_id: self.network_id,
+            site_id: self.site_id,
             if_index: Some(if_index),
             if_descr: Some(descr.to_string()),
             if_type: Some(if_type::ETHERNET_CSMA_CD),
@@ -127,7 +127,7 @@ impl Lab {
     async fn give_lldp_candidate(&self, interface_id: Uuid) {
         self.interface_neighbor_service
             .replace_candidates_from_discovery(
-                self.network_id,
+                self.site_id,
                 interface_id,
                 vec![InterfaceNeighborEvidence {
                     lldp_chassis_id: Some(LldpChassisId::MacAddress("00:aa:bb:cc:dd:ee".into())),
@@ -152,7 +152,7 @@ impl Lab {
     async fn scan(&self, name: &str) -> Host {
         let collected = harness::scan(name).await;
 
-        let mut record = host(&self.network_id);
+        let mut record = host(&self.site_id);
         record.base.name = crate::server::hosts::r#impl::name::HostName::manual(name.to_string());
         self.storage.hosts.create(&record).await.unwrap();
 
@@ -167,7 +167,7 @@ impl Lab {
 
             let interface = Interface::new(InterfaceBase {
                 host_id: record.id,
-                network_id: self.network_id,
+                site_id: self.site_id,
                 if_index: Some(entry.if_index),
                 if_descr: entry.if_descr.clone(),
                 if_name: entry.if_name.clone(),
@@ -190,9 +190,9 @@ impl Lab {
     async fn unresolved_fdb_count(&self) -> usize {
         self.storage
             .interfaces
-            .get_all(
-                StorableFilter::<Interface>::new_for_unresolved_fdb_in_network(self.network_id),
-            )
+            .get_all(StorableFilter::<Interface>::new_for_unresolved_fdb_in_site(
+                self.site_id,
+            ))
             .await
             .unwrap()
             .len()
@@ -200,7 +200,7 @@ impl Lab {
 
     async fn resolve(&self) -> anyhow::Result<u32> {
         self.host_service
-            .resolve_fdb_links(self.network_id, Utc::now())
+            .resolve_fdb_links(self.site_id, Utc::now())
             .await
     }
 
@@ -241,12 +241,12 @@ async fn a_single_mac_with_no_matching_interface_falls_back_to_the_host() {
     let switch = lab.host("switch").await;
     // The far end resolves by a MAC on an interface with no if_type set to a physical type — an
     // end device Scanopy never polled directly, the shape an unmanaged downstream device or a
-    // bare host takes. `find_if_entry_by_mac` only searches physical if_types, so this MAC
+    // bare host takes. `find_interface_by_mac` only searches physical if_types, so this MAC
     // resolves the host but no specific port on it.
     let far_end = lab.host("laptop").await;
     let entry = Interface::new(InterfaceBase {
         host_id: far_end.id,
-        network_id: lab.network_id,
+        site_id: lab.site_id,
         if_index: Some(1),
         if_descr: Some("eth0".to_string()),
         if_type: Some(if_type::PROP_VIRTUAL),
@@ -360,7 +360,7 @@ async fn an_interface_already_resolved_is_left_alone() {
     let scan_time = Utc::now();
     lab.interface_neighbor_service
         .reconcile_interface_neighbors(
-            lab.network_id,
+            lab.site_id,
             anchor.id,
             &[(Neighbor::Host(far_end.id), Some(scan_time))],
             scan_time,
@@ -388,7 +388,7 @@ async fn a_port_with_two_learned_macs_is_not_an_fdb_candidate() {
 
     let entry = Interface::new(InterfaceBase {
         host_id: switch.id,
-        network_id: lab.network_id,
+        site_id: lab.site_id,
         if_index: Some(5),
         if_descr: Some("Gi0/5".to_string()),
         if_type: Some(if_type::ETHERNET_CSMA_CD),
@@ -419,8 +419,8 @@ async fn a_bridge_only_device_resolves_its_single_mac_port_via_resolve_fdb_links
     let far_port = lab
         .storage
         .interfaces
-        .get_all(StorableFilter::<Interface>::new_from_network_ids(&[
-            lab.network_id
+        .get_all(StorableFilter::<Interface>::new_from_site_ids(&[
+            lab.site_id
         ]))
         .await
         .unwrap()
@@ -431,8 +431,8 @@ async fn a_bridge_only_device_resolves_its_single_mac_port_via_resolve_fdb_links
     let anchor = lab
         .storage
         .interfaces
-        .get_all(StorableFilter::<Interface>::new_from_network_ids(&[
-            lab.network_id
+        .get_all(StorableFilter::<Interface>::new_from_site_ids(&[
+            lab.site_id
         ]))
         .await
         .unwrap()

@@ -13,7 +13,7 @@ use crate::server::{
             traits::{Entity, SqlValue, Storable},
         },
     },
-    tags::r#impl::base::{Tag, TagBase},
+    tags::r#impl::base::{Tag, TagBase, TagGroup},
 };
 
 /// CSV row representation for Tag export
@@ -25,6 +25,8 @@ pub struct TagCsvRow {
     pub color: String,
     pub organization_id: Uuid,
     pub is_application: bool,
+    pub tag_group: Option<String>,
+    pub icon: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -34,6 +36,10 @@ impl Storable for Tag {
 
     fn table_name() -> &'static str {
         "tags"
+    }
+
+    fn search_predicates() -> &'static [&'static str] {
+        &["tags.name ILIKE {}", "tags.description ILIKE {}"]
     }
 
     const HAS_SCD2: bool = true;
@@ -74,9 +80,12 @@ impl Storable for Tag {
                     description,
                     color,
                     organization_id,
-                    is_application,
+                    tag_group,
+                    icon,
                 },
         } = self.clone();
+
+        let (is_application, group_name) = tag_group_columns(tag_group);
 
         Ok((
             vec![
@@ -86,6 +95,8 @@ impl Storable for Tag {
                 "color",
                 "organization_id",
                 "is_application",
+                "tag_group",
+                "icon",
                 "created_at",
                 "updated_at",
                 "valid_from",
@@ -99,6 +110,8 @@ impl Storable for Tag {
                 SqlValue::String(color.to_string()),
                 SqlValue::Uuid(organization_id),
                 SqlValue::Bool(is_application),
+                SqlValue::OptionalString(group_name),
+                SqlValue::OptionalString(icon.map(|icon| icon.to_string())),
                 SqlValue::Timestamp(created_at),
                 SqlValue::Timestamp(updated_at),
                 SqlValue::Timestamp(valid_from),
@@ -121,10 +134,33 @@ impl Storable for Tag {
                 description: row.get("description"),
                 organization_id: row.get("organization_id"),
                 color: row.get::<String, _>("color").parse().unwrap_or_default(),
-                is_application: row.get("is_application"),
+                tag_group: tag_group_from_columns(row.get("is_application"), row.get("tag_group")),
+                // An icon name the linked lucide build no longer knows reads as no icon rather
+                // than failing the whole tag list.
+                icon: row
+                    .get::<Option<String>, _>("icon")
+                    .and_then(|name| name.parse().ok()),
             },
         })
     }
+}
+
+/// The two columns a [`TagGroup`] is stored in: `is_application` predates tag groups and still
+/// holds the built-in one, `tag_group` holds a named group's name. The model guarantees at most
+/// one is set.
+fn tag_group_columns(group: Option<TagGroup>) -> (bool, Option<String>) {
+    match group {
+        Some(TagGroup::Application) => (true, None),
+        Some(TagGroup::Named { name }) => (false, Some(name)),
+        None => (false, None),
+    }
+}
+
+fn tag_group_from_columns(is_application: bool, group_name: Option<String>) -> Option<TagGroup> {
+    if is_application {
+        return Some(TagGroup::Application);
+    }
+    group_name.map(|name| TagGroup::Named { name })
 }
 
 impl Snapshotable for Tag {
@@ -182,7 +218,12 @@ impl Entity for Tag {
             description: self.base.description.clone(),
             color: self.base.color.to_string(),
             organization_id: self.base.organization_id,
-            is_application: self.base.is_application,
+            is_application: self.is_application(),
+            tag_group: match &self.base.tag_group {
+                Some(TagGroup::Named { name }) => Some(name.clone()),
+                _ => None,
+            },
+            icon: self.base.icon.map(|icon| icon.to_string()),
             created_at: self.created_at,
             updated_at: self.updated_at,
         }
@@ -198,10 +239,10 @@ impl Entity for Tag {
         "Custom tags for categorization. Apply labels to entities for filtering and organization.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::Metadata
+        EntityCategory::Platform
     }
 
-    fn network_id(&self) -> Option<Uuid> {
+    fn site_id(&self) -> Option<Uuid> {
         None
     }
 
@@ -215,5 +256,34 @@ impl Entity for Tag {
 
     fn set_updated_at(&mut self, time: DateTime<Utc>) {
         self.updated_at = time;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_tag_group_survives_its_two_columns() {
+        for group in [
+            None,
+            Some(TagGroup::Application),
+            Some(TagGroup::Named {
+                name: "Status".to_string(),
+            }),
+        ] {
+            let (is_application, group_name) = tag_group_columns(group.clone());
+            assert_eq!(tag_group_from_columns(is_application, group_name), group);
+        }
+    }
+
+    /// Rows written before the migration carry only `is_application`.
+    #[test]
+    fn a_pre_migration_application_row_reads_as_the_application_group() {
+        assert_eq!(
+            tag_group_from_columns(true, None),
+            Some(TagGroup::Application)
+        );
+        assert_eq!(tag_group_from_columns(false, None), None);
     }
 }

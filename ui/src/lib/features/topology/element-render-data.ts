@@ -19,22 +19,29 @@
  * this function's inputs will not be visible to the shape key.
  */
 
+import type { components } from '$lib/api/schema';
+import type { Service } from '$lib/features/services/types/base';
 import type {
+	ElementInlineGroup,
 	ElementRenderData,
 	RenderableTopology,
 	TopologyNode,
 	TopologyOptions
 } from './types/base';
 import { elementEntity, resolveElementNode } from './resolvers';
+import { elementMarks, type ElementMarks } from './element-marks';
 import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 import { getTopologyIndex } from './entity-index';
 import { entities, serviceDefinitions, views } from '$lib/shared/stores/metadata';
 import { getFreshnessTag } from '$lib/shared/utils/freshness';
-import type { Network } from '$lib/features/networks/types';
+import type { Site } from '$lib/features/sites/types';
 import { get } from 'svelte/store';
 import { activeView, topologyOptions } from './queries';
 import { hiddenEntityIds } from './interactions';
+import { expandedInlineGroups, inlineGroupKey } from './collapse';
 import { queryClient, queryKeys } from '$lib/api/query-client';
+
+type InlineGroup = components['schemas']['InlineGroup'];
 
 /**
  * Whether the active view inlines services / ports on this element, and whether
@@ -59,6 +66,8 @@ export interface ElementRenderResult {
 	 * in the component.
 	 */
 	staleTag: ReturnType<typeof getFreshnessTag>;
+	/** The colours the view paints on this card, each decoded by one of its filter values. */
+	marks: ElementMarks;
 }
 
 export interface ElementRenderInputs {
@@ -69,8 +78,10 @@ export interface ElementRenderInputs {
 	options: TopologyOptions;
 	/** Ids of entities hidden by any filter, of any type (`hiddenEntityIds`). */
 	hiddenEntityIds: Set<string>;
-	/** Networks, for resolving each entity's staleness window. */
-	networks: Network[];
+	/** Manager boxes that are open, keyed by `inlineGroupKey`; every other box is collapsed. */
+	expandedInlineGroups: Set<string>;
+	/** Sites, for resolving each entity's staleness window. */
+	sites: Site[];
 }
 
 type ViewElementConfig = {
@@ -128,26 +139,36 @@ export function elementInlineFlags(
  */
 function resolveStaleTag(
 	resolved: ReturnType<typeof resolveElementNode>,
-	networks: Network[]
+	sites: Site[]
 ): ReturnType<typeof getFreshnessTag> {
 	const subject = elementEntity(resolved);
 	if (!subject) return null;
 	return getFreshnessTag(
 		subject,
-		networks.find((n) => n.id === subject.network_id),
+		sites.find((n) => n.id === subject.site_id),
 		{ entityTypeLabel: entities.getName(resolved.elementType ?? 'Host') || undefined }
 	);
 }
 
 export function buildElementRender(inputs: ElementRenderInputs): ElementRenderResult {
+	const resolved = resolveElementNode(inputs.nodeId, inputs.node, inputs.topology);
+	return {
+		...buildElementContent(inputs, resolved),
+		marks: elementMarks(inputs.activeView, resolved, inputs.sites, inputs.topology)
+	};
+}
+
+function buildElementContent(
+	inputs: ElementRenderInputs,
+	resolved: ReturnType<typeof resolveElementNode>
+): Omit<ElementRenderResult, 'marks'> {
 	const { nodeId, node, topology, activeView, options, hiddenEntityIds } = inputs;
 
-	const resolved = resolveElementNode(nodeId, node, topology);
 	const flags = elementInlineFlags(inputs, resolved.elementType);
 
 	const elementType = resolved.elementType ?? 'Interface';
 	const host = resolved.host;
-	const staleTag = resolveStaleTag(resolved, inputs.networks);
+	const staleTag = resolveStaleTag(resolved, inputs.sites);
 	const ipAddress = resolved.ipAddress ?? null;
 	const servicesForHost = resolved.services ?? [];
 
@@ -170,10 +191,9 @@ export function buildElementRender(inputs: ElementRenderInputs): ElementRenderRe
 				headerText: showHostname && host ? hostDisplayName(host) : null,
 				bodyText: service ? null : 'Unknown Service',
 				showServices: !!service,
-				isVirtualized: false,
-				isContainerized: service?.virtualization_service_id != null,
 				isCategoryHidden: false,
-				ip_address_id: nodeId
+				ip_address_id: nodeId,
+				inlineGroups: []
 			} as ElementRenderData
 		};
 	}
@@ -187,12 +207,26 @@ export function buildElementRender(inputs: ElementRenderInputs): ElementRenderRe
 		// Services visible in card. Filter = structural remove: hidden services
 		// are dropped from the list entirely, not faded. The OpenPorts-category
 		// subset is routed to the collapsed "+N open ports" indicator below.
-		const servicesOnHost = servicesForHost.filter((s) => {
+		const isShown = (s: Service) => {
 			if (hiddenEntityIds.has(s.id)) return false;
 			const category = serviceDefinitions.getCategory(s.service_definition);
 			if (category === 'OpenPorts' && hiddenCategories.includes(category)) return false;
 			return true;
-		});
+		};
+		const inlineGroups = buildInlineGroups(
+			node,
+			servicesForHost,
+			topology,
+			hiddenEntityIds,
+			isShown,
+			(groupId) => !inputs.expandedInlineGroups.has(inlineGroupKey(nodeId, groupId))
+		);
+		const groupedServiceIds = new Set(
+			inlineGroups.flatMap((g) => [...(g.header ? [g.header] : []), ...g.services]).map((s) => s.id)
+		);
+		const servicesOnHost = servicesForHost.filter(
+			(s) => isShown(s) && !groupedServiceIds.has(s.id)
+		);
 
 		// OpenPorts hidden by category → collapsed indicator.
 		// (Tag-hidden services of any category are already removed above.)
@@ -208,7 +242,7 @@ export function buildElementRender(inputs: ElementRenderInputs): ElementRenderRe
 		const showServices =
 			((flags.inlinesService && !flags.serviceInlineHidden) ||
 				(flags.inlinesPort && !flags.portInlineHidden)) &&
-			(servicesOnHost.length !== 0 || hiddenOpenPorts.length !== 0);
+			(servicesOnHost.length !== 0 || hiddenOpenPorts.length !== 0 || inlineGroups.length !== 0);
 
 		const hostLabel = node.header ?? hostDisplayName(host);
 
@@ -223,9 +257,8 @@ export function buildElementRender(inputs: ElementRenderInputs): ElementRenderRe
 				headerText: hostLabel,
 				bodyText: showServices ? null : hostLabel,
 				showServices,
-				isVirtualized: host.virtualization_service_id != null,
-				isContainerized: false,
-				ip_address_id: nodeId
+				ip_address_id: nodeId,
+				inlineGroups
 			} as ElementRenderData
 		};
 	}
@@ -255,11 +288,11 @@ export function buildElementRender(inputs: ElementRenderInputs): ElementRenderRe
 				footerText: null,
 				bodyText: null,
 				showServices: false,
-				isVirtualized: false,
-				isContainerized: false,
 				services: [],
 				hiddenOpenPorts: [],
-				ip_address_id: '',
+				// The card's selection key, as on Host and Service cards; '' left L2 ports unringable.
+				ip_address_id: nodeId,
+				inlineGroups: [],
 				portStatus: iface
 					? {
 							operStatus: iface.oper_status,
@@ -325,14 +358,93 @@ export function buildElementRender(inputs: ElementRenderInputs): ElementRenderRe
 			headerText,
 			bodyText: showServices ? null : hostDisplayName(host),
 			showServices,
-			isVirtualized:
-				headerText?.startsWith('Docker @') || isContainerSubnet
-					? false
-					: host.virtualization_service_id != null,
-			isContainerized: false,
-			ip_address_id: resolved.ipAddressId ?? ''
+			ip_address_id: resolved.ipAddressId ?? '',
+			inlineGroups: []
 		} as ElementRenderData
 	};
+}
+
+/**
+ * The manager groups the backend inlined on a host card, resolved to entities.
+ *
+ * Each `inline_groups` entry says which entity type it names: service members come from the
+ * card's own services, host members (macvlan containers, a guest's network identities) from the
+ * topology's hosts, each carrying the services on that host. Hidden hosts and services drop out.
+ */
+export function buildInlineGroups(
+	node: TopologyNode,
+	servicesForHost: Service[],
+	topology: RenderableTopology,
+	hiddenEntityIds: Set<string>,
+	isShown: (s: Service) => boolean,
+	isCollapsed: (groupId: string) => boolean = () => false
+): ElementInlineGroup[] {
+	const entries = ((node as { inline_groups?: InlineGroup[] }).inline_groups ??
+		[]) as InlineGroup[];
+	if (entries.length === 0) return [];
+
+	const index = getTopologyIndex(topology);
+	const groups = new Map<string, ElementInlineGroup>();
+	for (const entry of entries) {
+		let group = groups.get(entry.group_id);
+		if (!group) {
+			group = {
+				groupId: entry.group_id,
+				collapsed: isCollapsed(entry.group_id),
+				header: null,
+				services: [],
+				hosts: []
+			};
+			groups.set(entry.group_id, group);
+		}
+		if (entry.entity_type === 'Host') {
+			const host = index.hostsById.get(entry.entity_id);
+			if (!host || hiddenEntityIds.has(host.id)) continue;
+			group.hosts.push({
+				host,
+				services: (index.servicesByHostId.get(host.id) ?? []).filter(isShown)
+			});
+			continue;
+		}
+		const service = servicesForHost.find((s) => s.id === entry.entity_id);
+		if (!service || !isShown(service)) continue;
+		if (entry.role === 'Header') group.header = service;
+		else group.services.push(service);
+	}
+
+	return [...groups.values()].filter(
+		(g) => g.header || g.services.length > 0 || g.hosts.length > 0
+	);
+}
+
+/**
+ * What the inspector's Services section shows for an element: the element's own services, and
+ * the manager boxes its card draws (the same `buildInlineGroups` result, so the two agree on
+ * members, hiding and service-less hosts).
+ *
+ * `ipAddressId` narrows the own services to those bound to that address, for an IP-address
+ * element. A Host element passes null and keeps every service on the host.
+ */
+export function inspectorServiceSections(
+	node: TopologyNode,
+	services: Service[],
+	topology: RenderableTopology,
+	hiddenEntityIds: Set<string>,
+	ipAddressId: string | null
+): { own: Service[]; groups: ElementInlineGroup[] } {
+	const isShown = (s: Service) => !hiddenEntityIds.has(s.id);
+	const groups = buildInlineGroups(node, services, topology, hiddenEntityIds, isShown);
+	const grouped = new Set(
+		groups.flatMap((g) => [...(g.header ? [g.header] : []), ...g.services]).map((s) => s.id)
+	);
+	const own = services.filter(
+		(s) =>
+			isShown(s) &&
+			!grouped.has(s.id) &&
+			(ipAddressId === null ||
+				s.bindings.some((b) => b.ip_address_id === ipAddressId || b.ip_address_id === null))
+	);
+	return { own, groups };
 }
 
 /**
@@ -364,6 +476,8 @@ export function elementShapeKey(result: ElementRenderResult): string {
 	// rather than raw length so near-identical labels share a key.
 	const lines = (text: string | null | undefined): number =>
 		text ? Math.ceil(text.length / 28) : 0;
+	const serviceShape = (s: Service): string =>
+		`${lines(s.name)}:${s.bindings.filter((b) => b.type === 'Port').length}:${s.service_definition ?? ''}`;
 
 	const parts: (string | number)[] = [
 		d.elementType,
@@ -372,8 +486,6 @@ export function elementShapeKey(result: ElementRenderResult): string {
 		lines(d.bodyText),
 		lines(d.footerText),
 		d.showServices ? 1 : 0,
-		d.isVirtualized ? 1 : 0,
-		d.isContainerized ? 1 : 0,
 		d.hiddenOpenPorts.length,
 		result.staleTag ? 1 : 0,
 		// Not just presence: the block renders status, speed and MAC on separate
@@ -395,9 +507,16 @@ export function elementShapeKey(result: ElementRenderResult): string {
 		// different definitions that both render an icon get separate keys — which
 		// is the safe direction: an extra key costs one more measured node, a
 		// missed distinction lays cards out at the wrong height.
-		...d.services.map(
-			(s) =>
-				`${lines(s.name)}:${s.bindings.filter((b) => b.type === 'Port').length}:${s.service_definition ?? ''}`
+		...d.services.map(serviceShape),
+		// Each group is a dashed box with a header row, its service rows, and per member host a
+		// name row followed by that host's service rows.
+		d.inlineGroups.length,
+		// A collapsed box renders only its header row, so its members don't affect height.
+		...d.inlineGroups.map((g) =>
+			g.collapsed
+				? `gc${g.header ? lines(g.header.name) : 0}`
+				: `g${g.header ? lines(g.header.name) : 0}[${g.services.map(serviceShape).join(',')}]` +
+					`[${g.hosts.map((h) => `${lines(hostDisplayName(h.host))}(${h.services.map(serviceShape).join(',')})`).join(',')}]`
 		)
 	];
 
@@ -419,6 +538,7 @@ export function currentElementRenderContext(): Omit<
 		activeView: get(activeView),
 		options: get(topologyOptions),
 		hiddenEntityIds: get(hiddenEntityIds),
-		networks: queryClient.getQueryData<Network[]>(queryKeys.networks.all) ?? []
+		expandedInlineGroups: get(expandedInlineGroups),
+		sites: queryClient.getQueryData<Site[]>(queryKeys.sites.all) ?? []
 	};
 }

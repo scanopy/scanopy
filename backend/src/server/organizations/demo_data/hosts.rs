@@ -1,13 +1,13 @@
 //! Hosts and services for the demo org.
 //!
-//! Kept as one file rather than split further by network: this is one hand-authored host/
+//! Kept as one file rather than split further by site: this is one hand-authored host/
 //! service dataset (the HQ/DC split lives in the inline comments below), not a set of
 //! independent responsibilities -- splitting it would fragment a single dataset without
 //! adding clarity.
 
 use super::*;
 
-/// A small set of "recently discovered" hosts, created AFTER the per-network
+/// A small set of "recently discovered" hosts, created AFTER the per-site
 /// snapshot in the populate handler so the snapshot captures an earlier state
 /// and the live view visibly differs (these hosts/services appear only in
 /// live). Kept fully self-contained — no dependencies, neighbor links, or
@@ -15,20 +15,15 @@ use super::*;
 /// FK-ordering concerns. Uses only service-definition ids already proven in the
 /// main demo set.
 pub(super) fn generate_recent_hosts(
-    networks: &[Network],
+    sites: &[Site],
     subnets: &[Subnet],
     now: DateTime<Utc>,
 ) -> Vec<HostWithServices> {
-    let find_network = |name: &str| {
-        networks
-            .iter()
-            .find(|n| n.base.name.contains(name))
-            .unwrap()
-    };
+    let find_site = |name: &str| sites.iter().find(|n| n.base.name.contains(name)).unwrap();
     let find_subnet = |name: &str| subnets.iter().find(|s| s.base.name.contains(name)).unwrap();
 
-    let hq = find_network("Headquarters");
-    let dc = find_network("Data Center");
+    let hq = find_site("Headquarters");
+    let dc = find_site("Data Center");
 
     vec![
         // HQ: a new employee workstation on the office LAN. Windows ships OpenSSH Server as an
@@ -110,7 +105,7 @@ pub(super) fn generate_recent_hosts(
 }
 
 pub(super) fn generate_hosts_and_services(
-    networks: &[Network],
+    sites: &[Site],
     subnets: &[Subnet],
     tags: &[Tag],
     credentials: &[Credential],
@@ -120,12 +115,7 @@ pub(super) fn generate_hosts_and_services(
     let mut result = Vec::new();
 
     // Helper to find entities
-    let find_network = |name: &str| {
-        networks
-            .iter()
-            .find(|n| n.base.name.contains(name))
-            .unwrap()
-    };
+    let find_site = |name: &str| sites.iter().find(|n| n.base.name.contains(name)).unwrap();
     let find_subnet = |name: &str| subnets.iter().find(|s| s.base.name.contains(name)).unwrap();
     let find_tag = |name: &str| tags.iter().find(|t| t.base.name == name).map(|t| t.id);
 
@@ -159,9 +149,12 @@ pub(super) fn generate_hosts_and_services(
     let unifi_os_cred = find_cred("UniFi OS API Key");
     let instant_on_cred = find_cred("Instant On Cloud Account");
     let hypervisor_ssh_cred = find_cred("Hypervisor SSH");
+    let proxmox_api_cred = find_cred("Proxmox Cluster API");
 
     let critical_tag = find_tag("Critical");
     let production_tag = find_tag("Production");
+    let development_tag = find_tag("Development");
+    let decommissioned_tag = find_tag("Decommissioned");
     let database_tag = find_tag("Database");
     let monitoring_tag = find_tag("Monitoring");
     let iot_tag = find_tag("IoT Device");
@@ -199,9 +192,9 @@ pub(super) fn generate_hosts_and_services(
     let elasticsearch_dc_svc_id = dep_svc_ids.elasticsearch_dc;
 
     // ========================================================================
-    // HEADQUARTERS NETWORK — 30 hosts
+    // HEADQUARTERS SITE — 30 hosts
     // ========================================================================
-    let hq = find_network("Headquarters");
+    let hq = find_site("Headquarters");
     let hq_mgmt = find_subnet("HQ Management");
     let hq_servers = find_subnet("HQ Servers");
     let hq_storage = find_subnet("HQ Storage");
@@ -373,26 +366,7 @@ pub(super) fn generate_hosts_and_services(
     ));
     result.push(unifi_switch);
 
-    // 4. Pi-hole DNS
-    result.push(host_with_services!(
-        with_mac(
-            create_host(
-                "pihole-dns01",
-                Some("pihole.acme.local"),
-                Some("Pi-hole DNS ad blocker"),
-                hq,
-                hq_mgmt,
-                Ipv4Addr::new(10, 0, 1, 5),
-                vec![],
-                None,
-                None,
-                now
-            ),
-            [0xdc, 0xa6, 0x32, 0x10, 0x04, 0x01],
-        ),
-        now,
-        ("Pi-Hole", "Pi-hole", Some(PortType::Http), vec![]),
-    ));
+    // 4. Pi-hole DNS: a macvlan container on docker-prod01, listed after it (13b).
 
     // 5. Grafana (pre-generated ID for dependency wiring)
     {
@@ -480,22 +454,30 @@ pub(super) fn generate_hosts_and_services(
         });
     }
 
-    // 7. Uptime Kuma (pre-generated ID for dependency wiring)
+    // 7. Uptime Kuma (pre-generated ID for dependency wiring) — an LXC container on hv02, bridged
+    // onto the management VLAN it watches (vm_id=202)
     {
         let (host, ip_address) = with_mac(
-            create_host(
+            reported_by_proxmox(create_host(
                 "uptime-kuma",
                 Some("status.acme.local"),
-                Some("Uptime Kuma status page"),
+                Some("Uptime Kuma status page (LXC container on proxmox-hv02)"),
                 hq,
                 hq_mgmt,
                 Ipv4Addr::new(10, 0, 1, 52),
                 monitoring_tag.into_iter().collect(),
                 None,
-                None,
+                Some((
+                    HostVirtualization::Proxmox(ProxmoxVirtualization {
+                        vm_name: Some("uptime-kuma".to_string()),
+                        vm_id: Some("202".to_string()),
+                        guest_type: Some(ProxmoxGuestType::Lxc),
+                    }),
+                    pve_hq2_svc_id,
+                )),
                 now,
-            ),
-            [0xf8, 0xbc, 0x12, 0x10, 0x07, 0x01],
+            )),
+            [0xbc, 0x24, 0x11, 0x10, 0x07, 0x01],
         );
         let ip_addresses = vec![ip_address];
         let mut ports = Vec::new();
@@ -563,7 +545,7 @@ pub(super) fn generate_hosts_and_services(
             "Proxmox VE",
             &host,
             &ip_addresses[0],
-            Some(PortType::Https8443),
+            Some(PortType::new_tcp(8006)),
             production_tag.into_iter().collect(),
             now,
         ) {
@@ -594,7 +576,7 @@ pub(super) fn generate_hosts_and_services(
                 ports,
                 services,
             },
-            &[hypervisor_ssh_cred],
+            &[hypervisor_ssh_cred, proxmox_api_cred],
         ));
     }
 
@@ -635,7 +617,7 @@ pub(super) fn generate_hosts_and_services(
             "Proxmox VE",
             &host,
             &ip_addresses[0],
-            Some(PortType::Https8443),
+            Some(PortType::new_tcp(8006)),
             production_tag.into_iter().collect(),
             now,
         ) {
@@ -665,14 +647,17 @@ pub(super) fn generate_hosts_and_services(
                 ports,
                 services,
             },
-            &[hypervisor_ssh_cred],
+            &[hypervisor_ssh_cred, proxmox_api_cred],
         ));
     }
 
-    // 10. gitlab-vm — VM on hv01 (vm_id=100)
-    result.push(host_with_services!(
+    // 10. gitlab-vm — VM on hv01 (vm_id=100). Also runs a Docker engine for its CI runner, which
+    // sits on a macvlan network with an address of its own (10b), so proxmox-hv01 → gitlab-vm →
+    // gitlab-runner is a three-level virtualization chain.
+    let docker_gitlab_svc_id = Uuid::new_v4();
+    let mut gitlab_vm = host_with_services!(
         with_mac(
-            create_host(
+            reported_by_proxmox(create_host(
                 "gitlab-vm",
                 Some("gitlab.acme.local"),
                 Some("GitLab instance (VM on proxmox-hv01)"),
@@ -685,11 +670,12 @@ pub(super) fn generate_hosts_and_services(
                     HostVirtualization::Proxmox(ProxmoxVirtualization {
                         vm_name: Some("gitlab-vm".to_string()),
                         vm_id: Some("100".to_string()),
+                        guest_type: Some(ProxmoxGuestType::Qemu),
                     }),
                     pve_hq1_svc_id,
                 )),
                 now
-            ),
+            )),
             [0x52, 0x54, 0x00, 0x20, 0x10, 0x01],
         ),
         now,
@@ -699,12 +685,67 @@ pub(super) fn generate_hosts_and_services(
             Some(PortType::Https),
             [production_tag, devops_tag].into_iter().flatten().collect()
         ),
-    ));
+    );
+    if let Some((svc, port)) = create_service_with_id(
+        docker_gitlab_svc_id,
+        "Docker",
+        "Docker Daemon",
+        &gitlab_vm.host,
+        &gitlab_vm.ip_addresses[0],
+        Some(PortType::Docker),
+        vec![],
+        now,
+    ) {
+        if let Some(p) = port {
+            gitlab_vm.ports.push(p);
+        }
+        gitlab_vm.services.push(svc);
+    }
+    result.push(gitlab_vm);
+
+    // 10b. gitlab-runner — the CI runner container on gitlab-vm's macvlan network
+    {
+        let (mut host, mut ip_address) = create_host(
+            "gitlab-runner",
+            Some("runner.acme.local"),
+            Some("GitLab CI runner (macvlan container on gitlab-vm)"),
+            hq,
+            hq_servers,
+            Ipv4Addr::new(10, 0, 20, 13),
+            [devops_tag].into_iter().flatten().collect(),
+            None,
+            Some((
+                HostVirtualization::Docker(ContainerHostVirtualization {
+                    container_name: Some("gitlab-runner".to_string()),
+                    container_id: Some("7b1c2d3e4f5a".to_string()),
+                    compose_project: Some("ci".to_string()),
+                    network_type: ContainerNetworkType::MacVlan,
+                }),
+                docker_gitlab_svc_id,
+            )),
+            now,
+        );
+        // Discovered and titled by the Docker integration, as the daemon records a container host.
+        host.base.source = EntitySource::Discovery;
+        host.base.name =
+            HostName::from_controller("gitlab-runner".to_string(), ClientProbe::Docker);
+        ip_address.base.mac_address = Some(MacEvidence::new(
+            MacEvidenceValue(MacAddress::new([0x02, 0x42, 0x0a, 0x00, 0x14, 0x0d])),
+            AttributeSource::HypervisorConfig,
+        ));
+        ip_address.base.name = Some("lan".to_string());
+        result.push(HostWithServices {
+            host,
+            ip_addresses: vec![ip_address],
+            ports: vec![],
+            services: vec![],
+        });
+    }
 
     // 11. nextcloud-vm — VM on hv01 (vm_id=101)
     result.push(host_with_services!(
         with_mac(
-            create_host(
+            reported_by_proxmox(create_host(
                 "nextcloud-vm",
                 Some("cloud.acme.local"),
                 Some("Nextcloud file sharing (VM on proxmox-hv01)"),
@@ -717,11 +758,12 @@ pub(super) fn generate_hosts_and_services(
                     HostVirtualization::Proxmox(ProxmoxVirtualization {
                         vm_name: Some("nextcloud-vm".to_string()),
                         vm_id: Some("101".to_string()),
+                        guest_type: Some(ProxmoxGuestType::Qemu),
                     }),
                     pve_hq1_svc_id,
                 )),
                 now
-            ),
+            )),
             [0x52, 0x54, 0x00, 0x20, 0x11, 0x01],
         ),
         now,
@@ -739,7 +781,7 @@ pub(super) fn generate_hosts_and_services(
     // 12. keycloak-vm — VM on hv02 (vm_id=200)
     result.push(host_with_services!(
         with_mac(
-            create_host(
+            reported_by_proxmox(create_host(
                 "keycloak-vm",
                 Some("keycloak.acme.local"),
                 Some("Keycloak SSO (VM on proxmox-hv02)"),
@@ -752,11 +794,12 @@ pub(super) fn generate_hosts_and_services(
                     HostVirtualization::Proxmox(ProxmoxVirtualization {
                         vm_name: Some("keycloak-vm".to_string()),
                         vm_id: Some("200".to_string()),
+                        guest_type: Some(ProxmoxGuestType::Qemu),
                     }),
                     pve_hq2_svc_id,
                 )),
                 now
-            ),
+            )),
             [0x52, 0x54, 0x00, 0x20, 0x12, 0x01],
         ),
         now,
@@ -782,7 +825,7 @@ pub(super) fn generate_hosts_and_services(
             created_at: now,
             updated_at: now,
             base: IPAddressBase {
-                network_id: hq.id,
+                site_id: hq.id,
                 host_id,
                 subnet_id: hq_servers.id,
                 ip_address: IpAddr::V4(Ipv4Addr::new(10, 0, 20, 20)),
@@ -805,7 +848,7 @@ pub(super) fn generate_hosts_and_services(
             created_at: now,
             updated_at: now,
             base: IPAddressBase {
-                network_id: hq.id,
+                site_id: hq.id,
                 host_id,
                 subnet_id: hq_docker.id,
                 ip_address: IpAddr::V4(Ipv4Addr::new(172, 17, 0, 1)),
@@ -829,7 +872,7 @@ pub(super) fn generate_hosts_and_services(
             updated_at: now,
             base: HostBase {
                 name: HostName::manual("docker-prod01".to_string()),
-                network_id: hq.id,
+                site_id: hq.id,
                 hostname: Some(Attributed::new(
                     crate::server::hosts::r#impl::attributes::HostHostnameValue(
                         "docker-prod01.acme.local".to_string(),
@@ -840,6 +883,7 @@ pub(super) fn generate_hosts_and_services(
                 source: EntitySource::Manual,
                 virtualization_metadata: None,
                 virtualization_service_id: None,
+                virtualization_interface_id: None,
                 hidden: false,
                 tags: production_tag.into_iter().collect(),
                 sys_descr: None,
@@ -852,6 +896,7 @@ pub(super) fn generate_hosts_and_services(
                 manufacturer: None,
                 model: None,
                 serial_number: None,
+                asset_tag: None,
                 firmware_revision: None,
                 software_revision: None,
                 os: docker_engine_host_os(),
@@ -984,6 +1029,45 @@ pub(super) fn generate_hosts_and_services(
         });
     }
 
+    // 13b. Pi-hole DNS: a Compose-managed container on docker-prod01's macvlan network, so it
+    // answers DNS from its own address on the Servers LAN rather than through a published port.
+    // Docker assigns the endpoint's MAC (02:42 + the IP) and keeps it for the container's life.
+    {
+        let (mut host, mut ip_address) = create_host(
+            "pihole",
+            Some("pihole.acme.local"),
+            Some("Pi-hole DNS ad blocker (macvlan container on docker-prod01)"),
+            hq,
+            hq_servers,
+            Ipv4Addr::new(10, 0, 20, 21),
+            vec![],
+            None,
+            Some((
+                HostVirtualization::Docker(ContainerHostVirtualization {
+                    container_name: Some("pihole".to_string()),
+                    container_id: Some("e3f4a5b6c7d8".to_string()),
+                    compose_project: Some("dns".to_string()),
+                    network_type: ContainerNetworkType::MacVlan,
+                }),
+                docker_hq_svc_id,
+            )),
+            now,
+        );
+        // Discovered and titled by the Docker integration, as the daemon records a container host.
+        host.base.source = EntitySource::Discovery;
+        host.base.name = HostName::from_controller("pihole".to_string(), ClientProbe::Docker);
+        ip_address.base.mac_address = Some(MacEvidence::new(
+            MacEvidenceValue(MacAddress::new([0x02, 0x42, 0x0a, 0x00, 0x14, 0x15])),
+            AttributeSource::HypervisorConfig,
+        ));
+        ip_address.base.name = Some("lan".to_string());
+        result.push(host_with_services!(
+            (host, ip_address),
+            now,
+            ("Pi-Hole", "Pi-hole", Some(PortType::Http), vec![]),
+        ));
+    }
+
     // 14. Jenkins CI — inventoried by the "Linux Inventory" SSH credential's script
     let mut jenkins = host_with_services!(
         with_ssh_inventory(
@@ -995,7 +1079,7 @@ pub(super) fn generate_hosts_and_services(
                     hq,
                     hq_servers,
                     Ipv4Addr::new(10, 0, 20, 30),
-                    production_tag.into_iter().collect(),
+                    development_tag.into_iter().collect(),
                     None,
                     None,
                     now
@@ -1021,7 +1105,10 @@ pub(super) fn generate_hosts_and_services(
             "Jenkins",
             "Jenkins",
             Some(PortType::Http8080),
-            [production_tag, devops_tag].into_iter().flatten().collect()
+            [development_tag, devops_tag]
+                .into_iter()
+                .flatten()
+                .collect()
         ),
         ("SSH", "SSH", Some(PortType::Ssh), vec![]),
     );
@@ -1065,7 +1152,7 @@ pub(super) fn generate_hosts_and_services(
     // 16. db-vm — VM on hv02 (vm_id=201)
     result.push(host_with_services!(
         with_mac(
-            create_host(
+            reported_by_proxmox(create_host(
                 "db-vm",
                 Some("db.acme.local"),
                 Some("Database server (VM on proxmox-hv02)"),
@@ -1078,11 +1165,12 @@ pub(super) fn generate_hosts_and_services(
                     HostVirtualization::Proxmox(ProxmoxVirtualization {
                         vm_name: Some("db-vm".to_string()),
                         vm_id: Some("201".to_string()),
+                        guest_type: Some(ProxmoxGuestType::Qemu),
                     }),
                     pve_hq2_svc_id,
                 )),
                 now
-            ),
+            )),
             [0x52, 0x54, 0x00, 0x40, 0x16, 0x01],
         ),
         now,
@@ -1385,7 +1473,7 @@ pub(super) fn generate_hosts_and_services(
                             hq,
                             hq_iot,
                             Ipv4Addr::new(10, 0, 30, 50),
-                            iot_tag.into_iter().collect(),
+                            iot_tag.into_iter().chain(decommissioned_tag).collect(),
                             None,
                             None,
                             now,
@@ -1631,7 +1719,7 @@ pub(super) fn generate_hosts_and_services(
             created_at: now,
             updated_at: now,
             base: IPAddressBase {
-                network_id: hq.id,
+                site_id: hq.id,
                 host_id,
                 subnet_id: hq_annex.id,
                 ip_address: IpAddr::V4(Ipv4Addr::new(10, 0, 50, 1)),
@@ -1654,7 +1742,7 @@ pub(super) fn generate_hosts_and_services(
                 // An LLDP far end arrives nameless. It is titled by the chassis ID it advertised,
                 // which here is a locally assigned string rather than a MAC.
                 name: HostName::unnamed(),
-                network_id: hq.id,
+                site_id: hq.id,
                 hostname: None,
                 description: Some(
                     "Seen via LLDP from the HQ core switch; not yet scanned directly".to_string(),
@@ -1662,6 +1750,7 @@ pub(super) fn generate_hosts_and_services(
                 source: EntitySource::Inferred,
                 virtualization_metadata: None,
                 virtualization_service_id: None,
+                virtualization_interface_id: None,
                 hidden: false,
                 tags: vec![],
                 sys_descr: None,
@@ -1677,6 +1766,7 @@ pub(super) fn generate_hosts_and_services(
                 manufacturer: None,
                 model: None,
                 serial_number: None,
+                asset_tag: None,
                 firmware_revision: None,
                 software_revision: None,
                 os: None,
@@ -1692,9 +1782,9 @@ pub(super) fn generate_hosts_and_services(
     }
 
     // ========================================================================
-    // DATA CENTER NETWORK — 20 hosts
+    // DATA CENTER SITE — 20 hosts
     // ========================================================================
-    let dc = find_network("Data Center");
+    let dc = find_site("Data Center");
     let dc_mgmt = find_subnet("DC Management");
     let dc_compute = find_subnet("DC Compute");
     let dc_storage = find_subnet("DC Storage");
@@ -1777,6 +1867,11 @@ pub(super) fn generate_hosts_and_services(
         ("Switch", "Switch", None, vec![]),
     );
     let dc_switch_revision_source = AttributeSource::Probe(ClientProbe::Snmp);
+    // The one demo device whose administrator set entPhysicalAssetID, so the scan reads it.
+    dc_switch.host.base.asset_tag = Some(Attributed::new(
+        HostAssetTagValue("DC-NET-0031".to_string()),
+        dc_switch_revision_source,
+    ));
     dc_switch.host.base.firmware_revision = Some(Attributed::new(
         HostFirmwareRevisionValue("Aboot-4.0.1".to_string()),
         dc_switch_revision_source,
@@ -1991,7 +2086,7 @@ pub(super) fn generate_hosts_and_services(
             "Proxmox VE",
             &host,
             &ip_addresses[0],
-            Some(PortType::Https8443),
+            Some(PortType::new_tcp(8006)),
             production_tag.into_iter().collect(),
             now,
         ) {
@@ -2038,6 +2133,7 @@ pub(super) fn generate_hosts_and_services(
                     HostVirtualization::Proxmox(ProxmoxVirtualization {
                         vm_name: Some("argocd-vm".to_string()),
                         vm_id: Some("300".to_string()),
+                        guest_type: Some(ProxmoxGuestType::Qemu),
                     }),
                     pve_dc_svc_id,
                 )),
@@ -2070,6 +2166,7 @@ pub(super) fn generate_hosts_and_services(
                     HostVirtualization::Proxmox(ProxmoxVirtualization {
                         vm_name: Some("graylog-vm".to_string()),
                         vm_id: Some("301".to_string()),
+                        guest_type: Some(ProxmoxGuestType::Qemu),
                     }),
                     pve_dc_svc_id,
                 )),
@@ -2103,6 +2200,7 @@ pub(super) fn generate_hosts_and_services(
                     HostVirtualization::Proxmox(ProxmoxVirtualization {
                         vm_name: Some("mariadb-vm".to_string()),
                         vm_id: Some("302".to_string()),
+                        guest_type: Some(ProxmoxGuestType::Qemu),
                     }),
                     pve_dc_svc_id,
                 )),
@@ -2150,7 +2248,7 @@ pub(super) fn generate_hosts_and_services(
             created_at: now,
             updated_at: now,
             base: IPAddressBase {
-                network_id: dc.id,
+                site_id: dc.id,
                 host_id,
                 subnet_id: dc_compute.id,
                 ip_address: IpAddr::V4(Ipv4Addr::new(172, 16, 10, 20)),
@@ -2173,7 +2271,7 @@ pub(super) fn generate_hosts_and_services(
             created_at: now,
             updated_at: now,
             base: IPAddressBase {
-                network_id: dc.id,
+                site_id: dc.id,
                 host_id,
                 subnet_id: dc_docker.id,
                 ip_address: IpAddr::V4(Ipv4Addr::new(172, 18, 0, 1)),
@@ -2197,7 +2295,7 @@ pub(super) fn generate_hosts_and_services(
             updated_at: now,
             base: HostBase {
                 name: HostName::manual("dc-docker01".to_string()),
-                network_id: dc.id,
+                site_id: dc.id,
                 hostname: Some(Attributed::new(
                     crate::server::hosts::r#impl::attributes::HostHostnameValue(
                         "docker01.dc.acme.io".to_string(),
@@ -2208,6 +2306,7 @@ pub(super) fn generate_hosts_and_services(
                 source: EntitySource::Manual,
                 virtualization_metadata: None,
                 virtualization_service_id: None,
+                virtualization_interface_id: None,
                 hidden: false,
                 tags: production_tag.into_iter().collect(),
                 sys_descr: None,
@@ -2220,6 +2319,7 @@ pub(super) fn generate_hosts_and_services(
                 manufacturer: None,
                 model: None,
                 serial_number: None,
+                asset_tag: None,
                 firmware_revision: None,
                 software_revision: None,
                 os: docker_engine_host_os(),
@@ -2531,7 +2631,7 @@ pub(super) fn generate_hosts_and_services(
                     dc,
                     dc_storage,
                     Ipv4Addr::new(172, 16, 20, 31),
-                    database_tag.into_iter().chain(monitoring_tag).collect(),
+                    monitoring_tag.into_iter().collect(),
                     None,
                     None,
                     now

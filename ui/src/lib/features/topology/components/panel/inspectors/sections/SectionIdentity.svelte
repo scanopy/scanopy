@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Node } from '@xyflow/svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
+	import { focusNodes } from '$lib/features/topology/viewport-fit';
 	import { Crosshair } from 'lucide-svelte';
 	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
 	import { IPAddressDisplay } from '$lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
@@ -16,6 +17,8 @@
 	import { inspector_thisEntity, topology_focusNode } from '$lib/paraglide/messages';
 	import { containerTypes, entities } from '$lib/shared/stores/metadata';
 	import { activeView } from '$lib/features/topology/queries';
+	import InspectorSection from '../shared/InspectorSection.svelte';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 
 	let {
 		node,
@@ -31,10 +34,10 @@
 		containerContext?: ContainerRenderContext;
 	} = $props();
 
-	const { fitView } = useSvelteFlow();
+	const flow = useSvelteFlow();
 
 	function handleFocus() {
-		fitView({ nodes: [{ id: node.id }], padding: 0.5, duration: 300 });
+		focusNodes(flow, [node.id]);
 	}
 
 	// Derive the section label from entity/container type metadata
@@ -52,7 +55,12 @@
 
 	// For Interface elements: show the interface
 	let thisIPAddress = $derived(elementContext?.ipAddress ?? null);
-	let interfaceDisplayContext = $derived({ subnets: topology.subnets, compact: true });
+	const sitesQuery = useSitesQuery();
+	let interfaceDisplayContext = $derived({
+		subnets: topology.subnets,
+		sites: sitesQuery.data ?? [],
+		compact: true
+	});
 
 	// For Service elements: show the service
 	let thisService = $derived(
@@ -74,8 +82,8 @@
 	let thisInterface = $derived.by(() => {
 		if (elementContext?.elementType !== 'Interface') return null;
 		const nodeData = node.data as TopologyNode;
-		const ifEntryId = 'interface_id' in nodeData ? (nodeData.interface_id as string) : undefined;
-		return ifEntryId ? (topology.interfaces.find((e) => e.id === ifEntryId) ?? null) : null;
+		const interfaceId = 'interface_id' in nodeData ? (nodeData.interface_id as string) : undefined;
+		return interfaceId ? (topology.interfaces.find((e) => e.id === interfaceId) ?? null) : null;
 	});
 
 	// For Host containers: resolve via entity_id on the container node
@@ -98,50 +106,56 @@
 
 	// For containers: show the header/title
 	let containerTitle = $derived(containerContext?.title ?? null);
+
+	// A Host element has none of these: SectionHostDetail heads it as the selection instead.
+	let hasBody = $derived(
+		!!(thisInterface || thisIPAddress || thisService || thisHost || containerTitle)
+	);
 </script>
 
-<div>
-	<div class="mb-2 flex items-center gap-2">
-		<span class="text-secondary text-sm font-medium">{sectionLabel}</span>
-		<button class="btn-icon p-0.5" onclick={handleFocus} title={topology_focusNode()}>
-			<Crosshair class="h-3.5 w-3.5" />
-		</button>
-	</div>
-	{#if thisInterface}
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={undefined}
-				item={thisInterface}
-				displayComponent={InterfaceDisplay}
-			/>
-		</div>
-	{:else if thisIPAddress}
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={interfaceDisplayContext}
-				item={thisIPAddress}
-				displayComponent={IPAddressDisplay}
-			/>
-		</div>
-	{:else if thisService}
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={serviceDisplayContext}
-				item={thisService}
-				displayComponent={ServiceDisplay}
-			/>
-		</div>
-	{:else if thisHost}
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={hostDisplayContext}
-				item={thisHost}
-				displayComponent={HostDisplay}
-			/>
-		</div>
-	{:else if containerTitle}
-		<div class="card card-static">
-			<p class="text-primary text-sm font-medium">{containerTitle}</p>
-		</div>
-	{/if}
-</div>
+{#if hasBody}
+	<InspectorSection id="Identity" section="Identity" title={sectionLabel}>
+		{#snippet actions()}
+			<button class="btn-icon p-0.5" onclick={handleFocus} title={topology_focusNode()}>
+				<Crosshair class="h-3.5 w-3.5" />
+			</button>
+		{/snippet}
+		{#if thisInterface}
+			<div class="card card-static">
+				<EntityDisplayWrapper
+					context={{ compact: true }}
+					item={thisInterface}
+					displayComponent={InterfaceDisplay}
+				/>
+			</div>
+		{:else if thisIPAddress}
+			<div class="card card-static">
+				<EntityDisplayWrapper
+					context={interfaceDisplayContext}
+					item={thisIPAddress}
+					displayComponent={IPAddressDisplay}
+				/>
+			</div>
+		{:else if thisService}
+			<div class="card card-static">
+				<EntityDisplayWrapper
+					context={serviceDisplayContext}
+					item={thisService}
+					displayComponent={ServiceDisplay}
+				/>
+			</div>
+		{:else if thisHost}
+			<div class="card card-static">
+				<EntityDisplayWrapper
+					context={hostDisplayContext}
+					item={thisHost}
+					displayComponent={HostDisplay}
+				/>
+			</div>
+		{:else if containerTitle}
+			<div class="card card-static">
+				<p class="text-primary text-sm font-medium">{containerTitle}</p>
+			</div>
+		{/if}
+	</InspectorSection>
+{/if}

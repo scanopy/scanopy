@@ -71,9 +71,10 @@ use crate::{
         lldp::{LldpChassisId, LldpPortId},
         ports::r#impl::base::PortType,
         services::r#impl::patterns::ClientProbe,
-        shared::attribution::AttributeSource,
+        shared::attribution::{AttributeMethod, AttributeSource},
         shared::types::entities::EntitySource,
         subnets::r#impl::base::Subnet,
+        subnets::r#impl::inference::{overlaps, placeable_subnet},
     },
 };
 
@@ -309,7 +310,7 @@ impl DiscoveryIntegration for SnmpIntegration {
         // claiming otherwise makes the server clear the very columns this checkpoint exists to
         // protect. Pruning acts on the interface *set*, so `set_complete` is what gates it — not
         // whether every attribute column also finished (#649).
-        let network_id = host_data.host.base.network_id;
+        let site_id = host_data.host.base.site_id;
         let no_vlan_uuids = std::collections::HashMap::new();
         host_data.contribute_interfaces(
             ctx.interface_source,
@@ -321,7 +322,7 @@ impl DiscoveryIntegration for SnmpIntegration {
                     // authoritative interface set is written later in this same poll.
                     convert_snmp_if_entry(
                         entry,
-                        network_id,
+                        site_id,
                         &[],
                         &[],
                         &[],
@@ -672,7 +673,7 @@ impl DiscoveryIntegration for SnmpIntegration {
                 vlans = ?vlan_table.iter().map(|v| format!("{}={}", v.vlan_id, v.name)).collect::<Vec<_>>(),
                 "VLAN table entries collected"
             );
-            match ctx.ops.upsert_vlans(&vlan_table, network_id).await {
+            match ctx.ops.upsert_vlans(&vlan_table, site_id).await {
                 Ok(mapping) => mapping,
                 Err(e) => {
                     tracing::warn!(ip = %ip, error = %e, "Failed to upsert VLANs, VLAN IDs will not be resolved");
@@ -781,6 +782,9 @@ impl DiscoveryIntegration for SnmpIntegration {
             if let Some(ref v) = inventory.serial_number {
                 host_data.with_serial_number(v.clone(), probe);
             }
+            if let Some(ref v) = inventory.asset_id {
+                host_data.with_asset_tag(v.clone(), probe);
+            }
             // Two columns, two fields. `entPhysicalFirmwareRev` and `entPhysicalSoftwareRev` are
             // distinct objects in RFC 4133 — on a Cisco chassis the bootloader and the IOS
             // version — so neither is folded into the other.
@@ -810,7 +814,7 @@ impl DiscoveryIntegration for SnmpIntegration {
                 .map(|entry| {
                     convert_snmp_if_entry(
                         entry,
-                        network_id,
+                        site_id,
                         &lldp_neighbors,
                         &cdp_neighbors,
                         &bridge_fdb,
@@ -940,6 +944,21 @@ impl DiscoveryIntegration for SnmpIntegration {
         // --- Discover remote subnets from ipAddrTable ---
         let scanning_subnet = ctx.scanning_subnet;
         let mut discovered_subnets: Vec<Subnet> = Vec::new();
+        // The ranges a device-reported mask is checked against. Subnets created from earlier
+        // entries join it, so two entries on one device follow the same rule. A range Scanopy
+        // only inferred stays out: the server corrects it from this reading in
+        // `SubnetService::create`, and holding it here would block that.
+        let mut held_subnets: Vec<Subnet> = ctx
+            .known_subnets
+            .iter()
+            .chain(scanning_subnet)
+            .filter(|s| {
+                !s.is_organizational_subnet()
+                    && !s.is_container_bridge_subnet()
+                    && s.base.cidr.source().method() != AttributeMethod::Inferred
+            })
+            .cloned()
+            .collect();
 
         for (entry_ip, entry) in &ip_addr_table {
             let mask = match entry.net_mask {
@@ -973,14 +992,6 @@ impl DiscoveryIntegration for SnmpIntegration {
             };
             let ip_network = ipnetwork::IpNetwork::V4(ipv4_network);
 
-            // Skip if this is the current scanning subnet
-            if let Some(subnet) = scanning_subnet {
-                let new_cidr_str = format!("{}/{}", ipv4_network.network(), ipv4_network.prefix());
-                if new_cidr_str == subnet.base.cidr.to_string() {
-                    continue;
-                }
-            }
-
             // Get interface name for subnet typing
             let if_name = snmp_if_entries
                 .iter()
@@ -988,48 +999,95 @@ impl DiscoveryIntegration for SnmpIntegration {
                 .and_then(|e| e.if_name.clone())
                 .unwrap_or_default();
 
-            if let Some(new_subnet) = Subnet::from_discovery(if_name, &ip_network, network_id) {
-                tracing::info!(
-                    ip = %ip,
-                    cidr = %new_subnet.base.cidr,
-                    "Discovered remote subnet via ipAddrTable"
-                );
+            let Some(new_subnet) = Subnet::from_discovery(
+                if_name,
+                &ip_network,
+                site_id,
+                AttributeSource::Probe(ClientProbe::Snmp),
+            ) else {
+                continue;
+            };
 
-                match ctx.ops.create_subnet(&new_subnet, ctx.cancel).await {
-                    Ok(created_subnet) => {
-                        // Build an interface for the host on this subnet
-                        let if_mac = snmp_if_entries
-                            .iter()
-                            .find(|e| e.if_index == entry.if_index)
-                            .and_then(|e| e.if_phys_address);
-
-                        host_data.add_ip_address(IPAddress::new(IPAddressBase {
-                            network_id,
-                            host_id: Uuid::nil(),
-                            name: None,
-                            subnet_id: created_subnet.id,
-                            ip_address: *entry_ip,
-                            // The device reporting its own `ifPhysAddress`: we asked it and it answered.
-                            mac_address: if_mac.map(|m| {
-                                MacEvidence::new(
-                                    MacEvidenceValue(m),
-                                    AttributeSource::Probe(ClientProbe::Snmp),
-                                )
-                            }),
-                            position: 0,
-                        }));
-
-                        discovered_subnets.push(created_subnet);
-                    }
-                    Err(e) => {
-                        tracing::warn!(
-                            ip = %ip,
-                            cidr = %new_subnet.base.cidr,
-                            error = %e,
-                            "Failed to create discovered subnet"
-                        );
+            let subnet = match place_reported_range(&new_subnet.base.cidr, *entry_ip, &held_subnets)
+            {
+                ReportedRange::Held(held) => {
+                    tracing::debug!(
+                        ip = %ip,
+                        address = %entry_ip,
+                        reported = %new_subnet.base.cidr,
+                        subnet = %held.base.cidr,
+                        "ipAddrTable entry falls on a subnet this site holds"
+                    );
+                    held.clone()
+                }
+                ReportedRange::Unplaced => {
+                    tracing::debug!(
+                        ip = %ip,
+                        address = %entry_ip,
+                        reported = %new_subnet.base.cidr,
+                        "ipAddrTable mask overlaps a held subnet that does not contain the \
+                         address; recording neither"
+                    );
+                    continue;
+                }
+                ReportedRange::New => {
+                    tracing::info!(
+                        ip = %ip,
+                        cidr = %new_subnet.base.cidr,
+                        "Discovered remote subnet via ipAddrTable"
+                    );
+                    match ctx.ops.create_subnet(&new_subnet, ctx.cancel).await {
+                        Ok(created_subnet) => {
+                            held_subnets.push(created_subnet.clone());
+                            created_subnet
+                        }
+                        Err(e) => {
+                            tracing::warn!(
+                                ip = %ip,
+                                cidr = %new_subnet.base.cidr,
+                                error = %e,
+                                "Failed to create discovered subnet"
+                            );
+                            continue;
+                        }
                     }
                 }
+            };
+
+            // The scan already recorded the address it reached the device on. A second row for
+            // the same IP would be a duplicate within this one payload.
+            let already_recorded = host_data
+                .ip_addresses
+                .iter()
+                .any(|a| a.base.ip_address == *entry_ip);
+            if !already_recorded {
+                let if_mac = snmp_if_entries
+                    .iter()
+                    .find(|e| e.if_index == entry.if_index)
+                    .and_then(|e| e.if_phys_address);
+
+                host_data.add_ip_address(IPAddress::new(IPAddressBase {
+                    site_id,
+                    host_id: Uuid::nil(),
+                    name: None,
+                    subnet_id: subnet.id,
+                    ip_address: *entry_ip,
+                    // The device reporting its own `ifPhysAddress`: we asked it and it answered.
+                    mac_address: if_mac.map(|m| {
+                        MacEvidence::new(
+                            MacEvidenceValue(m),
+                            AttributeSource::Probe(ClientProbe::Snmp),
+                        )
+                    }),
+                    position: 0,
+                }));
+            }
+
+            // The device has an address on this subnet, so its ARP entries there describe hosts
+            // on a segment it routes for. The scanning subnet stays out: the sweep covers it.
+            let is_scanning_subnet = scanning_subnet.is_some_and(|s| s.id == subnet.id);
+            if !is_scanning_subnet && !discovered_subnets.iter().any(|s| s.id == subnet.id) {
+                discovered_subnets.push(subnet);
             }
         }
 
@@ -1038,32 +1096,48 @@ impl DiscoveryIntegration for SnmpIntegration {
             .iter()
             .any(|e| e.if_type == Some(if_type::SOFTWARE_LOOPBACK));
         if has_loopback_if_entry {
+            let loopback_ip = std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST);
             let loopback_subnet = Subnet::from_discovery(
                 "lo".to_string(),
                 &ipnetwork::IpNetwork::V4(
                     ipnetwork::Ipv4Network::new(std::net::Ipv4Addr::new(127, 0, 0, 1), 8).unwrap(),
                 ),
-                network_id,
+                site_id,
+                AttributeSource::Probe(ClientProbe::Snmp),
             );
             if let Some(loopback_subnet) = loopback_subnet {
-                match ctx.ops.create_subnet(&loopback_subnet, ctx.cancel).await {
-                    Ok(created_loopback) => {
-                        host_data.add_ip_address(IPAddress::new(IPAddressBase {
-                            network_id,
-                            host_id: Uuid::nil(),
-                            name: Some("lo".to_string()),
-                            subnet_id: created_loopback.id,
-                            ip_address: std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST),
-                            mac_address: None,
-                            position: 0,
-                        }));
+                // Every site is seeded with a loopback subnet, so this reuses that row's id
+                // rather than asking the server to dedup a fresh one onto it.
+                let loopback_subnet_id = match place_reported_range(
+                    &loopback_subnet.base.cidr,
+                    loopback_ip,
+                    &held_subnets,
+                ) {
+                    ReportedRange::Held(held) => Some(held.id),
+                    ReportedRange::Unplaced => None,
+                    ReportedRange::New => {
+                        match ctx.ops.create_subnet(&loopback_subnet, ctx.cancel).await {
+                            Ok(created_loopback) => Some(created_loopback.id),
+                            Err(e) => {
+                                tracing::debug!(
+                                    error = %e,
+                                    "Failed to create loopback subnet for SNMP host"
+                                );
+                                None
+                            }
+                        }
                     }
-                    Err(e) => {
-                        tracing::debug!(
-                            error = %e,
-                            "Failed to create loopback subnet for SNMP host"
-                        );
-                    }
+                };
+                if let Some(subnet_id) = loopback_subnet_id {
+                    host_data.add_ip_address(IPAddress::new(IPAddressBase {
+                        site_id,
+                        host_id: Uuid::nil(),
+                        name: Some("lo".to_string()),
+                        subnet_id,
+                        ip_address: loopback_ip,
+                        mac_address: None,
+                        position: 0,
+                    }));
                 }
             }
         }
@@ -1085,7 +1159,7 @@ impl DiscoveryIntegration for SnmpIntegration {
 
             if let Some(remote_subnet) = matching_subnet {
                 let arp_interface = IPAddress::new(IPAddressBase {
-                    network_id,
+                    site_id,
                     host_id: Uuid::nil(),
                     name: None,
                     subnet_id: remote_subnet.id,
@@ -1102,7 +1176,7 @@ impl DiscoveryIntegration for SnmpIntegration {
                 // An ARP entry carries an address and nothing else. The host stays unnamed: the
                 // display ladder titles it by that address without a copy in `name`.
                 let arp_host = Host::new(HostBase {
-                    network_id,
+                    site_id,
                     source: EntitySource::Discovery,
                     ..Default::default()
                 });
@@ -1116,7 +1190,8 @@ impl DiscoveryIntegration for SnmpIntegration {
 
                 if let Err(e) = ctx
                     .ops
-                    .create_host(
+                    .create_integration_host(
+                        ctx.integration,
                         arp_host,
                         vec![arp_interface],
                         vec![],
@@ -1144,6 +1219,47 @@ impl DiscoveryIntegration for SnmpIntegration {
         // or neighbour walk is recorded above with the group it came from, which says far more
         // than a single count could. Reaching here means the collection itself ran to the end.
         Ok(Completeness::Complete)
+    }
+}
+
+/// Where an address a device reports in its ipAddrTable belongs.
+#[derive(Debug)]
+enum ReportedRange<'a> {
+    /// No held subnet overlaps the reported range, so it is a segment this site does not hold
+    /// yet: a router interface on another VLAN.
+    New,
+    /// The address goes on this held subnet. Either the reported range is that subnet, or the
+    /// range overlaps held ones and this is the most specific held subnet containing the address.
+    Held(&'a Subnet),
+    /// The reported range overlaps a held subnet, and no held subnet contains the address.
+    Unplaced,
+}
+
+/// Decide whether a range built from a device's own address and netmask becomes a subnet.
+///
+/// A device's netmask describes how that device is configured, not how the segment is built. A
+/// host on a `/22` with a `/24` mask still answers ARP across the whole `/22`, and creating its
+/// `/24` splits the segment: every address in that `/24` then lands on a subnet nothing else
+/// agrees exists. So a reported range becomes a subnet only when it overlaps nothing the site
+/// already holds. Otherwise the address goes on the held subnet that contains it.
+///
+/// `held` is the site's live subnets minus the organizational `0.0.0.0/0` rows and container
+/// bridges, which overlap real ranges without describing the same segment, and minus inferred
+/// ranges, which a device's reading corrects server-side.
+fn place_reported_range<'a>(
+    reported: &cidr::IpCidr,
+    address: IpAddr,
+    held: &'a [Subnet],
+) -> ReportedRange<'a> {
+    if let Some(same) = held.iter().find(|s| *s.base.cidr == *reported) {
+        return ReportedRange::Held(same);
+    }
+    if !held.iter().any(|s| overlaps(&s.base.cidr, reported)) {
+        return ReportedRange::New;
+    }
+    match placeable_subnet(held, address) {
+        Some(subnet) => ReportedRange::Held(subnet),
+        None => ReportedRange::Unplaced,
     }
 }
 

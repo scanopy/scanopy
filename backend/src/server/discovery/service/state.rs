@@ -117,7 +117,7 @@ fn apply(
         tracing::info!(
             session_id = %session_id,
             daemon_id = %update.daemon_id,
-            network_id = %update.network_id,
+            site_id = %update.site_id,
             "Auto-creating session from daemon update"
         );
         maps.daemon_sessions
@@ -189,8 +189,8 @@ fn reason_for_daemon_terminal(
 /// waiting in `Queued`, promote it to `Pending`, stamping it so the stall sweep times it from its
 /// promotion rather than from when it was queued.
 ///
-/// Only `Queued` is promoted. An `AwaitingSnapshot` head must wait for its network's snapshot to
-/// finish; `release_network_for_snapshot` makes that decision.
+/// Only `Queued` is promoted. An `AwaitingSnapshot` head must wait for its site's snapshot to
+/// finish; `release_site_for_snapshot` makes that decision.
 fn remove_from_queue_and_promote_head(
     maps: &mut SessionMaps,
     daemon_id: Uuid,
@@ -289,7 +289,7 @@ pub(crate) fn reap(
         tracing::warn!(
             session_id = %session_id,
             daemon_id = %daemon_id,
-            network_id = %session.network_id,
+            site_id = %session.site_id,
             phase = ?session.phase,
             silent_for_secs = last_update_at.map(|at| now.signed_duration_since(at).num_seconds()),
             reason = ?DiscoveryTerminalReason::StalledNoUpdates,
@@ -315,10 +315,10 @@ pub(crate) fn reap(
     reaped
 }
 
-/// A queued session promoted by the old-session sweep, with the daemon and network it belongs to.
+/// A queued session promoted by the old-session sweep, with the daemon and site it belongs to.
 pub(crate) struct SweptPromotion {
     pub daemon_id: Uuid,
-    pub network_id: Uuid,
+    pub site_id: Uuid,
     pub promoted: PromotedSession,
 }
 
@@ -357,7 +357,7 @@ pub(crate) fn sweep_old(
         {
             promotions.push(SweptPromotion {
                 daemon_id: session.daemon_id,
-                network_id: session.network_id,
+                site_id: session.site_id,
                 promoted,
             });
         }

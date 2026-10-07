@@ -34,3 +34,33 @@ export function cidrContains(outer: string, inner: string): boolean {
 		return false;
 	}
 }
+
+/**
+ * Orders two CIDRs by family, then network address, then prefix length, widest first.
+ *
+ * That order is the tree order: a range sorts directly before every range it contains, because it
+ * starts at or before them and, where it starts at the same address, is the wider of the two. Text
+ * order is not: it puts `10.0.16.0/20` ahead of `10.0.2.0/24`.
+ *
+ * Unparseable values sort after every valid one, and among themselves as text.
+ */
+export function compareCidr(a: string, b: string): number {
+	const pa = isValidCIDR(a) ? parseCIDR(a) : null;
+	const pb = isValidCIDR(b) ? parseCIDR(b) : null;
+	if (!pa || !pb) {
+		if (pa) return -1;
+		if (pb) return 1;
+		return a.localeCompare(b);
+	}
+
+	const [addrA, prefixA] = pa;
+	const [addrB, prefixB] = pb;
+	if (addrA.kind() !== addrB.kind()) return addrA.kind() === 'ipv4' ? -1 : 1;
+
+	const bytesA = addrA.toByteArray();
+	const bytesB = addrB.toByteArray();
+	for (let i = 0; i < bytesA.length; i++) {
+		if (bytesA[i] !== bytesB[i]) return bytesA[i] - bytesB[i];
+	}
+	return prefixA - prefixB;
+}

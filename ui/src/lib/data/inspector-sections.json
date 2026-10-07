@@ -1,0 +1,110 @@
+[
+  {
+    "id": "Identity",
+    "name": "Selected",
+    "description": "The entity you selected",
+    "category": null,
+    "icon": "crosshair",
+    "color": "Gray",
+    "metadata": null
+  },
+  {
+    "id": "InterfaceData",
+    "name": "Interface data",
+    "description": "Status and counters the device reports for this port",
+    "category": null,
+    "icon": "ethernet-port",
+    "color": "Teal",
+    "metadata": null
+  },
+  {
+    "id": "Services",
+    "name": "Services",
+    "description": "Services on this host, and on the hosts it presents or runs",
+    "category": null,
+    "icon": "layers",
+    "color": "Fuchsia",
+    "metadata": null
+  },
+  {
+    "id": "Dependencies",
+    "name": "Dependencies",
+    "description": "Dependencies this service is part of",
+    "category": null,
+    "icon": "waypoints",
+    "color": "Rose",
+    "metadata": null
+  },
+  {
+    "id": "HostDetail",
+    "name": "Host",
+    "description": "The host this element belongs to",
+    "category": null,
+    "icon": "server",
+    "color": "Amber",
+    "metadata": null
+  },
+  {
+    "id": "Virtualization",
+    "name": "Runs on",
+    "description": "The hypervisor, container runtime or guest that this host runs under",
+    "category": null,
+    "icon": "monitor-cog",
+    "color": "Amber",
+    "metadata": null
+  },
+  {
+    "id": "OtherInterfaces",
+    "name": "IP addresses",
+    "description": "Every address this host holds",
+    "category": null,
+    "icon": "map-pin",
+    "color": "Emerald",
+    "metadata": null
+  },
+  {
+    "id": "PortBindings",
+    "name": "Port bindings",
+    "description": "Ports this service listens on",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": null
+  },
+  {
+    "id": "SubnetDetail",
+    "name": "Subnet",
+    "description": "The subnet this box draws",
+    "category": null,
+    "icon": "cloud",
+    "color": "Indigo",
+    "metadata": null
+  },
+  {
+    "id": "ElementSummary",
+    "name": "Contents",
+    "description": "What this box holds, counted by type",
+    "category": null,
+    "icon": "package-open",
+    "color": "Gray",
+    "metadata": null
+  },
+  {
+    "id": "DependencySummary",
+    "name": "Crossing dependencies",
+    "description": "Dependencies with members both inside and outside this box",
+    "category": null,
+    "icon": "waypoints",
+    "color": "Rose",
+    "metadata": null
+  },
+  {
+    "id": "Application",
+    "name": "Application",
+    "description": "The application this service belongs to",
+    "category": null,
+    "icon": "component",
+    "color": "Purple",
+    "metadata": null
+  }
+]

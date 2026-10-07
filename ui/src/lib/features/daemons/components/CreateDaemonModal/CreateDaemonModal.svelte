@@ -38,10 +38,10 @@
 		buildInstallConfig,
 		constructDaemonUrl,
 		detectOS,
-		slugifyNetworkName,
+		slugifySiteName,
 		type DaemonOS
 	} from '../../utils';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { daemonSetupState, type DaemonConnectionStatus } from '../../stores/daemon-setup';
 	import ConfigureStep from './steps/ConfigureStep.svelte';
 	import InstallStep from './steps/InstallStep.svelte';
@@ -105,12 +105,12 @@
 	// Email install command
 	let hasEmail = $derived(configQuery.data?.has_email_service ?? false);
 	const emailInstallMutation = useEmailInstallCommandMutation();
-	// Networks
-	const networksQuery = useNetworksQuery();
-	let networksData = $derived(networksQuery.data ?? []);
+	// Sites
+	const sitesQuery = useSitesQuery();
+	let sitesData = $derived(sitesQuery.data ?? []);
 
-	// Network selection
-	let selectedNetworkId = $state('');
+	// Site selection
+	let selectedSiteId = $state('');
 	let nameManuallyEdited = $state(false);
 
 	// API key state
@@ -176,8 +176,8 @@
 	// Connection waiting state
 	let provisionedDaemonId = $state('');
 	let isProvisioning = $state(false);
-	// Daemon identity (name + network) is frozen once Configure is left, so credentials — which
-	// are created against the selected network — can't be orphaned by a later network change.
+	// Daemon identity (name + site) is frozen once Configure is left, so credentials — which
+	// are created against the selected site — can't be orphaned by a later site change.
 	let configureCommitted = $state(false);
 
 	const discoveriesQuery = useDiscoveriesQuery();
@@ -212,19 +212,19 @@
 		enabled: () =>
 			(connectionStatus === 'waiting' || connectionStatus === 'trouble') && !!provisionedDaemonId
 	});
-	function getDefaultDaemonName(networkId: string): string {
-		const network = networksData.find((n) => n.id === networkId);
-		if (network) {
-			const slug = slugifyNetworkName(network.name);
+	function getDefaultDaemonName(siteId: string): string {
+		const site = sitesData.find((n) => n.id === siteId);
+		if (site) {
+			const slug = slugifySiteName(site.name);
 			if (slug) return `scanopy-daemon-${slug}`;
 		}
 		return 'scanopy-daemon';
 	}
 
-	// Auto-select first network when SelectNetwork is hidden (first daemon)
+	// Auto-select first site when SelectSite is hidden (first daemon)
 	$effect(() => {
-		if (isFirstDaemon && !selectedNetworkId && networksData.length > 0) {
-			selectedNetworkId = networksData[0].id;
+		if (isFirstDaemon && !selectedSiteId && sitesData.length > 0) {
+			selectedSiteId = sitesData[0].id;
 		}
 	});
 
@@ -242,8 +242,8 @@
 	});
 
 	$effect(() => {
-		if (selectedNetworkId && !nameManuallyEdited) {
-			const defaultName = getDefaultDaemonName(selectedNetworkId);
+		if (selectedSiteId && !nameManuallyEdited) {
+			const defaultName = getDefaultDaemonName(selectedSiteId);
 			untrack(() => form.setFieldValue('name', defaultName));
 		}
 	});
@@ -270,8 +270,8 @@
 	// Integration targeting for this daemon, seeded onto its discovery row at provision
 	// (`seed_credential_refs`) so the credential is probed on the first scan and assigned to a
 	// host only once that probe succeeds. The scope is derived from the type's `targets`
-	// metadata, not from the IP count alone — "no IPs" means network-wide for a broadcast-capable
-	// type but "nothing chosen" for one that excludes Network, which yields no target at all.
+	// metadata, not from the IP count alone — "no IPs" means site-wide for a broadcast-capable
+	// type but "nothing chosen" for one that excludes Site, which yields no target at all.
 	// The wizard validates the selection first, so a dropped target means an unusable one.
 	let seedCredentialRefs = $derived(
 		pendingCredentials.flatMap((p): IntegrationTarget[] => {
@@ -380,7 +380,7 @@
 		try {
 			const result = await provisionDaemonMutation.mutateAsync({
 				name: daemonName,
-				network_id: selectedNetworkId,
+				site_id: selectedSiteId,
 				mode,
 				url: isServerPoll ? constructDaemonUrl(daemonUrlBase, daemonPort) : null,
 				seed_credential_refs: seedCredentialRefs,
@@ -710,7 +710,7 @@
 		{:else if activeTab === 'credentials'}
 			<CredentialsStep
 				bind:this={credentialsStep}
-				networkId={selectedNetworkId}
+				siteId={selectedSiteId}
 				bind:pendingCredentials
 				bind:credentialIds
 				daemonOs={selectedOS}
@@ -726,8 +726,8 @@
 							onOsSelect={handleOsSelect}
 							osLocked={credentialIds.length > 0}
 							{formValues}
-							{selectedNetworkId}
-							onNetworkChange={(id) => (selectedNetworkId = id)}
+							{selectedSiteId}
+							onSiteChange={(id) => (selectedSiteId = id)}
 							onNameInput={() => (nameManuallyEdited = true)}
 							identityLocked={configureCommitted}
 							{isFirstDaemon}

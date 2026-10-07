@@ -38,24 +38,17 @@ where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
     EntityEnum: From<T>,
 {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
     let user_id = auth.user_id();
 
     // Build base filter based on entity scoping (same as get_all_handler)
-    let base_filter = if T::is_network_keyed() {
-        StorableFilter::<T>::new_from_network_ids(&network_ids)
-    } else if T::table_name() == "networks" {
-        // Networks are org-scoped but should be filtered to only those the user has access to
-        StorableFilter::<T>::new_from_entity_ids(&network_ids)
-    } else {
-        StorableFilter::<T>::new_from_org_id(&organization_id)
-    };
+    let base_filter = StorableFilter::<T>::new_for_access(&site_ids, &organization_id);
 
     // Apply entity-specific filters (but NOT pagination - we want all records)
-    let filter = query.apply_to_filter(base_filter, &network_ids, organization_id);
+    let filter = query.apply_to_filter(base_filter, &site_ids, organization_id);
 
     let service = T::get_service(&state);
 

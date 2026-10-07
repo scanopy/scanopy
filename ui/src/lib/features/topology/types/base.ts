@@ -30,7 +30,7 @@ export type FilteredOutCounts = Record<string, Record<string, number>>;
 /**
  * Topology row plus the built graph + entity arrays needed for inspectors,
  * resolvers, and rendering. The slim backend `Topology` only carries
- * `{ id, network_id, options, ... }`. The per-view graph (`nodes`/`edges`) is
+ * `{ id, site_id, options, ... }`. The per-view graph (`nodes`/`edges`) is
  * built on request and the entity arrays (hosts, services, subnets, etc.) are
  * loaded via the `TopologyData` bundle; both are merged here so consumers can
  * read everything off a single object — preserving the field shape used across
@@ -39,7 +39,7 @@ export type FilteredOutCounts = Record<string, Record<string, number>>;
  * Snapshot-aware: when a snapshot is selected, the bundle's graph + entities are
  * the snapshot's (built from its closed copies).
  *
- * `name` is a UI-side display string (network name for live, formatted
+ * `name` is a UI-side display string (site name for live, formatted
  * `taken_at` for snapshots, share name for shared topologies).
  *
  * The built graph carries `nodes`/`edges` keyed per view; `toRenderableTopology`
@@ -92,13 +92,30 @@ export interface ElementRenderData {
 	footerText: string | null;
 	bodyText: string | null;
 	showServices: boolean;
-	isVirtualized: boolean;
-	isContainerized: boolean;
 	services: Service[];
 	hiddenOpenPorts: Service[];
 	ip_address_id: string;
 	isCategoryHidden?: boolean;
 	portStatus?: PortStatus;
+	/**
+	 * Entities the backend inlined on this card under a manager (`inline_groups`): a runtime with
+	 * its containers, a guest's Network Identities with its identity hosts. Their services are
+	 * not in `services`.
+	 */
+	inlineGroups: ElementInlineGroup[];
+}
+
+/** One manager's group on a host card, drawn as a dashed box. */
+export interface ElementInlineGroup {
+	groupId: string;
+	/** The viewer collapsed this box: only its header row (with a member count) renders. */
+	collapsed: boolean;
+	/** The manager service heading the box, when it is on this card. */
+	header: Service | null;
+	/** Members that are services (bridge containers). */
+	services: Service[];
+	/** Members that are hosts (macvlan containers, network identities), with their own services. */
+	hosts: { host: Host; services: Service[] }[];
 }
 
 // ContainerRenderData removed — ContainerNode now reads icon/color directly

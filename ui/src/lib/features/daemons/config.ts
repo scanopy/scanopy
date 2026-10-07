@@ -49,12 +49,12 @@ export const fieldDefs: FieldDef[] = [
 		docsOnly: true
 	},
 	{
-		id: 'networkId',
-		label: () => m.daemons_config_networkId(),
+		id: 'siteId',
+		label: () => m.daemons_config_siteId(),
 		type: 'string',
-		cliFlag: '--network-id',
-		envVar: 'SCANOPY_NETWORK_ID',
-		helpText: () => m.daemons_config_networkIdHelp(),
+		cliFlag: '--site-id',
+		envVar: 'SCANOPY_SITE_ID',
+		helpText: () => m.daemons_config_siteIdHelp(),
 		docsOnly: true
 	},
 	// UI form fields

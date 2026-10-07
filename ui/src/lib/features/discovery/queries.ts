@@ -22,7 +22,7 @@ import { BaseSSEManager, type SSEConfig } from '$lib/shared/utils/sse';
 import { discoveryTerminalReasons, discoveryTypes } from '$lib/shared/stores/metadata';
 import { writable } from 'svelte/store';
 import * as m from '$lib/paraglide/messages';
-import { networkItems } from '$lib/features/networks/columns';
+import { siteItems } from '$lib/features/sites/columns';
 import { daemonItems } from '$lib/features/daemons/columns';
 import {
 	discoveryStreamConnected,
@@ -54,6 +54,28 @@ export function useDiscoveriesQuery(enabled?: () => boolean) {
 	}));
 }
 
+/**
+ * Query hook for fetching specific discoveries by id (for selective loading).
+ *
+ * For naming the runs other entities reference (the scan that first or last found a host).
+ * Bounded by the ids asked for, unlike the full list.
+ *
+ * @param idsGetter - Getter function returning the distinct discovery ids to fetch
+ */
+export function useDiscoveriesByIds(idsGetter: () => string[]) {
+	return createQuery(() => {
+		const ids = idsGetter();
+		return {
+			queryKey: [...queryKeys.discovery.all, 'byIds', ids],
+			queryFn: async (): Promise<Discovery[]> =>
+				unwrapData(
+					await apiClient.GET('/api/v1/discovery', { params: { query: { ids, limit: 0 } } })
+				),
+			enabled: ids.length > 0
+		};
+	});
+}
+
 /** Query parameters for the paginated discovery-history list. */
 export interface DiscoveryHistoryQueryParams {
 	limit?: number;
@@ -66,8 +88,8 @@ export interface DiscoveryHistoryQueryParams {
 	order_direction?: components['schemas']['OrderDirection'];
 	/** Free-text search across the run's name and its daemon's name. */
 	search?: string;
-	/** Filter by network ID. Several narrows to the union of them. */
-	network_ids?: string[];
+	/** Filter by site ID. Several narrows to the union of them. */
+	site_ids?: string[];
 	/** Filter by daemon ID. Several narrows to the union of them. */
 	daemon_ids?: string[];
 	/** Only runs of one of these discovery types (raw discriminants). */
@@ -103,7 +125,7 @@ export function useDiscoveryHistoryQuery(
 			order_by,
 			order_direction,
 			search,
-			network_ids,
+			site_ids,
 			daemon_ids,
 			discovery_types,
 			phases
@@ -120,7 +142,7 @@ export function useDiscoveryHistoryQuery(
 					order_by,
 					order_direction,
 					search,
-					network_ids,
+					site_ids,
 					daemon_ids,
 					discovery_types,
 					phases
@@ -138,7 +160,7 @@ export function useDiscoveryHistoryQuery(
 								order_by,
 								order_direction,
 								search,
-								network_ids,
+								site_ids,
 								daemon_ids,
 								discovery_types,
 								phases,
@@ -251,7 +273,7 @@ export function useBulkDeleteDiscoveriesMutation() {
 
 import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formatting';
 import type { Daemon } from '../daemons/types/base';
-import type { Network } from '../networks/types';
+import type { Site } from '../sites/types';
 import type { OrderableFieldConfig } from '$lib/shared/components/data/types';
 
 // ============================================================================
@@ -283,7 +305,7 @@ export function createEmptyDiscoveryFormData(daemon: Daemon | null): Discovery {
 		},
 		name: '',
 		daemon_id: daemon ? daemon.id : uuidv4Sentinel,
-		network_id: daemon ? daemon.network_id : uuidv4Sentinel,
+		site_id: daemon ? daemon.site_id : uuidv4Sentinel,
 		integration_targets: []
 	};
 }
@@ -470,7 +492,7 @@ export type DiscoveryConfigOrderField = Exclude<
  */
 export const discoveryFields = (
 	daemons: Daemon[],
-	networks: Network[]
+	sites: Site[]
 ): Record<DiscoveryConfigOrderField, DiscoveryFieldEntry> => ({
 	name: {
 		label: m.common_name(),
@@ -498,15 +520,15 @@ export const discoveryFields = (
 			m.common_unknownEntity({ entity: m.common_daemon() }),
 		display: { getItems: (item: Discovery) => daemonItems(item.daemon_id, daemons) }
 	},
-	network_id: {
-		label: m.common_network(),
+	site_id: {
+		label: m.common_site(),
 		type: 'string',
 		searchable: true,
 		filterable: true,
 		groupable: true,
 		getValue: (item: Discovery) =>
-			networks.find((n) => n.id === item.network_id)?.name ?? m.common_unknownNetwork(),
-		display: { getItems: (item: Discovery) => networkItems(item.network_id, networks) }
+			sites.find((n) => n.id === item.site_id)?.name ?? m.common_unknownSite(),
+		display: { getItems: (item: Discovery) => siteItems(item.site_id, sites) }
 	},
 	discovery_type: {
 		label: m.common_type(),

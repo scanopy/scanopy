@@ -13,7 +13,7 @@ import type { RenderableTopology } from '$lib/features/topology/types/base';
 function l2Topology(filteredOut: Record<string, Record<string, number>>): RenderableTopology {
 	return {
 		id: 'topo-1',
-		network_id: 'net-1',
+		site_id: 'net-1',
 		nodes: [],
 		edges: [],
 		hosts: [],
@@ -22,7 +22,7 @@ function l2Topology(filteredOut: Record<string, Record<string, number>>): Render
 		ip_addresses: [],
 		ports: [],
 		bindings: [],
-		interfaces: [{ id: 'if-linked', host_id: 'h1', network_id: 'net-1' }],
+		interfaces: [{ id: 'if-linked', host_id: 'h1', site_id: 'net-1' }],
 		neighbours: [
 			{ id: 'row-1', interface_id: 'if-linked', neighbor: { type: 'Interface', id: 'if-far' } }
 		],
@@ -31,7 +31,7 @@ function l2Topology(filteredOut: Record<string, Record<string, number>>): Render
 		dependencies: [],
 		vlans: [],
 		entity_tags: [],
-		name: 'My Network'
+		name: 'My Site'
 	} as unknown as RenderableTopology;
 }
 
@@ -117,7 +117,7 @@ describe('clearing a view’s filters', () => {
 	it('empties a product default rather than restoring it', () => {
 		const cleared = clearedHideSetFor('L2Physical', 'Interface', { LinkState: ['Unlinked'] });
 
-		expect(cleared).toEqual({ LinkState: [], Staleness: [] });
+		expect(cleared).toEqual({ LinkState: [], OperStatus: [], Staleness: [] });
 	});
 
 	/**
@@ -129,6 +129,7 @@ describe('clearing a view’s filters', () => {
 	it('writes an empty list for a declared filter that had no stored entry', () => {
 		expect(clearedHideSetFor('L2Physical', 'Interface', undefined)).toEqual({
 			LinkState: [],
+			OperStatus: [],
 			Staleness: []
 		});
 	});
@@ -137,6 +138,6 @@ describe('clearing a view’s filters', () => {
 	it('empties a stored filter the view no longer declares', () => {
 		const cleared = clearedHideSetFor('L2Physical', 'Interface', { Category: ['Web'] });
 
-		expect(cleared).toEqual({ LinkState: [], Staleness: [], Category: [] });
+		expect(cleared).toEqual({ LinkState: [], OperStatus: [], Staleness: [], Category: [] });
 	});
 });

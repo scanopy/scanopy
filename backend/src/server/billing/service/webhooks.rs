@@ -346,7 +346,7 @@ impl BillingService {
             // update for a lapsed org moves it to Active, including its
             // subscription going past due, which would undo the refusal in
             // `report_invoice_overdue` to let a lapsed org back in.
-            if resubscribed(prior_status, prior_was_free, sub.status.clone()) {
+            if resubscribed(prior_status, prior_was_free, &plan, sub.status.clone()) {
                 let plan_config = plan.config();
                 self.event_bus
                     .publish(Event::new(
@@ -355,7 +355,7 @@ impl BillingService {
                         },
                         BillingOperation::CheckoutCompleted {
                             plan,
-                            included_networks: plan_config.included_networks,
+                            included_sites: plan_config.included_sites,
                             included_seats: plan_config.included_seats,
                             mrr_amount_cents: mrr_from_subscription(&sub),
                             is_trialing,
@@ -397,7 +397,6 @@ impl BillingService {
                         },
                         BillingOperation::TrialEnded {
                             plan,
-                            converted: true,
                             next_renewal_at: next_renewal_from_subscription(&sub),
                         },
                         authentication,
@@ -1085,13 +1084,18 @@ fn is_live(status: &SubscriptionStatus) -> bool {
 /// plan: its first subscription, an upgrade from Free, or a lapsed org
 /// subscribing again. Requires a live subscription, so that an update
 /// carrying some other status cannot stand in for one.
+///
+/// Leaving Free means `plan` is something else. A legacy Free org's $0
+/// subscription renews like any other, and each renewal is an update on Free.
 fn resubscribed(
     prior_status: Option<PlanStatus>,
     prior_was_free: bool,
+    plan: &BillingPlan,
     status: SubscriptionStatus,
 ) -> bool {
-    let arriving =
-        prior_status.is_none() || prior_was_free || prior_status == Some(PlanStatus::Cancelled);
+    let arriving = prior_status.is_none()
+        || (prior_was_free && !plan.is_free())
+        || prior_status == Some(PlanStatus::Cancelled);
     arriving
         && matches!(
             status,
@@ -1122,32 +1126,63 @@ mod tests {
     /// here and be refused as a lapsed org there.
     #[test]
     fn a_lapsed_org_returns_only_on_a_live_subscription() {
+        let pro = pro();
         assert!(resubscribed(
             Some(PlanStatus::Cancelled),
             false,
+            &pro,
             SubscriptionStatus::Active
         ));
-        assert!(resubscribed(None, false, SubscriptionStatus::Trialing));
         assert!(resubscribed(
-            Some(PlanStatus::Active),
-            true,
-            SubscriptionStatus::Active
+            None,
+            false,
+            &pro,
+            SubscriptionStatus::Trialing
         ));
         // The update that moves a lapsed org's subscription to past due.
         assert!(!resubscribed(
             Some(PlanStatus::Cancelled),
             false,
+            &pro,
             SubscriptionStatus::PastDue
         ));
         assert!(!resubscribed(
             Some(PlanStatus::Cancelled),
             false,
+            &pro,
             SubscriptionStatus::Canceled
         ));
         // An org already on a paid plan is not arriving on one.
         assert!(!resubscribed(
             Some(PlanStatus::Active),
             false,
+            &pro,
+            SubscriptionStatus::Active
+        ));
+    }
+
+    fn pro() -> BillingPlan {
+        crate::server::billing::plans::get_purchasable_plans()
+            .into_iter()
+            .find(|plan| matches!(plan, BillingPlan::Pro(_)))
+            .unwrap()
+    }
+
+    /// A Free org arrives on a plan by leaving Free. Its own renewal is an
+    /// update on Free, and raised "Welcome to Scanopy Free" every month.
+    #[test]
+    fn only_leaving_free_counts_as_arriving_from_it() {
+        let free = crate::server::billing::plans::get_free_plan();
+        assert!(resubscribed(
+            Some(PlanStatus::Active),
+            true,
+            &pro(),
+            SubscriptionStatus::Active
+        ));
+        assert!(!resubscribed(
+            Some(PlanStatus::Active),
+            true,
+            &free,
             SubscriptionStatus::Active
         ));
     }

@@ -315,7 +315,7 @@ impl BillingService {
     ///
     /// Pattern A, like every other lifecycle action: this calls Stripe and
     /// returns. The resulting `customer.subscription.updated` (trialing →
-    /// active) emits `TrialEnded { converted: true }` and `invoice.paid` emits
+    /// active) emits `TrialEnded` and `invoice.paid` emits
     /// `PaymentSucceeded`, which is what advances `license_paid_through` past
     /// the trial end. No metadata marker is needed — unlike a trial extension,
     /// the status transition is signal enough.

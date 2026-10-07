@@ -4,6 +4,7 @@
 	import { MAX_ITEMS_IN_CELL, type CardFieldItem } from './types';
 	import { getFieldValue } from './controls/fieldValues';
 	import { formatDate, formatRelativeTime } from '$lib/shared/utils/formatting';
+	import { attributeSourceExplanation } from '$lib/shared/utils/attribute-source';
 	import type { EntityColumn } from './table/columns';
 	import { common_moreItems, common_no, common_none, common_yes } from '$lib/paraglide/messages';
 
@@ -17,10 +18,9 @@
 	 * Chips to render, if this cell is a list of things.
 	 *
 	 * A field can supply rich chips through `getItems`, but an array-typed field
-	 * that only has a `getValue` is still a list — joining it into "a, b, c"
-	 * would render it as prose in the table while the card shows the same field
-	 * as tags. Falling back to plain chips keeps the two views consistent
-	 * without every field having to opt in.
+	 * that only has a `getValue` is still a list, and joining it into "a, b, c"
+	 * would render it as prose. Falling back to plain chips renders every list
+	 * field as chips without each one having to opt in.
 	 */
 	let items = $derived<CardFieldItem[] | null>(
 		column.display.getItems?.(item) ??
@@ -47,6 +47,12 @@
 
 	// `items` is non-null for every array value, so this branch never sees one.
 	let text = $derived(items === null ? formatValue(value as Exclude<typeof value, string[]>) : '');
+
+	/** The value, and how it reached Scanopy when the field records a source. */
+	let title = $derived.by(() => {
+		const source = column.display.getSource?.(item);
+		return source ? `${text}\n${attributeSourceExplanation(source)}` : text;
+	});
 </script>
 
 {#if column.display.cell}
@@ -76,6 +82,7 @@
 						badge={entry.badge}
 						label={entry.label}
 						title={entry.title}
+						href={entry.href ?? ''}
 					/>
 				{/if}
 			{/each}
@@ -94,5 +101,5 @@
 	<span class="text-muted" aria-hidden="true">—</span>
 	<span class="sr-only">{common_none()}</span>
 {:else}
-	<span class="text-tertiary block truncate" title={text}>{text}</span>
+	<span class="text-tertiary block truncate" {title}>{text}</span>
 {/if}

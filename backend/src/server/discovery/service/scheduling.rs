@@ -174,13 +174,11 @@ impl DiscoveryService {
                     // (subscription ended, no paid plan chosen since) — preserves
                     // schedule config so choosing a paid plan resumes runs
                     // automatically
-                    if let Ok(Some(network)) = service
-                        .network_service
-                        .get_by_id(&fresh.base.network_id)
-                        .await
+                    if let Ok(Some(site)) =
+                        service.site_service.get_by_id(&fresh.base.site_id).await
                         && service
                             .organization_service
-                            .get_by_id(&network.base.organization_id)
+                            .get_by_id(&site.base.organization_id)
                             .await
                             .ok()
                             .flatten()

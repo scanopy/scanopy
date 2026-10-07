@@ -26,6 +26,9 @@
           "type": "active",
           "will_target_container": false
         },
+        "NetworkIdentity": {
+          "type": "disabled"
+        },
         "PhysicalLink": {
           "affects_layout": true,
           "default_visibility": "visible",
@@ -71,69 +74,170 @@
             "inline_entities": []
           }
         ],
-        "metadata_filters": {
-          "Host": [
-            {
-              "applies": "Client",
-              "filter_type": "Staleness",
-              "label": "By staleness",
-              "values": [
-                {
-                  "color": "Green",
-                  "icon": "check",
-                  "id": "current",
-                  "label": "Current"
-                },
-                {
-                  "color": "Amber",
-                  "icon": "clock",
-                  "id": "stale",
-                  "label": "Stale"
-                }
-              ]
-            }
-          ],
-          "Interface": [
-            {
-              "applies": "Server",
-              "filter_type": "LinkState",
-              "label": "By link",
-              "values": [
-                {
-                  "color": "Green",
-                  "icon": "cable",
-                  "id": "Linked",
-                  "label": "Linked"
-                },
-                {
-                  "color": "Gray",
-                  "icon": "circle",
-                  "id": "Unlinked",
-                  "label": "Unlinked"
-                }
-              ]
-            },
-            {
-              "applies": "Client",
-              "filter_type": "Staleness",
-              "label": "By staleness",
-              "values": [
-                {
-                  "color": "Green",
-                  "icon": "check",
-                  "id": "current",
-                  "label": "Current"
-                },
-                {
-                  "color": "Amber",
-                  "icon": "clock",
-                  "id": "stale",
-                  "label": "Stale"
-                }
-              ]
-            }
-          ]
-        }
+        "element_marks": [
+          {
+            "channel": "StateFill",
+            "entity": "Interface",
+            "filter_type": "OperStatus",
+            "value": "Down"
+          },
+          {
+            "channel": "StateFill",
+            "entity": "Interface",
+            "filter_type": "OperStatus",
+            "value": "LowerLayerDown"
+          },
+          {
+            "channel": "StateFill",
+            "entity": "Interface",
+            "filter_type": "Staleness",
+            "value": "stale"
+          },
+          {
+            "channel": "StateFill",
+            "entity": "Interface",
+            "filter_type": "OperStatus",
+            "value": "Up"
+          },
+          {
+            "channel": "StatusDot",
+            "entity": "Interface",
+            "filter_type": "OperStatus",
+            "value": "Up"
+          },
+          {
+            "channel": "StatusDot",
+            "entity": "Interface",
+            "filter_type": "OperStatus",
+            "value": "Down"
+          },
+          {
+            "channel": "StatusDot",
+            "entity": "Interface",
+            "filter_type": "OperStatus",
+            "value": "LowerLayerDown"
+          }
+        ],
+        "metadata_filters": [
+          {
+            "applies": "Server",
+            "entities": [
+              "Interface"
+            ],
+            "filter_type": "LinkState",
+            "label": "By link",
+            "values": [
+              {
+                "color": "Green",
+                "icon": "cable",
+                "id": "Linked",
+                "label": "Linked"
+              },
+              {
+                "color": "Gray",
+                "icon": "circle",
+                "id": "Unlinked",
+                "label": "Unlinked"
+              }
+            ]
+          },
+          {
+            "applies": "Client",
+            "entities": [
+              "Interface"
+            ],
+            "filter_type": "OperStatus",
+            "label": "By status",
+            "values": [
+              {
+                "color": "Green",
+                "icon": "circle-check",
+                "id": "Up",
+                "label": "Up"
+              },
+              {
+                "color": "Red",
+                "icon": "circle-x",
+                "id": "Down",
+                "label": "Down"
+              },
+              {
+                "color": "Yellow",
+                "icon": "flask-conical",
+                "id": "Testing",
+                "label": "Testing"
+              },
+              {
+                "color": "Gray",
+                "icon": "circle-question-mark",
+                "id": "Unknown",
+                "label": "Unknown"
+              },
+              {
+                "color": "Blue",
+                "icon": "moon",
+                "id": "Dormant",
+                "label": "Dormant"
+              },
+              {
+                "color": "Gray",
+                "icon": "circle-question-mark",
+                "id": "NotPresent",
+                "label": "Not present"
+              },
+              {
+                "color": "Red",
+                "icon": "circle-x",
+                "id": "LowerLayerDown",
+                "label": "Lower layer down"
+              }
+            ]
+          },
+          {
+            "applies": "Client",
+            "entities": [
+              "Host"
+            ],
+            "filter_type": "Staleness",
+            "label": "By staleness",
+            "values": [
+              {
+                "color": "Green",
+                "icon": "check",
+                "id": "current",
+                "label": "Current"
+              },
+              {
+                "color": "Amber",
+                "icon": "clock",
+                "id": "stale",
+                "label": "Stale"
+              }
+            ]
+          },
+          {
+            "applies": "Client",
+            "entities": [
+              "Interface"
+            ],
+            "filter_type": "Staleness",
+            "label": "By staleness",
+            "values": [
+              {
+                "color": "Green",
+                "icon": "check",
+                "id": "current",
+                "label": "Current"
+              },
+              {
+                "color": "Amber",
+                "icon": "clock",
+                "id": "stale",
+                "label": "Stale"
+              }
+            ]
+          }
+        ]
       },
       "inspector_config": {
         "container_sections": [
@@ -143,7 +247,7 @@
         "dependency_creation": null,
         "element_sections": [
           "Identity",
-          "IfEntryData"
+          "InterfaceData"
         ],
         "show_application_picker": false
       }
@@ -187,6 +291,15 @@
         },
         "NeighborLink": {
           "type": "disabled"
+        },
+        "NetworkIdentity": {
+          "affects_layout": false,
+          "default_visibility": "visible",
+          "highlight_behavior": "when_visible",
+          "show_directionality": false,
+          "stroke": "dashed",
+          "type": "active",
+          "will_target_container": true
         },
         "PhysicalLink": {
           "type": "disabled"
@@ -237,312 +350,332 @@
             ]
           }
         ],
-        "metadata_filters": {
-          "IPAddress": [
-            {
-              "applies": "Client",
-              "filter_type": "Staleness",
-              "label": "By staleness",
-              "values": [
-                {
-                  "color": "Green",
-                  "icon": "check",
-                  "id": "current",
-                  "label": "Current"
-                },
-                {
-                  "color": "Amber",
-                  "icon": "clock",
-                  "id": "stale",
-                  "label": "Stale"
-                }
-              ]
-            }
-          ],
-          "Service": [
-            {
-              "applies": "Client",
-              "filter_type": "Category",
-              "label": "By category",
-              "values": [
-                {
-                  "color": "Yellow",
-                  "icon": "network",
-                  "id": "NetworkCore",
-                  "label": "Network Core"
-                },
-                {
-                  "color": "Green",
-                  "icon": "router",
-                  "id": "NetworkAccess",
-                  "label": "Network Access"
-                },
-                {
-                  "color": "Red",
-                  "icon": "brick-wall",
-                  "id": "NetworkAppliance",
-                  "label": "Network Appliance"
-                },
-                {
-                  "color": "Amber",
-                  "icon": "terminal",
-                  "id": "RemoteAccess",
-                  "label": "Remote Access"
-                },
-                {
-                  "color": "Green",
-                  "icon": "hard-drive",
-                  "id": "Storage",
-                  "label": "Storage"
-                },
-                {
-                  "color": "Gray",
-                  "icon": "database-backup",
-                  "id": "Backup",
-                  "label": "Backup"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "circle-play",
-                  "id": "Media",
-                  "label": "Media"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "house",
-                  "id": "HomeAutomation",
-                  "label": "Home Automation"
-                },
-                {
-                  "color": "Amber",
-                  "icon": "monitor-cog",
-                  "id": "Hypervisor",
-                  "label": "Hypervisor"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "box",
-                  "id": "ContainerRuntime",
-                  "label": "Container Runtime"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "box",
-                  "id": "Container",
-                  "label": "Container"
-                },
-                {
-                  "color": "Purple",
-                  "icon": "layers",
-                  "id": "Orchestrator",
-                  "label": "Orchestrator"
-                },
-                {
-                  "color": "Emerald",
-                  "icon": "search",
-                  "id": "DNS",
-                  "label": "DNS"
-                },
-                {
-                  "color": "Green",
-                  "icon": "venetian-mask",
-                  "id": "VPN",
-                  "label": "VPN"
-                },
-                {
-                  "color": "Orange",
-                  "icon": "activity",
-                  "id": "Monitoring",
-                  "label": "Monitoring"
-                },
-                {
-                  "color": "Emerald",
-                  "icon": "shield-check",
-                  "id": "AdBlock",
-                  "label": "Ad Blocking"
-                },
-                {
-                  "color": "Cyan",
-                  "icon": "split",
-                  "id": "ReverseProxy",
-                  "label": "Reverse Proxy"
-                },
-                {
-                  "color": "Green",
-                  "icon": "monitor",
-                  "id": "Workstation",
-                  "label": "Workstation"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "smartphone",
-                  "id": "Mobile",
-                  "label": "Mobile"
-                },
-                {
-                  "color": "Yellow",
-                  "icon": "circuit-board",
-                  "id": "IoT",
-                  "label": "IoT"
-                },
-                {
-                  "color": "Orange",
-                  "icon": "factory",
-                  "id": "Industrial",
-                  "label": "Industrial Control"
-                },
-                {
-                  "color": "Gray",
-                  "icon": "printer",
-                  "id": "Printer",
-                  "label": "Printer"
-                },
-                {
-                  "color": "Gray",
-                  "icon": "database",
-                  "id": "Database",
-                  "label": "Database"
-                },
-                {
-                  "color": "Red",
-                  "icon": "code",
-                  "id": "Development",
-                  "label": "Development"
-                },
-                {
-                  "color": "Purple",
-                  "icon": "layout-dashboard",
-                  "id": "Dashboard",
-                  "label": "Dashboard"
-                },
-                {
-                  "color": "Green",
-                  "icon": "message-square-code",
-                  "id": "MessageQueue",
-                  "label": "Message Queue"
-                },
-                {
-                  "color": "Yellow",
-                  "icon": "key-round",
-                  "id": "IdentityAndAccess",
-                  "label": "Identity & Access"
-                },
-                {
-                  "color": "Cyan",
-                  "icon": "workflow",
-                  "id": "Integration",
-                  "label": "Integration"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "file-text",
-                  "id": "Office",
-                  "label": "Office"
-                },
-                {
-                  "color": "Indigo",
-                  "icon": "square-kanban",
-                  "id": "ProjectManagement",
-                  "label": "Project Management"
-                },
-                {
-                  "color": "Green",
-                  "icon": "message-circle",
-                  "id": "Messaging",
-                  "label": "Messaging"
-                },
-                {
-                  "color": "Teal",
-                  "icon": "video",
-                  "id": "Conferencing",
-                  "label": "Conferencing"
-                },
-                {
-                  "color": "Orange",
-                  "icon": "phone",
-                  "id": "Telephony",
-                  "label": "Telephony"
-                },
-                {
-                  "color": "Rose",
-                  "icon": "mail",
-                  "id": "Email",
-                  "label": "Email"
-                },
-                {
-                  "color": "Purple",
-                  "icon": "pen-line",
-                  "id": "Publishing",
-                  "label": "Publishing"
-                },
-                {
-                  "color": "Gray",
-                  "icon": "circle-question-mark",
-                  "id": "Unknown",
-                  "label": "Unknown"
-                },
-                {
-                  "color": "Rose",
-                  "icon": "sparkle",
-                  "id": "Custom",
-                  "label": "Custom"
-                },
-                {
-                  "color": "Purple",
-                  "icon": "zap",
-                  "id": "Scanopy",
-                  "label": "Scanopy"
-                },
-                {
-                  "color": "Sky",
-                  "icon": "binary",
-                  "id": "OpenPorts",
-                  "label": "Open Ports"
-                }
-              ]
-            },
-            {
-              "applies": "Client",
-              "filter_type": "Staleness",
-              "label": "By staleness",
-              "values": [
-                {
-                  "color": "Green",
-                  "icon": "check",
-                  "id": "current",
-                  "label": "Current"
-                },
-                {
-                  "color": "Amber",
-                  "icon": "clock",
-                  "id": "stale",
-                  "label": "Stale"
-                }
-              ]
-            }
-          ],
-          "Subnet": [
-            {
-              "applies": "Client",
-              "filter_type": "Staleness",
-              "label": "By staleness",
-              "values": [
-                {
-                  "color": "Green",
-                  "icon": "check",
-                  "id": "current",
-                  "label": "Current"
-                },
-                {
-                  "color": "Amber",
-                  "icon": "clock",
-                  "id": "stale",
-                  "label": "Stale"
-                }
-              ]
-            }
-          ]
-        }
+        "element_marks": [
+          {
+            "channel": "StateFill",
+            "entity": "IPAddress",
+            "filter_type": "Staleness",
+            "value": "stale"
+          }
+        ],
+        "metadata_filters": [
+          {
+            "applies": "Client",
+            "entities": [
+              "Service"
+            ],
+            "filter_type": "Category",
+            "label": "By category",
+            "values": [
+              {
+                "color": "Yellow",
+                "icon": "network",
+                "id": "NetworkCore",
+                "label": "Network Core"
+              },
+              {
+                "color": "Green",
+                "icon": "router",
+                "id": "NetworkAccess",
+                "label": "Network Access"
+              },
+              {
+                "color": "Red",
+                "icon": "brick-wall",
+                "id": "NetworkAppliance",
+                "label": "Network Appliance"
+              },
+              {
+                "color": "Amber",
+                "icon": "terminal",
+                "id": "RemoteAccess",
+                "label": "Remote Access"
+              },
+              {
+                "color": "Green",
+                "icon": "hard-drive",
+                "id": "Storage",
+                "label": "Storage"
+              },
+              {
+                "color": "Gray",
+                "icon": "database-backup",
+                "id": "Backup",
+                "label": "Backup"
+              },
+              {
+                "color": "Blue",
+                "icon": "circle-play",
+                "id": "Media",
+                "label": "Media"
+              },
+              {
+                "color": "Blue",
+                "icon": "house",
+                "id": "HomeAutomation",
+                "label": "Home Automation"
+              },
+              {
+                "color": "Amber",
+                "icon": "monitor-cog",
+                "id": "Hypervisor",
+                "label": "Hypervisor"
+              },
+              {
+                "color": "Blue",
+                "icon": "box",
+                "id": "ContainerRuntime",
+                "label": "Container Runtime"
+              },
+              {
+                "color": "Blue",
+                "icon": "box",
+                "id": "Container",
+                "label": "Container"
+              },
+              {
+                "color": "Purple",
+                "icon": "layers",
+                "id": "Orchestrator",
+                "label": "Orchestrator"
+              },
+              {
+                "color": "Emerald",
+                "icon": "search",
+                "id": "DNS",
+                "label": "DNS"
+              },
+              {
+                "color": "Green",
+                "icon": "venetian-mask",
+                "id": "VPN",
+                "label": "VPN"
+              },
+              {
+                "color": "Orange",
+                "icon": "activity",
+                "id": "Monitoring",
+                "label": "Monitoring"
+              },
+              {
+                "color": "Emerald",
+                "icon": "shield-check",
+                "id": "AdBlock",
+                "label": "Ad Blocking"
+              },
+              {
+                "color": "Cyan",
+                "icon": "split",
+                "id": "ReverseProxy",
+                "label": "Reverse Proxy"
+              },
+              {
+                "color": "Green",
+                "icon": "monitor",
+                "id": "Workstation",
+                "label": "Workstation"
+              },
+              {
+                "color": "Blue",
+                "icon": "smartphone",
+                "id": "Mobile",
+                "label": "Mobile"
+              },
+              {
+                "color": "Yellow",
+                "icon": "circuit-board",
+                "id": "IoT",
+                "label": "IoT"
+              },
+              {
+                "color": "Orange",
+                "icon": "factory",
+                "id": "Industrial",
+                "label": "Industrial Control"
+              },
+              {
+                "color": "Gray",
+                "icon": "printer",
+                "id": "Printer",
+                "label": "Printer"
+              },
+              {
+                "color": "Gray",
+                "icon": "database",
+                "id": "Database",
+                "label": "Database"
+              },
+              {
+                "color": "Red",
+                "icon": "code",
+                "id": "Development",
+                "label": "Development"
+              },
+              {
+                "color": "Purple",
+                "icon": "layout-dashboard",
+                "id": "Dashboard",
+                "label": "Dashboard"
+              },
+              {
+                "color": "Green",
+                "icon": "message-square-code",
+                "id": "MessageQueue",
+                "label": "Message Queue"
+              },
+              {
+                "color": "Yellow",
+                "icon": "key-round",
+                "id": "IdentityAndAccess",
+                "label": "Identity & Access"
+              },
+              {
+                "color": "Cyan",
+                "icon": "workflow",
+                "id": "Integration",
+                "label": "Integration"
+              },
+              {
+                "color": "Blue",
+                "icon": "file-text",
+                "id": "Office",
+                "label": "Office"
+              },
+              {
+                "color": "Indigo",
+                "icon": "square-kanban",
+                "id": "ProjectManagement",
+                "label": "Project Management"
+              },
+              {
+                "color": "Green",
+                "icon": "message-circle",
+                "id": "Messaging",
+                "label": "Messaging"
+              },
+              {
+                "color": "Teal",
+                "icon": "video",
+                "id": "Conferencing",
+                "label": "Conferencing"
+              },
+              {
+                "color": "Orange",
+                "icon": "phone",
+                "id": "Telephony",
+                "label": "Telephony"
+              },
+              {
+                "color": "Rose",
+                "icon": "mail",
+                "id": "Email",
+                "label": "Email"
+              },
+              {
+                "color": "Purple",
+                "icon": "pen-line",
+                "id": "Publishing",
+                "label": "Publishing"
+              },
+              {
+                "color": "Gray",
+                "icon": "circle-question-mark",
+                "id": "Unknown",
+                "label": "Unknown"
+              },
+              {
+                "color": "Rose",
+                "icon": "sparkle",
+                "id": "Custom",
+                "label": "Custom"
+              },
+              {
+                "color": "Purple",
+                "icon": "zap",
+                "id": "Scanopy",
+                "label": "Scanopy"
+              },
+              {
+                "color": "Sky",
+                "icon": "binary",
+                "id": "OpenPorts",
+                "label": "Open Ports"
+              },
+              {
+                "color": "Amber",
+                "icon": "fingerprint-pattern",
+                "id": "NetworkIdentities",
+                "label": "Network Identities"
+              }
+            ]
+          },
+          {
+            "applies": "Client",
+            "entities": [
+              "Service"
+            ],
+            "filter_type": "Staleness",
+            "label": "By staleness",
+            "values": [
+              {
+                "color": "Green",
+                "icon": "check",
+                "id": "current",
+                "label": "Current"
+              },
+              {
+                "color": "Amber",
+                "icon": "clock",
+                "id": "stale",
+                "label": "Stale"
+              }
+            ]
+          },
+          {
+            "applies": "Client",
+            "entities": [
+              "IPAddress"
+            ],
+            "filter_type": "Staleness",
+            "label": "By staleness",
+            "values": [
+              {
+                "color": "Green",
+                "icon": "check",
+                "id": "current",
+                "label": "Current"
+              },
+              {
+                "color": "Amber",
+                "icon": "clock",
+                "id": "stale",
+                "label": "Stale"
+              }
+            ]
+          },
+          {
+            "applies": "Client",
+            "entities": [
+              "Subnet"
+            ],
+            "filter_type": "Staleness",
+            "label": "By staleness",
+            "values": [
+              {
+                "color": "Green",
+                "icon": "check",
+                "id": "current",
+                "label": "Current"
+              },
+              {
+                "color": "Amber",
+                "icon": "clock",
+                "id": "stale",
+                "label": "Stale"
+              }
+            ]
+          }
+        ]
       },
       "inspector_config": {
         "container_sections": [
@@ -553,7 +686,7 @@
         "element_sections": [
           "Identity",
           "HostDetail",
-          "IfEntryData",
+          "InterfaceData",
           "Services",
           "OtherInterfaces"
         ],
@@ -593,6 +726,9 @@
           "stroke": "dashed",
           "type": "active",
           "will_target_container": false
+        },
+        "NetworkIdentity": {
+          "type": "disabled"
         },
         "PhysicalLink": {
           "affects_layout": false,
@@ -641,310 +777,369 @@
             ]
           }
         ],
-        "metadata_filters": {
-          "Host": [
-            {
-              "applies": "Client",
-              "filter_type": "Virtualization",
-              "label": "By virtualization",
-              "values": [
-                {
-                  "color": "Amber",
-                  "icon": "monitor-cog",
-                  "id": "Virtualized",
-                  "label": "Virtualized"
-                },
-                {
-                  "color": "Gray",
-                  "icon": "server",
-                  "id": "BareMetal",
-                  "label": "Bare metal"
-                }
-              ]
-            },
-            {
-              "applies": "Client",
-              "filter_type": "Staleness",
-              "label": "By staleness",
-              "values": [
-                {
-                  "color": "Green",
-                  "icon": "check",
-                  "id": "current",
-                  "label": "Current"
-                },
-                {
-                  "color": "Amber",
-                  "icon": "clock",
-                  "id": "stale",
-                  "label": "Stale"
-                }
-              ]
-            }
-          ],
-          "Service": [
-            {
-              "applies": "Client",
-              "filter_type": "Category",
-              "label": "By category",
-              "values": [
-                {
-                  "color": "Yellow",
-                  "icon": "network",
-                  "id": "NetworkCore",
-                  "label": "Network Core"
-                },
-                {
-                  "color": "Green",
-                  "icon": "router",
-                  "id": "NetworkAccess",
-                  "label": "Network Access"
-                },
-                {
-                  "color": "Red",
-                  "icon": "brick-wall",
-                  "id": "NetworkAppliance",
-                  "label": "Network Appliance"
-                },
-                {
-                  "color": "Amber",
-                  "icon": "terminal",
-                  "id": "RemoteAccess",
-                  "label": "Remote Access"
-                },
-                {
-                  "color": "Green",
-                  "icon": "hard-drive",
-                  "id": "Storage",
-                  "label": "Storage"
-                },
-                {
-                  "color": "Gray",
-                  "icon": "database-backup",
-                  "id": "Backup",
-                  "label": "Backup"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "circle-play",
-                  "id": "Media",
-                  "label": "Media"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "house",
-                  "id": "HomeAutomation",
-                  "label": "Home Automation"
-                },
-                {
-                  "color": "Amber",
-                  "icon": "monitor-cog",
-                  "id": "Hypervisor",
-                  "label": "Hypervisor"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "box",
-                  "id": "ContainerRuntime",
-                  "label": "Container Runtime"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "box",
-                  "id": "Container",
-                  "label": "Container"
-                },
-                {
-                  "color": "Purple",
-                  "icon": "layers",
-                  "id": "Orchestrator",
-                  "label": "Orchestrator"
-                },
-                {
-                  "color": "Emerald",
-                  "icon": "search",
-                  "id": "DNS",
-                  "label": "DNS"
-                },
-                {
-                  "color": "Green",
-                  "icon": "venetian-mask",
-                  "id": "VPN",
-                  "label": "VPN"
-                },
-                {
-                  "color": "Orange",
-                  "icon": "activity",
-                  "id": "Monitoring",
-                  "label": "Monitoring"
-                },
-                {
-                  "color": "Emerald",
-                  "icon": "shield-check",
-                  "id": "AdBlock",
-                  "label": "Ad Blocking"
-                },
-                {
-                  "color": "Cyan",
-                  "icon": "split",
-                  "id": "ReverseProxy",
-                  "label": "Reverse Proxy"
-                },
-                {
-                  "color": "Green",
-                  "icon": "monitor",
-                  "id": "Workstation",
-                  "label": "Workstation"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "smartphone",
-                  "id": "Mobile",
-                  "label": "Mobile"
-                },
-                {
-                  "color": "Yellow",
-                  "icon": "circuit-board",
-                  "id": "IoT",
-                  "label": "IoT"
-                },
-                {
-                  "color": "Orange",
-                  "icon": "factory",
-                  "id": "Industrial",
-                  "label": "Industrial Control"
-                },
-                {
-                  "color": "Gray",
-                  "icon": "printer",
-                  "id": "Printer",
-                  "label": "Printer"
-                },
-                {
-                  "color": "Gray",
-                  "icon": "database",
-                  "id": "Database",
-                  "label": "Database"
-                },
-                {
-                  "color": "Red",
-                  "icon": "code",
-                  "id": "Development",
-                  "label": "Development"
-                },
-                {
-                  "color": "Purple",
-                  "icon": "layout-dashboard",
-                  "id": "Dashboard",
-                  "label": "Dashboard"
-                },
-                {
-                  "color": "Green",
-                  "icon": "message-square-code",
-                  "id": "MessageQueue",
-                  "label": "Message Queue"
-                },
-                {
-                  "color": "Yellow",
-                  "icon": "key-round",
-                  "id": "IdentityAndAccess",
-                  "label": "Identity & Access"
-                },
-                {
-                  "color": "Cyan",
-                  "icon": "workflow",
-                  "id": "Integration",
-                  "label": "Integration"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "file-text",
-                  "id": "Office",
-                  "label": "Office"
-                },
-                {
-                  "color": "Indigo",
-                  "icon": "square-kanban",
-                  "id": "ProjectManagement",
-                  "label": "Project Management"
-                },
-                {
-                  "color": "Green",
-                  "icon": "message-circle",
-                  "id": "Messaging",
-                  "label": "Messaging"
-                },
-                {
-                  "color": "Teal",
-                  "icon": "video",
-                  "id": "Conferencing",
-                  "label": "Conferencing"
-                },
-                {
-                  "color": "Orange",
-                  "icon": "phone",
-                  "id": "Telephony",
-                  "label": "Telephony"
-                },
-                {
-                  "color": "Rose",
-                  "icon": "mail",
-                  "id": "Email",
-                  "label": "Email"
-                },
-                {
-                  "color": "Purple",
-                  "icon": "pen-line",
-                  "id": "Publishing",
-                  "label": "Publishing"
-                },
-                {
-                  "color": "Gray",
-                  "icon": "circle-question-mark",
-                  "id": "Unknown",
-                  "label": "Unknown"
-                },
-                {
-                  "color": "Rose",
-                  "icon": "sparkle",
-                  "id": "Custom",
-                  "label": "Custom"
-                },
-                {
-                  "color": "Purple",
-                  "icon": "zap",
-                  "id": "Scanopy",
-                  "label": "Scanopy"
-                },
-                {
-                  "color": "Sky",
-                  "icon": "binary",
-                  "id": "OpenPorts",
-                  "label": "Open Ports"
-                }
-              ]
-            },
-            {
-              "applies": "Client",
-              "filter_type": "Staleness",
-              "label": "By staleness",
-              "values": [
-                {
-                  "color": "Green",
-                  "icon": "check",
-                  "id": "current",
-                  "label": "Current"
-                },
-                {
-                  "color": "Amber",
-                  "icon": "clock",
-                  "id": "stale",
-                  "label": "Stale"
-                }
-              ]
-            }
-          ]
-        }
+        "element_marks": [
+          {
+            "channel": "Title",
+            "entity": "Host",
+            "filter_type": "Virtualization",
+            "value": "Virtualized"
+          },
+          {
+            "channel": "Title",
+            "entity": "Host",
+            "filter_type": "Virtualization",
+            "value": "Containerized"
+          },
+          {
+            "channel": "Title",
+            "entity": "Host",
+            "filter_type": "Virtualization",
+            "value": "NetworkIdentity"
+          },
+          {
+            "channel": "StateFill",
+            "entity": "Service",
+            "filter_type": "Staleness",
+            "value": "stale"
+          },
+          {
+            "channel": "StateFill",
+            "entity": "Host",
+            "filter_type": "Staleness",
+            "value": "stale"
+          }
+        ],
+        "metadata_filters": [
+          {
+            "applies": "Client",
+            "entities": [
+              "Service"
+            ],
+            "filter_type": "Category",
+            "label": "By category",
+            "values": [
+              {
+                "color": "Yellow",
+                "icon": "network",
+                "id": "NetworkCore",
+                "label": "Network Core"
+              },
+              {
+                "color": "Green",
+                "icon": "router",
+                "id": "NetworkAccess",
+                "label": "Network Access"
+              },
+              {
+                "color": "Red",
+                "icon": "brick-wall",
+                "id": "NetworkAppliance",
+                "label": "Network Appliance"
+              },
+              {
+                "color": "Amber",
+                "icon": "terminal",
+                "id": "RemoteAccess",
+                "label": "Remote Access"
+              },
+              {
+                "color": "Green",
+                "icon": "hard-drive",
+                "id": "Storage",
+                "label": "Storage"
+              },
+              {
+                "color": "Gray",
+                "icon": "database-backup",
+                "id": "Backup",
+                "label": "Backup"
+              },
+              {
+                "color": "Blue",
+                "icon": "circle-play",
+                "id": "Media",
+                "label": "Media"
+              },
+              {
+                "color": "Blue",
+                "icon": "house",
+                "id": "HomeAutomation",
+                "label": "Home Automation"
+              },
+              {
+                "color": "Amber",
+                "icon": "monitor-cog",
+                "id": "Hypervisor",
+                "label": "Hypervisor"
+              },
+              {
+                "color": "Blue",
+                "icon": "box",
+                "id": "ContainerRuntime",
+                "label": "Container Runtime"
+              },
+              {
+                "color": "Blue",
+                "icon": "box",
+                "id": "Container",
+                "label": "Container"
+              },
+              {
+                "color": "Purple",
+                "icon": "layers",
+                "id": "Orchestrator",
+                "label": "Orchestrator"
+              },
+              {
+                "color": "Emerald",
+                "icon": "search",
+                "id": "DNS",
+                "label": "DNS"
+              },
+              {
+                "color": "Green",
+                "icon": "venetian-mask",
+                "id": "VPN",
+                "label": "VPN"
+              },
+              {
+                "color": "Orange",
+                "icon": "activity",
+                "id": "Monitoring",
+                "label": "Monitoring"
+              },
+              {
+                "color": "Emerald",
+                "icon": "shield-check",
+                "id": "AdBlock",
+                "label": "Ad Blocking"
+              },
+              {
+                "color": "Cyan",
+                "icon": "split",
+                "id": "ReverseProxy",
+                "label": "Reverse Proxy"
+              },
+              {
+                "color": "Green",
+                "icon": "monitor",
+                "id": "Workstation",
+                "label": "Workstation"
+              },
+              {
+                "color": "Blue",
+                "icon": "smartphone",
+                "id": "Mobile",
+                "label": "Mobile"
+              },
+              {
+                "color": "Yellow",
+                "icon": "circuit-board",
+                "id": "IoT",
+                "label": "IoT"
+              },
+              {
+                "color": "Orange",
+                "icon": "factory",
+                "id": "Industrial",
+                "label": "Industrial Control"
+              },
+              {
+                "color": "Gray",
+                "icon": "printer",
+                "id": "Printer",
+                "label": "Printer"
+              },
+              {
+                "color": "Gray",
+                "icon": "database",
+                "id": "Database",
+                "label": "Database"
+              },
+              {
+                "color": "Red",
+                "icon": "code",
+                "id": "Development",
+                "label": "Development"
+              },
+              {
+                "color": "Purple",
+                "icon": "layout-dashboard",
+                "id": "Dashboard",
+                "label": "Dashboard"
+              },
+              {
+                "color": "Green",
+                "icon": "message-square-code",
+                "id": "MessageQueue",
+                "label": "Message Queue"
+              },
+              {
+                "color": "Yellow",
+                "icon": "key-round",
+                "id": "IdentityAndAccess",
+                "label": "Identity & Access"
+              },
+              {
+                "color": "Cyan",
+                "icon": "workflow",
+                "id": "Integration",
+                "label": "Integration"
+              },
+              {
+                "color": "Blue",
+                "icon": "file-text",
+                "id": "Office",
+                "label": "Office"
+              },
+              {
+                "color": "Indigo",
+                "icon": "square-kanban",
+                "id": "ProjectManagement",
+                "label": "Project Management"
+              },
+              {
+                "color": "Green",
+                "icon": "message-circle",
+                "id": "Messaging",
+                "label": "Messaging"
+              },
+              {
+                "color": "Teal",
+                "icon": "video",
+                "id": "Conferencing",
+                "label": "Conferencing"
+              },
+              {
+                "color": "Orange",
+                "icon": "phone",
+                "id": "Telephony",
+                "label": "Telephony"
+              },
+              {
+                "color": "Rose",
+                "icon": "mail",
+                "id": "Email",
+                "label": "Email"
+              },
+              {
+                "color": "Purple",
+                "icon": "pen-line",
+                "id": "Publishing",
+                "label": "Publishing"
+              },
+              {
+                "color": "Gray",
+                "icon": "circle-question-mark",
+                "id": "Unknown",
+                "label": "Unknown"
+              },
+              {
+                "color": "Rose",
+                "icon": "sparkle",
+                "id": "Custom",
+                "label": "Custom"
+              },
+              {
+                "color": "Purple",
+                "icon": "zap",
+                "id": "Scanopy",
+                "label": "Scanopy"
+              },
+              {
+                "color": "Sky",
+                "icon": "binary",
+                "id": "OpenPorts",
+                "label": "Open Ports"
+              },
+              {
+                "color": "Amber",
+                "icon": "fingerprint-pattern",
+                "id": "NetworkIdentities",
+                "label": "Network Identities"
+              }
+            ]
+          },
+          {
+            "applies": "Client",
+            "entities": [
+              "Host",
+              "Service"
+            ],
+            "filter_type": "Virtualization",
+            "label": "By virtualization",
+            "values": [
+              {
+                "color": "Amber",
+                "icon": "monitor-cog",
+                "id": "Virtualized",
+                "label": "Virtualized"
+              },
+              {
+                "color": "Blue",
+                "icon": "box",
+                "id": "Containerized",
+                "label": "Containerized"
+              },
+              {
+                "color": "Teal",
+                "icon": "fingerprint-pattern",
+                "id": "NetworkIdentity",
+                "label": "Network identity"
+              },
+              {
+                "color": "Gray",
+                "icon": "server",
+                "id": "BareMetal",
+                "label": "Bare metal"
+              }
+            ]
+          },
+          {
+            "applies": "Client",
+            "entities": [
+              "Host"
+            ],
+            "filter_type": "Staleness",
+            "label": "By staleness",
+            "values": [
+              {
+                "color": "Green",
+                "icon": "check",
+                "id": "current",
+                "label": "Current"
+              },
+              {
+                "color": "Amber",
+                "icon": "clock",
+                "id": "stale",
+                "label": "Stale"
+              }
+            ]
+          },
+          {
+            "applies": "Client",
+            "entities": [
+              "Service"
+            ],
+            "filter_type": "Staleness",
+            "label": "By staleness",
+            "values": [
+              {
+                "color": "Green",
+                "icon": "check",
+                "id": "current",
+                "label": "Current"
+              },
+              {
+                "color": "Amber",
+                "icon": "clock",
+                "id": "stale",
+                "label": "Stale"
+              }
+            ]
+          }
+        ]
       },
       "inspector_config": {
         "container_sections": [
@@ -968,7 +1163,7 @@
     "name": "Applications",
     "description": "Services per application",
     "category": null,
-    "icon": "workflow",
+    "icon": "component",
     "color": "Purple",
     "metadata": {
       "edge_view_configs": {
@@ -994,6 +1189,9 @@
           "type": "disabled"
         },
         "NeighborLink": {
+          "type": "disabled"
+        },
+        "NetworkIdentity": {
           "type": "disabled"
         },
         "PhysicalLink": {
@@ -1030,270 +1228,288 @@
             "inline_entities": []
           }
         ],
-        "metadata_filters": {
-          "Service": [
-            {
-              "applies": "Client",
-              "filter_type": "Category",
-              "label": "By category",
-              "values": [
-                {
-                  "color": "Yellow",
-                  "icon": "network",
-                  "id": "NetworkCore",
-                  "label": "Network Core"
-                },
-                {
-                  "color": "Green",
-                  "icon": "router",
-                  "id": "NetworkAccess",
-                  "label": "Network Access"
-                },
-                {
-                  "color": "Red",
-                  "icon": "brick-wall",
-                  "id": "NetworkAppliance",
-                  "label": "Network Appliance"
-                },
-                {
-                  "color": "Amber",
-                  "icon": "terminal",
-                  "id": "RemoteAccess",
-                  "label": "Remote Access"
-                },
-                {
-                  "color": "Green",
-                  "icon": "hard-drive",
-                  "id": "Storage",
-                  "label": "Storage"
-                },
-                {
-                  "color": "Gray",
-                  "icon": "database-backup",
-                  "id": "Backup",
-                  "label": "Backup"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "circle-play",
-                  "id": "Media",
-                  "label": "Media"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "house",
-                  "id": "HomeAutomation",
-                  "label": "Home Automation"
-                },
-                {
-                  "color": "Amber",
-                  "icon": "monitor-cog",
-                  "id": "Hypervisor",
-                  "label": "Hypervisor"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "box",
-                  "id": "ContainerRuntime",
-                  "label": "Container Runtime"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "box",
-                  "id": "Container",
-                  "label": "Container"
-                },
-                {
-                  "color": "Purple",
-                  "icon": "layers",
-                  "id": "Orchestrator",
-                  "label": "Orchestrator"
-                },
-                {
-                  "color": "Emerald",
-                  "icon": "search",
-                  "id": "DNS",
-                  "label": "DNS"
-                },
-                {
-                  "color": "Green",
-                  "icon": "venetian-mask",
-                  "id": "VPN",
-                  "label": "VPN"
-                },
-                {
-                  "color": "Orange",
-                  "icon": "activity",
-                  "id": "Monitoring",
-                  "label": "Monitoring"
-                },
-                {
-                  "color": "Emerald",
-                  "icon": "shield-check",
-                  "id": "AdBlock",
-                  "label": "Ad Blocking"
-                },
-                {
-                  "color": "Cyan",
-                  "icon": "split",
-                  "id": "ReverseProxy",
-                  "label": "Reverse Proxy"
-                },
-                {
-                  "color": "Green",
-                  "icon": "monitor",
-                  "id": "Workstation",
-                  "label": "Workstation"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "smartphone",
-                  "id": "Mobile",
-                  "label": "Mobile"
-                },
-                {
-                  "color": "Yellow",
-                  "icon": "circuit-board",
-                  "id": "IoT",
-                  "label": "IoT"
-                },
-                {
-                  "color": "Orange",
-                  "icon": "factory",
-                  "id": "Industrial",
-                  "label": "Industrial Control"
-                },
-                {
-                  "color": "Gray",
-                  "icon": "printer",
-                  "id": "Printer",
-                  "label": "Printer"
-                },
-                {
-                  "color": "Gray",
-                  "icon": "database",
-                  "id": "Database",
-                  "label": "Database"
-                },
-                {
-                  "color": "Red",
-                  "icon": "code",
-                  "id": "Development",
-                  "label": "Development"
-                },
-                {
-                  "color": "Purple",
-                  "icon": "layout-dashboard",
-                  "id": "Dashboard",
-                  "label": "Dashboard"
-                },
-                {
-                  "color": "Green",
-                  "icon": "message-square-code",
-                  "id": "MessageQueue",
-                  "label": "Message Queue"
-                },
-                {
-                  "color": "Yellow",
-                  "icon": "key-round",
-                  "id": "IdentityAndAccess",
-                  "label": "Identity & Access"
-                },
-                {
-                  "color": "Cyan",
-                  "icon": "workflow",
-                  "id": "Integration",
-                  "label": "Integration"
-                },
-                {
-                  "color": "Blue",
-                  "icon": "file-text",
-                  "id": "Office",
-                  "label": "Office"
-                },
-                {
-                  "color": "Indigo",
-                  "icon": "square-kanban",
-                  "id": "ProjectManagement",
-                  "label": "Project Management"
-                },
-                {
-                  "color": "Green",
-                  "icon": "message-circle",
-                  "id": "Messaging",
-                  "label": "Messaging"
-                },
-                {
-                  "color": "Teal",
-                  "icon": "video",
-                  "id": "Conferencing",
-                  "label": "Conferencing"
-                },
-                {
-                  "color": "Orange",
-                  "icon": "phone",
-                  "id": "Telephony",
-                  "label": "Telephony"
-                },
-                {
-                  "color": "Rose",
-                  "icon": "mail",
-                  "id": "Email",
-                  "label": "Email"
-                },
-                {
-                  "color": "Purple",
-                  "icon": "pen-line",
-                  "id": "Publishing",
-                  "label": "Publishing"
-                },
-                {
-                  "color": "Gray",
-                  "icon": "circle-question-mark",
-                  "id": "Unknown",
-                  "label": "Unknown"
-                },
-                {
-                  "color": "Rose",
-                  "icon": "sparkle",
-                  "id": "Custom",
-                  "label": "Custom"
-                },
-                {
-                  "color": "Purple",
-                  "icon": "zap",
-                  "id": "Scanopy",
-                  "label": "Scanopy"
-                },
-                {
-                  "color": "Sky",
-                  "icon": "binary",
-                  "id": "OpenPorts",
-                  "label": "Open Ports"
-                }
-              ]
-            },
-            {
-              "applies": "Client",
-              "filter_type": "Staleness",
-              "label": "By staleness",
-              "values": [
-                {
-                  "color": "Green",
-                  "icon": "check",
-                  "id": "current",
-                  "label": "Current"
-                },
-                {
-                  "color": "Amber",
-                  "icon": "clock",
-                  "id": "stale",
-                  "label": "Stale"
-                }
-              ]
-            }
-          ]
-        }
+        "element_marks": [
+          {
+            "channel": "StateFill",
+            "entity": "Service",
+            "filter_type": "Staleness",
+            "value": "stale"
+          }
+        ],
+        "metadata_filters": [
+          {
+            "applies": "Client",
+            "entities": [
+              "Service"
+            ],
+            "filter_type": "Category",
+            "label": "By category",
+            "values": [
+              {
+                "color": "Yellow",
+                "icon": "network",
+                "id": "NetworkCore",
+                "label": "Network Core"
+              },
+              {
+                "color": "Green",
+                "icon": "router",
+                "id": "NetworkAccess",
+                "label": "Network Access"
+              },
+              {
+                "color": "Red",
+                "icon": "brick-wall",
+                "id": "NetworkAppliance",
+                "label": "Network Appliance"
+              },
+              {
+                "color": "Amber",
+                "icon": "terminal",
+                "id": "RemoteAccess",
+                "label": "Remote Access"
+              },
+              {
+                "color": "Green",
+                "icon": "hard-drive",
+                "id": "Storage",
+                "label": "Storage"
+              },
+              {
+                "color": "Gray",
+                "icon": "database-backup",
+                "id": "Backup",
+                "label": "Backup"
+              },
+              {
+                "color": "Blue",
+                "icon": "circle-play",
+                "id": "Media",
+                "label": "Media"
+              },
+              {
+                "color": "Blue",
+                "icon": "house",
+                "id": "HomeAutomation",
+                "label": "Home Automation"
+              },
+              {
+                "color": "Amber",
+                "icon": "monitor-cog",
+                "id": "Hypervisor",
+                "label": "Hypervisor"
+              },
+              {
+                "color": "Blue",
+                "icon": "box",
+                "id": "ContainerRuntime",
+                "label": "Container Runtime"
+              },
+              {
+                "color": "Blue",
+                "icon": "box",
+                "id": "Container",
+                "label": "Container"
+              },
+              {
+                "color": "Purple",
+                "icon": "layers",
+                "id": "Orchestrator",
+                "label": "Orchestrator"
+              },
+              {
+                "color": "Emerald",
+                "icon": "search",
+                "id": "DNS",
+                "label": "DNS"
+              },
+              {
+                "color": "Green",
+                "icon": "venetian-mask",
+                "id": "VPN",
+                "label": "VPN"
+              },
+              {
+                "color": "Orange",
+                "icon": "activity",
+                "id": "Monitoring",
+                "label": "Monitoring"
+              },
+              {
+                "color": "Emerald",
+                "icon": "shield-check",
+                "id": "AdBlock",
+                "label": "Ad Blocking"
+              },
+              {
+                "color": "Cyan",
+                "icon": "split",
+                "id": "ReverseProxy",
+                "label": "Reverse Proxy"
+              },
+              {
+                "color": "Green",
+                "icon": "monitor",
+                "id": "Workstation",
+                "label": "Workstation"
+              },
+              {
+                "color": "Blue",
+                "icon": "smartphone",
+                "id": "Mobile",
+                "label": "Mobile"
+              },
+              {
+                "color": "Yellow",
+                "icon": "circuit-board",
+                "id": "IoT",
+                "label": "IoT"
+              },
+              {
+                "color": "Orange",
+                "icon": "factory",
+                "id": "Industrial",
+                "label": "Industrial Control"
+              },
+              {
+                "color": "Gray",
+                "icon": "printer",
+                "id": "Printer",
+                "label": "Printer"
+              },
+              {
+                "color": "Gray",
+                "icon": "database",
+                "id": "Database",
+                "label": "Database"
+              },
+              {
+                "color": "Red",
+                "icon": "code",
+                "id": "Development",
+                "label": "Development"
+              },
+              {
+                "color": "Purple",
+                "icon": "layout-dashboard",
+                "id": "Dashboard",
+                "label": "Dashboard"
+              },
+              {
+                "color": "Green",
+                "icon": "message-square-code",
+                "id": "MessageQueue",
+                "label": "Message Queue"
+              },
+              {
+                "color": "Yellow",
+                "icon": "key-round",
+                "id": "IdentityAndAccess",
+                "label": "Identity & Access"
+              },
+              {
+                "color": "Cyan",
+                "icon": "workflow",
+                "id": "Integration",
+                "label": "Integration"
+              },
+              {
+                "color": "Blue",
+                "icon": "file-text",
+                "id": "Office",
+                "label": "Office"
+              },
+              {
+                "color": "Indigo",
+                "icon": "square-kanban",
+                "id": "ProjectManagement",
+                "label": "Project Management"
+              },
+              {
+                "color": "Green",
+                "icon": "message-circle",
+                "id": "Messaging",
+                "label": "Messaging"
+              },
+              {
+                "color": "Teal",
+                "icon": "video",
+                "id": "Conferencing",
+                "label": "Conferencing"
+              },
+              {
+                "color": "Orange",
+                "icon": "phone",
+                "id": "Telephony",
+                "label": "Telephony"
+              },
+              {
+                "color": "Rose",
+                "icon": "mail",
+                "id": "Email",
+                "label": "Email"
+              },
+              {
+                "color": "Purple",
+                "icon": "pen-line",
+                "id": "Publishing",
+                "label": "Publishing"
+              },
+              {
+                "color": "Gray",
+                "icon": "circle-question-mark",
+                "id": "Unknown",
+                "label": "Unknown"
+              },
+              {
+                "color": "Rose",
+                "icon": "sparkle",
+                "id": "Custom",
+                "label": "Custom"
+              },
+              {
+                "color": "Purple",
+                "icon": "zap",
+                "id": "Scanopy",
+                "label": "Scanopy"
+              },
+              {
+                "color": "Sky",
+                "icon": "binary",
+                "id": "OpenPorts",
+                "label": "Open Ports"
+              },
+              {
+                "color": "Amber",
+                "icon": "fingerprint-pattern",
+                "id": "NetworkIdentities",
+                "label": "Network Identities"
+              }
+            ]
+          },
+          {
+            "applies": "Client",
+            "entities": [
+              "Service"
+            ],
+            "filter_type": "Staleness",
+            "label": "By staleness",
+            "values": [
+              {
+                "color": "Green",
+                "icon": "check",
+                "id": "current",
+                "label": "Current"
+              },
+              {
+                "color": "Amber",
+                "icon": "clock",
+                "id": "stale",
+                "label": "Stale"
+              }
+            ]
+          }
+        ]
       },
       "inspector_config": {
         "container_sections": [

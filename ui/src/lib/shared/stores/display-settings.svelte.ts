@@ -9,13 +9,14 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
 	clock: 'browser_default',
 	time_zone: null,
 	week_start: 'monday',
-	timestamps: 'relative'
+	timestamps: 'relative',
+	table_density: 'compact'
 };
 
 let current = $state<DisplaySettings>(DEFAULT_DISPLAY_SETTINGS);
 
 /**
- * The signed-in user's date and time preferences. Module state, so every formatter call made
+ * The signed-in user's date, time and table preferences. Module state, so every formatter call made
  * from a template re-renders when the user changes a setting.
  */
 export const displaySettings = {

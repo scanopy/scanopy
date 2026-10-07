@@ -83,13 +83,13 @@ fn host_response_round_trip_preserves_every_base_field() {
     assert_eq!(response.to_host().base, host.base);
 }
 
-/// The Hosts tab's network filter widened from one id to a list. The old
+/// The Hosts tab's site filter widened from one id to a list. The old
 /// spelling is what every existing caller — and the published API — sends, so
 /// it has to keep deserialising, into a one-element list rather than an error.
 /// This is the compatibility claim the widening rests on; without it the change
-/// silently breaks callers that pass `?network_id=<uuid>`.
+/// silently breaks callers that pass `?site_id=<uuid>`.
 #[tokio::test]
-async fn network_filter_accepts_both_the_old_and_new_spellings() {
+async fn site_filter_accepts_both_the_old_and_new_spellings() {
     use crate::server::hosts::handlers::HostFilterQuery;
     use crate::server::shared::extractors::Query;
     use axum::extract::FromRequestParts;
@@ -111,30 +111,30 @@ async fn network_filter_accepts_both_the_old_and_new_spellings() {
     let two = Uuid::new_v4();
 
     assert_eq!(
-        parse(&format!("network_id={one}")).await.network_ids,
+        parse(&format!("site_id={one}")).await.site_ids,
         Some(vec![one]),
         "the singular spelling must still be accepted"
     );
     assert_eq!(
-        parse(&format!("network_ids={one}&network_ids={two}"))
+        parse(&format!("site_ids={one}&site_ids={two}"))
             .await
-            .network_ids,
+            .site_ids,
         Some(vec![one, two]),
         "repeating the parameter must collect into a list"
     );
     assert_eq!(
-        parse("limit=10").await.network_ids,
+        parse("limit=10").await.site_ids,
         None,
         "an absent filter must stay absent rather than becoming an empty set"
     );
 }
 
-/// A network filter must only ever narrow what the caller can already see.
-/// Requesting a network they have no access to has to yield nothing, and a
+/// A site filter must only ever narrow what the caller can already see.
+/// Requesting a site they have no access to has to yield nothing, and a
 /// mixed request has to keep only the accessible half — otherwise the filter
 /// becomes a way to read another tenant's hosts.
 #[test]
-fn network_filter_cannot_widen_access_beyond_the_callers_networks() {
+fn site_filter_cannot_widen_access_beyond_the_callers_sites() {
     use crate::server::hosts::handlers::HostFilterQuery;
     use crate::server::shared::handlers::query::FilterQueryExtractor;
     use crate::server::shared::storage::filter::StorableFilter;
@@ -146,7 +146,7 @@ fn network_filter_cannot_widen_access_beyond_the_callers_networks() {
 
     let applied = |requested: Vec<Uuid>| {
         let query = HostFilterQuery {
-            network_ids: Some(requested),
+            site_ids: Some(requested),
             ..Default::default()
         };
         query.apply_to_filter(StorableFilter::<Host>::new_unfiltered(), &[mine], org)
@@ -156,7 +156,7 @@ fn network_filter_cannot_widen_access_beyond_the_callers_networks() {
     assert_eq!(
         foreign.to_where_clause().trim(),
         "WHERE FALSE",
-        "a network the caller cannot see must match nothing"
+        "a site the caller cannot see must match nothing"
     );
     assert!(
         foreign.values().is_empty(),
@@ -167,6 +167,6 @@ fn network_filter_cannot_widen_access_beyond_the_callers_networks() {
     assert_eq!(
         mixed.values().len(),
         1,
-        "only the accessible network may survive the intersection"
+        "only the accessible site may survive the intersection"
     );
 }

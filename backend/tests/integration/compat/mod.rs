@@ -37,7 +37,7 @@ use uuid::Uuid;
 const SERVER_URL: &str = "http://localhost:60072";
 
 /// Create a daemon API key for use in compat tests.
-async fn create_compat_test_api_key(network_id: Uuid) -> Result<String, String> {
+async fn create_compat_test_api_key(site_id: Uuid) -> Result<String, String> {
     let client = TestClient::new();
 
     // Re-authenticate to get a session
@@ -48,7 +48,7 @@ async fn create_compat_test_api_key(network_id: Uuid) -> Result<String, String> 
         name: "Compat Test API Key".to_string(),
         last_used: None,
         expires_at: None,
-        network_id,
+        site_id,
         is_enabled: true,
         tags: Vec::new(),
         daemon_id: None,
@@ -92,7 +92,7 @@ pub async fn cancel_server_discovery_sessions(client: &TestClient) -> Result<(),
 /// authenticate requests during daemon compat tests.
 pub async fn run_compat_tests(
     daemon_id: Uuid,
-    network_id: Uuid,
+    site_id: Uuid,
     organization_id: Uuid,
     user_id: Uuid,
     serverpoll_daemon_api_key: &str,
@@ -111,12 +111,12 @@ pub async fn run_compat_tests(
     clear_discovery_data()?;
 
     // Create a daemon API key for server compat test replay requests
-    let api_key = create_compat_test_api_key(network_id).await?;
+    let api_key = create_compat_test_api_key(site_id).await?;
     println!("  Created daemon API key for compat tests");
 
     let ctx = ReplayContext {
         daemon_id,
-        network_id,
+        site_id,
         user_id,
         organization_id,
         api_key: api_key.clone(),
@@ -141,7 +141,7 @@ pub async fn run_compat_tests(
     // Use the API key from when the ServerPoll daemon was provisioned during discovery
     let daemon_ctx = ReplayContext {
         daemon_id,
-        network_id,
+        site_id,
         user_id,
         organization_id,
         api_key: serverpoll_daemon_api_key.to_string(),

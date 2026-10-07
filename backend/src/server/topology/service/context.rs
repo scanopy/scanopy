@@ -36,7 +36,7 @@ pub struct TopologyContext<'a> {
     pub interfaces: &'a [Interface],
     pub entity_tags: &'a [Tag],
     pub vlans: &'a [Vlan],
-    /// The merged neighbour read-model (GH #701): every resolved adjacency in the network,
+    /// The merged neighbour read-model (GH #701): every resolved adjacency in the site,
     /// `live_or_as_of`-pinned the same way `interfaces` is. Defaults to `&[]` via [`Self::new`];
     /// production callers attach the real set via [`Self::with_neighbours`]. A separate builder
     /// method rather than a 13th positional constructor argument, so the many test call sites that

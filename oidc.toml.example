@@ -16,3 +16,8 @@ client_id = "YOUR_CLIENT_ID"
 
 # OAuth2 client secret from provider
 client_secret = "YOUR_CLIENT_SECRET"
+
+# Optional: audiences besides client_id that this provider puts in its ID tokens.
+# Leave unset unless login fails with "`<value>` is not a trusted audience".
+# Zitadel adds the project ID to every ID token, so list it here:
+# trusted_audiences = ["YOUR_ZITADEL_PROJECT_ID"]

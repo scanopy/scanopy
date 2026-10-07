@@ -11,20 +11,20 @@ use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::hosts::r#impl::api::{InterfaceInput, UpdateHostRequest};
 use crate::server::hosts::r#impl::base::{Host, HostBase};
 use crate::server::hosts::r#impl::name::{HostName, HostNameSources};
-use crate::server::networks::r#impl::{Network, NetworkBase};
 use crate::server::shared::services::factory::ServiceFactory;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::traits::{Storable, Storage};
 use crate::server::shared::types::entities::EntitySource;
+use crate::server::sites::r#impl::{Site, SiteBase};
 
 use super::{organization, test_services};
 
-async fn make_host(services: &ServiceFactory, network_id: Uuid) -> Host {
+async fn make_host(services: &ServiceFactory, site_id: Uuid) -> Host {
     services
         .host_service
         .create(
             Host::new(HostBase {
-                network_id,
+                site_id,
                 source: EntitySource::Manual,
                 ..Default::default()
             }),
@@ -42,6 +42,7 @@ fn update_request(id: Uuid, interfaces: Option<Vec<InterfaceInput>>) -> UpdateHo
         description: None,
         virtualization_metadata: None,
         virtualization_service_id: None,
+        virtualization_interface_id: None,
         hidden: false,
         tags: vec![],
         expected_updated_at: None,
@@ -73,16 +74,16 @@ async fn a_provided_interface_is_created() {
     let (storage, services, _container) = test_services().await;
     let org = organization();
     storage.organizations.create(&org).await.unwrap();
-    let network = services
-        .network_service
+    let site = services
+        .site_service
         .create(
-            Network::new(NetworkBase::new(org.id)),
+            Site::new(SiteBase::new(org.id)),
             AuthenticatedEntity::System,
         )
         .await
         .unwrap();
 
-    let host = make_host(&services, network.id).await;
+    let host = make_host(&services, site.id).await;
     let interface_id = Uuid::new_v4();
 
     services
@@ -109,16 +110,16 @@ async fn omitting_interfaces_preserves_existing_ones() {
     let (storage, services, _container) = test_services().await;
     let org = organization();
     storage.organizations.create(&org).await.unwrap();
-    let network = services
-        .network_service
+    let site = services
+        .site_service
         .create(
-            Network::new(NetworkBase::new(org.id)),
+            Site::new(SiteBase::new(org.id)),
             AuthenticatedEntity::System,
         )
         .await
         .unwrap();
 
-    let host = make_host(&services, network.id).await;
+    let host = make_host(&services, site.id).await;
     let interface_id = Uuid::new_v4();
     services
         .host_service
@@ -154,16 +155,16 @@ async fn a_provided_list_deletes_what_it_omits_and_updates_what_it_names() {
     let (storage, services, _container) = test_services().await;
     let org = organization();
     storage.organizations.create(&org).await.unwrap();
-    let network = services
-        .network_service
+    let site = services
+        .site_service
         .create(
-            Network::new(NetworkBase::new(org.id)),
+            Site::new(SiteBase::new(org.id)),
             AuthenticatedEntity::System,
         )
         .await
         .unwrap();
 
-    let host = make_host(&services, network.id).await;
+    let host = make_host(&services, site.id).await;
     let kept_id = Uuid::new_v4();
     let removed_id = Uuid::new_v4();
     services

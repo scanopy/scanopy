@@ -24,7 +24,6 @@ use crate::server::interfaces::r#impl::base::InterfaceDataComplete;
 use crate::server::ip_addresses::r#impl::base::{
     IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue,
 };
-use crate::server::networks::r#impl::{Network, NetworkBase};
 use crate::server::ports::r#impl::base::{Port, PortBase, PortType};
 use crate::server::services::definitions::ServiceDefinitionRegistry;
 use crate::server::services::r#impl::base::{Service, ServiceBase};
@@ -33,6 +32,7 @@ use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Storable, Storage};
 use crate::server::shared::types::entities::EntitySource;
+use crate::server::sites::r#impl::{Site, SiteBase};
 use crate::server::subnets::r#impl::base::{Subnet, SubnetBase};
 use crate::server::subnets::r#impl::types::SubnetType;
 
@@ -57,7 +57,7 @@ struct Submission {
 }
 
 impl Submission {
-    fn container_host(network_id: Uuid) -> Self {
+    fn container_host(site_id: Uuid) -> Self {
         let host = Host::new(HostBase {
             name: HostName::manual("docker-host".to_string()),
             hostname: Some(crate::server::shared::attribution::Attributed::new(
@@ -66,14 +66,14 @@ impl Submission {
                 ),
                 crate::server::shared::attribution::AttributeSource::ReverseDns,
             )),
-            network_id,
+            site_id,
             source: EntitySource::Discovery,
             ..Default::default()
         });
 
         let lan = Subnet::new(SubnetBase {
             name: "lan".to_string(),
-            network_id,
+            site_id,
             cidr: SubnetCidr::new(
                 SubnetCidrValue(LAN_CIDR.parse().unwrap()),
                 AttributeSource::DaemonSelfReport,
@@ -86,7 +86,7 @@ impl Submission {
         let runtime = Service::new(ServiceBase {
             name: "Docker".to_string(),
             host_id: host.id,
-            network_id,
+            site_id,
             service_definition: ServiceDefinitionRegistry::find_by_id("Docker")
                 .expect("Docker runtime definition is registered"),
             source: EntitySource::Discovery,
@@ -97,7 +97,7 @@ impl Submission {
         // only in daemon memory.
         let bridge = Subnet::new(SubnetBase {
             name: "sct-net-a".to_string(),
-            network_id,
+            site_id,
             cidr: SubnetCidr::new(
                 SubnetCidrValue(BRIDGE_CIDR.parse().unwrap()),
                 AttributeSource::DaemonSelfReport,
@@ -109,7 +109,7 @@ impl Submission {
         });
 
         let host_ip = IPAddress::new(IPAddressBase {
-            network_id,
+            site_id,
             subnet_id: lan.id,
             ip_address: IpAddr::V4(Ipv4Addr::new(192, 168, 1, 50)),
             mac_address: None,
@@ -119,7 +119,7 @@ impl Submission {
         });
 
         let container_ip = IPAddress::new(IPAddressBase {
-            network_id,
+            site_id,
             subnet_id: bridge.id,
             ip_address: IpAddr::V4(Ipv4Addr::new(172, 28, 0, 2)),
             mac_address: None,
@@ -131,7 +131,7 @@ impl Submission {
         let port = Port::new(PortBase {
             port_type: PortType::Http,
             host_id: host.id,
-            network_id,
+            site_id,
         });
 
         // A container running under that runtime. It names the runtime as its owner, exactly as
@@ -140,7 +140,7 @@ impl Submission {
         let container = Service::new(ServiceBase {
             name: "sct-web-nginx".to_string(),
             host_id: host.id,
-            network_id,
+            site_id,
             service_definition: ServiceDefinitionRegistry::find_by_id("Nginx")
                 .or_else(|| ServiceDefinitionRegistry::find_by_id("Docker Container"))
                 .expect("a container-shaped definition is registered"),
@@ -191,26 +191,26 @@ impl Submission {
     }
 }
 
-/// Seed an organization and a network, and hand back the wired-up services.
+/// Seed an organization and a site, and hand back the wired-up services.
 ///
 /// The container is returned so the caller keeps it alive for the test's duration — dropping it
 /// tears down Postgres mid-test.
 macro_rules! harness {
-    ($services:ident, $network_id:ident, $container:ident) => {
+    ($services:ident, $site_id:ident, $container:ident) => {
         let (storage, $services, $container) = test_services().await;
 
         let org = organization();
         storage.organizations.create(&org).await.unwrap();
 
-        let network = $services
-            .network_service
+        let site = $services
+            .site_service
             .create(
-                Network::new(NetworkBase::new(org.id)),
+                Site::new(SiteBase::new(org.id)),
                 AuthenticatedEntity::System,
             )
             .await
             .unwrap();
-        let $network_id = network.id;
+        let $site_id = site.id;
     };
 }
 
@@ -231,6 +231,7 @@ async fn submit(services: &ServiceFactory, s: Submission) -> anyhow::Result<Host
             None,
         )
         .await
+        .map(|discovered| discovered.host)
 }
 
 /// GH #650, as a test.
@@ -241,9 +242,9 @@ async fn submit(services: &ServiceFactory, s: Submission) -> anyhow::Result<Host
 /// persisted runtime service.
 #[tokio::test]
 async fn bridge_subnet_owner_resolves_on_first_scan() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
-    let submission = Submission::container_host(network_id);
+    let submission = Submission::container_host(site_id);
     let bridge_cidr = submission.bridge_cidr();
 
     let response = submit(&services, submission)
@@ -258,7 +259,7 @@ async fn bridge_subnet_owner_resolves_on_first_scan() {
 
     let bridge = services
         .subnet_service
-        .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())
+        .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live())
         .await
         .unwrap()
         .into_iter()
@@ -273,21 +274,64 @@ async fn bridge_subnet_owner_resolves_on_first_scan() {
     );
 }
 
+/// The bridge rides inside the host request, so the daemon never learns its stored id and cannot
+/// list it as scanned. The host-processing result has to carry it, or the scan's terminal update
+/// never stamps the bridge with its first and last discovery.
+#[tokio::test]
+async fn host_processing_reports_the_bridge_it_stored() {
+    harness!(services, site_id, _container);
+
+    let submission = Submission::container_host(site_id);
+    let bridge_cidr = submission.bridge_cidr();
+
+    let discovered = services
+        .host_service
+        .discover_host(
+            submission.host,
+            submission.ip_addresses,
+            submission.ports,
+            submission.services,
+            vec![],
+            submission.subnets,
+            true,
+            InterfaceDataComplete::default(),
+            None,
+            AuthenticatedEntity::System,
+            None,
+        )
+        .await
+        .expect("a container scan must persist");
+
+    let bridge = services
+        .subnet_service
+        .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live())
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|s| *s.base.cidr == bridge_cidr)
+        .expect("the bridge subnet is persisted");
+
+    assert!(
+        discovered.subnet_ids.contains(&bridge.id),
+        "the stored bridge id must come back for the scan record to stamp"
+    );
+}
+
 /// The duplicate-subnet half of GH #650: 353 rows for 70 distinct CIDRs.
 ///
 /// A rescan mints fresh pending ids for everything. The bridge must resolve to the same
 /// persisted subnet rather than inserting a second row for the same CIDR.
 #[tokio::test]
 async fn second_scan_reuses_the_one_bridge_subnet() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
-    let first = Submission::container_host(network_id);
+    let first = Submission::container_host(site_id);
     let bridge_cidr = first.bridge_cidr();
     let response = submit(&services, first).await.expect("first scan persists");
 
     let persisted = services
         .subnet_service
-        .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())
+        .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live())
         .await
         .unwrap();
     let lan_id = persisted
@@ -302,13 +346,13 @@ async fn second_scan_reuses_the_one_bridge_subnet() {
         .id;
 
     // Rescan the way a real daemon does: stable host and subnet ids, a fresh service id.
-    let mut second = Submission::container_host(network_id);
+    let mut second = Submission::container_host(site_id);
     second.rescan(response.id, lan_id, bridge_id);
     submit(&services, second).await.expect("rescan persists");
 
     let bridges: Vec<Subnet> = services
         .subnet_service
-        .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())
+        .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live())
         .await
         .unwrap()
         .into_iter()
@@ -330,9 +374,9 @@ async fn second_scan_reuses_the_one_bridge_subnet() {
 /// the whole host. Before the guard this was an FK violation that lost every entity for the host.
 #[tokio::test]
 async fn unknown_bridge_owner_is_nulled_not_fatal() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
-    let mut submission = Submission::container_host(network_id);
+    let mut submission = Submission::container_host(site_id);
     let bridge_cidr = submission.bridge_cidr();
     // Point the bridge at a service nobody will create.
     submission.subnets[1].base.virtualization_service_id = Some(Uuid::new_v4());
@@ -343,7 +387,7 @@ async fn unknown_bridge_owner_is_nulled_not_fatal() {
 
     let bridge = services
         .subnet_service
-        .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())
+        .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live())
         .await
         .unwrap()
         .into_iter()
@@ -361,9 +405,9 @@ async fn unknown_bridge_owner_is_nulled_not_fatal() {
 /// bindings intact.
 #[tokio::test]
 async fn row_phase_upsert_does_not_drop_existing_bindings() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
-    let first = Submission::container_host(network_id);
+    let first = Submission::container_host(site_id);
     let response = submit(&services, first).await.expect("first scan persists");
 
     let runtime_before = response
@@ -413,15 +457,15 @@ async fn row_phase_upsert_does_not_drop_existing_bindings() {
 /// reference, reached from the main service loop rather than the subnet loop.
 #[tokio::test]
 async fn container_service_owner_survives_a_rescan() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
-    let first = Submission::container_host(network_id);
+    let first = Submission::container_host(site_id);
     let bridge_cidr = first.bridge_cidr();
     let response = submit(&services, first).await.expect("first scan persists");
 
     let persisted = services
         .subnet_service
-        .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())
+        .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live())
         .await
         .unwrap();
     let lan_id = persisted
@@ -435,7 +479,7 @@ async fn container_service_owner_survives_a_rescan() {
         .expect("bridge persisted")
         .id;
 
-    let mut second = Submission::container_host(network_id);
+    let mut second = Submission::container_host(site_id);
     second.rescan(response.id, lan_id, bridge_id);
     // The container keeps naming the runtime by the id minted for THIS scan.
     second.services[1].base.virtualization_service_id = Some(second.services[0].id);
@@ -443,7 +487,7 @@ async fn container_service_owner_survives_a_rescan() {
 
     let all = services
         .service_service
-        .get_all(StorableFilter::<Service>::new_from_network_ids(&[network_id]).live())
+        .get_all(StorableFilter::<Service>::new_from_site_ids(&[site_id]).live())
         .await
         .unwrap();
 
@@ -472,28 +516,135 @@ async fn container_service_owner_survives_a_rescan() {
     );
 }
 
-/// `hosts.virtualization_service_id` is server-authoritative.
-///
-/// A VM guest names a hypervisor service on a different host, submitted in a different call, so
-/// no ordering inside a submission could resolve it — and `CreatedEntitiesPayload` never returns
-/// service mappings, so a daemon cannot learn the real id to send. Anything the payload carries
-/// is therefore dropped rather than written, which is what keeps the FK satisfiable when the
-/// Proxmox integration starts populating this field.
-#[tokio::test]
-async fn daemon_supplied_host_owner_is_ignored() {
-    harness!(services, network_id, _container);
+/// A guest host on the LAN the container host's submission persisted, naming `owner` as its
+/// hypervisor service.
+fn guest(site_id: Uuid, lan_id: Uuid, last_octet: u8, owner: Option<Uuid>) -> Submission {
+    let host = Host::new(HostBase {
+        name: HostName::manual(format!("guest-{last_octet}")),
+        site_id,
+        source: EntitySource::Discovery,
+        virtualization_service_id: owner,
+        ..Default::default()
+    });
+    let ip = IPAddress::new(IPAddressBase {
+        site_id,
+        subnet_id: lan_id,
+        ip_address: IpAddr::V4(Ipv4Addr::new(192, 168, 1, last_octet)),
+        mac_address: None,
+        position: 0,
+        name: Some("eth0".to_string()),
+        host_id: host.id,
+    });
+    Submission {
+        host,
+        ip_addresses: vec![ip],
+        ports: vec![],
+        services: vec![],
+        subnets: vec![],
+    }
+}
 
-    let mut submission = Submission::container_host(network_id);
+/// Persist the container host and return its stored runtime service id and LAN subnet id, which
+/// stand in for a hypervisor node's service and network in the guest tests below.
+async fn stored_owner_and_lan(services: &ServiceFactory, site_id: Uuid) -> (Uuid, Uuid) {
+    let response = submit(services, Submission::container_host(site_id))
+        .await
+        .expect("the owner's host persists");
+    let owner = response
+        .services
+        .iter()
+        .find(|s| s.base.service_definition.name() == "Docker")
+        .expect("owner service persisted")
+        .id;
+    let lan = response
+        .ip_addresses
+        .iter()
+        .find(|ip| ip.base.ip_address == IpAddr::V4(Ipv4Addr::new(192, 168, 1, 50)))
+        .expect("LAN address persisted")
+        .base
+        .subnet_id;
+    (owner, lan)
+}
+
+/// A daemon-minted id names nothing the server stored, so discovery drops it rather than failing
+/// the host on the foreign key.
+#[tokio::test]
+async fn daemon_supplied_unknown_host_owner_is_dropped() {
+    harness!(services, site_id, _container);
+
+    let mut submission = Submission::container_host(site_id);
     submission.host.base.virtualization_service_id = Some(Uuid::new_v4());
 
     let response = submit(&services, submission)
         .await
-        .expect("a daemon-supplied host owner must not fail the host");
+        .expect("an unknown host owner must not fail the host");
 
     assert_eq!(
         response.virtualization_service_id, None,
-        "discovery must not write a host virtualizer it cannot resolve"
+        "discovery must not write a host virtualizer that is not a stored service"
     );
+}
+
+/// The Proxmox integration creates a node first and sends its stored service id with each guest.
+/// A new guest keeps it; a guest already on file without an owner (found by a plain scan first)
+/// gains it on the next report.
+#[tokio::test]
+async fn guest_links_to_a_stored_hypervisor_service() {
+    harness!(services, site_id, _container);
+    let (owner, lan) = stored_owner_and_lan(&services, site_id).await;
+
+    let created = submit(&services, guest(site_id, lan, 60, Some(owner)))
+        .await
+        .expect("guest persists");
+    assert_eq!(created.virtualization_service_id, Some(owner));
+
+    let found_first = submit(&services, guest(site_id, lan, 61, None))
+        .await
+        .expect("guest found by a plain scan persists");
+    assert_eq!(found_first.virtualization_service_id, None);
+
+    let mut reported = guest(site_id, lan, 61, Some(owner));
+    reported.host.id = found_first.id;
+    reported.ip_addresses[0].base.host_id = found_first.id;
+    let linked = submit(&services, reported)
+        .await
+        .expect("guest report persists");
+    assert_eq!(
+        linked.id, found_first.id,
+        "the report must land on the same host"
+    );
+    assert_eq!(linked.virtualization_service_id, Some(owner));
+}
+
+/// Tenant isolation: a guest can only be linked to a hypervisor service on its own site.
+#[tokio::test]
+async fn guest_cannot_link_to_another_sites_service() {
+    harness!(services, site_id, _container);
+    let (_, lan) = stored_owner_and_lan(&services, site_id).await;
+
+    let other_site = services
+        .site_service
+        .create(
+            Site::new(SiteBase::new(
+                services
+                    .site_service
+                    .get_by_id(&site_id)
+                    .await
+                    .unwrap()
+                    .unwrap()
+                    .base
+                    .organization_id,
+            )),
+            AuthenticatedEntity::System,
+        )
+        .await
+        .unwrap();
+    let (foreign_owner, _) = stored_owner_and_lan(&services, other_site.id).await;
+
+    let response = submit(&services, guest(site_id, lan, 62, Some(foreign_owner)))
+        .await
+        .expect("a cross-site owner must not fail the host");
+    assert_eq!(response.virtualization_service_id, None);
 }
 
 /// The API *does* own this field — the UI sets it when a user assigns a VM to a hypervisor — so
@@ -501,7 +652,7 @@ async fn daemon_supplied_host_owner_is_ignored() {
 /// 500 from Postgres.
 #[tokio::test]
 async fn api_rejects_an_unresolvable_host_virtualizer() {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
     let result = services
         .host_service
@@ -519,7 +670,7 @@ async fn api_rejects_an_unresolvable_host_virtualizer() {
         .await
         .expect("a bare-metal host has no virtualizer and must be accepted");
 
-    let _ = network_id;
+    let _ = site_id;
 }
 
 // =============================================================================
@@ -538,9 +689,9 @@ async fn lan_address_after_two_scans(
     first: Option<MacEvidence>,
     second: Option<MacEvidence>,
 ) -> IPAddress {
-    harness!(services, network_id, _container);
+    harness!(services, site_id, _container);
 
-    let mut initial = Submission::container_host(network_id);
+    let mut initial = Submission::container_host(site_id);
     let lan_ip = initial.ip_addresses[0].base.ip_address;
     initial.ip_addresses[0].base.mac_address = first;
     let response = submit(&services, initial)
@@ -549,7 +700,7 @@ async fn lan_address_after_two_scans(
 
     let persisted = services
         .subnet_service
-        .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())
+        .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live())
         .await
         .unwrap();
     let lan_id = persisted
@@ -563,7 +714,7 @@ async fn lan_address_after_two_scans(
         .expect("bridge subnet persisted")
         .id;
 
-    let mut rescan = Submission::container_host(network_id);
+    let mut rescan = Submission::container_host(site_id);
     rescan.rescan(response.id, lan_id, bridge_id);
     rescan.ip_addresses[0].base.mac_address = second;
     submit(&services, rescan).await.expect("rescan persists");
@@ -621,4 +772,232 @@ async fn a_rescan_without_a_mac_keeps_the_stored_one() {
         Some(host_mac(AttributeSource::ArpReply)),
         "an address rescan with no MAC must keep the MAC and source already stored"
     );
+}
+
+// =============================================================================
+// A controller client the sweep already found
+// =============================================================================
+
+/// What a controller reports for a client: a DHCP hostname and an address, mapped by the same
+/// `MappedClient::new` the UniFi and Instant On integrations call, against the site's live
+/// subnets as the daemon receives them.
+async fn controller_client_submission(
+    services: &ServiceFactory,
+    site_id: Uuid,
+    ip: &str,
+) -> (Submission, Uuid) {
+    use crate::daemon::discovery::integration::controller::{ControllerIdentity, MappedClient};
+    use crate::server::services::r#impl::patterns::ClientProbe;
+
+    let live = services
+        .subnet_service
+        .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live())
+        .await
+        .unwrap();
+    let identity = ControllerIdentity {
+        probe: ClientProbe::UnifiController,
+        name: None,
+        hostname: Some("marys-laptop".to_string()),
+        chassis_id: None,
+        manufacturer: None,
+        model: None,
+        serial_number: None,
+        firmware_revision: None,
+    };
+    // No MAC: host matching has only the address to go on.
+    let client = MappedClient::new(identity, Some(ip), None, site_id, &live)
+        .expect("a parseable address maps");
+    let MappedClient {
+        identity,
+        ip_address,
+        ip: _,
+    } = client;
+    let subnet_id = ip_address.base.subnet_id;
+
+    let submission = Submission {
+        host: identity.into_host(site_id),
+        ip_addresses: vec![ip_address],
+        ports: vec![],
+        services: vec![],
+        subnets: vec![],
+    };
+    (submission, subnet_id)
+}
+
+/// The sweep reaches 192.168.1.50 on the LAN and records it with the LAN's subnet id. The
+/// controller then reports the same address for a client, with no MAC. Host matching compares IP
+/// and subnet together, so the client must carry the LAN's id to land on the sweep's host rather
+/// than becoming a second host with a second row for the same address.
+#[tokio::test]
+async fn a_controller_client_the_sweep_found_lands_on_the_same_host() {
+    harness!(services, site_id, _container);
+
+    let sweep = Submission::container_host(site_id);
+    let lan_ip = sweep.ip_addresses[0].base.ip_address;
+    let swept = submit(&services, sweep).await.expect("the sweep persists");
+
+    let (client, subnet_id) =
+        controller_client_submission(&services, site_id, &lan_ip.to_string()).await;
+    let lan_id = services
+        .subnet_service
+        .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live())
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|s| s.base.subnet_type == SubnetType::Lan)
+        .expect("lan subnet persisted")
+        .id;
+    assert_eq!(
+        subnet_id, lan_id,
+        "precondition: the client is placed on the LAN"
+    );
+
+    let reported = submit(&services, client)
+        .await
+        .expect("the controller client persists");
+
+    assert_eq!(
+        reported.id, swept.id,
+        "the controller's client must match the host the sweep found"
+    );
+    let rows: Vec<IPAddress> = services
+        .ip_address_service
+        .get_all(StorableFilter::<IPAddress>::new_from_site_ids(&[site_id]).live())
+        .await
+        .unwrap()
+        .into_iter()
+        .filter(|ip| ip.base.ip_address == lan_ip)
+        .collect();
+    assert_eq!(
+        rows.len(),
+        1,
+        "one address row for one address, got {rows:?}"
+    );
+}
+
+/// A client on a range this site holds nothing for still reaches the server with a nil
+/// subnet, and the server infers a range for it rather than dropping it or filing it under a
+/// `0.0.0.0/0` row.
+#[tokio::test]
+async fn a_controller_client_on_no_held_range_gets_an_inferred_subnet() {
+    harness!(services, site_id, _container);
+
+    let (client, subnet_id) = controller_client_submission(&services, site_id, "10.77.0.5").await;
+    assert_eq!(
+        subnet_id,
+        Uuid::nil(),
+        "precondition: nothing holds the address"
+    );
+
+    let reported = submit(&services, client)
+        .await
+        .expect("the controller client persists");
+
+    let stored = services
+        .ip_address_service
+        .get_for_host(&reported.id)
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|ip| ip.base.ip_address.to_string() == "10.77.0.5")
+        .expect("the address is stored");
+    let subnet = services
+        .subnet_service
+        .get_by_id(&stored.base.subnet_id)
+        .await
+        .unwrap()
+        .expect("the address names a stored subnet");
+    assert!(subnet.base.cidr.contains(&stored.base.ip_address));
+    assert!(!subnet.is_organizational_subnet());
+}
+
+/// A host never runs inside one of its own services: an ipvlan container's address once merged
+/// into its runtime's host, and the container's submission then made that host its own Docker's
+/// container. A report naming only some of the host's addresses now takes them to a host of its
+/// own (`a_container_report_takes_its_address_off_its_runtimes_host`), so this one names all of
+/// them and is still adopted, which leaves the guard as the last line.
+#[tokio::test]
+async fn a_host_is_never_owned_by_its_own_service() {
+    harness!(services, site_id, _container);
+
+    let response = submit(&services, Submission::container_host(site_id))
+        .await
+        .expect("first scan persists");
+    let runtime_id = response
+        .services
+        .iter()
+        .find(|s| s.base.service_definition.name() == "Docker")
+        .expect("runtime persisted")
+        .id;
+    let lan_ip = response
+        .ip_addresses
+        .iter()
+        .find(|a| a.base.ip_address.to_string() == "192.168.1.50")
+        .expect("lan address persisted")
+        .clone();
+    let named: Vec<IPAddress> = response
+        .ip_addresses
+        .iter()
+        .map(|a| {
+            IPAddress::new(IPAddressBase {
+                site_id,
+                subnet_id: a.base.subnet_id,
+                ip_address: a.base.ip_address,
+                ..Default::default()
+            })
+        })
+        .collect();
+    assert!(
+        named
+            .iter()
+            .any(|a| a.base.ip_address == lan_ip.base.ip_address)
+    );
+
+    let container_submission = services
+        .host_service
+        .discover_host(
+            Host::new(HostBase {
+                site_id,
+                source: EntitySource::Discovery,
+                virtualization_service_id: Some(runtime_id),
+                virtualization_metadata: Some(
+                    crate::server::hosts::r#impl::virtualization::HostVirtualization::Docker(
+                        crate::server::hosts::r#impl::virtualization::ContainerHostVirtualization {
+                            container_name: Some("ipvlan-test".to_string()),
+                            container_id: Some("aec2a3e9".to_string()),
+                            compose_project: None,
+                            network_type:
+                                crate::server::hosts::r#impl::virtualization::ContainerNetworkType::IpVlan,
+                        },
+                    ),
+                ),
+                ..Default::default()
+            }),
+            named,
+            vec![],
+            vec![],
+            vec![],
+            vec![],
+            false,
+            InterfaceDataComplete::default(),
+            None,
+            AuthenticatedEntity::System,
+            None,
+        )
+        .await
+        .expect("the submission persists")
+        .host;
+
+    assert_eq!(
+        container_submission.id, response.id,
+        "it lands on the runtime's host"
+    );
+    let stored = services
+        .host_service
+        .get_by_id(&response.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(stored.base.virtualization_service_id, None);
+    assert_eq!(stored.base.virtualization_metadata, None);
 }

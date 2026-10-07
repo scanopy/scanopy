@@ -5,6 +5,7 @@ import subnetTypesJson from '$lib/data/subnet-types.json';
 import edgeTypesJson from '$lib/data/edge-types.json';
 import dependencyTypesJson from '$lib/data/dependency-types.json';
 import entitiesJson from '$lib/data/entities.json';
+import entityCategoriesJson from '$lib/data/entity-categories.json';
 import entitySourcesJson from '$lib/data/entity-sources.json';
 import portsJson from '$lib/data/ports.json';
 import discoveryTypesJson from '$lib/data/discovery-types.json';
@@ -18,11 +19,18 @@ import credentialTypesJson from '$lib/data/credential-types.json';
 import credentialIntegrationsJson from '$lib/data/credential-integrations.json';
 import conceptsJson from '$lib/data/concepts.json';
 import containerTypesJson from '$lib/data/container-types.json';
+import inspectorSectionsJson from '$lib/data/inspector-sections.json';
 import viewsJson from '$lib/data/views.json';
 import serviceCategoriesJson from '$lib/data/service-categories.json';
 import attributeSourcesJson from '$lib/data/attribute-sources.json';
 import clientProbesJson from '$lib/data/client-probes.json';
 import matchConfidencesJson from '$lib/data/match-confidences.json';
+import hostVirtualizationsJson from '$lib/data/host-virtualizations.json';
+import serviceVirtualizationsJson from '$lib/data/service-virtualizations.json';
+import discoveryProtocolsJson from '$lib/data/discovery-protocols.json';
+import proxmoxGuestTypesJson from '$lib/data/proxmox-guest-types.json';
+import containerNetworkTypesJson from '$lib/data/container-network-types.json';
+import ifOperStatusesJson from '$lib/data/if-oper-statuses.json';
 import {
 	createColorHelper,
 	createIconComponent,
@@ -31,6 +39,7 @@ import {
 	type ColorStyle
 } from '../utils/styling';
 import { metaName, metaDescription } from '$lib/i18n/metadata';
+import type { TagProps } from '$lib/shared/components/data/types';
 
 export type Color = components['schemas']['Color'];
 
@@ -101,6 +110,7 @@ export interface MetadataRegistry {
 	edge_types: TypeMetadata[];
 	dependency_types: TypeMetadata[];
 	entities: TypeMetadata[];
+	entity_categories: TypeMetadata[];
 	entity_sources: TypeMetadata[];
 	ports: TypeMetadata[];
 	discovery_types: TypeMetadata[];
@@ -114,11 +124,18 @@ export interface MetadataRegistry {
 	credential_types: TypeMetadata[];
 	credential_integrations: TypeMetadata[];
 	container_types: TypeMetadata[];
+	inspector_sections: TypeMetadata[];
 	views: TypeMetadata[];
 	service_categories: TypeMetadata[];
 	attribute_sources: TypeMetadata[];
 	client_probes: TypeMetadata[];
 	match_confidences: TypeMetadata[];
+	host_virtualizations: TypeMetadata[];
+	service_virtualizations: TypeMetadata[];
+	discovery_protocols: TypeMetadata[];
+	proxmox_guest_types: TypeMetadata[];
+	container_network_types: TypeMetadata[];
+	if_oper_statuses: TypeMetadata[];
 }
 
 // Utility type to add proper typing to the metadata field
@@ -132,8 +149,7 @@ export type BillingPlanFeatures = (typeof billingPlansJson)[number]['metadata'][
 export type FeatureId = keyof BillingPlanFeatures;
 
 /** Feature IDs plus resource-based upgrade reasons */
-export type UpgradeFeature =
-	FeatureId | 'seats' | 'networks' | 'hosts' | 'plan_usage' | 'snapshots';
+export type UpgradeFeature = FeatureId | 'seats' | 'sites' | 'hosts' | 'plan_usage' | 'snapshots';
 
 export interface BillingPlanMetadata {
 	features: BillingPlanFeatures;
@@ -152,9 +168,20 @@ export interface BillingPlanMetadata {
 	license_plan: string | null;
 }
 
+export interface HostVirtualizationMetadata {
+	/** The Host `Virtualization` filter value a host of this type carries. */
+	virtualization_state: components['schemas']['HostVirtualizationState'];
+}
+
 export interface ServicedDefinitionMetadata {
 	can_be_added: boolean;
-	manages_virtualization: 'vms' | 'containers';
+	/**
+	 * The manager's `VirtualizationRole`, as its strum serialization. The backend sends it as a
+	 * plain string in fixture metadata (the role is not an OpenAPI schema type), so these are the
+	 * backend's strings verbatim: Hypervisor is 'vms', ContainerRuntime 'containers' and
+	 * IdentityHost 'identities'.
+	 */
+	manages_virtualization: 'vms' | 'containers' | 'identities';
 	/**
 	 * Serde discriminant the manual-assignment UI must use when associating
 	 * VMs/containers with this manager (e.g. 'Proxmox', 'VCenter', 'Podman').
@@ -265,6 +292,7 @@ export const metadata = writable<MetadataRegistry>({
 	edge_types: edgeTypesJson,
 	dependency_types: dependencyTypesJson,
 	entities: entitiesJson,
+	entity_categories: entityCategoriesJson,
 	entity_sources: entitySourcesJson,
 	ports: portsJson,
 	discovery_types: discoveryTypesJson,
@@ -278,11 +306,18 @@ export const metadata = writable<MetadataRegistry>({
 	credential_types: credentialTypesJson,
 	credential_integrations: credentialIntegrationsJson,
 	container_types: containerTypesJson,
+	inspector_sections: inspectorSectionsJson,
 	views: viewsJson,
 	service_categories: serviceCategoriesJson,
 	attribute_sources: attributeSourcesJson,
 	client_probes: clientProbesJson,
-	match_confidences: matchConfidencesJson
+	match_confidences: matchConfidencesJson,
+	host_virtualizations: hostVirtualizationsJson,
+	service_virtualizations: serviceVirtualizationsJson,
+	discovery_protocols: discoveryProtocolsJson,
+	proxmox_guest_types: proxmoxGuestTypesJson,
+	container_network_types: containerNetworkTypesJson,
+	if_oper_statuses: ifOperStatusesJson
 } as unknown as MetadataRegistry);
 
 // Shared color helper functions that work for both TypeMetadata and EntityMetadata
@@ -395,6 +430,16 @@ function createTypeMetadataHelpers<T extends TypeMetadataKeys, M = unknown>(cate
 			return metaDescription(category, id, fallback);
 		},
 
+		/** A tag for this value: its name and colour, with its description as the tooltip. */
+		getTag: (id: string | null): TagProps & { label: string } => {
+			const description = helpers.getDescription(id);
+			return {
+				label: helpers.getName(id),
+				color: helpers.getColorHelper(id).color,
+				title: description || undefined
+			};
+		},
+
 		getCategory: (id: string | null) => {
 			const $registry = get(metadata);
 			return (
@@ -456,6 +501,10 @@ interface EntityTypeMetadata {
 	entity_name_plural?: string;
 }
 export const entities = createTypeMetadataHelpers<'entities', EntityTypeMetadata>('entities');
+/** The parts of the product entities belong to, in display order: the sidebar's sections. */
+export const entityCategories = createTypeMetadataHelpers<'entity_categories', object>(
+	'entity_categories'
+);
 /** How an entity came to exist, keyed by `source.type`. */
 export const entitySources = createTypeMetadataHelpers<'entity_sources', object>('entity_sources');
 /**
@@ -471,6 +520,35 @@ export const ports = createTypeMetadataHelpers<'ports', PortTypeMetadata>('ports
 /** How confidently discovery matched a service to its definition, keyed by `MatchConfidence`. */
 export const matchConfidences = createTypeMetadataHelpers<'match_confidences', object>(
 	'match_confidences'
+);
+/** Inspector section headings (name, description, icon, colour), keyed by `InspectorSection`. */
+export const inspectorSections = createTypeMetadataHelpers<'inspector_sections', object>(
+	'inspector_sections'
+);
+/** The hypervisor platform a guest runs on, keyed by `virtualization_metadata.type`. */
+export const hostVirtualizations = createTypeMetadataHelpers<
+	'host_virtualizations',
+	HostVirtualizationMetadata
+>('host_virtualizations');
+/** The container runtime a service runs in, keyed by a service's `virtualization_metadata.type`. */
+export const serviceVirtualizations = createTypeMetadataHelpers<'service_virtualizations', object>(
+	'service_virtualizations'
+);
+/** The neighbor protocol that reported a physical link, keyed by `DiscoveryProtocol`. */
+export const discoveryProtocols = createTypeMetadataHelpers<'discovery_protocols', object>(
+	'discovery_protocols'
+);
+/** A Proxmox guest's type (VM or LXC container), keyed by `ProxmoxGuestType`. */
+export const proxmoxGuestTypes = createTypeMetadataHelpers<'proxmox_guest_types', object>(
+	'proxmox_guest_types'
+);
+/** A container host's LAN network driver (macvlan or ipvlan), keyed by `ContainerNetworkType`. */
+export const containerNetworkTypes = createTypeMetadataHelpers<'container_network_types', object>(
+	'container_network_types'
+);
+/** A port's ifOperStatus (label, colour, icon), keyed by `IfOperStatus`. */
+export const ifOperStatuses = createTypeMetadataHelpers<'if_oper_statuses', object>(
+	'if_oper_statuses'
 );
 export const discoveryTypes = createTypeMetadataHelpers<'discovery_types', DiscoveryTypeMetadata>(
 	'discovery_types'

@@ -1,9 +1,12 @@
 //! PostHog subscriber for billing, onboarding, analytics, auth, entity, and
 //! discovery events.
 //!
-//! Captures product analytics: emits PostHog `capture` events keyed on
-//! distinct_id (user_id when known, else organization_id), updates person
-//! properties (plan, status), and groups events under the org.
+//! Captures product analytics. Every event goes out through
+//! [`PosthogService::capture_event`] in the shape the event layer defines
+//! ([`Event::properties`]): who acted, the server version, and the event's own
+//! fields under `metadata`, grouped under its organization. These handlers
+//! choose which events to send and update person and group properties (plan,
+//! use case) where an event settles them.
 //!
 //! Each handler sends its whole debounced batch and reports failed sends as `NonRetryable`: a
 //! re-run would capture the events that already went through a second time.
@@ -14,18 +17,16 @@ use crate::{
         warnings::DiscoveryWarningCode,
     },
     server::{
-        auth::middleware::auth::AuthenticatedEntity,
-        discovery::r#impl::types::DiscoveryType,
+        organizations::r#impl::base::UseCase,
         posthog::service::PosthogService,
         shared::{
             events::{
                 registry::SubscriberRegistration,
                 traits::{EntityEventFilter, Event, EventFilter, NonRetryable, Subscriber},
                 types::{
-                    AnalyticsOperation, AnalyticsOperationDiscriminants, AuthOperation,
-                    AuthOperationDiscriminants, BillingOperation, EntityOperation,
-                    EntityOperationDiscriminants, OnboardingOperation,
-                    OnboardingOperationDiscriminants,
+                    AnalyticsOperation, AuthOperation, AuthOperationDiscriminants,
+                    BillingOperation, EntityOperation, EntityOperationDiscriminants,
+                    OnboardingOperation, OnboardingOperationDiscriminants,
                 },
             },
             types::metadata::TypeMetadataProvider,
@@ -34,86 +35,61 @@ use crate::{
 };
 use anyhow::Error;
 use async_trait::async_trait;
-use serde_json::json;
+use serde::Serialize;
 use std::collections::BTreeMap;
 use uuid::Uuid;
 
 /// Demo org ID — filtered from noisy analytics events to avoid skewing metrics.
 const DEMO_ORG_ID: Uuid = uuid::uuid!("0380451f-a50b-41cd-ae76-6ce47214d8ff");
 
-/// Build common properties from an event's `AuthenticatedEntity`.
-fn auth_properties(auth: &AuthenticatedEntity) -> serde_json::Value {
-    let mut props = json!({
-        "auth_type": auth.entity_name(),
-    });
-    if let Some(user_id) = auth.user_id() {
-        props["user_id"] = json!(user_id.to_string());
-    }
-    if let Some(email) = auth.email() {
-        props["email"] = json!(email.to_string());
-    }
-    if let Some(org_id) = auth.organization_id() {
-        props["organization_id"] = json!(org_id.to_string());
-    }
-    if let Some(daemon_id) = auth.daemon_id() {
-        props["daemon_id"] = json!(daemon_id.to_string());
-    }
-    props
+/// Person properties an event sets when it settles the org's plan.
+#[derive(Serialize)]
+struct PersonProperties<'a> {
+    plan_type: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    organization_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    use_case: Option<&'a UseCase>,
 }
 
-fn to_snake_case(s: &str) -> String {
-    let mut result = String::with_capacity(s.len() + 4);
-    for (i, ch) in s.chars().enumerate() {
-        if ch.is_uppercase() && i > 0 {
-            result.push('_');
-        }
-        result.push(ch.to_ascii_lowercase());
-    }
-    result
+/// Organization group properties an event sets when it settles the org's plan.
+#[derive(Serialize)]
+struct OrgGroupProperties<'a> {
+    plan_type: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    name: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    use_case: Option<&'a UseCase>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    created_at: Option<String>,
 }
 
-fn inject_org_group(props: &mut serde_json::Value) {
-    if let Some(org_id) = props.get("organization_id").and_then(|v| v.as_str()) {
-        props["$groups"] = json!({"organization": org_id});
-    }
+/// A warning bucket's metadata plus how many warnings it collapsed.
+#[derive(Serialize)]
+struct WithOccurrences<M> {
+    #[serde(flatten)]
+    inner: M,
+    occurrences: usize,
 }
 
 impl PosthogService {
-    /// Resolve a distinct_id for PostHog. Returns None if the event cannot be
-    /// attributed.
-    async fn resolve_distinct_id_for_user(
+    /// Capture each event, collecting failed sends.
+    async fn capture_all<Op: crate::server::shared::events::Operation>(
         &self,
-        auth: &AuthenticatedEntity,
-        org_id: Option<Uuid>,
-    ) -> Option<String> {
-        if let Some(user_id) = auth.user_id() {
-            return Some(user_id.to_string());
+        events: &[Event<Op>],
+    ) -> Vec<Error> {
+        let mut failures = Vec::new();
+        for event in events {
+            if let Some((_, result)) = self.capture_event(event).await {
+                failures.extend(result.err());
+            }
         }
-        if let Some(org_id) = org_id {
-            return Some(format!("org:{}", org_id));
-        }
-        if let Some(org_id) = auth.organization_id() {
-            return Some(format!("org:{}", org_id));
-        }
-        None
+        failures
     }
+}
 
-    async fn resolve_distinct_id_via_network(
-        &self,
-        auth: &AuthenticatedEntity,
-        network_id: Uuid,
-    ) -> Option<String> {
-        if let Some(user_id) = auth.user_id() {
-            return Some(user_id.to_string());
-        }
-        if let Some(org_id) = self.get_org_id_from_network(&network_id).await {
-            return Some(format!("org:{}", org_id));
-        }
-        if let Some(org_id) = auth.organization_id() {
-            return Some(format!("org:{}", org_id));
-        }
-        None
-    }
+fn failures_to_result(failures: Vec<Error>) -> Result<(), Error> {
+    NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
 }
 
 fn entity_filter() -> EntityEventFilter {
@@ -130,7 +106,7 @@ fn entity_filter() -> EntityEventFilter {
             EntityDiscriminants::Organization,
             Some(vec![EntityOperationDiscriminants::Deleted]),
         ),
-        (EntityDiscriminants::Network, create_or_delete.clone()),
+        (EntityDiscriminants::Site, create_or_delete.clone()),
         (EntityDiscriminants::Host, create_or_delete.clone()),
         (EntityDiscriminants::Subnet, create_or_delete.clone()),
         (EntityDiscriminants::Discovery, create_or_delete.clone()),
@@ -153,54 +129,9 @@ impl Subscriber<EntityOperation> for PosthogService {
         entity_filter()
     }
 
-    async fn handle(&self, events: Vec<Event<EntityOperation>>) -> Result<(), Error> {
-        use strum::IntoDiscriminant;
-
-        let mut failures = Vec::new();
-        for event in events {
-            if event.flags.suppress_logs {
-                continue;
-            }
-            let entity_disc = event.scope.entity_type().discriminant();
-
-            let scope_org_id = event.scope.organization_id();
-            let scope_network_id = event.scope.network_id();
-
-            let distinct_id = if let Some(network_id) = scope_network_id {
-                self.resolve_distinct_id_via_network(&event.authentication, network_id)
-                    .await
-            } else {
-                self.resolve_distinct_id_for_user(&event.authentication, scope_org_id)
-                    .await
-            };
-            let Some(distinct_id) = distinct_id else {
-                tracing::debug!(
-                    entity_type = %entity_disc,
-                    entity_id = %event.scope.entity_id(),
-                    "Skipping PostHog entity event — cannot attribute"
-                );
-                continue;
-            };
-
-            let entity_type_str = to_snake_case(entity_disc.as_ref());
-            let event_name = format!("{}_{}", entity_type_str, event.operation);
-
-            let mut props = auth_properties(&event.authentication);
-            props["entity_id"] = json!(event.scope.entity_id().to_string());
-            if let Some(network_id) = scope_network_id {
-                props["network_id"] = json!(network_id.to_string());
-                if let Some(org_id) = self.get_org_id_from_network(&network_id).await {
-                    props["organization_id"] = json!(org_id.to_string());
-                }
-            }
-            if let Some(org_id) = scope_org_id {
-                props["organization_id"] = json!(org_id.to_string());
-            }
-
-            inject_org_group(&mut props);
-            failures.extend(self.capture(&event_name, &distinct_id, props).await.err());
-        }
-        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
+    async fn handle(&self, mut events: Vec<Event<EntityOperation>>) -> Result<(), Error> {
+        events.retain(|e| !e.flags.suppress_logs);
+        failures_to_result(self.capture_all(&events).await)
     }
 
     fn debounce_window_ms(&self) -> u64 {
@@ -215,27 +146,9 @@ impl Subscriber<AuthOperation> for PosthogService {
         EventFilter::ops(vec![AuthOperationDiscriminants::LoginSuccess])
     }
 
-    async fn handle(&self, events: Vec<Event<AuthOperation>>) -> Result<(), Error> {
-        let mut failures = Vec::new();
-        for event in events {
-            if event.flags.suppress_logs {
-                continue;
-            }
-            let distinct_id = event
-                .scope
-                .user_id
-                .map(|id| id.to_string())
-                .unwrap_or_else(|| "unknown".to_string());
-
-            let mut props = auth_properties(&event.authentication);
-            if let Some(org_id) = event.scope.organization_id {
-                props["organization_id"] = json!(org_id.to_string());
-            }
-
-            inject_org_group(&mut props);
-            failures.extend(self.capture("login", &distinct_id, props).await.err());
-        }
-        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
+    async fn handle(&self, mut events: Vec<Event<AuthOperation>>) -> Result<(), Error> {
+        events.retain(|e| !e.flags.suppress_logs);
+        failures_to_result(self.capture_all(&events).await)
     }
 
     fn debounce_window_ms(&self) -> u64 {
@@ -247,9 +160,8 @@ inventory::submit!(SubscriberRegistration::new::<PosthogService, AuthOperation>(
 #[async_trait]
 impl Subscriber<BillingOperation> for PosthogService {
     fn filter(&self) -> EventFilter<BillingOperation> {
-        // Forward every billing event. `handle()` is fully generic over the
-        // variant (event name from `to_string()`, full payload serialized into
-        // `metadata`, plan from `plan()`), so there is no per-variant work to
+        // Forward every billing event. The name, `metadata` and plan all come
+        // generically from the operation, so there is no per-variant work to
         // maintain. Matching all (rather than an allowlist of discriminants)
         // means a newly added `BillingOperation` variant can never be silently
         // dropped from analytics — the gap an explicit list invites.
@@ -262,47 +174,50 @@ impl Subscriber<BillingOperation> for PosthogService {
             if event.flags.suppress_logs {
                 continue;
             }
-
-            let org_id = event.scope.organization_id;
-            let Some(distinct_id) = self
-                .resolve_distinct_id_for_user(&event.authentication, Some(org_id))
-                .await
-            else {
+            if event.operation.is_zero_dollar_notice() {
                 tracing::debug!(
                     operation = %event.operation,
-                    "Skipping PostHog billing event — cannot attribute"
+                    organization_id = %event.scope.organization_id,
+                    "Skipping PostHog billing event for a customer paying nothing"
                 );
                 continue;
+            }
+
+            let Some((distinct_id, result)) = self.capture_event(&event).await else {
+                continue;
             };
-
-            let event_name = event.operation.to_string();
-            let org_id_str = org_id.to_string();
-
-            let mut props = auth_properties(&event.authentication);
-            props["organization_id"] = json!(&org_id_str);
-            props["metadata"] =
-                serde_json::to_value(&event.operation).unwrap_or(serde_json::Value::Null);
-
-            inject_org_group(&mut props);
-            failures.extend(self.capture(&event_name, &distinct_id, props).await.err());
+            failures.extend(result.err());
 
             // Update person and group properties from the plan the org lands
             // on. Events that carry no plan (payment method, invoice, discount
             // events and the like) leave `plan_type` as it is rather than
             // nulling it.
-            let Some(plan_name) = event.operation.resulting_plan_name() else {
+            let Some(plan_type) = event.operation.resulting_plan_name() else {
                 continue;
             };
-
-            let person = json!({ "plan_type": plan_name });
-            failures.extend(self.identify(&distinct_id, person.clone()).await.err());
+            let person = PersonProperties {
+                plan_type,
+                organization_id: None,
+                use_case: None,
+            };
+            let group = OrgGroupProperties {
+                plan_type,
+                name: None,
+                use_case: None,
+                created_at: None,
+            };
+            failures.extend(self.identify(&distinct_id, &person).await.err());
             failures.extend(
-                self.group_identify("organization", &org_id_str, person)
-                    .await
-                    .err(),
+                self.group_identify(
+                    "organization",
+                    &event.scope.organization_id.to_string(),
+                    &group,
+                )
+                .await
+                .err(),
             );
         }
-        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
+        failures_to_result(failures)
     }
 
     fn debounce_window_ms(&self) -> u64 {
@@ -327,7 +242,7 @@ impl Subscriber<OnboardingOperation> for PosthogService {
             OnboardingOperationDiscriminants::FirstTopologyRebuild,
             OnboardingOperationDiscriminants::FirstDiscoveryCompleted,
             OnboardingOperationDiscriminants::FirstHostDiscovered,
-            OnboardingOperationDiscriminants::SecondNetworkCreated,
+            OnboardingOperationDiscriminants::SecondSiteCreated,
             OnboardingOperationDiscriminants::FirstTagCreated,
             OnboardingOperationDiscriminants::FirstDependencyCreated,
             OnboardingOperationDiscriminants::FirstUserApiKeyCreated,
@@ -348,28 +263,10 @@ impl Subscriber<OnboardingOperation> for PosthogService {
             if event.flags.suppress_logs {
                 continue;
             }
-            let org_id = event.scope.organization_id;
-            let Some(distinct_id) = self
-                .resolve_distinct_id_for_user(&event.authentication, Some(org_id))
-                .await
-            else {
-                tracing::debug!(
-                    operation = %event.operation,
-                    "Skipping PostHog onboarding event — cannot attribute"
-                );
+            let Some((distinct_id, result)) = self.capture_event(&event).await else {
                 continue;
             };
-
-            let event_name = event.operation.to_string();
-            let org_id_str = org_id.to_string();
-
-            let mut props = auth_properties(&event.authentication);
-            props["organization_id"] = json!(&org_id_str);
-            props["metadata"] =
-                serde_json::to_value(&event.operation).unwrap_or(serde_json::Value::Null);
-
-            inject_org_group(&mut props);
-            failures.extend(self.capture(&event_name, &distinct_id, props).await.err());
+            failures.extend(result.err());
 
             if let OnboardingOperation::OrgCreated {
                 org_name,
@@ -378,29 +275,28 @@ impl Subscriber<OnboardingOperation> for PosthogService {
                 ..
             } = &event.operation
             {
-                let plan_type = json!(plan.name());
+                let org_id = event.scope.organization_id;
+                let person = PersonProperties {
+                    plan_type: plan.name(),
+                    organization_id: Some(org_id),
+                    use_case: Some(use_case),
+                };
+                failures.extend(self.identify(&distinct_id, &person).await.err());
 
-                let person = json!({
-                    "plan_type": plan_type,
-                    "organization_id": &org_id_str,
-                    "use_case": use_case,
-                });
-                failures.extend(self.identify(&distinct_id, person).await.err());
-
-                let group = json!({
-                    "plan_type": plan_type,
-                    "name": org_name,
-                    "use_case": use_case,
-                    "created_at": event.timestamp.to_rfc3339(),
-                });
+                let group = OrgGroupProperties {
+                    plan_type: plan.name(),
+                    name: Some(org_name),
+                    use_case: Some(use_case),
+                    created_at: Some(event.timestamp.to_rfc3339()),
+                };
                 failures.extend(
-                    self.group_identify("organization", &org_id_str, group)
+                    self.group_identify("organization", &org_id.to_string(), &group)
                         .await
                         .err(),
                 );
             }
         }
-        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
+        failures_to_result(failures)
     }
 
     fn debounce_window_ms(&self) -> u64 {
@@ -415,47 +311,17 @@ inventory::submit!(SubscriberRegistration::new::<
 #[async_trait]
 impl Subscriber<AnalyticsOperation> for PosthogService {
     fn filter(&self) -> EventFilter<AnalyticsOperation> {
-        EventFilter::ops(vec![
-            AnalyticsOperationDiscriminants::TopologyShareViewed,
-            AnalyticsOperationDiscriminants::TopologyEmbedViewed,
-        ])
+        // Forward every analytics event: the person comes from the
+        // operation's `attribution`, an exhaustive match, and the payload is
+        // serialized generically into `metadata`, so a new variant needs no
+        // change here. Same reasoning as the billing filter.
+        EventFilter::all()
     }
 
-    async fn handle(&self, events: Vec<Event<AnalyticsOperation>>) -> Result<(), Error> {
-        let mut failures = Vec::new();
-        for event in events {
-            if event.flags.suppress_logs {
-                continue;
-            }
-            let org_id = event.scope.organization_id;
-            // Skip share/embed view events from the demo org to avoid skewing metrics
-            if org_id == DEMO_ORG_ID
-                && matches!(
-                    event.operation,
-                    AnalyticsOperation::TopologyShareViewed { .. }
-                        | AnalyticsOperation::TopologyEmbedViewed { .. }
-                )
-            {
-                continue;
-            }
-
-            let distinct_id = format!("org:{}", org_id);
-            let event_name = event.operation.to_string();
-
-            let mut props = auth_properties(&event.authentication);
-            props["organization_id"] = json!(org_id.to_string());
-            if let Ok(serde_json::Value::Object(payload)) = serde_json::to_value(&event.operation) {
-                for (k, v) in payload {
-                    if k != "type" {
-                        props[k] = v;
-                    }
-                }
-            }
-
-            inject_org_group(&mut props);
-            failures.extend(self.capture(&event_name, &distinct_id, props).await.err());
-        }
-        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
+    async fn handle(&self, mut events: Vec<Event<AnalyticsOperation>>) -> Result<(), Error> {
+        // Skip the demo org's share views and emails to avoid skewing metrics
+        events.retain(|e| !e.flags.suppress_logs && e.scope.organization_id != DEMO_ORG_ID);
+        failures_to_result(self.capture_all(&events).await)
     }
 
     fn debounce_window_ms(&self) -> u64 {
@@ -478,58 +344,9 @@ impl Subscriber<DiscoveryPhase> for PosthogService {
         ])
     }
 
-    async fn handle(&self, events: Vec<Event<DiscoveryPhase>>) -> Result<(), Error> {
-        let mut failures = Vec::new();
-        for event in events {
-            if event.flags.suppress_logs {
-                continue;
-            }
-            let event_name = match event.operation {
-                DiscoveryPhase::Pending => "discovery_started",
-                DiscoveryPhase::Complete => "discovery_completed",
-                DiscoveryPhase::Failed => "discovery_failed",
-                DiscoveryPhase::Cancelled => "discovery_cancelled",
-                _ => continue,
-            };
-
-            let Some(distinct_id) = self
-                .resolve_distinct_id_via_network(&event.authentication, event.scope.network_id)
-                .await
-            else {
-                tracing::debug!(
-                    session_id = %event.scope.session_id,
-                    "Skipping PostHog discovery event — cannot attribute"
-                );
-                continue;
-            };
-
-            let mut props = auth_properties(&event.authentication);
-            props["session_id"] = json!(event.scope.session_id.to_string());
-            props["network_id"] = json!(event.scope.network_id.to_string());
-            props["daemon_id"] = json!(event.scope.daemon_id.to_string());
-
-            let type_name: &'static str = (&event.scope.discovery_type).into();
-            props["discovery_type"] = json!(type_name);
-            if let DiscoveryType::Network { subnet_ids, .. } = &event.scope.discovery_type {
-                props["discovery_subnet_scan"] = json!(subnet_ids.is_some());
-            }
-
-            if let Some(error_reason) = &event.scope.error_reason {
-                props["error_reason"] = json!(error_reason);
-            }
-            // Splits stalls from failures the daemon reported, which share `discovery_failed`.
-            if let Some(reason) = event.scope.reason {
-                props["reason"] = json!(reason);
-            }
-
-            if let Some(org_id) = self.get_org_id_from_network(&event.scope.network_id).await {
-                props["organization_id"] = json!(org_id.to_string());
-            }
-
-            inject_org_group(&mut props);
-            failures.extend(self.capture(event_name, &distinct_id, props).await.err());
-        }
-        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
+    async fn handle(&self, mut events: Vec<Event<DiscoveryPhase>>) -> Result<(), Error> {
+        events.retain(|e| !e.flags.suppress_logs);
+        failures_to_result(self.capture_all(&events).await)
     }
 
     fn debounce_window_ms(&self) -> u64 {
@@ -552,67 +369,48 @@ impl Subscriber<DiscoveryWarningCode> for PosthogService {
     /// Warnings are recorded one per affected device, so a single scan can raise hundreds. Product
     /// analytics is asking what fraction of scans hit a given failure mode, not how many devices
     /// each hit — Grafana already counts devices — so the batch is collapsed and the device count
-    /// rides along as `occurrences`. A session's warnings are all published in one loop, so they
-    /// arrive inside one debounce window.
+    /// rides along as `metadata.occurrences`. A session's warnings are all published in one loop,
+    /// so they arrive inside one debounce window.
     ///
-    /// Nothing that identifies a customer's network reaches PostHog: no address, no host id, and
-    /// not the library diagnostic on `detail`.
+    /// The bucket is sent as its first event: every event in it has the same session, code and
+    /// integration, and the warning's own metadata carries nothing that varies by device.
     async fn handle(&self, events: Vec<Event<DiscoveryWarningCode>>) -> Result<(), Error> {
-        // Keyed rather than counted per event so the org lookup below runs once per session
-        // instead of once per warning — two DB round-trips times several hundred is not a cost
-        // worth paying for a number that would be identical every time.
+        // Keyed rather than sent per event so the org lookup runs once per bucket instead of
+        // once per warning — a DB round-trip times several hundred is not a cost worth paying
+        // for a number that would be identical every time.
         let mut grouped: BTreeMap<(Uuid, DiscoveryWarningCode, Option<String>), Grouped> =
             BTreeMap::new();
-
-        let mut failures = Vec::new();
         for event in events {
             if event.flags.suppress_logs {
                 continue;
             }
             let integration = event.scope.integration.map(|i| i.to_string());
-            let entry = grouped
+            grouped
                 .entry((event.scope.session_id, event.operation, integration))
                 .or_insert_with(|| Grouped {
                     occurrences: 0,
-                    network_id: event.scope.network_id,
-                    daemon_id: event.scope.daemon_id,
-                    authentication: event.authentication.clone(),
-                });
-            entry.occurrences += 1;
+                    first: event,
+                })
+                .occurrences += 1;
         }
 
-        for ((session_id, code, integration), group) in grouped {
-            let Some(distinct_id) = self
-                .resolve_distinct_id_via_network(&group.authentication, group.network_id)
+        let mut failures = Vec::new();
+        for group in grouped.into_values() {
+            let properties = self
+                .event_properties(&group.first)
                 .await
-            else {
-                tracing::debug!(
-                    session_id = %session_id,
-                    "Skipping PostHog discovery-warning event — cannot attribute"
-                );
-                continue;
-            };
-
-            let mut props = auth_properties(&group.authentication);
-            props["session_id"] = json!(session_id.to_string());
-            props["network_id"] = json!(group.network_id.to_string());
-            props["daemon_id"] = json!(group.daemon_id.to_string());
-            props["code"] = json!(code.to_string());
-            props["integration"] = json!(integration.unwrap_or_else(|| "none".to_string()));
-            props["occurrences"] = json!(group.occurrences);
-
-            if let Some(org_id) = self.get_org_id_from_network(&group.network_id).await {
-                props["organization_id"] = json!(org_id.to_string());
+                .map_metadata(|inner| WithOccurrences {
+                    inner,
+                    occurrences: group.occurrences,
+                });
+            if let Some((_, result)) = self
+                .capture_as(&group.first.name(), group.first.attribution(), &properties)
+                .await
+            {
+                failures.extend(result.err());
             }
-
-            inject_org_group(&mut props);
-            failures.extend(
-                self.capture("discovery_warning", &distinct_id, props)
-                    .await
-                    .err(),
-            );
         }
-        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
+        failures_to_result(failures)
     }
 
     fn debounce_window_ms(&self) -> u64 {
@@ -624,36 +422,64 @@ inventory::submit!(SubscriberRegistration::new::<
     DiscoveryWarningCode,
 >());
 
-/// One `(session, code, integration)` bucket, and what it takes to attribute it once.
+/// One `(session, code, integration)` bucket: its first event and how many it collapsed.
 struct Grouped {
     occurrences: usize,
-    network_id: Uuid,
-    daemon_id: Uuid,
-    authentication: AuthenticatedEntity,
+    first: Event<DiscoveryWarningCode>,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::server::{
+        auth::middleware::auth::AuthenticatedEntity,
+        posthog::service::{distinct_id, to_posthog_event},
+        shared::events::{operations::tests::samples, traits::OrgScope},
+    };
+    use serde_json::{Value, json};
 
+    /// What PostHog receives: properties, plus the `$groups` posthog-rs adds from `add_group`.
+    fn wire(
+        name: &str,
+        properties: &crate::server::shared::events::EventProperties<Value>,
+    ) -> Value {
+        serde_json::to_value(to_posthog_event(name, "someone", properties).expect("builds"))
+            .expect("serializes")
+    }
+
+    /// Every operation type, sent the one way, joins its organization's group and carries its
+    /// own fields under `metadata`.
     #[test]
-    fn test_to_snake_case() {
-        assert_eq!(to_snake_case("Host"), "host");
-        assert_eq!(to_snake_case("DaemonApiKey"), "daemon_api_key");
-        assert_eq!(to_snake_case("UserApiKey"), "user_api_key");
-        assert_eq!(to_snake_case("Credential"), "credential");
-        assert_eq!(to_snake_case("Network"), "network");
-        assert_eq!(to_snake_case("Interface"), "interface");
+    fn every_event_is_grouped_on_its_organization_with_metadata() {
+        let organization_id = Uuid::new_v4();
+        for sample in samples(organization_id) {
+            let sent = wire(&sample.name, &sample.properties);
+            assert_eq!(
+                sent["groups"]["organization"],
+                json!(organization_id.to_string()),
+                "{} is not grouped on its organization",
+                sample.name
+            );
+            assert!(
+                sent["properties"]["metadata"].is_object(),
+                "{} has no metadata object",
+                sample.name
+            );
+            assert!(
+                distinct_id(sample.attribution, &sample.properties.actor).is_some(),
+                "{} lands on no PostHog person",
+                sample.name
+            );
+        }
     }
 
     #[test]
-    fn test_inject_org_group() {
-        let mut props = json!({
-            "organization_id": "abc-123",
-            "user_id": "user-456",
-        });
-        inject_org_group(&mut props);
-        assert_eq!(props["$groups"], json!({"organization": "abc-123"}));
+    fn an_event_with_no_organization_joins_no_group() {
+        let organization_id = Uuid::new_v4();
+        let mut sample = samples(organization_id).remove(0);
+        sample.properties.actor.organization_id = None;
+        let sent = wire(&sample.name, &sample.properties);
+        assert_eq!(sent["groups"], json!({}));
     }
 
     #[test]
@@ -674,12 +500,57 @@ mod tests {
         assert!(!entity_filter().matches(&event(EntityOperation::Created)));
     }
 
+    /// An `email_sent` event names its email the way billing events name their details: under
+    /// `metadata`, where the campaign identifies which email went out.
     #[test]
-    fn test_inject_org_group_no_org() {
-        let mut props = json!({
-            "user_id": "user-456",
+    fn an_email_send_carries_its_campaign_in_metadata() {
+        let organization_id = Uuid::new_v4();
+        let event = Event::new(
+            OrgScope { organization_id },
+            AnalyticsOperation::EmailSent {
+                utm_campaign: "trial_ending".to_string(),
+                utm_medium: "billing".to_string(),
+                user_id: Uuid::new_v4(),
+            },
+            AuthenticatedEntity::System,
+        );
+
+        let properties = serde_json::to_value(event.properties(None)).expect("serializes");
+        assert_eq!(
+            properties["metadata"]["utm_campaign"],
+            json!("trial_ending")
+        );
+        assert_eq!(properties["metadata"]["utm_medium"], json!("billing"));
+    }
+
+    /// A send and the click it produces have to land on the same PostHog
+    /// person; share views have no viewer and stay on the org.
+    #[test]
+    fn an_email_send_belongs_to_its_recipient_and_a_share_view_to_the_org() {
+        let organization_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let event = |op| {
+            Event::new(
+                OrgScope { organization_id },
+                op,
+                AuthenticatedEntity::System,
+            )
+        };
+        let person = |event: &Event<AnalyticsOperation>| {
+            distinct_id(event.attribution(), &event.properties(None).actor)
+        };
+
+        let sent = event(AnalyticsOperation::EmailSent {
+            utm_campaign: "self_hosted_welcome".to_string(),
+            utm_medium: "billing".to_string(),
+            user_id,
         });
-        inject_org_group(&mut props);
-        assert_eq!(props.get("$groups"), None);
+        let viewed = event(AnalyticsOperation::TopologyShareViewed {
+            share_id: Uuid::new_v4(),
+            has_password: false,
+        });
+
+        assert_eq!(person(&sent), Some(user_id.to_string()));
+        assert_eq!(person(&viewed), Some(format!("org:{organization_id}")));
     }
 }

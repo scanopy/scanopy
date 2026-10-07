@@ -20,11 +20,11 @@ fn interfaces_built_without_enrichment_keep_their_iftable_identity() {
         if_oper_status: Some(1),
         ..Default::default()
     };
-    let network_id = Uuid::new_v4();
+    let site_id = Uuid::new_v4();
 
     let interface = convert_snmp_if_entry(
         &entry,
-        network_id,
+        site_id,
         &[],
         &[],
         &[],
@@ -39,7 +39,7 @@ fn interfaces_built_without_enrichment_keep_their_iftable_identity() {
     assert_eq!(interface.base.if_name.as_deref(), Some("swp7"));
     assert_eq!(interface.base.if_type, Some(6));
     assert_eq!(interface.base.speed_bps, Some(1_000_000_000));
-    assert_eq!(interface.base.network_id, network_id);
+    assert_eq!(interface.base.site_id, site_id);
 
     // Enrichment that hasn't been collected yet is absent, not fabricated.
     assert!(interface.base.neighbor_candidates.is_empty());
@@ -654,4 +654,76 @@ fn an_advertised_index_naming_no_interface_falls_through() {
         neighbors[0].local_port_index, 15,
         "no interface has ifIndex 568, so the description has to place the neighbour"
     );
+}
+
+mod reported_range {
+    use super::super::{ReportedRange, place_reported_range};
+    use crate::server::shared::attribution::AttributeSource;
+    use crate::server::shared::storage::traits::Storable;
+    use crate::server::subnets::r#impl::base::{Subnet, SubnetBase, SubnetCidr, SubnetCidrValue};
+
+    fn held(cidr: &str) -> Subnet {
+        Subnet::new(SubnetBase {
+            name: cidr.to_string(),
+            cidr: SubnetCidr::new(
+                SubnetCidrValue(cidr.parse().expect("valid CIDR")),
+                AttributeSource::DaemonSelfReport,
+            ),
+            ..Default::default()
+        })
+    }
+
+    fn place<'a>(reported: &str, address: &str, held: &'a [Subnet]) -> ReportedRange<'a> {
+        place_reported_range(
+            &reported.parse().expect("valid CIDR"),
+            address.parse().expect("valid address"),
+            held,
+        )
+    }
+
+    /// A router listing its interfaces on other VLANs reports ranges the site does not hold
+    /// yet. Those are real segments, and each becomes a subnet.
+    #[test]
+    fn a_router_interface_on_a_separate_vlan_is_created() {
+        let lan = [held("192.168.4.0/22")];
+        assert!(matches!(
+            place("10.30.0.0/24", "10.30.0.1", &lan),
+            ReportedRange::New
+        ));
+    }
+
+    /// The lab case: pc-windows-nic-filters at 192.168.7.208 sits on the daemon's /22 and reports
+    /// a /24 mask. Its /24 is not a segment. The address goes on the /22.
+    #[test]
+    fn a_narrower_mask_on_a_held_segment_puts_the_address_on_that_segment() {
+        let lan = [held("192.168.0.0/16"), held("192.168.4.0/22")];
+        match place("192.168.7.0/24", "192.168.7.208", &lan) {
+            ReportedRange::Held(subnet) => assert_eq!(subnet.id, lan[1].id),
+            other => panic!("expected the /22, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn the_same_range_reuses_the_held_row() {
+        let lan = [held("192.168.4.0/22"), held("10.30.0.0/24")];
+        match place("10.30.0.0/24", "10.30.0.1", &lan) {
+            ReportedRange::Held(subnet) => assert_eq!(subnet.id, lan[1].id),
+            other => panic!("expected the held /24, got {other:?}"),
+        }
+    }
+
+    /// A mask wider than a held range would swallow it. The address goes on the held range when
+    /// it sits inside it, and is left out when no held range contains it.
+    #[test]
+    fn a_wider_mask_never_creates_a_range_containing_a_held_one() {
+        let lan = [held("10.20.30.0/24")];
+        match place("10.20.0.0/16", "10.20.30.5", &lan) {
+            ReportedRange::Held(subnet) => assert_eq!(subnet.id, lan[0].id),
+            other => panic!("expected the held /24, got {other:?}"),
+        }
+        assert!(matches!(
+            place("10.20.0.0/16", "10.20.99.5", &lan),
+            ReportedRange::Unplaced
+        ));
+    }
 }

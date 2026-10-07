@@ -1,5 +1,7 @@
 <script lang="ts">
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
+	import PageTitle from '$lib/shared/components/layout/PageTitle.svelte';
+	import { common_home } from '$lib/paraglide/messages';
 	import { useDashboardQuery } from '$lib/features/home/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { isPlanLapsed } from '$lib/features/organizations/types';
@@ -7,7 +9,7 @@
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
 	import GettingStartedChecklist from './GettingStartedChecklist.svelte';
 	import ActiveDiscoveries from './ActiveDiscoveries.svelte';
-	import NetworkMetrics from './NetworkMetrics.svelte';
+	import SiteMetrics from './SiteMetrics.svelte';
 	import DaemonHealthPanel from './DaemonHealthPanel.svelte';
 	import RecentDiscoveries from './RecentDiscoveries.svelte';
 	import FeatureNudges from './FeatureNudges.svelte';
@@ -91,14 +93,9 @@
 </script>
 
 <div class="space-y-6">
-	<div>
-		<h1 class="text-primary text-2xl font-bold">Home</h1>
-		<p class="text-tertiary mt-1 text-sm">
-			{#if organization}
-				{organization.name}
-			{/if}
-		</p>
-	</div>
+	<!-- Same title row as every list page; the organization's name follows the title, muted,
+	     rather than sitting on a line of its own. -->
+	<PageTitle title={common_home()} aside={organization?.name ?? null} />
 
 	{#if dashboardQuery.isPending || organizationQuery.isPending}
 		<Loading />
@@ -192,7 +189,7 @@
 			<RecentDiscoveries
 				discoveries={dashboard.recent_discoveries}
 				daemons={dashboard.daemons}
-				networks={dashboard.networks}
+				sites={dashboard.sites}
 				onNavigate={(discovery) => {
 					openModal('discovery-history-detail', { id: discovery.id });
 					navigateTo('discovery-history');
@@ -205,9 +202,9 @@
 			<PlanUsage planUsage={dashboard.plan_usage} plan={organization.plan} {isOwner} />
 		{/if}
 
-		<!-- Network Metrics — hidden pre-daemon since no meaningful data yet -->
-		{#if has('FirstDaemonRegistered') && dashboard.networks.length > 0}
-			<NetworkMetrics networks={dashboard.networks} />
+		<!-- Site Metrics — hidden pre-daemon since no meaningful data yet -->
+		{#if has('FirstDaemonRegistered') && dashboard.sites.length > 0}
+			<SiteMetrics sites={dashboard.sites} />
 		{/if}
 	{/if}
 </div>

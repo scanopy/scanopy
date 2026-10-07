@@ -3,6 +3,7 @@
 	import type { FieldFilter } from './filtering';
 	import type { Tag as TagType } from '$lib/features/tags/types/base';
 	import Tag from '../Tag.svelte';
+	import { isApplicationTag, tagIcon, tagTooltip } from '$lib/features/tags/groups';
 	import { scrollFade } from '$lib/shared/utils/scrollFade';
 	import type { Color } from '$lib/shared/utils/styling';
 	import {
@@ -14,9 +15,7 @@
 	} from '$lib/paraglide/messages';
 
 	/**
-	 * One field's filter controls. The card pane renders one per filterable
-	 * column and the table renders one in each column's header popover, so both
-	 * views offer the same choices for a field.
+	 * One field's filter controls, rendered in its column's header popover.
 	 */
 	let {
 		field,
@@ -102,7 +101,13 @@
 						aria-pressed={isSelected}
 						class="transition-opacity {isSelected ? 'opacity-100' : 'opacity-50 hover:opacity-75'}"
 					>
-						<Tag label={tag.name} color={tag.color as Color} />
+						<Tag
+							label={tag.name}
+							color={tag.color as Color}
+							icon={tagIcon(tag)}
+							title={tagTooltip(tag)}
+							isShiny={isApplicationTag(tag)}
+						/>
 					</button>
 				{/each}
 			{/if}

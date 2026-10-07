@@ -3,20 +3,25 @@
 <script lang="ts" generics="T, C">
 	import { onMount, getContext } from 'svelte';
 	import Tag from '../../data/Tag.svelte';
-	import EntityTag from '../../data/EntityTag.svelte';
 	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
 	import InlineDescription from '$lib/features/topology/components/panel/inspectors/InlineDescription.svelte';
 	import type { EntityDisplayComponent } from './types';
+	import { displayTags, fitTags, HIDDEN_TAGS_CHIP_WIDTH } from './display-tags';
+	import DisplayTag from './DisplayTag.svelte';
+	import HiddenTagsChip from './HiddenTagsChip.svelte';
 
 	export let item: T;
 	export let displayComponent: EntityDisplayComponent<T, C>;
 	export let context: C;
 	export let staticTags: boolean = false;
+	/** Show every tag instead of fitting them to the row (a hover popover, which can widen to fit). */
+	export let showAllTags: boolean = false;
 
 	const staticTagsContext = getContext<boolean>('staticTags') ?? false;
 
 	$: icon = displayComponent.getIcon?.(item, context);
-	$: tags = displayComponent.getTags?.(item, context) || [];
+	$: tags = displayTags(displayComponent, item, context);
+	$: label = displayComponent.getLabel(item, context);
 	$: description = displayComponent.getDescription?.(item, context) || '';
 	$: tagPickerProps = displayComponent.getTagPickerProps?.(item, context) ?? null;
 	$: showTagPicker =
@@ -48,63 +53,35 @@
 		: undefined;
 
 	let containerEl: HTMLDivElement;
-	let labelEl: HTMLSpanElement;
+	let labelMeasureEl: HTMLSpanElement;
 	let measureEl: HTMLDivElement;
-	let visibleTagCount = 1;
+	let visibleTagCount = 0;
 
-	const MIN_LABEL_WIDTH = 60;
-	const GAP = 8; // gap-2 = 0.5rem = 8px
-	const TAG_GAP = 4; // gap-1 = 0.25rem = 4px
-	const MORE_WIDTH = 50; // approximate width for "+X more"
+	const SPACING = {
+		gap: 8, // gap-2 = 0.5rem = 8px
+		tagGap: 4, // gap-1 = 0.25rem = 4px
+		moreWidth: HIDDEN_TAGS_CHIP_WIDTH
+	};
 
+	// The label keeps its full width and tags take what's left (see `fitTags`). The tag group never
+	// shrinks, so when the label alone is wider than the row, it is the label that gives way to the
+	// hidden-tags (i) icon, wrapping onto a second line rather than hiding part of the value. Its one-line
+	// width comes from the hidden copy: the wrapped label's own width is the row's, not its text's.
 	function calculateVisibleTags() {
-		if (!containerEl || !labelEl || !measureEl || tags.length === 0) return;
+		if (!containerEl || !measureEl || !labelMeasureEl || tags.length === 0) return;
 
-		const containerWidth = containerEl.offsetWidth;
-		const labelScrollWidth = labelEl.scrollWidth;
-
-		// Get measured tag widths
-		const tagEls = measureEl.querySelectorAll('[data-tag]');
 		const tagWidths: number[] = [];
-		tagEls.forEach((el) => tagWidths.push((el as HTMLElement).offsetWidth));
-
+		measureEl
+			.querySelectorAll('[data-tag]')
+			.forEach((el) => tagWidths.push((el as HTMLElement).offsetWidth));
 		if (tagWidths.length === 0) return;
 
-		// Calculate how much space we have for tags
-		// Start with full label, then see how many tags fit
-		let availableForTags = containerWidth - labelScrollWidth - GAP;
-
-		// If label takes too much space, give it minimum and use the rest for tags
-		if (availableForTags < tagWidths[0]) {
-			availableForTags = containerWidth - MIN_LABEL_WIDTH - GAP;
-		}
-
-		// Always show at least one tag
-		let count = 1;
-		let usedWidth = tagWidths[0];
-
-		// Try to fit more tags
-		for (let i = 1; i < tagWidths.length; i++) {
-			const needsMore = i < tagWidths.length - 1;
-			const extraWidth = TAG_GAP + tagWidths[i] + (needsMore ? TAG_GAP + MORE_WIDTH : 0);
-
-			if (usedWidth + extraWidth <= availableForTags) {
-				count++;
-				usedWidth += TAG_GAP + tagWidths[i];
-			} else {
-				break;
-			}
-		}
-
-		// If we're not showing all tags, account for "+X more" in final check
-		if (count < tagWidths.length) {
-			const totalWithMore = usedWidth + TAG_GAP + MORE_WIDTH;
-			if (totalWithMore > availableForTags && count > 1) {
-				count--;
-			}
-		}
-
-		visibleTagCount = count;
+		visibleTagCount = fitTags(
+			containerEl.offsetWidth,
+			labelMeasureEl.offsetWidth,
+			tagWidths,
+			SPACING
+		);
 	}
 
 	onMount(() => {
@@ -114,13 +91,13 @@
 		return () => observer.disconnect();
 	});
 
-	$: if (tags && containerEl) {
-		// Recalculate when tags change
+	$: if ((tags || label) && containerEl) {
+		// Recalculate when the tags or the label change
 		requestAnimationFrame(() => calculateVisibleTags());
 	}
 
-	$: visibleTags = tags.slice(0, visibleTagCount);
-	$: hiddenCount = tags.length - visibleTagCount;
+	$: visibleTags = showAllTags ? tags : tags.slice(0, visibleTagCount);
+	$: hiddenTags = showAllTags ? [] : tags.slice(visibleTagCount);
 </script>
 
 <div class="flex min-w-0 items-center gap-3" class:list-select-item-container={showTagPicker}>
@@ -137,48 +114,14 @@
 	<!-- Label and description -->
 	<div class="min-w-0 flex-1 overflow-hidden text-left">
 		<div bind:this={containerEl} class="flex min-w-0 items-center gap-2">
-			<span bind:this={labelEl} class="text-secondary truncate"
-				>{displayComponent.getLabel(item, context)}</span
-			>
+			<span class="text-secondary min-w-0 [overflow-wrap:anywhere]">{label}</span>
 			{#if tags.length > 0}
 				<div class="flex flex-shrink-0 items-center gap-1">
 					{#each visibleTags as tag, i (`${tag.label}-${i}`)}
-						{#if !staticTags && !staticTagsContext && tag.entityRef}
-							<EntityTag
-								entityRef={tag.entityRef}
-								label={tag.label}
-								color={tag.color}
-								icon={tag.icon ?? null}
-							/>
-						{:else if !staticTags && !staticTagsContext && (tag.onmouseenter || tag.onmouseleave || tag.onclick)}
-							<button
-								type="button"
-								class="inline-flex cursor-pointer"
-								onmouseenter={tag.onmouseenter}
-								onmouseleave={tag.onmouseleave}
-								onclick={tag.onclick}
-							>
-								<Tag
-									label={tag.label}
-									color={tag.color}
-									pill={tag.pill}
-									icon={tag.icon ?? null}
-									href={tag.href ?? ''}
-									title={tag.title ?? ''}
-								/>
-							</button>
-						{:else}
-							<Tag
-								label={tag.label}
-								color={tag.color}
-								icon={tag.icon ?? null}
-								href={tag.href ?? ''}
-								title={tag.title ?? ''}
-							/>
-						{/if}
+						<DisplayTag {tag} interactive={!staticTags && !staticTagsContext} />
 					{/each}
-					{#if hiddenCount > 0}
-						<span class="text-tertiary whitespace-nowrap text-xs">+{hiddenCount} more</span>
+					{#if hiddenTags.length > 0}
+						<HiddenTagsChip tags={hiddenTags} interactive={!staticTags && !staticTagsContext} />
 					{/if}
 				</div>
 			{/if}
@@ -216,6 +159,7 @@
 <!-- Hidden measurement container -->
 {#if tags.length > 0}
 	<div bind:this={measureEl} class="invisible absolute -left-[9999px]" aria-hidden="true">
+		<span bind:this={labelMeasureEl} class="whitespace-nowrap">{label}</span>
 		<div class="flex gap-1">
 			{#each tags as tag, i (`measure-${tag.label}-${i}`)}
 				<span data-tag

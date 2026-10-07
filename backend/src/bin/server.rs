@@ -247,6 +247,25 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
+    // Online license keys that stopped checking in (daily). Check-ins only
+    // reach Scanopy Cloud, so the sweep runs there. Ratcheted per silence, so
+    // each stop is reported once.
+    if deployment_type == DeploymentType::Cloud {
+        let silence_organizations = state.services.organization_service.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(24 * 60 * 60));
+            loop {
+                interval.tick().await;
+                if let Err(e) = silence_organizations
+                    .report_silent_license_check_ins(chrono::Utc::now())
+                    .await
+                {
+                    tracing::error!(error = %e, "License check-in silence sweep failed");
+                }
+            }
+        });
+    }
+
     // License key periodic re-validation (every 5 minutes). Only runs when a
     // license key is configured — keyless deployments have no license service.
     if let Some(license_revalidate) = state.license_service.clone() {

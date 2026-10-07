@@ -3,22 +3,45 @@
 use super::*;
 
 pub(super) fn generate_vlans(
-    networks: &[Network],
+    sites: &[Site],
+    tags: &[Tag],
     organization_id: Uuid,
     now: DateTime<Utc>,
 ) -> Vec<Vlan> {
     let mut vlans = Vec::new();
 
-    let vlan_defs: Vec<(u16, &str)> = vec![
-        (1, "Default"),
-        (10, "Management"),
-        (20, "Servers"),
-        (30, "Users"),
-        (100, "Guest"),
+    let tag_id = |name: &str| tags.iter().find(|t| t.base.name == name).map(|t| t.id);
+
+    let vlan_defs: Vec<(u16, &str, &str, Option<&str>)> = vec![
+        (
+            1,
+            "Default",
+            "Untagged native VLAN on trunk ports. Nothing should live here.",
+            None,
+        ),
+        (
+            10,
+            "Management",
+            "Switch, firewall and hypervisor management interfaces.",
+            Some("Critical"),
+        ),
+        (
+            20,
+            "Servers",
+            "Production servers and the NAS.",
+            Some("Production"),
+        ),
+        (30, "Users", "Staff workstations and printers.", None),
+        (
+            100,
+            "Guest",
+            "Visitor Wi-Fi. Internet access only, isolated from internal VLANs.",
+            None,
+        ),
     ];
 
-    for network in networks {
-        for &(vlan_number, name) in &vlan_defs {
+    for site in sites {
+        for &(vlan_number, name, description, tag) in &vlan_defs {
             vlans.push(Vlan {
                 id: Uuid::new_v4(),
                 created_at: now,
@@ -32,11 +55,12 @@ pub(super) fn generate_vlans(
                 base: VlanBase {
                     vlan_number,
                     name: name.to_string(),
-                    description: None,
-                    network_id: network.id,
+                    description: Some(description.to_string()),
+                    site_id: site.id,
                     organization_id,
                     source: EntitySource::Discovery,
                     subnet_ids: Vec::new(),
+                    tags: tag.and_then(tag_id).into_iter().collect(),
                 },
             });
         }

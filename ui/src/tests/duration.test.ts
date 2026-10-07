@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { splitHours, combineToHours } from '$lib/shared/utils/duration';
 
 describe('duration split/combine', () => {
-	// The failure that matters: opening a network's settings and re-saving
+	// The failure that matters: opening a site's settings and re-saving
 	// without meaning to change anything must not silently rewrite its window.
 	it('round-trips any stored duration unchanged', () => {
 		for (const total of [1, 23, 24, 25, 36, 48, 168, 672, 8760]) {
@@ -18,7 +18,7 @@ describe('duration split/combine', () => {
 	});
 
 	// Empty must mean "unset, use the server default" — reading it as zero
-	// would make every entity on the network instantly stale.
+	// would make every entity on the site instantly stale.
 	it('treats an empty duration as unset rather than zero', () => {
 		expect(combineToHours(null, null)).toBeNull();
 		expect(combineToHours(0, 0)).toBeNull();

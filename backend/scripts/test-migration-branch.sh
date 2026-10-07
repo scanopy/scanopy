@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Local smoke test for release.yml's migration-branch-test pipeline. Mirrors the
-# workflow's Neon-branching + sqlx-migrate flow so you can verify real behavior
-# (branch forks from prod, sqlx applies correctly, cleanup runs, bad migrations
+# workflow's Neon-branching + migration-apply flow so you can verify real behavior
+# (branch forks from prod, migrations apply correctly, cleanup runs, bad migrations
 # fail cleanly) from your laptop before the first live release exercises it.
 #
 # Requirements:
 #   - NEON_API_KEY     — same token the Neon GitHub integration uses
 #   - NEON_PROJECT_ID  — same project ID the workflow uses
-#   - sqlx-cli         — cargo install sqlx-cli --no-default-features --features postgres
+#   - cargo            — builds and runs the bin/migrate runner, the one release.yml uses
 #   - pg_dump          — from postgresql-client (or `brew install libpq`)
 #   - neonctl          — auto-invoked via `npx -y neonctl`
 #
@@ -17,13 +17,13 @@
 # Stages (run in order):
 #   create-only  — create + delete a Neon branch. Cheapest proof that the token,
 #                  project ID, and parent-branch default all work.
-#   apply-noop   — full pipeline against prod. `sqlx migrate run` is a no-op
+#   apply-noop   — full pipeline against prod. bin/migrate is a no-op
 #                  because all current migrations are already applied on prod;
 #                  diff is empty. Proves end-to-end happy path.
 #   apply-good   — injects a harmless test migration at runtime, applies it,
 #                  shows the schema diff (new table), then cleans up (branch
 #                  delete drops the table with it; file is removed from disk).
-#   apply-bad    — injects a deliberately broken migration. sqlx must fail.
+#   apply-bad    — injects a deliberately broken migration. The runner must fail.
 #                  Confirms the failure path and cleanup still run.
 
 set -euo pipefail
@@ -124,9 +124,11 @@ SQL
 esac
 
 echo
-echo "=== Running sqlx migrate run ==="
+echo "=== Running bin/migrate ==="
 set +e
-(cd "$BACKEND_DIR" && sqlx migrate run)
+# The same runner release.yml uses. sqlx-cli can't apply this repo's `-- no-transaction`
+# migrations. --migrations-dir reads from disk so an injected test migration is picked up.
+(cd "$BACKEND_DIR" && cargo run --bin migrate -- --database-url "$DATABASE_URL" --migrations-dir migrations)
 MIGRATE_RC=$?
 set -e
 
@@ -138,10 +140,10 @@ if [ "$STAGE" = "apply-bad" ]; then
     echo "✓ Bad migration failed with exit $MIGRATE_RC, as expected."
 else
     if [ "$MIGRATE_RC" -ne 0 ]; then
-        echo "FAIL: sqlx migrate run returned $MIGRATE_RC (expected 0 for stage $STAGE)." >&2
+        echo "FAIL: bin/migrate returned $MIGRATE_RC (expected 0 for stage $STAGE)." >&2
         exit "$MIGRATE_RC"
     fi
-    echo "✓ sqlx migrate run succeeded."
+    echo "✓ bin/migrate succeeded."
 fi
 
 echo

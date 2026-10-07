@@ -119,7 +119,7 @@
 	// The selected type drives which assignment surface(s) show; kept in sync via
 	// CredentialForm's onTypeChange and reset on open.
 	let selectedTypeId = $state('SnmpV2c');
-	let assignedNetworkIds = $state<string[]>([]);
+	let assignedSiteIds = $state<string[]>([]);
 	let hostAssignments = $state<CredentialHostAssignment[]>([]);
 
 	function getDefaultValues(): Credential {
@@ -146,7 +146,7 @@
 			// any future surface that mutates the assignment state.
 			const permitted = pruneAssignmentsForTargets(
 				credentialTypes.getMetadata(credentialType.type)?.targets,
-				{ assignedNetworkIds, hostAssignments },
+				{ assignedSiteIds, hostAssignments },
 				daemonHostIds
 			);
 
@@ -164,7 +164,7 @@
 				credential_type: credentialType,
 				daemon_os: credentialFormRef?.getDaemonOs() ?? null,
 				description: (formValues.description as string | null | undefined)?.trim() || null,
-				assigned_network_ids: permitted.assignedNetworkIds,
+				assigned_site_ids: permitted.assignedSiteIds,
 				host_assignments: permitted.hostAssignments
 			};
 
@@ -194,11 +194,11 @@
 
 		const pruned = pruneAssignmentsForTargets(
 			credentialTypes.getMetadata(typeId)?.targets,
-			{ assignedNetworkIds, hostAssignments },
+			{ assignedSiteIds, hostAssignments },
 			daemonHostIds
 		);
 		if (!pruned.changed) return;
-		assignedNetworkIds = pruned.assignedNetworkIds;
+		assignedSiteIds = pruned.assignedSiteIds;
 		hostAssignments = pruned.hostAssignments;
 		pushWarning(credentials_assignmentsClearedOnTypeChange());
 	}
@@ -206,7 +206,7 @@
 	function handleOpen() {
 		activeTab = 'details';
 		furthestReached = 0;
-		assignedNetworkIds = credential?.assigned_network_ids ?? [];
+		assignedSiteIds = credential?.assigned_site_ids ?? [];
 		hostAssignments = credential?.host_assignments ?? [];
 		selectedTypeId = credential ? getCredentialTypeId(credential) : 'SnmpV2c';
 		form.reset(getDefaultValues());
@@ -239,6 +239,7 @@
 	{title}
 	{name}
 	entityId={credential?.id}
+	{form}
 	size="xl"
 	{onClose}
 	onOpen={handleOpen}
@@ -281,7 +282,7 @@
 			<CredentialAssignmentsSection
 				credentialTypeId={selectedTypeId}
 				credentialId={credential?.id}
-				bind:assignedNetworkIds
+				bind:assignedSiteIds
 				bind:hostAssignments
 			/>
 		{/if}

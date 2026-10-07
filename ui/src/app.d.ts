@@ -29,9 +29,9 @@ declare module '$lib/data/billing-plans.json' {
 			rate: 'Month' | 'Year';
 			trial_days: number;
 			seat_cents: number | null;
-			network_cents: number | null;
+			site_cents: number | null;
 			included_seats: number | null;
-			included_networks: number | null;
+			included_sites: number | null;
 			features: Record<string, boolean>;
 			is_commercial: boolean;
 			hosting: string;

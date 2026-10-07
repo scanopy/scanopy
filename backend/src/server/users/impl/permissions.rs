@@ -132,7 +132,7 @@ impl TypeMetadataProvider for UserOrgPermissions {
             UserOrgPermissions::Admin => {
                 "Manage users and invites, create and modify all entities, but cannot access billing"
             }
-            UserOrgPermissions::Member => "Create and modify entities for specific networks",
+            UserOrgPermissions::Member => "Create and modify entities for specific sites",
             UserOrgPermissions::Viewer => "View entities.",
         }
     }

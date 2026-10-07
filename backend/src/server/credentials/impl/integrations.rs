@@ -15,10 +15,18 @@ use strum::IntoEnumIterator;
 use crate::server::services::r#impl::definitions::{ServiceDefinition, ServiceDefinitionExt};
 use crate::server::shared::fixtures::logo_slug;
 use crate::server::shared::types::field_definition::FieldDefinition;
-use crate::server::shared::types::metadata::EntityMetadataProvider;
+use crate::server::shared::types::metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider};
 use crate::server::shared::types::{Color, Icon};
 
 use super::types::{CredentialStability, CredentialTypeDiscriminants, Target, UpstreamSupport};
+
+/// A kind of host virtualization an integration reports, by id (`HostVirtualization`'s tag) and
+/// display name.
+#[derive(Debug, Clone, Serialize)]
+pub struct IntegrationVirtualization {
+    pub id: String,
+    pub name: String,
+}
 
 /// One integration: a service plus the transports (credential types) that reach
 /// it, with a single canonical discovery description and a one-line summary.
@@ -50,6 +58,11 @@ pub struct Integration {
     /// trailing slash. Shared by every transport, like `discovers`, because a guide documents the
     /// integration rather than one of its transports.
     pub docs_path: String,
+    /// The kinds of host virtualization this integration reports
+    /// ([`super::types::CredentialIntegration::host_virtualizations`]), with their display names,
+    /// so the docs can list which integrations report which relationship without a fixture of
+    /// their own.
+    pub host_virtualizations: Vec<IntegrationVirtualization>,
     /// One-line summary: the discovery text plus the available transports.
     pub summary: String,
     /// Maturity and daemon-version floors are deliberately *not* summarized here.
@@ -78,7 +91,7 @@ pub struct IntegrationTransport {
     pub description: String,
     pub requires_config: bool,
     pub single_endpoint_per_host: bool,
-    /// Where this transport can be applied (daemon host, hosts, network).
+    /// Where this transport can be applied (daemon host, hosts, site).
     pub targets: Vec<Target>,
     /// Release maturity of this specific transport.
     pub stability: CredentialStability,
@@ -140,6 +153,15 @@ pub fn all_integrations() -> Vec<Integration> {
             color: disc.integration().color(),
             discovers: disc.integration().discovers().to_string(),
             docs_path: disc.integration().docs_path().to_string(),
+            host_virtualizations: disc
+                .integration()
+                .host_virtualizations()
+                .iter()
+                .map(|v| IntegrationVirtualization {
+                    id: v.id().to_string(),
+                    name: TypeMetadataProvider::name(v).to_string(),
+                })
+                .collect(),
             summary: String::new(), // filled in after all transports are collected
             transports: vec![transport],
         });

@@ -139,9 +139,13 @@
 	{#each fieldsByGroup as group (group.name)}
 		{@const numberFields = group.fields.filter((f) => f.field_type === 'number')}
 		{@const booleanFields = group.fields.filter((f) => f.field_type === 'boolean')}
+		{@const showGroupCutoffWarning =
+			showCutoffWarning && numberFields.some((f) => f.id === 'arp_scan_cutoff')}
 		<CollapsibleCard title={group.name} expanded={true}>
 			<div class="space-y-3">
-				<div class="grid grid-cols-2 items-center gap-4">
+				<!-- Number fields, then booleans, in one grid: a checkbox fills the cell beside the
+				     last number field instead of starting a row of its own. -->
+				<div class="grid grid-cols-2 items-start gap-4">
 					{#each numberFields as field (field.id)}
 						<div class="space-y-2">
 							<label for={`scan_${field.id}`} class="text-secondary block text-sm font-medium">
@@ -169,52 +173,48 @@
 								<p class="text-tertiary text-xs">{field.help_text}</p>
 							{/if}
 						</div>
-						{#if field.id === 'arp_scan_cutoff' && showCutoffWarning}
-							{@const maxIps = Math.pow(2, 32 - arpScanCutoff)}
-							{@const secondsAt50pps = maxIps / 50}
-							{@const subnetNames = truncatedInterfacedSubnets.map((s) => s.name).join(', ')}
-							<InlineWarning
-								title={secondsAt50pps >= 3600
-									? discovery_arpScanCutoffWarningSlow({
-											cutoff: String(arpScanCutoff),
-											ipCount: maxIps.toLocaleString(),
-											timeEstimate: formatDurationHuman(secondsAt50pps),
-											subnets: subnetNames
-										})
-									: discovery_arpScanCutoffWarning({
-											cutoff: String(arpScanCutoff),
-											ipCount: maxIps.toLocaleString(),
-											subnets: subnetNames
-										})}
-							/>
-						{/if}
+					{/each}
+					{#each booleanFields as field (field.id)}
+						<div class="flex flex-col gap-1">
+							<label
+								for={`scan_${field.id}`}
+								class="text-secondary flex cursor-pointer items-center gap-2 text-sm font-medium"
+							>
+								<input
+									type="checkbox"
+									id={`scan_${field.id}`}
+									checked={!!getScanValue(field.id)}
+									disabled={readOnly}
+									onchange={(e) => updateScanSetting(field.id, e.currentTarget.checked)}
+									class="checkbox-card h-4 w-4 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+								/>
+								<div>{field.label}</div>
+							</label>
+							{#if field.help_text}
+								<p class="text-tertiary text-xs">{field.help_text}</p>
+							{/if}
+						</div>
 					{/each}
 				</div>
 
-				{#if booleanFields.length > 0}
-					<div class="grid grid-cols-2 gap-4 pt-2">
-						{#each booleanFields as field (field.id)}
-							<div class="flex flex-col gap-1">
-								<label
-									for={`scan_${field.id}`}
-									class="text-secondary flex cursor-pointer items-center gap-2 text-sm font-medium"
-								>
-									<input
-										type="checkbox"
-										id={`scan_${field.id}`}
-										checked={!!getScanValue(field.id)}
-										disabled={readOnly}
-										onchange={(e) => updateScanSetting(field.id, e.currentTarget.checked)}
-										class="checkbox-card h-4 w-4 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-									/>
-									<div>{field.label}</div>
-								</label>
-								{#if field.help_text}
-									<p class="text-tertiary text-xs">{field.help_text}</p>
-								{/if}
-							</div>
-						{/each}
-					</div>
+				{#if showGroupCutoffWarning}
+					{@const maxIps = Math.pow(2, 32 - arpScanCutoff)}
+					{@const secondsAt50pps = maxIps / 50}
+					{@const subnetNames = truncatedInterfacedSubnets.map((s) => s.name).join(', ')}
+					<InlineWarning
+						title={secondsAt50pps >= 3600
+							? discovery_arpScanCutoffWarningSlow({
+									cutoff: String(arpScanCutoff),
+									ipCount: maxIps.toLocaleString(),
+									timeEstimate: formatDurationHuman(secondsAt50pps),
+									subnets: subnetNames
+								})
+							: discovery_arpScanCutoffWarning({
+									cutoff: String(arpScanCutoff),
+									ipCount: maxIps.toLocaleString(),
+									subnets: subnetNames
+								})}
+					/>
 				{/if}
 			</div>
 		</CollapsibleCard>

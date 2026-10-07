@@ -15,7 +15,7 @@
 	// Shared components
 	import ApiKeyGenerator from '$lib/shared/components/api-keys/ApiKeyGenerator.svelte';
 	import PermissionSelect from '$lib/shared/components/api-keys/PermissionSelect.svelte';
-	import NetworkAccessSelect from '$lib/shared/components/api-keys/NetworkAccessSelect.svelte';
+	import SiteAccessSelect from '$lib/shared/components/api-keys/SiteAccessSelect.svelte';
 
 	import type { UserApiKey } from '../queries';
 	import {
@@ -23,7 +23,6 @@
 		useCreateUserApiKeyMutation,
 		useRotateUserApiKeyMutation
 	} from '../queries';
-	import InlineSuccess from '$lib/shared/components/feedback/InlineSuccess.svelte';
 	import {
 		common_apiKeyNameHelp,
 		common_close,
@@ -33,18 +32,16 @@
 		common_enableApiKey,
 		common_expirationDateOptional,
 		common_expirationNeverHelp,
-		common_keyDetails,
 		common_name,
 		common_nameRequired,
-		common_networkRequired,
+		common_siteRequired,
 		common_permissions,
 		common_save,
 		common_saving,
 		userApiKeys_createApiKey,
 		userApiKeys_enableHelp,
 		userApiKeys_namePlaceholder,
-		userApiKeys_permissionsHelp,
-		userApiKeys_shareIntegration
+		userApiKeys_permissionsHelp
 	} from '$lib/paraglide/messages';
 
 	interface Props {
@@ -109,8 +106,13 @@
 		}
 	}));
 
-	// Track permission value for NetworkAccessSelect
-	let permissionsValue = $derived(form.state.values.permissions);
+	// Mirrored from the form store for SiteAccessSelect: form.state.values is not tracked by $derived.
+	let permissionsValue = $state(createEmptyUserApiKeyFormData().permissions);
+	$effect(() => {
+		return form.store.subscribe(() => {
+			permissionsValue = form.state.values.permissions;
+		});
+	});
 
 	// Reset form when modal opens
 	function handleOpen() {
@@ -132,8 +134,8 @@
 			pushError(common_nameRequired());
 			return;
 		}
-		if (!formData.network_ids?.length) {
-			pushError(common_networkRequired());
+		if (!formData.site_ids?.length) {
+			pushError(common_siteRequired());
 			return;
 		}
 
@@ -176,9 +178,9 @@
 		}
 	}
 
-	// Handle network selection changes
-	function handleNetworkChange(networkIds: string[]) {
-		form.setFieldValue('network_ids', networkIds);
+	// Handle site selection changes
+	function handleSiteChange(siteIds: string[]) {
+		form.setFieldValue('site_ids', siteIds);
 	}
 
 	let colorHelper = entities.getColorHelper('UserApiKey');
@@ -189,6 +191,7 @@
 	{title}
 	{name}
 	entityId={apiKey?.id}
+	{form}
 	size="xl"
 	onClose={handleOnClose}
 	onOpen={handleOpen}
@@ -208,15 +211,7 @@
 	>
 		<div class="min-h-0 flex-1 overflow-auto p-6">
 			<div class="space-y-6">
-				<InlineSuccess
-					title={userApiKeys_shareIntegration()}
-					body="Creating an integration that you think others might benefit from? Scanopy will be adding an integration library in an upcoming release. Go to the <a class='underline hover:no-underline' target='_blank' href='https://github.com/scanopy/integrations'>Scanopy integrations GitHub</a> and create a PR to get started."
-				></InlineSuccess>
-
-				<!-- Key Details Section -->
 				<div class="space-y-4">
-					<h3 class="text-primary text-lg font-medium">{common_keyDetails()}</h3>
-
 					<form.Field
 						name="name"
 						validators={{
@@ -246,11 +241,11 @@
 						{/snippet}
 					</form.Field>
 
-					<form.Field name="network_ids">
+					<form.Field name="site_ids">
 						{#snippet children(field)}
-							<NetworkAccessSelect
-								selectedNetworkIds={field.state.value ?? []}
-								onChange={handleNetworkChange}
+							<SiteAccessSelect
+								selectedSiteIds={field.state.value ?? []}
+								onChange={handleSiteChange}
 								permissionLevel={permissionsValue}
 								helpText="Leave empty for org-scoped resources only (tags, users)"
 								alwaysShowSelection={true}

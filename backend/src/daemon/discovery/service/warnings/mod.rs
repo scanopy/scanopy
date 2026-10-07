@@ -568,7 +568,7 @@ impl AttemptOutcome {
 
 /// Why an IP-targeted credential produced nothing.
 ///
-/// Only credentials the user deliberately assigned to a host are reported. A network-default
+/// Only credentials the user deliberately assigned to a host are reported. A site-default
 /// credential failing is routine — it is broadcast at every address in the subnet — and
 /// reporting those would flood the notification on any sweep.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -623,7 +623,7 @@ pub struct CredentialIssue {
 ///
 /// Two things are deliberately silent:
 ///
-/// - **A network default that failed.** It is broadcast at every address in the subnet, so
+/// - **A site default that failed.** It is broadcast at every address in the subnet, so
 ///   failing is its normal condition — reporting it would bury the real findings under a line per
 ///   unresponsive host on any /24 sweep. Only a credential the user pinned to this host is news.
 /// - **A cancelled attempt.** The operator stopped the scan; nothing about that is a finding, and
@@ -639,7 +639,7 @@ pub fn issue_for_attempt(
     if outcome == AttemptOutcome::Cancelled {
         return None;
     }
-    // The network-default rule is about a credential that reached a device and did not work. A
+    // The site-default rule is about a credential that reached a device and did not work. A
     // malformed one reached nothing: it is wrong in our own configuration, wrong identically at
     // every address, and stays wrong until someone re-enters it — so being a default is no reason
     // to keep quiet, and being quiet is what left GH #668's reporter with a scan that said nothing
@@ -1023,25 +1023,25 @@ mod tests {
         )
     }
 
-    /// A network default is tried at every address in the subnet, so failing is its normal
+    /// A site default is tried at every address in the subnet, so failing is its normal
     /// condition. Reporting it would put a line per unresponsive host into the notification and
     /// bury the credentials the user actually configured.
     #[test]
-    fn a_failing_network_default_is_not_a_finding() {
+    fn a_failing_site_default_is_not_a_finding() {
         assert!(decide(AttemptOutcome::Rejected, false).is_none());
         assert!(decide(AttemptOutcome::TlsFailed, false).is_none());
     }
 
     /// GH #668: except when the credential could not be read at all.
     ///
-    /// The network-default rule is about a credential that reached a device and did not work —
+    /// The site-default rule is about a credential that reached a device and did not work —
     /// broadcast at every address, so failing at most of them is its job. A credential we cannot
     /// resolve never reaches anything: it is broken in our own configuration, it is broken
     /// identically at every address, and it will stay broken until someone re-enters it. The
     /// reporter's community string was typed into a file-path field and the scan said nothing at
     /// all, on any host, for exactly this reason.
     #[test]
-    fn a_credential_that_could_not_be_read_is_a_finding_even_as_a_network_default() {
+    fn a_credential_that_could_not_be_read_is_a_finding_even_as_a_site_default() {
         let issue = decide(AttemptOutcome::Malformed, false)
             .expect("a credential that cannot be read is a configuration fault, not a sweep miss");
 

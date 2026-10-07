@@ -62,7 +62,7 @@ pub struct ExportFeatures {
 
 /// Share with topology data (returned after authentication/verification).
 ///
-/// Returns the slim topology row (`{ id, network_id, options }`) plus the
+/// Returns the slim topology row (`{ id, site_id, options }`) plus the
 /// `TopologyData` bundle (entities + the per-view graph built on request). The
 /// share viewer composes these with the same `toRenderableTopology` the app
 /// uses — no server-side merge.

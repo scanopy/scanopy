@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { Edit, Trash2 } from 'lucide-svelte';
 	import type { CardAction } from '$lib/shared/components/data/types';
-	import { entities } from '$lib/shared/stores/metadata';
-	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import type { FieldConfig } from '$lib/shared/components/data/types';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import { networkItems } from '$lib/features/networks/columns';
+	import type { TableDefaults } from '$lib/shared/components/data/types';
+	import { siteItems } from '$lib/features/sites/columns';
 	import CreateApiKeyModal from './ApiKeyModal.svelte';
 	import type { ApiKey } from '../types/base';
 	import { useTagsQuery } from '$lib/features/tags/queries';
@@ -17,11 +16,11 @@
 		useDeleteApiKeyMutation,
 		useBulkDeleteApiKeysMutation
 	} from '../queries';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import type { TabProps } from '$lib/shared/types';
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { modalState } from '$lib/shared/stores/modal-registry';
+	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 	import {
 		common_enabled,
 		common_expired,
@@ -34,14 +33,13 @@
 		common_confirmDeleteName,
 		common_created,
 		common_name,
-		common_network,
+		common_site,
 		common_noEntityYet,
 		common_tags,
 		common_updated,
-		common_unknownNetwork,
+		common_unknownSite,
 		daemonApiKeys_title,
-		daemonApiKeys_provisionOnlyHint,
-		daemons_legacyKeyHelp
+		daemonApiKeys_provisionOnlyHint
 	} from '$lib/paraglide/messages';
 
 	let { isReadOnly = false }: TabProps = $props();
@@ -49,7 +47,7 @@
 	// Queries
 	const tagsQuery = useTagsQuery();
 	const apiKeysQuery = useApiKeysQuery();
-	const networksQuery = useNetworksQuery();
+	const sitesQuery = useSitesQuery();
 	// Daemons query — also used to determine which API keys are in use
 	const daemonsQuery = useDaemonsQuery();
 
@@ -62,7 +60,7 @@
 	// (daemon_id set) is managed from the daemon record, not this tab.
 	let tagsData = $derived(tagsQuery.data ?? []);
 	let apiKeysData = $derived((apiKeysQuery.data ?? []).filter((k) => k.daemon_id == null));
-	let networksData = $derived(networksQuery.data ?? []);
+	let sitesData = $derived(sitesQuery.data ?? []);
 	let isLoading = $derived(apiKeysQuery.isPending);
 	let apiKeyIdsInUse = $derived(
 		new Set(
@@ -74,21 +72,20 @@
 	let editingApiKey = $state<ApiKey | null>(null);
 
 	// Deep-link: open daemon API key editor from URL. Resolve the id against the FULL,
-	// unfiltered key list — the daemon card's "Manage key" action deep-links a key bound
-	// 1:1 to a daemon (daemon_id set), which is deliberately excluded from `apiKeysData`
+	// unfiltered key list — a deep link can name a key bound 1:1 to a daemon
+	// (daemon_id set), which is deliberately excluded from `apiKeysData`
 	// (the legacy-only tab list). Resolving against the filtered list would never find it.
 	$effect(() => {
-		if ($modalState.name === 'daemon-api-key' && !showCreateApiKeyModal) {
-			if ($modalState.id) {
-				const entity = (apiKeysQuery.data ?? []).find((e) => e.id === $modalState.id);
-				if (entity) {
-					editingApiKey = entity;
-					showCreateApiKeyModal = true;
-				}
-			} else {
-				editingApiKey = null;
-				showCreateApiKeyModal = true;
-			}
+		const result = resolveModalDeepLink(
+			$modalState,
+			'daemon-api-key',
+			apiKeysQuery.data ?? [],
+			showCreateApiKeyModal,
+			editingApiKey?.id
+		);
+		if (result !== undefined) {
+			editingApiKey = result;
+			showCreateApiKeyModal = true;
 		}
 	});
 
@@ -129,7 +126,7 @@
 		await downloadCsv('DaemonApiKey', {});
 	}
 
-	/** Row actions, matching what the card offered. */
+	/** Row actions. */
 	function apiKeyActions(apiKey: ApiKey): CardAction[] {
 		if (isReadOnly) return [];
 
@@ -140,11 +137,13 @@
 				icon: Trash2,
 				class: 'btn-icon-danger',
 				onClick: () => handleDeleteApiKey(apiKey),
-				// A key a daemon is using cannot be deleted — same gate the card had.
+				// A key a daemon is using cannot be deleted.
 				disabled: apiKeyIdsInUse.has(apiKey.id)
 			}
 		];
 	}
+
+	const tableDefaults: TableDefaults<string> = { sort: { field: 'name', direction: 'asc' } };
 
 	const apiKeyFields: FieldConfig<ApiKey>[] = [
 		{
@@ -155,17 +154,17 @@
 			sortable: true
 		},
 		{
-			key: 'network_id',
+			key: 'site_id',
 			type: 'string',
-			label: common_network(),
+			label: common_site(),
 			searchable: true,
 			filterable: true,
 			groupable: true,
 			sortable: true,
 			getValue(item) {
-				return networksData.find((n) => n.id == item.network_id)?.name || common_unknownNetwork();
+				return sitesData.find((n) => n.id == item.site_id)?.name || common_unknownSite();
 			},
-			display: { getItems: (item) => networkItems(item.network_id, networksData) }
+			display: { getItems: (item) => siteItems(item.site_id, sitesData) }
 		},
 		{
 			key: 'is_enabled',
@@ -233,11 +232,10 @@
 	<!-- Header. No create action: daemon keys are now minted 1:1 through daemon
 	     provisioning, so this tab only lists (and lets you manage) existing keys. -->
 	<!--
-		Every key on this tab is unbound, so the explanation the card carried as a
-		per-row "Legacy" tag says the same thing on every row — it belongs to the
-		tab.
+		Every key on this tab is unbound, so the legacy explanation sits in the tab
+		subtitle rather than as a per-row tag that would say the same thing on
+		every row.
 	-->
-	<TabHeader title={daemonApiKeys_title()} subtitle={daemons_legacyKeyHelp()} />
 	<!-- Loading state -->
 	{#if isLoading}
 		<Loading />
@@ -249,18 +247,16 @@
 		/>
 	{:else}
 		<DataControls
+			title={daemonApiKeys_title()}
 			items={apiKeysData}
 			fields={apiKeyFields}
 			onBulkDelete={isReadOnly ? undefined : handleBulkDelete}
 			entityType={isReadOnly ? undefined : 'DaemonApiKey'}
 			getItemTags={getApiKeyTags}
 			storageKey="scanopy-api-keys-table-state"
+			defaults={tableDefaults}
 			getItemId={(item) => item.id}
 			getActions={apiKeyActions}
-			getIcon={() => ({
-				icon: entities.getIconComponent('DaemonApiKey'),
-				color: entities.getColorHelper('DaemonApiKey').icon
-			})}
 			onCsvExport={handleCsvExport}
 		></DataControls>
 	{/if}

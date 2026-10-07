@@ -1,9 +1,12 @@
 use anyhow::{Result, anyhow};
 use chrono::{DateTime, Utc};
 use openidconnect::{
-    AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce,
-    PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, Scope, TokenResponse,
-    core::{CoreClient, CoreProviderMetadata, CoreResponseType},
+    Audience, AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken, IssuerUrl,
+    Nonce, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, Scope, TokenResponse,
+    core::{
+        CoreClient, CoreIdToken, CoreIdTokenClaims, CoreIdTokenVerifier, CoreProviderMetadata,
+        CoreResponseType,
+    },
     reqwest::Client as ReqwestClient,
 };
 use serde::{Deserialize, Serialize};
@@ -45,6 +48,18 @@ pub struct OidcUserInfo {
     pub name: Option<String>,
 }
 
+impl From<&CoreIdTokenClaims> for OidcUserInfo {
+    fn from(claims: &CoreIdTokenClaims) -> Self {
+        Self {
+            subject: claims.subject().to_string(),
+            email: claims.email().map(|e| e.to_string()),
+            name: claims
+                .name()
+                .and_then(|n| n.get(None).map(|s| s.to_string())),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct OidcProviderConfig {
     pub name: String,
@@ -53,6 +68,10 @@ pub struct OidcProviderConfig {
     pub issuer_url: String,
     pub client_id: String,
     pub client_secret: String,
+    /// Audiences other than `client_id` that this provider's ID tokens may carry. Empty by
+    /// default, which rejects any token with an extra audience. Zitadel puts its project ID here.
+    #[serde(default)]
+    pub trusted_audiences: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, PartialEq, Eq, Hash)]
@@ -83,6 +102,8 @@ pub struct OidcProvider {
     issuer_url: String,
     client_id: String,
     client_secret: String,
+    /// Extra `aud` values accepted besides `client_id`; see `OidcProviderConfig::trusted_audiences`.
+    trusted_audiences: Vec<String>,
     redirect_url: String,
     /// Shared client built by `OidcService::new`, carrying any extra trusted CA roots.
     http_client: ReqwestClient,
@@ -107,6 +128,7 @@ impl OidcProvider {
         issuer_url: String,
         client_id: String,
         client_secret: String,
+        trusted_audiences: Vec<String>,
         redirect_url: String,
         http_client: ReqwestClient,
     ) -> Self {
@@ -117,6 +139,7 @@ impl OidcProvider {
             issuer_url,
             client_id,
             client_secret,
+            trusted_audiences,
             redirect_url,
             http_client,
         }
@@ -219,15 +242,57 @@ impl OidcProvider {
             .id_token()
             .ok_or_else(|| anyhow::anyhow!("No ID token in response"))?;
 
-        let claims = id_token.claims(&client.id_token_verifier(), &nonce)?;
+        let claims = self.verified_claims(id_token, client.id_token_verifier(), &nonce)?;
 
-        Ok(OidcUserInfo {
-            subject: claims.subject().to_string(),
-            email: claims.email().map(|e| e.to_string()),
-            name: claims
-                .name()
-                .and_then(|n| n.get(None).map(|s| s.to_string())),
-        })
+        Ok(claims.into())
+    }
+
+    /// Verify the ID token's signature and claims. Audiences besides `client_id` must be listed
+    /// in `trusted_audiences`, and a token with several audiences must name this client in
+    /// `azp` (OIDC Core §3.1.3.7 steps 4-5), which openidconnect leaves to the caller.
+    fn verified_claims<'t>(
+        &self,
+        id_token: &'t CoreIdToken,
+        verifier: CoreIdTokenVerifier<'_>,
+        nonce: &Nonce,
+    ) -> Result<&'t CoreIdTokenClaims> {
+        let slug = self.slug.clone();
+        let trusted_audiences = self.trusted_audiences.clone();
+        let verifier = verifier.set_other_audience_verifier_fn(move |aud: &Audience| {
+            let trusted = trusted_audiences.iter().any(|t| t == aud.as_str());
+            if !trusted {
+                tracing::warn!(
+                    provider = %slug,
+                    audience = %aud.as_str(),
+                    "OIDC ID token carries untrusted audience `{}`. If this provider adds it to \
+                     every token (Zitadel adds its project ID), add it to trusted_audiences for \
+                     provider `{slug}` in oidc.toml",
+                    aud.as_str(),
+                );
+            }
+            trusted
+        });
+
+        let claims = id_token.claims(&verifier, nonce)?;
+
+        if claims.audiences().len() > 1 {
+            let azp = claims.authorized_party().map(|azp| azp.as_str());
+            if azp != Some(self.client_id.as_str()) {
+                tracing::warn!(
+                    provider = %self.slug,
+                    azp = ?azp,
+                    "OIDC ID token has several audiences but its azp claim is not this client's \
+                     client_id"
+                );
+                return Err(anyhow!(
+                    "Invalid authorized party: expected `{}`, found {}",
+                    self.client_id,
+                    azp.map_or("none".to_string(), |azp| format!("`{azp}`"))
+                ));
+            }
+        }
+
+        Ok(claims)
     }
 }
 
@@ -235,6 +300,180 @@ impl OidcProvider {
 mod tests {
     use super::*;
     use crate::server::shared::trusted_ca::test_support::serve_test_tls;
+    use chrono::Duration;
+    use openidconnect::{
+        EmptyAdditionalClaims, EndUserEmail, EndUserName, JsonWebKeySet, StandardClaims,
+        SubjectIdentifier,
+        core::{CoreHmacKey, CoreJwsSigningAlgorithm},
+    };
+
+    const ISSUER: &str = "https://idp.example.com";
+    const CLIENT_ID: &str = "scanopy-client";
+    const CLIENT_SECRET: &str = "scanopy-client-secret-that-is-long-enough";
+    const NONCE: &str = "test-nonce";
+
+    fn provider() -> OidcProvider {
+        provider_trusting(&[])
+    }
+
+    fn provider_trusting(trusted_audiences: &[&str]) -> OidcProvider {
+        OidcProvider::new(
+            "idp".to_string(),
+            "IdP".to_string(),
+            None,
+            ISSUER.to_string(),
+            CLIENT_ID.to_string(),
+            CLIENT_SECRET.to_string(),
+            trusted_audiences
+                .iter()
+                .map(|aud| aud.to_string())
+                .collect(),
+            "https://scanopy.example/api/auth/oidc/idp/callback".to_string(),
+            ReqwestClient::new(),
+        )
+    }
+
+    /// The verifier `exchange_code` gets from `CoreClient::id_token_verifier`, set up for HS256
+    /// tokens signed with the client secret so tests need no provider JWKS.
+    fn verifier() -> CoreIdTokenVerifier<'static> {
+        CoreIdTokenVerifier::new_confidential_client(
+            ClientId::new(CLIENT_ID.to_string()),
+            ClientSecret::new(CLIENT_SECRET.to_string()),
+            IssuerUrl::new(ISSUER.to_string()).unwrap(),
+            JsonWebKeySet::new(vec![]),
+        )
+        .set_allowed_algs([CoreJwsSigningAlgorithm::HmacSha256])
+    }
+
+    /// Valid claims for `CLIENT_ID`; tests change one thing at a time.
+    fn claims(audiences: &[&str]) -> CoreIdTokenClaims {
+        let now = Utc::now();
+        CoreIdTokenClaims::new(
+            IssuerUrl::new(ISSUER.to_string()).unwrap(),
+            audiences
+                .iter()
+                .map(|aud| Audience::new(aud.to_string()))
+                .collect(),
+            now + Duration::minutes(5),
+            now,
+            StandardClaims::new(SubjectIdentifier::new("user-1".to_string()))
+                .set_email(Some(EndUserEmail::new("user@example.com".to_string())))
+                .set_name(Some(EndUserName::new("Test User".to_string()).into())),
+            EmptyAdditionalClaims {},
+        )
+        .set_nonce(Some(Nonce::new(NONCE.to_string())))
+    }
+
+    fn sign_with(claims: CoreIdTokenClaims, secret: &str) -> CoreIdToken {
+        CoreIdToken::new(
+            claims,
+            &CoreHmacKey::new(secret.as_bytes()),
+            CoreJwsSigningAlgorithm::HmacSha256,
+            None,
+            None,
+        )
+        .unwrap()
+    }
+
+    fn sign(claims: CoreIdTokenClaims) -> CoreIdToken {
+        sign_with(claims, CLIENT_SECRET)
+    }
+
+    fn verify(provider: &OidcProvider, token: &CoreIdToken) -> Result<OidcUserInfo> {
+        provider
+            .verified_claims(token, verifier(), &Nonce::new(NONCE.to_string()))
+            .map(OidcUserInfo::from)
+    }
+
+    // Regression tests: behaviour every provider had before `trusted_audiences` existed.
+
+    #[test]
+    fn a_single_audience_token_yields_the_user() {
+        let user = verify(&provider(), &sign(claims(&[CLIENT_ID]))).unwrap();
+        assert_eq!(user.subject, "user-1");
+        assert_eq!(user.email.as_deref(), Some("user@example.com"));
+        assert_eq!(user.name.as_deref(), Some("Test User"));
+    }
+
+    #[test]
+    fn a_single_audience_token_passes_whatever_its_azp() {
+        let token = sign(
+            claims(&[CLIENT_ID]).set_authorized_party(Some(ClientId::new("other-client".into()))),
+        );
+        assert!(verify(&provider(), &token).is_ok());
+    }
+
+    #[test]
+    fn an_extra_audience_is_rejected_without_config() {
+        let err = verify(&provider(), &sign(claims(&[CLIENT_ID, "project-1"]))).unwrap_err();
+        assert!(err.to_string().contains("project-1"), "{err}");
+    }
+
+    #[test]
+    fn a_token_from_another_issuer_is_rejected() {
+        let mut claims = claims(&[CLIENT_ID]);
+        claims = claims.set_issuer(IssuerUrl::new("https://evil.example.com".into()).unwrap());
+        assert!(verify(&provider(), &sign(claims)).is_err());
+    }
+
+    #[test]
+    fn a_token_with_the_wrong_nonce_is_rejected() {
+        let token = sign(claims(&[CLIENT_ID]).set_nonce(Some(Nonce::new("other".into()))));
+        assert!(verify(&provider(), &token).is_err());
+    }
+
+    #[test]
+    fn an_expired_token_is_rejected() {
+        let token = sign(claims(&[CLIENT_ID]).set_expiration(Utc::now() - Duration::minutes(1)));
+        assert!(verify(&provider(), &token).is_err());
+    }
+
+    #[test]
+    fn a_token_signed_with_another_key_is_rejected() {
+        let token = sign_with(
+            claims(&[CLIENT_ID]),
+            "a-different-secret-of-similar-length!!",
+        );
+        assert!(verify(&provider(), &token).is_err());
+    }
+
+    #[test]
+    fn a_provider_without_trusted_audiences_still_parses() {
+        let toml = r#"
+            [[oidc_providers]]
+            name = "Authentik"
+            slug = "authentik"
+            issuer_url = "https://auth.example.com"
+            client_id = "id"
+            client_secret = "secret"
+        "#;
+        let env = r#"[{name="Authentik",slug="authentik",issuer_url="https://auth.example.com",client_id="id",client_secret="secret"}]"#;
+
+        for providers in [parse_toml(toml), parse_env(env)] {
+            assert_eq!(providers.len(), 1);
+            assert_eq!(providers[0].client_id, "id");
+            assert!(providers[0].trusted_audiences.is_empty());
+        }
+    }
+
+    fn parse_toml(toml: &str) -> Vec<OidcProviderConfig> {
+        use figment::providers::Format;
+        figment::Figment::from(figment::providers::Toml::string(toml))
+            .extract_inner("oidc_providers")
+            .unwrap()
+    }
+
+    /// Parse the way `Env::prefixed("SCANOPY_")` parses `SCANOPY_OIDC_PROVIDERS`, which is also
+    /// where `SCANOPY_OIDC_PROVIDERS_FILE` lands after `apply_file_env_vars`.
+    fn parse_env(value: &str) -> Vec<OidcProviderConfig> {
+        let value: figment::value::Value = value.parse().unwrap();
+        figment::Figment::from(figment::providers::Serialized::default(
+            "oidc_providers",
+            value,
+        ))
+        .extract_inner("oidc_providers")
+        .unwrap()
+    }
 
     /// An issuer behind a certificate the server doesn't trust must say so, not read like an
     /// unreachable host. openidconnect hides the cause in its Display, so this checks that it
@@ -249,6 +488,7 @@ mod tests {
             format!("https://localhost:{port}"),
             "client".to_string(),
             "secret".to_string(),
+            vec![],
             "https://scanopy.example/api/auth/oidc/private/callback".to_string(),
             ReqwestClient::new(),
         );
@@ -258,5 +498,68 @@ mod tests {
             err.to_string().contains("SCANOPY_TRUSTED_CA_BUNDLE"),
             "{err}"
         );
+    }
+
+    // trusted_audiences and azp (GH #766).
+
+    /// Zitadel's shape: `aud` holds the client ID and the project ID, `azp` the client ID.
+    fn zitadel_claims(audiences: &[&str]) -> CoreIdTokenClaims {
+        claims(audiences).set_authorized_party(Some(ClientId::new(CLIENT_ID.into())))
+    }
+
+    #[test]
+    fn a_listed_extra_audience_passes() {
+        let token = sign(zitadel_claims(&[CLIENT_ID, "project-1"]));
+        assert!(verify(&provider_trusting(&["project-1"]), &token).is_ok());
+    }
+
+    #[test]
+    fn an_unlisted_extra_audience_is_rejected() {
+        let token = sign(zitadel_claims(&[CLIENT_ID, "project-1", "project-2"]));
+        let err = verify(&provider_trusting(&["project-1"]), &token).unwrap_err();
+        assert!(err.to_string().contains("project-2"), "{err}");
+    }
+
+    #[test]
+    fn listed_audiences_without_the_client_id_are_rejected() {
+        let token = sign(zitadel_claims(&["project-1", "project-2"]));
+        let err = verify(&provider_trusting(&["project-1", "project-2"]), &token).unwrap_err();
+        assert!(err.to_string().contains(CLIENT_ID), "{err}");
+    }
+
+    #[test]
+    fn several_audiences_without_azp_are_rejected() {
+        let token = sign(claims(&[CLIENT_ID, "project-1"]));
+        assert!(verify(&provider_trusting(&["project-1"]), &token).is_err());
+    }
+
+    #[test]
+    fn several_audiences_with_a_foreign_azp_are_rejected() {
+        let token = sign(
+            claims(&[CLIENT_ID, "project-1"])
+                .set_authorized_party(Some(ClientId::new("project-1".into()))),
+        );
+        assert!(verify(&provider_trusting(&["project-1"]), &token).is_err());
+    }
+
+    #[test]
+    fn trusted_audiences_parse_from_toml_and_env() {
+        let toml = r#"
+            [[oidc_providers]]
+            name = "Zitadel"
+            slug = "zitadel"
+            issuer_url = "https://zitadel.example.com"
+            client_id = "id"
+            client_secret = "secret"
+            trusted_audiences = ["project-1"]
+        "#;
+        let env = r#"[{name="Zitadel",slug="zitadel",issuer_url="https://zitadel.example.com",client_id="id",client_secret="secret",trusted_audiences=["project-1"]}]"#;
+
+        for providers in [parse_toml(toml), parse_env(env)] {
+            assert_eq!(
+                providers[0].trusted_audiences,
+                vec!["project-1".to_string()]
+            );
+        }
     }
 }

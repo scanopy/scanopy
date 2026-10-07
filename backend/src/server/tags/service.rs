@@ -9,19 +9,27 @@ use crate::server::{
         },
         services::traits::{CrudService, EventBusService, SnapshotMutator},
         storage::{
+            filter::StorableFilter,
             generic::GenericPostgresStorage,
             traits::{Entity, Storage},
         },
+        types::api::ValidationError,
     },
-    tags::r#impl::base::Tag,
+    tags::{
+        entity_tags::{EntityTagStorage, entities_holding_several},
+        r#impl::base::{Tag, TagGroup},
+    },
 };
-use anyhow::anyhow;
+use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use std::sync::Arc;
 use uuid::Uuid;
 
 pub struct TagService {
     storage: Arc<GenericPostgresStorage<Tag>>,
+    /// The tags module's own junction storage, read to check a tag group change against existing
+    /// assignments.
+    entity_tags: Arc<EntityTagStorage>,
     event_bus: Arc<EventBus>,
 }
 
@@ -30,7 +38,7 @@ impl EventBusService<Tag> for TagService {
         &self.event_bus
     }
 
-    fn get_network_id(&self, _entity: &Tag) -> Option<Uuid> {
+    fn get_site_id(&self, _entity: &Tag) -> Option<Uuid> {
         None
     }
     fn get_organization_id(&self, entity: &Tag) -> Option<Uuid> {
@@ -67,6 +75,12 @@ impl CrudService<Tag> for TagService {
             .await?
             .ok_or_else(|| anyhow!("Could not find Tag {}", entity.id))?;
 
+        if entity.base.tag_group != current.base.tag_group
+            && let Some(group) = &entity.base.tag_group
+        {
+            self.refuse_group_already_doubled(entity, group).await?;
+        }
+
         let updated = SnapshotMutator::close_and_clone(self, entity.clone()).await?;
 
         let trigger_stale = updated.triggers_staleness(Some(current));
@@ -74,7 +88,7 @@ impl CrudService<Tag> for TagService {
         if let Some(scope) = EntityScope::from_ids(
             updated.id(),
             updated.clone().into(),
-            self.get_network_id(&updated),
+            self.get_site_id(&updated),
             self.get_organization_id(&updated),
         ) {
             self.event_bus()
@@ -120,7 +134,7 @@ impl CrudService<Tag> for TagService {
         if let Some(scope) = EntityScope::from_ids(
             entity_for_event.id(),
             entity_for_event.into(),
-            self.get_network_id(&entity),
+            self.get_site_id(&entity),
             self.get_organization_id(&entity),
         ) {
             self.event_bus()
@@ -140,7 +154,45 @@ impl CrudService<Tag> for TagService {
 }
 
 impl TagService {
-    pub fn new(storage: Arc<GenericPostgresStorage<Tag>>, event_bus: Arc<EventBus>) -> Self {
-        Self { storage, event_bus }
+    pub fn new(
+        storage: Arc<GenericPostgresStorage<Tag>>,
+        entity_tags: Arc<EntityTagStorage>,
+        event_bus: Arc<EventBus>,
+    ) -> Self {
+        Self {
+            storage,
+            entity_tags,
+            event_bus,
+        }
+    }
+
+    /// Refuse to move `tag` into `group` while some entity holds both it and another tag of `group`.
+    ///
+    /// Moving it would leave that entity breaking the rule the group exists to keep, and which of
+    /// its tags should go is a person's call. So the change is refused with a count, and nothing
+    /// is removed on the person's behalf.
+    async fn refuse_group_already_doubled(&self, tag: &Tag, group: &TagGroup) -> Result<()> {
+        let siblings = self
+            .get_all(StorableFilter::<Tag>::new_from_org_id(&tag.base.organization_id).live())
+            .await?;
+        let mut group_tag_ids: Vec<Uuid> = siblings
+            .iter()
+            .filter(|t| t.id != tag.id && t.base.tag_group.as_ref() == Some(group))
+            .map(|t| t.id)
+            .collect();
+        if group_tag_ids.is_empty() {
+            return Ok(());
+        }
+        group_tag_ids.push(tag.id);
+
+        let rows = self.entity_tags.get_live_for_tags(&group_tag_ids).await?;
+        match entities_holding_several(&rows, &group_tag_ids) {
+            0 => Ok(()),
+            count => Err(ValidationError::new(format!(
+                "{count} {} hold more than one tag in the \"{group}\" group. Remove the extra tags first.",
+                if count == 1 { "entity" } else { "entities" }
+            ))
+            .into()),
+        }
     }
 }

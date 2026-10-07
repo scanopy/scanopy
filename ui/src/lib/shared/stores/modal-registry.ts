@@ -1,6 +1,12 @@
 import { get, writable } from 'svelte/store';
+import { SvelteSet } from 'svelte/reactivity';
 import type { EntityDiscriminants } from '$lib/api/entities';
-import { entityUIConfig, TAB_LABELS } from '$lib/shared/entity-ui-config';
+import { entityModalNames, entityUIConfig, TAB_LABELS } from '$lib/shared/entity-ui-config';
+import { reopenGlobalSearch, type GlobalSearchState } from '$lib/features/search/results';
+
+/** Return-URL parameters carrying the global search an entity was opened from: its text and tag chips. */
+const RETURN_SEARCH_PARAM = 'search';
+const RETURN_SEARCH_TAGS_PARAM = 'searchTags';
 
 export interface ModalState {
 	name: string | null;
@@ -86,6 +92,16 @@ export function goBack(): void {
 	// Set hash (triggers tab reactivity)
 	window.location.hash = target.hash || '';
 
+	// Opened from the global search palette, which lives outside the URL: close this modal and reopen the
+	// palette on the query it was opened from.
+	const returnSearch = target.searchParams.get(RETURN_SEARCH_PARAM);
+	if (returnSearch !== null) {
+		closeModal();
+		const tags = target.searchParams.get(RETURN_SEARCH_TAGS_PARAM);
+		reopenGlobalSearch({ text: returnSearch, tagIds: tags ? tags.split(',') : [] });
+		return;
+	}
+
 	// Restore modal state from return URL, or clear if no modal
 	const modalName = target.searchParams.get('modal');
 	if (modalName) {
@@ -136,13 +152,26 @@ export function initModalFromUrl(): void {
 export function navigateToEntity(
 	entityType: EntityDiscriminants,
 	entityId: string,
-	data?: Record<string, unknown>
+	data?: Record<string, unknown>,
+	opts?: {
+		/** The global search this was opened from, so the back button reopens the palette on it. */
+		returnSearch?: GlobalSearchState;
+	}
 ): void {
-	const config = entityUIConfig[entityType];
+	const typeConfig = entityUIConfig[entityType];
+	const config = (data && typeConfig?.forEntity?.(data)) || typeConfig;
 	if (!config) return;
 
 	// Snapshot current URL and modal title before navigation so the back button can return here
-	const returnUrl = typeof window !== 'undefined' ? window.location.href : undefined;
+	let returnUrl = typeof window !== 'undefined' ? window.location.href : undefined;
+	if (returnUrl && opts?.returnSearch !== undefined) {
+		const url = new URL(returnUrl);
+		url.searchParams.set(RETURN_SEARCH_PARAM, opts.returnSearch.text);
+		if (opts.returnSearch.tagIds.length > 0) {
+			url.searchParams.set(RETURN_SEARCH_TAGS_PARAM, opts.returnSearch.tagIds.join(','));
+		}
+		returnUrl = url.toString();
+	}
 	const returnTitle = captureReturnTitle();
 
 	if (config.modalName) {
@@ -245,4 +274,65 @@ function syncToUrl(state: ModalState): void {
 		url.searchParams.delete('subEntityId');
 	}
 	window.history.replaceState({}, '', url.toString());
+}
+
+/**
+ * An entity list on screen, as its rows render: filtered, sorted, grouped and paginated.
+ * `DataControls` registers one per mounted list so an open entity modal can step through it.
+ */
+export interface EntityListSource {
+	ids: () => string[];
+	/** False while the list's page is mounted but not the one on screen. */
+	isVisible: () => boolean;
+}
+
+const entityListSources = new SvelteSet<EntityListSource>();
+
+/** Register a list. Returns the unregister function, for use as an effect teardown. */
+export function registerEntityList(source: EntityListSource): () => void {
+	entityListSources.add(source);
+	return () => entityListSources.delete(source);
+}
+
+/**
+ * The row order of the on-screen list that contains `entityId`, or null when no visible list
+ * holds it (opened from topology, or filtered out of its own list). Entity ids are UUIDs, so the
+ * list that contains the id is the list the modal belongs to. Null too when `modalName` is not an
+ * entity's own modal: a dialog that acts on one entity, such as resolving a subnet's range, has
+ * no neighbour to step to.
+ */
+export function entityListOrderFor(modalName: string, entityId: string): string[] | null {
+	if (!entityModalNames.has(modalName)) return null;
+	for (const source of entityListSources) {
+		const ids = source.ids();
+		if (ids.includes(entityId) && source.isVisible()) return ids;
+	}
+	return null;
+}
+
+/**
+ * The id one step from `entityId` in `order`, or null at either end or when `entityId` is not
+ * in the list. The ends stop rather than wrap, so holding an arrow key halts on the last row.
+ */
+export function adjacentEntityId(
+	order: string[] | null,
+	entityId: string,
+	step: -1 | 1
+): string | null {
+	if (!order) return null;
+	const index = order.indexOf(entityId);
+	if (index === -1) return null;
+	return order[index + step] ?? null;
+}
+
+/**
+ * Whether `el` sits on the list page on screen. Every list page stays mounted; an inactive one
+ * sits in a zero-height, overflow-hidden wrapper, so it still lays out and `offsetParent` can't
+ * tell.
+ */
+export function isOnVisiblePage(el: HTMLElement | null | undefined): boolean {
+	for (let node: HTMLElement | null = el ?? null; node; node = node.parentElement) {
+		if (node.clientHeight === 0 && getComputedStyle(node).overflow === 'hidden') return false;
+	}
+	return !!el;
 }

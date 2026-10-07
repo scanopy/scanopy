@@ -161,7 +161,7 @@ daemon-purge:
 	$(MAKE) daemon-clean PURGE=--purge
 
 daemon-logs:
-	tail -n 40 /var/log/scanopy/scanopy-daemon.log
+	sudo tail -n 40 /var/log/scanopy/scanopy-daemon.log
 
 daemon-restart:
 	sudo launchctl kickstart -k system/$(DAEMON_LABEL)
@@ -188,7 +188,7 @@ daemon-rebuild: daemon-build
 	sudo launchctl kickstart -k system/$(DAEMON_LABEL)
 	@echo "Service restarted on the new binary. Following the log — Ctrl-C to stop watching:"
 	@sleep 1
-	tail -f /var/log/scanopy/scanopy-daemon.log
+	sudo tail -f /var/log/scanopy/scanopy-daemon.log
 
 # Foreground dev loop: the old ergonomics back.
 #
@@ -374,8 +374,9 @@ format:
 lint:
 	@echo "Linting Rust..."
 	@# One clippy pass over both bins, the lib and every test target: the two --bin passes
-	@# missed test code, which is how a broken tests/integration reached dev.
-	cd backend && cargo fmt -- --check && cargo clippy --workspace --all-targets -- -D warnings
+	@# missed test code, which is how a broken tests/integration reached dev. `generate-fixtures`
+	@# compiles the release workflow's fixture target, which a stale enum match broke unnoticed.
+	cd backend && cargo fmt -- --check && cargo clippy --workspace --all-targets --features generate-fixtures -- -D warnings
 	@echo "Generating paraglide i18n..."
 	cd ui && npx paraglide-js compile --outdir ./src/lib/paraglide --silent
 	@echo "Linting UI..."

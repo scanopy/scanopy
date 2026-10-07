@@ -25,8 +25,8 @@ pub struct DaemonApiKeyBase {
     pub last_used: Option<DateTime<Utc>>,
     /// When this record stops being valid.
     pub expires_at: Option<DateTime<Utc>>,
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// The site this entity belongs to.
+    pub site_id: Uuid,
     /// Whether the key may still be used. Disabled keys are rejected.
     #[serde(default)]
     pub is_enabled: bool,
@@ -35,7 +35,7 @@ pub struct DaemonApiKeyBase {
     #[schema(required)]
     pub tags: Vec<Uuid>,
     /// Daemon this key is bound to 1:1, when provisioned server-side.
-    /// NULL for legacy network-shared keys created before 1:1 provisioning,
+    /// NULL for legacy site-shared keys created before 1:1 provisioning,
     /// which resolve daemon identity from the X-Daemon-ID header instead.
     #[serde(default)]
     #[schema(read_only)]
@@ -55,7 +55,7 @@ impl PartialEq for DaemonApiKeyBase {
             && self.name == other.name
             && self.last_used == other.last_used
             && self.expires_at == other.expires_at
-            && self.network_id == other.network_id
+            && self.site_id == other.site_id
             && self.is_enabled == other.is_enabled
             && self.tags == other.tags
             && self.daemon_id == other.daemon_id
@@ -70,7 +70,7 @@ impl std::hash::Hash for DaemonApiKeyBase {
         self.name.hash(state);
         self.last_used.hash(state);
         self.expires_at.hash(state);
-        self.network_id.hash(state);
+        self.site_id.hash(state);
         self.is_enabled.hash(state);
         self.tags.hash(state);
         self.daemon_id.hash(state);
@@ -104,7 +104,7 @@ impl DaemonApiKey {
         self.base.key == other.base.key
             && self.base.name == other.base.name
             && self.base.expires_at == other.base.expires_at
-            && self.base.network_id == other.base.network_id
+            && self.base.site_id == other.base.site_id
             && self.base.is_enabled == other.base.is_enabled
     }
 }

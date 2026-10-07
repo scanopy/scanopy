@@ -23,7 +23,7 @@ impl HostService {
     pub async fn seed_loopback(
         &self,
         host_id: Uuid,
-        network_id: Uuid,
+        site_id: Uuid,
         authentication: AuthenticatedEntity,
     ) -> Result<()> {
         let Some(loopback_subnet) = Subnet::from_discovery(
@@ -32,7 +32,10 @@ impl HostService {
                 pnet::ipnetwork::Ipv4Network::new(std::net::Ipv4Addr::LOCALHOST, 8)
                     .map_err(|e| anyhow::anyhow!("Invalid loopback network: {e}"))?,
             ),
-            network_id,
+            site_id,
+            // Stands in for the daemon's own report of its `lo`, which arrives on the next scan
+            // with this exact range. Stamping it the same keeps that report from relabelling it.
+            crate::server::shared::attribution::AttributeSource::DaemonSelfReport,
         ) else {
             return Ok(());
         };
@@ -44,7 +47,7 @@ impl HostService {
 
         let loopback_ip =
             IPAddress::new(crate::server::ip_addresses::r#impl::base::IPAddressBase {
-                network_id,
+                site_id,
                 host_id,
                 subnet_id: created_subnet.id,
                 ip_address: std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST),
@@ -76,7 +79,7 @@ impl HostService {
         scan_ctx: Option<&crate::server::shared::services::scan_context::ScanContext>,
         authentication: AuthenticatedEntity,
         limit_ctx: Option<&HostLimitContext>,
-    ) -> Result<HostResponse> {
+    ) -> Result<DiscoveredHost> {
         // SCD2 scan-time normalization: stamp every entity in this
         // submission with the same `scan_time` so per-scan diff queries
         // (Added/Removed/Modified/Refreshed-unchanged buckets keyed on
@@ -94,34 +97,19 @@ impl HostService {
         // they only fire when a row is actually being inserted for the
         // first time. Each site reads scan_time off the entity's
         // already-refreshed `last_seen_at`.
-        // `hosts.virtualization_service_id` — the hypervisor a VM runs on — is
-        // server-authoritative. The daemon does not own it and must not send one.
+        // `hosts.virtualization_service_id`, the hypervisor a guest runs on, names a service on a
+        // *different* host submitted in a *different* call. Unlike a container service or a bridge
+        // subnet, it cannot be remapped within this submission, so the daemon must send an id the
+        // server already stored: the Proxmox integration creates each node first and reads its
+        // Proxmox VE service id from the create response (both daemon modes return real child
+        // ids). Anything else is dropped here rather than failing the host on the foreign key.
         //
-        // Unlike a container service or a bridge subnet, which name a service on the *same*
-        // host in the *same* submission, a VM guest names a hypervisor service on a *different*
-        // host submitted in a *different* call (one host per `discover_host`). Nothing in this
-        // function could resolve such a reference, and `CreatedEntitiesPayload` returns
-        // pending→real mappings for hosts and subnets only — never services — so a daemon can
-        // never learn the real id to send in the first place.
-        //
-        // Today the field is only ever set through the UI, where the id is already a real one
-        // (`HostData::with_virtualization` has no callers). Stripping it here keeps the FK
-        // satisfiable and makes a future integration that wires a raw UUID loud in development
-        // rather than a foreign-key failure in production. When the Proxmox integration lands it
-        // should send a resolvable reference — hypervisor address plus service definition — and
-        // have the server resolve it, or carry the pending→real service mapping across the
-        // session; see the plan in TASK.md.
-        //
-        // Note this only clears what the *payload* carried: `upsert_host` never touches this
-        // column, so a value set through the UI survives every rescan.
-        if host.base.virtualization_service_id.take().is_some() {
-            tracing::warn!(
-                host_name = %host.base.name,
-                "Discovery payload carried a host virtualization_service_id; ignoring it — the \
-                 column is server-authoritative and a daemon-minted service id cannot be resolved \
-                 across submissions"
-            );
-        }
+        // An existing guest takes the incoming owner only when it has none (`upsert_host`), so a
+        // hypervisor assigned through the UI survives every rescan.
+        self.accept_discovered_virtualization_service(&mut host)
+            .await;
+        self.accept_discovered_virtualization_interface(&mut host)
+            .await;
 
         // The name's rank is likewise server-authoritative at its top rung.
         // `AttributeSource::Manual` means "a person typed this into Scanopy", which nothing running
@@ -183,16 +171,16 @@ impl HostService {
         // disappeared entirely from the host.
         let previous_subnets: HashSet<Uuid> = self
             .find_matching_host_by_ip_addresses(
-                &host.base.network_id,
+                &host.base.site_id,
                 &ip_addresses,
                 &interfaces,
                 host.base.chassis_id.as_ref().map(|c| c.value().0.as_str()),
             )
             .await?
-            .map(|(_, existing_ips)| existing_ips.iter().map(|i| i.base.subnet_id).collect())
+            .map(|m| m.ip_addresses.iter().map(|i| i.base.subnet_id).collect())
             .unwrap_or_default();
 
-        let host_response = self
+        let discovered = self
             .create_with_children(
                 host,
                 ip_addresses,
@@ -211,7 +199,7 @@ impl HostService {
         // Link Interfaces to IPAddresses via MAC address matching (if any were created)
         if !interfaces.is_empty()
             && let Err(e) = self
-                .link_interfaces_to_ip_addresses(&host_response.id, authentication)
+                .link_interfaces_to_ip_addresses(&discovered.host.id, authentication)
                 .await
         {
             tracing::warn!(error = %e, "Failed to link Interfaces to IPAddresses");
@@ -222,16 +210,16 @@ impl HostService {
         // when nobody reports them anymore.
         if !interfaces.is_empty()
             && let Err(e) = self
-                .reconcile_subnet_vlans_for_host(&host_response.id, &previous_subnets)
+                .reconcile_subnet_vlans_for_host(&discovered.host.id, &previous_subnets)
                 .await
         {
             tracing::warn!(error = %e, "Failed to reconcile subnet_vlans");
         }
 
-        Ok(host_response)
+        Ok(discovered)
     }
 
-    /// Link Interface records (SNMP if-entries) to IPAddress records for a host by matching MAC addresses.
+    /// Link Interface records (SNMP ifTable entries) to IPAddress records for a host by matching MAC addresses.
     ///
     /// For each Interface with a MAC address, finds an IPAddress on the same host with
     /// the same MAC address and sets `interface.ip_address_id = ip_address.id`.

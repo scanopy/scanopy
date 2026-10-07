@@ -293,3 +293,15 @@ function executeForceLayout(
 	// Recompute visible nodes after force layout rebuilds the graph
 	return state.layoutGraph.getVisibleNodes(layoutNodes);
 }
+
+/**
+ * Ids of the cards whose content keys differ between `previous` and `current`. A key is a card's
+ * node id, optionally followed by `|` and more (`inlineGroupKey`).
+ */
+export function changedCardIds(previous: Set<string>, current: Set<string>): Set<string> {
+	const cardOf = (key: string) => key.split('|')[0];
+	const changed = new Set<string>();
+	for (const key of current) if (!previous.has(key)) changed.add(cardOf(key));
+	for (const key of previous) if (!current.has(key)) changed.add(cardOf(key));
+	return changed;
+}

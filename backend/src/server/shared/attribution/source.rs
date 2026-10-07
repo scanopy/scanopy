@@ -204,6 +204,21 @@ pub enum AttributeSource {
     /// is: the engine reads its own host, and that is what the answer means. A bare variant rather
     /// than `Probe(Docker)`, which is the container listing; this is a different exchange.
     ContainerRuntimeInfo,
+    /// The configuration of the hypervisor or container runtime that runs the guest, read
+    /// through its API: the MAC of a Proxmox guest's virtual NIC or of a container's macvlan
+    /// endpoint, and the hostname and distribution a Proxmox LXC container's config sets. `Native` for the reason [`Self::ContainerRuntimeInfo`] is: the hypervisor or
+    /// runtime assigned that MAC, keeps it for the guest's or container's life and puts it on the
+    /// wire for it, so its record is the NIC's own identity, not a third party's report of it.
+    /// That is what lets a guest with no address still be identified by its NIC. A bare variant
+    /// rather than `Probe(Proxmox)` or `Probe(Docker)`, which cover everything else those APIs
+    /// report and stay `Reported`.
+    HypervisorConfig,
+    /// Software inside a guest read this from the guest's own operating system and answered the
+    /// hypervisor's API: the QEMU guest agent behind Proxmox, and the same role VMware Tools and
+    /// Hyper-V integration services fill. `Native` for the reason [`Self::ContainerRuntimeInfo`]
+    /// is: the guest describes itself, over a channel the hypervisor binds to that one guest, so
+    /// it is first-hand, not the hypervisor's report of the guest (`Probe(Proxmox)`).
+    GuestAgent,
     /// A script the operator wrote, run on the host over SSH, printed it. Queried: we chose the
     /// host, authenticated to it and read the answer from its own shell. Human-authored, because
     /// the operator chose what the script reports, which is what puts it above the machine values
@@ -251,7 +266,10 @@ impl AttributeSource {
             // The protocol is the device's own, not a generic transport a MIB approximates —
             // same reasoning as `ClientProbe::method()`'s `Native` arms, just not delegated (see
             // the variant's own doc comment for why).
-            Self::ProfinetDcp | Self::ContainerRuntimeInfo => M::Native,
+            Self::ProfinetDcp
+            | Self::ContainerRuntimeInfo
+            | Self::HypervisorConfig
+            | Self::GuestAgent => M::Native,
 
             // Delegated, not because probes are special, but so that adding a probe forces the
             // tier decision at the probe's own definition instead of here — where it would be easy
@@ -288,6 +306,8 @@ impl AttributeSource {
             | Self::DaemonSelfReport
             | Self::ProfinetDcp
             | Self::ContainerRuntimeInfo
+            | Self::HypervisorConfig
+            | Self::GuestAgent
             | Self::Probe(_) => Authorship::Machine,
         }
     }
@@ -362,6 +382,8 @@ impl AttributeSource {
                 AttributeSourceDiscriminants::ContainerRuntimeInfo => {
                     vec![Self::ContainerRuntimeInfo]
                 }
+                AttributeSourceDiscriminants::HypervisorConfig => vec![Self::HypervisorConfig],
+                AttributeSourceDiscriminants::GuestAgent => vec![Self::GuestAgent],
                 AttributeSourceDiscriminants::SshScript => vec![Self::SshScript],
                 AttributeSourceDiscriminants::Manual => vec![Self::Manual],
             })
@@ -425,6 +447,8 @@ impl AttributeSource {
             AttributeSourceDiscriminants::DaemonSelfReport => Self::DaemonSelfReport,
             AttributeSourceDiscriminants::ProfinetDcp => Self::ProfinetDcp,
             AttributeSourceDiscriminants::ContainerRuntimeInfo => Self::ContainerRuntimeInfo,
+            AttributeSourceDiscriminants::HypervisorConfig => Self::HypervisorConfig,
+            AttributeSourceDiscriminants::GuestAgent => Self::GuestAgent,
             AttributeSourceDiscriminants::SshScript => Self::SshScript,
             AttributeSourceDiscriminants::Manual => Self::Manual,
         }
@@ -544,6 +568,8 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             Self::DaemonSelfReport => "The daemon on this host",
             Self::ProfinetDcp => "PROFINET DCP",
             Self::ContainerRuntimeInfo => "Container engine",
+            Self::HypervisorConfig => "Hypervisor or runtime configuration",
+            Self::GuestAgent => "Guest agent",
             Self::SshScript => "SSH script",
             Self::Probe => "{probe}",
             Self::Authored => "{probe}, set by a person",
@@ -598,6 +624,12 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             Self::ContainerRuntimeInfo => {
                 "The Docker or Podman engine on this host reported the machine it runs on."
             }
+            Self::HypervisorConfig => {
+                "The hypervisor or container runtime running this guest set it in the guest's configuration."
+            }
+            Self::GuestAgent => {
+                "An agent inside this guest read it from the guest's own system and reported it through the hypervisor."
+            }
             Self::SshScript => {
                 "A script you configured on an SSH credential ran on the host and printed this."
             }
@@ -637,6 +669,7 @@ impl TypeMetadataProvider for ClientProbe {
             Self::Snmp => "SNMP",
             Self::UnifiController => "UniFi controller",
             Self::InstantOn => "HPE Instant On",
+            Self::Proxmox => "Proxmox VE",
             Self::ModbusTcp => "Modbus TCP",
             Self::OpcUa => "OPC UA",
             Self::EtherNetIp => "EtherNet/IP",

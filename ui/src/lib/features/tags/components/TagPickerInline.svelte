@@ -9,13 +9,14 @@
 		type EntityDiscriminants
 	} from '$lib/features/tags/queries';
 	import { createDefaultTag } from '$lib/features/tags/types/base';
-	import { createColorHelper, AVAILABLE_COLORS, type Color } from '$lib/shared/utils/styling';
+	import { AVAILABLE_COLORS, type Color } from '$lib/shared/utils/styling';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { permissions, billingPlans } from '$lib/shared/stores/metadata';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { onMount } from 'svelte';
 	import { common_creating, tags_addTag, tags_createTagQuoted } from '$lib/paraglide/messages';
-	import { concepts } from '$lib/shared/stores/metadata';
+	import CreatableOptionList from '$lib/shared/components/forms/selection/CreatableOptionList.svelte';
+	import { isApplicationTag, sameGroup, tagIcon, tagTooltip } from '$lib/features/tags/groups';
 
 	/**
 	 * Compact inline tag picker for use in cards and bulk actions.
@@ -206,7 +207,7 @@
 			newTag.name = name;
 			newTag.color = getRandomColor();
 			if (createAsApplication) {
-				(newTag as typeof newTag & { is_application: boolean }).is_application = true;
+				newTag.tag_group = { type: 'Application' };
 			}
 
 			const result = await createTagMutation.mutateAsync(newTag);
@@ -226,6 +227,14 @@
 				tag_id: tagId
 			});
 		} else {
+			// The server replaces a held tag of the same tag group on assignment; in callback
+			// mode the caller holds the list, so drop the displaced tag here to match.
+			const added = getTag(tagId);
+			for (const heldId of selectedTagIds) {
+				if (heldId !== tagId && sameGroup(getTag(heldId)?.tag_group, added?.tag_group)) {
+					onRemove?.(heldId);
+				}
+			}
 			onAdd?.(tagId);
 		}
 		inputValue = '';
@@ -290,8 +299,9 @@
 		<Tag
 			label={tag?.name}
 			color={tag?.color}
-			icon={tag?.is_application ? concepts.getIconComponent('Application') : null}
-			isShiny={tag?.is_application ?? false}
+			icon={tagIcon(tag)}
+			title={tagTooltip(tag)}
+			isShiny={isApplicationTag(tag)}
 			pill={!disabled}
 			removable={!disabled && !!(onRemove || isEntityMode)}
 			onRemove={() => handleRemoveTag(tagId)}
@@ -337,34 +347,30 @@
 		class="select-dropdown fixed z-[9999] max-h-48 min-w-40 overflow-y-auto rounded-md shadow-lg"
 		style="top: {dropdownPosition.top}px; left: {dropdownPosition.left}px;"
 	>
-		<!-- Create new tag option -->
-		{#if showCreateOption}
-			<button
-				type="button"
-				class="select-option flex w-full items-center gap-2 border-b px-3 py-2 text-left text-xs transition-colors"
-				style="border-color: var(--color-border)"
-				onmousedown={handleCreateTag}
-				disabled={isCreating}
-			>
-				<Plus class="h-3 w-3 shrink-0 text-green-400" />
-				<span class="text-primary">
-					{isCreating ? common_creating() : tags_createTagQuoted({ name: inputValue.trim() })}
-				</span>
-			</button>
-		{/if}
-
-		<!-- Existing tags -->
-		{#each availableTags as tag (tag.id)}
-			{@const colorHelper = createColorHelper(tag.color)}
-			<button
-				type="button"
-				class="select-option flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors"
-				onmousedown={() => handleAddTag(tag.id)}
-			>
-				<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {colorHelper.rgb};"
-				></span>
-				<span class="text-primary">{tag.name}</span>
-			</button>
-		{/each}
+		<CreatableOptionList
+			options={availableTags.map((tag) => ({
+				id: tag.id,
+				label: tag.name
+			}))}
+			onSelect={handleAddTag}
+			createLabel={showCreateOption
+				? isCreating
+					? common_creating()
+					: tags_createTagQuoted({ name: inputValue.trim() })
+				: null}
+			onCreate={handleCreateTag}
+			creating={isCreating}
+		>
+			{#snippet row(option)}
+				{@const tag = getTag(option.id)}
+				<Tag
+					label={tag?.name}
+					color={tag?.color}
+					icon={tagIcon(tag)}
+					title={tagTooltip(tag)}
+					isShiny={isApplicationTag(tag)}
+				/>
+			{/snippet}
+		</CreatableOptionList>
 	</div>
 {/if}

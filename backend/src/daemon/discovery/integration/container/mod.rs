@@ -8,6 +8,8 @@
 //! services and subnets. The `docker` and `podman` integration modules are thin
 //! wrappers that call into here with the appropriate runtime.
 
+pub mod hosts;
+pub mod interfaces;
 pub mod scanner;
 
 use std::net::IpAddr;
@@ -20,8 +22,11 @@ use uuid::Uuid;
 
 use crate::daemon::utils::base::DaemonUtils;
 use crate::server::credentials::r#impl::mapping::ContainerProxyQueryCredential;
+use crate::server::hosts::r#impl::virtualization::{
+    ContainerHostVirtualization, HostVirtualization, HostVirtualizationDiscriminants,
+};
 use crate::server::ports::r#impl::base::PortType;
-use crate::server::services::r#impl::definitions::ServiceDefinition;
+use crate::server::services::r#impl::definitions::{ServiceDefinition, VirtualizationRole};
 use crate::server::services::r#impl::patterns::ClientProbe;
 use crate::server::services::r#impl::virtualization::{
     DockerVirtualization, PodmanVirtualization, ServiceVirtualization,
@@ -33,6 +38,7 @@ use crate::server::subnets::r#impl::types::SubnetType;
 
 use super::{
     Checkpoint, CollectionShortfall, Completeness, ProbeContext, ProbeFailure, ProbeSuccess,
+    merge_subnets,
 };
 use crate::daemon::discovery::service::warnings::AttemptOutcome;
 use crate::server::hosts::r#impl::attributes::HostOsValue;
@@ -74,6 +80,18 @@ impl ContainerRuntime {
         }
     }
 
+    /// The definition for a container serving this runtime's API on a TCP port.
+    pub fn api_proxy_def(&self) -> Box<dyn ServiceDefinition> {
+        match self {
+            Self::Docker => {
+                Box::new(crate::server::services::definitions::docker_api_proxy::DockerApiProxy)
+            }
+            Self::Podman => {
+                Box::new(crate::server::services::definitions::podman_api_proxy::PodmanApiProxy)
+            }
+        }
+    }
+
     /// The client-probe value fed into service matching for this runtime.
     pub fn client_probe(&self) -> ClientProbe {
         match self {
@@ -103,7 +121,7 @@ impl ContainerRuntime {
     /// `None` for drivers that own no routable L3 network (`host`, `none`, `null`).
     pub fn subnet_from_network(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         cidr: IpCidr,
         name: String,
         driver: &str,
@@ -138,7 +156,7 @@ impl ContainerRuntime {
             ),
             description: None,
             tags: Vec::new(),
-            network_id,
+            site_id,
             name,
             subnet_type,
             virtualization_service_id,
@@ -195,6 +213,26 @@ impl ContainerRuntime {
                 compose_project,
             }),
         }
+    }
+
+    /// The `HostVirtualization` variant for a container that is a host of its own.
+    pub fn host_virtualization(
+        &self,
+        container: ContainerHostVirtualization,
+    ) -> HostVirtualization {
+        match self {
+            Self::Docker => HostVirtualization::Docker(container),
+            Self::Podman => HostVirtualization::Podman(container),
+        }
+    }
+
+    /// Whether `role` is this runtime's: the role of the service its container hosts link to.
+    pub fn is_runtime_role(&self, role: Option<VirtualizationRole>) -> bool {
+        let hosts = match self {
+            Self::Docker => HostVirtualizationDiscriminants::Docker,
+            Self::Podman => HostVirtualizationDiscriminants::Podman,
+        };
+        matches!(role, Some(VirtualizationRole::ContainerRuntime { hosts: h, .. }) if h == hosts)
     }
 
     /// Human-facing label for logs/diagnostics.
@@ -408,6 +446,8 @@ pub async fn execute(
         host_ip: ctx.ip,
         host_naming_fallback: ctx.host_naming_fallback,
         ops: ctx.ops,
+        integration: ctx.integration,
+        api_port: ctx.credential.as_container_proxy().map(|c| c.port),
         cancel: ctx.cancel,
         accept_invalid_certs: ctx.accept_invalid_certs,
         utils: ctx.utils,
@@ -418,7 +458,14 @@ pub async fn execute(
     // end. Writing them here is what GH #650 actually was: the scan between this point and there
     // takes minutes, and a timeout in the middle left the host holding every bridge subnet and
     // none of the containers that give them meaning, reading as a clean success.
-    let bridge_subnets = scanner.create_bridge_subnets().await?;
+    //
+    // The macvlan/ipvlan networks are kept apart: they never reach host_data, and only say which
+    // containers have an address of their own on the LAN.
+    let (bridge_subnets, lan_subnets): (Vec<Subnet>, Vec<Subnet>) = scanner
+        .create_network_subnets()
+        .await?
+        .into_iter()
+        .partition(Subnet::is_container_bridge_subnet);
     ctx.ops.report_progress(10).await.ok();
 
     // The engine reports the machine it runs on. Read before the scan so a slow container pass
@@ -435,27 +482,80 @@ pub async fn execute(
     let container_count = containers.len();
     ctx.ops.report_progress(20).await.ok();
 
+    // A container with a macvlan/ipvlan endpoint is a host of its own under the runtime. Every
+    // other container stays a service on the runtime's host, except the members of a LAN
+    // container's network namespace, whose services go on its host.
+    let (lan_containers, containers_on_host) =
+        hosts::partition_lan_containers(containers, &lan_subnets);
+    let lan_container_count = lan_containers.len();
+    let bridge_count = containers_on_host.len();
+
     let mut host_interfaces = host_data.ip_addresses.clone();
-    let containers_interfaces_and_subnets = scanner.get_container_interfaces(
-        &containers,
+    let containers_interfaces_and_subnets = interfaces::container_interfaces(
+        runtime,
+        &containers_on_host,
         &bridge_subnets,
         ctx.known_subnets,
         &mut host_interfaces,
     );
 
+    let deadline = tokio::time::Instant::now()
+        + CONTAINER_SCAN_TIMEOUT.mul_f32(CONTAINER_SCAN_SOFT_DEADLINE_FRACTION);
     let scan = scanner
         .scan_and_process_containers(
-            containers,
+            containers_on_host,
             &containers_interfaces_and_subnets,
             Arc::new(AtomicU8::new(0)),
-            tokio::time::Instant::now()
-                + CONTAINER_SCAN_TIMEOUT.mul_f32(CONTAINER_SCAN_SOFT_DEADLINE_FRACTION),
+            deadline,
         )
         .await?;
+    ctx.ops.report_progress(70).await.ok();
+
+    let container_hosts = if lan_containers.is_empty() {
+        hosts::ContainerHostsOutcome::default()
+    } else {
+        // Container hosts link to the runtime's stored service, so the runtime's host goes first.
+        match scanner.submit_runtime_host(host_data).await {
+            Ok(Some(stored_runtime_service_id)) => {
+                // A LAN address belongs on the LAN, never on a container bridge.
+                let placement_subnets: Vec<Subnet> =
+                    merge_subnets(ctx.known_subnets, ctx.scanning_subnet, &host_data.subnets)
+                        .into_iter()
+                        .filter(|s| !s.is_container_bridge_subnet())
+                        .collect();
+                scanner
+                    .record_container_hosts(
+                        &lan_containers,
+                        &lan_subnets,
+                        &bridge_subnets,
+                        &placement_subnets,
+                        stored_runtime_service_id,
+                        deadline,
+                    )
+                    .await?
+            }
+            Ok(None) => {
+                tracing::warn!(
+                    runtime = runtime.label(),
+                    "The server returned no runtime service; containers with their own LAN address were not recorded"
+                );
+                hosts::ContainerHostsOutcome::default()
+            }
+            Err(e) => {
+                tracing::warn!(
+                    runtime = runtime.label(),
+                    error = %e,
+                    "Failed to record the runtime's host; containers with their own LAN address were not recorded"
+                );
+                hosts::ContainerHostsOutcome::default()
+            }
+        }
+    };
     ctx.ops.report_progress(90).await.ok();
 
     tracing::info!(
         discovered = %scan.results.len(),
+        container_hosts = container_hosts.recorded,
         total_containers = container_count,
         reached = scan.reached,
         runtime = runtime.label(),
@@ -465,7 +565,7 @@ pub async fn execute(
     // Everything lands here, in one synchronous block with no await in it, so there is no point
     // at which a dropped future can catch this half-done. The scratch buffer the caller owns
     // makes that guarantee structural; keeping the writes together is what makes the code shape
-    // match it.
+    // match it. Container hosts are their own submissions and were sent above.
     for subnet in bridge_subnets {
         host_data.add_subnet(subnet);
     }
@@ -486,18 +586,61 @@ pub async fn execute(
             host_data.add_ip_address(ip_address);
         }
     }
+    for port in container_hosts.published_ports {
+        host_data.add_port(port);
+    }
+    // The API proxy owns the credential's port: the runtime is reached through it, not listening
+    // on it, so the runtime service gives up its binding there.
+    let api_proxy_id = runtime.api_proxy_def().id();
+    let proxy_found = host_data
+        .services
+        .iter()
+        .any(|s| s.base.service_definition.id() == api_proxy_id);
+    if proxy_found && let Some(api_port) = scanner.api_port {
+        release_runtime_api_port(host_data, runtime_service_id, api_port);
+    }
 
     // A scan stopped by the soft deadline has a coherent subset — every container it did reach is
     // whole — so it is worth keeping, but only if the operator is told it is a subset.
-    Ok(if scan.reached < container_count {
+    Ok(if scan.reached < bridge_count {
         Completeness::Partial(CollectionShortfall {
             what: "containers",
             collected: scan.reached,
-            expected: container_count,
+            expected: bridge_count,
+        })
+    } else if container_hosts.recorded < lan_container_count {
+        Completeness::Partial(CollectionShortfall {
+            what: "container hosts",
+            collected: container_hosts.recorded,
+            expected: lan_container_count,
         })
     } else {
         Completeness::Complete
     })
+}
+
+/// Remove the runtime service's binding on `api_port`, which the container fronting its API owns.
+fn release_runtime_api_port(
+    host_data: &mut crate::daemon::discovery::service::ops::HostData,
+    runtime_service_id: Uuid,
+    api_port: u16,
+) {
+    let api_port_ids: Vec<Uuid> = host_data
+        .ports
+        .iter()
+        .filter(|p| p.base.port_type == PortType::new_tcp(api_port))
+        .map(|p| p.id)
+        .collect();
+    if let Some(runtime) = host_data
+        .services
+        .iter_mut()
+        .find(|s| s.id == runtime_service_id)
+    {
+        runtime
+            .base
+            .bindings
+            .retain(|b| !b.port_id().is_some_and(|id| api_port_ids.contains(&id)));
+    }
 }
 
 #[cfg(test)]

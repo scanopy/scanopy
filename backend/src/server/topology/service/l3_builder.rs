@@ -105,7 +105,7 @@ mod tests {
     fn test_l3_bytag_ignores_service_tags() {
         // Regression: L3Builder used to match IPAddress elements on service
         // tags via inheritance. Now only the host's own tags count.
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let subnet_id = Uuid::new_v4();
         let host_id = Uuid::new_v4();
         let ip_address_id = Uuid::new_v4();
@@ -117,7 +117,7 @@ mod tests {
             updated_at: Utc::now(),
             base: HostBase {
                 name: HostName::manual("test-host".to_string()),
-                network_id,
+                site_id,
                 tags: vec![], // NO host tags
                 ..Default::default()
             },
@@ -135,7 +135,7 @@ mod tests {
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id,
+                site_id,
                 name: "test-subnet".to_string(),
                 ..Default::default()
             },
@@ -147,7 +147,7 @@ mod tests {
             created_at: Utc::now(),
             updated_at: Utc::now(),
             base: IPAddressBase {
-                network_id,
+                site_id,
                 host_id,
                 subnet_id,
                 ip_address: std::net::IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)),
@@ -162,7 +162,7 @@ mod tests {
             updated_at: Utc::now(),
             base: ServiceBase {
                 host_id,
-                network_id,
+                site_id,
                 service_definition: Box::new(TestServiceDef),
                 tags: vec![tag_id], // Service HAS the tag
                 ..Default::default()
@@ -179,7 +179,8 @@ mod tests {
                 description: None,
                 color: Color::Orange,
                 organization_id: Uuid::new_v4(),
-                is_application: false,
+                tag_group: None,
+                icon: None,
             },
             ..Default::default()
         };
@@ -239,14 +240,14 @@ mod tests {
         use crate::server::topology::types::grouping::ContainerRule;
         use crate::server::topology::types::views::TopologyView;
 
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let host_id = Uuid::new_v4();
 
         let host = Host {
             id: host_id,
             base: HostBase {
                 name: HostName::manual("bridge-host".to_string()),
-                network_id,
+                site_id,
                 ..Default::default()
             },
             ..Default::default()
@@ -262,7 +263,7 @@ mod tests {
                     SubnetCidrValue(IpCidr::V4(cidr)),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id,
+                site_id,
                 name: name.to_string(),
                 subnet_type: st,
                 ..Default::default()
@@ -288,7 +289,7 @@ mod tests {
         let make_ip = |subnet_id: Uuid, addr: Ipv4Addr| IPAddress {
             id: Uuid::new_v4(),
             base: IPAddressBase {
-                network_id,
+                site_id,
                 host_id,
                 subnet_id,
                 ip_address: std::net::IpAddr::V4(addr),
@@ -369,7 +370,7 @@ mod tests {
         use crate::server::topology::types::edges::EdgeType;
         use crate::server::topology::types::views::TopologyView;
 
-        let network_id = Uuid::new_v4();
+        let site_id = Uuid::new_v4();
         let mgmt_subnet_id = Uuid::new_v4();
         let servers_subnet_id = Uuid::new_v4();
         let bridge_subnet_id = Uuid::new_v4();
@@ -380,7 +381,7 @@ mod tests {
             updated_at: Utc::now(),
             base: HostBase {
                 name: HostName::manual(name.to_string()),
-                network_id,
+                site_id,
                 ..Default::default()
             },
             ..Default::default()
@@ -396,7 +397,7 @@ mod tests {
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id,
+                site_id,
                 name: format!("subnet-{third}"),
                 subnet_type,
                 ..Default::default()
@@ -408,7 +409,7 @@ mod tests {
             created_at: Utc::now(),
             updated_at: Utc::now(),
             base: IPAddressBase {
-                network_id,
+                site_id,
                 host_id,
                 subnet_id,
                 ip_address: std::net::IpAddr::V4(Ipv4Addr::new(10, 0, third, last)),
@@ -422,7 +423,7 @@ mod tests {
             updated_at: Utc::now(),
             base: InterfaceBase {
                 host_id,
-                network_id,
+                site_id,
                 if_index: Some(if_index),
                 if_descr: Some(format!("eth{if_index}")),
                 if_type: Some(6),

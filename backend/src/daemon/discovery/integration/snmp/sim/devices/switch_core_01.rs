@@ -169,6 +169,7 @@ pub fn entity_table() -> EntityTable {
             manufacturer: Some("Cisco".into()),
             model: Some("WS-C2960-24TC-L".into()),
             serial_number: Some("FOC1234X5YZ".into()),
+            asset_id: Some("IT-00412".into()),
             firmware_revision: Some("12.2(44r)SE".into()),
             software_revision: Some("15.2(7)E3".into()),
         },
@@ -247,6 +248,7 @@ mod tests {
         assert_eq!(inventory.manufacturer.as_deref(), Some("Cisco"));
         assert_eq!(inventory.model.as_deref(), Some("WS-C2960-24TC-L"));
         assert_eq!(inventory.serial_number.as_deref(), Some("FOC1234X5YZ"));
+        assert_eq!(inventory.asset_id.as_deref(), Some("IT-00412"));
         assert_eq!(inventory.firmware_revision.as_deref(), Some("12.2(44r)SE"));
         assert_eq!(inventory.software_revision.as_deref(), Some("15.2(7)E3"));
     }

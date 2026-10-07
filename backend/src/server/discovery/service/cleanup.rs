@@ -30,12 +30,8 @@ impl DiscoveryService {
         };
 
         for promotion in promotions {
-            self.publish_promoted(
-                promotion.daemon_id,
-                promotion.network_id,
-                promotion.promoted,
-            )
-            .await;
+            self.publish_promoted(promotion.daemon_id, promotion.site_id, promotion.promoted)
+                .await;
         }
     }
 
@@ -202,7 +198,7 @@ impl DiscoveryService {
     async fn finish_reaped(&self, reaped: Vec<state::ReapedSession>, now: chrono::DateTime<Utc>) {
         for state::ReapedSession { session, promoted } in reaped {
             let daemon_id = session.daemon_id;
-            let network_id = session.network_id;
+            let site_id = session.site_id;
             super::dispatch::record_session_duration(&session);
 
             // The one event a stall produces: `Failed`, carrying why. Metrics and analytics used
@@ -221,7 +217,7 @@ impl DiscoveryService {
 
             self.record_stalled_session(session, now).await;
             if let Some(promoted) = promoted {
-                self.publish_promoted(daemon_id, network_id, promoted).await;
+                self.publish_promoted(daemon_id, site_id, promoted).await;
             }
         }
     }
@@ -251,9 +247,9 @@ impl DiscoveryService {
         };
         session.daemon_version = daemon.base.version.map(|v| v.to_string());
 
-        let network_name = match self.network_service.get_by_id(&session.network_id).await {
-            Ok(Some(network)) => network.base.name,
-            _ => "Unknown Network".to_string(),
+        let site_name = match self.site_service.get_by_id(&session.site_id).await {
+            Ok(Some(site)) => site.base.name,
+            _ => "Unknown Site".to_string(),
         };
 
         let historical_discovery = Discovery {
@@ -262,12 +258,12 @@ impl DiscoveryService {
             updated_at: now,
             base: DiscoveryBase {
                 daemon_id: session.daemon_id,
-                network_id: session.network_id,
+                site_id: session.site_id,
                 tags: Vec::new(),
                 name: if matches!(session.discovery_type, DiscoveryType::Unified { .. }) {
                     "Discovery".to_string()
                 } else {
-                    format!("{} \u{2014} {}", session.discovery_type, network_name)
+                    format!("{} \u{2014} {}", session.discovery_type, site_name)
                 },
                 discovery_type: session.discovery_type.clone(),
                 run_type: RunType::Historical {

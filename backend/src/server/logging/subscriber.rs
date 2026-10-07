@@ -1,6 +1,6 @@
 //! Logging subscriber for every operation type.
 //!
-//! Emits one line per event: a `log_label` field (e.g. `Subnet Created`) plus a
+//! Emits one line per event: a `log_label` field (e.g. `subnet_created`) plus a
 //! `log_color` ANSI code, with the event rendered as JSON via
 //! `Display for Event<Op>` as the message, at the event's declared `log_level`.
 //! The `logging::format::LabelFields` formatter turns those into a color-coded

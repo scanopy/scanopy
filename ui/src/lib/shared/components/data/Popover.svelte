@@ -10,6 +10,7 @@
 		onMouseLeave,
 		role = 'tooltip',
 		ariaLabel = undefined,
+		maxWidth = '350px',
 		children
 	}: {
 		triggerElement?: HTMLElement | null;
@@ -25,6 +26,9 @@
 		 */
 		role?: 'tooltip' | 'dialog';
 		ariaLabel?: string;
+		/** CSS max-width. A popover shown only while hovered can take the viewport width, so its
+		 *  content needs no truncation. */
+		maxWidth?: string;
 		children: Snippet;
 	} = $props();
 
@@ -127,7 +131,12 @@
 		function handleKeydown(e: KeyboardEvent) {
 			if (e.key !== 'Escape') return;
 			onClose();
-			if (role === 'dialog') triggerElement?.focus();
+			if (role === 'dialog') {
+				// Escape closes the innermost layer only. A modal listens on `window`, which this
+				// `document` listener runs before, so without this one press closed both.
+				e.stopPropagation();
+				triggerElement?.focus();
+			}
 		}
 
 		// Use capture to catch scroll on any ancestor
@@ -148,7 +157,7 @@
 		use:portal
 		bind:this={popoverEl}
 		class="fixed z-[9999] rounded-lg border p-2 shadow-[0_4px_24px_rgba(0,0,0,0.15)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
-		style="border-color: var(--color-border); background: var(--color-bg-elevated); top: {position.top}px; left: {position.left}px; min-width: 200px; max-width: 350px;"
+		style="border-color: var(--color-border); background: var(--color-bg-elevated); top: {position.top}px; left: {position.left}px; min-width: 200px; max-width: {maxWidth};"
 		{role}
 		aria-label={ariaLabel}
 		onfocusout={handleFocusOut}

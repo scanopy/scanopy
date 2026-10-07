@@ -135,9 +135,9 @@ impl DiscoveryIntegration for UnifiIntegration {
         tracing::info!(ip = %ctx.ip, devices = devices.len(), "Fetched UniFi device inventory");
         ctx.ops.report_progress(40).await.ok();
 
-        let network_id = host_data.host.base.network_id;
+        let site_id = host_data.host.base.site_id;
         let subnets = collect_subnets(ctx, host_data);
-        let mapped = mapping::map_devices(&devices, network_id, &subnets);
+        let mapped = mapping::map_devices(&devices, site_id, &subnets);
 
         if mapped.len() < devices.len() {
             // Silent truncation would read as "the controller only manages these devices", and
@@ -150,7 +150,7 @@ impl DiscoveryIntegration for UnifiIntegration {
                 ip = %ctx.ip,
                 skipped,
                 total = devices.len(),
-                "Skipped UniFi devices with no address in a subnet this network holds — service \
+                "Skipped UniFi devices with no address in a subnet this site holds — service \
                  matching has no subnet to evaluate against for them"
             );
             ctx.ops
@@ -206,7 +206,7 @@ impl DiscoveryIntegration for UnifiIntegration {
         let created_clients = match handle.client.get_site::<UnifiStation>("stat/sta").await {
             Ok(envelope) => {
                 let stations = envelope.data;
-                let clients = mapping::map_clients(&stations, network_id, &device_ips);
+                let clients = mapping::map_clients(&stations, site_id, &device_ips, &subnets);
                 tracing::info!(
                     ip = %ctx.ip,
                     reported = stations.len(),
@@ -242,7 +242,7 @@ impl DiscoveryIntegration for UnifiIntegration {
 
 /// Subnets available to place each managed device's IP in.
 ///
-/// `known_subnets` is the network's whole address space, not the scan's scope — which is what
+/// `known_subnets` is the site's whole address space, not the scan's scope — which is what
 /// makes a rescan of the controller useful. The controller reports every switch it manages, and
 /// on a segmented network almost none of them sit in the subnet the rescan is sweeping; scoping
 /// this to the sweep dropped all of them.
@@ -293,18 +293,18 @@ async fn create_device_host(
         ip,
     } = device;
 
-    let network_id = ctx.ops.network_id().await?;
-    let host = identity.into_host(network_id);
+    let site_id = ctx.ops.site_id().await?;
+    let host = identity.into_host(site_id);
 
     // Run the real service matcher rather than stamping a service on. The controller's
     // reported device class enters as `ManagedDevice` evidence and `Pattern::ManagedDeviceType`
     // consumes it, exactly as the container scanner feeds `ServiceVirtualization` — so these
     // hosts get an ordinary `DiscoveryWithMatch` service with a real confidence.
     let managed_device = device_type.map(|device_type| ManagedDevice { device_type });
-    // For the service matcher, which needs a subnet to evaluate its subnet patterns against —
-    // not for placement, which the server redoes for every address it stores.
+    // For the service matcher, which needs a subnet to evaluate its subnet patterns against. The
+    // same rule placed `ip_address` in `map_device`, so both see the same subnet.
     let subnet = placeable_subnet(subnets, ip)
-        .ok_or_else(|| Error::msg("device IP is in no subnet this network holds"))?;
+        .ok_or_else(|| Error::msg("device IP is in no subnet this site holds"))?;
 
     let all_ports: Vec<PortType> = vec![];
     let endpoint_responses = vec![];
@@ -326,11 +326,12 @@ async fn create_device_host(
         },
         &[],
         &daemon_id,
-        &host.base.network_id,
+        &host.base.site_id,
     )?;
 
     ctx.ops
-        .create_host(
+        .create_integration_host(
+            ctx.integration,
             host,
             vec![ip_address],
             ports,
@@ -381,7 +382,7 @@ mod tests {
         Subnet {
             base: SubnetBase {
                 name: cidr.to_string(),
-                network_id: Uuid::nil(),
+                site_id: Uuid::nil(),
                 cidr: SubnetCidr::new(
                     SubnetCidrValue(cidr.parse().expect("valid CIDR")),
                     AttributeSource::DaemonSelfReport,
@@ -405,7 +406,7 @@ mod tests {
         let controller = subnet("172.16.8.0/24");
 
         let available = merge_subnets(
-            // The network's whole address space, which is what `known_subnets` now carries.
+            // The site's whole address space, which is what `known_subnets` now carries.
             &[controller.clone(), management.clone()],
             // A rescan of the controller sweeps only this one.
             Some(&controller),

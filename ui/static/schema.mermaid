@@ -1,54 +1,55 @@
 erDiagram
 
 "public.users" }o--|| "public.organizations" : "FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE"
-"public.networks" }o--|| "public.organizations" : "FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE"
-"public.hosts" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.sites" }o--|| "public.organizations" : "FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE"
+"public.hosts" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.hosts" }o--o| "public.services" : "FOREIGN KEY (virtualization_service_id) REFERENCES services(id) ON DELETE SET NULL"
 "public.hosts" }o--o| "public.discovery" : "FOREIGN KEY (first_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
 "public.hosts" }o--o| "public.discovery" : "FOREIGN KEY (last_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
+"public.hosts" }o--o| "public.interfaces" : "FOREIGN KEY (virtualization_interface_id) REFERENCES interfaces(id) ON DELETE SET NULL"
 "public.hosts" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
-"public.subnets" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.subnets" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.subnets" }o--o| "public.services" : "FOREIGN KEY (virtualization_service_id) REFERENCES services(id) ON DELETE SET NULL"
 "public.subnets" }o--o| "public.discovery" : "FOREIGN KEY (first_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
 "public.subnets" }o--o| "public.discovery" : "FOREIGN KEY (last_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
 "public.subnets" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
-"public.dependencies" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.dependencies" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.dependencies" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
 "public.daemons" }o--|| "public.users" : "FOREIGN KEY (user_id) REFERENCES users(id)"
-"public.daemons" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.daemons" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.daemons" }o--o| "public.api_keys" : "FOREIGN KEY (api_key_id) REFERENCES api_keys(id) ON DELETE SET NULL"
-"public.services" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.services" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.services" }o--|| "public.hosts" : "FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE"
 "public.services" }o--o| "public.services" : "FOREIGN KEY (virtualization_service_id) REFERENCES services(id) ON DELETE SET NULL"
 "public.services" }o--o| "public.discovery" : "FOREIGN KEY (first_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
 "public.services" }o--o| "public.discovery" : "FOREIGN KEY (last_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
 "public.services" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
-"public.discovery" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.discovery" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.discovery" }o--|| "public.daemons" : "FOREIGN KEY (daemon_id) REFERENCES daemons(id) ON DELETE CASCADE"
-"public.api_keys" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.api_keys" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.api_keys" }o--o| "public.daemons" : "FOREIGN KEY (daemon_id) REFERENCES daemons(id) ON DELETE CASCADE"
-"public.topologies" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.topologies" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.tags" }o--|| "public.organizations" : "FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE"
 "public.tags" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
 "public.invites" }o--|| "public.users" : "FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE"
 "public.invites" }o--|| "public.organizations" : "FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE"
 "public.shares" }o--|| "public.users" : "FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE"
-"public.shares" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.shares" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.shares" }o--|| "public.topologies" : "FOREIGN KEY (topology_id) REFERENCES topologies(id) ON DELETE CASCADE"
-"public.user_network_access" }o--|| "public.users" : "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
-"public.user_network_access" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
-"public.ip_addresses" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.user_site_access" }o--|| "public.users" : "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+"public.user_site_access" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
+"public.ip_addresses" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.ip_addresses" }o--|| "public.hosts" : "FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE"
 "public.ip_addresses" }o--|| "public.subnets" : "FOREIGN KEY (subnet_id) REFERENCES subnets(id) ON DELETE CASCADE"
 "public.ip_addresses" }o--o| "public.discovery" : "FOREIGN KEY (first_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
 "public.ip_addresses" }o--o| "public.discovery" : "FOREIGN KEY (last_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
 "public.ip_addresses" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
-"public.ports" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.ports" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.ports" }o--|| "public.hosts" : "FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE"
 "public.ports" }o--o| "public.discovery" : "FOREIGN KEY (first_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
 "public.ports" }o--o| "public.discovery" : "FOREIGN KEY (last_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
 "public.ports" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
-"public.bindings" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.bindings" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.bindings" }o--|| "public.services" : "FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE"
 "public.bindings" }o--o| "public.discovery" : "FOREIGN KEY (first_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
 "public.bindings" }o--o| "public.discovery" : "FOREIGN KEY (last_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
@@ -61,11 +62,11 @@ erDiagram
 "public.dependency_members" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
 "public.user_api_keys" }o--|| "public.users" : "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
 "public.user_api_keys" }o--|| "public.organizations" : "FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE"
-"public.user_api_key_network_access" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
-"public.user_api_key_network_access" }o--|| "public.user_api_keys" : "FOREIGN KEY (api_key_id) REFERENCES user_api_keys(id) ON DELETE CASCADE"
+"public.user_api_key_site_access" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
+"public.user_api_key_site_access" }o--|| "public.user_api_keys" : "FOREIGN KEY (api_key_id) REFERENCES user_api_keys(id) ON DELETE CASCADE"
 "public.entity_tags" }o--|| "public.tags" : "FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE"
 "public.entity_tags" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
-"public.interfaces" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.interfaces" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.interfaces" }o--|| "public.hosts" : "FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE"
 "public.interfaces" }o--o| "public.discovery" : "FOREIGN KEY (first_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
 "public.interfaces" }o--o| "public.discovery" : "FOREIGN KEY (last_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
@@ -73,11 +74,11 @@ erDiagram
 "public.interfaces" }o--o| "public.vlans" : "FOREIGN KEY (native_vlan_id) REFERENCES vlans(id) ON DELETE SET NULL"
 "public.interfaces" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
 "public.credentials" }o--|| "public.organizations" : "FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE"
-"public.network_credentials" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
-"public.network_credentials" }o--|| "public.credentials" : "FOREIGN KEY (credential_id) REFERENCES credentials(id) ON DELETE CASCADE"
+"public.site_credentials" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
+"public.site_credentials" }o--|| "public.credentials" : "FOREIGN KEY (credential_id) REFERENCES credentials(id) ON DELETE CASCADE"
 "public.host_credentials" }o--|| "public.hosts" : "FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE"
 "public.host_credentials" }o--|| "public.credentials" : "FOREIGN KEY (credential_id) REFERENCES credentials(id) ON DELETE CASCADE"
-"public.vlans" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.vlans" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.vlans" }o--o| "public.discovery" : "FOREIGN KEY (first_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
 "public.vlans" }o--o| "public.discovery" : "FOREIGN KEY (last_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
 "public.vlans" }o--|| "public.organizations" : "FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE"
@@ -86,16 +87,16 @@ erDiagram
 "public.subnet_vlans" }o--|| "public.vlans" : "FOREIGN KEY (vlan_id) REFERENCES vlans(id) ON DELETE CASCADE"
 "public.subnet_vlans" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
 "public.snapshots" }o--o| "public.users" : "FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL"
-"public.snapshots" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.snapshots" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.daemon_interfaced_subnets" }o--|| "public.subnets" : "FOREIGN KEY (subnet_id) REFERENCES subnets(id) ON DELETE CASCADE"
 "public.daemon_interfaced_subnets" }o--|| "public.daemons" : "FOREIGN KEY (daemon_id) REFERENCES daemons(id) ON DELETE CASCADE"
-"public.interface_neighbor_candidates" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.interface_neighbor_candidates" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.interface_neighbor_candidates" }o--|| "public.interfaces" : "FOREIGN KEY (interface_id) REFERENCES interfaces(id) ON DELETE CASCADE"
-"public.interface_neighbor_interfaces" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.interface_neighbor_interfaces" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.interface_neighbor_interfaces" }o--|| "public.interfaces" : "FOREIGN KEY (interface_id) REFERENCES interfaces(id) ON DELETE CASCADE"
 "public.interface_neighbor_interfaces" }o--|| "public.interfaces" : "FOREIGN KEY (neighbor_interface_id) REFERENCES interfaces(id) ON DELETE CASCADE"
 "public.interface_neighbor_interfaces" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
-"public.interface_neighbor_hosts" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.interface_neighbor_hosts" }o--|| "public.sites" : "FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE"
 "public.interface_neighbor_hosts" }o--|| "public.hosts" : "FOREIGN KEY (neighbor_host_id) REFERENCES hosts(id) ON DELETE CASCADE"
 "public.interface_neighbor_hosts" }o--|| "public.interfaces" : "FOREIGN KEY (interface_id) REFERENCES interfaces(id) ON DELETE CASCADE"
 "public.interface_neighbor_hosts" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
@@ -131,7 +132,7 @@ erDiagram
   bigint session_epoch
   jsonb display_settings
 }
-"public.networks" {
+"public.sites" {
   uuid id
   text name
   timestamp_with_time_zone created_at
@@ -141,7 +142,7 @@ erDiagram
 }
 "public.hosts" {
   uuid id
-  uuid network_id FK
+  uuid site_id FK
   text name
   text hostname
   text description
@@ -186,10 +187,13 @@ erDiagram
   jsonb hostname_source
   jsonb os
   jsonb os_source
+  uuid virtualization_interface_id FK
+  text asset_tag
+  jsonb asset_tag_source
 }
 "public.subnets" {
   uuid id
-  uuid network_id FK
+  uuid site_id FK
   timestamp_with_time_zone created_at
   timestamp_with_time_zone updated_at
   text cidr
@@ -209,7 +213,7 @@ erDiagram
 }
 "public.dependencies" {
   uuid id
-  uuid network_id FK
+  uuid site_id FK
   text name
   text description
   timestamp_with_time_zone created_at
@@ -226,7 +230,7 @@ erDiagram
 }
 "public.daemons" {
   uuid id
-  uuid network_id FK
+  uuid site_id FK
   uuid host_id
   timestamp_with_time_zone created_at
   timestamp_with_time_zone last_seen
@@ -244,7 +248,7 @@ erDiagram
 }
 "public.services" {
   uuid id
-  uuid network_id FK
+  uuid site_id FK
   timestamp_with_time_zone created_at
   timestamp_with_time_zone updated_at
   text name
@@ -264,7 +268,7 @@ erDiagram
 }
 "public.discovery" {
   uuid id
-  uuid network_id FK
+  uuid site_id FK
   uuid daemon_id FK
   jsonb run_type
   jsonb discovery_type
@@ -278,7 +282,7 @@ erDiagram
 "public.api_keys" {
   uuid id
   text key
-  uuid network_id FK
+  uuid site_id FK
   text name
   timestamp_with_time_zone created_at
   timestamp_with_time_zone updated_at
@@ -318,10 +322,11 @@ erDiagram
   timestamp_with_time_zone license_key_issued_at
   text license_key_type
   boolean bills_by_invoice
+  text license_server_version
 }
 "public.topologies" {
   uuid id
-  uuid network_id FK
+  uuid site_id FK
   jsonb options
   timestamp_with_time_zone created_at
   timestamp_with_time_zone updated_at
@@ -339,12 +344,14 @@ erDiagram
   timestamp_with_time_zone valid_to
   uuid lineage_id
   uuid snapshot_id FK
+  text tag_group
+  text icon
 }
 "public.invites" {
   uuid id
   uuid organization_id FK
   text permissions
-  uuid__ network_ids
+  uuid__ site_ids
   text url
   uuid created_by FK
   timestamp_with_time_zone created_at
@@ -355,7 +362,7 @@ erDiagram
 "public.shares" {
   uuid id
   uuid topology_id FK
-  uuid network_id FK
+  uuid site_id FK
   uuid created_by FK
   text name
   boolean is_enabled
@@ -367,15 +374,15 @@ erDiagram
   timestamp_with_time_zone updated_at
   jsonb enabled_views
 }
-"public.user_network_access" {
+"public.user_site_access" {
   uuid id
   uuid user_id FK
-  uuid network_id FK
+  uuid site_id FK
   timestamp_with_time_zone created_at
 }
 "public.ip_addresses" {
   uuid id
-  uuid network_id FK
+  uuid site_id FK
   uuid host_id FK
   uuid subnet_id FK
   inet ip_address
@@ -395,7 +402,7 @@ erDiagram
 }
 "public.ports" {
   uuid id
-  uuid network_id FK
+  uuid site_id FK
   uuid host_id FK
   integer port_number
   text protocol
@@ -412,7 +419,7 @@ erDiagram
 }
 "public.bindings" {
   uuid id
-  uuid network_id FK
+  uuid site_id FK
   uuid service_id FK
   text binding_type
   uuid ip_address_id FK
@@ -452,10 +459,10 @@ erDiagram
   timestamp_with_time_zone expires_at
   boolean is_enabled
 }
-"public.user_api_key_network_access" {
+"public.user_api_key_site_access" {
   uuid id
   uuid api_key_id FK
-  uuid network_id FK
+  uuid site_id FK
   timestamp_with_time_zone created_at
 }
 "public.entity_tags" {
@@ -472,7 +479,7 @@ erDiagram
 "public.interfaces" {
   uuid id
   uuid host_id FK
-  uuid network_id FK
+  uuid site_id FK
   timestamp_with_time_zone created_at
   timestamp_with_time_zone updated_at
   integer if_index
@@ -508,8 +515,8 @@ erDiagram
   text daemon_os
   text description
 }
-"public.network_credentials" {
-  uuid network_id FK
+"public.site_credentials" {
+  uuid site_id FK
   uuid credential_id FK
 }
 "public.host_credentials" {
@@ -522,7 +529,7 @@ erDiagram
   smallint vlan_number
   text name
   text description
-  uuid network_id FK
+  uuid site_id FK
   uuid organization_id FK
   jsonb source
   timestamp_with_time_zone created_at
@@ -547,7 +554,7 @@ erDiagram
 }
 "public.snapshots" {
   uuid id
-  uuid network_id FK
+  uuid site_id FK
   timestamp_with_time_zone taken_at
   uuid created_by_user_id FK
   timestamp_with_time_zone created_at
@@ -559,7 +566,7 @@ erDiagram
 }
 "public.interface_neighbor_candidates" {
   uuid id
-  uuid network_id FK
+  uuid site_id FK
   uuid interface_id FK
   jsonb lldp_chassis_id
   jsonb lldp_port_id
@@ -575,7 +582,7 @@ erDiagram
 }
 "public.interface_neighbor_interfaces" {
   uuid id
-  uuid network_id FK
+  uuid site_id FK
   uuid interface_id FK
   uuid neighbor_interface_id FK
   timestamp_with_time_zone neighbor_seen_at
@@ -591,7 +598,7 @@ erDiagram
 }
 "public.interface_neighbor_hosts" {
   uuid id
-  uuid network_id FK
+  uuid site_id FK
   uuid interface_id FK
   uuid neighbor_host_id FK
   timestamp_with_time_zone neighbor_seen_at

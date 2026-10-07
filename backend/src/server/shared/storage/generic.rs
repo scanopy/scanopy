@@ -133,9 +133,9 @@ where
             Some(c) if c.contains("group_bindings") => {
                 "This binding already exists in the group".to_string()
             }
-            // user_network_access(user_id, network_id)
-            Some(c) if c.contains("user_network_access") => {
-                "This user already has access to this network".to_string()
+            // user_site_access(user_id, site_id)
+            Some(c) if c.contains("user_site_access") => {
+                "This user already has access to this site".to_string()
             }
             // users - email or name
             Some(c) if c.contains("users") && c.contains("email") => {
@@ -434,7 +434,7 @@ where
     /// Bulk INSERT mirroring `create_many_with_executor`'s shape but bound
     /// to an externally-owned `sqlx::Transaction`. Same chunking around
     /// `MAX_BIND_PARAMS`. Used by `SnapshotService` so close-and-clone is
-    /// atomic across all 12 network-scoped entity types.
+    /// atomic across all 12 site-scoped entity types.
     pub async fn create_many_in_tx(
         entities: &[T],
         tx: &mut sqlx::Transaction<'_, Postgres>,
@@ -730,6 +730,38 @@ where
         let count_row = count_query.fetch_one(&self.pool).await?;
         let total_count: i64 = sqlx::Row::get(&count_row, 0);
         Ok(total_count as u64)
+    }
+
+    async fn count_distinct_by_group(
+        &self,
+        filter: StorableFilter<T>,
+        group_sql: &str,
+        distinct_sql: &str,
+    ) -> Result<Vec<(Option<String>, u64)>, anyhow::Error> {
+        let query_str = format!(
+            "SELECT ({expr})::text, COUNT(DISTINCT {distinct}) FROM {table} {joins} {filter} \
+             GROUP BY {expr} ORDER BY {expr} ASC",
+            expr = group_sql,
+            distinct = distinct_sql,
+            table = T::table_name(),
+            joins = filter.to_join_clause(),
+            filter = filter.to_where_clause(),
+        );
+
+        let mut query = sqlx::query(&query_str);
+        for value in filter.values() {
+            query = Self::bind_value(query, value)?;
+        }
+
+        let rows = query.fetch_all(&self.pool).await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| {
+                let value: Option<String> = sqlx::Row::get(&row, 0);
+                let count: i64 = sqlx::Row::get(&row, 1);
+                (value, count as u64)
+            })
+            .collect())
     }
 
     async fn count_by_group(

@@ -3,20 +3,17 @@
 use super::*;
 
 pub(super) fn generate_subnets(
-    networks: &[Network],
+    sites: &[Site],
     tags: &[Tag],
     docker_hq_svc_id: Uuid,
     docker_dc_svc_id: Uuid,
     now: DateTime<Utc>,
 ) -> Vec<Subnet> {
-    let hq = networks
+    let hq = sites
         .iter()
         .find(|n| n.base.name == "Headquarters")
         .unwrap();
-    let dc = networks
-        .iter()
-        .find(|n| n.base.name == "Data Center")
-        .unwrap();
+    let dc = sites.iter().find(|n| n.base.name == "Data Center").unwrap();
 
     let monitoring_tag = tags
         .iter()
@@ -24,7 +21,7 @@ pub(super) fn generate_subnets(
         .map(|t| t.id);
 
     vec![
-        // ===== Headquarters subnets (8) =====
+        // ===== Headquarters subnets (9) =====
         Subnet {
             valid_from: now,
             valid_to: None,
@@ -42,7 +39,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: hq.id,
+                site_id: hq.id,
                 name: "HQ Management".to_string(),
                 description: Some("Network management and monitoring".to_string()),
                 subnet_type: SubnetType::Management,
@@ -68,7 +65,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: hq.id,
+                site_id: hq.id,
                 name: "HQ Office LAN".to_string(),
                 description: Some("Office workstations".to_string()),
                 subnet_type: SubnetType::Lan,
@@ -94,7 +91,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: hq.id,
+                site_id: hq.id,
                 name: "HQ Servers".to_string(),
                 description: Some("On-premises servers and hypervisors".to_string()),
                 subnet_type: SubnetType::Lan,
@@ -120,7 +117,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: hq.id,
+                site_id: hq.id,
                 name: "HQ Storage".to_string(),
                 description: Some("Storage area network".to_string()),
                 subnet_type: SubnetType::Storage,
@@ -146,7 +143,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: hq.id,
+                site_id: hq.id,
                 name: "HQ IoT".to_string(),
                 description: Some("Smart office devices".to_string()),
                 subnet_type: SubnetType::IoT,
@@ -172,7 +169,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: hq.id,
+                site_id: hq.id,
                 name: "HQ Docker Bridge".to_string(),
                 description: Some("Docker container network".to_string()),
                 subnet_type: SubnetType::DockerBridge,
@@ -198,7 +195,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: hq.id,
+                site_id: hq.id,
                 name: "HQ Guest WiFi".to_string(),
                 description: Some("Guest wireless network".to_string()),
                 subnet_type: SubnetType::Guest,
@@ -229,7 +226,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::LldpNeighbourAddress,
                 ),
-                network_id: hq.id,
+                site_id: hq.id,
                 name: "HQ Annex".to_string(),
                 description: Some(
                     "Recently added office annex, not yet scanned directly".to_string(),
@@ -237,6 +234,34 @@ pub(super) fn generate_subnets(
                 subnet_type: SubnetType::Lan,
                 virtualization_service_id: None,
                 source: EntitySource::Inferred,
+                tags: vec![],
+            },
+        },
+        // The block HQ was allocated, recorded by hand above the segments discovery read. Holds no
+        // addresses itself; every HQ /24 in 10.0.0.0/16 nests under it.
+        Subnet {
+            valid_from: now,
+            valid_to: None,
+            lineage_id: None,
+            last_seen_at: now,
+            last_discovery_id: None,
+            first_discovery_id: None,
+            id: Uuid::new_v4(),
+            created_at: now,
+            updated_at: now,
+            base: SubnetBase {
+                cidr: SubnetCidr::new(
+                    SubnetCidrValue(IpCidr::V4(
+                        Ipv4Cidr::new(Ipv4Addr::new(10, 0, 0, 0), 16).unwrap(),
+                    )),
+                    AttributeSource::Manual,
+                ),
+                site_id: hq.id,
+                name: "HQ Address Space".to_string(),
+                description: Some("Block allocated to headquarters".to_string()),
+                subnet_type: SubnetType::Lan,
+                virtualization_service_id: None,
+                source: EntitySource::Manual,
                 tags: vec![],
             },
         },
@@ -258,7 +283,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: dc.id,
+                site_id: dc.id,
                 name: "DC Management".to_string(),
                 description: Some("Data center management network".to_string()),
                 subnet_type: SubnetType::Management,
@@ -284,7 +309,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: dc.id,
+                site_id: dc.id,
                 name: "DC Compute".to_string(),
                 description: Some("Compute and hypervisor hosts".to_string()),
                 subnet_type: SubnetType::Lan,
@@ -310,7 +335,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: dc.id,
+                site_id: dc.id,
                 name: "DC Storage".to_string(),
                 description: Some("Storage network".to_string()),
                 subnet_type: SubnetType::Storage,
@@ -336,7 +361,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: dc.id,
+                site_id: dc.id,
                 name: "DC DMZ".to_string(),
                 description: Some("Demilitarized zone for public-facing services".to_string()),
                 subnet_type: SubnetType::Dmz,
@@ -362,7 +387,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: dc.id,
+                site_id: dc.id,
                 name: "DC Docker Bridge".to_string(),
                 description: Some("Docker container network".to_string()),
                 subnet_type: SubnetType::DockerBridge,
@@ -388,7 +413,7 @@ pub(super) fn generate_subnets(
                     )),
                     AttributeSource::DaemonSelfReport,
                 ),
-                network_id: dc.id,
+                site_id: dc.id,
                 name: "DC VPN Tunnel".to_string(),
                 description: Some("VPN tunnel to headquarters".to_string()),
                 subnet_type: SubnetType::VpnTunnel,

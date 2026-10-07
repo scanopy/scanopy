@@ -51,6 +51,7 @@
 			manufacturer: host.manufacturer,
 			model: host.model,
 			serial_number: host.serial_number,
+			asset_tag: host.asset_tag,
 			firmware_revision: host.firmware_revision,
 			software_revision: host.software_revision,
 			os: host.os ?? undefined,
@@ -147,6 +148,7 @@
 	{title}
 	{name}
 	entityId={service?.id}
+	{form}
 	{onClose}
 	onOpen={handleOpen}
 	size="xl"

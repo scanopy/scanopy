@@ -11,17 +11,21 @@ use crate::server::{
         name::{HostName, HostNameSources},
     },
     ip_addresses::r#impl::base::{IPAddress, IPAddressBase},
-    networks::r#impl::{Network, NetworkBase},
     ports::r#impl::base::{Port, PortType},
     services::{
         definitions::{client::Client, dns_server::DnsServer, web_service::WebService},
         r#impl::base::{Service, ServiceBase},
     },
-    shared::{storage::traits::Storable, types::entities::EntitySource},
+    shared::{
+        storage::traits::Storable,
+        types::{Color, Icon, entities::EntitySource},
+    },
+    sites::r#impl::{Site, SiteBase},
     subnets::r#impl::{
         base::{Subnet, SubnetBase},
         types::SubnetType,
     },
+    tags::r#impl::base::{Tag, TagBase, TagGroup, TagIcon},
     users::r#impl::base::{User, UserBase},
 };
 
@@ -29,14 +33,14 @@ pub fn create_user() -> User {
     User::new(UserBase::default())
 }
 
-pub fn create_network(organization_id: Uuid) -> Network {
-    Network::new(NetworkBase::new(organization_id))
+pub fn create_site(organization_id: Uuid) -> Site {
+    Site::new(SiteBase::new(organization_id))
 }
 
-pub fn create_wan_subnet(network_id: Uuid) -> Subnet {
+pub fn create_wan_subnet(site_id: Uuid) -> Subnet {
     let base = SubnetBase {
         name: "Internet".to_string(),
-        network_id,
+        site_id,
         tags: Vec::new(),
         // Seeded by Scanopy on purpose, so it must never read as a guess to confirm.
         cidr: SubnetCidr::new(
@@ -47,7 +51,7 @@ pub fn create_wan_subnet(network_id: Uuid) -> Subnet {
         ),
         description: Some(
             "For representing services on the public internet, like DNS servers, \
-cloud providers, or SaaS applications, that your network depends on but wouldn't \
+cloud providers, or SaaS applications, that your site depends on but wouldn't \
 be found by scanning. Create ip_addresses on this subnet to include them in your topology."
                 .to_string(),
         ),
@@ -59,10 +63,56 @@ be found by scanning. Create ip_addresses on this subnet to include them in your
     Subnet::new(base)
 }
 
-pub fn create_remote_subnet(network_id: Uuid) -> Subnet {
+/// The tag group an asset's status sits in, on its way from planned to decommissioned.
+pub const STATUS_TAG_GROUP: &str = "Status";
+
+/// The Status tags every organization starts with: (name, description, color, icon), in the
+/// order an asset moves through them.
+const STATUS_TAGS: [(&str, &str, Color, Icon); 4] = [
+    (
+        "Planned",
+        "Ordered or scheduled, not yet in service",
+        Color::Blue,
+        Icon::CalendarClock,
+    ),
+    ("Active", "In service", Color::Green, Icon::CircleCheck),
+    (
+        "Decommissioning",
+        "Being retired; still on the network",
+        Color::Orange,
+        Icon::Hourglass,
+    ),
+    (
+        "Decommissioned",
+        "Retired from service; kept for the record",
+        Color::Gray,
+        Icon::Archive,
+    ),
+];
+
+/// The default Status tags for an organization.
+pub fn create_status_tags(organization_id: Uuid) -> Vec<Tag> {
+    STATUS_TAGS
+        .iter()
+        .map(|(name, description, color, icon)| {
+            Tag::new(TagBase {
+                name: name.to_string(),
+                description: Some(description.to_string()),
+                color: *color,
+                organization_id,
+                tag_group: Some(TagGroup::Named {
+                    name: STATUS_TAG_GROUP.to_string(),
+                }),
+                icon: Some(TagIcon(*icon)),
+            })
+        })
+        .collect()
+}
+
+pub fn create_remote_subnet(site_id: Uuid) -> Subnet {
     let base = SubnetBase {
         name: "Remote Network".to_string(),
-        network_id,
+        site_id,
         tags: Vec::new(),
         // Seeded by Scanopy on purpose, so it must never read as a guess to confirm.
         cidr: SubnetCidr::new(
@@ -88,7 +138,7 @@ subnet to include them in your topology."
 /// Returns (Host, Vec<IPAddress>, Vec<Port>, Service) - children are passed separately to discover_host
 pub fn create_remote_host(
     remote_subnet: &Subnet,
-    network_id: Uuid,
+    site_id: Uuid,
 ) -> (Host, Vec<IPAddress>, Vec<Port>, Service) {
     // Create interface with placeholder host_id - server will set the correct one
     let ip_address = IPAddress::new(IPAddressBase::new_conceptual(Uuid::nil(), remote_subnet));
@@ -101,7 +151,7 @@ pub fn create_remote_host(
         // must never rename these.
         name: HostName::manual("Mobile Device".to_string()),
         hostname: None,
-        network_id,
+        site_id,
         tags: Vec::new(),
         description: Some("A mobile device connecting from a remote network".to_string()),
         source: EntitySource::System,
@@ -115,7 +165,7 @@ pub fn create_remote_host(
 
     let client_service = Service::new(ServiceBase {
         host_id: host.id,
-        network_id,
+        site_id,
         tags: Vec::new(),
         name: "Mobile Device".to_string(),
         service_definition: Box::new(Client),
@@ -132,7 +182,7 @@ pub fn create_remote_host(
 /// Returns (Host, Vec<IPAddress>, Vec<Port>, Service) - children are passed separately to discover_host
 pub fn create_internet_connectivity_host(
     internet_subnet: &Subnet,
-    network_id: Uuid,
+    site_id: Uuid,
 ) -> (Host, Vec<IPAddress>, Vec<Port>, Service) {
     // Create interface with placeholder host_id - server will set the correct one
     let ip_address = IPAddress::new(IPAddressBase::new_conceptual(Uuid::nil(), internet_subnet));
@@ -144,7 +194,7 @@ pub fn create_internet_connectivity_host(
         // A deliberate label on a synthetic host, not something we derived — discovery
         // must never rename these.
         name: HostName::manual("Google.com".to_string()),
-        network_id,
+        site_id,
         tags: Vec::new(),
         hostname: None,
         description: None,
@@ -160,7 +210,7 @@ pub fn create_internet_connectivity_host(
     let web_service = Service::new(ServiceBase {
         host_id: host.id,
         name: "Google.com".to_string(),
-        network_id,
+        site_id,
         tags: Vec::new(),
         service_definition: Box::new(WebService),
         bindings: vec![binding],
@@ -176,7 +226,7 @@ pub fn create_internet_connectivity_host(
 /// Returns (Host, Vec<IPAddress>, Vec<Port>, Service) - children are passed separately to discover_host
 pub fn create_public_dns_host(
     internet_subnet: &Subnet,
-    network_id: Uuid,
+    site_id: Uuid,
 ) -> (Host, Vec<IPAddress>, Vec<Port>, Service) {
     // Create interface with placeholder host_id - server will set the correct one
     let mut ip_address =
@@ -190,7 +240,7 @@ pub fn create_public_dns_host(
         // must never rename these.
         name: HostName::manual("Cloudflare DNS".to_string()),
         hostname: None,
-        network_id,
+        site_id,
         description: None,
         tags: Vec::new(),
         source: EntitySource::System,
@@ -204,7 +254,7 @@ pub fn create_public_dns_host(
 
     let dns_service = Service::new(ServiceBase {
         host_id: host.id,
-        network_id,
+        site_id,
         tags: Vec::new(),
         name: "Cloudflare DNS".to_string(),
         service_definition: Box::new(DnsServer),

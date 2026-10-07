@@ -9,6 +9,9 @@
 		common_target,
 		topology_neighborLinkPortsUnknown
 	} from '$lib/paraglide/messages';
+	import { discoveryProtocols, entities } from '$lib/shared/stores/metadata';
+	import type { components } from '$lib/api/schema';
+	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	let {
 		sourceHostId,
@@ -17,7 +20,7 @@
 	}: {
 		sourceHostId?: string;
 		targetHostId?: string;
-		protocol?: 'LLDP' | 'CDP';
+		protocol?: components['schemas']['DiscoveryProtocol'];
 	} = $props();
 
 	const topo = useTopology();
@@ -33,40 +36,56 @@
 	let targetHost = $derived(topology?.hosts.find((h) => h.id === targetHostId));
 </script>
 
-<div class="space-y-3">
+<div class="space-y-4">
 	{#if protocol}
 		<div class="flex items-center gap-2">
-			<Tag label={protocol} color={protocol == 'CDP' ? 'Blue' : 'Green'} />
+			<Tag {...discoveryProtocols.getTag(protocol)} />
 		</div>
 	{/if}
 
 	<p class="text-tertiary text-sm">{topology_neighborLinkPortsUnknown()}</p>
 
 	{#if sourceHost}
-		<span class="text-secondary mb-2 block text-sm font-medium">{common_source()}</span>
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={{
-					services: topology?.services.filter((s) => s.host_id === sourceHost.id) ?? [],
-					compact: true
-				}}
-				item={sourceHost}
-				displayComponent={HostDisplay}
-			/>
-		</div>
+		<InspectorSection
+			id="edge:NeighborLink:source"
+			title={common_source()}
+			icon={entities.getIconComponent('Host')}
+			iconClass={entities.getColorHelper('Host').icon}
+			description={null}
+		>
+			<div class="card card-static">
+				<EntityDisplayWrapper
+					context={{
+						services: topology?.services.filter((s) => s.host_id === sourceHost.id) ?? [],
+						compact: true,
+						hideTags: ['guest']
+					}}
+					item={sourceHost}
+					displayComponent={HostDisplay}
+				/>
+			</div>
+		</InspectorSection>
 	{/if}
 
 	{#if targetHost}
-		<span class="text-secondary mb-2 block text-sm font-medium">{common_target()}</span>
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={{
-					services: topology?.services.filter((s) => s.host_id === targetHost.id) ?? [],
-					compact: true
-				}}
-				item={targetHost}
-				displayComponent={HostDisplay}
-			/>
-		</div>
+		<InspectorSection
+			id="edge:NeighborLink:target"
+			title={common_target()}
+			icon={entities.getIconComponent('Host')}
+			iconClass={entities.getColorHelper('Host').icon}
+			description={null}
+		>
+			<div class="card card-static">
+				<EntityDisplayWrapper
+					context={{
+						services: topology?.services.filter((s) => s.host_id === targetHost.id) ?? [],
+						compact: true,
+						hideTags: ['guest']
+					}}
+					item={targetHost}
+					displayComponent={HostDisplay}
+				/>
+			</div>
+		</InspectorSection>
 	{/if}
 </div>

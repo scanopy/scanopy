@@ -17,7 +17,7 @@
 //! Settings routes returns 402 until it chooses a paid plan.
 
 use crate::server::{
-    auth::middleware::{auth::AuthenticatedEntity, cache::CachedNetwork},
+    auth::middleware::{auth::AuthenticatedEntity, cache::CachedSite},
     billing::types::base::BillingPlan,
     config::AppState,
     shared::types::api::ApiError,
@@ -59,7 +59,7 @@ pub async fn require_billing_for_users(
         .await
         .ok();
 
-    // Get organization ID based on auth type, caching network lookup for daemons
+    // Get organization ID based on auth type, caching site lookup for daemons
     let organization_id: Option<Uuid> = match &entity {
         Some(AuthenticatedEntity::User {
             organization_id, ..
@@ -67,10 +67,10 @@ pub async fn require_billing_for_users(
         Some(AuthenticatedEntity::ApiKey {
             organization_id, ..
         }) => Some(*organization_id),
-        Some(AuthenticatedEntity::Daemon { network_id, .. }) => {
-            // Use cached network lookup
-            match CachedNetwork::get_or_load(&mut parts, &state, network_id).await {
-                Ok(network) => Some(network.base.organization_id),
+        Some(AuthenticatedEntity::Daemon { site_id, .. }) => {
+            // Use cached site lookup
+            match CachedSite::get_or_load(&mut parts, &state, site_id).await {
+                Ok(site) => Some(site.base.organization_id),
                 Err(_) => None,
             }
         }

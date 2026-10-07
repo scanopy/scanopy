@@ -4,6 +4,9 @@ use super::*;
 use crate::daemon::discovery::types::warnings::{
     DiscoveryWarning, UnmatchedNeighbour, UnresolvedPort,
 };
+use crate::server::daemons::r#impl::api::ScannedEntityIds;
+use crate::server::shared::services::traits::ObservationRefresher;
+use crate::server::shared::storage::snapshot::DiscoveryTracked;
 
 /// What makes two advertised ports on one far end the same port: the name when one was advertised,
 /// the MAC otherwise. Stored rows key the same way, so a pass and the rows it already wrote agree.
@@ -89,7 +92,7 @@ fn unmatched_neighbour_warning(
 ///
 /// Derived at exactly the sites that warn, so what an operator is told and what is minted can never
 /// be two different populations. `Ambiguous` is excluded on purpose: it means the identifier names
-/// several hosts this network already holds, so the problem is duplicate records, not a missing
+/// several hosts this site already holds, so the problem is duplicate records, not a missing
 /// device.
 ///
 /// An address is *not* required. Most far ends publish none — a chassis id and nothing else is the
@@ -160,14 +163,14 @@ fn unresolved_port_warning(
     }
 }
 
-/// Who names whom across a network's LLDP/CDP adjacencies, and the port pairs that follow from it.
+/// Who names whom across a site's LLDP/CDP adjacencies, and the port pairs that follow from it.
 ///
-/// Built once per resolution pass from *every* candidate in the network — not just the unresolved
+/// Built once per resolution pass from *every* candidate in the site — not just the unresolved
 /// ones. The count of ports joining two devices is the whole basis of the reciprocal tier, and
 /// counting only the unresolved half would pair one leg of a LAG whose other leg happened to
 /// resolve, which is exactly the arbitrary-port outcome the shared-MAC guard exists to prevent.
 struct NeighborAdjacency {
-    /// Every interface in the network with at least one live candidate, in whatever resolution
+    /// Every interface in the site with at least one live candidate, in whatever resolution
     /// state.
     interfaces: Vec<Interface>,
     /// Each interface's own candidates, loaded once here and reused by the resolution pass so it
@@ -192,7 +195,17 @@ struct NeighbourPass {
     unplaced: Vec<UnplacedFarEnd>,
     /// Ports recorded on far ends from what their neighbours advertised. Each one is a port the next
     /// pass can bind a neighbour to, which is why a pass that recorded any is followed by another.
-    recorded_ports: usize,
+    recorded_port_ids: Vec<Uuid>,
+    /// Hosts a neighbour seen by *this* scan resolved to: the far ends it re-observed. Only
+    /// candidates on interfaces the scan walked count, because candidates on other interfaces were
+    /// read by an earlier scan and carry no evidence about this one.
+    resolved_far_ends: HashSet<Uuid>,
+    /// Far-end ports those neighbours resolved to, or re-advertised when already recorded. A port
+    /// recorded from an advertisement has no walk to refresh it; this is its only evidence.
+    re_observed_ports: HashSet<Uuid>,
+    /// Management addresses those neighbours advertised. The range holding one is a range the scan
+    /// found evidence in, even when no address row of the far end is filed under it.
+    re_advertised_addresses: HashSet<IpAddr>,
 }
 
 mod inference;
@@ -205,7 +218,7 @@ use crate::server::interface_neighbors::r#impl::base::{
 };
 use crate::server::interfaces::r#impl::base::InterfaceBase;
 use crate::server::ip_addresses::r#impl::base::{MacEvidence, MacEvidenceValue};
-use crate::server::subnets::r#impl::inference::UnplacedFarEnd;
+use crate::server::subnets::r#impl::inference::{UnplacedFarEnd, placeable_subnet};
 
 use reciprocal::PortBinding;
 
@@ -217,7 +230,7 @@ impl HostService {
     // LLDP link resolution
     // =========================================================================
 
-    /// Resolve LLDP links for all interfaces in a network.
+    /// Resolve LLDP links for all interfaces in a site.
     ///
     /// Called by DiscoveryService when a discovery session completes successfully.
     /// This resolves LLDP neighbor data (chassis ID, port ID) to actual database
@@ -239,19 +252,24 @@ impl HostService {
     /// interface where interface-level context — existing bindings, `fdb_macs`, host id — is
     /// needed) and writes the whole desired adjacency set for an interface in one
     /// `reconcile_interface_neighbors` call, rather than one `interface.base.neighbor` field write.
-    async fn resolve_neighbours_once(&self, network_id: Uuid) -> Result<NeighbourPass> {
-        let resolver = self.lldp_inventory_snapshot(network_id).await?;
+    async fn resolve_neighbours_once(
+        &self,
+        site_id: Uuid,
+        scan_time: DateTime<Utc>,
+        run_interface_ids: &HashSet<Uuid>,
+    ) -> Result<NeighbourPass> {
+        let resolver = self.lldp_inventory_snapshot(site_id).await?;
 
-        // The instant before which neighbour evidence counts as stale, from the network's own
+        // The instant before which neighbour evidence counts as stale, from the site's own
         // window — the same helper the `?stale=` list filter uses, so a link and a host cannot
-        // disagree about what stale means. A network that no longer exists yields no cutoff, and
+        // disagree about what stale means. A site that no longer exists yields no cutoff, and
         // the fallback makes every row read current: an orphaned FK must never tear bindings down.
         let evidence_cutoff = self
-            .network_service
-            .stale_cutoffs(&[network_id])
+            .site_service
+            .stale_cutoffs(&[site_id])
             .await?
             .into_iter()
-            .find(|(id, _)| *id == network_id)
+            .find(|(id, _)| *id == site_id)
             .map(|(_, cutoff)| cutoff)
             .unwrap_or(DateTime::<Utc>::MIN_UTC);
 
@@ -259,7 +277,7 @@ impl HostService {
         // before anything is written, because it is the authority both for the reciprocal tier
         // below and for deciding whether an existing MAC-matched binding still stands.
         let adjacency = self
-            .build_neighbor_adjacency(network_id, &resolver, evidence_cutoff)
+            .build_neighbor_adjacency(site_id, &resolver, evidence_cutoff)
             .await?;
         let reciprocal = adjacency.reciprocal;
         let host_of = adjacency.host_of;
@@ -294,19 +312,21 @@ impl HostService {
         let mut stats = LldpResolutionStats::default();
         let mut warnings: Vec<DiscoveryWarning> = Vec::new();
         // Far ends that told us where they live and still matched nothing. Pooled across the whole
-        // network rather than per device: two switches naming far ends in one range must produce
+        // site rather than per device: two switches naming far ends in one range must produce
         // one subnet, and only the server sees both.
         let mut unplaced: Vec<UnplacedFarEnd> = Vec::new();
         // (host, advertised port name, advertised port MAC) for far ends resolved to a device but
         // to no port of it. Collected here and acted on after the loop rather than mid-tier, so the
         // resolution pass stays a read of identities and a write of neighbours.
-        let mut advertised_ports: Vec<(Uuid, Option<String>, Option<String>)> = Vec::new();
+        let mut advertised_ports: Vec<(Uuid, Option<String>, Option<String>, bool)> = Vec::new();
         // (host, the system description its LLDP advertisement carried), acted on after the loop for
         // the same reason.
         let mut advertised_os: Vec<(Uuid, String)> = Vec::new();
         let mut reopened = 0usize;
         let mut rebound = 0usize;
-        let scan_time = Utc::now();
+        let mut resolved_far_ends: HashSet<Uuid> = HashSet::new();
+        let mut re_observed_ports: HashSet<Uuid> = HashSet::new();
+        let mut re_advertised_addresses: HashSet<IpAddr> = HashSet::new();
 
         for interface in &interfaces {
             let candidates = candidates_by_interface
@@ -410,7 +430,7 @@ impl HostService {
                         Some(host_id) => {
                             let port = match evidence.lldp_port_id {
                                 Some(ref port_id) => {
-                                    port_id.resolve_if_entry_id(&resolver, host_id).await
+                                    port_id.resolve_interface_id(&resolver, host_id).await
                                 }
                                 None => IdentityResolution::NoStrategy,
                             };
@@ -421,7 +441,7 @@ impl HostService {
                                 }
                                 unresolved => match evidence.lldp_port_desc.as_deref() {
                                     Some(desc) if !desc.trim().is_empty() => {
-                                        match resolver.find_if_entry_by_name(desc, host_id).await {
+                                        match resolver.find_interface_by_name(desc, host_id).await {
                                             Some(id) => IdentityResolution::Resolved(id),
                                             None => unresolved,
                                         }
@@ -473,7 +493,7 @@ impl HostService {
                         Some(host_id) => {
                             let port = match evidence.cdp_port_id {
                                 Some(ref port_id) => IdentityResolution::found(
-                                    resolver.find_if_entry_by_name(port_id, host_id).await,
+                                    resolver.find_interface_by_name(port_id, host_id).await,
                                 ),
                                 None => IdentityResolution::NoStrategy,
                             };
@@ -530,6 +550,19 @@ impl HostService {
                 };
 
                 if let Some((host_id, neighbor)) = resolved_neighbor {
+                    let in_run = run_interface_ids.contains(&interface.id);
+                    if in_run {
+                        resolved_far_ends.insert(host_id);
+                        if let Some(port_id) = neighbor.interface_id() {
+                            re_observed_ports.insert(port_id);
+                        }
+                        re_advertised_addresses.extend(
+                            evidence
+                                .lldp_mgmt_addr
+                                .into_iter()
+                                .chain(evidence.cdp_address),
+                        );
+                    }
                     // Evidence freshness for this adjacency = when this candidate's evidence was
                     // last confirmed by a scan (its `created_at` — see
                     // `InterfaceNeighborService::replace_candidates_from_discovery`).
@@ -549,6 +582,7 @@ impl HostService {
                                 host_id,
                                 port.name.map(str::to_string),
                                 port.mac.map(str::to_string),
+                                in_run,
                             ));
                         }
                     }
@@ -559,7 +593,7 @@ impl HostService {
                 desired.into_values().collect();
             self.interface_neighbor_service
                 .reconcile_interface_neighbors(
-                    network_id,
+                    site_id,
                     interface.id,
                     &final_desired,
                     scan_time,
@@ -568,13 +602,14 @@ impl HostService {
                 .await?;
         }
 
-        let recorded_ports = self
-            .record_advertised_far_end_ports(network_id, advertised_ports)
+        let (recorded_port_ids, re_advertised_ports) = self
+            .record_advertised_far_end_ports(site_id, advertised_ports, scan_time)
             .await;
+        re_observed_ports.extend(re_advertised_ports);
         self.record_advertised_far_end_os(advertised_os).await;
 
         tracing::info!(
-            network_id = %network_id,
+            site_id = %site_id,
             total = stats.total,
             hosts_resolved = stats.hosts_resolved,
             ports_resolved = stats.ports_resolved,
@@ -586,7 +621,7 @@ impl HostService {
             host_no_strategy = stats.host_no_strategy,
             reopened,
             rebound,
-            recorded_ports,
+            recorded_ports = recorded_port_ids.len(),
             "LLDP/CDP link resolution complete"
         );
 
@@ -594,11 +629,14 @@ impl HostService {
             stats,
             warnings,
             unplaced,
-            recorded_ports,
+            recorded_port_ids,
+            resolved_far_ends,
+            re_observed_ports,
+            re_advertised_addresses,
         })
     }
 
-    /// Resolve LLDP links for all interfaces in a network, inferring what is missing.
+    /// Resolve LLDP links for all interfaces in a site, inferring what is missing.
     ///
     /// Three passes at most. The first resolves what it can and collects the far ends that told us
     /// where they live and still matched nothing; those become subnets and hosts. A pass runs again
@@ -613,45 +651,224 @@ impl HostService {
     /// would tell an operator that the same devices are missing and were just added.
     pub async fn resolve_lldp_links(
         &self,
-        network_id: Uuid,
+        site_id: Uuid,
         scan_time: DateTime<Utc>,
+        run: &ScannedEntityIds,
     ) -> Result<LldpResolutionOutcome> {
         /// Re-runs never mint, and a port is recorded once, so passes settle on their own. The cap
         /// bounds the request should one not; a port it leaves unbound binds on the next scan.
         const MAX_RERUNS: usize = 2;
 
-        let mut first = self.resolve_neighbours_once(network_id).await?;
+        let run_interface_ids: HashSet<Uuid> = run.interface_ids.iter().copied().collect();
+        let mut first = self
+            .resolve_neighbours_once(site_id, scan_time, &run_interface_ids)
+            .await?;
 
         // The plan's host limit, built the way the daemon batch path builds it
         // (`DaemonService::process_discovery_entities`). Minting runs outside both existing gates,
         // so without this it would quietly outrun the limit while still counting towards the number
         // a customer is shown on their dashboard and in their usage email.
-        let limit_ctx = self.host_limit_context(network_id).await;
+        let limit_ctx = self.host_limit_context(site_id).await;
 
         let unplaced = std::mem::take(&mut first.unplaced);
         let inferred = self
-            .infer_far_end_subnets(network_id, unplaced, limit_ctx.as_ref(), scan_time)
+            .infer_far_end_subnets(site_id, unplaced, limit_ctx.as_ref(), scan_time)
             .await?;
 
+        let mut observed = inferred.observed;
         // A pass that created nothing has nothing new to resolve against, whatever the standing
         // report says about ranges awaiting confirmation.
-        let mut rerun = !inferred.minted_host_ids.is_empty() || first.recorded_ports > 0;
+        let mut rerun = !observed.host_ids.is_empty() || !first.recorded_port_ids.is_empty();
+        // Unioned across passes: a far end minted above first resolves in a re-run.
+        let mut resolved_far_ends = std::mem::take(&mut first.resolved_far_ends);
+        let mut re_observed_ports = std::mem::take(&mut first.re_observed_ports);
+        let mut re_advertised_addresses = std::mem::take(&mut first.re_advertised_addresses);
+        observed.merge(ScannedEntityIds {
+            interface_ids: std::mem::take(&mut first.recorded_port_ids),
+            ..Default::default()
+        });
         let mut last = first;
         for _ in 0..MAX_RERUNS {
             if !rerun {
                 break;
             }
-            last = self.resolve_neighbours_once(network_id).await?;
-            rerun = last.recorded_ports > 0;
+            last = self
+                .resolve_neighbours_once(site_id, scan_time, &run_interface_ids)
+                .await?;
+            rerun = !last.recorded_port_ids.is_empty();
+            resolved_far_ends.extend(std::mem::take(&mut last.resolved_far_ends));
+            re_observed_ports.extend(std::mem::take(&mut last.re_observed_ports));
+            re_advertised_addresses.extend(std::mem::take(&mut last.re_advertised_addresses));
+            observed.merge(ScannedEntityIds {
+                interface_ids: std::mem::take(&mut last.recorded_port_ids),
+                ..Default::default()
+            });
         }
+
+        // Far-end ports this scan's neighbours bound to or advertised again. A port recorded from
+        // an advertisement has no walk to refresh it, so this is the only way it is ever seen.
+        if !re_observed_ports.is_empty() {
+            let ports: Vec<Uuid> = re_observed_ports.into_iter().collect();
+            let refreshed = self
+                .interface_service
+                .refresh_observed(
+                    StorableFilter::<Interface>::new_from_entity_ids(&ports),
+                    scan_time,
+                )
+                .await?;
+            observed.merge(ScannedEntityIds {
+                interface_ids: refreshed.iter().map(|i| i.id).collect(),
+                ..Default::default()
+            });
+        }
+
+        // The ranges holding the management addresses this scan's neighbours advertised. A far end
+        // can carry no address row of its own (minted before its range existed), and the range is
+        // still where the scan found it.
+        if !re_advertised_addresses.is_empty() {
+            let live = self
+                .subnet_service
+                .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[site_id]).live())
+                .await?;
+            let ranges: Vec<Uuid> = re_advertised_addresses
+                .into_iter()
+                .filter_map(|address| placeable_subnet(&live, address).map(|s| s.id))
+                .collect::<HashSet<_>>()
+                .into_iter()
+                .collect();
+            if !ranges.is_empty() {
+                let refreshed = self
+                    .subnet_service
+                    .refresh_observed(
+                        StorableFilter::<Subnet>::new_from_entity_ids(&ranges),
+                        scan_time,
+                    )
+                    .await?;
+                observed.merge(ScannedEntityIds {
+                    found_subnet_ids: refreshed.iter().map(|s| s.id).collect(),
+                    ..Default::default()
+                });
+            }
+        }
+
+        // Far ends this scan's neighbours re-advertised. Hosts the daemon submitted are already
+        // refreshed and reported, and those minted above are already in `observed`.
+        let re_observed: Vec<Uuid> = resolved_far_ends
+            .into_iter()
+            .filter(|id| !run.host_ids.contains(id) && !observed.host_ids.contains(id))
+            .collect();
+        observed.merge(
+            self.refresh_re_observed_far_ends(&re_observed, scan_time)
+                .await?,
+        );
 
         let mut warnings = last.warnings;
         warnings.extend(inferred.warnings);
         Ok(LldpResolutionOutcome {
             stats: last.stats,
             warnings,
-            minted_host_ids: inferred.minted_host_ids,
+            observed,
         })
+    }
+
+    /// Advance Last seen on the Inferred far ends a neighbour re-advertised this scan, with their
+    /// ports and addresses, and report them all as touched.
+    ///
+    /// Inferred only: a device the daemon scanned is refreshed by its own submission, and one it
+    /// failed to reach is not "seen" because a switch still lists it. Children with the host,
+    /// because the digest judges each child of an observed host by its own Last seen, and a
+    /// refreshed host with stale ports would be reported as losing them.
+    async fn refresh_re_observed_far_ends(
+        &self,
+        host_ids: &[Uuid],
+        scan_time: DateTime<Utc>,
+    ) -> Result<ScannedEntityIds> {
+        if host_ids.is_empty() {
+            return Ok(ScannedEntityIds::default());
+        }
+        let far_end_ids: Vec<Uuid> = self
+            .get_all(StorableFilter::<Host>::new_from_entity_ids(host_ids).live())
+            .await?
+            .into_iter()
+            .filter(|host| host.base.source == EntitySource::Inferred)
+            .map(|host| host.id)
+            .collect();
+        if far_end_ids.is_empty() {
+            return Ok(ScannedEntityIds::default());
+        }
+
+        ObservationRefresher::<Host>::refresh_observed(
+            self,
+            StorableFilter::<Host>::new_from_entity_ids(&far_end_ids),
+            scan_time,
+        )
+        .await?;
+        let interfaces = self
+            .interface_service
+            .refresh_observed(
+                StorableFilter::<Interface>::new_from_host_ids(&far_end_ids),
+                scan_time,
+            )
+            .await?;
+        let ip_addresses = self
+            .ip_address_service
+            .refresh_observed(
+                StorableFilter::<IPAddress>::new_from_host_ids(&far_end_ids),
+                scan_time,
+            )
+            .await?;
+        let ports = self
+            .port_service
+            .refresh_observed(
+                StorableFilter::<Port>::new_from_host_ids(&far_end_ids),
+                scan_time,
+            )
+            .await?;
+
+        Ok(ScannedEntityIds {
+            host_ids: far_end_ids,
+            interface_ids: interfaces.iter().map(|i| i.id).collect(),
+            ip_address_ids: ip_addresses.iter().map(|i| i.id).collect(),
+            port_ids: ports.iter().map(|p| p.id).collect(),
+            ..Default::default()
+        })
+    }
+
+    /// Advance Last seen on the subnets holding an address this scan touched, and return them.
+    ///
+    /// A daemon reports the address but not the range it is filed under, so a range found only
+    /// through its addresses (an IPv6 prefix, a neighbour-inferred range) never refreshed and never
+    /// carried the scan's discovery FKs. The caller files these as found, not swept.
+    pub async fn refresh_subnets_of_addresses(
+        &self,
+        ip_address_ids: &[Uuid],
+        scan_time: DateTime<Utc>,
+    ) -> Result<Vec<Uuid>> {
+        if ip_address_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let subnet_ids: Vec<Uuid> = self
+            .ip_address_service
+            .get_all(StorableFilter::<IPAddress>::new_from_entity_ids(ip_address_ids).live())
+            .await?
+            .into_iter()
+            .map(|ip| ip.base.subnet_id)
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect();
+        if subnet_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        Ok(self
+            .subnet_service
+            .refresh_observed(
+                StorableFilter::<Subnet>::new_from_entity_ids(&subnet_ids),
+                scan_time,
+            )
+            .await?
+            .into_iter()
+            .map(|subnet| subnet.id)
+            .collect())
     }
 
     /// Give a far end every port its neighbours advertised, where nothing else has ever described
@@ -681,18 +898,26 @@ impl HostService {
     /// Distinct from the minting path, which builds these for a host that did not exist. Here the
     /// host is real and already resolved; only its ports are missing.
     ///
-    /// Returns how many ports it recorded, so the caller knows whether another pass has something
-    /// new to bind.
+    /// Returns the ports it recorded, and the already-recorded ports this scan's neighbours
+    /// advertised again (`in_run`). The caller reports both as touched by this scan; only recorded
+    /// ones mean another pass has something new to bind.
     async fn record_advertised_far_end_ports(
         &self,
-        network_id: Uuid,
-        advertised: Vec<(Uuid, Option<String>, Option<String>)>,
-    ) -> usize {
-        let mut recorded_count = 0;
+        site_id: Uuid,
+        advertised: Vec<(Uuid, Option<String>, Option<String>, bool)>,
+        scan_time: DateTime<Utc>,
+    ) -> (Vec<Uuid>, Vec<Uuid>) {
+        let mut recorded_ids = Vec::new();
+        let mut re_advertised_ids = Vec::new();
         let mut by_host: HashMap<Uuid, AdvertisedPorts> = HashMap::new();
-        for (host_id, name, mac) in advertised {
+        // Ports a neighbour this scan walked advertised, per host: evidence the port is still there.
+        let mut in_run_keys: HashMap<Uuid, HashSet<AdvertisedPortKey>> = HashMap::new();
+        for (host_id, name, mac, in_run) in advertised {
             let mac = mac.as_deref().and_then(|m| m.parse::<MacAddress>().ok());
             if name.is_some() || mac.is_some() {
+                if in_run && let Some(key) = AdvertisedPortKey::of(name.as_deref(), mac) {
+                    in_run_keys.entry(host_id).or_default().insert(key);
+                }
                 by_host.entry(host_id).or_default().push((name, mac));
             }
         }
@@ -718,6 +943,21 @@ impl HostService {
                 continue;
             }
 
+            if let Some(keys) = in_run_keys.get(&host_id) {
+                re_advertised_ids.extend(
+                    existing
+                        .iter()
+                        .filter(|row| {
+                            AdvertisedPortKey::of(
+                                row.base.if_name.as_deref(),
+                                mac_of(&row.base.mac_address),
+                            )
+                            .is_some_and(|key| keys.contains(&key))
+                        })
+                        .map(|row| row.id),
+                );
+            }
+
             let mut recorded: HashSet<AdvertisedPortKey> = existing
                 .iter()
                 .filter_map(|row| {
@@ -740,8 +980,8 @@ impl HostService {
                     continue;
                 }
 
-                let interface = Interface::new(InterfaceBase {
-                    network_id,
+                let mut interface = Interface::new(InterfaceBase {
+                    site_id,
                     host_id,
                     if_descr: Some(descr),
                     if_name: name,
@@ -752,6 +992,10 @@ impl HostService {
                     }),
                     ..Default::default()
                 });
+                // The scan's timestamp, not the wall clock, so the port falls inside the window
+                // of the scan that recorded it, as every other entity of that scan does.
+                interface.refresh_scan_timestamps(scan_time);
+                interface.originate_scan_timestamps(scan_time);
 
                 match self
                     .interface_service
@@ -759,7 +1003,7 @@ impl HostService {
                     .await
                 {
                     Ok(created) => {
-                        recorded_count += 1;
+                        recorded_ids.push(created.id);
                         tracing::info!(
                             host_id = %host_id,
                             port = %created.base.if_descr.as_deref().unwrap_or("?"),
@@ -775,7 +1019,7 @@ impl HostService {
             }
         }
 
-        recorded_count
+        (recorded_ids, re_advertised_ids)
     }
 
     /// Name an OS for each far end from the system description its LLDP advertisement carried.
@@ -811,7 +1055,7 @@ impl HostService {
         }
     }
 
-    /// Read this network's identity columns once, for the pass to resolve against.
+    /// Read this site's identity columns once, for the pass to resolve against.
     ///
     /// The pass asks the same few questions per neighbour-bearing interface, and answering each
     /// with its own query made it scale with round-trips: ~330 ms on 145 interfaces, and the
@@ -820,32 +1064,32 @@ impl HostService {
     /// Safe to hold across the whole pass because every lookup keys on an identity column, and
     /// resolution now writes to `interface_neighbor_interfaces`/`interface_neighbor_hosts` rather
     /// than to any column this snapshot reads.
-    async fn lldp_inventory_snapshot(&self, network_id: Uuid) -> Result<LldpInventorySnapshot> {
-        let network = [network_id];
+    async fn lldp_inventory_snapshot(&self, site_id: Uuid) -> Result<LldpInventorySnapshot> {
+        let site = [site_id];
         let hosts = self
-            .get_all(StorableFilter::<Host>::new_from_network_ids(&network).live())
+            .get_all(StorableFilter::<Host>::new_from_site_ids(&site).live())
             .await?;
         let interfaces = self
             .interface_service
-            .get_all(StorableFilter::<Interface>::new_from_network_ids(&network).live())
+            .get_all(StorableFilter::<Interface>::new_from_site_ids(&site).live())
             .await?;
         let addresses = self
             .ip_address_service
-            .get_all(StorableFilter::<IPAddress>::new_from_network_ids(&network).live())
+            .get_all(StorableFilter::<IPAddress>::new_from_site_ids(&site).live())
             .await?;
 
         Ok(LldpInventorySnapshot::new(&hosts, &interfaces, &addresses))
     }
 
-    /// How many interfaces on this network advertise a neighbour.
+    /// How many interfaces on this site advertise a neighbour.
     ///
     /// Only for the warning raised when resolution is cut short, which is why it costs a query
     /// rather than being threaded out of the pass: on every other completion the pass returns
     /// normally and nothing asks. Best-effort — a warning that cannot say "how many" is still
     /// worth raising, so a failure here reports zero rather than suppressing the warning.
-    pub async fn neighbour_bearing_interface_count(&self, network_id: Uuid) -> u32 {
+    pub async fn neighbour_bearing_interface_count(&self, site_id: Uuid) -> u32 {
         self.interface_neighbor_service
-            .candidates_for_network(network_id)
+            .candidates_for_site(site_id)
             .await
             .map(|candidates| {
                 candidates
@@ -860,10 +1104,12 @@ impl HostService {
     /// Interfaces with an unresolved single-MAC FDB entry — cheaper than `resolve_fdb_links`
     /// itself since it never fetches or hydrates a row. Only for the warning raised when
     /// resolution is cut short, the same reasoning as `neighbour_bearing_interface_count` above.
-    pub async fn unresolved_fdb_interface_count(&self, network_id: Uuid) -> u32 {
+    pub async fn unresolved_fdb_interface_count(&self, site_id: Uuid) -> u32 {
         self.interface_service
             .storage()
-            .count(StorableFilter::<Interface>::new_for_unresolved_fdb_in_network(network_id))
+            .count(StorableFilter::<Interface>::new_for_unresolved_fdb_in_site(
+                site_id,
+            ))
             .await
             .unwrap_or(0) as u32
     }
@@ -871,18 +1117,14 @@ impl HostService {
     /// Resolve FDB (bridge forwarding database) single-MAC ports to neighbor links.
     /// Called after resolve_lldp_links — only processes ports without LLDP/CDP data
     /// that have exactly one learned MAC address (direct physical connection).
-    pub async fn resolve_fdb_links(
-        &self,
-        network_id: Uuid,
-        scan_time: DateTime<Utc>,
-    ) -> Result<u32> {
+    pub async fn resolve_fdb_links(&self, site_id: Uuid, scan_time: DateTime<Utc>) -> Result<u32> {
         let resolver = LldpResolverImpl::new(
             self.interface_service.clone(),
             self.ip_address_service.clone(),
             self.storage.clone(),
         );
 
-        let filter = StorableFilter::<Interface>::new_for_unresolved_fdb_in_network(network_id);
+        let filter = StorableFilter::<Interface>::new_for_unresolved_fdb_in_site(site_id);
         let unresolved = self.interface_service.get_all(filter).await?;
 
         let mut resolved_count: u32 = 0;
@@ -899,7 +1141,7 @@ impl HostService {
             // Try to find host by MAC. A MAC on more than one device names none of them, so an
             // ambiguous verdict leaves the row unresolved rather than picking a side.
             let IdentityResolution::Resolved(host_id) =
-                resolver.find_host_by_mac(mac, network_id).await
+                resolver.find_host_by_mac(mac, site_id).await
             else {
                 continue;
             };
@@ -907,14 +1149,14 @@ impl HostService {
             // Try full resolution (specific port). A far end that repeats one MAC across its ports
             // names no single port, so the link stays at device level rather than being attached to
             // whichever port the database returned first.
-            let neighbor = match resolver.find_if_entry_by_mac(mac, host_id).await {
+            let neighbor = match resolver.find_interface_by_mac(mac, host_id).await {
                 IdentityResolution::Resolved(interface_id) => Neighbor::Interface(interface_id),
                 _ => Neighbor::Host(host_id),
             };
 
             self.interface_neighbor_service
                 .reconcile_interface_neighbors(
-                    network_id,
+                    site_id,
                     interface.id,
                     &[(neighbor, Some(scan_time))],
                     scan_time,
@@ -926,7 +1168,7 @@ impl HostService {
 
         if resolved_count > 0 {
             tracing::debug!(
-                network_id = %network_id,
+                site_id = %site_id,
                 resolved = resolved_count,
                 "FDB link resolution complete"
             );

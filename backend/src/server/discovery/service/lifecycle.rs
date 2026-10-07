@@ -7,7 +7,7 @@ impl DiscoveryService {
         event_bus: Arc<EventBus>,
         entity_tag_service: Arc<EntityTagService>,
         credential_service: Arc<CredentialService>,
-        network_service: Arc<NetworkService>,
+        site_service: Arc<SiteService>,
         organization_service: Arc<OrganizationService>,
     ) -> Result<Arc<Self>> {
         let (tx, _rx) = broadcast::channel(100); // Buffer 100 messages
@@ -23,6 +23,7 @@ impl DiscoveryService {
             daemon_pull_cancellations: RwLock::new(HashMap::new()),
             running_snapshots: RwLock::new(HashSet::new()),
             superseded_wire_daemons: RwLock::new(HashSet::new()),
+            touched_subnets: RwLock::new(HashMap::new()),
             session_last_updated: RwLock::new(HashMap::new()),
             update_tx: tx,
             scheduler,
@@ -30,7 +31,7 @@ impl DiscoveryService {
             event_bus,
             entity_tag_service,
             credential_service,
-            network_service,
+            site_service,
             organization_service,
             daemon_service: std::sync::OnceLock::new(),
         }))

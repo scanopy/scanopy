@@ -79,14 +79,14 @@ impl DaemonService {
         daemon: &Daemon,
         email_service: &EmailService,
     ) -> Result<()> {
-        let network = self
-            .network_service
-            .get_by_id(&daemon.base.network_id)
+        let site = self
+            .site_service
+            .get_by_id(&daemon.base.site_id)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Network not found"))?;
+            .ok_or_else(|| anyhow::anyhow!("Site not found"))?;
 
-        let org_id = network.base.organization_id;
-        let network_name = &network.base.name;
+        let org_id = site.base.organization_id;
+        let site_name = &site.base.name;
         let daemon_name = &daemon.base.name;
 
         // Daemons left on a cloud org that moved to a self-hosted plan are
@@ -108,7 +108,7 @@ impl DaemonService {
             .first()
             .ok_or_else(|| anyhow::anyhow!("No owner found for organization {}", org_id))?;
         email_service
-            .send_daemon_standby_email(owner.base.email.clone(), daemon_name, network_name)
+            .send_daemon_standby_email(owner.base.email.clone(), daemon_name, site_name)
             .await?;
 
         // Also send to daemon installer if different from owner
@@ -119,7 +119,7 @@ impl DaemonService {
                 .await?
         {
             email_service
-                .send_daemon_standby_email(user.base.email, daemon_name, network_name)
+                .send_daemon_standby_email(user.base.email, daemon_name, site_name)
                 .await?;
         }
 
@@ -132,14 +132,14 @@ impl DaemonService {
         daemon: &Daemon,
         email_service: &EmailService,
     ) -> Result<()> {
-        let network = self
-            .network_service
-            .get_by_id(&daemon.base.network_id)
+        let site = self
+            .site_service
+            .get_by_id(&daemon.base.site_id)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Network not found"))?;
+            .ok_or_else(|| anyhow::anyhow!("Site not found"))?;
 
-        let org_id = network.base.organization_id;
-        let network_name = &network.base.name;
+        let org_id = site.base.organization_id;
+        let site_name = &site.base.name;
         let daemon_name = &daemon.base.name;
 
         // Same skip as the standby notification. The daemon is still marked
@@ -160,7 +160,7 @@ impl DaemonService {
             .first()
             .ok_or_else(|| anyhow::anyhow!("No owner found for organization {}", org_id))?;
         email_service
-            .send_daemon_unreachable_email(owner.base.email.clone(), daemon_name, network_name)
+            .send_daemon_unreachable_email(owner.base.email.clone(), daemon_name, site_name)
             .await?;
 
         // Also send to daemon installer if different from owner
@@ -171,7 +171,7 @@ impl DaemonService {
                 .await?
         {
             email_service
-                .send_daemon_unreachable_email(user.base.email, daemon_name, network_name)
+                .send_daemon_unreachable_email(user.base.email, daemon_name, site_name)
                 .await?;
         }
 

@@ -15,7 +15,7 @@ use crate::server::{
             types::{OnboardingOperation, OnboardingOperationDiscriminants},
         },
         handlers::{
-            query::{FilterQueryExtractor, NetworkFilterQuery},
+            query::{FilterQueryExtractor, SiteFilterQuery},
             traits::{CrudHandlers, update_handler},
         },
         services::traits::CrudService,
@@ -57,13 +57,13 @@ mod generated {
 /// Topology endpoints are internal-only (hidden from public docs).
 ///
 /// A topology row now holds only the user's grouping `options` (one live row
-/// per network). The per-view graph is built on request and returned on the
+/// per site). The per-view graph is built on request and returned on the
 /// `/data` bundle; `get_all` / `get_by_id` list the slim rows, `update_topology`
 /// persists `options`, plus exports and a single SSE channel.
 ///
 /// Creation, deletion, lock/unlock, refresh, rebuild, metadata updates, and the
 /// layout-override mutators are gone (overrides aren't persisted — see the
-/// disabled handlers below). The live row is auto-created at network creation;
+/// disabled handlers below). The live row is auto-created at site creation;
 /// snapshots build their graph on request from closed copies (no snapshot rows).
 pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
     OpenApiRouter::new()
@@ -86,8 +86,8 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 
 #[derive(Debug, Deserialize, IntoParams, ToSchema)]
 pub struct TopologyDataQuery {
-    /// Network to read entities for. Required.
-    pub network_id: Uuid,
+    /// Site to read entities for. Required.
+    pub site_id: Uuid,
     /// When set, returns the entity set as it was when this snapshot was taken.
     /// When omitted, returns live entities.
     #[serde(default)]
@@ -129,12 +129,12 @@ async fn get_topology_data(
     auth: Authorized<Viewer>,
     Query(params): Query<TopologyDataQuery>,
 ) -> ApiResult<Json<ApiResponse<TopologyData>>> {
-    let network_ids = auth.network_ids();
-    if !network_ids.contains(&params.network_id) {
-        return Err(ApiError::forbidden("You don't have access to this network"));
+    let site_ids = auth.site_ids();
+    if !site_ids.contains(&params.site_id) {
+        return Err(ApiError::forbidden("You don't have access to this site"));
     }
 
-    // Snapshot path: verify the snapshot belongs to the requested network
+    // Snapshot path: verify the snapshot belongs to the requested site
     // before returning its closed copies.
     if let Some(snapshot_id) = params.snapshot_id {
         let snapshot = state
@@ -144,20 +144,18 @@ async fn get_topology_data(
             .await
             .map_err(|e| ApiError::internal_error(&e.to_string()))?
             .ok_or_else(|| ApiError::not_found("Snapshot not found".to_string()))?;
-        if snapshot.base.network_id != params.network_id {
-            return Err(ApiError::forbidden(
-                "Snapshot belongs to a different network",
-            ));
+        if snapshot.base.site_id != params.site_id {
+            return Err(ApiError::forbidden("Snapshot belongs to a different site"));
         }
     }
 
-    // Build the per-view graph on request from entities + the network's
+    // Build the per-view graph on request from entities + the site's
     // grouping options (live or snapshot entity set). The frontend selects the
     // active view's slice client-side and runs ELK each render.
     let data = state
         .services
         .topology_service
-        .get_topology_render_data(params.network_id, params.snapshot_id)
+        .get_topology_render_data(params.site_id, params.snapshot_id)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
@@ -169,15 +167,11 @@ async fn get_topology_data(
     if params.mark_viewed.unwrap_or(false)
         && params.snapshot_id.is_none()
         && !data.hosts.is_empty()
-        && let Ok(Some(network)) = state
-            .services
-            .network_service
-            .get_by_id(&params.network_id)
-            .await
+        && let Ok(Some(site)) = state.services.site_service.get_by_id(&params.site_id).await
         && let Ok(Some(org)) = state
             .services
             .organization_service
-            .get_by_id(&network.base.organization_id)
+            .get_by_id(&site.base.organization_id)
             .await
         && org.has_onboarded(&OnboardingOperationDiscriminants::FirstDiscoveryCompleted)
         && org.not_onboarded(&OnboardingOperationDiscriminants::FirstTopologyRebuild)
@@ -223,7 +217,7 @@ async fn update_topology(
     update_handler::<Topology>(state, auth, id, topology).await
 }
 
-/// Get all topologies for the authenticated user's networks.
+/// Get all topologies for the authenticated user's sites.
 ///
 /// Returns both live-view rows (`snapshot_id IS NULL`) and snapshot-pinned
 /// rows. The frontend renders the live one by default and renders snapshot
@@ -232,7 +226,7 @@ async fn update_topology(
     get,
     path = "",
     tags = [Topology::ENTITY_NAME_PLURAL],
-    params(NetworkFilterQuery),
+    params(SiteFilterQuery),
     responses(
         (status = 200, description = "List of topologies", body = PaginatedApiResponse<Topology>),
     ),
@@ -241,15 +235,15 @@ async fn update_topology(
 async fn get_all_topologies(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Viewer>,
-    query: Query<NetworkFilterQuery>,
+    query: Query<SiteFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<Topology>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
     let organization_id = auth
         .organization_id()
         .ok_or_else(|| ApiError::forbidden("Organization context required"))?;
 
-    let base_filter = StorableFilter::<Topology>::new_from_network_ids(&network_ids);
-    let filter = query.apply_to_filter(base_filter, &network_ids, organization_id);
+    let base_filter = StorableFilter::<Topology>::new_from_site_ids(&site_ids);
+    let filter = query.apply_to_filter(base_filter, &site_ids, organization_id);
     let pagination = query.pagination();
     let filter = pagination.apply_to_filter(filter);
 
@@ -309,11 +303,11 @@ async fn update_node_position(
     Path(id): Path<Uuid>,
     ApiJson(request): ApiJson<TopologyNodePositionUpdate>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
 
-    if !network_ids.contains(&request.network_id) {
+    if !site_ids.contains(&request.site_id) {
         return Err(ApiError::forbidden(
-            "You don't have access to this topology's network",
+            "You don't have access to this topology's site",
         ));
     }
 
@@ -363,11 +357,11 @@ async fn update_edge_handles(
     Path(id): Path<Uuid>,
     ApiJson(request): ApiJson<TopologyEdgeHandleUpdate>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
 
-    if !network_ids.contains(&request.network_id) {
+    if !site_ids.contains(&request.site_id) {
         return Err(ApiError::forbidden(
-            "You don't have access to this topology's network",
+            "You don't have access to this topology's site",
         ));
     }
 
@@ -418,11 +412,11 @@ async fn update_node_resize(
     Path(id): Path<Uuid>,
     ApiJson(request): ApiJson<TopologyNodeResizeUpdate>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
 
-    if !network_ids.contains(&request.network_id) {
+    if !site_ids.contains(&request.site_id) {
         return Err(ApiError::forbidden(
-            "You don't have access to this topology's network",
+            "You don't have access to this topology's site",
         ));
     }
 
@@ -475,7 +469,7 @@ async fn export_mermaid(
     Path(id): Path<Uuid>,
     query: Query<TopologyExportQuery>,
 ) -> ApiResult<impl IntoResponse> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
 
     let service = Topology::get_service(&state);
     let topology = service
@@ -483,7 +477,7 @@ async fn export_mermaid(
         .await?
         .ok_or_else(|| ApiError::not_found(format!("Topology {} not found", id)))?;
 
-    if !network_ids.contains(&topology.base.network_id) {
+    if !site_ids.contains(&topology.base.site_id) {
         return Err(ApiError::forbidden(
             "You don't have access to this topology",
         ));
@@ -491,7 +485,7 @@ async fn export_mermaid(
 
     // Build the graph on request and export the requested view's slice.
     let data = service
-        .get_topology_render_data(topology.base.network_id, None)
+        .get_topology_render_data(topology.base.site_id, None)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     let nodes = data
@@ -541,7 +535,7 @@ async fn export_confluence(
     Path(id): Path<Uuid>,
     query: Query<TopologyExportQuery>,
 ) -> ApiResult<impl IntoResponse> {
-    let network_ids = auth.network_ids();
+    let site_ids = auth.site_ids();
 
     let service = Topology::get_service(&state);
     let topology = service
@@ -549,7 +543,7 @@ async fn export_confluence(
         .await?
         .ok_or_else(|| ApiError::not_found(format!("Topology {} not found", id)))?;
 
-    if !network_ids.contains(&topology.base.network_id) {
+    if !site_ids.contains(&topology.base.site_id) {
         return Err(ApiError::forbidden(
             "You don't have access to this topology",
         ));
@@ -557,7 +551,7 @@ async fn export_confluence(
 
     // Build the graph on request and export the requested view's slice.
     let data = service
-        .get_topology_render_data(topology.base.network_id, None)
+        .get_topology_render_data(topology.base.site_id, None)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     let nodes = data
@@ -587,8 +581,8 @@ async fn export_confluence(
     Ok((headers, Body::from(content)))
 }
 
-/// SSE stream of live-topology updates: emits `{ "network_id": "<uuid>" }`
-/// on every change to a network's live entity set. Frontends invalidate
+/// SSE stream of live-topology updates: emits `{ "site_id": "<uuid>" }`
+/// on every change to a site's live entity set. Frontends invalidate
 /// their topology query and refetch on receipt.
 async fn live_topology_updates_stream(
     State(state): State<Arc<AppState>>,
@@ -599,16 +593,16 @@ async fn live_topology_updates_stream(
         .topology_service
         .subscribe_live_topology_updates();
 
-    let allowed_networks = auth.network_ids();
+    let allowed_sites = auth.site_ids();
 
     let stream = stream::unfold(rx, move |mut rx| {
-        let allowed = allowed_networks.clone();
+        let allowed = allowed_sites.clone();
         async move {
             loop {
                 match rx.recv().await {
-                    Ok(network_id) => {
-                        if allowed.contains(&network_id) {
-                            let payload = json!({ "network_id": network_id }).to_string();
+                    Ok(site_id) => {
+                        if allowed.contains(&site_id) {
+                            let payload = json!({ "site_id": site_id }).to_string();
                             return Some((Ok(Event::default().data(payload)), rx));
                         }
                     }

@@ -12,7 +12,7 @@ pub struct LoginRegisterParams {
     pub permissions: Option<UserOrgPermissions>,
     pub ip: IpAddr,
     pub user_agent: Option<String>,
-    pub network_ids: Vec<Uuid>,
+    pub site_ids: Vec<Uuid>,
 }
 
 #[derive(Clone)]
@@ -38,25 +38,31 @@ pub struct ProvisionUserParams {
     pub oidc_provider: Option<String>,
     pub provision_org: ProvisionOrg,
     pub permissions: Option<UserOrgPermissions>,
-    pub network_ids: Vec<Uuid>,
+    pub site_ids: Vec<Uuid>,
     pub terms_accepted_at: Option<DateTime<Utc>>,
     pub email_verified: bool,
     /// Whether billing is enabled (if false, sets default billing plan for self-hosted)
     pub billing_enabled: bool,
 }
 
-/// Network setup data for a single network
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PendingNetworkSetup {
+/// The first site requested at signup. Carried on `OrgCreated`, whose
+/// subscriber creates it, so it survives past the session.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
+pub struct PendingSiteSetup {
+    /// Name the user gave the site.
     pub name: String,
-    pub network_id: Uuid,
+    /// Id assigned at setup, before the site exists.
+    #[serde(alias = "network_id")]
+    pub site_id: Uuid,
 }
 
-/// Setup data collected before registration (org name, network, seed preference)
+/// Setup data collected before registration (org name, site, use case)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PendingSetup {
     pub org_name: String,
-    pub network: PendingNetworkSetup,
+    /// `None` when the signup is a self-hosted license buyer.
+    #[serde(alias = "network")]
+    pub site: Option<PendingSiteSetup>,
     /// Use case selection (homelab, company, msp)
     pub use_case: UseCase,
 }

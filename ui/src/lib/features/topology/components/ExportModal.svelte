@@ -62,13 +62,16 @@
 		topologyName = '',
 		isOpen = $bindable(false),
 		isShareView = false,
-		exportFeatures = undefined
+		exportFeatures = undefined,
+		name = undefined
 	}: {
 		topologyId: string;
 		topologyName?: string;
 		isOpen: boolean;
 		isShareView?: boolean;
 		exportFeatures?: ExportFeatures;
+		/** Modal-registry slug; threaded into GenericModal so closing clears the registry. */
+		name?: string;
 	} = $props();
 
 	const { getNodes, getNodesBounds, getViewport, setViewport } = useSvelteFlow();
@@ -82,22 +85,22 @@
 		Application: 'app'
 	};
 
-	/** Lowercase a network name and reduce non-alphanumerics to single hyphens for safe filenames. */
+	/** Lowercase a site name and reduce non-alphanumerics to single hyphens for safe filenames. */
 	function sanitizeForFilename(name: string): string {
 		const slug = name
 			.toLowerCase()
 			.replace(/[^a-z0-9]+/g, '-')
 			.replace(/-+/g, '-')
 			.replace(/^-|-$/g, '');
-		return slug || 'network';
+		return slug || 'site';
 	}
 
-	/** Build the canonical export filename: scanopy-<view>-<network>-<date>.<ext>. */
+	/** Build the canonical export filename: scanopy-<view>-<site>-<date>.<ext>. */
 	function buildExportFilename(ext: string): string {
 		const viewToken = VIEW_FILENAME_TOKENS[$activeView];
-		const networkSlug = sanitizeForFilename(topologyName);
+		const siteSlug = sanitizeForFilename(topologyName);
 		const date = new Date().toISOString().split('T')[0];
-		return `scanopy-${viewToken}-${networkSlug}-${date}.${ext}`;
+		return `scanopy-${viewToken}-${siteSlug}-${date}.${ext}`;
 	}
 
 	const organizationQuery = useOrganizationQuery();
@@ -336,7 +339,7 @@
 		// Inject header with title and date
 		let header = document.createElement('div');
 		if (includeHeader) {
-			const exportName = topologyName || 'Network Topology';
+			const exportName = topologyName || 'Site Topology';
 			const exportDate = formatTimestamp(new Date());
 			const textColor = exportTheme === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.8)';
 			const dateColor = exportTheme === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.4)';
@@ -614,7 +617,7 @@
 				'<head>',
 				'<meta charset="UTF-8">',
 				'<meta name="viewport" content="width=device-width, initial-scale=1.0">',
-				`<title>${topologyName || 'Network Topology'}</title>`,
+				`<title>${topologyName || 'Site Topology'}</title>`,
 				`<${styleTag}>${css}</${styleTag}>`,
 				'</head>',
 				'<body>',
@@ -664,7 +667,7 @@
 	}
 </script>
 
-<GenericModal title={topology_export()} {isOpen} onClose={() => (isOpen = false)} size="sm">
+<GenericModal title={topology_export()} {name} {isOpen} onClose={() => (isOpen = false)} size="sm">
 	<div class="p-6">
 		<div class="space-y-4">
 			<RichSelect

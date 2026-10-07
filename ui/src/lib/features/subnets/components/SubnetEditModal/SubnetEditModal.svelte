@@ -8,7 +8,7 @@
 	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
 	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
 	import type { Subnet } from '../../types/base';
-	import SelectNetwork from '$lib/features/networks/components/SelectNetwork.svelte';
+	import SelectSite from '$lib/features/sites/components/SelectSite.svelte';
 	import TagPicker from '$lib/features/tags/components/TagPicker.svelte';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
 	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
@@ -17,7 +17,7 @@
 		SimpleOptionDisplay,
 		type SimpleOption
 	} from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
-	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
 	import {
 		common_cancel,
 		common_cidr,
@@ -25,12 +25,10 @@
 		common_delete,
 		common_deleting,
 		common_description,
-		common_details,
 		common_editName,
 		common_name,
 		common_saving,
 		common_update,
-		subnets_cidrHelp,
 		subnets_cidrPlaceholder,
 		subnets_createSubnet,
 		subnets_descriptionPlaceholder,
@@ -39,9 +37,9 @@
 	} from '$lib/paraglide/messages';
 
 	// TanStack Query hooks
-	const networksQuery = useNetworksQuery();
-	let networksData = $derived(networksQuery.data ?? []);
-	let defaultNetworkId = $derived(networksData[0]?.id ?? '');
+	const sitesQuery = useSitesQuery();
+	let sitesData = $derived(sitesQuery.data ?? []);
+	let defaultSiteId = $derived(sitesData[0]?.id ?? '');
 
 	interface Props {
 		subnet?: Subnet | null;
@@ -73,7 +71,7 @@
 	let saveLabel = $derived(isEditing ? common_update() : common_create());
 
 	function getDefaultValues(): Subnet {
-		return subnet ? { ...subnet } : createEmptySubnetFormData(defaultNetworkId);
+		return subnet ? { ...subnet } : createEmptySubnetFormData(defaultSiteId);
 	}
 
 	// Create form with initial empty values - we'll reset it when the modal opens
@@ -144,6 +142,7 @@
 	{title}
 	{name}
 	entityId={subnet?.id}
+	{form}
 	size="xl"
 	{onClose}
 	onOpen={handleOpen}
@@ -165,69 +164,67 @@
 			<div class="space-y-8">
 				<!-- Subnet Details Section -->
 				<div class="space-y-4">
-					<h3 class="text-primary text-lg font-medium">{common_details()}</h3>
+					<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+						<form.Field
+							name="name"
+							validators={{
+								onBlur: ({ value }) => required(value) || max(100)(value)
+							}}
+						>
+							{#snippet children(field)}
+								<TextInput
+									label={common_name()}
+									id="name"
+									{field}
+									placeholder={subnets_namePlaceholder()}
+									required
+								/>
+							{/snippet}
+						</form.Field>
+						<form.Field
+							name="cidr"
+							validators={{
+								onBlur: ({ value }) => required(value) || cidrNotation(value)
+							}}
+						>
+							{#snippet children(field)}
+								<TextInput
+									label={common_cidr()}
+									id="cidr"
+									{field}
+									placeholder={subnets_cidrPlaceholder()}
+									disabled={getIsCidrDisabled()}
+									required
+								/>
+							{/snippet}
+						</form.Field>
+					</div>
 
-					<!-- Name Field -->
-					<form.Field
-						name="name"
-						validators={{
-							onBlur: ({ value }) => required(value) || max(100)(value)
-						}}
-					>
-						{#snippet children(field)}
-							<TextInput
-								label={common_name()}
-								id="name"
-								{field}
-								placeholder={subnets_namePlaceholder()}
-								required
-							/>
-						{/snippet}
-					</form.Field>
+					<div class="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+						<!-- Site Selection -->
+						<form.Field name="site_id">
+							{#snippet children(field)}
+								<SelectSite
+									selectedSiteId={field.state.value}
+									onSiteChange={(id) => field.handleChange(id)}
+								/>
+							{/snippet}
+						</form.Field>
 
-					<!-- CIDR Field -->
-					<form.Field
-						name="cidr"
-						validators={{
-							onBlur: ({ value }) => required(value) || cidrNotation(value)
-						}}
-					>
-						{#snippet children(field)}
-							<TextInput
-								label={common_cidr()}
-								id="cidr"
-								{field}
-								placeholder={subnets_cidrPlaceholder()}
-								disabled={getIsCidrDisabled()}
-								helpText={subnets_cidrHelp()}
-								required
-							/>
-						{/snippet}
-					</form.Field>
-
-					<!-- Network Selection -->
-					<form.Field name="network_id">
-						{#snippet children(field)}
-							<SelectNetwork
-								selectedNetworkId={field.state.value}
-								onNetworkChange={(id) => field.handleChange(id)}
-							/>
-						{/snippet}
-					</form.Field>
-
-					<!-- Subnet Type -->
-					<form.Field name="subnet_type">
-						{#snippet children(field)}
-							<RichSelect
-								label={subnets_subnetType()}
-								selectedValue={field.state.value}
-								options={subnetTypeOptions}
-								displayComponent={SimpleOptionDisplay}
-								showSearch={true}
-								onSelect={(value) => field.handleChange(value as Subnet['subnet_type'])}
-							/>
-						{/snippet}
-					</form.Field>
+						<!-- Subnet Type -->
+						<form.Field name="subnet_type">
+							{#snippet children(field)}
+								<RichSelect
+									label={subnets_subnetType()}
+									selectedValue={field.state.value}
+									options={subnetTypeOptions}
+									displayComponent={SimpleOptionDisplay}
+									showSearch={true}
+									onSelect={(value) => field.handleChange(value as Subnet['subnet_type'])}
+								/>
+							{/snippet}
+						</form.Field>
+					</div>
 
 					<!-- Description Field -->
 					<form.Field

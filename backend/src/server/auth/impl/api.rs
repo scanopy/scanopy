@@ -143,27 +143,30 @@ pub struct ResetPasswordRequest {
     pub password: String,
 }
 
-/// Network configuration for setup
+/// Site configuration for setup
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct NetworkSetup {
-    /// Name for the network created during setup.
+pub struct SiteSetup {
+    /// Name for the site created during setup.
     pub name: String,
 }
 
-/// Setup request for pre-registration org/network configuration
+/// Setup request for pre-registration org/site configuration
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct SetupRequest {
     /// Name for the organization created during setup.
     pub organization_name: String,
-    /// The first network to create alongside the organization.
-    pub network: NetworkSetup,
+    /// The first site to create alongside the organization. `None` for a
+    /// self-hosted license buyer, whose cloud org gets its site only if it
+    /// later moves to a cloud plan.
+    #[serde(default)]
+    pub site: Option<SiteSetup>,
 }
 
 /// Response from setup endpoint
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct SetupResponse {
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// Pre-assigned id of the site created at registration, if one was requested.
+    pub site_id: Option<Uuid>,
 }
 
 /// Request to verify email using token
@@ -191,12 +194,12 @@ pub struct OnboardingStepRequest {
     pub use_case: Option<UseCase>,
 }
 
-/// Network data in onboarding state response
+/// Site data in onboarding state response
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct OnboardingNetworkState {
-    /// Network ID (if created)
+pub struct OnboardingSiteState {
+    /// Site ID (if created)
     pub id: Option<Uuid>,
-    /// Network name
+    /// Site name
     pub name: String,
 }
 
@@ -209,10 +212,10 @@ pub struct OnboardingStateResponse {
     pub use_case: Option<UseCase>,
     /// Organization name from pending setup
     pub org_name: Option<String>,
-    /// Network from pending setup (with name and ID)
-    pub network: Option<OnboardingNetworkState>,
-    /// Network ID from pending setup (if any)
-    pub network_id: Option<Uuid>,
+    /// Site from pending setup (with name and ID)
+    pub site: Option<OnboardingSiteState>,
+    /// Site ID from pending setup (if any)
+    pub site_id: Option<Uuid>,
 }
 
 #[cfg(test)]

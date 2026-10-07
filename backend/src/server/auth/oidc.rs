@@ -80,6 +80,7 @@ impl OidcService {
                 config.issuer_url.clone(),
                 config.client_id.clone(),
                 config.client_secret.clone(),
+                config.trusted_audiences.clone(),
                 redirect_url,
                 http_client.clone(),
             );
@@ -139,7 +140,7 @@ impl OidcService {
             permissions,
             ip,
             user_agent,
-            network_ids,
+            site_ids,
         } = params;
 
         // Exchange code for user info using provider
@@ -207,7 +208,7 @@ impl OidcService {
                 provision_org,
                 email_verified: true,
                 permissions,
-                network_ids,
+                site_ids,
                 terms_accepted_at,
                 billing_enabled,
             })

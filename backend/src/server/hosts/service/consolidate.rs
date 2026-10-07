@@ -1,5 +1,6 @@
 //! IP/MAC-based host matching, locking, upsert, and consolidation.
 use super::*;
+use crate::server::interfaces::service::match_existing_interface;
 use crate::server::ip_addresses::r#impl::base::MacEvidence;
 
 impl HostService {
@@ -11,14 +12,15 @@ impl HostService {
     ///
     /// Returns the matched host together with its **full, unfiltered** live IP rows —
     /// discovery derives `previous_subnets` from them for subnet↔VLAN reconciliation, so
-    /// loopback and virtual-router rows must stay in.
+    /// loopback and virtual-router rows must stay in — and the other hosts the payload proves
+    /// are the same device ([`hosts_proven_same_device`]), which the caller merges.
     pub(crate) async fn find_matching_host_by_ip_addresses(
         &self,
-        network_id: &Uuid,
+        site_id: &Uuid,
         incoming_ip_addresses: &[IPAddress],
         incoming_interfaces: &[Interface],
         incoming_chassis_id: Option<&str>,
-    ) -> Result<Option<(Host, Vec<IPAddress>)>> {
+    ) -> Result<Option<HostMatch>> {
         // Every identity this payload offers, in the order the tiers below consult them. A MAC is
         // the last of the three and the only one that survives a device having no address at all,
         // which is the whole reason it is here.
@@ -34,7 +36,7 @@ impl HostService {
 
         // SCD2: only match against live rows. Closed historical copies
         // (set when a snapshot fires) must not influence reconciliation.
-        let filter = StorableFilter::<Host>::new_from_network_ids(&[*network_id]).live();
+        let filter = StorableFilter::<Host>::new_from_site_ids(&[*site_id]).live();
         let mut all_hosts = self.get_all(filter).await?;
 
         if all_hosts.is_empty() {
@@ -58,6 +60,8 @@ impl HostService {
                 id: h.id,
                 chassis_id: crate::server::shared::attribution::text_of(&h.base.chassis_id),
                 ip_addresses: ip_addresses_by_host.remove(&h.id).unwrap_or_default(),
+                virtualization: h.base.virtualization_metadata.clone(),
+                virtualization_interface_id: h.base.virtualization_interface_id,
             })
             .collect();
 
@@ -69,13 +73,22 @@ impl HostService {
                 // address matches on IP and subnet long before it reaches here, so nothing changes for
                 // it. What arrives is a device with no address at all, or one whose address moved.
                 None => match self
-                    .find_host_id_by_mac(network_id, &incoming_macs, &candidates)
+                    .find_host_id_by_mac(
+                        site_id,
+                        &incoming_macs,
+                        incoming_ip_addresses,
+                        &candidates,
+                    )
                     .await?
                 {
                     Some(id) => id,
                     None => return Ok(None),
                 },
             };
+
+        let same_device = self
+            .find_same_device(site_id, incoming_ip_addresses, matched_id, &candidates)
+            .await?;
 
         let host_ip_addresses = candidates
             .into_iter()
@@ -92,16 +105,70 @@ impl HostService {
                     existing_host_name = %host.base.name,
                     "Matched incoming IP addresses to existing host"
                 );
-                (host, host_ip_addresses)
+                HostMatch {
+                    host,
+                    ip_addresses: host_ip_addresses,
+                    same_device,
+                }
             }))
     }
 
-    /// The host on this network already carrying one of these MACs, or `None`.
+    /// The other hosts this payload proves are the same device as `matched`
+    /// ([`hosts_proven_same_device`]).
+    ///
+    /// The subnet and daemon reads it needs are skipped unless another candidate holds one of the
+    /// payload's addresses, which on almost every submission none does.
+    async fn find_same_device(
+        &self,
+        site_id: &Uuid,
+        incoming_ip_addresses: &[IPAddress],
+        matched: Uuid,
+        candidates: &[HostCandidate],
+    ) -> Result<Vec<SameDevice>> {
+        let shares_an_address = candidates.iter().any(|c| {
+            c.id != matched
+                && c.ip_addresses.iter().any(|row| {
+                    incoming_ip_addresses.iter().any(|i| {
+                        i.base.ip_address == row.base.ip_address
+                            && i.base.subnet_id == row.base.subnet_id
+                    })
+                })
+        });
+        if !shares_an_address {
+            return Ok(Vec::new());
+        }
+
+        let internal_subnet_ids: HashSet<Uuid> = self
+            .subnet_service
+            .get_all(StorableFilter::<Subnet>::new_from_site_ids(&[*site_id]).live())
+            .await?
+            .into_iter()
+            .filter(|s| s.is_container_bridge_subnet())
+            .map(|s| s.id)
+            .collect();
+        let daemon_host_ids: HashSet<Uuid> = self
+            .daemon_service
+            .get_all(StorableFilter::<Daemon>::new_from_site_ids(&[*site_id]))
+            .await?
+            .into_iter()
+            .map(|d| d.base.host_id)
+            .collect();
+
+        Ok(hosts_proven_same_device(
+            incoming_ip_addresses,
+            matched,
+            candidates,
+            &internal_subnet_ids,
+            &daemon_host_ids,
+        ))
+    }
+
+    /// The host on this site already carrying one of these MACs, or `None`.
     ///
     /// Looked up by targeted query rather than by widening the candidate load above. That load
     /// already fetches every live host and all their addresses, and this function runs twice per
     /// host per scan — once for `previous_subnets` and again inside `create_with_children` — so
-    /// pulling every interface in the network alongside it would multiply the most-repeated read
+    /// pulling every interface in the site alongside it would multiply the most-repeated read
     /// in discovery by the port count of the biggest switch on it. Two indexed reads keyed on the
     /// handful of addresses actually in the payload cost the same whatever the fleet looks like.
     ///
@@ -109,19 +176,21 @@ impl HostService {
     /// by an address puts it on an `ip_addresses` row, one known only at the link layer on an
     /// interface. Both are the same claim about the same NIC.
     ///
-    /// Restricted to the candidate set so a row belonging to a host this network no longer holds
+    /// Restricted to the candidate set so a row belonging to a host this site no longer holds
     /// live cannot resolve, and via each entity's service rather than its storage.
     async fn find_host_id_by_mac(
         &self,
-        network_id: &Uuid,
+        site_id: &Uuid,
         incoming_macs: &[MacEvidence],
+        incoming_ip_addresses: &[IPAddress],
         candidates: &[HostCandidate],
     ) -> Result<Option<Uuid>> {
-        // Only the addresses that may anchor identity are worth a query — a locally administered
-        // or virtual-router MAC would be discarded by the matcher anyway.
+        // Every NIC address is worth a query except a group or virtual-router MAC, which is never
+        // a NIC. A weak (locally administered) incoming MAC still matches a row whose stored copy
+        // came from a hypervisor's config; `select_matching_host_by_mac` decides that per pair.
         let anchors: Vec<MacAddress> = incoming_macs
             .iter()
-            .filter(|e| mac_identity::may_match(e))
+            .filter(|e| mac_identity::grade(e) != mac_identity::MacQuality::Excluded)
             .map(|e| e.value().0)
             .collect();
         if anchors.is_empty() {
@@ -131,7 +200,7 @@ impl HostService {
         let ip_rows = self
             .ip_address_service
             .get_all(
-                StorableFilter::<IPAddress>::new_from_network_ids(&[*network_id])
+                StorableFilter::<IPAddress>::new_from_site_ids(&[*site_id])
                     .mac_address_in(&anchors)
                     .live(),
             )
@@ -139,27 +208,15 @@ impl HostService {
         let interface_rows = self
             .interface_service
             .get_all(
-                StorableFilter::<Interface>::new_from_network_ids(&[*network_id])
+                StorableFilter::<Interface>::new_from_site_ids(&[*site_id])
                     .mac_address_in(&anchors)
                     .live(),
             )
             .await?;
 
-        let live_host_ids: HashSet<Uuid> = candidates.iter().map(|c| c.id).collect();
-        let carriers: Vec<(Uuid, MacAddress)> = ip_rows
-            .iter()
-            .filter_map(|r| mac_of(&r.base.mac_address).map(|m| (r.base.host_id, m)))
-            .chain(
-                interface_rows
-                    .iter()
-                    .filter_map(|r| mac_of(&r.base.mac_address).map(|m| (r.base.host_id, m))),
-            )
-            .filter(|(host_id, _)| live_host_ids.contains(host_id))
-            .collect();
-
         Ok(mac_identity::select_matching_host_by_mac(
             incoming_macs,
-            &carriers,
+            &mac_carriers(&ip_rows, &interface_rows, incoming_ip_addresses, candidates),
         ))
     }
 
@@ -180,7 +237,10 @@ impl HostService {
         // submission share one timestamp; without ScanContext the value is
         // whatever the caller put on the entity (likely a per-entity
         // Utc::now()).
-        existing_host.last_seen_at = new_host_data.last_seen_at;
+        //
+        // The later of the two, because a merge passes the other *stored* host here, and that
+        // one can be older than the host it merges into.
+        existing_host.last_seen_at = existing_host.last_seen_at.max(new_host_data.last_seen_at);
 
         tracing::trace!(
             "Upserting new host data {:?} to host {:?}",
@@ -205,6 +265,29 @@ impl HostService {
             .apply_attributes_from(&new_host_data.base)
         {
             has_updates = true;
+        }
+
+        if existing_host
+            .base
+            .fill_virtualization_from(&new_host_data.base)
+        {
+            // A host never runs inside one of its own services: an ipvlan container's address once
+            // merged into its runtime's host left that host owned by its own Docker service.
+            if self.owned_by_own_service(&existing_host).await? {
+                tracing::warn!(
+                    host_id = %existing_host.id,
+                    host_name = %existing_host.base.name,
+                    "Ignoring a virtualization owner that runs on the host itself"
+                );
+                existing_host.base.virtualization_service_id =
+                    host_before_updates.base.virtualization_service_id;
+                existing_host.base.virtualization_metadata =
+                    host_before_updates.base.virtualization_metadata.clone();
+                existing_host.base.virtualization_interface_id =
+                    host_before_updates.base.virtualization_interface_id;
+            } else {
+                has_updates = true;
+            }
         }
 
         // EntitySource merge: previously concatenated discovery metadata vecs
@@ -233,7 +316,7 @@ impl HostService {
             if let Some(scope) = EntityScope::from_ids(
                 existing_host.id(),
                 existing_host.clone().into(),
-                self.get_network_id(&existing_host),
+                self.get_site_id(&existing_host),
                 self.get_organization_id(&existing_host),
             ) {
                 self.event_bus()
@@ -332,15 +415,26 @@ impl HostService {
 
         let mut interface_id_map: HashMap<Uuid, Uuid> = HashMap::new();
         for other_iface in &other_interfaces {
-            // Check for conflict: same (subnet_id + ip_address) or same MAC (when 1:1)
-            let matching_dest_iface = dest_interfaces.iter().find(|dest_iface| {
-                matches_destination_ip_address(
-                    dest_iface,
-                    other_iface,
-                    &dest_mac_counts,
-                    &other_mac_counts,
-                )
-            });
+            // Check for conflict: same (subnet_id + ip_address) or same MAC (when 1:1). The same
+            // address is looked for first, across every destination row: under ARP flux another
+            // destination row can carry this one's MAC, and taking that MAC match first folds this
+            // address into a different one and loses it.
+            let matching_dest_iface = dest_interfaces
+                .iter()
+                .find(|dest_iface| {
+                    dest_iface.base.subnet_id == other_iface.base.subnet_id
+                        && dest_iface.base.ip_address == other_iface.base.ip_address
+                })
+                .or_else(|| {
+                    dest_interfaces.iter().find(|dest_iface| {
+                        matches_destination_ip_address(
+                            dest_iface,
+                            other_iface,
+                            &dest_mac_counts,
+                            &other_mac_counts,
+                        )
+                    })
+                });
 
             if let Some(dest_iface) = matching_dest_iface {
                 // Conflict: map source ID to destination ID
@@ -393,7 +487,7 @@ impl HostService {
             } else {
                 // No conflict: transfer port to destination host
                 let mut transferred =
-                    other_port.with_host(destination_host.id, destination_host.base.network_id);
+                    other_port.with_host(destination_host.id, destination_host.base.site_id);
                 self.port_service
                     .update(&mut transferred, authentication.clone())
                     .await?;
@@ -404,6 +498,45 @@ impl HostService {
                 );
                 // Map to itself (ID unchanged, just host_id changed)
                 port_id_map.insert(other_port.id, other_port.id);
+            }
+        }
+
+        // Interfaces move with their ids, so their adjacencies and the hosts they present
+        // (`virtualization_interface_id`) move with them. One matching an interface the
+        // destination already has maps onto it instead, by the same ladder discovery uses.
+        let dest_link_interfaces = self
+            .interface_service
+            .get_for_host(&destination_host.id)
+            .await?;
+        let mut claimed: HashSet<Uuid> = HashSet::new();
+        for other_if in self.interface_service.get_for_host(&other_host.id).await? {
+            match match_existing_interface(&other_if, &dest_link_interfaces, &claimed) {
+                Some(dest_if_id) => {
+                    claimed.insert(dest_if_id);
+                    self.interface_neighbor_service
+                        .repoint_interface(destination_host.base.site_id, other_if.id, dest_if_id)
+                        .await?;
+                    self.repoint_virtualization_interface(
+                        &other_if.id,
+                        dest_if_id,
+                        &authentication,
+                    )
+                    .await?;
+                }
+                None => {
+                    let mut moved = other_if.clone();
+                    moved.base.host_id = destination_host.id;
+                    // A row that moved keeps its id; one folded into a destination row may carry
+                    // different MAC evidence, which the interface's own link would then contradict.
+                    // Discovery's interface linking restores that link on the next scan.
+                    moved.base.ip_address_id = moved
+                        .base
+                        .ip_address_id
+                        .filter(|id| interface_id_map.get(id) == Some(id));
+                    self.interface_service
+                        .update(&mut moved, authentication.clone())
+                        .await?;
+                }
             }
         }
 
@@ -430,23 +563,43 @@ impl HostService {
         // Transfer services, updating binding IDs using the maps
         for mut service in other_services {
             // Check for duplicate by name + service_definition
-            let is_duplicate = destination_services.iter().any(|dest_svc| {
+            let duplicate_of = destination_services.iter().find(|dest_svc| {
                 dest_svc.base.name == service.base.name
                     && dest_svc.base.service_definition.id() == service.base.service_definition.id()
             });
 
-            if is_duplicate {
+            if let Some(dest_svc) = duplicate_of {
                 tracing::debug!(
                     service_name = %service.base.name,
                     service_def = %service.base.service_definition.id(),
                     "Skipping duplicate service during consolidation"
                 );
+                // The duplicate is deleted with its host. Everything that points at it moves to
+                // the destination's copy first, or deleting it would unlink its guests and
+                // containers and drop it from dependencies.
+                let binding_map =
+                    duplicate_binding_map(&service, dest_svc, &interface_id_map, &port_id_map);
+                self.service_service
+                    .replace_service_references(
+                        &service,
+                        dest_svc,
+                        &binding_map,
+                        authentication.clone(),
+                    )
+                    .await?;
+                self.repoint_virtualization_service(
+                    &service.id,
+                    dest_svc.id,
+                    &updated_host.base.site_id,
+                    &authentication,
+                )
+                .await?;
                 continue;
             }
 
             // Update host_id
             service.base.host_id = updated_host.id;
-            service.base.network_id = updated_host.base.network_id;
+            service.base.site_id = updated_host.base.site_id;
 
             // Remap binding IDs using our maps
             for binding in &mut service.base.bindings {
@@ -593,6 +746,67 @@ impl HostService {
             );
         }
 
+        // Adjacencies elsewhere that name the other host as their neighbour now name the
+        // destination. Its interfaces have all moved or mapped by now, so a row local to one of
+        // them would be the destination naming itself, and is dropped.
+        let dest_interface_ids: HashSet<Uuid> = self
+            .interface_service
+            .get_for_host(&updated_host.id)
+            .await?
+            .into_iter()
+            .map(|i| i.id)
+            .collect();
+        self.interface_neighbor_service
+            .repoint_neighbor_host(
+                updated_host.base.site_id,
+                other_host.id,
+                updated_host.id,
+                &dest_interface_ids,
+            )
+            .await?;
+
+        // Tags: deleting the host clears its junction rows, so copy them across first. A tag the
+        // destination cannot take (a second application tag) is left behind and logged.
+        let organization_id = self
+            .site_service
+            .get_by_id(&updated_host.base.site_id)
+            .await?
+            .map(|n| n.base.organization_id);
+        if let Some(organization_id) = organization_id {
+            let dest_tags: HashSet<Uuid> = self
+                .entity_tag_service
+                .get_tags(&updated_host.id, &EntityDiscriminants::Host)
+                .await?
+                .into_iter()
+                .collect();
+            for tag_id in self
+                .entity_tag_service
+                .get_tags(&other_host.id, &EntityDiscriminants::Host)
+                .await?
+            {
+                if dest_tags.contains(&tag_id) {
+                    continue;
+                }
+                if let Err(e) = self
+                    .entity_tag_service
+                    .add_tag(
+                        updated_host.id,
+                        EntityDiscriminants::Host,
+                        tag_id,
+                        organization_id,
+                    )
+                    .await
+                {
+                    tracing::warn!(
+                        %tag_id,
+                        dest_host_id = %updated_host.id,
+                        error = %e,
+                        "Could not carry a tag across a host merge"
+                    );
+                }
+            }
+        }
+
         // Delete other host (remaining children that weren't transferred will
         // cascade). Inner variant: this task already holds Host(other_host.id).
         self.delete_host_inner(&other_host.id, authentication)
@@ -621,6 +835,156 @@ impl HostService {
             interfaces,
         ))
     }
+
+    /// Whether `host`'s virtualization owner is a service running on `host` itself.
+    async fn owned_by_own_service(&self, host: &Host) -> Result<bool> {
+        let Some(owner) = host.base.virtualization_service_id else {
+            return Ok(false);
+        };
+        Ok(self
+            .service_service
+            .get_by_id(&owner)
+            .await?
+            .is_some_and(|s| s.base.host_id == host.id))
+    }
+
+    /// Point every host presented by interface `from` at interface `to`, for a merge that maps
+    /// `from` onto `to`. Deleting `from` would otherwise null the reference.
+    async fn repoint_virtualization_interface(
+        &self,
+        from: &Uuid,
+        to: Uuid,
+        authentication: &AuthenticatedEntity,
+    ) -> Result<()> {
+        let presented = self
+            .get_all(
+                StorableFilter::<Host>::new()
+                    .virtualization_interface_id(from)
+                    .live(),
+            )
+            .await?;
+        for mut host in presented {
+            host.base.virtualization_interface_id = Some(to);
+            self.update(&mut host, authentication.clone()).await?;
+        }
+        Ok(())
+    }
+
+    /// Point every host and subnet owned by service `from` at service `to`, for a merge that
+    /// deletes `from` as a duplicate of `to`. Containers it runs are re-pointed by
+    /// `ServiceService::replace_service_references`.
+    async fn repoint_virtualization_service(
+        &self,
+        from: &Uuid,
+        to: Uuid,
+        site_id: &Uuid,
+        authentication: &AuthenticatedEntity,
+    ) -> Result<()> {
+        let guests = self
+            .get_all(
+                StorableFilter::<Host>::new_from_site_ids(&[*site_id])
+                    .virtualization_service_in(&[*from], false)
+                    .live(),
+            )
+            .await?;
+        for mut guest in guests {
+            guest.base.virtualization_service_id = Some(to);
+            self.update(&mut guest, authentication.clone()).await?;
+        }
+        let subnets = self
+            .subnet_service
+            .get_all(
+                StorableFilter::<Subnet>::new_from_site_ids(&[*site_id])
+                    .virtualization_service_in(&[*from], false)
+                    .live(),
+            )
+            .await?;
+        for mut subnet in subnets {
+            subnet.base.virtualization_service_id = Some(to);
+            self.subnet_service
+                .update(&mut subnet, authentication.clone())
+                .await?;
+        }
+        Ok(())
+    }
+}
+
+/// `duplicate`'s binding ids mapped to `kept`'s matching bindings, for a merge that deletes
+/// `duplicate`. A binding matches when it binds the same address or port once the merge's
+/// address and port remapping is applied; one with no match is left out.
+fn duplicate_binding_map(
+    duplicate: &Service,
+    kept: &Service,
+    ip_address_id_map: &HashMap<Uuid, Uuid>,
+    port_id_map: &HashMap<Uuid, Uuid>,
+) -> HashMap<Uuid, Uuid> {
+    let remap = |id: &Uuid, map: &HashMap<Uuid, Uuid>| map.get(id).copied().unwrap_or(*id);
+    duplicate
+        .base
+        .bindings
+        .iter()
+        .filter_map(|binding| {
+            let remapped = match binding.base.binding_type {
+                BindingType::IPAddress { ip_address_id } => BindingType::IPAddress {
+                    ip_address_id: remap(&ip_address_id, ip_address_id_map),
+                },
+                BindingType::Port {
+                    port_id,
+                    ip_address_id,
+                } => BindingType::Port {
+                    port_id: remap(&port_id, port_id_map),
+                    ip_address_id: ip_address_id.map(|id| remap(&id, ip_address_id_map)),
+                },
+            };
+            kept.base
+                .bindings
+                .iter()
+                .find(|k| k.base.binding_type == remapped)
+                .map(|k| (binding.id(), k.id()))
+        })
+        .collect()
+}
+
+/// The `(host, stored MAC)` pairs the MAC tier may match against: rows from either table that
+/// belong to a live candidate whose MACs identify it. An ipvlan container host's rows carry its
+/// runtime's MAC and are left out, so that MAC resolves to the runtime alone. So is a host whose
+/// hypervisor listed its addresses for an incoming address's MAC without that address
+/// (`HostCandidate::lists_other_addresses_for`); a payload with no addresses excludes nothing.
+///
+/// An interface that presents a live network identity (its `virtualization_interface_id`) is left
+/// out too: the identity's own rows carry the same MAC, both are one NIC seen from two sides, and
+/// the identity is the device a MAC-only payload from that NIC describes.
+pub(crate) fn mac_carriers(
+    ip_rows: &[IPAddress],
+    interface_rows: &[Interface],
+    incoming_ip_addresses: &[IPAddress],
+    candidates: &[HostCandidate],
+) -> Vec<(Uuid, MacEvidence)> {
+    let identifying_host_ids: HashSet<Uuid> = candidates
+        .iter()
+        .filter(|c| c.macs_identify_host())
+        .filter(|c| {
+            !incoming_ip_addresses
+                .iter()
+                .any(|incoming| c.lists_other_addresses_for(incoming))
+        })
+        .map(|c| c.id)
+        .collect();
+    let presenting_interface_ids: HashSet<Uuid> = candidates
+        .iter()
+        .filter_map(|c| c.virtualization_interface_id)
+        .collect();
+    ip_rows
+        .iter()
+        .filter_map(|r| r.base.mac_address.clone().map(|m| (r.base.host_id, m)))
+        .chain(
+            interface_rows
+                .iter()
+                .filter(|r| !presenting_interface_ids.contains(&r.id))
+                .filter_map(|r| r.base.mac_address.clone().map(|m| (r.base.host_id, m))),
+        )
+        .filter(|(host_id, _)| identifying_host_ids.contains(host_id))
+        .collect()
 }
 
 /// Whether `other_iface`, on the host being merged away, is already represented by `dest_iface` on

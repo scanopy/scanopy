@@ -215,7 +215,7 @@ async fn run_daemon<F: std::future::Future<Output = ()>>(
     // KeepAlive before the mode is even checked. It's only needed for the DaemonPoll
     // connect path (guaranteed present there by mode inference) and the banner.
     let server_addr = config_store.get_server_url().await.ok();
-    let network_id = config_store.get_network_id().await?;
+    let site_id = config_store.get_site_id().await?;
     let api_key = config_store.get_api_key().await?;
     let mode = config_store.get_mode().await?;
     let interval_secs = config_store.get_heartbeat_interval().await?;
@@ -240,10 +240,10 @@ async fn run_daemon<F: std::future::Future<Output = ()>>(
         tracing::info!("  Daemon ID:       {}", daemon_id);
     }
     tracing::info!("  Name:            {}", daemon_name);
-    match &network_id {
-        Some(nid) => tracing::info!("  Network ID:      {}", nid),
+    match &site_id {
+        Some(nid) => tracing::info!("  Site ID:         {}", nid),
         None => {
-            tracing::info!("  Network ID:      pending (assigned by the server at first contact)")
+            tracing::info!("  Site ID:         pending (assigned by the server at first contact)")
         }
     }
     tracing::info!("  Config file:     {}", path_str);
@@ -370,16 +370,16 @@ async fn run_daemon<F: std::future::Future<Output = ()>>(
         DaemonMode::DaemonPoll => {
             if let Some(api_key) = api_key {
                 // A server-provisioned daemon starts with just a 1:1 key and no
-                // network id — the server derives its identity from the key and
+                // site id — the server derives its identity from the key and
                 // returns it (cached on the register response). Use nil as a
-                // placeholder network id; a legacy daemon still passes its own.
-                let effective_network_id = network_id.unwrap_or_else(uuid::Uuid::nil);
+                // placeholder site id; a legacy daemon still passes its own.
+                let effective_site_id = site_id.unwrap_or_else(uuid::Uuid::nil);
                 tracing::info!(
                     "Connecting to server at {}...",
                     server_addr.as_deref().unwrap_or("<server url>")
                 );
                 let mut result = runtime_service
-                    .initialize_services(effective_network_id, api_key.clone())
+                    .initialize_services(effective_site_id, api_key.clone())
                     .await?;
 
                 if let StartupOutcome::ConnectionFailed(ref e) = result {
@@ -395,7 +395,7 @@ async fn run_daemon<F: std::future::Future<Output = ()>>(
                             RETRY_DELAYS.len() + 1
                         );
                         result = runtime_service
-                            .initialize_services(effective_network_id, api_key.clone())
+                            .initialize_services(effective_site_id, api_key.clone())
                             .await?;
                         match &result {
                             StartupOutcome::Ok => {
@@ -450,14 +450,14 @@ async fn run_daemon<F: std::future::Future<Output = ()>>(
                         std::process::exit(1);
                     }
                 }
-            } else if network_id.is_some() {
+            } else if site_id.is_some() {
                 tracing::error!(
                     "Daemon is missing an API key. Fix: re-run the install command from the Scanopy UI. Server: {}",
                     server_addr.as_deref().unwrap_or("<server url>")
                 );
                 Err(())
             } else {
-                tracing::info!("Missing network ID — waiting for server to hit /api/initialize...");
+                tracing::info!("Missing site ID — waiting for server to hit /api/initialize...");
                 Ok(())
             }
         }
