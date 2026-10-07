@@ -2581,7 +2581,6 @@
 	"snmp_operStatusLowerLayerDown": "Lower Layer Down",
 	"snmp_operStatusNotPresent": "Not Present",
 	"snmp_operStatusUp": "Up",
-	"subnets_cidrHelp": "Network address and prefix length (e.g., 192.168.1.0/24)",
 	"subnets_cidrPlaceholder": "192.168.1.0/24 or 2001:db8::/32",
 	"subnets_confirmRange": "Confirm this range",
 	"subnets_confirmRangeDetail": "The assumed range is right. Keep it and stop asking.",

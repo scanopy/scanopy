@@ -395,14 +395,6 @@
 
 		activeTab = 'details'; // Reset to first tab
 		furthestReached = 0;
-		loadedFormData = JSON.stringify($state.snapshot(formData));
-	}
-
-	/** formData as loaded, to tell edits to interfaces, ports and services from the loaded host. */
-	let loadedFormData = '';
-
-	function hasUnsavedChanges(): boolean {
-		return JSON.stringify($state.snapshot(formData)) !== loadedFormData;
 	}
 
 	// Wizard steps for progressive unlock in create mode
@@ -491,7 +483,7 @@
 	{name}
 	entityId={host?.id}
 	{form}
-	{hasUnsavedChanges}
+	unsavedState={() => formData}
 	onClose={handleClose}
 	onOpen={handleOpen}
 	onSubEntityNavigation={handleSubEntityNavigation}
