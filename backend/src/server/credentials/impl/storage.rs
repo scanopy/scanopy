@@ -164,7 +164,7 @@ impl Entity for Credential {
     const ENTITY_DESCRIPTION: &'static str = "Credentials for network device discovery and management. Supports SNMP, Docker proxy, and other credential types.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::DiscoveryAndDaemons
+        EntityCategory::Platform
     }
 
     fn site_id(&self) -> Option<Uuid> {

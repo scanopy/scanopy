@@ -5,6 +5,7 @@ import subnetTypesJson from '$lib/data/subnet-types.json';
 import edgeTypesJson from '$lib/data/edge-types.json';
 import dependencyTypesJson from '$lib/data/dependency-types.json';
 import entitiesJson from '$lib/data/entities.json';
+import entityCategoriesJson from '$lib/data/entity-categories.json';
 import entitySourcesJson from '$lib/data/entity-sources.json';
 import portsJson from '$lib/data/ports.json';
 import discoveryTypesJson from '$lib/data/discovery-types.json';
@@ -109,6 +110,7 @@ export interface MetadataRegistry {
 	edge_types: TypeMetadata[];
 	dependency_types: TypeMetadata[];
 	entities: TypeMetadata[];
+	entity_categories: TypeMetadata[];
 	entity_sources: TypeMetadata[];
 	ports: TypeMetadata[];
 	discovery_types: TypeMetadata[];
@@ -290,6 +292,7 @@ export const metadata = writable<MetadataRegistry>({
 	edge_types: edgeTypesJson,
 	dependency_types: dependencyTypesJson,
 	entities: entitiesJson,
+	entity_categories: entityCategoriesJson,
 	entity_sources: entitySourcesJson,
 	ports: portsJson,
 	discovery_types: discoveryTypesJson,
@@ -498,6 +501,10 @@ interface EntityTypeMetadata {
 	entity_name_plural?: string;
 }
 export const entities = createTypeMetadataHelpers<'entities', EntityTypeMetadata>('entities');
+/** The parts of the product entities belong to, in display order: the sidebar's sections. */
+export const entityCategories = createTypeMetadataHelpers<'entity_categories', object>(
+	'entity_categories'
+);
 /** How an entity came to exist, keyed by `source.type`. */
 export const entitySources = createTypeMetadataHelpers<'entity_sources', object>('entity_sources');
 /**

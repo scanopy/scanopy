@@ -187,7 +187,7 @@ impl Entity for Discovery {
     const ENTITY_DESCRIPTION: &'static str = "Network discovery operations. Trigger and monitor scans that detect hosts, services, and network topology.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::DiscoveryAndDaemons
+        EntityCategory::Discover
     }
 
     fn preserve_immutable_fields(&mut self, existing: &Self) {

@@ -216,7 +216,7 @@ impl Entity for Daemon {
         "Daemons are scanning agents that connect to the server to perform network discovery.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::DiscoveryAndDaemons
+        EntityCategory::Discover
     }
 
     fn site_id(&self) -> Option<Uuid> {

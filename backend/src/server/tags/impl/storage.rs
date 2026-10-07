@@ -239,7 +239,7 @@ impl Entity for Tag {
         "Custom tags for categorization. Apply labels to entities for filtering and organization.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::Metadata
+        EntityCategory::Platform
     }
 
     fn site_id(&self) -> Option<Uuid> {

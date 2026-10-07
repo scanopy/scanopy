@@ -175,7 +175,7 @@ impl Entity for UserApiKey {
     const ENTITY_DESCRIPTION: &'static str = "User API keys for programmatic access. Create and manage personal API keys with scoped permissions.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::OrganizationsAndUsers
+        EntityCategory::Platform
     }
 
     fn site_id(&self) -> Option<Uuid> {

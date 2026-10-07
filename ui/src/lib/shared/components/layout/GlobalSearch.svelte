@@ -357,9 +357,12 @@
 						: globalSearch_noTaggedResults()}
 				</p>
 			{:else}
-				<p class="text-tertiary px-2 py-1 text-xs tabular-nums">
-					{globalSearch_resultCount({ count: totalResults })}
-				</p>
+				<div class="flex items-baseline justify-between gap-3 px-2 py-1">
+					<span class="text-tertiary text-xs tabular-nums">
+						{globalSearch_resultCount({ count: totalResults })}
+					</span>
+					<SearchHint inline tabCompletes={completion !== null} />
+				</div>
 			{/if}
 
 			{#each groups as group (group.type)}
@@ -368,7 +371,7 @@
 						class="text-tertiary flex items-baseline gap-1.5 px-2 py-1 text-xs font-semibold uppercase tracking-wide"
 					>
 						{groupLabel(group.type)}
-						<span class="font-normal tabular-nums">{group.total}</span>
+						<span class="font-normal tabular-nums">({group.total})</span>
 					</h3>
 					<!-- Hairlines between matches, so each row's tags read as its own. -->
 					<div class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -441,8 +444,4 @@
 			{/each}
 		</div>
 	{/if}
-
-	{#snippet footer()}
-		<SearchHint tabCompletes={completion !== null} />
-	{/snippet}
 </GenericModal>

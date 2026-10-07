@@ -80,6 +80,8 @@ export const COVERED_FIXTURES = [
 	// How an entity came to exist, keyed by its `source.type`. The descriptions are operator-facing
 	// explanations (the Inferred one is the notice on an inferred host), not internal notes.
 	{ file: 'entity-sources.json', key: 'entity_sources', kind: 'typeMetadata' },
+	// The parts of the product entities belong to: the sidebar's section names.
+	{ file: 'entity-categories.json', key: 'entity_categories', kind: 'typeMetadata' },
 	// How confidently discovery matched a service to its definition, keyed by `MatchConfidence`.
 	{ file: 'match-confidences.json', key: 'match_confidences', kind: 'typeMetadata' },
 	// The hypervisor platform a guest runs on, keyed by `virtualization_metadata.type`.

@@ -294,7 +294,7 @@ impl Entity for Organization {
     const ENTITY_DESCRIPTION: &'static str = "Manage organization settings.";
 
     fn entity_category() -> EntityCategory {
-        EntityCategory::OrganizationsAndUsers
+        EntityCategory::Platform
     }
 
     fn site_id(&self) -> Option<Uuid> {

@@ -14117,19 +14117,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-07T02:31:58.258700Z",
+              "created_at": "2026-10-07T02:53:36.062066Z",
               "first_discovery_id": null,
-              "id": "7b68e9e0-7f9c-41be-ab01-95d3e3be9990",
+              "id": "7f7a6521-b9aa-463f-97ae-05b14fd76b9d",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-07T02:31:58.258700Z",
+              "last_seen_at": "2026-10-07T02:53:36.062066Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-07T02:31:58.258700Z",
-              "valid_from": "2026-10-07T02:31:58.258700Z",
+              "updated_at": "2026-10-07T02:53:36.062066Z",
+              "valid_from": "2026-10-07T02:53:36.062066Z",
               "valid_to": null
             }
           },
@@ -15834,19 +15834,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-07T02:31:58.238303Z",
+                      "created_at": "2026-10-07T02:53:36.042282Z",
                       "first_discovery_id": null,
-                      "id": "8e5a2604-bb24-495c-b8cb-5ad5e1cf79bb",
+                      "id": "eed303d4-961c-415e-9a3c-e6bfa07c8474",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-07T02:31:58.238303Z",
+                      "last_seen_at": "2026-10-07T02:53:36.042282Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-07T02:31:58.238303Z",
-                      "valid_from": "2026-10-07T02:31:58.238303Z",
+                      "updated_at": "2026-10-07T02:53:36.042282Z",
+                      "valid_from": "2026-10-07T02:53:36.042282Z",
                       "valid_to": null
                     }
                   ],
@@ -15859,7 +15859,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Network Identities",
+                  "service_definition": "MinIO",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -17185,19 +17185,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-07T02:31:58.254915Z",
+                  "created_at": "2026-10-07T02:53:36.058357Z",
                   "first_discovery_id": null,
-                  "id": "6c9de207-2f6a-4e9c-a296-0a13d9f04c94",
+                  "id": "1b02b35e-5694-4c32-a98c-a2840d20b9c6",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-07T02:31:58.254915Z",
+                  "last_seen_at": "2026-10-07T02:53:36.058357Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-07T02:31:58.254915Z",
-                  "valid_from": "2026-10-07T02:31:58.254915Z",
+                  "updated_at": "2026-10-07T02:53:36.058357Z",
+                  "valid_from": "2026-10-07T02:53:36.058357Z",
                   "valid_to": null
                 }
               ],
@@ -17210,7 +17210,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Network Identities",
+              "service_definition": "MinIO",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -18147,28 +18147,28 @@
                 "propertyNames": {
                   "type": "string",
                   "enum": [
-                    "Organization",
-                    "Invite",
-                    "Share",
                     "Site",
-                    "DaemonApiKey",
-                    "UserApiKey",
-                    "User",
-                    "Tag",
-                    "Discovery",
-                    "Daemon",
+                    "Vlan",
+                    "Subnet",
                     "Host",
                     "Service",
-                    "Port",
-                    "Binding",
                     "IPAddress",
                     "Interface",
+                    "Port",
+                    "Binding",
+                    "Discovery",
+                    "Daemon",
+                    "DaemonApiKey",
+                    "Tag",
+                    "User",
+                    "UserApiKey",
                     "Credential",
-                    "Subnet",
-                    "Vlan",
-                    "Dependency",
+                    "Organization",
+                    "Invite",
                     "Topology",
-                    "Snapshot"
+                    "Snapshot",
+                    "Share",
+                    "Dependency"
                   ]
                 }
               },
@@ -19846,19 +19846,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-07T02:31:58.238754Z",
+          "created_at": "2026-10-07T02:53:36.042716Z",
           "first_discovery_id": null,
-          "id": "72aa8ad0-6209-46ff-915f-ad3c5d783fac",
+          "id": "90dbe8cd-09ac-4533-82a4-f63fcf2f80a1",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-07T02:31:58.238754Z",
+          "last_seen_at": "2026-10-07T02:53:36.042716Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-07T02:31:58.238754Z",
-          "valid_from": "2026-10-07T02:31:58.238754Z",
+          "updated_at": "2026-10-07T02:53:36.042716Z",
+          "valid_from": "2026-10-07T02:53:36.042716Z",
           "valid_to": null
         }
       },
@@ -20624,7 +20624,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Network Identities",
+              "service_definition": "MinIO",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -25588,28 +25588,28 @@
       "EntityDiscriminants": {
         "type": "string",
         "enum": [
-          "Organization",
-          "Invite",
-          "Share",
           "Site",
-          "DaemonApiKey",
-          "UserApiKey",
-          "User",
-          "Tag",
-          "Discovery",
-          "Daemon",
+          "Vlan",
+          "Subnet",
           "Host",
           "Service",
-          "Port",
-          "Binding",
           "IPAddress",
           "Interface",
+          "Port",
+          "Binding",
+          "Discovery",
+          "Daemon",
+          "DaemonApiKey",
+          "Tag",
+          "User",
+          "UserApiKey",
           "Credential",
-          "Subnet",
-          "Vlan",
-          "Dependency",
+          "Organization",
+          "Invite",
           "Topology",
-          "Snapshot"
+          "Snapshot",
+          "Share",
+          "Dependency"
         ]
       },
       "EntityFreshness": {
@@ -27189,19 +27189,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-07T02:31:58.237809Z",
+                  "created_at": "2026-10-07T02:53:36.041802Z",
                   "first_discovery_id": null,
-                  "id": "757bf71d-937d-46da-9672-3355704b8427",
+                  "id": "1980af26-9d3f-475b-bdb8-f0aa9e4b218e",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-07T02:31:58.237809Z",
+                  "last_seen_at": "2026-10-07T02:53:36.041802Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-07T02:31:58.237809Z",
-                  "valid_from": "2026-10-07T02:31:58.237809Z",
+                  "updated_at": "2026-10-07T02:53:36.041802Z",
+                  "valid_from": "2026-10-07T02:53:36.041802Z",
                   "valid_to": null
                 }
               ],
@@ -27214,7 +27214,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Network Identities",
+              "service_definition": "MinIO",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -30983,19 +30983,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-07T02:31:58.230741Z",
+                        "created_at": "2026-10-07T02:53:36.034819Z",
                         "first_discovery_id": null,
-                        "id": "22ac86c8-7d6e-490f-bb69-a9266ef1e325",
+                        "id": "9db95808-635f-432f-a467-68001931dffd",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-07T02:31:58.230741Z",
+                        "last_seen_at": "2026-10-07T02:53:36.034819Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-07T02:31:58.230741Z",
-                        "valid_from": "2026-10-07T02:31:58.230741Z",
+                        "updated_at": "2026-10-07T02:53:36.034819Z",
+                        "valid_from": "2026-10-07T02:53:36.034819Z",
                         "valid_to": null
                       }
                     ],
@@ -31008,7 +31008,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Network Identities",
+                    "service_definition": "MinIO",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -31157,19 +31157,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-07T02:31:58.254240Z",
+                    "created_at": "2026-10-07T02:53:36.057701Z",
                     "first_discovery_id": null,
-                    "id": "347c5bcb-22cd-47f0-bf6b-db6747ed5272",
+                    "id": "8f0d3299-0b39-4017-99db-1c87ba9252ce",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-07T02:31:58.254240Z",
+                    "last_seen_at": "2026-10-07T02:53:36.057701Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-07T02:31:58.254240Z",
-                    "valid_from": "2026-10-07T02:31:58.254240Z",
+                    "updated_at": "2026-10-07T02:53:36.057701Z",
+                    "valid_from": "2026-10-07T02:53:36.057701Z",
                     "valid_to": null
                   }
                 ],
@@ -31182,7 +31182,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Network Identities",
+                "service_definition": "MinIO",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -33594,19 +33594,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-07T02:31:58.238624Z",
+              "created_at": "2026-10-07T02:53:36.042587Z",
               "first_discovery_id": null,
-              "id": "e4840399-378a-41c8-ae7b-874d3c737ac8",
+              "id": "0dded0c4-be84-4d60-8d16-f8a0b4cddbea",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-07T02:31:58.238624Z",
+              "last_seen_at": "2026-10-07T02:53:36.042587Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-07T02:31:58.238624Z",
-              "valid_from": "2026-10-07T02:31:58.238624Z",
+              "updated_at": "2026-10-07T02:53:36.042587Z",
+              "valid_from": "2026-10-07T02:53:36.042587Z",
               "valid_to": null
             }
           ],
@@ -33619,7 +33619,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Network Identities",
+          "service_definition": "MinIO",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -35141,28 +35141,28 @@
             "propertyNames": {
               "type": "string",
               "enum": [
-                "Organization",
-                "Invite",
-                "Share",
                 "Site",
-                "DaemonApiKey",
-                "UserApiKey",
-                "User",
-                "Tag",
-                "Discovery",
-                "Daemon",
+                "Vlan",
+                "Subnet",
                 "Host",
                 "Service",
-                "Port",
-                "Binding",
                 "IPAddress",
                 "Interface",
+                "Port",
+                "Binding",
+                "Discovery",
+                "Daemon",
+                "DaemonApiKey",
+                "Tag",
+                "User",
+                "UserApiKey",
                 "Credential",
-                "Subnet",
-                "Vlan",
-                "Dependency",
+                "Organization",
+                "Invite",
                 "Topology",
-                "Snapshot"
+                "Snapshot",
+                "Share",
+                "Dependency"
               ]
             }
           },
@@ -35341,7 +35341,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "9a2bfc32-7239-44ad-9276-9558137f0b59",
+                  "id": "e7a73628-0b2c-491c-b664-d98362ee740b",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -35351,23 +35351,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "16a7d01f-a796-46e7-b398-dda25de7b2dc",
+                  "id": "a1c63897-51fc-4f19-9bdb-bc2295731f5f",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "95be8d2d-2c18-4c4f-bb65-fb3bb22d3b77",
+                  "id": "edf314f7-3237-4180-985a-311958a2ca87",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "eb7804e9-f4bc-43fc-b2e3-9224187da6af",
+                  "id": "57ec1062-f20b-4034-a0a0-7d0e62fd829e",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "16a7d01f-a796-46e7-b398-dda25de7b2dc",
+                  "id": "a1c63897-51fc-4f19-9bdb-bc2295731f5f",
                   "rule": "ByHost"
                 }
               ]
@@ -35397,19 +35397,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "2a56eb4d-dbfe-44ed-902f-94376287c7b6",
+                "id": "f531404f-f967-44f3-b254-432f8344064b",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "f2e0641a-4552-4bf2-949f-146406a112b7",
+                "id": "6d968b59-ed1d-4dab-ba71-36906b392118",
                 "rule": "ByVLAN"
               },
               {
-                "id": "a29f4003-d20c-4531-99aa-555d75d9cc50",
+                "id": "b91e9ef3-0ce0-4af6-bd56-c619cf8aea4a",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "8784119e-1532-4d69-aa78-a4cf52f98aa5",
+                "id": "93149aec-b740-4829-91d0-84f69531f71b",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -35428,7 +35428,7 @@
                 }
               },
               {
-                "id": "1dd5dcf0-8391-45a1-80c5-61d46c5a155b",
+                "id": "6f19d18d-a46a-4ae2-884f-000bee98fb35",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -35437,15 +35437,15 @@
                 }
               },
               {
-                "id": "371a00d7-b5e1-4a88-b1c0-502472937ca4",
+                "id": "de13d707-c2ea-47dd-a2e9-18dd657542d1",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "8febbeba-52e0-4845-b227-e7efbc8342a1",
+                "id": "ed9894b7-64e4-4bb5-8462-19d229831ad4",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "a0329827-d62e-45a3-a45d-047a8e970d5e",
+                "id": "d9e654ea-79fc-4741-9646-f1e80f0a1a3c",
                 "rule": "ByStack"
               }
             ]
@@ -35552,28 +35552,28 @@
               "propertyNames": {
                 "type": "string",
                 "enum": [
-                  "Organization",
-                  "Invite",
-                  "Share",
                   "Site",
-                  "DaemonApiKey",
-                  "UserApiKey",
-                  "User",
-                  "Tag",
-                  "Discovery",
-                  "Daemon",
+                  "Vlan",
+                  "Subnet",
                   "Host",
                   "Service",
-                  "Port",
-                  "Binding",
                   "IPAddress",
                   "Interface",
+                  "Port",
+                  "Binding",
+                  "Discovery",
+                  "Daemon",
+                  "DaemonApiKey",
+                  "Tag",
+                  "User",
+                  "UserApiKey",
                   "Credential",
-                  "Subnet",
-                  "Vlan",
-                  "Dependency",
+                  "Organization",
+                  "Invite",
                   "Topology",
-                  "Snapshot"
+                  "Snapshot",
+                  "Share",
+                  "Dependency"
                 ]
               }
             },
@@ -36295,28 +36295,28 @@
             "propertyNames": {
               "type": "string",
               "enum": [
-                "Organization",
-                "Invite",
-                "Share",
                 "Site",
-                "DaemonApiKey",
-                "UserApiKey",
-                "User",
-                "Tag",
-                "Discovery",
-                "Daemon",
+                "Vlan",
+                "Subnet",
                 "Host",
                 "Service",
-                "Port",
-                "Binding",
                 "IPAddress",
                 "Interface",
+                "Port",
+                "Binding",
+                "Discovery",
+                "Daemon",
+                "DaemonApiKey",
+                "Tag",
+                "User",
+                "UserApiKey",
                 "Credential",
-                "Subnet",
-                "Vlan",
-                "Dependency",
+                "Organization",
+                "Invite",
                 "Topology",
-                "Snapshot"
+                "Snapshot",
+                "Share",
+                "Dependency"
               ]
             }
           },

@@ -24,6 +24,7 @@ use crate::server::services::r#impl::patterns::ClientProbe;
 use crate::server::shared::attribution::{AttributeMethod, AttributeSourceDiscriminants};
 use crate::server::shared::concepts::Concept;
 use crate::server::shared::entities::EntityDiscriminants;
+use crate::server::shared::entity_metadata::EntityCategory;
 use crate::server::shared::types::entities::EntitySourceDiscriminants;
 use crate::server::shared::types::metadata::{EntityMetadata, MetadataProvider, TypeMetadata};
 use crate::server::subnets::r#impl::types::SubnetType;
@@ -253,6 +254,12 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
         .map(|s| s.to_metadata())
         .collect();
     write_fixture(&entity_sources, output_dir, "entity-sources.json");
+
+    // The parts of the product entities belong to, in display order: the sidebar's sections and
+    // the global search's group order.
+    let entity_categories: Vec<TypeMetadata> =
+        EntityCategory::iter().map(|c| c.to_metadata()).collect();
+    write_fixture(&entity_categories, output_dir, "entity-categories.json");
 
     let concepts: Vec<EntityMetadata> = Concept::iter().map(|e| e.to_metadata()).collect();
     write_fixture(&concepts, output_dir, "concepts.json");
