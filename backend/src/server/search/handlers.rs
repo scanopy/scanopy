@@ -10,7 +10,7 @@ use crate::server::{
 
 use super::{
     scope::{SearchQuery, SearchScope},
-    service::{GLOBAL_SEARCH_LIMIT, global_search},
+    service::{GLOBAL_SEARCH_FIRST_PAGE, GLOBAL_SEARCH_MAX_PAGE, global_search},
     types::{GlobalSearchQuery, GlobalSearchResponse},
 };
 
@@ -24,9 +24,10 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 
 /// Search every entity type
 ///
-/// Returns up to five matches of each entity type the caller can list, on the sites and in the
-/// organization they can access. Each type matches the text against its own fields; tags narrow
-/// every type to entities carrying all of them.
+/// Returns a page of matches of each entity type the caller can list, on the sites and in the
+/// organization they can access, with each type's total. Each type matches the text against its
+/// own fields; tags narrow every type to entities carrying all of them. Name `entity_type` with
+/// `offset` to page through one type.
 #[utoipa::path(
     get,
     path = "",
@@ -44,11 +45,16 @@ async fn search(
 ) -> ApiResult<Json<ApiResponse<GlobalSearchResponse>>> {
     let scope =
         SearchScope::for_entity(&auth.entity).ok_or_else(ApiError::organization_required)?;
-    let query = SearchQuery::new(
+    let limit = query
+        .limit
+        .unwrap_or(GLOBAL_SEARCH_FIRST_PAGE)
+        .clamp(1, GLOBAL_SEARCH_MAX_PAGE);
+    let search = SearchQuery::new(
         query.q.as_deref().unwrap_or_default(),
         query.tag_ids.unwrap_or_default(),
-        GLOBAL_SEARCH_LIMIT,
+        limit,
+        query.offset.unwrap_or_default(),
     );
-    let response = global_search(&state.services, &scope, &query).await?;
+    let response = global_search(&state.services, &scope, &search, query.entity_type).await?;
     Ok(Json(ApiResponse::success(response)))
 }

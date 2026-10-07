@@ -37,7 +37,7 @@ fn scope(
 }
 
 fn query(text: &str, tag_ids: Vec<Uuid>) -> SearchQuery {
-    SearchQuery::new(text, tag_ids, 5)
+    SearchQuery::new(text, tag_ids, 5, 0)
 }
 
 /// Every returned entity's (type, id).
@@ -117,7 +117,7 @@ async fn returns_matches_of_several_types_within_the_callers_sites_and_org() {
         owner.id,
         UserOrgPermissions::Owner,
     );
-    let response = global_search(&services, &caller, &query("lisbon", vec![]))
+    let response = global_search(&services, &caller, &query("lisbon", vec![]), None)
         .await
         .unwrap();
 
@@ -187,7 +187,7 @@ async fn tags_narrow_every_type_to_entities_carrying_all_of_them() {
     let owner = user(&org.id);
     let caller = scope(org.id, vec![net.id], owner.id, UserOrgPermissions::Owner);
 
-    let one_tag = global_search(&services, &caller, &query("", vec![prod.id]))
+    let one_tag = global_search(&services, &caller, &query("", vec![prod.id]), None)
         .await
         .unwrap();
     let mut hosts = ids_of(&one_tag, EntityDiscriminants::Host);
@@ -205,7 +205,7 @@ async fn tags_narrow_every_type_to_entities_carrying_all_of_them() {
         "an untagged entity is never returned for a tag"
     );
 
-    let two_tags = global_search(&services, &caller, &query("", vec![prod.id, pci.id]))
+    let two_tags = global_search(&services, &caller, &query("", vec![prod.id, pci.id]), None)
         .await
         .unwrap();
     assert_eq!(
@@ -214,9 +214,14 @@ async fn tags_narrow_every_type_to_entities_carrying_all_of_them() {
         "two tags return only entities carrying both"
     );
 
-    let tag_and_text = global_search(&services, &caller, &query("Test Service", vec![prod.id]))
-        .await
-        .unwrap();
+    let tag_and_text = global_search(
+        &services,
+        &caller,
+        &query("Test Service", vec![prod.id]),
+        None,
+    )
+    .await
+    .unwrap();
     assert_eq!(
         hits(&tag_and_text),
         vec![(EntityDiscriminants::Service, s.id)],
@@ -260,6 +265,7 @@ async fn users_and_user_api_keys_follow_their_own_list_rules() {
         &services,
         &scope(org.id, vec![net.id], viewer.id, UserOrgPermissions::Viewer),
         &query("lisbon", vec![]),
+        None,
     )
     .await
     .unwrap();
@@ -277,6 +283,7 @@ async fn users_and_user_api_keys_follow_their_own_list_rules() {
         &services,
         &scope(org.id, vec![net.id], admin.id, UserOrgPermissions::Admin),
         &query("lisbon", vec![]),
+        None,
     )
     .await
     .unwrap();
@@ -295,11 +302,78 @@ async fn users_and_user_api_keys_follow_their_own_list_rules() {
 
     let mut through_api_key = scope(org.id, vec![net.id], admin.id, UserOrgPermissions::Admin);
     through_api_key.session_user_id = None;
-    let as_api_key = global_search(&services, &through_api_key, &query("lisbon", vec![]))
+    let as_api_key = global_search(&services, &through_api_key, &query("lisbon", vec![]), None)
         .await
         .unwrap();
     assert!(
         ids_of(&as_api_key, EntityDiscriminants::UserApiKey).is_empty(),
         "an API key caller can't list user API keys, so finds none"
+    );
+}
+
+#[tokio::test]
+async fn a_type_pages_past_its_first_page_without_overlap() {
+    let (storage, services, _container) = test_services().await;
+
+    let org = organization();
+    storage.organizations.create(&org).await.unwrap();
+    let net = site(&org.id);
+    storage.sites.create(&net).await.unwrap();
+
+    let mut created = HashSet::new();
+    for n in 0..7 {
+        let mut sn = subnet(&net.id);
+        sn.base.name = format!("Lisbon floor {n}");
+        storage.subnets.create(&sn).await.unwrap();
+        created.insert(sn.id);
+    }
+
+    let owner = user(&org.id);
+    let caller = scope(org.id, vec![net.id], owner.id, UserOrgPermissions::Owner);
+
+    let first = global_search(&services, &caller, &query("floor", vec![]), None)
+        .await
+        .unwrap();
+    let subnets = first
+        .groups
+        .iter()
+        .find(|group| group.entity_type == EntityDiscriminants::Subnet)
+        .unwrap();
+    assert_eq!(
+        subnets.items.len(),
+        5,
+        "the first page holds five of each type"
+    );
+    assert_eq!(subnets.total_count, 7, "and says how many there are in all");
+
+    let next = global_search(
+        &services,
+        &caller,
+        &SearchQuery::new("floor", vec![], 5, 5),
+        Some(EntityDiscriminants::Subnet),
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        next.groups
+            .iter()
+            .map(|g| g.entity_type)
+            .collect::<Vec<_>>(),
+        vec![EntityDiscriminants::Subnet],
+        "naming a type searches only that type"
+    );
+
+    let first_ids: HashSet<Uuid> = ids_of(&first, EntityDiscriminants::Subnet)
+        .into_iter()
+        .collect();
+    let next_ids: HashSet<Uuid> = ids_of(&next, EntityDiscriminants::Subnet)
+        .into_iter()
+        .collect();
+    assert_eq!(next_ids.len(), 2, "the second page holds the rest");
+    assert!(first_ids.is_disjoint(&next_ids), "pages never overlap");
+    assert_eq!(
+        first_ids.union(&next_ids).copied().collect::<HashSet<_>>(),
+        created,
+        "together the pages return every match"
     );
 }

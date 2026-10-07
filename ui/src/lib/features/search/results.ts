@@ -46,14 +46,18 @@ export function reopenGlobalSearch(state: GlobalSearchState) {
 /** One section of results: every match of one entity type the server returned. */
 export interface SearchGroup<T = unknown> {
 	type: EntityDiscriminants;
+	/** The matches loaded so far: the first page, then any pages "Show more" added. */
 	items: T[];
+	/** Matches of this type in all. */
+	total: number;
 }
 
-/** One row of the flattened list, carrying its section's type so Enter knows what to open. */
-export interface SearchRow<T = unknown> {
-	type: EntityDiscriminants;
-	item: T;
-}
+/**
+ * One row of the flattened list, carrying its section's type so Enter knows what to act on: a
+ * match to open, or the section's "Show more" row with how many matches are not loaded yet.
+ */
+export type SearchRow<T = unknown> =
+	{ type: EntityDiscriminants; item: T } | { type: EntityDiscriminants; more: number };
 
 type GlobalSearchResponse = components['schemas']['GlobalSearchResponse'];
 type SearchHit = components['schemas']['SearchHit'];
@@ -71,13 +75,37 @@ function hitPayload(hit: SearchHit): SearchItem {
 export function responseGroups(response: GlobalSearchResponse): SearchGroup<SearchItem>[] {
 	return response.groups.map((group) => ({
 		type: group.entity_type,
-		items: group.items.map(hitPayload)
+		items: group.items.map(hitPayload),
+		total: group.total_count
 	}));
 }
 
-/** Every row in section order, sections with no matches dropped. */
+/** One type's later page, unwrapped. */
+export function responsePage(response: GlobalSearchResponse): SearchItem[] {
+	return response.groups.flatMap((group) => group.items.map(hitPayload));
+}
+
+/** Each section with the pages "Show more" loaded for its type appended. */
+export function withMorePages<T>(
+	groups: SearchGroup<T>[],
+	more: Partial<Record<EntityDiscriminants, T[]>>
+): SearchGroup<T>[] {
+	return groups.map((group) => ({
+		...group,
+		items: [...group.items, ...(more[group.type] ?? [])]
+	}));
+}
+
+/**
+ * Every row in section order, sections with no matches dropped. A section with matches still to
+ * load ends in a "Show more" row, so the arrows reach it like any match.
+ */
 export function flattenGroups<T>(groups: SearchGroup<T>[]): SearchRow<T>[] {
-	return groups.flatMap((group) => group.items.map((item) => ({ type: group.type, item })));
+	return groups.flatMap((group): SearchRow<T>[] => {
+		const rows: SearchRow<T>[] = group.items.map((item) => ({ type: group.type, item }));
+		const remaining = group.total - group.items.length;
+		return remaining > 0 ? [...rows, { type: group.type, more: remaining }] : rows;
+	});
 }
 
 /**

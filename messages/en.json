@@ -1142,6 +1142,7 @@
 	"globalSearch_openWithShortcut": "Search ({shortcut})",
 	"globalSearch_placeholder": "Search everything on the sites you can access, or type a tag's name",
 	"globalSearch_searchAll": "Search all",
+	"globalSearch_showMore": "Show {count} more",
 	"globalSearch_tabHint": "Tab to filter by this tag",
 	"home_demoEmbedSubtitle": "This is a live demo of Scanopy's interactive topology view — you'll have a visual map of your network like this once your first scan completes.",
 	"home_demoEmbedTitle": "Preview: Shareable Network Map",

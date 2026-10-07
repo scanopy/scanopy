@@ -2506,9 +2506,10 @@ export interface paths {
         };
         /**
          * Search every entity type
-         * @description Returns up to five matches of each entity type the caller can list, on the sites and in the
-         *     organization they can access. Each type matches the text against its own fields; tags narrow
-         *     every type to entities carrying all of them.
+         * @description Returns a page of matches of each entity type the caller can list, on the sites and in the
+         *     organization they can access, with each type's total. Each type matches the text against its
+         *     own fields; tags narrow every type to entities carrying all of them. Name `entity_type` with
+         *     `offset` to page through one type.
          */
         get: operations["search"];
         put?: never;
@@ -3553,19 +3554,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-07T02:15:07.972234Z",
+             *       "created_at": "2026-10-07T02:31:58.195878Z",
              *       "first_discovery_id": null,
-             *       "id": "e3a96fa8-0818-44af-a8a0-9e0889be44a6",
+             *       "id": "f46a25e9-07b3-4938-aabc-ee68313360c4",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-07T02:15:07.972234Z",
+             *       "last_seen_at": "2026-10-07T02:31:58.195878Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-10-07T02:15:07.972234Z",
-             *       "valid_from": "2026-10-07T02:15:07.972234Z",
+             *       "updated_at": "2026-10-07T02:31:58.195878Z",
+             *       "valid_from": "2026-10-07T02:31:58.195878Z",
              *       "valid_to": null
              *     }
              */
@@ -4417,19 +4418,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-07T02:15:07.943418Z",
+             *               "created_at": "2026-10-07T02:31:58.167183Z",
              *               "first_discovery_id": null,
-             *               "id": "d6deba08-7edd-49a1-b89c-a1eb3ff8161e",
+             *               "id": "465a3a9f-f9df-42bf-bc8e-adb773af91bd",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-07T02:15:07.943418Z",
+             *               "last_seen_at": "2026-10-07T02:31:58.167183Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-10-07T02:15:07.943418Z",
-             *               "valid_from": "2026-10-07T02:15:07.943418Z",
+             *               "updated_at": "2026-10-07T02:31:58.167183Z",
+             *               "valid_from": "2026-10-07T02:31:58.167183Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4442,7 +4443,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "MongoDB",
+             *           "service_definition": "Network Identities",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -5348,19 +5349,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-07T02:15:07.967529Z",
+             *           "created_at": "2026-10-07T02:31:58.191297Z",
              *           "first_discovery_id": null,
-             *           "id": "5ee8a8c0-896f-4c6a-8858-3bcd3c84ce90",
+             *           "id": "ed92869c-6016-4ef5-8eab-631bcb498f13",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-07T02:15:07.967529Z",
+             *           "last_seen_at": "2026-10-07T02:31:58.191297Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-10-07T02:15:07.967529Z",
-             *           "valid_from": "2026-10-07T02:15:07.967529Z",
+             *           "updated_at": "2026-10-07T02:31:58.191297Z",
+             *           "valid_from": "2026-10-07T02:31:58.191297Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5373,7 +5374,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "MongoDB",
+             *       "service_definition": "Network Identities",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -6567,19 +6568,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-07T02:15:07.944104Z",
+         *       "created_at": "2026-10-07T02:31:58.167863Z",
          *       "first_discovery_id": null,
-         *       "id": "1655deb1-c637-4cd8-a0be-2b6ea82667ab",
+         *       "id": "7d02e8dc-0e0e-44e2-8f26-7086660ea8a6",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-07T02:15:07.944104Z",
+         *       "last_seen_at": "2026-10-07T02:31:58.167863Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-10-07T02:15:07.944104Z",
-         *       "valid_from": "2026-10-07T02:15:07.944104Z",
+         *       "updated_at": "2026-10-07T02:31:58.167863Z",
+         *       "valid_from": "2026-10-07T02:31:58.167863Z",
          *       "valid_to": null
          *     }
          */
@@ -6926,7 +6927,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "MongoDB",
+         *           "service_definition": "Network Identities",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9162,10 +9163,15 @@ export interface components {
              */
             email: string;
         };
-        /** @description One entity type's matches. */
+        /** @description One page of an entity type's matches. */
         GlobalSearchGroup: {
             entity_type: components["schemas"]["EntityDiscriminants"];
             items: components["schemas"]["SearchHit"][];
+            /**
+             * Format: int64
+             * @description Matches of this type in all, across every page.
+             */
+            total_count: number;
         };
         /** @description Matches grouped by entity type, in registry order. Types with no matches are left out. */
         GlobalSearchResponse: {
@@ -9551,19 +9557,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-07T02:15:07.942661Z",
+         *               "created_at": "2026-10-07T02:31:58.166437Z",
          *               "first_discovery_id": null,
-         *               "id": "085a27fc-a9cf-4007-b3c4-296e950ff5b5",
+         *               "id": "88c854d6-cdd3-4cc7-a46d-d7077509e7dc",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-07T02:15:07.942661Z",
+         *               "last_seen_at": "2026-10-07T02:31:58.166437Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-10-07T02:15:07.942661Z",
-         *               "valid_from": "2026-10-07T02:15:07.942661Z",
+         *               "updated_at": "2026-10-07T02:31:58.166437Z",
+         *               "valid_from": "2026-10-07T02:31:58.166437Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9576,7 +9582,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "MongoDB",
+         *           "service_definition": "Network Identities",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -12708,19 +12714,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-07T02:15:07.943905Z",
+         *           "created_at": "2026-10-07T02:31:58.167668Z",
          *           "first_discovery_id": null,
-         *           "id": "d50d4c70-813d-4137-aed4-6abcb92c680a",
+         *           "id": "498da4f8-8021-4d55-a2a5-d06fc24f09e4",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-07T02:15:07.943905Z",
+         *           "last_seen_at": "2026-10-07T02:31:58.167668Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-10-07T02:15:07.943905Z",
-         *           "valid_from": "2026-10-07T02:15:07.943905Z",
+         *           "updated_at": "2026-10-07T02:31:58.167668Z",
+         *           "valid_from": "2026-10-07T02:31:58.167668Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12733,7 +12739,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "MongoDB",
+         *       "service_definition": "Network Identities",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -13636,7 +13642,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "f2c3d664-5fc1-4e21-a4bd-4928e712e4a9",
+             *           "id": "036c53dc-9625-4c4b-a3ac-2d643b0d1a71",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13646,23 +13652,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "49a20925-4ff0-4650-a64c-f0c1f8a0367d",
+             *           "id": "8da7bd7d-e6bf-48bd-9184-5767f6150c0d",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "a6c7ad61-dcc2-472f-8cee-21fa1e5bc846",
+             *           "id": "cb08709e-e44e-4533-b840-3a4a1acd8ecb",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "8e362861-00bb-4edb-b34b-4cc48f4aa799",
+             *           "id": "50e8f31a-91ce-46ec-aba7-7626ed9873cd",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "49a20925-4ff0-4650-a64c-f0c1f8a0367d",
+             *           "id": "8da7bd7d-e6bf-48bd-9184-5767f6150c0d",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13675,19 +13681,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "161dd33b-3626-4682-a797-a72809395e40",
+             *         "id": "944bae43-3fa2-4e1d-b3fe-1fbff1cc0eb2",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "ebbab091-1ee5-4082-82d4-b2731dd2d327",
+             *         "id": "05ce4757-d26a-4328-9dd2-4ddb7c754072",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "7efe379a-961f-456d-8830-ce84b6d1fa5d",
+             *         "id": "d7579675-48c9-4b2a-9b7a-a4f7ddc2402a",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "d3a253c4-9147-4f8b-a4da-b238f91cd135",
+             *         "id": "3baa3b04-14da-4f58-b66a-44dbc05a1fb3",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13706,7 +13712,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "44ddeb27-b2db-4d7e-8b17-0b45b6890965",
+             *         "id": "e5091275-8e5f-43c5-a447-6a12ef78e6f5",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13715,15 +13721,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "f0b71be4-71c7-4318-9d4b-bc0bcca5f333",
+             *         "id": "d499d103-924b-4c87-8fb8-2b71b5050c66",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "e34e229b-e47e-436f-b318-e519d106fa73",
+             *         "id": "e767536c-dc9a-4ce0-a8f9-a31a5cdf560a",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "1dbff318-aeeb-4485-bed9-1e46ceb43fc6",
+             *         "id": "b162dfc9-1908-4b29-a0e3-298b5f63dcc0",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -20185,6 +20191,12 @@ export interface operations {
                 q?: string | null;
                 /** @description Only entities carrying every one of these tags. Repeat for several. */
                 tag_ids?: string[] | null;
+                /** @description Search only this entity type, for its later pages. Omit for the first page of every type. */
+                entity_type?: null | components["schemas"]["EntityDiscriminants"];
+                /** @description Matches per type (1-50, default 5). */
+                limit?: number | null;
+                /** @description Matches to skip in each type. */
+                offset?: number | null;
             };
             header?: never;
             path?: never;
