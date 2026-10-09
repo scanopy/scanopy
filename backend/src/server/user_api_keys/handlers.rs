@@ -170,25 +170,38 @@ pub async fn create_user_api_key(
             ApiError::internal_error(&e.to_string())
         })?;
 
-    // Emit FirstUserApiKeyCreated telemetry event if this is the first user API key
-    let organization = state
-        .services
-        .organization_service
-        .get_by_id(&organization_id)
-        .await?;
+    // The key is already persisted and its plaintext can only be returned once. Do not make that
+    // response depend on the onboarding event's database/analytics subscribers: a slow or failed
+    // subscriber must not turn a successful create into a timeout that strands an unusable key.
+    let organization_service = state.services.organization_service.clone();
+    let event_bus = service.event_bus().clone();
+    tokio::spawn(async move {
+        let result = async {
+            let organization = organization_service.get_by_id(&organization_id).await?;
+            if let Some(organization) = organization
+                && organization
+                    .not_onboarded(&OnboardingOperationDiscriminants::FirstUserApiKeyCreated)
+            {
+                event_bus
+                    .publish(Event::new(
+                        OrgScope { organization_id },
+                        OnboardingOperation::FirstUserApiKeyCreated,
+                        entity,
+                    ))
+                    .await?;
+            }
+            Ok::<(), anyhow::Error>(())
+        }
+        .await;
 
-    if let Some(organization) = organization
-        && organization.not_onboarded(&OnboardingOperationDiscriminants::FirstUserApiKeyCreated)
-    {
-        service
-            .event_bus()
-            .publish(Event::new(
-                OrgScope { organization_id },
-                OnboardingOperation::FirstUserApiKeyCreated,
-                entity,
-            ))
-            .await?;
-    }
+        if let Err(error) = result {
+            tracing::warn!(
+                organization_id = %organization_id,
+                error = %error,
+                "Failed to emit first user API key onboarding event"
+            );
+        }
+    });
 
     Ok(Json(ApiResponse::success(UserApiKeyResponse {
         key: plaintext,
