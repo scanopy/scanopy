@@ -101,6 +101,9 @@ const TIMEOUT_OVERRIDES: {
 	{ method: 'POST', path: '/api/v1/discovery/{session_id}/cancel', timeoutMs: 60_000 },
 	{ method: 'POST', path: '/api/v1/daemons/test-reachability', timeoutMs: 60_000 },
 	{ method: 'POST', path: '/api/v1/daemons/provision', timeoutMs: 120_000 },
+	// These return a newly minted secret once; give a loaded self-hosted server more time to reply.
+	{ method: 'POST', path: '/api/v1/auth/keys', timeoutMs: 120_000 },
+	{ method: 'POST', path: '/api/v1/auth/keys/{id}/rotate', timeoutMs: 120_000 },
 	// Sends an email over the organisation's mail server.
 	{ method: 'POST', path: '/api/v1/daemons/email-install-command', timeoutMs: 120_000 },
 	{ method: 'POST', path: '/api/v1/subnets/{id}/merge', timeoutMs: 120_000 },
