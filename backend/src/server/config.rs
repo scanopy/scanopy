@@ -268,9 +268,12 @@ pub struct ServerConfig {
     pub stripe_webhook_secret: Option<String>,
     pub posthog_key: Option<String>,
 
-    // Testing
+    /// Enforce plan limits on a self-hosted server, from
+    /// `SCANOPY_ENFORCE_PLAN_LIMITS_FOR_TESTING` (or the older
+    /// `SCANOPY_ENFORCE_BILLING_FOR_TESTING`). The integration stack sets it so
+    /// the billing middleware runs; the server stays self-hosted otherwise.
     #[serde(default)]
-    pub enforce_billing_for_testing: bool,
+    pub enforce_plan_limits_for_testing: bool,
 
     // Metrics
     pub metrics_token: Option<String>,
@@ -338,6 +341,19 @@ impl DeploymentType {
     pub fn is_self_hosted(&self) -> bool {
         !matches!(self, DeploymentType::Cloud)
     }
+
+    /// Whether users accept the terms at sign-up and again when they change.
+    /// Only Scanopy Cloud collects acceptance; a self-hosted server has
+    /// nothing to gate on.
+    pub fn requires_terms_acceptance(&self) -> bool {
+        *self == DeploymentType::Cloud
+    }
+
+    /// Whether the license plan's `included_orgs` caps how many orgs can be
+    /// created. Cloud is multi-tenant and never caps.
+    pub fn caps_orgs_by_license(&self) -> bool {
+        self.is_self_hosted()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -350,8 +366,6 @@ pub struct PublicConfigResponse {
     pub disable_password_login: bool,
     /// Identity providers available on the login screen.
     pub oidc_providers: Vec<OidcProviderMetadata>,
-    /// Whether this deployment has billing configured.
-    pub billing_enabled: bool,
     /// Stripe publishable key, exposed so the frontend can mount Stripe
     /// Elements (Payment Element) for in-app card collection. `None` when
     /// billing isn't configured. Publishable keys are safe to expose to the
@@ -468,7 +482,7 @@ impl Default for ServerConfig {
             client_ip_source: None,
             oidc_providers: None,
             posthog_key: None,
-            enforce_billing_for_testing: false,
+            enforce_plan_limits_for_testing: false,
             metrics_token: None,
             external_service_allowed_ips: HashMap::new(),
             license_key: None,
@@ -483,10 +497,10 @@ impl Default for ServerConfig {
 }
 
 impl ServerConfig {
-    /// Whether billing is enforced: a Stripe secret is configured (the cloud),
-    /// or a test turned it on.
-    pub fn billing_enabled(&self) -> bool {
-        self.stripe_secret.is_some() || self.enforce_billing_for_testing
+    /// Whether the billing middleware enforces plan limits: always on cloud,
+    /// and on a self-hosted server that turned it on for testing.
+    pub fn enforces_plan_limits(&self) -> bool {
+        get_deployment_type(self) == DeploymentType::Cloud || self.enforce_plan_limits_for_testing
     }
 
     pub fn load(cli_args: ServerCli) -> anyhow::Result<Self> {
@@ -495,7 +509,17 @@ impl ServerConfig {
         // Standard configuration layering: Defaults → Env → CLI (highest priority)
         let mut figment = Figment::from(Serialized::defaults(ServerConfig::default()))
             .merge(Toml::file("../oidc.toml"))
-            .merge(Env::prefixed(ENV_PREFIX));
+            .merge(
+                Env::prefixed(ENV_PREFIX)
+                    // Test stacks written before the rename set SCANOPY_ENFORCE_BILLING_FOR_TESTING.
+                    .map(|key| {
+                        if key == "enforce_billing_for_testing" {
+                            "enforce_plan_limits_for_testing".into()
+                        } else {
+                            key.into()
+                        }
+                    }),
+            );
 
         // Add CLI overrides (highest priority) - only if explicitly provided
         if let Some(server_port) = cli_args.server_port {
@@ -722,11 +746,11 @@ impl ServerConfig {
     }
 
     /// The license key that actually applies, wrapped as a [`LicenseKey`]. On
-    /// cloud (Stripe configured) licensing is irrelevant, so a stray
-    /// `SCANOPY_LICENSE_KEY` is ignored — it must never validate, lock, or
-    /// reconfigure a cloud deployment.
+    /// cloud licensing is irrelevant, so a stray `SCANOPY_LICENSE_KEY` is
+    /// ignored — it must never validate, lock, or reconfigure a cloud
+    /// deployment.
     pub fn effective_license_key(&self) -> Option<LicenseKey> {
-        if self.stripe_secret.is_some() {
+        if get_deployment_type(self) == DeploymentType::Cloud {
             None
         } else {
             self.license_key.clone().map(LicenseKey::new)
@@ -844,11 +868,10 @@ pub async fn get_public_config(
         .as_ref()
         .is_some_and(|s| s.in_grace_period());
 
-    let billing_enabled = state.config.stripe_secret.is_some();
     // Self-hosted only: is the instance at its licensed org cap? Cloud is
     // multi-tenant, and unlimited-org plans (Commercial/Enterprise) never cap.
     // Fails open (false) so a transient DB error doesn't block registration.
-    let org_limit_reached = if billing_enabled {
+    let org_limit_reached = if !deployment_type.caps_orgs_by_license() {
         false
     } else {
         use crate::server::organizations::r#impl::base::Organization;
@@ -884,7 +907,6 @@ pub async fn get_public_config(
             disable_registration: state.config.disable_registration,
             disable_password_login: state.config.disable_password_login,
             oidc_providers,
-            billing_enabled,
             stripe_publishable_key: state.config.stripe_key.clone(),
             discount_save_offer_available: std::env::var("STRIPE_SAVE_OFFER_COUPON_ID").is_ok(),
             has_integrated_daemon: state.config.integrated_daemon_url.is_some(),
@@ -933,7 +955,7 @@ mod tests {
         // Testing only: writes rendered emails, tokens included, to disk.
         "email_log_dir",
         // Testing only.
-        "enforce_billing_for_testing",
+        "enforce_plan_limits_for_testing",
         // Cloud only.
         "license_signing_key",
         // Points license check-ins at a local server for testing.
@@ -1053,5 +1075,75 @@ mod tests {
             "email-smtp.eu-west-1.amazonaws.com",
         );
         assert!(config.aws_region_mismatches().is_empty());
+    }
+}
+
+#[cfg(test)]
+mod deployment_tests {
+    use super::*;
+
+    #[test]
+    fn cloud_ignores_a_configured_license_key() {
+        let self_hosted = ServerConfig {
+            license_key: Some("key".to_string()),
+            ..ServerConfig::default()
+        };
+        assert!(self_hosted.effective_license_key().is_some());
+
+        let cloud = ServerConfig {
+            stripe_secret: Some("sk_test_unused".to_string()),
+            ..self_hosted
+        };
+        assert!(cloud.effective_license_key().is_none());
+    }
+
+    #[test]
+    fn plan_limits_apply_on_cloud_and_on_a_self_hosted_server_that_asks_for_them() {
+        let cloud = ServerConfig {
+            stripe_secret: Some("sk_test_unused".to_string()),
+            ..ServerConfig::default()
+        };
+        let testing = ServerConfig {
+            enforce_plan_limits_for_testing: true,
+            ..ServerConfig::default()
+        };
+        assert!(cloud.enforces_plan_limits());
+        assert!(testing.enforces_plan_limits());
+        assert!(!ServerConfig::default().enforces_plan_limits());
+
+        // The testing flag enforces limits without making the server cloud.
+        assert_eq!(get_deployment_type(&testing), DeploymentType::Community);
+    }
+
+    /// Test stacks set `SCANOPY_ENFORCE_PLAN_LIMITS_FOR_TESTING`, and ones written before the
+    /// rename set `SCANOPY_ENFORCE_BILLING_FOR_TESTING`; either turns the flag on.
+    #[test]
+    #[serial_test::serial]
+    fn either_env_name_enforces_plan_limits() {
+        for name in [
+            "SCANOPY_ENFORCE_PLAN_LIMITS_FOR_TESTING",
+            "SCANOPY_ENFORCE_BILLING_FOR_TESTING",
+        ] {
+            let original = std::env::var(name).ok();
+            // SAFETY: This test runs serially and restores the original value after
+            unsafe { std::env::set_var(name, "true") };
+
+            let config = ServerConfig::load(ServerCli::parse_from(["scanopy-server"]));
+
+            // SAFETY: This test runs serially
+            unsafe {
+                match original {
+                    Some(val) => std::env::set_var(name, val),
+                    None => std::env::remove_var(name),
+                }
+            }
+
+            assert!(
+                config
+                    .expect("config loads")
+                    .enforce_plan_limits_for_testing,
+                "{name} did not set the flag"
+            );
+        }
     }
 }

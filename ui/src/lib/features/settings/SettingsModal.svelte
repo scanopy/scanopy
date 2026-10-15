@@ -14,7 +14,11 @@
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { hasLicensedPlan } from '$lib/features/organizations/types';
-	import { isLicenseSigningAvailable, useConfigQuery } from '$lib/shared/stores/config-query';
+	import {
+		isCloud,
+		isLicenseSigningAvailable,
+		useConfigQuery
+	} from '$lib/shared/stores/config-query';
 	import { billingPlans } from '$lib/shared/stores/metadata';
 	import { licenseTabVisible } from './license-tab';
 	import { isMissingPaymentMethod } from '$lib/shared/utils/trial';
@@ -70,7 +74,7 @@
 
 	const configQuery = useConfigQuery();
 	let isOwner = $derived(currentUser?.permissions === 'Owner');
-	let isBillingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
+	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
 	let isDemoOrg = $derived(billingPlans.getMetadata(org?.plan?.type ?? null).is_demo === true);
 	// No signing key means the mint endpoints fail, so the tab would only produce
 	// an error toast.
@@ -85,12 +89,12 @@
 	// stale on a deployment with billing switched off. The tab itself is hidden
 	// there, and the dot follows it.
 	let billingNeedsAttention = $derived(
-		isBillingEnabled &&
+		isCloudDeployment &&
 			(!org?.plan ||
 				org?.plan_status === 'past_due' ||
 				org?.plan_status === 'paused' ||
 				org?.plan_status === 'cancelled' ||
-				isMissingPaymentMethod(org, isBillingEnabled))
+				isMissingPaymentMethod(org, isCloudDeployment))
 	);
 
 	// Tab and sub-view state
@@ -118,12 +122,12 @@
 	let visibleTabs = $derived(
 		baseTabs.filter((tab) => {
 			if (tab.id === 'organization') return isOwner;
-			if (tab.id === 'billing') return isOwner && isBillingEnabled;
+			if (tab.id === 'billing') return isOwner && isCloudDeployment;
 			if (tab.id === 'license')
 				return licenseTabVisible({
 					isOwner,
 					isDemoOrg,
-					billingEnabled: isBillingEnabled,
+					isCloudDeployment,
 					signingAvailable: isLicenseSigningOn,
 					hasLicensedPlan: org != null && hasLicensedPlan(org),
 					licensedPlanPending

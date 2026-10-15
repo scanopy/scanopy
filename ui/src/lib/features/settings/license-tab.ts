@@ -6,8 +6,8 @@
  * - `isOwner`: license keys and the card behind them are owner-only.
  * - `isDemoOrg`: a demo org never holds a license. Its owner can still open the
  *   plan picker, so the pending window below needs this gate too.
- * - `billingEnabled`: with billing off the server sells no licenses through
- *   Stripe (a self-hosted instance), so there is nothing to show.
+ * - `isCloudDeployment`: only Scanopy Cloud sells licenses through Stripe; a
+ *   self-hosted server has nothing to show.
  * - `signingAvailable`: no signing key means the mint endpoints fail, so the tab
  *   would only produce an error toast.
  * - `licensedPlanPending`: covers the gap between picking a licensed plan and the
@@ -18,7 +18,7 @@
 export function licenseTabVisible(s: {
 	isOwner: boolean;
 	isDemoOrg: boolean;
-	billingEnabled: boolean;
+	isCloudDeployment: boolean;
 	signingAvailable: boolean;
 	hasLicensedPlan: boolean;
 	licensedPlanPending: boolean;
@@ -26,7 +26,7 @@ export function licenseTabVisible(s: {
 	return (
 		s.isOwner &&
 		!s.isDemoOrg &&
-		s.billingEnabled &&
+		s.isCloudDeployment &&
 		s.signingAvailable &&
 		(s.licensedPlanPending || s.hasLicensedPlan)
 	);

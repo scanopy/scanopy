@@ -10,7 +10,7 @@
 		isMissingPaymentMethod
 	} from '$lib/shared/utils/trial';
 	import { trackOncePerSession } from '$lib/shared/utils/analytics';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
+	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
 	import {
 		billing_addPaymentMethod,
 		billing_noPaymentMethodBannerBody
@@ -20,7 +20,7 @@
 	const configQuery = useConfigQuery();
 
 	let org = $derived(organizationQuery.data);
-	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
+	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
 	let trialDaysLeft = $derived(getTrialDaysLeft(org));
 
 	// `isMissingPaymentMethod` is the shared predicate (Stripe-managed plan that
@@ -31,10 +31,10 @@
 	// the Billing tab's primary action, so this would talk it out of that.
 	const hasPendingQuote = useHasPendingQuote();
 	let shouldShow = $derived(
-		isMissingPaymentMethod(org, billingEnabled) &&
+		isMissingPaymentMethod(org, isCloudDeployment) &&
 			!hasPendingQuote.current &&
 			!(
-				isTrialingWithoutPayment(org, billingEnabled) &&
+				isTrialingWithoutPayment(org, isCloudDeployment) &&
 				trialDaysLeft !== null &&
 				trialDaysLeft <= 3
 			)

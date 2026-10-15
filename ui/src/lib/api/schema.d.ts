@@ -5537,8 +5537,6 @@ export interface components {
             /** @description The result payload. Omitted on failure. */
             data?: {
                 available_upgrade?: null | components["schemas"]["AvailableUpgrade"];
-                /** @description Whether this deployment has billing configured. */
-                billing_enabled: boolean;
                 /** @description How this instance is run: cloud, commercial self-hosted, or community. */
                 deployment_type: components["schemas"]["DeploymentType"];
                 /** @description Whether email/password login is turned off, leaving OIDC as the only method. */
@@ -13129,8 +13127,6 @@ export interface components {
         };
         PublicConfigResponse: {
             available_upgrade?: null | components["schemas"]["AvailableUpgrade"];
-            /** @description Whether this deployment has billing configured. */
-            billing_enabled: boolean;
             /** @description How this instance is run: cloud, commercial self-hosted, or community. */
             deployment_type: components["schemas"]["DeploymentType"];
             /** @description Whether email/password login is turned off, leaving OIDC as the only method. */

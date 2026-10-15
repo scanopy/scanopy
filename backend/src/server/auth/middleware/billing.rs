@@ -42,10 +42,9 @@ pub async fn require_billing_for_users(
     request: Request<Body>,
     next: Next,
 ) -> Response {
-    // Check if billing is enabled:
-    // - Production: enabled when stripe_secret is configured
-    // - Testing: enabled when enforce_billing_for_testing is true
-    if !state.config.billing_enabled() {
+    // Plan limits apply on cloud, and on a self-hosted server that enforces
+    // them for testing.
+    if !state.config.enforces_plan_limits() {
         return next.run(request).await;
     }
 

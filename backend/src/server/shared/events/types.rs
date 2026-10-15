@@ -616,7 +616,10 @@ impl BillingOperation {
 pub enum OnboardingOperation {
     OrgCreated {
         org_name: String,
-        plan: BillingPlan,
+        /// The plan the org starts on: the license-resolved plan on a self-hosted server. `None` on
+        /// cloud, where an org has no plan until checkout.
+        #[serde(default)]
+        plan: Option<BillingPlan>,
         use_case: UseCase,
         /// The first site requested at signup. `None` for a self-hosted
         /// license buyer and on events recorded before this field existed.

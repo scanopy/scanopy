@@ -14,7 +14,7 @@ export function getTrialDaysLeft(org: Organization | null | undefined): number |
 
 /**
  * True when the org is mid-trial with no card on file, on a deployment that
- * actually bills. `billingEnabled` comes from `/api/config` and is required
+ * actually bills (Scanopy Cloud). `isCloudDeployment` comes from `/api/config` and is required
  * rather than optional: with Stripe unconfigured, `plan_status` and
  * `has_payment_method` are frozen at whatever a previous Stripe-enabled run
  * left behind (both are written only by Stripe webhooks), so acting on them
@@ -22,9 +22,9 @@ export function getTrialDaysLeft(org: Organization | null | undefined): number |
  */
 export function isTrialingWithoutPayment(
 	org: Organization | null | undefined,
-	billingEnabled: boolean
+	isCloudDeployment: boolean
 ): boolean {
-	return billingEnabled && org?.plan_status === 'trialing' && !canPay(org);
+	return isCloudDeployment && org?.plan_status === 'trialing' && !canPay(org);
 }
 
 /**
@@ -48,9 +48,9 @@ export function canPay(org: Organization | null | undefined): boolean {
  */
 export function isMissingPaymentMethod(
 	org: Organization | null | undefined,
-	billingEnabled: boolean
+	isCloudDeployment: boolean
 ): boolean {
-	if (!org || !billingEnabled) return false;
+	if (!org || !isCloudDeployment) return false;
 	const meta = billingPlans.getMetadata(org.plan?.type ?? null);
 	return (
 		meta.is_stripe_managed === true &&

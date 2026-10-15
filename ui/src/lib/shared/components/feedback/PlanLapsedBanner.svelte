@@ -5,7 +5,7 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { isPlanLapsed } from '$lib/features/organizations/types';
 	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
+	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
 	import { openModal } from '$lib/shared/stores/modal-registry';
 	import {
 		billing_lapsedBannerAskOwner,
@@ -22,9 +22,9 @@
 	const configQuery = useConfigQuery();
 
 	let org = $derived(organizationQuery.data);
-	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
+	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
 	let isOwner = $derived(currentUserQuery.data?.permissions === 'Owner');
-	let shouldShow = $derived(billingEnabled && org != null && isPlanLapsed(org));
+	let shouldShow = $derived(isCloudDeployment && org != null && isPlanLapsed(org));
 	let body = $derived(
 		`${billing_lapsedBannerBody({ plan: billingPlans.getName(org?.plan?.type ?? null) })}${
 			isOwner ? '' : ` ${billing_lapsedBannerAskOwner()}`

@@ -58,7 +58,7 @@ services:
       - SCANOPY_LOG_LEVEL=debug
       - CAPTURE_COMPAT_FIXTURES=${CAPTURE_COMPAT_FIXTURES:-false}
       - SCANOPY_INTEGRATED_DAEMON_URL=http://daemon:60073
-      - SCANOPY_ENFORCE_BILLING_FOR_TESTING=true
+      - SCANOPY_ENFORCE_PLAN_LIMITS_FOR_TESTING=true
     volumes:
       - ./backend:/app
       - data-volume:/data

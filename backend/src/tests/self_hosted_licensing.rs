@@ -55,13 +55,34 @@ async fn test_state() -> (Arc<AppState>, ContainerAsync<GenericImage>) {
 pub(super) async fn test_state_with_email_dir(
     email_log_dir: Option<PathBuf>,
 ) -> (Arc<AppState>, ContainerAsync<GenericImage>) {
+    test_state_from(ServerConfig {
+        enforce_plan_limits_for_testing: true,
+        email_log_dir,
+        ..ServerConfig::default()
+    })
+    .await
+}
+
+/// App state for Scanopy Cloud on a fresh database. A Stripe secret alone makes
+/// the deployment cloud; with no webhook secret no billing service is built, so
+/// nothing reaches Stripe.
+pub(super) async fn cloud_test_state() -> (Arc<AppState>, ContainerAsync<GenericImage>) {
+    test_state_from(ServerConfig {
+        stripe_secret: Some("sk_test_unused".to_string()),
+        ..ServerConfig::default()
+    })
+    .await
+}
+
+/// App state on a fresh database from `config`, signing with the test key.
+pub(super) async fn test_state_from(
+    config: ServerConfig,
+) -> (Arc<AppState>, ContainerAsync<GenericImage>) {
     let (pool, database_url, container) = setup_test_db().await;
     pool.close().await;
     let config = ServerConfig {
         database_url,
-        enforce_billing_for_testing: true,
-        email_log_dir,
-        ..ServerConfig::default()
+        ..config
     };
     let mut state = Arc::try_unwrap(AppState::new(config).await.unwrap())
         .ok()

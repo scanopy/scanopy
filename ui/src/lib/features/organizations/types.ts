@@ -40,7 +40,7 @@ export function isPlanLapsed(organization: Organization): boolean {
 
 /**
  * The org is on a licensed self-hosted plan (SelfHostedStandard / SelfHostedPlus).
- * On a billing-enabled server these orgs get license keys, not the main app.
+ * On Scanopy Cloud these orgs get license keys, not the main app.
  */
 export function hasLicensedPlan(organization: Organization): boolean {
 	const type = organization.plan?.type;
@@ -50,14 +50,14 @@ export function hasLicensedPlan(organization: Organization): boolean {
 
 /**
  * The org is locked out of this app: it holds a licensed self-hosted plan on a
- * billing-enabled (cloud) server, so it runs Scanopy on its own server and gets
+ * cloud server, so it runs Scanopy on its own server and gets
  * only Settings here. Mirrors `EmailService::self_hosted_plan_locked`.
  */
 export function isSelfHostedPlanLocked(
 	organization: Organization | null | undefined,
-	billingEnabled: boolean
+	isCloudDeployment: boolean
 ): boolean {
-	return billingEnabled && organization != null && hasLicensedPlan(organization);
+	return isCloudDeployment && organization != null && hasLicensedPlan(organization);
 }
 
 /**

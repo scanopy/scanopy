@@ -1,7 +1,7 @@
 use super::{Body, Content, Email, EmailCategory, links};
 
 const COMMERCIAL_DOCS_URL: &str =
-    "https://scanopy.net/docs/self-hosted-server/commercial-deployment/";
+    "https://scanopy.net/docs/self-hosted-server/installation/?edition=commercial";
 const BOOK_DEMO_URL: &str = "https://cal.com/mferrandiz/scanopy-demo";
 
 /// Sent when an organization moves onto a self-hosted plan: says where the

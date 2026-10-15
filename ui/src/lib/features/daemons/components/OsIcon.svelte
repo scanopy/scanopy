@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { DaemonOS } from '../utils';
-	import { common_linux } from '$lib/paraglide/messages';
+	import { common_linux, common_windows } from '$lib/paraglide/messages';
 
 	interface Props {
 		os: DaemonOS;
@@ -13,18 +13,15 @@
 </script>
 
 {#if os === 'windows'}
-	<svg
-		viewBox="0 0 24 24"
+	<!-- Windows logo: Microsoft, Wikimedia Commons "Windows_logo_-_2021.svg", public domain. Simple
+	     Icons dropped Microsoft's marks in v13. Credited in Settings > System. -->
+	<img
+		src="/logos/windows.svg"
+		alt={common_windows()}
 		width={size}
 		height={size}
 		class={className}
-		xmlns="http://www.w3.org/2000/svg"
-	>
-		<rect x="2" y="2" width="9" height="9" fill="#0078D6" />
-		<rect x="13" y="2" width="9" height="9" fill="#0078D6" />
-		<rect x="2" y="13" width="9" height="9" fill="#0078D6" />
-		<rect x="13" y="13" width="9" height="9" fill="#0078D6" />
-	</svg>
+	/>
 {:else if os === 'macos'}
 	<svg
 		viewBox="0 0 24 24"

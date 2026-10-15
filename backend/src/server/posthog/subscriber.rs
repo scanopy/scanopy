@@ -45,7 +45,8 @@ const DEMO_ORG_ID: Uuid = uuid::uuid!("0380451f-a50b-41cd-ae76-6ce47214d8ff");
 /// Person properties an event sets when it settles the org's plan.
 #[derive(Serialize)]
 struct PersonProperties<'a> {
-    plan_type: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    plan_type: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     organization_id: Option<Uuid>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -55,7 +56,8 @@ struct PersonProperties<'a> {
 /// Organization group properties an event sets when it settles the org's plan.
 #[derive(Serialize)]
 struct OrgGroupProperties<'a> {
-    plan_type: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    plan_type: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -196,12 +198,12 @@ impl Subscriber<BillingOperation> for PosthogService {
                 continue;
             };
             let person = PersonProperties {
-                plan_type,
+                plan_type: Some(plan_type),
                 organization_id: None,
                 use_case: None,
             };
             let group = OrgGroupProperties {
-                plan_type,
+                plan_type: Some(plan_type),
                 name: None,
                 use_case: None,
                 created_at: None,
@@ -277,14 +279,14 @@ impl Subscriber<OnboardingOperation> for PosthogService {
             {
                 let org_id = event.scope.organization_id;
                 let person = PersonProperties {
-                    plan_type: plan.name(),
+                    plan_type: plan.as_ref().map(|plan| plan.name()),
                     organization_id: Some(org_id),
                     use_case: Some(use_case),
                 };
                 failures.extend(self.identify(&distinct_id, &person).await.err());
 
                 let group = OrgGroupProperties {
-                    plan_type: plan.name(),
+                    plan_type: plan.as_ref().map(|plan| plan.name()),
                     name: Some(org_name),
                     use_case: Some(use_case),
                     created_at: Some(event.timestamp.to_rfc3339()),

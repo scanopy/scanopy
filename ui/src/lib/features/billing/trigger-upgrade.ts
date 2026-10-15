@@ -1,5 +1,5 @@
 import { queryClient, queryKeys } from '$lib/api/query-client';
-import type { PublicServerConfig } from '$lib/shared/stores/config-query';
+import { isCloud, type PublicServerConfig } from '$lib/shared/stores/config-query';
 import { trackEvent } from '$lib/shared/utils/analytics';
 import { openModal } from '$lib/shared/stores/modal-registry';
 import { reopenSettingsAfterBilling } from '$lib/features/billing/stores';
@@ -62,7 +62,7 @@ export interface TriggerUpgradeOptions {
  */
 export function triggerUpgrade(options: TriggerUpgradeOptions): void {
 	const config = queryClient.getQueryData<PublicServerConfig>(queryKeys.config.all);
-	const billingEnabled = config?.billing_enabled ?? false;
+	const cloud = config ? isCloud(config) : false;
 
 	trackEvent('paywall_gate_hit', {
 		feature: options.feature ?? null,
@@ -73,10 +73,10 @@ export function triggerUpgrade(options: TriggerUpgradeOptions): void {
 	trackEvent('upgrade_button_clicked', {
 		feature: options.feature ?? options.source,
 		source: options.source,
-		external: !billingEnabled
+		external: !cloud
 	});
 
-	if (!billingEnabled) {
+	if (!cloud) {
 		options.beforeModal?.();
 		window.open(pricingUrlFor(options.surface), '_blank', 'noopener,noreferrer');
 		return;

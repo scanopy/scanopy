@@ -1,5 +1,6 @@
 use crate::server::{
-    organizations::r#impl::base::UseCase, users::r#impl::permissions::UserOrgPermissions,
+    config::DeploymentType, organizations::r#impl::base::UseCase,
+    users::r#impl::permissions::UserOrgPermissions,
 };
 use chrono::{DateTime, Utc};
 use email_address::EmailAddress;
@@ -44,8 +45,10 @@ pub struct ProvisionUserParams {
     pub site_ids: Vec<Uuid>,
     pub terms_accepted_at: Option<DateTime<Utc>>,
     pub email_verified: bool,
-    /// Whether billing is enabled (if false, sets default billing plan for self-hosted)
-    pub billing_enabled: bool,
+    /// Where this server runs. A self-hosted server gives a new org its
+    /// license plan and caps how many orgs exist; cloud leaves the plan to
+    /// checkout.
+    pub deployment_type: DeploymentType,
 }
 
 /// The first site requested at signup. `provision_user` creates it; it is

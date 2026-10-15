@@ -1,4 +1,4 @@
-# Scanopy Commercial Edition. Deployment guide: https://scanopy.net/docs/self-hosted-server/commercial-deployment/
+# Scanopy Commercial Edition. Deployment guide: https://scanopy.net/docs/self-hosted-server/installation/?edition=commercial
 name: scanopy
 
 services:

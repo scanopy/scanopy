@@ -56,6 +56,7 @@
 		settings_system_timestampsAbsolute,
 		settings_system_timestampsRelative,
 		settings_system_tuxAttribution,
+		settings_system_windowsAttribution,
 		settings_system_version,
 		settings_system_weekStart
 	} from '$lib/paraglide/messages';
@@ -317,6 +318,11 @@
 		<DocsHint
 			text={settings_system_tuxAttribution()}
 			href="https://commons.wikimedia.org/wiki/File:Tux.svg"
+			linkText={common_source()}
+		/>
+		<DocsHint
+			text={settings_system_windowsAttribution()}
+			href="https://commons.wikimedia.org/wiki/File:Windows_logo_-_2021.svg"
 			linkText={common_source()}
 		/>
 		<DocsHint

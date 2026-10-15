@@ -23,7 +23,7 @@
 	} from '$lib/features/organizations/types';
 	import type { Organization } from '$lib/features/organizations/types';
 	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
+	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
 	import { canPay, getTrialDaysLeft, isMissingPaymentMethod } from '$lib/shared/utils/trial';
 	import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
 	import { trackEvent } from '$lib/shared/utils/analytics';
@@ -90,7 +90,7 @@
 	const organizationQuery = useOrganizationQuery();
 	let org = $derived(organizationQuery.data);
 	const configQuery = useConfigQuery();
-	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
+	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
 
 	const createKeyMutation = useCreateLicenseKeyMutation();
 	const rotateMutation = useRotateLicenseKeyMutation();
@@ -139,7 +139,7 @@
 	// air-gapped key at what has been paid for, so while one is outstanding
 	// there is nothing left to mint.
 	const invoiceBillingQuery = useInvoiceBillingStatusQuery(
-		() => billingEnabled && org != null && hasLicensedPlan(org)
+		() => isCloudDeployment && org != null && hasLicensedPlan(org)
 	);
 	let hasOpenInvoice = $derived(invoiceBillingQuery.data?.open_invoice != null);
 	let openInvoiceUrl = $derived(invoiceBillingQuery.data?.open_invoice?.hosted_invoice_url ?? null);
@@ -149,7 +149,7 @@
 	// the org rather than recomputed, so this line cannot disagree with the
 	// server's refusal.
 	let airGappedCurrentUntil = $derived(org?.air_gapped_key_current_until ?? null);
-	let missingCard = $derived(isMissingPaymentMethod(org, billingEnabled));
+	let missingCard = $derived(isMissingPaymentMethod(org, isCloudDeployment));
 	let chargeAmount = $derived(priceToCharge(org));
 
 	// An air-gapped key carries its expiry, so an org running one stays on it until
@@ -293,7 +293,7 @@
 
 	// The way back for an org that decides not to self-host. Opens on the Cloud
 	// plans, where the picker says what happens to the license.
-	let locked = $derived(isSelfHostedPlanLocked(org, billingEnabled));
+	let locked = $derived(isSelfHostedPlanLocked(org, isCloudDeployment));
 	function openCloudPlans() {
 		triggerUpgrade({
 			source: 'settings_license_switch_to_cloud',
@@ -462,7 +462,7 @@
 								<DocsHint
 									class="mt-2"
 									text={settings_billing_license_installHint()}
-									href="https://scanopy.net/docs/self-hosted-server/commercial-deployment/"
+									href="https://scanopy.net/docs/self-hosted-server/installation/?edition=commercial"
 									linkText={settings_billing_license_installLinkText()}
 								/>
 							</div>

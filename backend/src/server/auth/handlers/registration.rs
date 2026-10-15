@@ -82,8 +82,10 @@ pub(crate) async fn register(
         ));
     }
 
+    let deployment_type = get_deployment_type(&state.config);
+
     // Honeypot: hidden field filled = likely bot (cloud only)
-    if get_deployment_type(&state.config) == DeploymentType::Cloud
+    if deployment_type == DeploymentType::Cloud
         && request.website.as_ref().is_some_and(|w| !w.is_empty())
     {
         tracing::warn!(
@@ -105,17 +107,13 @@ pub(crate) async fn register(
         return Ok(Json(ApiResponse::success(fake_user)));
     }
 
-    let billing_enabled = state.config.stripe_secret.is_some();
-
-    if billing_enabled && !request.terms_accepted {
+    if deployment_type.requires_terms_acceptance() && !request.terms_accepted {
         return Err(ApiError::bad_request(
             "Please accept terms and conditions to proceed",
         ));
     }
 
-    if !mailchecker::is_valid(request.email.as_str())
-        && get_deployment_type(&state.config) == DeploymentType::Cloud
-    {
+    if !mailchecker::is_valid(request.email.as_str()) && deployment_type == DeploymentType::Cloud {
         return Err(ApiError::conflict(
             "Email address uses a disposable domain. Please register with a non-disposable email address.",
         ));
@@ -123,7 +121,7 @@ pub(crate) async fn register(
 
     // DNS deliverability gate (cloud only): reject domains that definitively
     // cannot receive mail (no MX/A/AAAA). Transient DNS failures fail open.
-    if get_deployment_type(&state.config) == DeploymentType::Cloud
+    if deployment_type == DeploymentType::Cloud
         && check_email_domain(request.email.domain()).await == DomainCheck::Undeliverable
     {
         return Err(ApiError::coded(
@@ -208,7 +206,7 @@ pub(crate) async fn register(
                 site_ids,
                 invited_as,
             },
-            billing_enabled,
+            deployment_type,
         )
         .await?;
 
@@ -258,8 +256,7 @@ pub(crate) async fn setup(
         ));
     }
 
-    let billing_enabled = state.config.stripe_secret.is_some();
-    let site = validate_setup_site(request.site.as_ref(), billing_enabled)?;
+    let site = validate_setup_site(request.site.as_ref(), get_deployment_type(&state.config))?;
     let site_id = site.as_ref().map(|n| n.site_id);
 
     // Store setup data in session. `use_case` is read fresh from session at
@@ -281,16 +278,15 @@ pub(crate) async fn setup(
 
 /// Validate the requested first site and assign its id.
 ///
-/// The site may be omitted only on cloud (`billing_enabled`), where a
-/// self-hosted license buyer gets one if the org later moves to a cloud plan. A
-/// self-hosted instance has no billing events to create it later, so it always
-/// needs one.
+/// The site may be omitted only on cloud, where a self-hosted license buyer
+/// gets one if the org later moves to a cloud plan. A self-hosted instance has
+/// no billing events to create it later, so it always needs one.
 fn validate_setup_site(
     site: Option<&SiteSetup>,
-    billing_enabled: bool,
+    deployment_type: DeploymentType,
 ) -> Result<Option<PendingSiteSetup>, ApiError> {
     let Some(site) = site else {
-        if billing_enabled {
+        if deployment_type == DeploymentType::Cloud {
             return Ok(None);
         }
         return Err(ApiError::bad_request("Site name cannot be empty"));
@@ -467,18 +463,24 @@ mod tests {
 
     #[test]
     fn only_cloud_signups_may_skip_the_site() {
-        assert!(validate_setup_site(None, true).unwrap().is_none());
-        assert!(validate_setup_site(None, false).is_err());
+        assert!(
+            validate_setup_site(None, DeploymentType::Cloud)
+                .unwrap()
+                .is_none()
+        );
+        assert!(validate_setup_site(None, DeploymentType::Community).is_err());
 
         let blank = SiteSetup {
             name: "  ".to_string(),
         };
-        assert!(validate_setup_site(Some(&blank), true).is_err());
+        assert!(validate_setup_site(Some(&blank), DeploymentType::Cloud).is_err());
 
         let named = SiteSetup {
             name: " Lab ".to_string(),
         };
-        let site = validate_setup_site(Some(&named), false).unwrap().unwrap();
+        let site = validate_setup_site(Some(&named), DeploymentType::Community)
+            .unwrap()
+            .unwrap();
         assert_eq!(site.name, "Lab");
     }
 }

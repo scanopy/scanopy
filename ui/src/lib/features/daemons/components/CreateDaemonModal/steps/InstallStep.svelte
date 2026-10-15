@@ -22,8 +22,7 @@
 		daemons_advancedTooltip,
 		daemons_docsMacvlan,
 		daemons_docsMacvlanLinkText,
-		common_ossign,
-		daemons_docsMsiSigning,
+		// common_ossign and daemons_docsMsiSigning: hidden with the Windows signing note below.
 		daemons_docsMultiVlan,
 		daemons_docsMultiVlanLinkText,
 		daemons_fixValidationErrors,
@@ -439,11 +438,13 @@
 						preventSelect={true}
 					/>
 				{:else if selectedOS === 'windows'}
+					<!-- Hidden until OSSign signing is provisioned in the release workflow (release.yml).
 					<DocsHint
 						text={daemons_docsMsiSigning()}
 						href="https://ossign.org"
 						linkText={common_ossign()}
 					/>
+					-->
 					{#if windowsMethod === 'exe'}
 						<p class="text-secondary text-sm">
 							{daemons_installCommandDescription()}

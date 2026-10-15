@@ -6,7 +6,7 @@
 	import { useHasPendingQuote } from '$lib/features/billing/queries';
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
 	import { getTrialDaysLeft, isTrialingWithoutPayment } from '$lib/shared/utils/trial';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
+	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
 	import { wasDismissedToday, markDismissedToday } from '$lib/shared/utils/dismissed-today';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import {
@@ -31,7 +31,7 @@
 	const configQuery = useConfigQuery();
 
 	let org = $derived(organizationQuery.data);
-	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
+	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
 	let trialDaysLeft = $derived(getTrialDaysLeft(org));
 
 	let dismissedTick = $state(0);
@@ -47,7 +47,7 @@
 	const hasPendingQuote = useHasPendingQuote();
 
 	let isOpen = $derived(
-		isTrialingWithoutPayment(org, billingEnabled) &&
+		isTrialingWithoutPayment(org, isCloudDeployment) &&
 			!hasPendingQuote.current &&
 			trialDaysLeft !== null &&
 			trialDaysLeft <= 1 &&

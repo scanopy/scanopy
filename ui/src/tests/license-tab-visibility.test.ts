@@ -6,7 +6,7 @@ type Flags = Parameters<typeof licenseTabVisible>[0];
 const FLAGS = [
 	'isOwner',
 	'isDemoOrg',
-	'billingEnabled',
+	'isCloudDeployment',
 	'signingAvailable',
 	'hasLicensedPlan',
 	'licensedPlanPending'
@@ -28,7 +28,7 @@ function combinations(fixed: Partial<Flags>): Flags[] {
 const eligible = {
 	isOwner: true,
 	isDemoOrg: false,
-	billingEnabled: true,
+	isCloudDeployment: true,
 	signingAvailable: true
 };
 
@@ -59,9 +59,9 @@ describe('License tab visibility', () => {
 			expect(licenseTabVisible({ ...licensed, licensedPlanPending, signingAvailable: false })).toBe(
 				false
 			);
-			expect(licenseTabVisible({ ...licensed, licensedPlanPending, billingEnabled: false })).toBe(
-				false
-			);
+			expect(
+				licenseTabVisible({ ...licensed, licensedPlanPending, isCloudDeployment: false })
+			).toBe(false);
 		}
 	});
 });

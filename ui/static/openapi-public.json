@@ -17810,7 +17810,6 @@
               "disable_registration",
               "disable_password_login",
               "oidc_providers",
-              "billing_enabled",
               "discount_save_offer_available",
               "has_integrated_daemon",
               "has_email_service",
@@ -17836,10 +17835,6 @@
                     "description": "The newest promoted release, when it is newer than this server. `None`\non cloud, with `SCANOPY_DISABLE_UPDATE_CHECK` set, before the first\ncheck answers, or when this server is current."
                   }
                 ]
-              },
-              "billing_enabled": {
-                "type": "boolean",
-                "description": "Whether this deployment has billing configured."
               },
               "deployment_type": {
                 "$ref": "#/components/schemas/DeploymentType",
@@ -34720,7 +34715,6 @@
           "disable_registration",
           "disable_password_login",
           "oidc_providers",
-          "billing_enabled",
           "discount_save_offer_available",
           "has_integrated_daemon",
           "has_email_service",
@@ -34746,10 +34740,6 @@
                 "description": "The newest promoted release, when it is newer than this server. `None`\non cloud, with `SCANOPY_DISABLE_UPDATE_CHECK` set, before the first\ncheck answers, or when this server is current."
               }
             ]
-          },
-          "billing_enabled": {
-            "type": "boolean",
-            "description": "Whether this deployment has billing configured."
           },
           "deployment_type": {
             "$ref": "#/components/schemas/DeploymentType",

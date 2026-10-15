@@ -16,7 +16,7 @@ use super::base::{Daemon, DaemonMode, DaemonOs};
 use super::version::{installed_by_install_engine, own_version, persists_docker_config};
 use crate::daemon::shared::config::{DOCKER_CONFIG_DIR, DaemonArgs};
 use crate::server::billing::types::base::BillingPlan;
-use crate::server::config::AppState;
+use crate::server::config::{AppState, DeploymentType, get_deployment_type};
 use crate::server::credentials::r#impl::mapping::IntegrationTarget;
 use crate::server::license::service::self_hosted_plan;
 
@@ -78,7 +78,7 @@ impl DownloadSource {
     /// carry the plan its license resolves to (Community without a valid license), so that plan
     /// decides.
     pub async fn for_server(state: &AppState) -> Self {
-        if state.config.billing_enabled() {
+        if get_deployment_type(&state.config) == DeploymentType::Cloud {
             return Self::Scarf;
         }
         (&self_hosted_plan(state.services.license_service.as_deref()).await).into()

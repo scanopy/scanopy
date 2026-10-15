@@ -1,5 +1,6 @@
 use crate::server::auth::r#impl::base::ProvisionOrg;
 use crate::server::billing::types::base::BillingPlan;
+use crate::server::config::DeploymentType;
 use crate::server::license::service::{LicenseService, self_hosted_plan};
 use crate::server::shared::events::types::{
     EmailAndToken, OnboardingOperation, OnboardingOperationDiscriminants,
@@ -153,7 +154,7 @@ impl AuthService {
         &self,
         request: RegisterRequest,
         params: LoginRegisterParams,
-        billing_enabled: bool,
+        deployment_type: DeploymentType,
     ) -> Result<User> {
         let LoginRegisterParams {
             provision_org,
@@ -200,7 +201,7 @@ impl AuthService {
                 permissions,
                 site_ids,
                 terms_accepted_at,
-                billing_enabled,
+                deployment_type,
             })
             .await?;
 
@@ -243,7 +244,7 @@ impl AuthService {
     /// Core user provisioning logic - handles both password and OIDC registration
     /// If pending_setup is provided, uses setup.org_name, marks OrgCreated and
     /// OnboardingModalCompleted, and creates the org's tag groups and requested site
-    /// If billing_enabled is false (self-hosted), sets default billing plan
+    /// On a self-hosted server the new org gets the license plan
     pub async fn provision_user(&self, params: ProvisionUserParams) -> Result<User> {
         let ProvisionUserParams {
             email,
@@ -255,7 +256,7 @@ impl AuthService {
             permissions,
             site_ids,
             terms_accepted_at,
-            billing_enabled,
+            deployment_type,
         } = params;
 
         // Plan at org creation time — surfaced on the OrgCreated onboarding
@@ -272,12 +273,14 @@ impl AuthService {
                 // Self-hosted org count is capped by the licensed plan's
                 // `included_orgs` (Community/Standard/Plus = 1,
                 // Commercial/Enterprise = unlimited). `None` = unlimited = no
-                // cap. Cloud (billing_enabled) stays multi-tenant regardless.
+                // cap. Cloud stays multi-tenant regardless.
                 // Gates creation only — instances already above the cap keep
                 // their orgs. Invited users take the `Existing` arm and are
-                // unaffected. `billing_enabled == false` ⇔ self-hosted.
+                // unaffected.
                 let license_plan = self_hosted_plan(self.license_service.as_deref()).await;
-                if !billing_enabled && let Some(max_orgs) = license_plan.config().included_orgs {
+                if deployment_type.caps_orgs_by_license()
+                    && let Some(max_orgs) = license_plan.config().included_orgs
+                {
                     let org_count = self
                         .organization_service
                         .get_all(StorableFilter::<Organization>::new())
@@ -300,11 +303,7 @@ impl AuthService {
                 // Cloud: no plan until user selects one via billing modal → Stripe checkout → webhook
                 // Self-hosted: assign the license-resolved plan and emit a
                 // CheckoutCompleted event below so the ledger reflects it immediately.
-                let self_hosted_plan = if billing_enabled {
-                    None
-                } else {
-                    Some(license_plan)
-                };
+                let self_hosted_plan = deployment_type.is_self_hosted().then_some(license_plan);
                 new_org_plan = self_hosted_plan;
 
                 // Create new organization for this user
@@ -393,7 +392,6 @@ impl AuthService {
         }) = provision_org
         {
             let authentication: AuthenticatedEntity = user.clone().into();
-            let plan = new_org_plan.unwrap_or_default();
 
             // Every new org gets the system tag groups, cloud or self-hosted. A requested site
             // means a cloud signup: registration provisions the integrated daemon on it next, so
@@ -413,7 +411,7 @@ impl AuthService {
                     OrgScope { organization_id },
                     OnboardingOperation::OrgCreated {
                         org_name,
-                        plan,
+                        plan: new_org_plan,
                         use_case,
                         site,
                     },

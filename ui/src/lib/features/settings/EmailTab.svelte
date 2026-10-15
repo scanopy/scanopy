@@ -8,7 +8,7 @@
 	import type { components } from '$lib/api/schema';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { isSelfHostedPlanLocked } from '$lib/features/organizations/types';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
+	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
 	import { emailCategories } from '$lib/shared/stores/metadata';
 	import {
 		settings_email_digestLabel,
@@ -46,7 +46,10 @@
 	const organizationQuery = useOrganizationQuery();
 	const configQuery = useConfigQuery();
 	let locked = $derived(
-		isSelfHostedPlanLocked(organizationQuery.data, configQuery.data?.billing_enabled ?? false)
+		isSelfHostedPlanLocked(
+			organizationQuery.data,
+			configQuery.data ? isCloud(configQuery.data) : false
+		)
 	);
 
 	// A toggle shows when the cloud app can send its category to this org. Its

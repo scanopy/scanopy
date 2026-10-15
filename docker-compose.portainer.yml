@@ -1,4 +1,4 @@
-# Scanopy Community Edition for Portainer. Install guide: https://scanopy.net/docs/self-hosted-server/server-installation/
+# Scanopy Community Edition for Portainer. Install guide: https://scanopy.net/docs/self-hosted-server/installation/
 # Stack deployed by the Portainer app template (portainer-template.json at the repo root).
 # Derived from the root docker-compose.yml, with the changes Portainer stacks need: named volumes
 # instead of the ./data bind mount, no container_name, and a required database password.

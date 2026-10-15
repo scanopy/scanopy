@@ -11,6 +11,7 @@ use crate::server::{
         middleware::auth::AuthenticatedEntity,
     },
     billing::types::base::BillingPlan,
+    config::DeploymentType,
     organizations::r#impl::base::UseCase,
     services::r#impl::categories::ServiceCategory,
     shared::{
@@ -121,7 +122,7 @@ async fn sign_up(services: &ServiceFactory, site: Option<PendingSiteSetup>) -> U
             site_ids: Vec::new(),
             terms_accepted_at: None,
             email_verified: true,
-            billing_enabled: true,
+            deployment_type: DeploymentType::Cloud,
         })
         .await
         .unwrap()

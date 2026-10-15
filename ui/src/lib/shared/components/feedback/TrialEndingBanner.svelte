@@ -6,7 +6,7 @@
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
 	import { getTrialDaysLeft, isTrialingWithoutPayment } from '$lib/shared/utils/trial';
 	import { trackOncePerSession } from '$lib/shared/utils/analytics';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
+	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
 	import {
 		billing_addPaymentMethod,
 		billing_trialBannerBody,
@@ -18,13 +18,13 @@
 	const configQuery = useConfigQuery();
 
 	let org = $derived(organizationQuery.data);
-	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
+	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
 	let trialDaysLeft = $derived(getTrialDaysLeft(org));
 	// A quote out means payment is already being arranged; accepting it is what
 	// ends the trial, and that lives on the Billing tab.
 	const hasPendingQuote = useHasPendingQuote();
 	let shouldShow = $derived(
-		isTrialingWithoutPayment(org, billingEnabled) &&
+		isTrialingWithoutPayment(org, isCloudDeployment) &&
 			!hasPendingQuote.current &&
 			trialDaysLeft !== null &&
 			trialDaysLeft <= 3

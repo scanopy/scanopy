@@ -30,7 +30,6 @@ pub struct OidcPendingAuth {
 pub struct OidcRegisterParams<'a> {
     pub terms_accepted_at: Option<DateTime<Utc>>,
     pub deployment_type: DeploymentType,
-    pub billing_enabled: bool,
     pub provider_slug: &'a str,
     pub code: &'a str,
 }

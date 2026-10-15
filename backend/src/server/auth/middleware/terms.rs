@@ -8,7 +8,7 @@
 
 use crate::server::{
     auth::{middleware::auth::AuthenticatedEntity, terms_gate},
-    config::AppState,
+    config::{AppState, get_deployment_type},
     shared::types::api::ApiError,
 };
 use axum::{
@@ -35,7 +35,8 @@ pub async fn terms_gate_middleware(
     request: Request<Body>,
     next: Next,
 ) -> Response {
-    if !state.config.billing_enabled()
+    let deployment_type = get_deployment_type(&state.config);
+    if !deployment_type.requires_terms_acceptance()
         || allowed_while_gated(request.method(), request.uri().path())
     {
         return next.run(request).await;
@@ -61,7 +62,7 @@ pub async fn terms_gate_middleware(
         };
 
     if terms_gate::acceptance_required(
-        &state.config,
+        deployment_type,
         organization.base.plan.as_ref(),
         terms_accepted_at,
     ) {

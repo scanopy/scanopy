@@ -125,7 +125,6 @@ impl OidcService {
         let OidcRegisterParams {
             provider_slug,
             code,
-            billing_enabled,
             terms_accepted_at,
             deployment_type,
         } = oidc_register_params;
@@ -221,7 +220,7 @@ impl OidcService {
                 permissions,
                 site_ids,
                 terms_accepted_at,
-                billing_enabled,
+                deployment_type,
             })
             .await?;
 

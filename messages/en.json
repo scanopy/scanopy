@@ -2740,6 +2740,7 @@
 	"settings_system_timestampsAbsolute": "Show date and time",
 	"settings_system_timestampsRelative": "Show time ago",
 	"settings_system_tuxAttribution": "Linux mascot (\"Tux\") created by Larry Ewing, Simon Budig, and Garrett LeSage. %link%",
+	"settings_system_windowsAttribution": "Windows logo by Microsoft, in the public domain. %link%",
 	"settings_system_version": "Scanopy {version}",
 	"settings_system_weekStart": "First day of week",
 	"shares_accessControl": "Access Control",

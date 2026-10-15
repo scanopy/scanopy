@@ -49,7 +49,7 @@
 		isTrialingWithoutPayment,
 		isMissingPaymentMethod
 	} from '$lib/shared/utils/trial';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
+	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
 	import { daemonSetupState } from '$lib/features/daemons/stores/daemon-setup';
 	import { isAllComplete } from '$lib/shared/onboarding/checklist';
 	import SidebarChecklist from './SidebarChecklist.svelte';
@@ -113,7 +113,7 @@
 		settingsInitialTab?: string;
 		settingsDismissible?: boolean;
 		/** Org is locked out of the main app (licensed self-hosted plan on a
-		 * billing-enabled server): hide main navigation. Settings stays
+		 * cloud server): hide main navigation. Settings stays
 		 * available, with Support as one of its tabs. */
 		mainAppLocked?: boolean;
 		/** Config and org have loaded and the org is not locked. Main-app queries
@@ -134,9 +134,9 @@
 	let organization = $derived(organizationQuery.data);
 
 	const configQuery = useConfigQuery();
-	// Whether this deployment bills at all (Stripe configured). Distinct from
+	// Whether this is Scanopy Cloud, the only deployment that bills. Distinct from
 	// `isBillingEnabled` below, which asks whether the org's own plan is active.
-	let billingConfigured = $derived(configQuery.data?.billing_enabled ?? false);
+	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
 
 	// Derived values from queries
 	let userPermissions = $derived(currentUser?.permissions);
@@ -149,7 +149,7 @@
 	let showTrialPill = $derived(
 		isOwner &&
 			isBillingEnabled &&
-			isTrialingWithoutPayment(organization, billingConfigured) &&
+			isTrialingWithoutPayment(organization, isCloudDeployment) &&
 			trialDaysLeft !== null &&
 			trialDaysLeft <= 7
 	);
@@ -178,10 +178,10 @@
 		// dot, the banner, and the BillingTab card all key off the same rule.
 		// Both clauses read org rows that only Stripe webhooks write, so they go
 		// stale where billing is switched off.
-		if (!billingConfigured) return false;
+		if (!isCloudDeployment) return false;
 		return (
 			organization.plan_status === 'past_due' ||
-			isMissingPaymentMethod(organization, billingConfigured)
+			isMissingPaymentMethod(organization, isCloudDeployment)
 		);
 	});
 

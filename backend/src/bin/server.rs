@@ -697,7 +697,7 @@ async fn main() -> anyhow::Result<()> {
     if state.config.integrated_daemon_url.is_some() {
         tracing::info!(target: LOG_TARGET, "  Integrated daemon: {}", state.config.integrated_daemon_url.as_ref().unwrap());
     }
-    if state.config.stripe_secret.is_some() {
+    if deployment_type == DeploymentType::Cloud {
         tracing::info!(target: LOG_TARGET, "  Billing:         enabled");
     }
     if state.services.oidc_service.is_some() {

@@ -69,8 +69,9 @@
 	let disablePasswordLogin = $derived(configData?.disable_password_login ?? false);
 	let oidcProviders = $derived(configData?.oidc_providers ?? []);
 	let hasOidcProviders = $derived(oidcProviders.length > 0);
-	let enableTermsCheckbox = $derived(configData?.billing_enabled ?? false);
 	let isCloudDeployment = $derived(configData ? isCloud(configData) : false);
+	// Scanopy Cloud collects terms acceptance at sign-up; a self-hosted server does not.
+	let enableTermsCheckbox = $derived(isCloudDeployment);
 
 	$effect(() => {
 		if (

@@ -184,8 +184,11 @@ async fn session_user(state: &AppState, session: &Session) -> ApiResult<User> {
 /// `user` as sent to themselves, with `terms_acceptance_required` set for an
 /// org on `plan`.
 fn with_terms_gate(state: &AppState, mut user: User, plan: Option<&BillingPlan>) -> User {
-    user.base.terms_acceptance_required =
-        terms_gate::acceptance_required(&state.config, plan, user.base.terms_accepted_at);
+    user.base.terms_acceptance_required = terms_gate::acceptance_required(
+        get_deployment_type(&state.config),
+        plan,
+        user.base.terms_accepted_at,
+    );
     user
 }
 

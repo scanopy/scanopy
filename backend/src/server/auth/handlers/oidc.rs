@@ -73,7 +73,7 @@ pub(crate) async fn oidc_authorize(
     session: Session,
     Query(params): Query<OidcAuthorizeParams>,
 ) -> ApiResult<Redirect> {
-    let billing_enabled = state.config.stripe_secret.is_some();
+    let deployment_type = get_deployment_type(&state.config);
 
     let oidc_service = state
         .services
@@ -106,7 +106,7 @@ pub(crate) async fn oidc_authorize(
 
             let terms_accepted = params.terms_accepted.unwrap_or(false);
 
-            if billing_enabled && !terms_accepted {
+            if deployment_type.requires_terms_acceptance() && !terms_accepted {
                 return Err(ApiError::bad_request(
                     "Please accept terms and conditions to proceed",
                 ));
@@ -565,8 +565,6 @@ async fn handle_register_flow(
         )));
     };
 
-    let billing_enabled = state.config.stripe_secret.is_some();
-
     // Register user
     match oidc_service
         .register(
@@ -581,7 +579,6 @@ async fn handle_register_flow(
             },
             OidcRegisterParams {
                 terms_accepted_at,
-                billing_enabled,
                 provider_slug: slug,
                 code,
                 deployment_type: get_deployment_type(&state.config),
