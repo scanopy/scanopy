@@ -18,7 +18,7 @@
 		"generate:api": "npx tsx scripts/generate-api-types.ts"
 	},
 	"devDependencies": {
-		"@eslint/compat": "^2.0.2",
+		"@eslint/compat": "^2.1.1",
 		"@eslint/js": "^10.0.1",
 		"@inlang/paraglide-js": "^2.15.1",
 		"@magidoc/plugin-svelte-prismjs": "^6.3.0",
