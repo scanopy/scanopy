@@ -311,7 +311,7 @@ async-stripe-checkout = { version = "1.0.0-rc.8", default-features = false,featu
 async-stripe-payment = { version = "1.0.0-rc.8", default-features = false, features = ["payment_method_configuration", "deserialize", "serialize"] }
 async-stripe-types = { version = "1.0.0-rc.8", default-features = false }
 moka = { version = "0.12.11", features = ["future"] }
-nanoid = "0.4.0"
+nanoid = "0.5.0"
 serde_with = "3.15.1"
 lettre = { version = "0.11.22", default-features = false, features = ["smtp-transport", "builder", "tokio1", "tokio1-rustls", "ring", "webpki-roots"] }
 html2text = "0.16.4"
