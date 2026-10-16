@@ -130,7 +130,7 @@ socket2 = "0.6"
 # Already compiled in via tokio; declared directly because the protocol codecs below take and return
 # `BytesMut`, and naming a transitive dependency is what the lint forbids rather than the dependency.
 bytes = "1"
-dns-lookup = "3.0.0"
+dns-lookup = "4.0.2"
 
 # === Network Protocol Support ===
 rsntp = "4.0.0"
