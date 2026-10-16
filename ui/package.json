@@ -79,7 +79,7 @@
 		"@tailwindcss/forms": "^0.5.10",
 		"@tanstack/svelte-form": "^1.27.6",
 		"@tanstack/svelte-query": "^6.0.10",
-		"@tanstack/table-core": "^8.21.3",
+		"@tanstack/table-core": "^9.2.8",
 		"@types/d3-force": "^3.0.10",
 		"@types/jquery": "^3.5.33",
 		"@xyflow/svelte": "^1.6.6",
