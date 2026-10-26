@@ -3596,7 +3596,7 @@ dependencies = [
  "rustls 0.23.46",
  "rustls-pki-types",
  "tokio",
- "tokio-rustls 0.26.4",
+ "tokio-rustls 0.26.6",
  "tower-service",
  "webpki-roots 1.0.4",
 ]
@@ -4238,7 +4238,7 @@ dependencies = [
  "rustls 0.23.46",
  "socket2 0.6.1",
  "tokio",
- "tokio-rustls 0.26.4",
+ "tokio-rustls 0.26.6",
  "url",
  "webpki-roots 1.0.4",
 ]
@@ -6796,7 +6796,7 @@ dependencies = [
  "serde_urlencoded",
  "sync_wrapper 1.0.2",
  "tokio",
- "tokio-rustls 0.26.4",
+ "tokio-rustls 0.26.6",
  "tokio-util",
  "tower 0.5.2",
  "tower-http 0.6.8",
@@ -7414,7 +7414,7 @@ dependencies = [
  "time",
  "tokio",
  "tokio-cron-scheduler",
- "tokio-rustls 0.26.4",
+ "tokio-rustls 0.26.6",
  "tokio-stream",
  "tokio-util",
  "tonic",
@@ -8871,9 +8871,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-rustls"
-version = "0.26.4"
+version = "0.26.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1729aa945f29d91ba541258c8df89027d5792d85a8841fb65e8bf0f4ede4ef61"
+checksum = "c9cc2678c2cdd569ef8215e2afd7954ada2ae20b4fdd2c5fe6139a3b02d105db"
 dependencies = [
  "rustls 0.23.46",
  "tokio",
@@ -8966,7 +8966,7 @@ dependencies = [
  "socket2 0.6.1",
  "sync_wrapper 1.0.2",
  "tokio",
- "tokio-rustls 0.26.4",
+ "tokio-rustls 0.26.6",
  "tokio-stream",
  "tower 0.5.2",
  "tower-layer",
