@@ -532,7 +532,7 @@ jobs:
 
       - name: Sign daemon exe (standalone binary, OSSign)
         if: matrix.target == 'x86_64-pc-windows-msvc' && steps.signing.outputs.enabled == 'true'
-        uses: ossign/ossign@7265121e500b3e8c36a60044a5f79684a8224f8e # 1.1.0
+        uses: ossign/ossign@0f8b1b60614396c759b973351bdc5fbad445f96d # 1.3.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config: ${{ secrets.OSSIGN_CONFIG }}
@@ -560,7 +560,7 @@ jobs:
       # Sign the .exe BEFORE it is embedded in the MSI so the binary inside is trusted too.
       - name: Sign daemon exe (WiX-staged, OSSign)
         if: matrix.target == 'x86_64-pc-windows-msvc' && steps.signing.outputs.enabled == 'true'
-        uses: ossign/ossign@7265121e500b3e8c36a60044a5f79684a8224f8e # 1.1.0
+        uses: ossign/ossign@0f8b1b60614396c759b973351bdc5fbad445f96d # 1.3.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config: ${{ secrets.OSSIGN_CONFIG }}
@@ -584,7 +584,7 @@ jobs:
 
       - name: Sign MSI (OSSign)
         if: matrix.target == 'x86_64-pc-windows-msvc' && steps.signing.outputs.enabled == 'true'
-        uses: ossign/ossign@7265121e500b3e8c36a60044a5f79684a8224f8e # 1.1.0
+        uses: ossign/ossign@0f8b1b60614396c759b973351bdc5fbad445f96d # 1.3.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config: ${{ secrets.OSSIGN_CONFIG }}
