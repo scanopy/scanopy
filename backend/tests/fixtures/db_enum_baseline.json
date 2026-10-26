@@ -129,7 +129,14 @@
     "Ipp",
     "SpotifyConnect",
     "Vnc",
-    "AppleLockdown"
+    "AppleLockdown",
+    "DnsUdp",
+    "Ntp",
+    "Dhcp",
+    "Bacnet",
+    "Tftp",
+    "Mgcp",
+    "GoogleWifi"
   ],
   "ContainerNetworkType": [
     "MacVlan",
