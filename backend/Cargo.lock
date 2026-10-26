@@ -7365,7 +7365,7 @@ dependencies = [
  "onc-rpc",
  "openidconnect",
  "os_info",
- "password-hash 0.5.0",
+ "password-hash 0.6.1",
  "paste",
  "pem",
  "petgraph",
