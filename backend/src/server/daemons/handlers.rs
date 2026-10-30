@@ -1321,6 +1321,17 @@ async fn provision_daemon(
 ) -> ApiResult<Json<ApiResponse<ProvisionDaemonResponse>>> {
     let site_ids = auth.site_ids();
 
+    let seeded_credential_ids: Vec<Uuid> = request
+        .seed_credential_refs
+        .iter()
+        .map(|target| target.credential_id())
+        .collect();
+    state
+        .services
+        .credential_service
+        .validate_ids_in_org(&seeded_credential_ids, auth.require_organization_id()?)
+        .await?;
+
     // ---- Resolve the target daemon, enforcing tenant access ---------------------------
     // `load_reprovision_target` access-checks the existing record; the create path is checked
     // here against the requested site. Everything past this point is mechanics, and lives

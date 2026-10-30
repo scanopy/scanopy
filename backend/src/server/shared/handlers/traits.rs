@@ -146,7 +146,7 @@ where
 }
 
 /// [`validate_references`] for a typed entity.
-async fn validate_entity_references<T>(
+pub(crate) async fn validate_entity_references<T>(
     state: &AppState,
     entity: &T,
     stored: Option<&T>,

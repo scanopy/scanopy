@@ -443,6 +443,14 @@ impl CredentialService {
     // Discovery credential building
     // ========================================================================
 
+    async fn site_organization_id(&self, site_id: Uuid) -> Result<Option<Uuid>, Error> {
+        Ok(self
+            .site_service
+            .get_by_id(&site_id)
+            .await?
+            .map(|site| site.base.organization_id))
+    }
+
     // === Legacy Daemon Support (pre-v0.15.0) ===
 
     /// Legacy: Supports daemons < v0.15.0 using SnmpCredentialMapping in DiscoveryType::Network.
@@ -464,12 +472,15 @@ impl CredentialService {
 
         // Get site's SNMP credentials (from junction table)
         let site_cred_ids = self.get_credential_ids_for_site(&site_id).await?;
+        let site_org_id = self.site_organization_id(site_id).await?;
+        let owned_by_site_org = |cred: &Credential| owned_by_organization(cred, site_org_id);
         // Legacy mapping only carries SNMPv2c — pre-v0.15.0 daemons can't speak
         // v1 or v3. v1/v3 credentials reach modern daemons via
         // build_all_credential_mappings.
         let mut site_snmp_credential: Option<SnmpQueryCredential> = None;
         for cred_id in &site_cred_ids {
             if let Some(cred) = self.get_by_id(cred_id).await?
+                && owned_by_site_org(&cred)
                 && let CredentialQueryPayload::Snmp(snmp) =
                     cred.base.credential_type.to_query_payload()
                 && snmp.version == SnmpVersion::V2c
@@ -488,6 +499,7 @@ impl CredentialService {
             if let Some(assignments) = host_cred_map.get(&host.id) {
                 for assignment in assignments {
                     if let Some(cred) = self.get_by_id(&assignment.credential_id).await?
+                        && owned_by_site_org(&cred)
                         && let CredentialQueryPayload::Snmp(query_cred) =
                             cred.base.credential_type.to_query_payload()
                         && query_cred.version == SnmpVersion::V2c
@@ -572,16 +584,8 @@ impl CredentialService {
         // otherwise-inconsistent junction row must never serialize a foreign
         // tenant's secret onto the wire. If the site's org can't be resolved
         // we fall back to the write-time guard rather than break a live scan.
-        let site_org_id = self
-            .site_service
-            .get_by_id(&site_id)
-            .await?
-            .map(|n| n.base.organization_id);
-        let owned_by_site_org = |cred: &Credential| -> bool {
-            site_org_id
-                .map(|org| cred.base.organization_id == org)
-                .unwrap_or(true)
-        };
+        let site_org_id = self.site_organization_id(site_id).await?;
+        let owned_by_site_org = |cred: &Credential| owned_by_organization(cred, site_org_id);
 
         // Fetch site-level credentials
         let site_cred_ids = self.get_credential_ids_for_site(&site_id).await?;
@@ -661,6 +665,14 @@ impl CredentialService {
                 );
                 continue;
             };
+            if !owned_by_site_org(&cred) {
+                tracing::warn!(
+                    credential_id = %cred.id,
+                    site_id = %site_id,
+                    "Integration target names another organization's credential; skipping"
+                );
+                continue;
+            }
             created_at.insert(cred.id, cred.created_at);
             apply_integration_target(
                 &mut mappings_by_credential,
@@ -751,6 +763,12 @@ pub(crate) fn mapping_for<'a>(
 /// Within each tier the oldest credential goes last, so of two equally specific credentials that
 /// both work, the one created first is used. A credential missing from `created_at` counts as the
 /// newest, and the credential id breaks an exact tie, so the order is the same on every scan.
+/// Whether a credential may go to a daemon on a site in `organization_id`. With no organization to
+/// compare, the write-time checks stand alone.
+fn owned_by_organization(credential: &Credential, organization_id: Option<Uuid>) -> bool {
+    organization_id.is_none_or(|org| credential.base.organization_id == org)
+}
+
 fn order_mappings_for_dispatch(
     mappings: BTreeMap<Uuid, TypedCredentialMapping>,
     created_at: &HashMap<Uuid, DateTime<Utc>>,

@@ -32,7 +32,6 @@ use crate::server::discovery::r#impl::base::{Discovery, DiscoveryBase};
 use crate::server::discovery::r#impl::types::{DiscoveryType, RunType};
 use crate::server::organizations::r#impl::base::Organization;
 use crate::server::shared::services::traits::CrudService;
-use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::Storable;
 use crate::server::shares::r#impl::base::{Share, ShareBase};
 use crate::server::sites::r#impl::Site;
@@ -544,7 +543,7 @@ async fn serve_as_daemon(state: &Arc<AppState>, site_id: Uuid, daemon_id: Uuid) 
     .await
 }
 
-fn registration(site_id: Uuid, daemon_id: Uuid, targets: Vec<IntegrationTarget>) -> Value {
+fn registration(site_id: Uuid, daemon_id: Uuid) -> Value {
     json!({
         "daemon_id": daemon_id,
         "site_id": site_id,
@@ -553,7 +552,6 @@ fn registration(site_id: Uuid, daemon_id: Uuid, targets: Vec<IntegrationTarget>)
         "capabilities": {},
         "user_id": Uuid::nil(),
         "version": env!("CARGO_PKG_VERSION"),
-        "integration_targets": targets,
     })
 }
 
@@ -565,7 +563,7 @@ async fn registering_cannot_touch_a_daemon_on_another_site() {
     let foreign = stored_daemon(&state, &theirs).await;
 
     let addr = serve_as_daemon(&state, mine.site.id, foreign.id).await;
-    let body = registration(mine.site.id, foreign.id, vec![]);
+    let body = registration(mine.site.id, foreign.id);
     let (status, _) = post(addr, "/api/daemons/register", &body).await;
     assert!(!is_ok(status), "got {status}");
 
@@ -578,36 +576,6 @@ async fn registering_cannot_touch_a_daemon_on_another_site() {
         .unwrap();
     assert_eq!(stored.base.last_seen, foreign.base.last_seen);
     assert_eq!(stored.base.name, foreign.base.name);
-}
-
-#[tokio::test]
-async fn registering_drops_a_target_from_another_organization() {
-    let (state, _container) = cloud_test_state().await;
-    let mine = tenant(&state, "a@example.com").await;
-    let theirs = tenant(&state, "b@example.com").await;
-    let foreign = stored_credential(&state, theirs.org.id).await;
-
-    let daemon_id = Uuid::new_v4();
-    let addr = serve_as_daemon(&state, mine.site.id, daemon_id).await;
-    let target = IntegrationTarget::Site {
-        credential_id: foreign.id,
-    };
-    let body = registration(mine.site.id, daemon_id, vec![target]);
-    let (status, reply) = post(addr, "/api/daemons/register", &body).await;
-    assert!(is_ok(status), "{status} {reply}");
-
-    let discoveries = state
-        .services
-        .discovery_service
-        .get_all(StorableFilter::new_from_site_ids(&[mine.site.id]))
-        .await
-        .unwrap();
-    assert!(!discoveries.is_empty(), "registration seeds a discovery");
-    assert!(discoveries.iter().all(|d| {
-        d.integration_targets
-            .iter()
-            .all(|t| t.credential_id() != foreign.id)
-    }));
 }
 
 fn progress(

@@ -18,7 +18,7 @@ use crate::server::{
                 FilterQueryExtractor, OrderDirection, PaginationParams, deserialize_bool_values,
             },
             traits::ListScope,
-            traits::{create_handler, update_handler},
+            traits::{create_handler, update_handler, validate_entity_references},
         },
         services::traits::CrudService,
         storage::{
@@ -32,6 +32,7 @@ use crate::server::{
             },
             error_codes::ErrorCode,
         },
+        validation::validate_site_access,
     },
     sites::r#impl::Site,
 };
@@ -443,6 +444,16 @@ pub async fn create_discovery(
         )));
     }
 
+    // Ahead of the gates below, which read the daemon and credentials the body names.
+    validate_entity_references::<Discovery>(
+        &state,
+        &discovery,
+        None,
+        &auth.site_ids(),
+        auth.require_organization_id()?,
+    )
+    .await?;
+
     // For Unified: check daemon version supports it
     if discovery.base.discovery_type.runs_network_scan() {
         let daemon = state
@@ -529,8 +540,24 @@ pub async fn update_discovery(
         ));
     }
 
+    let existing = state.services.discovery_service.get_by_id(&id).await?;
+
+    // Ahead of the gates below, which read the daemon and credentials the body names and quote
+    // them in their refusals.
+    if let Some(existing) = &existing {
+        validate_site_access(Some(existing.base.site_id), &auth.site_ids(), "update")?;
+    }
+    validate_entity_references::<Discovery>(
+        &state,
+        &discovery,
+        existing.as_ref(),
+        &auth.site_ids(),
+        auth.require_organization_id()?,
+    )
+    .await?;
+
     // Reject changing a legacy discovery's type
-    if let Some(existing) = state.services.discovery_service.get_by_id(&id).await?
+    if let Some(existing) = &existing
         && existing.base.discovery_type.is_legacy()
         && std::mem::discriminant(&existing.base.discovery_type)
             != std::mem::discriminant(&discovery.base.discovery_type)
