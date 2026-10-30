@@ -4,8 +4,8 @@ name: Prepare Release
 #
 # - While `dev` has no backend/release-notes/vX.Y.Z.md, this bumps the version on
 #   release/vX.Y.Z, generates the release notes, and opens a PR into dev. Edit the
-#   notes, their `email` and `modal` flags and the PR's Deploy-Mode line, then
-#   merge it. The merge runs publish_release.yml, which creates the release that
+#   notes, their `email`, `modal` and `daemon_upgrade` flags and the PR's Deploy-Mode
+#   line, then merge it. The merge runs publish_release.yml, which creates the release that
 #   release.yml builds. Running this again before the merge regenerates the notes onto the PR.
 # - Once the notes are on dev, this skips straight to publish_release.yml. That is
 #   the retry after a failed publish or build: re-run this workflow, and the
@@ -51,6 +51,14 @@ on:
         options:
           - 'no'
           - 'yes'
+      daemon_upgrade:
+        description: 'Ask users to upgrade their daemons to this release (no: daemons stay current against the last release that asked). Used when the notes are generated.'
+        required: false
+        default: 'yes'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
 
 permissions: {}
 
@@ -225,6 +233,7 @@ jobs:
         EMAIL: ${{ steps.email.outputs.email }}
         MODAL: ${{ inputs.show_modal == 'yes' }}
         LICENSED_EMAIL: ${{ inputs.email_licensed_owners == 'yes' }}
+        DAEMON_UPGRADE: ${{ inputs.daemon_upgrade == 'yes' }}
       run: |
         sed -i "s/^version = .*/version = \"$VERSION\"/" backend/Cargo.toml
         (cd backend && cargo check --quiet)
@@ -243,6 +252,7 @@ jobs:
           echo "email: ${EMAIL}"
           echo "modal: ${MODAL}"
           echo "licensed_email: ${LICENSED_EMAIL}"
+          echo "daemon_upgrade: ${DAEMON_UPGRADE}"
           echo "---"
           echo ""
           printf '%s\n' "$NOTES"
@@ -259,6 +269,7 @@ jobs:
         EMAIL: ${{ steps.email.outputs.email }}
         MODAL: ${{ inputs.show_modal == 'yes' }}
         LICENSED_EMAIL: ${{ inputs.email_licensed_owners == 'yes' }}
+        DAEMON_UPGRADE: ${{ inputs.daemon_upgrade == 'yes' }}
         PREV_TAG: ${{ steps.prev_tag.outputs.prev_tag }}
       run: |
         BRANCH="release/v${VERSION}"
@@ -285,6 +296,11 @@ jobs:
         else
           MODAL_LINE="\`modal: false\`: the modal doesn't open for this release. Its notes show the next time a release opens it. Set it to \`true\` to open it now."
         fi
+        if [ "$DAEMON_UPGRADE" = "true" ]; then
+          DAEMON_UPGRADE_LINE="\`daemon_upgrade: true\`: daemons older than v${VERSION} show Outdated. Set it to \`false\` when this release changes nothing a daemon needs."
+        else
+          DAEMON_UPGRADE_LINE="\`daemon_upgrade: false\`: daemons stay current against the last release that asked. Set it to \`true\` when this release changes a daemon capability or the daemon wire format: those warnings fire whatever the flag says."
+        fi
         # Terms updates added since the last release. Cloud emails each one on deploy.
         TERMS_FILES=$(git diff --name-only --diff-filter=A "$PREV_TAG"..HEAD -- backend/release-notes/terms/ \
           | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$' || true)
@@ -299,6 +315,7 @@ jobs:
           echo "- [ ] Check the \`email\` flag. ${EMAIL_LINE}"
           echo "- [ ] Check the \`modal\` flag. ${MODAL_LINE}"
           echo "- [ ] Check the \`licensed_email\` flag. ${LICENSED_LINE}"
+          echo "- [ ] Check the \`daemon_upgrade\` flag. ${DAEMON_UPGRADE_LINE}"
           echo "- [ ] Check the Deploy-Mode line above (\`backward-compatible\` or \`downtime\`)"
           echo "- [ ] If the notes use an image, commit it to website \`main\` at \`static/changelog/v${VERSION}/\` before merging (see \`backend/release-notes/README.md\`)"
           for TERMS_FILE in $TERMS_FILES; do

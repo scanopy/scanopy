@@ -11,6 +11,7 @@ title: 'Short headline for the release'
 email: true
 modal: true
 licensed_email: false
+daemon_upgrade: true
 ---
 
 Markdown body. Raw HTML is dropped when rendered.
@@ -32,8 +33,17 @@ without `licensed_email` sends it only with `email: true`. Self-hosted servers i
 
 `modal: true` opens the release notes modal for each user after the upgrade, listing every release
 they haven't dismissed. `modal: false` leaves it closed; the release's notes show the next time a
-release opens it. A file without `modal` opens it. Prepare Release sets the three flags from its
-`announce_by_email`, `show_modal` and `email_licensed_owners` inputs.
+release opens it. A file without `modal` opens it.
+
+`daemon_upgrade: true` asks users to upgrade their daemons. A daemon is outdated when it's older
+than the newest release at or below the server's version with this flag, and the outdated warning
+names that release. `daemon_upgrade: false` leaves daemons current against the last release that
+asked. Keep it `true` when a release changes a daemon capability or the daemon wire format, since
+those warnings fire whatever the flag says. A file without `daemon_upgrade` asks. Sunsets and
+capability gates ignore it.
+
+Prepare Release sets the four flags from its `announce_by_email`, `show_modal`,
+`email_licensed_owners` and `daemon_upgrade` inputs.
 
 Edit a file here before the release is tagged. A server shows the copy it was built with, so a
 change after the tag reaches servers only with the next release.
