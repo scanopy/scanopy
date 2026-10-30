@@ -37,13 +37,20 @@ release opens it. A file without `modal` opens it.
 
 `daemon_upgrade: true` asks users to upgrade their daemons. A daemon is outdated when it's older
 than the newest release at or below the server's version with this flag, and the outdated warning
-names that release. `daemon_upgrade: false` leaves daemons current against the last release that
-asked. Keep it `true` when a release changes a daemon capability or the daemon wire format, since
-those warnings fire whatever the flag says. A file without `daemon_upgrade` asks. Sunsets and
-capability gates ignore it.
+names that release. It needs `email: true` and `modal: true`, and CI fails a file that sets it
+without them. `daemon_upgrade: false` leaves daemons current against the last release that asked.
+Ask when a release changes a daemon capability or the daemon wire format, since those warnings fire
+whatever the flag says. A file without `daemon_upgrade` asks, and those releases predate the flag.
+Sunsets and capability gates ignore it.
 
-Prepare Release sets the four flags from its `announce_by_email`, `show_modal`,
-`email_licensed_owners` and `daemon_upgrade` inputs.
+Prepare Release sets `email`, `modal` and `daemon_upgrade` from its `announcement` input, and
+`licensed_email` from `email_licensed_owners`:
+
+- `No email or modal`: all three `false`.
+- `Email and modal`: `email` and `modal` are `true`.
+- `Email and modal with daemon upgrade notice`: all three `true`, and the notes end with an Upgrade
+  your daemons section linking to the upgrade guide. The section is part of the file, so it reaches
+  the release email, the licence owners' email, the modal and the website changelog.
 
 Edit a file here before the release is tagged. A server shows the copy it was built with, so a
 change after the tag reaches servers only with the next release.

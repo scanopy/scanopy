@@ -133,7 +133,8 @@ pub struct ReleaseNote {
     /// existed have none and don't.
     pub licensed_email: bool,
     /// Whether this release asks users to upgrade their daemons. Notes from
-    /// before the flag existed have none and ask.
+    /// before the flag existed have none and ask. Set in a file, it needs
+    /// `email` and `modal` on, so the ask reaches users.
     pub daemon_upgrade: bool,
     /// The body, rendered from markdown with raw HTML left out.
     pub html: String,
@@ -178,7 +179,9 @@ impl ReleaseNote {
             Some(other) => return Err(format!("licensed_email `{other}` is not true or false")),
         };
         let daemon_upgrade = match frontmatter.field("daemon_upgrade").as_deref() {
-            None | Some("true") => true,
+            None => true,
+            Some("true") if email && modal => true,
+            Some("true") => return Err("daemon_upgrade needs email and modal on".to_string()),
             Some("false") => false,
             Some(other) => return Err(format!("daemon_upgrade `{other}` is not true or false")),
         };
@@ -376,6 +379,18 @@ pub(crate) mod tests {
         assert!(flagged("email: false\ndaemon_upgrade: maybe").is_err());
     }
 
+    /// A release that asks for a daemon upgrade has to tell users, by email and
+    /// by modal.
+    #[test]
+    fn daemon_upgrade_needs_the_email_and_the_modal() {
+        let flagged = |extra: &str| {
+            ReleaseNote::parse(&note_file_with("0.18.0", extra).1).map(|note| note.daemon_upgrade)
+        };
+        assert_eq!(flagged("email: true\ndaemon_upgrade: true"), Ok(true));
+        assert!(flagged("email: false\ndaemon_upgrade: true").is_err());
+        assert!(flagged("email: true\nmodal: false\ndaemon_upgrade: true").is_err());
+    }
+
     /// The target is the newest flagged release at or below the bound, whatever
     /// unflagged releases sit above it.
     #[test]
@@ -384,7 +399,7 @@ pub(crate) mod tests {
         let catalog = Catalog::from_files([
             note_file("0.18.0", false),
             note_file_with("0.18.1", unflagged),
-            note_file_with("0.18.2", "email: false\ndaemon_upgrade: true"),
+            note_file_with("0.18.2", "email: true\ndaemon_upgrade: true"),
             note_file_with("0.18.3", unflagged),
             note_file_with("0.18.4", unflagged),
             note_file("0.19.0", false),
