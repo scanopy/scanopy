@@ -24,6 +24,7 @@ use crate::server::{
         EntityField as F, FieldFormat, FieldGroup as G, FieldRule, FieldWrite, Hop,
         MetadataFixture as Fx,
     },
+    shares::r#impl::base::Share,
     subnets::r#impl::base::Subnet,
     topology::types::base::Topology,
     user_api_keys::r#impl::base::UserApiKey,
@@ -749,7 +750,8 @@ const SHARE: &[F] = &[
     F::new("topology_id", "Topology", G::Relationships)
         .entity(&[Hop::parent(E::Topology, "topology_id")]),
     F::new("created_by", "Created By", G::Relationships)
-        .entity(&[Hop::parent(E::User, "created_by")]),
+        .entity(&[Hop::parent(E::User, "created_by")])
+        .server_owned(pin!(Share, base.created_by)),
     SITE,
     F::internal("password"),
     F::internal("password_hash").unserialized(),

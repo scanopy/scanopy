@@ -240,6 +240,20 @@ async fn update_share(
 // Public Routes (No Authentication Required)
 // ============================================================================
 
+/// The topology a share publishes. A share created before its topology was checked against its
+/// site, or whose topology has since moved, serves nothing: the public read renders the
+/// topology's site, whoever that belongs to.
+async fn load_share_topology(state: &AppState, share: &Share) -> Result<Topology, ApiError> {
+    state
+        .services
+        .topology_service
+        .get_by_id(&share.base.topology_id)
+        .await
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?
+        .filter(|topology| topology.base.site_id == share.base.site_id)
+        .ok_or_else(|| ApiError::entity_not_found::<Share>(share.id))
+}
+
 /// Helper to get the organization's plan for a share
 async fn get_share_org_plan(state: &AppState, share: &Share) -> Result<BillingPlan, ApiError> {
     // Get site to find organization
@@ -292,13 +306,7 @@ async fn get_public_share_metadata(
     }
 
     // Fetch topology to resolve available views based on data
-    let topology = state
-        .services
-        .topology_service
-        .get_by_id(&share.base.topology_id)
-        .await
-        .map_err(|e| ApiError::internal_error(&e.to_string()))?
-        .ok_or_else(|| ApiError::entity_not_found::<Topology>(share.base.topology_id))?;
+    let topology = load_share_topology(&state, &share).await?;
 
     // Compute view-support from raw entity tables so availability doesn't
     // flap based on which view the main app last rebuilt under.
@@ -449,13 +457,7 @@ async fn get_share_topology(
     // server-side referer check here cannot enforce what it appears to.
 
     // Get topology data
-    let topology = state
-        .services
-        .topology_service
-        .get_by_id(&share.base.topology_id)
-        .await
-        .map_err(|e| ApiError::internal_error(&e.to_string()))?
-        .ok_or_else(|| ApiError::entity_not_found::<Topology>(share.base.topology_id))?;
+    let topology = load_share_topology(&state, &share).await?;
 
     // Resolve available views based on share config + data availability.
     // Support flags come from raw entity tables — independent of whichever

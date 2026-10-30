@@ -23,7 +23,7 @@ use crate::server::organizations::demo_data::DemoData;
 use crate::server::organizations::demo_seed::insert_demo_data;
 use crate::server::shared::attribution::AttributeSource;
 use crate::server::shared::entities::EntityDiscriminants as E;
-use crate::server::shared::handlers::factory::create_router;
+use crate::server::shared::handlers::factory::{create_public_share_routes, create_router};
 use crate::server::shared::services::entity_fields::{RelatedSource, ServiceSource};
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::traits::Storable;
@@ -74,9 +74,11 @@ const ORG_KEYED: &[E] = &[
 ];
 
 /// Serve the whole API with `caller` as the authenticated entity of every request.
-async fn serve_as(state: &Arc<AppState>, caller: AuthenticatedEntity) -> SocketAddr {
+pub(super) async fn serve_as(state: &Arc<AppState>, caller: AuthenticatedEntity) -> SocketAddr {
     let (router, _) = create_router(state.clone());
+    let (public_shares, _) = create_public_share_routes().split_for_parts();
     let app = router
+        .merge(public_shares)
         .layer(middleware::from_fn(
             move |mut request: Request<Body>, next: Next| {
                 let caller = caller.clone();
