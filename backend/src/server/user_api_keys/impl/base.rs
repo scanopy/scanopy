@@ -16,25 +16,37 @@ use validator::Validate;
 )]
 pub struct UserApiKeyBase {
     /// The stored key. Returned redacted except on creation and rotation.
-    #[serde(default)]
-    #[serde(serialize_with = "serialize_sensitive_info")]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored",
+        serialize_with = "serialize_sensitive_info"
+    )]
     #[schema(read_only, required)]
     pub key: String,
     /// Human-facing name for this key.
     pub name: String,
     /// User the key acts on behalf of.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only, required)]
     pub user_id: Uuid,
     /// The organization that owns this record.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only, required)]
     pub organization_id: Uuid,
     /// Role the key is limited to, which cannot exceed the user's own.
     #[serde(default)]
     pub permissions: UserOrgPermissions,
     /// When this key was last used to authenticate.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only, required)]
     pub last_used: Option<DateTime<Utc>>,
     /// When this record stops being valid.

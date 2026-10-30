@@ -1013,6 +1013,18 @@ where
     Ok(value.and_then(|v| serde_json::from_value(v).ok()))
 }
 
+/// Reads past a server-owned field, so no request can set it. Pairs with `#[serde(default)]`.
+/// Used in place of `skip_deserializing`, which utoipa treats as `skip`: that would drop the field
+/// from the schema and the generated types, though responses still carry it.
+pub fn ignored<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Default,
+{
+    serde::de::IgnoredAny::deserialize(deserializer)?;
+    Ok(T::default())
+}
+
 #[cfg(test)]
 mod metric_error_code_tests {
     use super::*;

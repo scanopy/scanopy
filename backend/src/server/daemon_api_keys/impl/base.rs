@@ -14,14 +14,20 @@ use validator::Validate;
 #[derive(Debug, Clone, Default, Serialize, Deserialize, ToSchema, Validate)]
 pub struct DaemonApiKeyBase {
     /// The stored key. Returned redacted except on creation and rotation.
-    #[serde(default)]
-    #[serde(serialize_with = "serialize_sensitive_info")]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored",
+        serialize_with = "serialize_sensitive_info"
+    )]
     #[schema(read_only, required)]
     pub key: String,
     /// Human-facing name for this key.
     pub name: String,
     /// When a daemon last authenticated with this key.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only, required)]
     pub last_used: Option<DateTime<Utc>>,
     /// When this record stops being valid.
@@ -38,7 +44,10 @@ pub struct DaemonApiKeyBase {
     /// Daemon this key is bound to 1:1, when provisioned server-side.
     /// NULL for legacy site-shared keys created before 1:1 provisioning,
     /// which resolve daemon identity from the X-Daemon-ID header instead.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub daemon_id: Option<Uuid>,
     /// Plaintext API key for ServerPoll mode daemons only.

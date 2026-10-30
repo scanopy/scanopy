@@ -112,14 +112,24 @@ pub struct OrganizationBase {
     #[validate(length(min = 0, max = 100))]
     pub name: String,
     /// The plan this organization is on.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only, required)]
     pub plan: BillingPlan,
     /// Current billing state of that plan.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only, required)]
     pub plan_status: Option<PlanStatus>,
     /// Progress through first-run setup.
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only, required)]
     pub onboarding: Vec<OnboardingOperationDiscriminants>,
     /// Whether a payment method is on file.
@@ -180,7 +190,10 @@ pub struct OrganizationBase {
     /// BillingPlanModal; the UI interprets the value based on plan_status
     /// (hide for paused/cancelled/past_due where the stored value can be
     /// stale or meaningless).
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub next_renewal_at: Option<DateTime<Utc>>,
     /// Latest entitlement an online license key fetched from Scanopy Cloud.
@@ -202,12 +215,18 @@ pub struct OrganizationBase {
     /// during a self-hosted trial, then the end of the last paid invoice's
     /// service period. While a sent invoice is unpaid, its due date plus a
     /// grace window. License keys and entitlements expire 7 days later.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub license_paid_through: Option<DateTime<Utc>>,
     /// Last time a self-hosted server fetched an entitlement with this org's
     /// online license key.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub license_checkin_at: Option<DateTime<Utc>>,
     /// Version embedded in online license keys - internal, not exposed to API.

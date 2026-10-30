@@ -600,10 +600,13 @@ mod tests {
                 continue;
             }
             let server_owned = matches!(field.write, FieldWrite::ServerOwned(_));
-            // A serialized server-owned field still reads from a request: `skip_deserializing`
-            // would also drop it from the schema, and so from the generated types.
-            if server_owned && field.unserialized && deserializes::<T>(&base, key) {
-                breaks.push(format!("{entity}.{key} is server-owned, so it needs skip"));
+            // Through `api::ignored`, or `skip` for a field that never serializes. utoipa treats
+            // `skip_deserializing` as `skip`, which drops the field from the schema and so from
+            // the generated types, though responses still carry it.
+            if server_owned && deserializes::<T>(&base, key) {
+                breaks.push(format!(
+                    "{entity}.{key} is server-owned, so a request must not be able to set it"
+                ));
             }
             if !server_owned && !field.unserialized && !deserializes::<T>(&base, key) {
                 breaks.push(format!(

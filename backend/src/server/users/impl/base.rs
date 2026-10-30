@@ -38,18 +38,29 @@ pub struct UserBase {
     #[serde(skip)] // Never send to client, never accept from client
     pub password_hash: Option<String>,
     /// Whether the user has a password set — computed from password_hash, never stored in DB
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub has_password: bool,
     /// Slug of the identity provider this account signs in through, when linked.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored",
+        skip_serializing_if = "Option::is_none"
+    )]
     #[schema(read_only)]
     pub oidc_provider: Option<String>,
     /// The provider's stable identifier for this user.
     #[serde(skip)]
     pub oidc_subject: Option<String>,
     /// When the account was linked to the identity provider.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored",
+        skip_serializing_if = "Option::is_none"
+    )]
     #[schema(read_only)]
     pub oidc_linked_at: Option<DateTime<Utc>>,
     /// The sites this entity applies to.
@@ -63,17 +74,26 @@ pub struct UserBase {
     /// Whether the user must accept the current terms before the API serves
     /// their session. Computed, never stored: set only on the signed-in user's
     /// own record (`/api/auth/me`, login, accept), false everywhere else.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub terms_acceptance_required: bool,
     /// Whether the user must verify their email before the API serves their
     /// session (an org on a license plan, see `auth::verification_gate`).
     /// Computed and set like `terms_acceptance_required`.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub email_verification_required: bool,
     /// Whether the user has verified their email address
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub email_verified: bool,
     /// Token for email verification - never exposed to client
