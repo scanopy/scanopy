@@ -24,7 +24,7 @@ use crate::server::shared::handlers::traits::{
     BulkDeleteResponse, CrudHandlers, bulk_delete_handler, delete_handler,
 };
 use crate::server::shared::services::{
-    entity_fields::{ServiceSource, entities_csv},
+    entity_fields::{ServiceSource, entities_csv, validate_references},
     traits::CrudService,
 };
 use crate::server::shared::storage::traits::Entity;
@@ -40,7 +40,10 @@ use crate::server::{
     config::AppState,
     daemons::r#impl::{base::Daemon, version::pre_interface_to_ip_address_rename},
     hosts::r#impl::{
-        api::{CreateHostRequest, DiscoveryHostRequest, HostResponse, UpdateHostRequest},
+        api::{
+            CreateHostRequest, DiscoveryHostRequest, HostResponse, IPAddressInput, InterfaceInput,
+            ServiceInput, UpdateHostRequest,
+        },
         base::{HOST_MAC_JOIN, Host, PRIMARY_INTERFACE_JOIN},
         legacy::{HostCreateRequestBody, HostCreateResponse, LegacyHostWithServicesResponse},
     },
@@ -542,6 +545,96 @@ async fn get_host_by_id(
     Ok(Json(ApiResponse::success(host)))
 }
 
+/// The rows a host request carries with it, and the site they land on.
+struct HostChildren<'a> {
+    site_id: Uuid,
+    ip_addresses: &'a [IPAddressInput],
+    interfaces: &'a [InterfaceInput],
+    services: &'a [ServiceInput],
+}
+
+/// Refuses a host request naming rows the caller can't use. `request` is the serialized request,
+/// which carries the keys the registry declares for a host. Children have no entity of their own
+/// yet, so what they name is checked here against the site, and ids the request itself creates
+/// pass.
+async fn validate_host_request(
+    state: &AppState,
+    mut request: serde_json::Value,
+    stored: Option<&Host>,
+    children: HostChildren<'_>,
+    site_ids: &[Uuid],
+    organization_id: Uuid,
+) -> Result<(), ApiError> {
+    let HostChildren {
+        site_id,
+        ip_addresses,
+        interfaces,
+        services,
+    } = children;
+
+    request["site_id"] = serde_json::json!(site_id);
+    let stored = stored
+        .map(serde_json::to_value)
+        .transpose()
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+    let own_addresses: Vec<Uuid> = ip_addresses.iter().map(|a| a.id).collect();
+    validate_references(
+        &state.services,
+        EntityDiscriminants::Host,
+        &request,
+        stored.as_ref(),
+        &own_addresses,
+        site_ids,
+        organization_id,
+    )
+    .await?;
+
+    for ip_address in ip_addresses {
+        if let Some(subnet) = state
+            .services
+            .subnet_service
+            .get_by_id(&ip_address.subnet_id)
+            .await?
+            && subnet.base.site_id != site_id
+        {
+            return Err(ApiError::bad_request(&format!(
+                "Host is on site {}, cannot have an ip_address with a subnet \"{}\" which is on site {}.",
+                site_id, subnet.base.name, subnet.base.site_id
+            )));
+        }
+    }
+
+    let named_addresses: Vec<Uuid> = interfaces
+        .iter()
+        .filter_map(|interface| interface.ip_address_id)
+        .filter(|id| !own_addresses.contains(id))
+        .collect();
+    state
+        .services
+        .ip_address_service
+        .validate_ids_in_sites(&named_addresses, &[site_id])
+        .await?;
+
+    let own_services: Vec<Uuid> = services.iter().map(|s| s.id).collect();
+    let named_services: Vec<Uuid> = services
+        .iter()
+        .filter_map(|service| service.virtualization_service_id)
+        .filter(|id| !own_services.contains(id))
+        .collect();
+    state
+        .services
+        .service_service
+        .validate_ids_in_sites(&named_services, &[site_id])
+        .await?;
+
+    let service_tags: Vec<Uuid> = services.iter().flat_map(|s| s.tags.clone()).collect();
+    state
+        .services
+        .tag_service
+        .validate_ids_in_org(&service_tags, organization_id)
+        .await
+}
+
 /// Create host
 ///
 /// Creates a host with optional ip_addresses, ports, and services.
@@ -593,7 +686,7 @@ async fn create_host(
             }
 
             // Validate site_id exists
-            let _site = state
+            let site = state
                 .services
                 .site_service
                 .get_by_id(&request.site_id)
@@ -659,21 +752,21 @@ async fn create_host(
                 }
             }
 
-            // Check interface subnets are on the same site
-            for ip_address in &request.ip_addresses {
-                if let Some(subnet) = state
-                    .services
-                    .subnet_service
-                    .get_by_id(&ip_address.subnet_id)
-                    .await?
-                    && subnet.base.site_id != request.site_id
-                {
-                    return Err(ApiError::bad_request(&format!(
-                        "Host is on site {}, cannot have an ip_address with a subnet \"{}\" which is on site {}.",
-                        request.site_id, subnet.base.name, subnet.base.site_id
-                    )));
-                }
-            }
+            validate_host_request(
+                &state,
+                serde_json::to_value(&request)
+                    .map_err(|e| ApiError::internal_error(&e.to_string()))?,
+                None,
+                HostChildren {
+                    site_id: request.site_id,
+                    ip_addresses: &request.ip_addresses,
+                    interfaces: &request.interfaces,
+                    services: &request.services,
+                },
+                &site_ids,
+                site.base.organization_id,
+            )
+            .await?;
 
             let host_response = host_service.create_from_request(request, entity).await?;
 
@@ -857,6 +950,21 @@ async fn update_host(
         &site_ids,
         organization_id,
     )?;
+
+    validate_host_request(
+        &state,
+        serde_json::to_value(&request).map_err(|e| ApiError::internal_error(&e.to_string()))?,
+        Some(&existing_host),
+        HostChildren {
+            site_id: existing_host.base.site_id,
+            ip_addresses: request.ip_addresses.as_deref().unwrap_or_default(),
+            interfaces: request.interfaces.as_deref().unwrap_or_default(),
+            services: request.services.as_deref().unwrap_or_default(),
+        },
+        &site_ids,
+        organization_id,
+    )
+    .await?;
 
     if host_update_changes_tags(&state, &existing_host, &request).await? {
         ensure_tagging_allowed(&state, &organization_id).await?;

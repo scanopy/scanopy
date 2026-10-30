@@ -166,6 +166,7 @@ where
         T::entity_type(),
         &to_json(entity)?,
         stored.as_ref(),
+        &[],
         site_ids,
         organization_id,
     )

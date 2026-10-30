@@ -295,13 +295,15 @@ fn reference_ids(reference: &EntityReference, object: &Value) -> Vec<Uuid> {
 /// both have one. A missing id and another tenant's are refused alike.
 ///
 /// `stored` is the row being updated. Ids already on it pass, so an edit to another field can't
-/// fail on what the row already holds. `site_ids` is the caller's. Sites themselves are checked
-/// across the organization: a key limited to one site can still save a user who holds others.
+/// fail on what the row already holds. `own_ids` are rows the same request creates, which no read
+/// can find yet. `site_ids` is the caller's. Sites themselves are checked across the organization:
+/// a key limited to one site can still save a user who holds others.
 pub async fn validate_references(
     services: &ServiceFactory,
     entity: EntityDiscriminants,
     incoming: &Value,
     stored: Option<&Value>,
+    own_ids: &[Uuid],
     site_ids: &[Uuid],
     organization_id: Uuid,
 ) -> Result<(), ApiError> {
@@ -313,7 +315,7 @@ pub async fn validate_references(
             .map(|row| reference_ids(&reference, row))
             .unwrap_or_default();
         let mut ids = reference_ids(&reference, incoming);
-        ids.retain(|id| !held.contains(id));
+        ids.retain(|id| !held.contains(id) && !own_ids.contains(id));
         ids.sort();
         ids.dedup();
         if ids.is_empty() {
@@ -757,7 +759,170 @@ mod tests {
     }
 
     /// Request schemas outside the registry whose ids a handler checks itself, and where.
-    const HANDLER_CHECKED: &[(&str, &str, &str)] = &[];
+    const HANDLER_CHECKED: &[(&str, &str, &str)] = &[
+        ("BindingInput", "ip_address_id", "binding_validation.rs"),
+        ("BindingInput", "port_id", "binding_validation.rs"),
+        ("BulkSetEnabledRequest", "ids", "discovery/bulk.rs load_all"),
+        (
+            "BulkTagRequest",
+            "entity_ids",
+            "validate_entities_in_tenant",
+        ),
+        ("BulkTagRequest", "tag_id", "validate_tag_full"),
+        ("CreateBindingInput", "ip_address_id", "create_service"),
+        ("CreateBindingInput", "port_id", "create_service"),
+        ("CreateHostRequest", "tags", "validate_host_request"),
+        (
+            "CreateHostRequest",
+            "virtualization_interface_id",
+            "validate_host_request",
+        ),
+        (
+            "CreateHostRequest",
+            "virtualization_service_id",
+            "validate_host_request",
+        ),
+        (
+            "CreateInviteRequest",
+            "site_ids",
+            "validate_site_ids_access",
+        ),
+        ("CreateServiceRequest", "host_id", "create_service"),
+        ("CreateServiceRequest", "tags", "create_service"),
+        (
+            "CreateServiceRequest",
+            "virtualization_service_id",
+            "create_service",
+        ),
+        (
+            "CredentialAssignment",
+            "credential_id",
+            "validate_host_request",
+        ),
+        (
+            "CredentialAssignment",
+            "ip_address_ids",
+            "validate_host_request",
+        ),
+        (
+            "DaemonRegistrationRequest",
+            "daemon_id",
+            "process_registration",
+        ),
+        (
+            "DependencyMembers",
+            "binding_ids",
+            "validate_dependency_members",
+        ),
+        (
+            "DependencyMembers",
+            "service_ids",
+            "validate_dependency_members",
+        ),
+        (
+            "DiscoveryUpdatePayload",
+            "daemon_id",
+            "the session update handler",
+        ),
+        (
+            "DiscoveryUpdatePayload",
+            "session_id",
+            "the session update handler",
+        ),
+        (
+            "EmailInstallCommandRequest",
+            "daemon_id",
+            "validate_site_access",
+        ),
+        (
+            "EntitlementRequest",
+            "instance_id",
+            "a signed license key, not a tenant row",
+        ),
+        ("IPAddressInput", "subnet_id", "validate_host_request"),
+        (
+            "IdentifiedRule_ElementRule",
+            "tag_ids",
+            "a display filter: foreign ids match nothing",
+        ),
+        (
+            "IntegrationTarget",
+            "credential_id",
+            "provision_daemon, and both dispatch paths",
+        ),
+        ("InterfaceInput", "ip_address_id", "validate_host_request"),
+        (
+            "LegacyCapabilities",
+            "interfaced_subnet_ids",
+            "filter_existing_subnet_ids",
+        ),
+        (
+            "MergeSubnetRequest",
+            "into",
+            "merge_subnet, then merge_into",
+        ),
+        (
+            "ProvisionDaemonRequest",
+            "daemon_id",
+            "load_reprovision_target",
+        ),
+        ("ServiceInput", "tags", "validate_host_request"),
+        (
+            "ServiceInput",
+            "virtualization_service_id",
+            "validate_host_request",
+        ),
+        ("SetTagsRequest", "entity_id", "validate_entities_in_tenant"),
+        ("SetTagsRequest", "tag_ids", "validate_tag_full"),
+        (
+            "TagOrderRequest",
+            "tag_ids",
+            "reorder_tags: a permutation of the group's own",
+        ),
+        ("UpdateHostRequest", "tags", "validate_host_request"),
+        (
+            "UpdateHostRequest",
+            "virtualization_interface_id",
+            "validate_host_request",
+        ),
+        (
+            "UpdateHostRequest",
+            "virtualization_service_id",
+            "validate_host_request",
+        ),
+    ];
+
+    /// Ids a daemon reports about its own scan, which nothing checks. Listed so they stay visible:
+    /// `ScannedEntityIds` reaches `stamp_discovery` and `refresh_subnets_of_addresses` without a
+    /// site filter, so a daemon key can stamp rows on another site.
+    const DAEMON_REPORTED_UNCHECKED: &[(&str, &str)] = &[
+        ("CredentialAttempt", "credential_id"),
+        ("CredentialRunOutcome", "hosts_with_guests_listed"),
+        ("CredentialRunResult", "credential_id"),
+        ("DaemonRegistrationRequest", "user_id"),
+        ("DiscoveryType", "host_id"),
+        ("DiscoveryType", "subnet_ids"),
+        ("DiscoveryType", "target_host_ids"),
+        ("DiscoveryUpdatePayload", "discovery_id"),
+        ("DiscoveryWarning", "credential_id"),
+        ("DiscoveryWarning", "host_id"),
+        ("MalformedNeighbours", "credential_id"),
+        ("ProvisionalSubnet", "seen_by_host_ids"),
+        ("ProvisionalSubnet", "subnet_id"),
+        ("ScannedEntityIds", "binding_ids"),
+        ("ScannedEntityIds", "found_subnet_ids"),
+        ("ScannedEntityIds", "host_ids"),
+        ("ScannedEntityIds", "interface_ids"),
+        ("ScannedEntityIds", "ip_address_ids"),
+        ("ScannedEntityIds", "port_ids"),
+        ("ScannedEntityIds", "service_ids"),
+        ("ScannedEntityIds", "subnet_ids"),
+        ("ScannedEntityIds", "vlan_ids"),
+        ("UnconfirmedHost", "host_id"),
+        ("UnmatchedNeighbour", "host_id"),
+        ("UnresolvedPort", "host_id"),
+        ("UnresolvedPort", "remote_host_id"),
+    ];
 
     /// Whether a property holds a UUID or an array of them.
     fn holds_uuid(schema: &Value) -> bool {
@@ -806,7 +971,10 @@ mod tests {
                     })
                     || HANDLER_CHECKED
                         .iter()
-                        .any(|(schema, field, _)| *schema == name && field == key);
+                        .any(|(schema, field, _)| *schema == name && field == key)
+                    || DAEMON_REPORTED_UNCHECKED
+                        .iter()
+                        .any(|(schema, field)| *schema == name && field == key);
                 if holds_uuid(prop) && !accounted {
                     found.insert(format!("{name}.{key}"));
                 }

@@ -4,6 +4,7 @@ use crate::server::hosts::r#impl::base::{Host, host_primary_address_join};
 use crate::server::services::definitions::ServiceDefinitionRegistry;
 use crate::server::services::r#impl::categories::ServiceCategory;
 use crate::server::services::r#impl::patterns::MatchConfidence;
+use crate::server::shared::entities::EntityDiscriminants;
 use crate::server::shared::handlers::list::list_page;
 use crate::server::shared::handlers::ordering::OrderField;
 use crate::server::shared::handlers::query::{
@@ -11,6 +12,7 @@ use crate::server::shared::handlers::query::{
 };
 use crate::server::shared::handlers::traits::ListScope;
 use crate::server::shared::handlers::traits::update_handler;
+use crate::server::shared::services::entity_fields::validate_references;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable};
@@ -419,6 +421,17 @@ pub async fn create_service(
 ) -> ApiResult<Json<ApiResponse<Service>>> {
     // Validate user has access to the site
     validate_site_access(Some(request.site_id()), &auth.site_ids(), "create")?;
+
+    validate_references(
+        &state.services,
+        EntityDiscriminants::Service,
+        &serde_json::to_value(&request).map_err(|e| ApiError::internal_error(&e.to_string()))?,
+        None,
+        &[],
+        &auth.site_ids(),
+        auth.require_organization_id()?,
+    )
+    .await?;
 
     // Custom validation: Check host site matches service site
     if let Some(host) = state
