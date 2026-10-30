@@ -682,6 +682,16 @@ async fn generic_writes_refuse_ids_from_another_organization() {
     let (status, _) = post(mine.addr, "/api/v1/bindings", &json!(binding)).await;
     assert_eq!(status, 400, "binding service_id");
 
+    // A service containerized by a service on theirs.
+    let mut containerized = json!(service(&mine.site.id, &own_host.id));
+    containerized["bindings"] = json!([]);
+    containerized["virtualization_service_id"] = json!(own_service.id);
+    let (status, body) = post(mine.addr, "/api/v1/services", &containerized).await;
+    assert_eq!(status, 200, "{body}");
+    containerized["virtualization_service_id"] = json!(foreign_service.id);
+    let (status, _) = post(mine.addr, "/api/v1/services", &containerized).await;
+    assert_eq!(status, 400, "service virtualization_service_id");
+
     // A subnet managed by a service on theirs.
     let mut managed = subnet(&mine.site.id);
     managed.base.cidr = theirs_cidr();
@@ -858,6 +868,28 @@ async fn saving_a_host_cannot_name_rows_from_another_organization() {
     virtualized["virtualization_service_id"] = json!(foreign_service.id);
     let (status, _) = put(mine.addr, &path, &virtualized).await;
     assert_eq!(status, 400, "update virtualization_service_id");
+
+    let foreign_address = {
+        let mut row = ip_address(&theirs.site.id, &foreign_subnet.id);
+        row.base.host_id = foreign_host.id;
+        services
+            .ip_address_service
+            .create(row, system())
+            .await
+            .unwrap()
+    };
+    let mut interfaced = update.clone();
+    interfaced["interfaces"] = json!([{
+        "id": Uuid::new_v4(),
+        "if_index": 1,
+        "if_descr": "eth0",
+        "ip_address_id": foreign_address.id,
+    }]);
+    let (status, _) = put(mine.addr, &path, &interfaced).await;
+    assert!(
+        !is_ok(status),
+        "update interfaces ip_address_id got {status}"
+    );
 
     let mut addressed = update.clone();
     addressed["ip_addresses"] = json!([{
