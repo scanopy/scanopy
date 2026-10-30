@@ -712,6 +712,15 @@ impl HostService {
                 if let Some(mut existing_port) =
                     self.port_service.get_by_id(&port_with_host.id).await?
                 {
+                    // The id comes from the daemon, so it can name a row on another site.
+                    if existing_port.base.site_id != created_host.base.site_id {
+                        tracing::warn!(
+                            port_id = %existing_port.id,
+                            site_id = %created_host.base.site_id,
+                            "Discovered port names a row on another site; dropping it"
+                        );
+                        continue;
+                    }
                     existing_port.set_last_seen_at(port_with_host.last_seen_at);
                     existing_port.base.port_source = existing_port
                         .base
@@ -1037,6 +1046,15 @@ impl HostService {
                 if let Some(mut existing_iface) =
                     self.ip_address_service.get_by_id(&ip_address.id).await?
                 {
+                    // The id comes from the daemon, so it can name a row on another site.
+                    if existing_iface.base.site_id != created_host.base.site_id {
+                        tracing::warn!(
+                            ip_address_id = %existing_iface.id,
+                            site_id = %created_host.base.site_id,
+                            "Discovered address names a row on another site; dropping it"
+                        );
+                        continue;
+                    }
                     existing_iface.base.merge_discovered(&ip_address.base);
                     existing_iface.set_last_seen_at(ip_address.last_seen_at);
                     ip_addresses_to_refresh.push(existing_iface.clone());

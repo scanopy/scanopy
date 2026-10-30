@@ -73,8 +73,11 @@ impl DaemonService {
             }
             resolved_ids
         } else {
-            self.filter_existing_subnet_ids(&status.capabilities.interfaced_subnet_ids)
-                .await
+            self.filter_existing_subnet_ids(
+                &status.capabilities.interfaced_subnet_ids,
+                daemon.base.site_id,
+            )
+            .await
         };
 
         self.set_interfaced_subnet_ids(&daemon_id, &subnet_ids)
@@ -134,14 +137,17 @@ impl DaemonService {
         }
     }
 
-    /// Keep only the subnet ids that currently exist as live `subnets` rows, so a
-    /// legacy daemon's stale/dangling id can't violate the junction FK. Goes through
-    /// `SubnetService` (not storage) to respect entity boundaries.
-    async fn filter_existing_subnet_ids(&self, ids: &[Uuid]) -> Vec<Uuid> {
+    /// Keep only the subnet ids that currently exist as live `subnets` rows on the daemon's
+    /// site, so a legacy daemon's stale/dangling id can't violate the junction FK and it can't
+    /// claim another site's subnet. Goes through `SubnetService` (not storage) to respect entity
+    /// boundaries.
+    async fn filter_existing_subnet_ids(&self, ids: &[Uuid], site_id: Uuid) -> Vec<Uuid> {
         if ids.is_empty() {
             return Vec::new();
         }
-        let filter = StorableFilter::<Subnet>::new_from_uuids_column("id", ids).live();
+        let filter = StorableFilter::<Subnet>::new_from_site_ids(&[site_id])
+            .uuids_column("id", ids)
+            .live();
         match self.subnet_service.get_all(filter).await {
             Ok(subnets) => {
                 let existing: std::collections::HashSet<Uuid> =
@@ -306,6 +312,11 @@ impl DaemonService {
 
         // Check if daemon already exists (re-registration scenario)
         if let Some(mut existing_daemon) = self.get_by_id(&effective_daemon_id).await? {
+            // A shared key names its daemon by header, so the id proves nothing on its own.
+            if existing_daemon.base.site_id != effective_site_id {
+                return Err(ApiError::daemon_site_mismatch());
+            }
+
             // Update daemon with current info
             // NOTE: We do NOT update URL from registration request.
             // URL is only set via admin provisioning for ServerPoll daemons.
@@ -542,12 +553,13 @@ impl DaemonService {
         );
 
         // Confirm the daemon exists (auth already scoped it to the caller's site).
-        if self.get_by_id(&daemon_id).await?.is_none() {
-            return Err(ApiError::entity_not_found::<Daemon>(daemon_id));
-        }
+        let daemon = self
+            .get_by_id(&daemon_id)
+            .await?
+            .ok_or_else(|| ApiError::entity_not_found::<Daemon>(daemon_id))?;
 
         let subnet_ids = self
-            .filter_existing_subnet_ids(&capabilities.interfaced_subnet_ids)
+            .filter_existing_subnet_ids(&capabilities.interfaced_subnet_ids, daemon.base.site_id)
             .await;
         self.set_interfaced_subnet_ids(&daemon_id, &subnet_ids)
             .await

@@ -663,6 +663,17 @@ pub(crate) async fn receive_discovery_update(
         return Err(ApiError::daemon_identity_mismatch());
     }
 
+    // The session id comes from the body, so it must name a session on the daemon's own site.
+    if let Some(session) = state
+        .services
+        .discovery_service
+        .get_session(&update.session_id)
+        .await
+        && session.site_id != daemon_site_id
+    {
+        return Err(ApiError::daemon_site_mismatch());
+    }
+
     // Delegate to processor for shared progress update logic
     // This ensures both DaemonPoll and ServerPoll modes use the same logic
     state
