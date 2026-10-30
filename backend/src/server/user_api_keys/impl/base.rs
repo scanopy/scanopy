@@ -23,8 +23,12 @@ pub struct UserApiKeyBase {
     /// Human-facing name for this key.
     pub name: String,
     /// User the key acts on behalf of.
+    #[serde(default)]
+    #[schema(read_only, required)]
     pub user_id: Uuid,
     /// The organization that owns this record.
+    #[serde(default)]
+    #[schema(read_only, required)]
     pub organization_id: Uuid,
     /// Role the key is limited to, which cannot exceed the user's own.
     #[serde(default)]

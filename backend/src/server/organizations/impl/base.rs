@@ -106,7 +106,7 @@ pub struct OrgNotifications {
 )]
 pub struct OrganizationBase {
     /// Stripe customer ID - internal, not exposed to API
-    #[serde(default, skip_serializing)]
+    #[serde(skip)]
     pub stripe_customer_id: Option<String>,
     /// Human-facing name for this organization.
     #[validate(length(min = 0, max = 100))]
@@ -212,22 +212,22 @@ pub struct OrganizationBase {
     pub license_checkin_at: Option<DateTime<Utc>>,
     /// Version embedded in online license keys - internal, not exposed to API.
     /// Rotating the key increments it, retiring every earlier key.
-    #[serde(default, skip_serializing)]
+    #[serde(skip)]
     pub license_key_version: i64,
     /// `iat` embedded in this org's online license key. Held so re-minting
     /// returns a byte-identical key rather than a new string each time; set on
     /// first issue and moved on rotation. Not key material.
-    #[serde(default, skip_serializing)]
+    #[serde(skip)]
     pub license_key_issued_at: Option<DateTime<Utc>>,
     /// Which license key this org currently has issued - internal, not exposed
     /// to API. `None` reads as online. Switching retires the previous key.
-    #[serde(default, skip_serializing)]
+    #[serde(skip)]
     pub license_key_type: Option<crate::server::license::types::LicenseKeyType>,
     /// Highest server version a check-in with this org's online key has
     /// reported - internal, not exposed to API. Several servers can share a
     /// key, so it only ever rises. `None` until a server new enough to send
     /// its version checks in.
-    #[serde(default, skip_serializing)]
+    #[serde(skip)]
     pub license_server_version: Option<Version>,
     /// The date this org's air-gapped key stays current until, or `None` when
     /// it holds an online key or that date has passed.

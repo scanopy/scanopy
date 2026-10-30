@@ -338,8 +338,11 @@ pub async fn entities_csv<S: RelatedSource, T: serde::Serialize>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::server::shared::types::entity_field::FieldWrite;
     use crate::server::shared::types::examples;
+    use serde::{Serialize, de::DeserializeOwned};
     use serde_json::json;
+    use std::collections::HashSet;
     use strum::IntoEnumIterator;
 
     /// Related entities held in memory, keyed by type.
@@ -523,6 +526,148 @@ mod tests {
                 check_field("EdgeType", field);
             }
         }
+    }
+
+    /// Keys every entity may carry that the storage layer owns, so they need no registry entry.
+    const SYSTEM_KEYS: &[&str] = &[
+        "id",
+        "created_at",
+        "updated_at",
+        "valid_from",
+        "valid_to",
+        "lineage_id",
+        "last_seen_at",
+        "first_discovery_id",
+        "last_discovery_id",
+    ];
+
+    /// Keys read through `deserialize_lenient_option`, which turns a value of the wrong shape into
+    /// `None`, so no probe can see them being read.
+    const LENIENT_KEYS: &[&str] = &["virtualization_metadata"];
+
+    /// The serialized key a field reads from the entity itself, when it reads one.
+    fn own_key(field: &EntityField) -> Option<&'static str> {
+        match field.path.first() {
+            Some(Hop::Parent { key, .. } | Hop::Embedded { key }) => Some(key),
+            Some(Hop::Children { .. }) => None,
+            None => field.field.and_then(|path| path.split('.').next()),
+        }
+    }
+
+    /// Whether `from_value` reads `key`: a value of the wrong shape refuses to parse if it does.
+    /// Two shapes, because a struct of defaults accepts any object and nothing but a bool or an
+    /// untyped value accepts `true`.
+    fn deserializes<T: DeserializeOwned>(base: &Value, key: &str) -> bool {
+        [json!({ "__probe": true }), json!(true)]
+            .iter()
+            .any(|junk| {
+                let mut probe = base.clone();
+                probe[key] = junk.clone();
+                serde_json::from_value::<T>(probe).is_err()
+            })
+    }
+
+    /// What the registry promises about `T`: every serialized key has an entry, every rule runs
+    /// on `T`, and each field's serde and schema match its write policy.
+    fn registry_contract_breaks<T>(entity: EntityDiscriminants) -> Vec<String>
+    where
+        T: Entity + Serialize + DeserializeOwned + Default + 'static,
+    {
+        let fields = entity.fields();
+        let props = schema_props(entity.as_ref());
+        let mut breaks = Vec::new();
+
+        let mut covered: HashSet<&str> = fields.iter().filter_map(|f| own_key(f)).collect();
+        covered.extend(fields.iter().filter_map(|f| f.source_field));
+        for key in props.keys().map(String::as_str) {
+            if !SYSTEM_KEYS.contains(&key) && !covered.contains(key) {
+                breaks.push(format!("{entity}.{key} has no registry field"));
+            }
+        }
+
+        T::default().preserve_immutable_fields(&T::default());
+
+        let base = example(entity)
+            .unwrap_or_else(|| serde_json::to_value(T::default()).expect("default serializes"));
+        if let Err(e) = serde_json::from_value::<T>(base.clone()) {
+            breaks.push(format!("{entity}: the base payload must parse: {e}"));
+            return breaks;
+        }
+        let mut probed = HashSet::new();
+        for field in fields.iter().filter(|f| !f.computed) {
+            let Some(key) = own_key(field) else { continue };
+            if LENIENT_KEYS.contains(&key) || !probed.insert(key) {
+                continue;
+            }
+            let server_owned = matches!(field.write, FieldWrite::ServerOwned(_));
+            // A serialized server-owned field still reads from a request: `skip_deserializing`
+            // would also drop it from the schema, and so from the generated types.
+            if server_owned && field.unserialized && deserializes::<T>(&base, key) {
+                breaks.push(format!("{entity}.{key} is server-owned, so it needs skip"));
+            }
+            if !server_owned && !field.unserialized && !deserializes::<T>(&base, key) {
+                breaks.push(format!(
+                    "{entity}.{key} isn't server-owned, so a request must be able to set it"
+                ));
+            }
+            // utoipa writes `read_only` on an array's items.
+            if server_owned
+                && let Some(schema) = props.get(key)
+                && schema.get("readOnly") != Some(&json!(true))
+                && schema["items"].get("readOnly") != Some(&json!(true))
+            {
+                breaks.push(format!(
+                    "{entity}.{key} is server-owned, so its schema is read_only"
+                ));
+            }
+        }
+        breaks
+    }
+
+    #[test]
+    fn every_entity_keeps_its_registry_contract() {
+        use crate::server::{
+            bindings::r#impl::base::Binding, credentials::r#impl::base::Credential,
+            daemon_api_keys::r#impl::base::DaemonApiKey, daemons::r#impl::base::Daemon,
+            dependencies::r#impl::base::Dependency, discovery::r#impl::base::Discovery,
+            hosts::r#impl::base::Host, interfaces::r#impl::base::Interface,
+            invites::r#impl::base::Invite, ip_addresses::r#impl::base::IPAddress,
+            organizations::r#impl::base::Organization, ports::r#impl::base::Port,
+            services::r#impl::base::Service, shares::r#impl::base::Share, sites::r#impl::Site,
+            snapshots::types::base::Snapshot, subnets::r#impl::base::Subnet,
+            tags::groups::base::TagGroup, tags::r#impl::base::Tag, topology::types::base::Topology,
+            user_api_keys::r#impl::base::UserApiKey, users::r#impl::base::User,
+            vlans::r#impl::base::Vlan,
+        };
+        use EntityDiscriminants as E;
+        let breaks: Vec<String> = EntityDiscriminants::iter()
+            .flat_map(|entity| match entity {
+                E::Site => registry_contract_breaks::<Site>(entity),
+                E::Vlan => registry_contract_breaks::<Vlan>(entity),
+                E::Subnet => registry_contract_breaks::<Subnet>(entity),
+                E::Host => registry_contract_breaks::<Host>(entity),
+                E::Service => registry_contract_breaks::<Service>(entity),
+                E::IPAddress => registry_contract_breaks::<IPAddress>(entity),
+                E::Interface => registry_contract_breaks::<Interface>(entity),
+                E::Port => registry_contract_breaks::<Port>(entity),
+                E::Binding => registry_contract_breaks::<Binding>(entity),
+                E::Discovery => registry_contract_breaks::<Discovery>(entity),
+                E::Daemon => registry_contract_breaks::<Daemon>(entity),
+                E::DaemonApiKey => registry_contract_breaks::<DaemonApiKey>(entity),
+                E::Tag => registry_contract_breaks::<Tag>(entity),
+                E::TagGroup => registry_contract_breaks::<TagGroup>(entity),
+                E::User => registry_contract_breaks::<User>(entity),
+                E::UserApiKey => registry_contract_breaks::<UserApiKey>(entity),
+                E::Credential => registry_contract_breaks::<Credential>(entity),
+                E::Organization => registry_contract_breaks::<Organization>(entity),
+                E::Invite => registry_contract_breaks::<Invite>(entity),
+                E::Topology => registry_contract_breaks::<Topology>(entity),
+                E::Snapshot => registry_contract_breaks::<Snapshot>(entity),
+                E::Share => registry_contract_breaks::<Share>(entity),
+                E::Dependency => registry_contract_breaks::<Dependency>(entity),
+            })
+            .collect();
+        assert!(breaks.is_empty(), "{}", breaks.join("\n"));
     }
 
     /// Field ids are unique, so a list-table column has one group, and no exported field repeats a

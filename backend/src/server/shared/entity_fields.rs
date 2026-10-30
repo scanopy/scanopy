@@ -167,7 +167,7 @@ const HOST: &[F] = &[
     F::internal("dismissed_at").merged(merge!(Host, merge_dismissed_at)),
     SITE,
     F::internal("virtualization_metadata"),
-    F::internal("matched_device_type"),
+    F::internal("matched_device_type").source("matched_device_type_source"),
     F::internal("credential_assignments").many(),
     TAGS,
     // Read from `HostResponse`, not the stored `Host`, so these are worked out for the table.
@@ -386,6 +386,8 @@ const SUBNET: &[F] = &[
     // After `cidr`: settling the range is what confirms an inferred subnet.
     SOURCE.merged(merge!(Subnet, merge_source)),
     SITE,
+    F::internal("name_source"),
+    F::internal("subnet_type_source"),
     TAGS,
     F::column("utilization", "Utilization", G::Network).computed(),
     LAST_SEEN_AT,
@@ -410,13 +412,16 @@ const VLAN: &[F] = &[
     DESCRIPTION.summary(),
     F::new("subnet_ids", "Subnets", G::Network)
         .entity(&[Hop::parent(E::Subnet, "subnet_ids")])
-        .many(),
+        .many()
+        .server_owned(pin!(Vlan, base.subnet_ids)),
     F::new("interface_ids", "Interfaces", G::Network)
         .entity(&[Hop::parent(E::Interface, "interface_ids")])
-        .many(),
+        .many()
+        .server_owned(pin!(Vlan, base.interface_ids)),
     SOURCE.immutable(pin!(Vlan, base.source)),
     SITE.immutable(pin!(Vlan, base.site_id)),
     ORGANIZATION_ID.immutable(pin!(Vlan, base.organization_id)),
+    F::internal("name_source"),
     TAGS,
     LAST_SEEN_AT,
     FIRST_FOUND_BY,

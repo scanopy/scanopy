@@ -43,12 +43,14 @@ pub struct UserBase {
     pub has_password: bool,
     /// Slug of the identity provider this account signs in through, when linked.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(read_only)]
     pub oidc_provider: Option<String>,
     /// The provider's stable identifier for this user.
     #[serde(skip)]
     pub oidc_subject: Option<String>,
     /// When the account was linked to the identity provider.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(read_only)]
     pub oidc_linked_at: Option<DateTime<Utc>>,
     /// The sites this entity applies to.
     #[serde(default)]
@@ -72,6 +74,7 @@ pub struct UserBase {
     pub email_verification_required: bool,
     /// Whether the user has verified their email address
     #[serde(default)]
+    #[schema(read_only)]
     pub email_verified: bool,
     /// Token for email verification - never exposed to client
     #[serde(skip)]

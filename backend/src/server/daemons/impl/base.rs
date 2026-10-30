@@ -57,6 +57,7 @@ pub struct DaemonBase {
     /// Foreign key to API key used for ServerPoll authentication.
     /// NULL for DaemonPoll daemons or those not yet linked to a key.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schema(read_only)]
     pub api_key_id: Option<Uuid>,
     /// Whether the daemon is unreachable (for ServerPoll circuit breaker).
     /// Set to true after repeated polling failures, reset via retry-connection endpoint.
