@@ -76,6 +76,7 @@ export const ERROR_CODES = {
 		"'{name}' is a default credential and can't be deleted. Unassign it from sites and hosts instead.",
 	credential_default_settings_locked:
 		"'{name}' is a default credential. Its name, description and tags can change, but its settings can't.",
+	entity_reference_refused: "'{field}' isn't available here",
 	discovery_historical_read_only: 'Historical discovery cannot be modified via API',
 	discovery_subnet_site_mismatch: "Subnet '{subnet}' is on a different site",
 	discovery_session_not_found: "Discovery session '{id}' not found",
@@ -183,6 +184,7 @@ export interface ErrorParams {
 	credential_default_exists: { name: string | number };
 	credential_default_delete_forbidden: { name: string | number };
 	credential_default_settings_locked: { name: string | number };
+	entity_reference_refused: { field: string | number };
 	discovery_historical_read_only: Record<string, never>;
 	discovery_subnet_site_mismatch: { subnet: string | number };
 	discovery_session_not_found: { id: string | number };

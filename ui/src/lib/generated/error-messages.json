@@ -59,6 +59,7 @@
 	"errors_entity_in_use": "Cannot delete {entity} '{name}' because it's used by {used_by}",
 	"errors_entity_not_found": "{entity} with ID '{id}' not found",
 	"errors_entity_reference_invalid": "Referenced {entity} in field '{field}' does not exist",
+	"errors_entity_reference_refused": "'{field}' isn't available here",
 	"errors_entity_required": "At least one {entity} is required",
 	"errors_entity_site_mismatch": "{entity} is on a different site",
 	"errors_entity_update_forbidden": "Cannot update this {entity}",
