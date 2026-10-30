@@ -27,7 +27,7 @@
 		"@sveltejs/kit": "^2.65.2",
 		"@sveltejs/vite-plugin-svelte": "^6.1.4",
 		"@types/canvas-confetti": "^1.9.0",
-		"@types/node": "^25.0.8",
+		"@types/node": "^26.6.5",
 		"@types/prismjs": "^1.26.5",
 		"@types/semver": "^7.8.0",
 		"baseline-browser-mapping": "^2.8.32",
