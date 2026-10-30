@@ -42,9 +42,9 @@ use crate::server::users::r#impl::permissions::UserOrgPermissions;
 use crate::server::vlans::r#impl::base::Vlan;
 
 /// An organization, one of its sites, its owner, and the API served as that owner.
-struct Tenant {
-    org: Organization,
-    site: Site,
+pub(super) struct Tenant {
+    pub(super) org: Organization,
+    pub(super) site: Site,
     owner: User,
     addr: SocketAddr,
 }
@@ -81,7 +81,7 @@ async fn stored_site(state: &AppState, organization_id: Uuid) -> Site {
         .unwrap()
 }
 
-async fn tenant(state: &Arc<AppState>, email: &str) -> Tenant {
+pub(super) async fn tenant(state: &Arc<AppState>, email: &str) -> Tenant {
     let org = create_org(state, get_enterprise_plan(), None).await;
     let owner = stored_user(state, org.id, email).await;
     let own_site = stored_site(state, org.id).await;
@@ -106,7 +106,7 @@ async fn stored_topology(state: &AppState, site_id: Uuid) -> Topology {
         .unwrap()
 }
 
-async fn stored_credential(state: &AppState, organization_id: Uuid) -> Credential {
+pub(super) async fn stored_credential(state: &AppState, organization_id: Uuid) -> Credential {
     state
         .services
         .credential_service
@@ -128,7 +128,7 @@ async fn stored_credential(state: &AppState, organization_id: Uuid) -> Credentia
 }
 
 /// A daemon that has connected, so its version passes the discovery gates.
-async fn stored_daemon(state: &AppState, tenant: &Tenant) -> Daemon {
+pub(super) async fn stored_daemon(state: &AppState, tenant: &Tenant) -> Daemon {
     let site_id = tenant.site.id;
     let daemon_host = state
         .services
@@ -158,7 +158,7 @@ fn share_body(site_id: Uuid, topology_id: Uuid) -> Value {
     json!({ "share": share })
 }
 
-fn scan(daemon: &Daemon, targets: Vec<IntegrationTarget>) -> Discovery {
+pub(super) fn scan(daemon: &Daemon, targets: Vec<IntegrationTarget>) -> Discovery {
     let mut row = Discovery::new(DiscoveryBase {
         discovery_type: DiscoveryType::Unified {
             host_id: daemon.base.host_id,
@@ -176,7 +176,7 @@ fn scan(daemon: &Daemon, targets: Vec<IntegrationTarget>) -> Discovery {
     row
 }
 
-async fn post(addr: SocketAddr, path: &str, body: &Value) -> (u16, Value) {
+pub(super) async fn post(addr: SocketAddr, path: &str, body: &Value) -> (u16, Value) {
     send(addr, Method::POST, path, "session", Some(body)).await
 }
 
@@ -188,7 +188,7 @@ fn created_id(body: &Value) -> Uuid {
     serde_json::from_value(body["data"]["id"].clone()).unwrap()
 }
 
-fn is_ok(status: u16) -> bool {
+pub(super) fn is_ok(status: u16) -> bool {
     (200..300).contains(&status)
 }
 
@@ -530,7 +530,11 @@ async fn a_daemon_key_cannot_bind_itself_to_a_daemon() {
 }
 
 /// The API served to a daemon authenticated on `site_id` as `daemon_id`.
-async fn serve_as_daemon(state: &Arc<AppState>, site_id: Uuid, daemon_id: Uuid) -> SocketAddr {
+pub(super) async fn serve_as_daemon(
+    state: &Arc<AppState>,
+    site_id: Uuid,
+    daemon_id: Uuid,
+) -> SocketAddr {
     serve_as(
         state,
         AuthenticatedEntity::Daemon {
@@ -578,7 +582,7 @@ async fn registering_cannot_touch_a_daemon_on_another_site() {
     assert_eq!(stored.base.name, foreign.base.name);
 }
 
-fn progress(
+pub(super) fn progress(
     session_id: Uuid,
     daemon_id: Uuid,
     site_id: Uuid,

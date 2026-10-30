@@ -225,6 +225,7 @@ mod monitoring;
 mod polling;
 mod processing;
 mod provisioning;
+mod report_scope;
 
 #[cfg(test)]
 mod tests {

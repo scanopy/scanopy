@@ -332,6 +332,25 @@ where
         Ok(())
     }
 
+    /// Keep only the ids in `ids` that name a row on `site_id`. For ids a daemon reports about its
+    /// own site, where one bad id must not cost the rest of the report.
+    async fn retain_on_site(&self, ids: &mut Vec<Uuid>, site_id: Uuid) -> Result<(), Error> {
+        if ids.is_empty() {
+            return Ok(());
+        }
+        let filter = StorableFilter::<T>::new_from_entity_ids(ids);
+        let on_site: std::collections::HashSet<Uuid> = self
+            .storage()
+            .get_all(filter)
+            .await?
+            .iter()
+            .filter(|e| self.get_site_id(e) == Some(site_id))
+            .map(|e| e.id())
+            .collect();
+        ids.retain(|id| on_site.contains(id));
+        Ok(())
+    }
+
     /// Delete entity by ID. Override this to refuse a delete, delegating to `delete_base()` for
     /// the standard behavior.
     async fn delete(

@@ -7,6 +7,38 @@ impl HostService {
     // Discovery support (internal API)
     // =========================================================================
 
+    /// Keep only the scanned rows on `site_id`. The list comes from the daemon, and everything
+    /// downstream (the discovery FKs, the digest, guest removal, topology) treats it as what this
+    /// site's scan touched, so it is narrowed once, as the report arrives.
+    pub async fn retain_scanned_on_site(
+        &self,
+        scanned: &mut crate::server::daemons::r#impl::api::ScannedEntityIds,
+        site_id: Uuid,
+    ) -> Result<()> {
+        // Filled by the server after this point, never by a daemon.
+        scanned.found_subnet_ids.clear();
+
+        self.retain_on_site(&mut scanned.host_ids, site_id).await?;
+        self.subnet_service
+            .retain_on_site(&mut scanned.subnet_ids, site_id)
+            .await?;
+        self.vlan_service
+            .retain_on_site(&mut scanned.vlan_ids, site_id)
+            .await?;
+        self.ip_address_service
+            .retain_on_site(&mut scanned.ip_address_ids, site_id)
+            .await?;
+        self.port_service
+            .retain_on_site(&mut scanned.port_ids, site_id)
+            .await?;
+        self.interface_service
+            .retain_on_site(&mut scanned.interface_ids, site_id)
+            .await?;
+        self.service_service
+            .retain_scanned_on_site(scanned, site_id)
+            .await
+    }
+
     /// Point `last_discovery_id` (and `first_discovery_id`, where unset) at `discovery_id` on
     /// every row a finished session scanned: hosts and their IP addresses, ports, interfaces,
     /// subnets, VLANs, services and bindings.

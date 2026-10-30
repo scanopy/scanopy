@@ -653,34 +653,14 @@ pub(crate) async fn receive_discovery_update(
         .daemon_id()
         .ok_or_else(|| anyhow::anyhow!("Could not get daemon ID from authentication"))?;
 
-    // Validate daemon can only send updates for their own site
-    if update.site_id != daemon_site_id {
-        return Err(ApiError::daemon_site_mismatch());
-    }
-
-    // Validate daemon can only send updates as themselves
-    if update.daemon_id != daemon_id {
-        return Err(ApiError::daemon_identity_mismatch());
-    }
-
-    // The session id comes from the body, so it must name a session on the daemon's own site.
-    if let Some(session) = state
-        .services
-        .discovery_service
-        .get_session(&update.session_id)
-        .await
-        && session.site_id != daemon_site_id
-    {
-        return Err(ApiError::daemon_site_mismatch());
-    }
-
     // Delegate to processor for shared progress update logic
-    // This ensures both DaemonPoll and ServerPoll modes use the same logic
+    // This ensures both DaemonPoll and ServerPoll modes use the same logic, the site and identity
+    // checks included
     state
         .services
         .daemon_service
-        .process_discovery_progress(update)
-        .await;
+        .process_discovery_progress(daemon_id, daemon_site_id, update)
+        .await?;
 
     Ok(Json(ApiResponse::success(())))
 }

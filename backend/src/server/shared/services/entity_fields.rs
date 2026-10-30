@@ -820,15 +820,52 @@ mod tests {
             "validate_dependency_members",
         ),
         (
+            "DaemonRegistrationRequest",
+            "user_id",
+            "register_daemon's maintainer lookup",
+        ),
+        (
             "DiscoveryUpdatePayload",
             "daemon_id",
-            "the session update handler",
+            "scope_discovery_report",
         ),
         (
             "DiscoveryUpdatePayload",
             "session_id",
-            "the session update handler",
+            "scope_discovery_report",
         ),
+        (
+            "DiscoveryUpdatePayload",
+            "discovery_id",
+            "scope_discovery_report",
+        ),
+        ("DiscoveryType", "subnet_ids", "scope_discovery_report"),
+        (
+            "CredentialRunResult",
+            "credential_id",
+            "scope_discovery_report",
+        ),
+        ("ScannedEntityIds", "binding_ids", "retain_scanned_on_site"),
+        (
+            "ScannedEntityIds",
+            "found_subnet_ids",
+            "retain_scanned_on_site",
+        ),
+        ("ScannedEntityIds", "host_ids", "retain_scanned_on_site"),
+        (
+            "ScannedEntityIds",
+            "interface_ids",
+            "retain_scanned_on_site",
+        ),
+        (
+            "ScannedEntityIds",
+            "ip_address_ids",
+            "retain_scanned_on_site",
+        ),
+        ("ScannedEntityIds", "port_ids", "retain_scanned_on_site"),
+        ("ScannedEntityIds", "service_ids", "retain_scanned_on_site"),
+        ("ScannedEntityIds", "subnet_ids", "retain_scanned_on_site"),
+        ("ScannedEntityIds", "vlan_ids", "retain_scanned_on_site"),
         (
             "EmailInstallCommandRequest",
             "daemon_id",
@@ -892,32 +929,20 @@ mod tests {
         ),
     ];
 
-    /// Ids a daemon reports about its own scan, which nothing checks. Listed so they stay visible:
-    /// `ScannedEntityIds` reaches `stamp_discovery` and `refresh_subnets_of_addresses` without a
-    /// site filter, so a daemon key can stamp rows on another site.
+    /// Ids a daemon reports that are stored on its own rows without being checked. None is followed
+    /// to a row outside the daemon's site: each is compared against site-filtered rows, or
+    /// resolved later in the viewer's own scope. `scope_discovery_report` fixes the daemon and
+    /// site they sit under. A new id that is followed to another row belongs in `HANDLER_CHECKED`.
     const DAEMON_REPORTED_UNCHECKED: &[(&str, &str)] = &[
         ("CredentialAttempt", "credential_id"),
         ("CredentialRunOutcome", "hosts_with_guests_listed"),
-        ("CredentialRunResult", "credential_id"),
-        ("DaemonRegistrationRequest", "user_id"),
         ("DiscoveryType", "host_id"),
-        ("DiscoveryType", "subnet_ids"),
         ("DiscoveryType", "target_host_ids"),
-        ("DiscoveryUpdatePayload", "discovery_id"),
         ("DiscoveryWarning", "credential_id"),
         ("DiscoveryWarning", "host_id"),
         ("MalformedNeighbours", "credential_id"),
         ("ProvisionalSubnet", "seen_by_host_ids"),
         ("ProvisionalSubnet", "subnet_id"),
-        ("ScannedEntityIds", "binding_ids"),
-        ("ScannedEntityIds", "found_subnet_ids"),
-        ("ScannedEntityIds", "host_ids"),
-        ("ScannedEntityIds", "interface_ids"),
-        ("ScannedEntityIds", "ip_address_ids"),
-        ("ScannedEntityIds", "port_ids"),
-        ("ScannedEntityIds", "service_ids"),
-        ("ScannedEntityIds", "subnet_ids"),
-        ("ScannedEntityIds", "vlan_ids"),
         ("UnconfirmedHost", "host_id"),
         ("UnmatchedNeighbour", "host_id"),
         ("UnresolvedPort", "host_id"),

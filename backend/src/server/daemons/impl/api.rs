@@ -299,7 +299,7 @@ pub struct DiscoveryUpdatePayload {
     #[serde(default)]
     pub estimated_remaining_secs: Option<u32>,
     /// The discovery configuration this session belongs to.
-    /// Always enriched server-side; daemons do not send this field.
+    /// Always set server-side. A value a daemon sends is discarded.
     #[serde(default)]
     pub discovery_id: Option<Uuid>,
     /// Canonical IDs of entities scanned in this session, populated daemon-

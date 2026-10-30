@@ -480,16 +480,22 @@ impl DaemonService {
         // host here. Every target — daemon-host sockets included — earns its assignment by
         // probing successfully during discovery, at which point it's assigned to the host it
         // worked on.
-        // If user_id is nil (old daemon), fall back to org owner
-        let user_id = if request.user_id.is_nil() {
-            self.user_service
+        // A nil user_id (old daemon) or one outside the org falls back to the org owner: the
+        // maintainer receives this daemon's alert emails.
+        let maintainer = self
+            .user_service
+            .get_by_id(&request.user_id)
+            .await?
+            .filter(|user| user.base.organization_id == org_id);
+        let user_id = match maintainer {
+            Some(user) => user.id,
+            None => self
+                .user_service
                 .get_organization_owners(&org_id)
                 .await?
                 .first()
                 .map(|u| u.id)
-                .unwrap_or(request.user_id)
-        } else {
-            request.user_id
+                .unwrap_or_default(),
         };
 
         let mut daemon = Daemon::new(DaemonBase {
@@ -580,7 +586,18 @@ impl DaemonService {
     /// deliberate trade: the scan record is written before the daemon is acknowledged, so a failure
     /// here is one the daemon sees and can retry, rather than a session silently lost after a
     /// successful ack.
-    pub async fn process_discovery_progress(&self, mut update: DiscoveryUpdatePayload) {
+    ///
+    /// `daemon_id` and `site_id` say whose report this is, from the caller's key or the daemon it
+    /// polled, never from the report.
+    pub async fn process_discovery_progress(
+        &self,
+        daemon_id: Uuid,
+        site_id: Uuid,
+        mut update: DiscoveryUpdatePayload,
+    ) -> Result<(), ApiError> {
+        self.scope_discovery_report(daemon_id, site_id, &mut update)
+            .await?;
+
         if update.phase == DiscoveryPhase::Complete
             && update.discovery_type.rescan_target_host_ids().is_none()
         {
@@ -605,6 +622,7 @@ impl DaemonService {
         }
 
         self.discovery_service.update_session(update).await;
+        Ok(())
     }
 
     /// Fold the subnets this scan found without the daemon naming them into the terminal payload,
