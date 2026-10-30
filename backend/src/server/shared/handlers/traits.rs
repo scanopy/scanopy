@@ -10,7 +10,10 @@ use crate::server::{
     shared::{
         entities::{ChangeTriggersTopologyStaleness, Entity as EntityEnum},
         handlers::{ordering::OrderField, query::FilterQueryExtractor},
-        services::traits::{CrudService, EventBusService},
+        services::{
+            entity_fields::validate_references,
+            traits::{CrudService, EventBusService},
+        },
         storage::{filter::StorableFilter, traits::Entity},
         types::api::{ApiError, ApiJson, ApiResponse, ApiResult, GroupCount, PaginatedApiResponse},
         types::entities::EntitySource,
@@ -142,6 +145,33 @@ where
         .route("/bulk-delete", post(bulk_delete_handler::<T>))
 }
 
+/// [`validate_references`] for a typed entity.
+async fn validate_entity_references<T>(
+    state: &AppState,
+    entity: &T,
+    stored: Option<&T>,
+    site_ids: &[Uuid],
+    organization_id: Uuid,
+) -> Result<(), ApiError>
+where
+    T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
+    EntityEnum: From<T>,
+{
+    let to_json = |entity: &T| {
+        serde_json::to_value(entity).map_err(|e| ApiError::internal_error(&e.to_string()))
+    };
+    let stored = stored.map(to_json).transpose()?;
+    validate_references(
+        &state.services,
+        T::entity_type(),
+        &to_json(entity)?,
+        stored.as_ref(),
+        site_ids,
+        organization_id,
+    )
+    .await
+}
+
 pub async fn create_handler<T>(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
@@ -169,6 +199,8 @@ where
         &site_ids,
         organization_id,
     )?;
+
+    validate_entity_references::<T>(&state, &entity, None, &site_ids, organization_id).await?;
 
     if tags_changed(None, entity.get_tags()) {
         ensure_tagging_allowed(&state, &organization_id).await?;
@@ -419,6 +451,9 @@ where
         &site_ids,
         organization_id,
     )?;
+
+    validate_entity_references::<T>(&state, &entity, Some(&existing), &site_ids, organization_id)
+        .await?;
 
     if tags_changed(existing.get_tags(), entity.get_tags()) {
         ensure_tagging_allowed(&state, &organization_id).await?;

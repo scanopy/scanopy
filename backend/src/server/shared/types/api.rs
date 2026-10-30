@@ -738,6 +738,16 @@ impl ApiError {
         )
     }
 
+    /// Bad request (400) - an id in the request names something the caller can't use here
+    pub fn entity_reference_refused(field: &str) -> Self {
+        Self::coded(
+            StatusCode::BAD_REQUEST,
+            ErrorCode::EntityReferenceRefused {
+                field: field.to_string(),
+            },
+        )
+    }
+
     /// Bad request (400) - subnet is on a different site than the discovery
     pub fn discovery_subnet_site_mismatch(subnet: &str) -> Self {
         Self::coded(

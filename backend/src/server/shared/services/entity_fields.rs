@@ -3,9 +3,13 @@
 
 use crate::server::shared::{
     entities::{ChangeTriggersTopologyStaleness, Entity as EntityEnum, EntityDiscriminants},
+    entity_fields::EntityReference,
     services::{factory::ServiceFactory, traits::CrudService},
     storage::{filter::StorableFilter, traits::Entity},
-    types::entity_field::{EntityField, FieldFormat, Hop},
+    types::{
+        api::ApiError,
+        entity_field::{EntityField, FieldFormat, Hop},
+    },
 };
 use anyhow::Result;
 use async_trait::async_trait;
@@ -272,6 +276,85 @@ pub fn csv_text(format: FieldFormat, value: &Value) -> String {
         | FieldFormat::Metadata { .. }
         | FieldFormat::AttributeSource => scalar_text(value),
     }
+}
+
+/// The ids `reference` holds on `object`.
+fn reference_ids(reference: &EntityReference, object: &Value) -> Vec<Uuid> {
+    let mut holders = vec![object.clone()];
+    for key in &reference.embedded {
+        holders = holders.iter().flat_map(|o| values_at(o, key)).collect();
+    }
+    holders
+        .iter()
+        .flat_map(|o| ids_at(o, reference.key))
+        .collect()
+}
+
+/// Refuses a request that names something its caller can't use: every id in `incoming` that the
+/// registry declares a reference must be a row the caller can reach, on the entity's own site when
+/// both have one. A missing id and another tenant's are refused alike.
+///
+/// `stored` is the row being updated. Ids already on it pass, so an edit to another field can't
+/// fail on what the row already holds. `site_ids` is the caller's. Sites themselves are checked
+/// across the organization: a key limited to one site can still save a user who holds others.
+pub async fn validate_references(
+    services: &ServiceFactory,
+    entity: EntityDiscriminants,
+    incoming: &Value,
+    stored: Option<&Value>,
+    site_ids: &[Uuid],
+    organization_id: Uuid,
+) -> Result<(), ApiError> {
+    let entity_site = incoming.get("site_id").and_then(uuid_of);
+    let mut organization_sites: Option<Vec<Uuid>> = None;
+
+    for reference in entity.references() {
+        let held = stored
+            .map(|row| reference_ids(&reference, row))
+            .unwrap_or_default();
+        let mut ids = reference_ids(&reference, incoming);
+        ids.retain(|id| !held.contains(id));
+        ids.sort();
+        ids.dedup();
+        if ids.is_empty() {
+            continue;
+        }
+
+        if reference.target == EntityDiscriminants::Site && organization_sites.is_none() {
+            let sites = services
+                .site_service
+                .get_all(StorableFilter::new_from_org_id(&organization_id))
+                .await
+                .map_err(ApiError::from)?;
+            organization_sites = Some(sites.iter().map(|s| s.id).collect());
+        }
+        let source = ServiceSource {
+            services,
+            site_ids: match (reference.target, &organization_sites) {
+                (EntityDiscriminants::Site, Some(sites)) => sites,
+                _ => site_ids,
+            },
+            organization_id,
+        };
+
+        let rows = source
+            .by_column(reference.target, "id", &ids)
+            .await
+            .map_err(ApiError::from)?;
+        let usable = |id: &Uuid| {
+            rows.iter().any(|row| {
+                row.get("id").and_then(uuid_of) == Some(*id)
+                    && match (entity_site, row.get("site_id").and_then(uuid_of)) {
+                        (Some(own), Some(theirs)) => own == theirs,
+                        _ => true,
+                    }
+            })
+        };
+        if !ids.iter().all(usable) {
+            return Err(ApiError::entity_reference_refused(reference.key));
+        }
+    }
+    Ok(())
 }
 
 /// Columns every CSV leads with, ahead of the entity's registry fields.
@@ -671,6 +754,101 @@ mod tests {
             })
             .collect();
         assert!(breaks.is_empty(), "{}", breaks.join("\n"));
+    }
+
+    /// Request schemas outside the registry whose ids a handler checks itself, and where.
+    const HANDLER_CHECKED: &[(&str, &str, &str)] = &[];
+
+    /// Whether a property holds a UUID or an array of them.
+    fn holds_uuid(schema: &Value) -> bool {
+        let names_uuid = |s: &Value| s.get("format").is_some_and(|f| f == "uuid");
+        names_uuid(schema)
+            || schema.get("items").is_some_and(names_uuid)
+            || ["oneOf", "anyOf"].iter().any(|k| {
+                schema
+                    .get(*k)
+                    .and_then(Value::as_array)
+                    .is_some_and(|parts| parts.iter().any(holds_uuid))
+            })
+    }
+
+    /// Walks a request schema, collecting every id property nothing accounts for. `root` is the
+    /// nearest enclosing entity, whose references also cover the types nested in it.
+    fn unaccounted_ids(
+        schemas: &Value,
+        schema: &Value,
+        name: &str,
+        root: Option<EntityDiscriminants>,
+        seen: &mut HashSet<(String, Option<EntityDiscriminants>)>,
+        found: &mut std::collections::BTreeSet<String>,
+    ) {
+        if let Some(reference) = schema.get("$ref").and_then(Value::as_str) {
+            let target = reference.rsplit('/').next().unwrap();
+            let root = EntityDiscriminants::iter()
+                .find(|e| e.as_ref() == target)
+                .or(root);
+            if seen.insert((target.to_string(), root)) {
+                unaccounted_ids(schemas, &schemas[target], target, root, seen, found);
+            }
+            return;
+        }
+        if let Some(props) = schema.get("properties").and_then(Value::as_object) {
+            for (key, prop) in props {
+                // The generic handlers check an entity's own site and organization.
+                let accounted = SYSTEM_KEYS.contains(&key.as_str())
+                    || key == "site_id"
+                    || key == "organization_id"
+                    || root.is_some_and(|entity| {
+                        entity.references().iter().any(|r| r.key == key)
+                            || entity.fields().iter().any(|f| {
+                                f.id == key && matches!(f.write, FieldWrite::ServerOwned(_))
+                            })
+                    })
+                    || HANDLER_CHECKED
+                        .iter()
+                        .any(|(schema, field, _)| *schema == name && field == key);
+                if holds_uuid(prop) && !accounted {
+                    found.insert(format!("{name}.{key}"));
+                }
+                unaccounted_ids(schemas, prop, name, root, seen, found);
+            }
+        }
+        if let Some(items) = schema.get("items") {
+            unaccounted_ids(schemas, items, name, root, seen, found);
+        }
+        for key in ["allOf", "oneOf", "anyOf"] {
+            for part in schema
+                .get(key)
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                unaccounted_ids(schemas, part, name, root, seen, found);
+            }
+        }
+    }
+
+    /// Every id a request body can carry is a registry reference, a server-owned field, or checked
+    /// by a named handler. A new id field fails here until someone decides which.
+    #[test]
+    fn every_id_in_a_request_body_is_accounted_for() {
+        let spec = serde_json::to_value(crate::server::openapi::full_spec()).unwrap();
+        let schemas = &spec["components"]["schemas"];
+        let mut found = std::collections::BTreeSet::new();
+        let mut seen = HashSet::new();
+        for path in spec["paths"].as_object().unwrap().values() {
+            for operation in path.as_object().unwrap().values() {
+                let body = &operation["requestBody"]["content"]["application/json"]["schema"];
+                if !body.is_null() {
+                    unaccounted_ids(schemas, body, "body", None, &mut seen, &mut found);
+                }
+            }
+        }
+        assert!(
+            found.is_empty(),
+            "ids with no reference, policy or handler check:\n{}",
+            found.into_iter().collect::<Vec<_>>().join("\n")
+        );
     }
 
     /// Field ids are unique, so a list-table column has one group, and no exported field repeats a

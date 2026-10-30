@@ -21,7 +21,8 @@ use crate::server::{
     services::r#impl::base::Service,
     shared::entities::EntityDiscriminants as E,
     shared::types::entity_field::{
-        EntityField as F, FieldFormat, FieldGroup as G, FieldRule, Hop, MetadataFixture as Fx,
+        EntityField as F, FieldFormat, FieldGroup as G, FieldRule, FieldWrite, Hop,
+        MetadataFixture as Fx,
     },
     subnets::r#impl::base::Subnet,
     topology::types::base::Topology,
@@ -82,7 +83,9 @@ const SOURCE: F = F::new("source", "Source", G::Discovery)
     .metadata(Fx::EntitySources);
 const DESCRIPTION: F = F::new("description", "Description", G::Identity).format(FieldFormat::Prose);
 const TIMESTAMP: FieldFormat = FieldFormat::Timestamp;
-const TAGS: F = F::internal("tags").many();
+const TAGS: F = F::internal("tags")
+    .entity(&[Hop::parent(E::Tag, "tags")])
+    .many();
 const ORGANIZATION_ID: F = F::internal("organization_id");
 
 // List-table columns. A column read from a response type or worked out by the table is `computed`.
@@ -168,7 +171,14 @@ const HOST: &[F] = &[
     SITE,
     F::internal("virtualization_metadata"),
     F::internal("matched_device_type").source("matched_device_type_source"),
-    F::internal("credential_assignments").many(),
+    F::internal("credential_assignments").entity(&[
+        Hop::embedded("credential_assignments"),
+        Hop::parent(E::Credential, "credential_id"),
+    ]),
+    F::internal("credential_assignment_addresses").entity(&[
+        Hop::embedded("credential_assignments"),
+        Hop::parent(E::IPAddress, "ip_address_ids"),
+    ]),
     TAGS,
     // Read from `HostResponse`, not the stored `Host`, so these are worked out for the table.
     F::column("device_type", "Device type", G::Device).computed(),
@@ -520,7 +530,18 @@ const DISCOVERY: &[F] = &[
     F::new("daemon_id", "Daemon", G::Relationships).entity(&[Hop::parent(E::Daemon, "daemon_id")]),
     SITE,
     F::internal("next_run_is_full_scan"),
-    F::internal("integration_targets").many(),
+    F::internal("integration_targets").entity(&[
+        Hop::embedded("integration_targets"),
+        Hop::parent(E::Credential, "credential_id"),
+    ]),
+    F::internal("scanned_subnet_ids").entity(&[
+        Hop::embedded("discovery_type"),
+        Hop::parent(E::Subnet, "subnet_ids"),
+    ]),
+    F::internal("scanned_host_id").entity(&[
+        Hop::embedded("discovery_type"),
+        Hop::parent(E::Host, "host_id"),
+    ]),
     TAGS,
     F::column("last_run", "Last run", G::Status).computed(),
     F::column("scan_count", "Completed scans", G::Status).server_owned(pin!(Discovery, scan_count)),
@@ -583,7 +604,9 @@ const USER_API_KEY: &[F] = &[
     F::internal("key").server_owned(pin!(UserApiKey, base.key)),
     TAGS,
     F::internal("id").immutable(pin!(UserApiKey, id)),
-    F::column("site_ids", "Sites", G::Relationships).many(),
+    F::column("site_ids", "Sites", G::Relationships)
+        .entity(&[Hop::parent(E::Site, "site_ids")])
+        .many(),
     CREATED_AT.immutable(pin!(UserApiKey, created_at)),
     UPDATED_AT,
 ];
@@ -598,8 +621,17 @@ const CREDENTIAL: &[F] = &[
     DESCRIPTION,
     F::new("daemon_os", "Daemon OS", G::Configuration),
     ORGANIZATION_ID,
-    F::internal("assigned_site_ids").many(),
-    F::internal("host_assignments").many(),
+    F::internal("assigned_site_ids")
+        .entity(&[Hop::parent(E::Site, "assigned_site_ids")])
+        .many(),
+    F::internal("host_assignments").entity(&[
+        Hop::embedded("host_assignments"),
+        Hop::parent(E::Host, "host_id"),
+    ]),
+    F::internal("host_assignment_addresses").entity(&[
+        Hop::embedded("host_assignments"),
+        Hop::parent(E::IPAddress, "ip_address_ids"),
+    ]),
     F::internal("is_default"),
     TAGS,
     F::column("integration", "Integration", G::Identity).computed(),
@@ -617,7 +649,9 @@ const SITE_FIELDS: &[F] = &[
     F::new("stale_after_hours", "Stale After (hours)", G::Configuration)
         .format(FieldFormat::Number),
     ORGANIZATION_ID,
-    F::internal("credential_ids").many(),
+    F::internal("credential_ids")
+        .entity(&[Hop::parent(E::Credential, "credential_ids")])
+        .many(),
     TAGS,
     F::column(
         "effective_stale_after_hours",
@@ -701,7 +735,9 @@ const USER: &[F] = &[
     F::column("invite_url", "URL", G::Access).computed(),
     F::column("expires_at", "Expires", G::Access).computed(),
     F::column("invited_by", "Created By", G::Relationships).computed(),
-    F::column("site_ids", "Sites", G::Relationships).many(),
+    F::column("site_ids", "Sites", G::Relationships)
+        .entity(&[Hop::parent(E::Site, "site_ids")])
+        .many(),
     F::column("created_at", "Joined", G::Timestamps),
     UPDATED_AT,
 ];
@@ -798,7 +834,49 @@ const INVITE: &[F] = &[
     F::internal("created_by"),
 ];
 
+/// An id one entity holds for another, and where it sits on the entity's serialized form.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EntityReference {
+    pub target: E,
+    /// Keys to walk from the entity to the objects holding the id. Empty when the entity holds it.
+    pub embedded: Vec<&'static str>,
+    /// Key on those objects holding the id or ids.
+    pub key: &'static str,
+}
+
 impl E {
+    /// Every id a request can set on this entity that names another entity. Leaves out the
+    /// entity's own `site_id`, which the generic handlers check, and server-owned fields, which no
+    /// request can set.
+    pub fn references(&self) -> Vec<EntityReference> {
+        let mut references: Vec<EntityReference> = Vec::new();
+        for field in self.fields() {
+            if field.computed || matches!(field.write, FieldWrite::ServerOwned(_)) {
+                continue;
+            }
+            let mut embedded = Vec::new();
+            for hop in field.path {
+                match *hop {
+                    Hop::Embedded { key } => embedded.push(key),
+                    Hop::Children { .. } => break,
+                    Hop::Parent { entity, key } => {
+                        let reference = EntityReference {
+                            target: entity,
+                            embedded,
+                            key,
+                        };
+                        let own_site = reference.embedded.is_empty() && key == "site_id";
+                        if !own_site && !references.contains(&reference) {
+                            references.push(reference);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        references
+    }
+
     /// The fields this entity type is described by, in display order.
     pub fn fields(&self) -> &'static [F] {
         match self {

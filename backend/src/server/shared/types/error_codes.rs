@@ -181,6 +181,11 @@ pub enum ErrorCode {
     /// The settings of an organization's default credential cannot change
     CredentialDefaultSettingsLocked { name: String },
 
+    // === Entity references ===
+    /// An id in the request names something the caller can't use here. The same for a missing id
+    /// and another tenant's, so it says nothing about whether the id exists.
+    EntityReferenceRefused { field: String },
+
     // === Discovery ===
     /// Historical discovery cannot be modified via API
     DiscoveryHistoricalReadOnly,
@@ -395,6 +400,9 @@ impl ErrorCode {
                 "'{name}' is a default credential. Its name, description and tags can change, but its settings can't."
             }
 
+            // Entity references
+            Self::EntityReferenceRefused { .. } => "'{field}' isn't available here",
+
             // Discovery
             Self::DiscoveryHistoricalReadOnly => "Historical discovery cannot be modified via API",
             Self::DiscoverySubnetSiteMismatch { .. } => "Subnet '{subnet}' is on a different site",
@@ -582,6 +590,7 @@ impl ErrorCode {
             Self::CredentialDefaultExists { name }
             | Self::CredentialDefaultDeleteForbidden { name }
             | Self::CredentialDefaultSettingsLocked { name } => Some(json_map! { "name" => name }),
+            Self::EntityReferenceRefused { field } => Some(json_map! { "field" => field }),
             Self::DiscoverySubnetSiteMismatch { subnet } => Some(json_map! { "subnet" => subnet }),
             Self::DiscoverySessionNotFound { id } => Some(json_map! {"id" => id}),
             Self::IpAddressOutOfRange { ip, subnet } => {
