@@ -5,7 +5,9 @@ use crate::server::openapi::tags as api_tags;
 use crate::server::shared::events::types::UpdateReason;
 use crate::server::shared::extractors::Query;
 use crate::server::shared::handlers::query::{FilterQueryExtractor, NoFilterQuery};
-use crate::server::shared::handlers::traits::{BulkDeleteResponse, CrudHandlers, delete_handler};
+use crate::server::shared::handlers::traits::{
+    BulkDeleteResponse, CrudHandlers, delete_handler, validate_entity_references,
+};
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::Entity;
 use crate::server::shared::types::api::ApiJson;
@@ -379,6 +381,15 @@ async fn admin_update_user(
     request.preserve_immutable_fields(&existing);
     request.base.email_settings = existing.base.email_settings.clone();
     request.base.display_settings = existing.base.display_settings.clone();
+
+    validate_entity_references::<User>(
+        &state,
+        &request,
+        Some(&existing),
+        &auth.site_ids(),
+        auth.require_organization_id()?,
+    )
+    .await?;
 
     // Capture site_ids before update (they're stored in junction table, not user record)
     let site_ids = request.base.site_ids.clone();
