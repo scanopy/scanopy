@@ -167,6 +167,18 @@ impl UserApiKeyService {
             .await?;
         Ok(())
     }
+
+    /// Give a key access to one more site, keeping the sites it already holds.
+    pub async fn add_site_access(&self, api_key_id: &Uuid, site_id: &Uuid) -> Result<()> {
+        let row = UserApiKeySiteAccess::new(UserApiKeySiteAccessBase::new(*api_key_id, *site_id));
+        self.site_access_storage
+            .add_for_parent(
+                &ParentRef::new(EntityDiscriminants::UserApiKey, *api_key_id),
+                &row,
+            )
+            .await?;
+        Ok(())
+    }
 }
 
 impl ApiKeyService for UserApiKeyService {

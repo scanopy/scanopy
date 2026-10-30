@@ -173,6 +173,15 @@ impl<T: ChildStorableEntity + Display> GenericChildStorage<T> {
             .await
     }
 
+    /// Add `row` to `parent`'s set, keeping the rest, under the same lock a replace holds.
+    pub async fn add_for_parent(&self, parent: &ParentRef, row: &T) -> Result<T> {
+        let mut tx = self.inner.begin_transaction().await?;
+        tx.lock(parent.lock_key(), DEFAULT_LOCK_TIMEOUT).await?;
+        let saved = tx.create(row).await?;
+        tx.commit().await?;
+        Ok(saved)
+    }
+
     /// Delete every row of `parent`.
     pub async fn delete_for_parent(&self, parent: &ParentRef) -> Result<usize> {
         self.inner.delete_by_filter(T::parent_filter(parent)).await
