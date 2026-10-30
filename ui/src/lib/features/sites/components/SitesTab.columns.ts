@@ -14,16 +14,9 @@ import type { Subnet } from '$lib/features/subnets/types/base';
 import type { Tag } from '$lib/features/tags/types/base';
 import type { Vlan } from '$lib/features/vlans/types/base';
 import {
-	common_created,
-	common_credentials,
-	common_daemons,
-	common_subnets,
-	common_vlans,
 	common_name,
 	common_tags,
 	common_hoursCount,
-	common_updated,
-	sites_staleAfter,
 	sites_staleAfterDefault
 } from '$lib/paraglide/messages';
 
@@ -97,13 +90,11 @@ export function siteColumns(ctx: SiteColumnsContext) {
 				display: { primary: true, width: 220, order: 0 }
 			},
 			created_at: {
-				label: common_created(),
 				type: 'date',
 				groupable: false,
 				display: { hiddenByDefault: true }
 			},
 			updated_at: {
-				label: common_updated(),
 				type: 'date',
 				groupable: false,
 				display: { hiddenByDefault: true }
@@ -111,7 +102,6 @@ export function siteColumns(ctx: SiteColumnsContext) {
 			// The effective window, with the server default applied, so a site that
 			// never set its own still shows the number staleness is judged by.
 			effective_stale_after_hours: {
-				label: sites_staleAfter(),
 				type: 'string',
 				filterable: true,
 				serverFiltered: true,
@@ -132,7 +122,6 @@ export function siteColumns(ctx: SiteColumnsContext) {
 		[
 			{
 				key: 'vlans',
-				label: common_vlans(),
 				type: 'array',
 				getValue: (site) => siteVlans(ctx, site).map((v) => v.name),
 				display: {
@@ -155,7 +144,6 @@ export function siteColumns(ctx: SiteColumnsContext) {
 			},
 			{
 				key: 'daemons',
-				label: common_daemons(),
 				type: 'array',
 				getValue: (site) => siteDaemons(ctx, site).map((d) => d.name),
 				display: {
@@ -174,7 +162,6 @@ export function siteColumns(ctx: SiteColumnsContext) {
 			},
 			{
 				key: 'credentials',
-				label: common_credentials(),
 				type: 'array',
 				// Credentials are shared across sites, so this filters. The other arrays here hold
 				// members of one site each, which search already finds.
@@ -192,7 +179,6 @@ export function siteColumns(ctx: SiteColumnsContext) {
 			},
 			{
 				key: 'subnets',
-				label: common_subnets(),
 				type: 'array',
 				getValue: (site) => siteSubnets(ctx, site).map((s) => s.name),
 				display: {

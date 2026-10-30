@@ -203,16 +203,20 @@ impl Entity for IPAddress {
     fn set_updated_at(&mut self, time: DateTime<Utc>) {
         self.updated_at = time;
     }
+}
 
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        self.created_at = existing.created_at;
-        // Merged by rung rather than pinned to whichever source wrote first. Pinning meant a MAC
-        // a router's ARP cache reported could never be corrected by an ARP reply the address
-        // itself sent — first-write-wins under another name. `MacEvidenceValue` is not
-        // refreshable, so an equal-rung re-read still cannot move it.
+impl IPAddress {
+    /// Merged by rung rather than pinned to whichever source wrote first. Pinning meant a MAC
+    /// a router's ARP cache reported could never be corrected by an ARP reply the address
+    /// itself sent — first-write-wins under another name. `MacEvidenceValue` is not
+    /// refreshable, so an equal-rung re-read still cannot move it.
+    pub(crate) fn merge_mac_address(&mut self, existing: &Self) {
         let incoming = self.base.mac_address.take();
         self.base.mac_address = existing.base.mac_address.clone();
         self.base.apply_mac_address(incoming);
+    }
+
+    pub(crate) fn merge_ip_address_source(&mut self, existing: &Self) {
         self.base.ip_address_source = existing
             .base
             .ip_address_source

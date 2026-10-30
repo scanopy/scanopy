@@ -513,11 +513,8 @@ impl TypeMetadataProvider for EntityDiscriminants {
             "entity_name_plural".to_string(),
             serde_json::json!(self.entity_name_plural()),
         );
-        m.insert("fields".to_string(), serde_json::json!(self.fields()));
-        m.insert(
-            "table_columns".to_string(),
-            serde_json::json!(self.table_columns()),
-        );
+        let shown: Vec<_> = self.fields().iter().filter(|f| !f.is_internal()).collect();
+        m.insert("fields".to_string(), serde_json::json!(shown));
         m.insert(
             "display_fields".to_string(),
             serde_json::json!(self.display_fields()),

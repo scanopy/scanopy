@@ -283,28 +283,6 @@ impl Entity for Organization {
     fn set_updated_at(&mut self, time: DateTime<Utc>) {
         self.updated_at = time;
     }
-
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        // Billing fields are managed by Stripe integration, not user-editable
-        self.base.stripe_customer_id = existing.base.stripe_customer_id.clone();
-        self.base.plan = existing.base.plan;
-        self.base.plan_status = existing.base.plan_status;
-        self.base.next_renewal_at = existing.base.next_renewal_at;
-        // Onboarding state is server-managed
-        self.base.onboarding = existing.base.onboarding.clone();
-        // License state is server-managed. The key version is never
-        // serialized, so a PUT body always carries the default and would
-        // otherwise reset it (reviving retired online keys).
-        self.base.license_paid_through = existing.base.license_paid_through;
-        self.base.license_checkin_at = existing.base.license_checkin_at;
-        self.base.license_key_version = existing.base.license_key_version;
-        // The cached entitlement is written only by the license service
-        self.base.license_entitlement = existing.base.license_entitlement.clone();
-        self.base.license_entitlement_at = existing.base.license_entitlement_at;
-        self.base.license_key_issued_at = existing.base.license_key_issued_at;
-        self.base.license_key_type = existing.base.license_key_type;
-        self.base.license_server_version = existing.base.license_server_version.clone();
-    }
 }
 
 #[cfg(test)]

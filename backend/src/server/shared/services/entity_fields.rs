@@ -277,17 +277,17 @@ pub fn csv_text(format: FieldFormat, value: &Value) -> String {
 /// Columns every CSV leads with, ahead of the entity's registry fields.
 pub const CSV_SYSTEM_COLUMNS: &[&str] = &["id", "created_at", "updated_at"];
 
-/// CSV bytes for `roots` of `entity`: the system columns, then one column per registry field.
-/// A field with several values (children, arrays) joins them with `; `.
+/// CSV bytes for `roots` of `entity`: the system columns, then one column per exported registry
+/// field. A field with several values (children, arrays) joins them with `; `.
 pub async fn build_entity_csv<S: RelatedSource>(
     source: &S,
     entity: EntityDiscriminants,
     roots: &[Value],
 ) -> Result<Vec<u8>> {
-    let fields = entity.fields();
+    let fields: Vec<&EntityField> = entity.fields().iter().filter(|f| f.csv).collect();
     let mut resolver = FieldResolver::new(source);
     let mut columns = Vec::with_capacity(fields.len());
-    for field in fields {
+    for field in &fields {
         let values = resolver.resolve(field, roots).await?;
         columns.push(
             values
@@ -445,6 +445,9 @@ mod tests {
     /// Every key a field's path and value read exists on the type it is read from, and `many`
     /// is set exactly when one entity can yield several values.
     fn check_field(root: &str, field: &EntityField) {
+        if field.computed || field.unserialized {
+            return;
+        }
         let props = |name: &str| schema_props(name);
         let mut on = root.to_string();
         let mut embedded = false;
@@ -522,6 +525,8 @@ mod tests {
         }
     }
 
+    /// Field ids are unique, so a list-table column has one group, and no exported field repeats a
+    /// column CSV already leads with.
     #[test]
     fn field_ids_are_unique_and_never_shadow_a_system_column() {
         for entity in EntityDiscriminants::iter() {
@@ -533,31 +538,9 @@ mod tests {
                     field.id
                 );
                 assert!(
-                    !CSV_SYSTEM_COLUMNS.contains(&field.id),
+                    !field.csv || !CSV_SYSTEM_COLUMNS.contains(&field.id),
                     "{entity}: `{}` is a system column",
                     field.id
-                );
-            }
-        }
-    }
-
-    /// A list-table column is either a field or a table column, so it has exactly one group.
-    #[test]
-    fn table_column_ids_are_unique_and_never_shadow_a_field() {
-        for entity in EntityDiscriminants::iter() {
-            let fields: std::collections::HashSet<_> =
-                entity.fields().iter().map(|f| f.id).collect();
-            let mut seen = std::collections::HashSet::new();
-            for column in entity.table_columns() {
-                assert!(
-                    seen.insert(column.id),
-                    "{entity}: duplicate table column `{}`",
-                    column.id
-                );
-                assert!(
-                    !fields.contains(column.id),
-                    "{entity}: table column `{}` is also a field",
-                    column.id
                 );
             }
         }

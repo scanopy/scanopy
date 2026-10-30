@@ -15,19 +15,7 @@ import { getStabilityTagProps } from '$lib/shared/utils/stability';
 import type { Host } from '$lib/features/hosts/types/base';
 import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 import osFamilies from '$lib/data/os-families.json';
-import {
-	common_beta,
-	credentials_betaTooltip,
-	common_created,
-	common_integration,
-	common_type,
-	common_updated,
-	credentials_unofficialApi,
-	common_hosts,
-	common_sites,
-	common_tags,
-	common_targets
-} from '$lib/paraglide/messages';
+import { credentials_betaTooltip, common_type, common_tags } from '$lib/paraglide/messages';
 import { tagNames } from '$lib/features/tags/columns';
 
 /** The integration a credential's type belongs to, as its `credentialIntegrations` id. */
@@ -78,8 +66,8 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 				groupable: false,
 				display: { primary: true, width: 220 }
 			},
-			created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
-			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } },
+			created_at: { type: 'date', display: { hiddenByDefault: true } },
+			updated_at: { type: 'date', display: { hiddenByDefault: true } },
 			// Set only on credentials that read files or sockets on the daemon; empty otherwise.
 			daemon_os: {
 				filterable: true,
@@ -99,7 +87,6 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 			// The integration a credential's type is a transport of (e.g. Docker for both the
 			// socket and the proxy). The axis credentials are organized by.
 			integration: {
-				label: common_integration(),
 				type: 'string',
 				filterable: true,
 				serverFiltered: true,
@@ -154,7 +141,6 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 			// either can be grouped and filtered on its own. A cell shows the tag the wizard and
 			// the type dropdown use, and stays empty for a stable or vendor-supported type.
 			beta: {
-				label: common_beta(),
 				type: 'boolean',
 				filterable: true,
 				serverFiltered: true,
@@ -173,7 +159,6 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 				}
 			},
 			unofficial_api: {
-				label: credentials_unofficialApi(),
 				type: 'boolean',
 				filterable: true,
 				serverFiltered: true,
@@ -195,7 +180,6 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 			{ key: 'description', searchable: true },
 			{
 				key: 'assigned_sites',
-				label: common_sites(),
 				type: 'array',
 				// Credentials share sites, so this filters. Hosts are near-unique per credential,
 				// so search covers those.
@@ -221,7 +205,6 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 			},
 			{
 				key: 'assigned_hosts',
-				label: common_hosts(),
 				type: 'array',
 				searchable: true,
 				getValue: (item: Credential) => ctx.hostsForCredential(item).map(hostDisplayName),
@@ -246,7 +229,6 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 			},
 			{
 				key: 'target',
-				label: common_targets(),
 				type: 'array',
 				filterable: true,
 				serverFiltered: true,

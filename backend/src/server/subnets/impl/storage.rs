@@ -317,30 +317,32 @@ impl Entity for Subnet {
         }
         self.base.source = source;
     }
+}
 
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        let incoming_source =
-            std::mem::replace(&mut self.base.source, existing.base.source.clone());
-        self.created_at = existing.created_at;
-        self.updated_at = existing.updated_at;
-
-        // The rung the caller supplied, never lower than the one already stored. This used to
-        // read a *changed* CIDR as proof a person had typed it, on the premise that discovery never
-        // moves an existing subnet's range. That premise no longer holds: a real netmask now
-        // corrects a range Scanopy only inferred. Deciding whose edit this was belongs to the layer
-        // that knows — `update_subnet` stamps the manual rung, and daemons cannot call it.
-        //
-        // Through the applier rather than a `max()` on the source alone: the pair is one field now,
-        // and raising the stored rung over the incoming *value* is how a guess used to end up
-        // labelled as a reading.
+impl Subnet {
+    /// The rung the caller supplied, never lower than the one already stored. This used to
+    /// read a *changed* CIDR as proof a person had typed it, on the premise that discovery never
+    /// moves an existing subnet's range. That premise no longer holds: a real netmask now
+    /// corrects a range Scanopy only inferred. Deciding whose edit this was belongs to the layer
+    /// that knows — `update_subnet` stamps the manual rung, and daemons cannot call it.
+    ///
+    /// Through the applier rather than a `max()` on the source alone: the pair is one field now,
+    /// and raising the stored rung over the incoming *value* is how a guess used to end up
+    /// labelled as a reading.
+    pub(crate) fn merge_cidr(&mut self, existing: &Self) {
         let mut merged = existing.base.cidr.clone();
         merged.apply_in_place(self.base.cidr.clone());
         self.base.cidr = merged;
+    }
 
-        // Source is set at creation and kept, except on an inferred subnet whose range has just
-        // been settled: read by a daemon, or confirmed or corrected by a person (`update_subnet`
-        // sends `Manual`). The range is the thing that was assumed, so settling it confirms the
-        // subnet, the way a scan reaching an inferred host confirms the host.
+    /// Source is set at creation and kept, except on an inferred subnet whose range has just
+    /// been settled: read by a daemon, or confirmed or corrected by a person (`update_subnet`
+    /// sends `Manual`). The range is the thing that was assumed, so settling it confirms the
+    /// subnet, the way a scan reaching an inferred host confirms the host. Reads the merged
+    /// range, so it follows [`Self::merge_cidr`] in the registry.
+    pub(crate) fn merge_source(&mut self, existing: &Self) {
+        let incoming_source =
+            std::mem::replace(&mut self.base.source, existing.base.source.clone());
         if matches!(existing.base.source, EntitySource::Inferred { .. })
             && self.base.cidr.source().method() != AttributeMethod::Inferred
         {
@@ -350,12 +352,18 @@ impl Entity for Subnet {
                 incoming_source
             };
         }
+    }
 
-        // The same for the name and the type: `update_subnet` stamps `Manual` on a value a person
-        // changed, and the applier keeps everything else at the stored rung.
+    /// The same as [`Self::merge_cidr`]: `update_subnet` stamps `Manual` on a value a person
+    /// changed, and the applier keeps everything else at the stored rung.
+    pub(crate) fn merge_name(&mut self, existing: &Self) {
         let mut name = existing.base.name.clone();
         name.apply_in_place(self.base.name.clone());
         self.base.name = name;
+    }
+
+    /// See [`Self::merge_name`].
+    pub(crate) fn merge_subnet_type(&mut self, existing: &Self) {
         let mut subnet_type = existing.base.subnet_type.clone();
         subnet_type.apply_in_place(self.base.subnet_type.clone());
         self.base.subnet_type = subnet_type;

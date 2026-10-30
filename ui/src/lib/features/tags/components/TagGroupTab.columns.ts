@@ -7,19 +7,16 @@ import { isSystemGroup, tagGroupIcon, tagGroupLabel, tagsInGroup } from '../grou
 import { tagItems } from '../columns';
 import type { Tag, TagGroup } from '../types/base';
 import {
-	common_created,
 	common_custom,
 	common_description,
 	common_name,
 	common_system,
 	common_tags,
 	common_type,
-	common_updated,
 	tags_appliesTo,
 	tags_appliesToEvery,
 	tags_orderByName,
-	tags_orderSet,
-	tags_tagOrder
+	tags_orderSet
 } from '$lib/paraglide/messages';
 
 type TagGroupOrderField = components['schemas']['TagGroupOrderField'];
@@ -83,7 +80,6 @@ export function tagGroupColumns(ctx: TagGroupColumnsContext) {
 				filterLabel: (value) => (value === 'true' ? common_system() : common_custom())
 			},
 			ordered: {
-				label: tags_tagOrder(),
 				type: 'string',
 				filterable: true,
 				serverFiltered: true,
@@ -94,13 +90,11 @@ export function tagGroupColumns(ctx: TagGroupColumnsContext) {
 				filterLabel: (value) => (value === 'true' ? tags_orderSet() : tags_orderByName())
 			},
 			created_at: {
-				label: common_created(),
 				type: 'date',
 				groupable: false,
 				display: { hiddenByDefault: true }
 			},
 			updated_at: {
-				label: common_updated(),
 				type: 'date',
 				groupable: false,
 				display: { hiddenByDefault: true }

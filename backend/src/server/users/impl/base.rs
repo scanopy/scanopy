@@ -492,36 +492,6 @@ impl Entity for User {
     fn set_updated_at(&mut self, time: DateTime<Utc>) {
         self.updated_at = time;
     }
-
-    /// A request body may change only `permissions`, `site_ids`,
-    /// `email_settings` and `display_settings` (and the handlers narrow that
-    /// further). Every other field belongs to a server flow (signup, email
-    /// change, verification, password reset, OIDC linking, "log out
-    /// everywhere") and is taken from the stored user. `#[serde(skip)]` fields
-    /// arrive at their defaults, so a field missing here is reset on save.
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        let base = &mut self.base;
-        let stored = &existing.base;
-        base.email = stored.email.clone();
-        base.password_hash = stored.password_hash.clone();
-        base.has_password = stored.has_password;
-        base.terms_acceptance_required = stored.terms_acceptance_required;
-        base.email_verification_required = stored.email_verification_required;
-        base.oidc_provider = stored.oidc_provider.clone();
-        base.oidc_subject = stored.oidc_subject.clone();
-        base.oidc_linked_at = stored.oidc_linked_at;
-        base.terms_accepted_at = stored.terms_accepted_at;
-        base.email_verified = stored.email_verified;
-        base.email_verification_token = stored.email_verification_token.clone();
-        base.email_verification_expires = stored.email_verification_expires;
-        base.password_reset_token = stored.password_reset_token.clone();
-        base.password_reset_expires = stored.password_reset_expires;
-        base.pending_email = stored.pending_email.clone();
-        base.email_unsubscribe_token = stored.email_unsubscribe_token;
-        base.session_epoch = stored.session_epoch;
-        base.release_notes_seen_version = stored.release_notes_seen_version.clone();
-        base.terms_notice_version = stored.terms_notice_version;
-    }
 }
 
 #[cfg(test)]

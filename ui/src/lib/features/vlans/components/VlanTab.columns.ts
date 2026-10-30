@@ -12,15 +12,10 @@ import type { Vlan, VlanOrderField } from '../types/base';
 import type { operations } from '$lib/api/schema';
 import { fieldValueOptions, type FieldValueCount } from '$lib/shared/api/field-values';
 import {
-	common_created,
-	common_firstFoundBy,
-	common_lastFoundBy,
-	common_lastSeen,
 	common_site,
 	common_source,
 	common_tags,
 	common_unknownSite,
-	common_updated,
 	vlans_vlanNumber
 } from '$lib/paraglide/messages';
 
@@ -91,14 +86,13 @@ export function vlanColumns(ctx: VlanColumnsContext) {
 				}
 			},
 			last_seen_at: {
-				label: common_lastSeen(),
 				type: 'date',
 				// Identity-like: one header per timestamp.
 				groupable: false,
 				display: { recency: true }
 			},
-			created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
-			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } }
+			created_at: { type: 'date', display: { hiddenByDefault: true } },
+			updated_at: { type: 'date', display: { hiddenByDefault: true } }
 		},
 		[
 			{ key: 'description', searchable: true },
@@ -114,7 +108,6 @@ export function vlanColumns(ctx: VlanColumnsContext) {
 			{ key: 'interface_ids' },
 			{
 				key: 'first_found_by',
-				label: common_firstFoundBy(),
 				type: 'string',
 				display: {
 					hiddenByDefault: true,
@@ -123,7 +116,6 @@ export function vlanColumns(ctx: VlanColumnsContext) {
 			},
 			{
 				key: 'last_found_by',
-				label: common_lastFoundBy(),
 				type: 'string',
 				display: {
 					hiddenByDefault: true,

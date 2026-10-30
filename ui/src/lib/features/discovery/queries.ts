@@ -487,11 +487,9 @@ export const discoveryFields = (
 		groupable: false
 	},
 	created_at: {
-		label: m.common_created(),
 		type: 'date'
 	},
 	updated_at: {
-		label: m.common_updated(),
 		type: 'date'
 	},
 	daemon_id: {

@@ -5,7 +5,7 @@ import { fieldValueOptions, type FieldValueCount } from '$lib/shared/api/field-v
 import { groupOf, tagGroupLabel, tagGroupServerKey, tagIcon } from '../groups';
 import { tagItems } from '../columns';
 import type { Tag, TagGroup } from '../types/base';
-import { common_created, common_updated, tags_tagGroup } from '$lib/paraglide/messages';
+import { tags_tagGroup } from '$lib/paraglide/messages';
 
 type TagOrderField = components['schemas']['TagOrderField'];
 /** The tags list endpoint's query params, which the filters are sent and linked as. */
@@ -88,8 +88,8 @@ export function tagColumns(ctx: TagColumnsContext) {
 					}
 				}
 			},
-			created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
-			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } }
+			created_at: { type: 'date', display: { hiddenByDefault: true } },
+			updated_at: { type: 'date', display: { hiddenByDefault: true } }
 		},
 		[{ key: 'description' }]
 	);

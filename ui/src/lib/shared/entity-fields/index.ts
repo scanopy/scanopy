@@ -159,21 +159,19 @@ export function fieldText(field: EntityField, root: object, lookup: EntityLookup
 		.join(', ');
 }
 
-/** The registry fields of an entity type. */
+/** The registry fields that describe an entity outside its list table. */
 export function entityFields(type: EntityType): EntityField[] {
-	return entities.getMetadata(type).fields ?? [];
+	return (entities.getMetadata(type).fields ?? []).filter((field) => field.inspector);
 }
 
-/**
- * The column-menu group of a list-table column: its registry field's, else the one the backend
- * declares for the table's own column. `undefined` for a key neither declares.
- */
+/** The registry fields an entity's list table can show. */
+export function tableFields(type: EntityType): EntityField[] {
+	return (entities.getMetadata(type).fields ?? []).filter((field) => field.table);
+}
+
+/** The column-menu group of a list-table column. `undefined` for a key the registry lacks. */
 export function columnGroup(type: EntityType, key: string): FieldGroup | undefined {
-	const metadata = entities.getMetadata(type);
-	return (
-		metadata.fields?.find((field) => field.id === key)?.group ??
-		metadata.table_columns?.find((column) => column.id === key)?.group
-	);
+	return entities.getMetadata(type).fields?.find((field) => field.id === key)?.group;
 }
 
 /** The registry fields of an edge type, read from the edge's own data. */

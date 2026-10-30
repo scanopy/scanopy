@@ -117,12 +117,6 @@ impl Entity for Topology {
         self.updated_at = time;
     }
 
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        self.id = existing.id;
-        self.created_at = existing.created_at;
-        self.updated_at = existing.updated_at;
-    }
-
     fn get_tags(&self) -> Option<&Vec<Uuid>> {
         None
     }
