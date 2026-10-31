@@ -52,7 +52,7 @@
 	let sitesNotNeeded = $derived(
 		permissions
 			.getItems()
-			.filter((p) => p.metadata.manage_org_entities)
+			.filter((p) => p.metadata.reaches_all_sites)
 			.map((p) => p.id)
 	);
 

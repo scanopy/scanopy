@@ -85,7 +85,10 @@
 			.map(String)
 	);
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '$lib/features/auth/access';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
 	// Organization query for onboarding state
 	const organizationQuery = useOrganizationQuery();
@@ -304,17 +307,24 @@
 
 	/** Row actions. */
 	function serviceActions(service: Service): CardAction[] {
-		if (isReadOnly) return [];
+		if (!can('Service', 'Write')) return [];
 
 		return [
-			{ label: common_edit(), icon: Edit, isOpen: true, onClick: () => handleEditService(service) },
+			{
+				label: common_edit(),
+				icon: Edit,
+				isOpen: true,
+				onClick: () => handleEditService(service),
+				unavailable: refusedUnless(can('Service', 'Write', service.site_id))
+			},
 			{
 				label: common_delete(),
 				icon: Trash2,
 				tone: 'danger',
 				isDelete: true,
 				onBulk: handleBulkDelete,
-				onClick: () => handleDeleteService(service)
+				onClick: () => handleDeleteService(service),
+				unavailable: refusedUnless(can('Service', 'Delete', service.site_id))
 			}
 		];
 	}
@@ -450,7 +460,7 @@
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
 	{:else if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptServices()} {isReadOnly} />
+		<PreDaemonEmptyState title={daemons_installPromptServices()} />
 	{:else if isInitialLoading}
 		<!-- Loading state (only on initial load) -->
 		<Loading />
@@ -459,8 +469,10 @@
 		<EmptyState
 			title={common_noEntityYet({ entity: common_services() })}
 			subtitle=""
-			onClick={isReadOnly ? undefined : () => (window.location.hash = 'discovery-scans')}
-			cta={isReadOnly ? '' : gettingStarted_stepDiscoveryLabel()}
+			onClick={can('Discovery', 'Write')
+				? () => (window.location.hash = 'discovery-scans')
+				: undefined}
+			cta={can('Discovery', 'Write') ? gettingStarted_stepDiscoveryLabel() : ''}
 		/>
 	{:else}
 		<DataControls
@@ -471,7 +483,7 @@
 			storageKey="scanopy-services-table-state"
 			defaults={tableDefaults}
 			entityType="Service"
-			canEditTags={!isReadOnly}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={getServiceTags}
 			getItemId={(item) => item.id}
 			serverPagination={servicesPagination}

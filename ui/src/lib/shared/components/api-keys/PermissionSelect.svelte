@@ -11,8 +11,14 @@
 		SimpleOptionDisplay,
 		type SimpleOption
 	} from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
-	import { permissions } from '$lib/shared/stores/metadata';
+	import { permissions, resources } from '$lib/shared/stores/metadata';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	import { accessLevelName } from '$lib/features/users/role-comparison';
+	import {
+		permissions_compareRoles,
+		permissions_everythingInRolePlus
+	} from '$lib/paraglide/messages';
+	import RoleComparisonModal from './RoleComparisonModal.svelte';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 
 	interface Props {
@@ -41,6 +47,9 @@
 		context = 'user',
 		permissionFilter
 	}: Props = $props();
+
+	let selectedMetadata = $derived(permissions.getMetadata(field.state.value));
+	let showComparison = $state(false);
 
 	// Get current user to determine which permissions they can grant
 	const currentUserQuery = useCurrentUserQuery();
@@ -86,3 +95,24 @@
 	error={field.state.meta.isTouched ? (field.state.meta.errors?.[0] ?? null) : null}
 	{helpText}
 />
+
+<div class="mt-2 space-y-1 text-xs text-tertiary">
+	{#if selectedMetadata.previous_role}
+		<p class="font-medium text-secondary">
+			{permissions_everythingInRolePlus({
+				role: permissions.getName(selectedMetadata.previous_role)
+			})}
+		</p>
+	{/if}
+	{#each selectedMetadata.incremental_access ?? [] as entry (entry.level)}
+		<p>
+			<span class="font-medium text-secondary">{accessLevelName(entry.level)}:</span>
+			{entry.resources.map((resource) => resources.getName(resource)).join(', ')}
+		</p>
+	{/each}
+	<button type="button" class="text-link hover:underline" onclick={() => (showComparison = true)}>
+		{permissions_compareRoles()}
+	</button>
+</div>
+
+<RoleComparisonModal isOpen={showComparison} onClose={() => (showComparison = false)} />

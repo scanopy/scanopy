@@ -90,8 +90,7 @@
 	import DependencyTutorial from './DependencyTutorial.svelte';
 	import { TUTORIAL_TOPOLOGY } from './dependency-tutorial-data';
 	import { useUsersQuery } from '$lib/features/users/queries';
-	import { canListUsers } from '$lib/features/users/types';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	import { useCan } from '$lib/features/auth/access';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
 	import type { components } from '$lib/api/schema';
@@ -112,12 +111,10 @@
 	} from '$lib/paraglide/messages';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	let { isActive = false }: TabProps = $props();
 
-	// Get current user to check permissions
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
-	let canViewUsers = $derived(currentUser ? canListUsers(currentUser.permissions) : false);
+	const can = useCan();
+	let canViewUsers = $derived(can('Member', 'Read'));
 
 	// Snapshot selection drives as-of-T entity reads. When a snapshot is
 	// selected, entity queries read SCD2 state as of its `taken_at` instead of
@@ -181,8 +178,8 @@
 
 	let currentInspectorConfig = $derived(getInspectorConfig($activeView));
 
-	// View-only when the tab is read-only or a snapshot is selected. Single
-	// reactive source consumed by the inspectors / grouping editor / edit mode.
+	// View-only when the user can't edit this topology or a snapshot is selected.
+	// Single reactive source consumed by the inspectors / grouping editor / edit mode.
 	$effect(() => {
 		topologyReadOnly.set(isReadOnly || $selectedSnapshotId !== null);
 	});
@@ -224,6 +221,9 @@
 		if (!siteId) return null;
 		return topologiesData.find((t) => t.site_id === siteId) ?? null;
 	});
+
+	// What the user can do on the site this topology belongs to.
+	let isReadOnly = $derived(!can('Topology', 'Write', currentTopologyRow?.site_id));
 
 	// Site name for export headers and filenames, live or snapshot.
 	let currentSiteName = $derived(
@@ -722,7 +722,7 @@
 		     would ask the user to install a daemon. -->
 		<LoadFailedState onRetry={organizationLoad.retry} />
 	{:else if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptTopology()} {isReadOnly} />
+		<PreDaemonEmptyState title={daemons_installPromptTopology()} />
 	{:else}
 		<div class="space-y-3">
 			<!-- Header -->
@@ -737,7 +737,7 @@
 						     graph from live entities + options), so the button stays available
 						     while viewing a snapshot; the share modal shows an inline notice
 						     clarifying that a share captures the live view, not the snapshot. -->
-						{#if !isReadOnly}
+						{#if can('Share', 'Write', currentTopologyRow?.site_id)}
 							<button
 								class="btn-secondary"
 								onclick={() => openModal('topology-share')}

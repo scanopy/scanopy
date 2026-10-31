@@ -42,7 +42,10 @@
 
 	type UserApiKeyOrderField = components['schemas']['UserApiKeyOrderField'];
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { useCan } from '$lib/features/auth/access';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
 	// Check if plan has api_access feature before querying
 	const organizationQuery = useOrganizationQuery();
@@ -140,7 +143,7 @@
 				icon: Trash2,
 				tone: 'danger',
 				isDelete: true,
-				onBulk: isReadOnly ? undefined : handleBulkDelete,
+				onBulk: can('UserApiKey', 'Delete') ? handleBulkDelete : undefined,
 				onClick: () => handleDelete(apiKey)
 			}
 		];
@@ -164,7 +167,7 @@
 
 <!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
 {#snippet toolbarActions()}
-	{#if !isReadOnly && hasApiAccess}
+	{#if can('UserApiKey', 'Write') && hasApiAccess}
 		<CreateButton onclick={handleCreate} />
 	{/if}
 {/snippet}
@@ -193,7 +196,7 @@
 			items={userApiKeysData}
 			fields={apiKeyFields}
 			entityType="UserApiKey"
-			canEditTags={!isReadOnly}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={getUserApiKeyTags}
 			storageKey="scanopy-user-api-keys-table-state"
 			defaults={tableDefaults}

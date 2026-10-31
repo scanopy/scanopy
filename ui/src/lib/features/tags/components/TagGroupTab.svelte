@@ -20,9 +20,7 @@
 	import { disabledWhen, type CardAction } from '$lib/shared/components/data/types';
 	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
 	import { Trash2, Edit } from '@lucide/svelte';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { permissions, billingPlans } from '$lib/shared/stores/metadata';
 	import type { TabProps } from '$lib/shared/types';
 	import { isSystemGroup } from '../groups';
 	import { tagGroupColumns } from './TagGroupTab.columns';
@@ -38,7 +36,10 @@
 		tags_systemGroupFixedBulk
 	} from '$lib/paraglide/messages';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '$lib/features/auth/access';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
 	let showEditor = $state(false);
 	let editingGroup: TagGroup | null = $state(null);
@@ -57,16 +58,7 @@
 		}
 	});
 
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
 	const organizationQuery = useOrganizationQuery();
-	let organization = $derived(organizationQuery.data);
-
-	// Demo orgs are read-only for non-owners (mirrors the tags tab)
-	let isNonOwnerInDemo = $derived(
-		billingPlans.getMetadata(organization?.plan?.type ?? null).is_demo === true &&
-			currentUser?.permissions !== 'Owner'
-	);
 
 	const tagsQuery = useTagsQuery();
 	// Every group, for the tag chips' group labels and deep links; the table reads its own page.
@@ -86,12 +78,7 @@
 	let isLoading = $derived(groupsPageQuery.isPending && !groupsPageQuery.data);
 	let pageLoad = $derived(loadFailure(organizationQuery, groupsPageQuery));
 
-	let canManage = $derived(
-		!isReadOnly &&
-			!isNonOwnerInDemo &&
-			!!currentUser &&
-			permissions.getMetadata(currentUser.permissions).manage_org_entities
-	);
+	let canManage = $derived(can('Tag', 'Write'));
 
 	function handleCreate() {
 		editingGroup = null;
@@ -126,11 +113,9 @@
 				isDelete: true,
 				onBulk: handleBulkDelete,
 				onClick: () => handleDelete(group),
-				unavailable: disabledWhen(
-					isSystemGroup(group),
-					tags_systemGroupFixed(),
-					tags_systemGroupFixedBulk()
-				)
+				unavailable:
+					refusedUnless(can('Tag', 'Delete')) ??
+					disabledWhen(isSystemGroup(group), tags_systemGroupFixed(), tags_systemGroupFixedBulk())
 			}
 		];
 	}

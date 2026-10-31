@@ -2,7 +2,12 @@
  * TanStack Query hooks for Authentication
  */
 
-import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
+import {
+	createQuery,
+	createMutation,
+	useQueryClient,
+	type QueryClient
+} from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
 import { requireSuccess, unwrapData, unwrapEnvelope } from '$lib/api/query-helpers';
@@ -32,6 +37,8 @@ import type {
 	VerifyEmailRequest
 } from './types/base';
 
+export type CurrentUser = components['schemas']['CurrentUser'];
+
 /**
  * The signed-in user, or `null` when the server says there is none (401).
  *
@@ -46,6 +53,25 @@ export async function fetchCurrentUser() {
 	const envelope = unwrapEnvelope(result);
 	checkServerVersion(envelope.meta.server_version);
 	return envelope.data;
+}
+
+/**
+ * Loads a new session's user and grants. The endpoints that start a session return a plain `User`,
+ * so this reads `/me` before the app mounts, the way a page load does.
+ */
+async function loadCurrentUser(queryClient: QueryClient) {
+	await queryClient.fetchQuery({
+		queryKey: queryKeys.auth.currentUser(),
+		queryFn: fetchCurrentUser,
+		staleTime: 0
+	});
+}
+
+/** Updates the cached user from an endpoint that returns a plain `User`, keeping their grants. */
+export function mergeCurrentUser(queryClient: QueryClient, user: User) {
+	queryClient.setQueryData<CurrentUser | null>(queryKeys.auth.currentUser(), (current) =>
+		current ? { ...user, access: current.access } : current
+	);
 }
 
 /**
@@ -98,8 +124,8 @@ export function useLoginMutation() {
 		mutationFn: async (request: LoginRequest) => {
 			return unwrapData(await apiClient.POST('/api/auth/login', { body: request }));
 		},
-		onSuccess: (user: User) => {
-			queryClient.setQueryData(queryKeys.auth.currentUser(), user);
+		onSuccess: async (user: User) => {
+			await loadCurrentUser(queryClient);
 			// Mark that user has an account (for redirect logic after logout)
 			if (typeof localStorage !== 'undefined') {
 				localStorage.setItem('hasAccount', 'true');
@@ -130,8 +156,8 @@ export function useRegisterMutation() {
 		mutationFn: async (request: RegisterRequest) => {
 			return unwrapData(await apiClient.POST('/api/auth/register', { body: request }));
 		},
-		onSuccess: (user: User) => {
-			queryClient.setQueryData(queryKeys.auth.currentUser(), user);
+		onSuccess: async (user: User) => {
+			await loadCurrentUser(queryClient);
 			// Mark that user has an account (for redirect logic after logout)
 			if (typeof localStorage !== 'undefined') {
 				localStorage.setItem('hasAccount', 'true');
@@ -174,7 +200,7 @@ export function useAcceptTermsMutation() {
 			return unwrapData(await apiClient.POST('/api/auth/accept-terms', {}));
 		},
 		onSuccess: (user: User) => {
-			queryClient.setQueryData(queryKeys.auth.currentUser(), user);
+			mergeCurrentUser(queryClient, user);
 		}
 	}));
 }
@@ -204,8 +230,8 @@ export function useResetPasswordMutation() {
 		mutationFn: async (request: ResetPasswordRequest) => {
 			return unwrapData(await apiClient.POST('/api/auth/reset-password', { body: request }));
 		},
-		onSuccess: (user: User) => {
-			queryClient.setQueryData(queryKeys.auth.currentUser(), user);
+		onSuccess: async (user: User) => {
+			await loadCurrentUser(queryClient);
 			// Mark that user has an account (for redirect logic after logout)
 			if (typeof localStorage !== 'undefined') {
 				localStorage.setItem('hasAccount', 'true');
@@ -239,8 +265,8 @@ export function useVerifyEmailMutation() {
 		mutationFn: async (request: VerifyEmailRequest) => {
 			return unwrapData(await apiClient.POST('/api/auth/verify-email', { body: request }));
 		},
-		onSuccess: (user: User) => {
-			queryClient.setQueryData(queryKeys.auth.currentUser(), user);
+		onSuccess: async () => {
+			await loadCurrentUser(queryClient);
 			// Mark that user has an account (for redirect logic after logout)
 			if (typeof localStorage !== 'undefined') {
 				localStorage.setItem('hasAccount', 'true');

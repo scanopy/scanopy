@@ -21,9 +21,7 @@
 	import { tagColumns } from './TagTab.columns';
 	import { collectionLookup } from '$lib/shared/entity-fields';
 	import { Trash2, Edit } from '@lucide/svelte';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { permissions, billingPlans } from '$lib/shared/stores/metadata';
 	import type { TabProps } from '$lib/shared/types';
 	import { applicationGroupId } from '../groups';
 	import type { components } from '$lib/api/schema';
@@ -45,7 +43,10 @@
 
 	type TagOrderField = components['schemas']['TagOrderField'];
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '$lib/features/auth/access';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
 	let showTagEditor = $state(false);
 	let editingTag: Tag | null = $state(null);
@@ -66,17 +67,7 @@
 	});
 
 	// Queries and mutations
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
-
 	const organizationQuery = useOrganizationQuery();
-	let organization = $derived(organizationQuery.data);
-
-	// Demo orgs are read-only for non-owners (mirrors the credentials tab)
-	let isDemoOrg = $derived(
-		billingPlans.getMetadata(organization?.plan?.type ?? null).is_demo === true
-	);
-	let isNonOwnerInDemo = $derived(isDemoOrg && currentUser?.permissions !== 'Owner');
 
 	// Every tag, for the empty state and deep links; the table reads its own page.
 	const tagsQuery = useTagsQuery();
@@ -105,11 +96,7 @@
 	let isLoading = $derived(tagsQuery.isLoading || (tagsPageQuery.isPending && !tagsPageQuery.data));
 	let pageLoad = $derived(loadFailure(organizationQuery, tagsQuery, tagsPageQuery));
 
-	let canManage = $derived(
-		!isReadOnly && !isNonOwnerInDemo && currentUser
-			? permissions.getMetadata(currentUser.permissions).manage_org_entities
-			: false
-	);
+	let canManage = $derived(can('Tag', 'Write'));
 
 	function handleCreateTag() {
 		editingTag = null;
@@ -128,7 +115,8 @@
 				tone: 'danger',
 				isDelete: true,
 				onBulk: handleBulkDelete,
-				onClick: () => handleDeleteTag(tag)
+				onClick: () => handleDeleteTag(tag),
+				unavailable: refusedUnless(can('Tag', 'Delete'))
 			}
 		];
 	}

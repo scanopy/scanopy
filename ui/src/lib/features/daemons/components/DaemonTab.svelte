@@ -72,7 +72,10 @@
 
 	type DaemonOrderField = components['schemas']['DaemonOrderField'];
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '$lib/features/auth/access';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
 	// Queries
 	const tagsQuery = useTagsQuery();
@@ -170,7 +173,7 @@
 
 	// Auto-open modal when deep-linked via ?modal=create-daemon
 	$effect(() => {
-		if ($modalState.name === 'create-daemon' && !showCreateDaemonModal) {
+		if ($modalState.name === 'create-daemon' && !showCreateDaemonModal && can('Daemon', 'Write')) {
 			showCreateDaemonModal = true;
 		}
 	});
@@ -234,8 +237,10 @@
 	 * the rarer leftmost), then Edit and Delete on every row.
 	 */
 	function daemonActions(daemon: Daemon): CardAction[] {
-		if (isReadOnly) return [];
+		// A Member sees the upgrade command and changes nothing. A Viewer has no key access, so no row.
+		if (!can('Daemon', 'Write') && !can('DaemonApiKey', 'Read')) return [];
 
+		const writeRefusal = refusedUnless(can('Daemon', 'Write', daemon.site_id));
 		const hasUpdateAvailable =
 			daemon.version_status.status === 'Outdated' ||
 			daemon.version_status.status === 'Deprecated' ||
@@ -260,6 +265,7 @@
 						daemons_reachable(),
 						daemons_reachableBulk()
 					) ??
+					writeRefusal ??
 					disabledWhen(
 						retryConnectionMutation.isPending || bulkRetryConnectionMutation.isPending,
 						daemons_retryingConnection()
@@ -272,6 +278,7 @@
 				onClick: () => handleOpenUpgrade(daemon),
 				unavailable:
 					hiddenWhen(!hasUpdateAvailable, daemons_upToDate()) ??
+					refusedUnless(can('DaemonApiKey', 'Read', daemon.site_id)) ??
 					// Without a sunset to warn about, an unreachable daemon has nothing to upgrade
 					// from here.
 					disabledWhen(
@@ -281,14 +288,21 @@
 			},
 			// It opens the daemon management modal, which is also where the daemon's 1:1 key is
 			// managed — and where a legacy daemon can be given one.
-			{ label: common_edit(), icon: Edit, isOpen: true, onClick: () => handleEditDaemon(daemon) },
+			{
+				label: common_edit(),
+				icon: Edit,
+				isOpen: true,
+				onClick: () => handleEditDaemon(daemon),
+				unavailable: writeRefusal
+			},
 			{
 				label: common_delete(),
 				icon: Trash2,
 				tone: 'danger',
 				isDelete: true,
 				onBulk: handleBulkDelete,
-				onClick: () => handleDeleteDaemon(daemon)
+				onClick: () => handleDeleteDaemon(daemon),
+				unavailable: refusedUnless(can('Daemon', 'Delete', daemon.site_id))
 			}
 		];
 	}
@@ -383,7 +397,7 @@
 
 <!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
 {#snippet toolbarActions()}
-	{#if !isReadOnly}
+	{#if can('Daemon', 'Write')}
 		<CreateButton onclick={handleCreateDaemon} />
 	{/if}
 {/snippet}
@@ -398,8 +412,8 @@
 		<EmptyState
 			title={common_noEntityYet({ entity: common_daemons() })}
 			subtitle=""
-			onClick={handleCreateDaemon}
-			cta={common_create()}
+			onClick={can('Daemon', 'Write') ? handleCreateDaemon : undefined}
+			cta={can('Daemon', 'Write') ? common_create() : ''}
 		/>
 	{:else}
 		{#if hasSunsetDaemons && sunsetDateDisplay}
@@ -418,7 +432,7 @@
 			storageKey="scanopy-daemons-table-state"
 			defaults={tableDefaults}
 			entityType="Daemon"
-			canEditTags={!isReadOnly}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={getDaemonTags}
 			getItemId={(item) => item.id}
 			serverPagination={daemonsPagination}

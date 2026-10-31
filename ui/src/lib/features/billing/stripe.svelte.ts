@@ -11,6 +11,7 @@ import type {
 import { buildStripeAppearance } from '$lib/shared/billing/stripe-appearance';
 import { useConfigQuery } from '$lib/shared/stores/config-query';
 import { useCurrentUserQuery } from '$lib/features/auth/queries';
+import { useCan } from '$lib/features/auth/access';
 import { useOrganizationQuery } from '$lib/features/organizations/queries';
 import { createSetupIntent } from '$lib/features/billing/queries';
 
@@ -166,6 +167,7 @@ export function usePreloadStripe(showing: () => boolean = () => true): void {
 	const configQuery = useConfigQuery();
 	const currentUserQuery = useCurrentUserQuery();
 	const organizationQuery = useOrganizationQuery();
+	const can = useCan();
 	$effect(() => {
 		if (!showing()) return;
 		void setupIntentGeneration;
@@ -175,7 +177,7 @@ export function usePreloadStripe(showing: () => boolean = () => true): void {
 		});
 		const organizationId = organizationQuery.data?.id;
 		const email = currentUserQuery.data?.email;
-		if (publishableKey && organizationId && currentUserQuery.data?.permissions === 'Owner') {
+		if (publishableKey && organizationId && can('Billing', 'Write')) {
 			void takeSetupIntent(organizationId)
 				.then((clientSecret) => preparePaymentForm(publishableKey, clientSecret, email))
 				.catch(() => {

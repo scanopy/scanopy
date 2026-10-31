@@ -80,7 +80,7 @@ function userSiteItems(ctx: UserColumnsContext, item: UserOrInvite): LabelledCar
 	if (!isUser(item)) return [];
 	const user = item.data;
 
-	if (user.permissions === 'Admin' || user.permissions === 'Owner') {
+	if (permissions.getMetadata(user.permissions).reaches_all_sites) {
 		return [{ id: NO_VALUE, label: common_all(), color: entities.getColorHelper('Site').color }];
 	}
 
