@@ -23492,19 +23492,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-30T13:27:50.781197Z",
+              "created_at": "2026-10-31T16:35:13.501641Z",
               "first_discovery_id": null,
-              "id": "1197e35a-b113-4b09-af4b-58ac52b5a228",
+              "id": "5eb8392a-4729-4d24-b06e-5bff5145760c",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-30T13:27:50.781197Z",
+              "last_seen_at": "2026-10-31T16:35:13.501641Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-30T13:27:50.781197Z",
-              "valid_from": "2026-10-30T13:27:50.781197Z",
+              "updated_at": "2026-10-31T16:35:13.501641Z",
+              "valid_from": "2026-10-31T16:35:13.501641Z",
               "valid_to": null
             }
           },
@@ -25339,19 +25339,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-30T13:27:50.744219Z",
+                      "created_at": "2026-10-31T16:35:13.458437Z",
                       "first_discovery_id": null,
-                      "id": "2830c253-68ae-4585-a7f4-855fd3e68996",
+                      "id": "9089497c-68d8-4ace-bc2f-20794d6cfdf6",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-30T13:27:50.744219Z",
+                      "last_seen_at": "2026-10-31T16:35:13.458437Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-30T13:27:50.744219Z",
-                      "valid_from": "2026-10-30T13:27:50.744219Z",
+                      "updated_at": "2026-10-31T16:35:13.458437Z",
+                      "valid_from": "2026-10-31T16:35:13.458437Z",
                       "valid_to": null
                     }
                   ],
@@ -25364,7 +25364,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Gogs",
+                  "service_definition": "Tenable Security Center",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -26862,19 +26862,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-30T13:27:50.775587Z",
+                  "created_at": "2026-10-31T16:35:13.495742Z",
                   "first_discovery_id": null,
-                  "id": "db7344bf-c182-47c0-b9ac-9df2e7cc7f49",
+                  "id": "47b0dda5-6872-40da-a1bf-4beb392288aa",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-30T13:27:50.775587Z",
+                  "last_seen_at": "2026-10-31T16:35:13.495742Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-30T13:27:50.775587Z",
-                  "valid_from": "2026-10-30T13:27:50.775587Z",
+                  "updated_at": "2026-10-31T16:35:13.495742Z",
+                  "valid_from": "2026-10-31T16:35:13.495742Z",
                   "valid_to": null
                 }
               ],
@@ -26887,7 +26887,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Gogs",
+              "service_definition": "Tenable Security Center",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -30162,19 +30162,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-30T13:27:50.744872Z",
+          "created_at": "2026-10-31T16:35:13.459137Z",
           "first_discovery_id": null,
-          "id": "3603dc76-ffb6-47f1-ba9d-a903cb048663",
+          "id": "9aa393ac-a3a1-41f9-982b-01c0734b7224",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-30T13:27:50.744872Z",
+          "last_seen_at": "2026-10-31T16:35:13.459137Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-30T13:27:50.744872Z",
-          "valid_from": "2026-10-30T13:27:50.744872Z",
+          "updated_at": "2026-10-31T16:35:13.459137Z",
+          "valid_from": "2026-10-31T16:35:13.459137Z",
           "valid_to": null
         }
       },
@@ -30635,6 +30635,7 @@
           "UnifiController",
           "InstantOn",
           "Proxmox",
+          "Libvirt",
           "ModbusTcp",
           "OpcUa",
           "EtherNetIp",
@@ -30676,6 +30677,9 @@
           "PodmanPing",
           "Ipp",
           "Lpd",
+          "Smux",
+          "Rpcbind",
+          "Llmnr",
           "SpotifyConnect",
           "Vnc",
           "AppleLockdown",
@@ -31083,7 +31087,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Gogs",
+              "service_definition": "Tenable Security Center",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -31342,9 +31346,11 @@
           "name",
           "description",
           "credential_type",
+          "login_credential_id",
           "tags",
           "assigned_site_ids",
-          "host_assignments"
+          "host_assignments",
+          "used_by"
         ],
         "properties": {
           "assigned_site_ids": {
@@ -31384,6 +31390,14 @@
             },
             "description": "Hosts this credential is assigned to (PerHost scope), with optional IP scoping.\nHydrated from the `host_credentials` junction table."
           },
+          "login_credential_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The SSH login this credential runs over, for a type that needs one (`SshScript`): another\ncredential of the organization whose role is `Login`. `None` for every other type."
+          },
           "name": {
             "type": "string",
             "description": "Human-facing name for this credential."
@@ -31400,6 +31414,15 @@
               "format": "uuid"
             },
             "description": "Tags assigned to this entity."
+          },
+          "used_by": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "readOnly": true
+            },
+            "description": "For a login: the credentials that run over it. Hydrated from their `login_credential_id`;\nempty for any other type. A value sent in a request is ignored."
           }
         }
       },
@@ -31441,7 +31464,8 @@
           "InstantOn",
           "Ssh",
           "WakeOnLan",
-          "Proxmox"
+          "Proxmox",
+          "Libvirt"
         ]
       },
       "CredentialOrderField": {
@@ -31487,7 +31511,16 @@
           "Ssh",
           "WakeOnLan",
           "Proxmox",
+          "Libvirt",
           "Unknown"
+        ]
+      },
+      "CredentialRole": {
+        "type": "string",
+        "description": "What a credential is for: run against hosts by an integration, or a login other credentials\nuse to reach a host.",
+        "enum": [
+          "Dispatched",
+          "Login"
         ]
       },
       "CredentialRunOutcome": {
@@ -31995,11 +32028,10 @@
           {
             "type": "object",
             "title": "SshPassword",
-            "description": "SSH with a password. The daemon runs `script` on the host; the script's stdout is one JSON\nobject whose keys (`SshScriptField`) fill existing host and interface fields.",
+            "description": "An SSH login with a password: who the daemon logs in as, and the host key it expects. A\nlogin does nothing on its own. A credential that runs over SSH (`SshScript`) names it as its\n`login_credential_id`.",
             "required": [
               "username",
               "password",
-              "script",
               "type"
             ],
             "properties": {
@@ -32019,19 +32051,6 @@
                 "description": "Port `sshd` listens on (default 22).",
                 "minimum": 0
               },
-              "script": {
-                "$ref": "#/components/schemas/ScriptSource"
-              },
-              "target_os": {
-                "$ref": "#/components/schemas/OsFamily",
-                "description": "The scanned host's OS: decides how a host-file path is validated and the shell the\nscript runs in."
-              },
-              "timeout_seconds": {
-                "type": "integer",
-                "format": "int32",
-                "description": "How long the script may run before the daemon closes the channel, in seconds (default 60).",
-                "minimum": 0
-              },
               "type": {
                 "type": "string",
                 "enum": [
@@ -32047,11 +32066,10 @@
           {
             "type": "object",
             "title": "SshKey",
-            "description": "SSH with a private key (optionally passphrase-protected). Same script contract as\n[`CredentialType::SshPassword`].",
+            "description": "An SSH login with a private key (optionally passphrase-protected). A login like\n[`CredentialType::SshPassword`].",
             "required": [
               "username",
               "private_key",
-              "script",
               "type"
             ],
             "properties": {
@@ -32081,6 +32099,27 @@
               "private_key": {
                 "$ref": "#/components/schemas/SecretValue"
               },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "SshKey"
+                ]
+              },
+              "username": {
+                "type": "string",
+                "description": "User the daemon logs in as."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "SshScript",
+            "description": "A script the daemon runs on the host over SSH, logged in with the credential's SSH login\n(`login_credential_id`). The script's stdout is one JSON object whose keys\n(`SshScriptField`) fill existing host and interface fields.",
+            "required": [
+              "script",
+              "type"
+            ],
+            "properties": {
               "script": {
                 "$ref": "#/components/schemas/ScriptSource"
               },
@@ -32097,12 +32136,28 @@
               "type": {
                 "type": "string",
                 "enum": [
-                  "SshKey"
+                  "SshScript"
                 ]
-              },
-              "username": {
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Libvirt",
+            "description": "A libvirt/KVM host's domains, read with `virsh` over SSH, logged in with the credential's\nSSH login (`login_credential_id`). Each domain becomes a host under the hypervisor.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "connection_uri": {
                 "type": "string",
-                "description": "User the daemon logs in as."
+                "description": "The connection URI `virsh` opens on the host (default `qemu:///system`)."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Libvirt"
+                ]
               }
             }
           },
@@ -32203,6 +32258,8 @@
           "InstantOnAccount",
           "SshPassword",
           "SshKey",
+          "SshScript",
+          "Libvirt",
           "WakeOnLan",
           "ProxmoxApiToken"
         ]
@@ -35227,6 +35284,35 @@
           },
           {
             "type": "object",
+            "title": "CredentialLoginUnavailable",
+            "description": "A credential that runs over an SSH login whose login is gone or no longer usable, so it\nwas not sent. Raised by the server when it builds the scan's credentials, never a daemon.",
+            "required": [
+              "integration",
+              "credential_id",
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "CredentialLoginUnavailable"
+                ]
+              },
+              "credential_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The stored credential. `None` once it is deleted."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialQueryPayloadDiscriminants"
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "CredentialGateClosed",
             "description": "The port the credential needs was not open, so it was never tried.",
             "required": [
@@ -35485,11 +35571,12 @@
           },
           {
             "type": "object",
-            "title": "ProxmoxGuestOutsideScan",
-            "description": "A running guest at addresses no subnet this scan covers, on a shared network or one the\nnode's config doesn't list, so it was recorded without ports or services.",
+            "title": "GuestOutsideScan",
+            "description": "A running guest at addresses no subnet this scan covers, on a shared network or one the\nhypervisor's config doesn't list, so it was recorded without ports or services.",
             "required": [
               "address",
               "guest",
+              "integration",
               "code"
             ],
             "properties": {
@@ -35500,23 +35587,28 @@
               "code": {
                 "type": "string",
                 "enum": [
-                  "ProxmoxGuestOutsideScan"
+                  "GuestOutsideScan"
                 ]
               },
               "guest": {
                 "type": "string",
-                "description": "Its Proxmox VE name, else its VMID."
+                "description": "Its name in its hypervisor, else the hypervisor's id for it."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialQueryPayloadDiscriminants",
+                "description": "The hypervisor integration that reported it."
               }
             }
           },
           {
             "type": "object",
-            "title": "ProxmoxGuestBehindNode",
-            "description": "A running guest on a bridge with no uplink that only its node holds an address on (a NAT'd\n`vmbr1`), so only a daemon on that node reaches it.",
+            "title": "GuestBehindHypervisor",
+            "description": "A running guest on a bridge with no uplink that only its hypervisor holds an address on (a\nNAT'd `vmbr1`, libvirt's `virbr0`), so only a daemon on that hypervisor reaches it.",
             "required": [
               "address",
               "guest",
-              "node",
+              "integration",
+              "hypervisor",
               "bridge",
               "code"
             ],
@@ -35532,26 +35624,31 @@
               "code": {
                 "type": "string",
                 "enum": [
-                  "ProxmoxGuestBehindNode"
+                  "GuestBehindHypervisor"
                 ]
               },
               "guest": {
                 "type": "string",
-                "description": "Its Proxmox VE name, else its VMID."
+                "description": "Its name in its hypervisor, else the hypervisor's id for it."
               },
-              "node": {
+              "hypervisor": {
                 "type": "string",
-                "description": "The node it runs on."
+                "description": "The hypervisor host it runs on: a Proxmox VE node, a libvirt host."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialQueryPayloadDiscriminants",
+                "description": "The hypervisor integration that reported it."
               }
             }
           },
           {
             "type": "object",
-            "title": "ProxmoxGuestIsolated",
-            "description": "A running guest on a bridge with no uplink and no node address, so only a daemon on a guest\nattached to that bridge reaches it.",
+            "title": "GuestIsolated",
+            "description": "A running guest on a bridge with no uplink and no hypervisor address, so only a daemon on a\nguest attached to that bridge reaches it.",
             "required": [
               "address",
               "guest",
+              "integration",
               "bridge",
               "code"
             ],
@@ -35567,12 +35664,16 @@
               "code": {
                 "type": "string",
                 "enum": [
-                  "ProxmoxGuestIsolated"
+                  "GuestIsolated"
                 ]
               },
               "guest": {
                 "type": "string",
-                "description": "Its Proxmox VE name, else its VMID."
+                "description": "Its name in its hypervisor, else the hypervisor's id for it."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialQueryPayloadDiscriminants",
+                "description": "The hypervisor integration that reported it."
               }
             }
           },
@@ -39247,19 +39348,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-30T13:27:50.743430Z",
+                  "created_at": "2026-10-31T16:35:13.457641Z",
                   "first_discovery_id": null,
-                  "id": "eab774be-1fd3-433a-97d4-2c3a4e9513f5",
+                  "id": "3c88c93d-6a49-4117-8826-c37673b30541",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-30T13:27:50.743430Z",
+                  "last_seen_at": "2026-10-31T16:35:13.457641Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-30T13:27:50.743430Z",
-                  "valid_from": "2026-10-30T13:27:50.743430Z",
+                  "updated_at": "2026-10-31T16:35:13.457641Z",
+                  "valid_from": "2026-10-31T16:35:13.457641Z",
                   "valid_to": null
                 }
               ],
@@ -39272,7 +39373,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Gogs",
+              "service_definition": "Tenable Security Center",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -43691,19 +43792,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-30T13:27:50.724148Z",
+                        "created_at": "2026-10-31T16:35:13.440229Z",
                         "first_discovery_id": null,
-                        "id": "8dffd881-97eb-4166-8dd9-e404c695f36e",
+                        "id": "4d6d5d25-2bff-468a-a182-a628fda8d076",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-30T13:27:50.724148Z",
+                        "last_seen_at": "2026-10-31T16:35:13.440229Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-30T13:27:50.724148Z",
-                        "valid_from": "2026-10-30T13:27:50.724148Z",
+                        "updated_at": "2026-10-31T16:35:13.440229Z",
+                        "valid_from": "2026-10-31T16:35:13.440229Z",
                         "valid_to": null
                       }
                     ],
@@ -43716,7 +43817,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Gogs",
+                    "service_definition": "Tenable Security Center",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -43963,19 +44064,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-30T13:27:50.774695Z",
+                    "created_at": "2026-10-31T16:35:13.494930Z",
                     "first_discovery_id": null,
-                    "id": "4fa31c64-0226-439e-8e2f-eee38b5ccdc6",
+                    "id": "899803b5-39a0-4324-83c3-58ad42e7eaa0",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-30T13:27:50.774695Z",
+                    "last_seen_at": "2026-10-31T16:35:13.494930Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-30T13:27:50.774695Z",
-                    "valid_from": "2026-10-30T13:27:50.774695Z",
+                    "updated_at": "2026-10-31T16:35:13.494930Z",
+                    "valid_from": "2026-10-31T16:35:13.494930Z",
                     "valid_to": null
                   }
                 ],
@@ -43988,7 +44089,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Gogs",
+                "service_definition": "Tenable Security Center",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -46691,19 +46792,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-30T13:27:50.744652Z",
+              "created_at": "2026-10-31T16:35:13.458900Z",
               "first_discovery_id": null,
-              "id": "588dd7f3-3564-4a9d-9647-5d568b3cda9a",
+              "id": "cfbde013-94b1-4e6f-96d6-ecec1c7558d0",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-30T13:27:50.744652Z",
+              "last_seen_at": "2026-10-31T16:35:13.458900Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-30T13:27:50.744652Z",
-              "valid_from": "2026-10-30T13:27:50.744652Z",
+              "updated_at": "2026-10-31T16:35:13.458900Z",
+              "valid_from": "2026-10-31T16:35:13.458900Z",
               "valid_to": null
             }
           ],
@@ -46716,7 +46817,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Gogs",
+          "service_definition": "Tenable Security Center",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -49151,7 +49252,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "8359cdc9-f787-4e3a-be29-36c093779516",
+                  "id": "740e5668-328e-4a0f-9585-10fdb23f27cc",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -49161,23 +49262,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "8589acf6-db61-4360-a96f-1a5de1a70312",
+                  "id": "39848c08-0585-48cc-8106-4a156576ceb7",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "043869dd-efe5-40a6-a4db-2c504bc08dd2",
+                  "id": "1389959f-3e5a-4451-9da4-98e5f57667f9",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "10d6e863-9d9a-43b8-8720-d3adb900d8e6",
+                  "id": "647d0f5e-fdf5-4622-9d64-e87b551b8e80",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "8589acf6-db61-4360-a96f-1a5de1a70312",
+                  "id": "39848c08-0585-48cc-8106-4a156576ceb7",
                   "rule": "ByHost"
                 }
               ]
@@ -49207,19 +49308,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "e687f3af-643e-4166-9372-480c613b2c59",
+                "id": "2c31b558-b2f4-4d83-b7fa-c55b300ed315",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "59bae1af-48ae-4a9d-8901-742a5962237e",
+                "id": "1ad95a04-f9cd-4365-b7a8-6b8fc1c7b591",
                 "rule": "ByVLAN"
               },
               {
-                "id": "7d098cb5-a1f3-4b44-b2ad-eb84c9f3abce",
+                "id": "3051f3ed-d04d-4e54-9a13-9e1a39039f44",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "fa92d20c-4c99-4385-b7e5-554e2f705091",
+                "id": "8441435b-56fc-4263-a66b-d3f8bdefc652",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -49240,7 +49341,7 @@
                 }
               },
               {
-                "id": "dd6508db-c3f5-47a8-b22d-96a381b5cf75",
+                "id": "d1aba949-d469-463b-9f3c-f848f1b5dd7b",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -49249,19 +49350,19 @@
                 }
               },
               {
-                "id": "8768cc4d-f427-41ea-9276-2bd74162d7e0",
+                "id": "ce34f365-b03c-4b20-b46f-5f29f4524ad7",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "599c0eca-c956-4de2-b72a-6c1208350cbe",
+                "id": "28337888-a032-4698-8a8d-03dd869e851a",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "ab9ef755-540c-41f2-80ee-b0b30bcb57be",
+                "id": "3dd9d047-0325-4de1-93f6-5ecf9555f10e",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "81c086c7-f636-4ef8-bc20-cba88bf034f1",
+                "id": "fc5161cb-613d-4fde-be15-4eab5e39e41b",
                 "rule": "ByStack"
               }
             ]

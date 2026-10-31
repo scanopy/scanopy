@@ -161,6 +161,7 @@ pub(super) fn generate_hosts_and_services(
     let instant_on_cred = find_cred("Instant On Cloud Account");
     let hypervisor_ssh_cred = find_cred("Hypervisor SSH");
     let proxmox_api_cred = find_cred("Proxmox Cluster API");
+    let kvm_inventory_cred = find_cred("KVM Inventory");
 
     let critical_tag = find_tag("Critical");
     let production_tag = find_tag("Production");
@@ -2580,7 +2581,7 @@ pub(super) fn generate_hosts_and_services(
     }
 
     // 10b. dc-kvm01 — a plain Ubuntu KVM host managed with libvirt (pre-generated libvirt service
-    // ID). Nothing discovers libvirt guests yet, so its two VMs were assigned to it by hand.
+    // ID). The "KVM Inventory" libvirt credential lists its domains, running and stopped.
     {
         let (host, ip_address) = with_snmp(
             with_mac(
@@ -2639,12 +2640,15 @@ pub(super) fn generate_hosts_and_services(
             }
             services.push(svc);
         }
-        result.push(HostWithServices {
-            host,
-            ip_addresses,
-            ports,
-            services,
-        });
+        result.push(with_credentials(
+            HostWithServices {
+                host,
+                ip_addresses,
+                ports,
+                services,
+            },
+            &[kvm_inventory_cred],
+        ));
     }
 
     // 10c. vault-vm — libvirt domain on dc-kvm01
@@ -2722,6 +2726,40 @@ pub(super) fn generate_hosts_and_services(
                 .into_iter()
                 .flatten()
                 .collect()
+        ),
+    ));
+
+    // 10e. dr-replica-vm — libvirt domain on dc-kvm01, shut off until a failover drill. Kept at
+    // the address it had when it last ran.
+    result.push(host_with_services!(
+        with_mac(
+            create_host(
+                "dr-replica-vm",
+                Some("dr-replica.dc.acme.io"),
+                Some("Disaster-recovery replica, started for failover drills (VM on dc-kvm01)"),
+                dc,
+                dc_compute,
+                Ipv4Addr::new(172, 16, 10, 14),
+                [backups_tag].into_iter().flatten().collect(),
+                None,
+                Some((
+                    HostVirtualization::Libvirt(LibvirtVirtualization {
+                        vm_name: Some("dr-replica-vm".to_string()),
+                        vm_id: Some("c5e81b2f-0d47-4a96-8e3c-91f2a6b07d38".to_string()),
+                        state: GuestState::Stopped,
+                    }),
+                    libvirt_dc_svc_id,
+                )),
+                now
+            ),
+            [0x52, 0x54, 0x00, 0xdc, 0x0e, 0x01],
+        ),
+        now,
+        (
+            "PostgreSQL",
+            "PostgreSQL",
+            Some(PortType::PostgreSQL),
+            [backups_tag].into_iter().flatten().collect()
         ),
     ));
 

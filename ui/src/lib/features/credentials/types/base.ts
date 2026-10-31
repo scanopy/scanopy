@@ -55,10 +55,12 @@ export function createDefaultCredential(organization_id: string): Credential {
 			community: { mode: 'Inline' as const, value: '' }
 		},
 		daemon_os: null,
+		login_credential_id: null,
 		organization_id,
 		tags: [],
 		assigned_site_ids: [],
 		host_assignments: [],
+		used_by: [],
 		is_default: false,
 		id: uuidv4Sentinel,
 		created_at: utcTimeZoneSentinel,
@@ -207,6 +209,16 @@ export function credentialTypeUpgradeFeature(
  */
 export function isDaemonHostOnly(targets: string[] | undefined): boolean {
 	return targets?.length === 1 && targets[0] === 'DaemonHost';
+}
+
+/** An SSH login: other credentials run over it, and it is never assigned to sites or hosts. */
+export function isLoginType(typeId: string): boolean {
+	return credentialTypes.getMetadata(typeId)?.role === 'Login';
+}
+
+/** A type whose credentials name the SSH login they run over. */
+export function requiresLogin(typeId: string): boolean {
+	return credentialTypes.getMetadata(typeId)?.requires_login === true;
 }
 
 /**

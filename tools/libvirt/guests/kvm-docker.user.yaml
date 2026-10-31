@@ -1,0 +1,38 @@
+#cloud-config
+hostname: kvm-docker
+# docker is in the community repository, which the cloud image leaves off.
+apk_repos:
+  alpine_repo:
+    version: v3.20
+    community_enabled: true
+# A macvlan link in the guest's own namespace, holding a LAN address: a network identity of the
+# guest. The agent reads only that namespace, so a macvlan container's address would not show.
+write_files:
+  # Alpine's ifupdown ignores the network config's nameservers, and only DHCP writes this file.
+  - path: /etc/resolv.conf
+    content: |
+      nameserver 192.168.4.1
+  - path: /etc/local.d/mv-lab.start
+    permissions: "0755"
+    content: |
+      #!/bin/sh
+      ip link add mv-lab link eth0 type macvlan mode bridge
+      ip addr add 192.168.7.178/22 dev mv-lab
+      ip link set mv-lab up
+runcmd:
+  # Installed here rather than under `packages`, which runs before write_files' resolv.conf.
+  - apk update
+  - apk add qemu-guest-agent docker
+  - rc-update add local default
+  - /etc/local.d/mv-lab.start
+  - rc-update add qemu-guest-agent default
+  - rc-service qemu-guest-agent start
+  # Docker needs cgroups mounted, which the cloud image leaves to a service it doesn't enable.
+  - rc-update add cgroups boot
+  - rc-service cgroups start
+  - rc-update add docker default
+  - rc-service docker start
+  - sleep 5
+  # docker0 and a compose-style br-* network: the guest's internals, never its addresses.
+  - docker network create lab-internal
+  - docker run -d --restart unless-stopped --name internal --network lab-internal nginx:alpine

@@ -100,6 +100,11 @@ export interface CredentialTypeMetadata {
 	 *  "Unofficial API" tag but stay selectable. A separate axis from `stability`: an integration
 	 *  can be fully validated and still ride an endpoint the vendor never published. */
 	upstream_support?: components['schemas']['UpstreamSupport'];
+	/** `Login` for an SSH login, which other credentials run over and which is never assigned;
+	 *  `Dispatched` for everything else. */
+	role?: components['schemas']['CredentialRole'];
+	/** Whether a credential of this type names the login it runs over (`login_credential_id`). */
+	requires_login?: boolean;
 	/** The plan feature needed to create this type, or null when every plan can. The type picker
 	 *  shows an upgrade badge when the organization's plan lacks it; existing credentials of the
 	 *  type keep working on any plan. */

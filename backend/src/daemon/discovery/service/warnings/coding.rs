@@ -22,7 +22,7 @@ use super::{
     AttemptOutcome, ContradictedClaim, CredentialIssue, CredentialIssueReason, DeviceClaim,
     EqualReachIntegrations, IncompleteInterfaceWalk, IncompleteSnmpWalk, LocalPortPlacementReason,
     MalformedNeighbourReason, MalformedNeighbours, ShortfallReason, SnmpCollectedNothing,
-    SnmpWalkCause, UnreachedGuestReason, UnreachedProxmoxGuest, UnresolvedLldpPorts,
+    SnmpWalkCause, UnreachedGuestReason, UnreachedHypervisorGuest, UnresolvedLldpPorts,
     VlanRecordingFailed,
 };
 use crate::daemon::discovery::types::warnings::{
@@ -324,34 +324,37 @@ pub fn warn_vlan_recording_failures(records: &[VlanRecordingFailed]) -> Vec<Disc
         .collect()
 }
 
-/// One warning per guest. Every node's API answers for the whole cluster, so a credential on each
-/// of two nodes reports the same guest twice; the second is dropped.
-pub fn warn_unreached_proxmox_guests(records: &[UnreachedProxmoxGuest]) -> Vec<DiscoveryWarning> {
+/// One warning per guest. A Proxmox node's API answers for the whole cluster, so a credential on
+/// each of two nodes reports the same guest twice; the second is dropped.
+pub fn warn_unreached_guests(records: &[UnreachedHypervisorGuest]) -> Vec<DiscoveryWarning> {
     let mut seen = HashSet::new();
     records
         .iter()
         .filter(|record| seen.insert(record.ip))
         .map(|record| {
-            let (address, guest) = (record.ip, record.guest.clone());
+            let (address, guest, integration) =
+                (record.ip, record.guest.clone(), record.integration);
             match &record.reason {
-                UnreachedGuestReason::OutsideScan => {
-                    DiscoveryWarning::ProxmoxGuestOutsideScan { address, guest }
-                }
-                UnreachedGuestReason::BehindNode { node, bridge } => {
-                    DiscoveryWarning::ProxmoxGuestBehindNode {
+                UnreachedGuestReason::OutsideScan => DiscoveryWarning::GuestOutsideScan {
+                    address,
+                    guest,
+                    integration,
+                },
+                UnreachedGuestReason::BehindHypervisor { hypervisor, bridge } => {
+                    DiscoveryWarning::GuestBehindHypervisor {
                         address,
                         guest,
-                        node: node.clone(),
+                        integration,
+                        hypervisor: hypervisor.clone(),
                         bridge: bridge.clone(),
                     }
                 }
-                UnreachedGuestReason::Isolated { bridge } => {
-                    DiscoveryWarning::ProxmoxGuestIsolated {
-                        address,
-                        guest,
-                        bridge: bridge.clone(),
-                    }
-                }
+                UnreachedGuestReason::Isolated { bridge } => DiscoveryWarning::GuestIsolated {
+                    address,
+                    guest,
+                    integration,
+                    bridge: bridge.clone(),
+                },
             }
         })
         .collect()
@@ -1440,22 +1443,47 @@ mod tests {
     /// Credentials on two nodes of one cluster each report every guest. The guest is one finding.
     #[test]
     fn a_guest_two_nodes_report_is_warned_about_once() {
-        let isolated = UnreachedProxmoxGuest {
+        let isolated = UnreachedHypervisorGuest {
             ip: ip("10.20.0.5"),
             guest: "gitlab".to_string(),
+            integration: CredentialQueryPayloadDiscriminants::Proxmox,
             reason: UnreachedGuestReason::Isolated {
                 bridge: "vmbr2".to_string(),
             },
         };
-        let warnings = warn_unreached_proxmox_guests(&[isolated.clone(), isolated]);
+        let warnings = warn_unreached_guests(&[isolated.clone(), isolated]);
 
         assert_eq!(
             warnings,
-            vec![DiscoveryWarning::ProxmoxGuestIsolated {
+            vec![DiscoveryWarning::GuestIsolated {
                 address: ip("10.20.0.5"),
                 guest: "gitlab".to_string(),
+                integration: CredentialQueryPayloadDiscriminants::Proxmox,
                 bridge: "vmbr2".to_string(),
             }]
+        );
+    }
+
+    /// A warning stored before the rename from `ProxmoxGuest*`, with no `integration` and the
+    /// hypervisor under `node`, reads as the same finding from Proxmox.
+    #[test]
+    fn a_stored_proxmox_guest_warning_reads_as_its_generic_successor() {
+        let stored = serde_json::json!({
+            "code": "ProxmoxGuestBehindNode",
+            "address": "10.10.10.20",
+            "guest": "gitlab",
+            "node": "pve",
+            "bridge": "vmbr1",
+        });
+        assert_eq!(
+            crate::daemon::discovery::types::warnings::warning_from_value(stored),
+            DiscoveryWarning::GuestBehindHypervisor {
+                address: ip("10.10.10.20"),
+                guest: "gitlab".to_string(),
+                integration: CredentialQueryPayloadDiscriminants::Proxmox,
+                hypervisor: "pve".to_string(),
+                bridge: "vmbr1".to_string(),
+            }
         );
     }
 

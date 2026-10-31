@@ -19,6 +19,7 @@ pub use resolvable::*;
 // Re-export type-specific types so external imports don't break
 pub use super::types::container_proxy::ContainerProxyQueryCredential;
 pub use super::types::instant_on::InstantOnQueryCredential;
+pub use super::types::libvirt::LibvirtQueryCredential;
 pub use super::types::proxmox::ProxmoxQueryCredential;
 pub use super::types::ssh::{ScriptSource, SshAuth, SshQueryCredential};
 pub use super::types::unifi::{UnifiAuth, UnifiQueryCredential};
@@ -281,6 +282,8 @@ pub enum CredentialQueryPayload {
     WakeOnLan(WakeOnLanQueryCredential),
     /// Proxmox VE API token: the node's API reports every node and guest in its cluster.
     Proxmox(ProxmoxQueryCredential),
+    /// libvirt over SSH: list the host's domains with `virsh`, logged in with an SSH login.
+    Libvirt(LibvirtQueryCredential),
     /// Forward-compat fallback: a credential type from a newer server that this
     /// daemon doesn't recognize. `#[serde(other)]` deserializes any unknown `type`
     /// tag here (a unit variant, the only shape allowed for `other` on an
@@ -309,9 +312,10 @@ impl From<CredentialQueryPayloadDiscriminants> for super::types::CredentialTypeD
             CredentialQueryPayloadDiscriminants::Gnmi => Self::Gnmi,
             CredentialQueryPayloadDiscriminants::UnifiController => Self::UnifiApiKey,
             CredentialQueryPayloadDiscriminants::InstantOn => Self::InstantOnAccount,
-            CredentialQueryPayloadDiscriminants::Ssh => Self::SshKey,
+            CredentialQueryPayloadDiscriminants::Ssh => Self::SshScript,
             CredentialQueryPayloadDiscriminants::WakeOnLan => Self::WakeOnLan,
             CredentialQueryPayloadDiscriminants::Proxmox => Self::ProxmoxApiToken,
+            CredentialQueryPayloadDiscriminants::Libvirt => Self::Libvirt,
             // `Unknown` is the daemon-side forward-compat sentinel; the server only
             // ever builds `CredentialQueryPayload` from a known `CredentialType`, so
             // this reverse conversion never sees it. Fall back to the SNMP default to
@@ -319,6 +323,44 @@ impl From<CredentialQueryPayloadDiscriminants> for super::types::CredentialTypeD
             CredentialQueryPayloadDiscriminants::Unknown => Self::SnmpCommunity,
         }
     }
+}
+
+/// Whether an SSH login's auth reads a file on the daemon, judged by `secret`.
+fn ssh_auth_reads_daemon_paths(auth: &SshAuth, secret: impl Fn(&ResolvableSecret) -> bool) -> bool {
+    match auth {
+        SshAuth::Password { password } => secret(password),
+        SshAuth::PrivateKey {
+            private_key,
+            passphrase,
+        } => secret(private_key) || passphrase.as_ref().is_some_and(&secret),
+    }
+}
+
+/// An SSH login's auth with its files read, and an inline private key checked for the key
+/// format.
+fn resolve_ssh_auth(auth: &SshAuth, label: &str) -> Result<SshAuth, anyhow::Error> {
+    Ok(match auth {
+        SshAuth::Password { password } => SshAuth::Password {
+            password: password.resolve_to_value("password", label)?,
+        },
+        SshAuth::PrivateKey {
+            private_key,
+            passphrase,
+        } => {
+            let private_key = private_key.resolve_to_value("private_key", label)?;
+            if let ResolvableSecret::Value { value } = &private_key {
+                crate::server::shared::types::field_definition::InlineFormat::SshPrivateKey
+                    .validate(value, "SSH Private Key")?;
+            }
+            SshAuth::PrivateKey {
+                private_key,
+                passphrase: passphrase
+                    .as_ref()
+                    .map(|p| p.resolve_to_value("passphrase", label))
+                    .transpose()?,
+            }
+        }
+    })
 }
 
 impl CredentialQueryPayload {
@@ -347,6 +389,7 @@ impl CredentialQueryPayload {
             // The packet is UDP to a broadcast address; a sleeping host has no port to find open.
             Self::WakeOnLan(_) => vec![],
             Self::Proxmox(p) => vec![p.port],
+            Self::Libvirt(l) => vec![l.port],
             Self::Unknown => vec![],
         }
     }
@@ -381,16 +424,11 @@ impl CredentialQueryPayload {
             Self::Gnmi(g) => secret(&g.password),
             Self::Ssh(s) => {
                 matches!(s.script, ScriptSource::DaemonFile { .. })
-                    || match &s.auth {
-                        SshAuth::Password { password } => secret(password),
-                        SshAuth::PrivateKey {
-                            private_key,
-                            passphrase,
-                        } => secret(private_key) || passphrase.as_ref().is_some_and(secret),
-                    }
+                    || ssh_auth_reads_daemon_paths(&s.auth, secret)
             }
             Self::WakeOnLan(w) => w.secure_on_password.as_ref().is_some_and(secret),
             Self::Proxmox(p) => secret(&p.token_secret),
+            Self::Libvirt(l) => ssh_auth_reads_daemon_paths(&l.auth, secret),
             Self::Unknown => false,
         }
     }
@@ -408,6 +446,7 @@ impl CredentialQueryPayload {
             Self::Ssh(_) => "SSH script",
             Self::WakeOnLan(_) => "Wake-on-LAN",
             Self::Proxmox(_) => "Proxmox VE API connection",
+            Self::Libvirt(_) => "libvirt connection",
             Self::Unknown => "unknown credential",
         }
     }
@@ -455,6 +494,7 @@ impl TypeMetadataProvider for CredentialQueryPayloadDiscriminants {
             Self::Ssh => "SSH",
             Self::WakeOnLan => "Wake-on-LAN",
             Self::Proxmox => "Proxmox VE API",
+            Self::Libvirt => "libvirt",
             // Reachable only from a warning written by a newer binary than this one.
             Self::Unknown => "unrecognised",
         }
@@ -559,27 +599,7 @@ impl CredentialQueryPayload {
                 skip_verify: g.skip_verify,
             })),
             Self::Ssh(s) => {
-                let auth = match &s.auth {
-                    SshAuth::Password { password } => SshAuth::Password {
-                        password: password.resolve_to_value("password", label)?,
-                    },
-                    SshAuth::PrivateKey {
-                        private_key,
-                        passphrase,
-                    } => {
-                        let private_key = private_key.resolve_to_value("private_key", label)?;
-                        if let ResolvableSecret::Value { value } = &private_key {
-                            InlineFormat::SshPrivateKey.validate(value, "SSH Private Key")?;
-                        }
-                        SshAuth::PrivateKey {
-                            private_key,
-                            passphrase: passphrase
-                                .as_ref()
-                                .map(|p| p.resolve_to_value("passphrase", label))
-                                .transpose()?,
-                        }
-                    }
-                };
+                let auth = resolve_ssh_auth(&s.auth, label)?;
                 Ok(Self::Ssh(SshQueryCredential {
                     auth,
                     script: s.script.resolve_daemon_file()?,
@@ -605,6 +625,10 @@ impl CredentialQueryPayload {
                 token_secret: p.token_secret.resolve_to_value("token_secret", label)?,
                 ..p.clone()
             })),
+            Self::Libvirt(l) => Ok(Self::Libvirt(LibvirtQueryCredential {
+                auth: resolve_ssh_auth(&l.auth, label)?,
+                ..l.clone()
+            })),
             Self::Unknown => Ok(Self::Unknown),
         }
     }
@@ -620,6 +644,7 @@ impl CredentialQueryPayload {
             Self::Ssh(s) => s.banner_lines(),
             Self::WakeOnLan(w) => w.banner_lines(),
             Self::Proxmox(p) => p.banner_lines(),
+            Self::Libvirt(l) => l.banner_lines(),
             Self::Unknown => vec![],
         }
     }

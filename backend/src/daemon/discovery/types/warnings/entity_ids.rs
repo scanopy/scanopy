@@ -28,6 +28,7 @@ impl DiscoveryWarning {
             | Self::CredentialGateClosed { credential_id, .. }
             | Self::CredentialDaemonOsMismatch { credential_id, .. }
             | Self::CredentialNeedsNewerDaemon { credential_id, .. }
+            | Self::CredentialLoginUnavailable { credential_id, .. }
             | Self::CredentialWithoutTarget { credential_id, .. } => {
                 slots.credential_id = Some(credential_id);
             }
@@ -89,9 +90,9 @@ impl DiscoveryWarning {
 
             Self::VlanRecordingFailed { .. }
             | Self::EqualReachIntegrationsMerged { .. }
-            | Self::ProxmoxGuestOutsideScan { .. }
-            | Self::ProxmoxGuestBehindNode { .. }
-            | Self::ProxmoxGuestIsolated { .. }
+            | Self::GuestOutsideScan { .. }
+            | Self::GuestBehindHypervisor { .. }
+            | Self::GuestIsolated { .. }
             | Self::ConnectionsWithoutProtocolResponse { .. }
             | Self::ScanTimeLimitWithEstimate { .. }
             | Self::ScanTimeLimit { .. }

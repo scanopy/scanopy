@@ -1018,8 +1018,8 @@ impl DiscoveryOps {
         if let Ok(records) = session.equal_reach_integrations.lock() {
             warnings.extend(warnings::warn_equal_reach_integrations(&records));
         }
-        if let Ok(records) = session.unreached_proxmox_guests.lock() {
-            warnings.extend(warnings::warn_unreached_proxmox_guests(&records));
+        if let Ok(records) = session.unreached_guests.lock() {
+            warnings.extend(warnings::warn_unreached_guests(&records));
         }
         if let Ok(issues) = session.credential_issues.lock() {
             warnings.extend(warnings::warn_credential_issues(&issues));
@@ -1417,10 +1417,10 @@ impl DiscoveryOps {
         }
     }
 
-    /// Record a Proxmox VE guest this scan reaches no ports on.
-    pub async fn record_unreached_proxmox_guest(&self, record: warnings::UnreachedProxmoxGuest) {
+    /// Record a hypervisor guest this scan reaches no ports on.
+    pub async fn record_unreached_guest(&self, record: warnings::UnreachedHypervisorGuest) {
         if let Ok(session) = self.get_session().await
-            && let Ok(mut buffer) = session.unreached_proxmox_guests.lock()
+            && let Ok(mut buffer) = session.unreached_guests.lock()
         {
             buffer.push(record);
         }

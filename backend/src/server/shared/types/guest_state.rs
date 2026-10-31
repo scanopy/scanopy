@@ -46,6 +46,16 @@ impl GuestState {
         }
     }
 
+    /// A libvirt domain's state, as `virsh domstate` prints it. A suspended-to-memory
+    /// (`pmsuspended`) domain is paused; one shut off, crashed or dying is stopped.
+    pub fn from_libvirt_state(state: &str) -> Self {
+        match state.trim() {
+            "running" | "idle" | "in shutdown" => Self::Running,
+            "paused" | "pmsuspended" => Self::Paused,
+            _ => Self::Stopped,
+        }
+    }
+
     /// A Proxmox guest's `status`, as `/cluster/resources` reports it.
     pub fn from_proxmox_status(status: Option<&str>) -> Self {
         match status {

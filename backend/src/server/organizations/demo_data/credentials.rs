@@ -19,12 +19,14 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
         base: CredentialBase {
             organization_id,
             daemon_os,
+            login_credential_id: None,
             name: name.to_string(),
             description: Some(description.to_string()),
             credential_type,
             tags: Vec::new(),
             assigned_site_ids: Vec::new(),
             host_assignments: Vec::new(),
+            used_by: Vec::new(),
         },
     };
     let inline = |value: &str| SecretValue::Inline {
@@ -42,6 +44,39 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
             None,
             seeded.credential_type,
         )
+    };
+
+    // SSH logins, which the SSH credentials below run over.
+    let inventory_account = credential(
+        "Inventory Account",
+        "Read-only scanopy account Ansible creates on every Linux server and hypervisor.",
+        Some(OsFamily::Unix),
+        CredentialType::SshKey {
+            port: 22,
+            username: "scanopy".to_string(),
+            // A key file on the daemon host, as an operator would deploy it, rather than an
+            // inline key in the demo database.
+            private_key: SecretValue::FilePath {
+                path: "/etc/scanopy/ssh/inventory_ed25519".into(),
+            },
+            passphrase: None,
+            host_key_fingerprint: None,
+        },
+    );
+    let hypervisor_account = credential(
+        "Hypervisor Account",
+        "Password login for the HQ Proxmox nodes, which sit outside Ansible.",
+        None,
+        CredentialType::SshPassword {
+            port: 22,
+            username: "scanopy".to_string(),
+            password: inline("pve-inventory"),
+            host_key_fingerprint: None,
+        },
+    );
+    let with_login = |mut credential: Credential, login: &Credential| {
+        credential.base.login_credential_id = Some(login.id);
+        credential
     };
 
     vec![
@@ -165,44 +200,50 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
                 site: Some("Acme HQ".to_string()),
             },
         ),
-        credential(
-            "Linux Inventory",
-            "Runs the inventory script Ansible deploys to every Linux server. Read-only account.",
-            Some(OsFamily::Unix),
-            CredentialType::SshKey {
-                target_os: OsFamily::Unix,
-                port: 22,
-                username: "scanopy".to_string(),
-                // A key file on the daemon host, as an operator would deploy it, rather than an
-                // inline key in the demo database.
-                private_key: SecretValue::FilePath {
-                    path: "/etc/scanopy/ssh/inventory_ed25519".into(),
+        inventory_account.clone(),
+        with_login(
+            credential(
+                "Linux Inventory",
+                "Runs the inventory script Ansible deploys to every Linux server.",
+                None,
+                CredentialType::SshScript {
+                    target_os: OsFamily::Unix,
+                    // The default mode: the script is deployed to each server (by config
+                    // management), and only its path is stored here.
+                    script: ScriptSource::HostFile {
+                        path: "/usr/local/bin/scanopy-inventory.sh".into(),
+                    },
+                    timeout_seconds: 60,
                 },
-                passphrase: None,
-                // The default mode: the script is deployed to each server (by config management),
-                // and only its path is stored here.
-                script: ScriptSource::HostFile {
-                    path: "/usr/local/bin/scanopy-inventory.sh".into(),
-                },
-                timeout_seconds: 60,
-                host_key_fingerprint: None,
-            },
+            ),
+            &inventory_account,
         ),
-        credential(
-            "Hypervisor SSH",
-            "Password login for the HQ Proxmox nodes, which sit outside Ansible.",
-            None,
-            CredentialType::SshPassword {
-                port: 22,
-                username: "scanopy".to_string(),
-                password: inline("pve-inventory"),
-                target_os: OsFamily::Unix,
-                script: ScriptSource::HostFile {
-                    path: "/usr/local/bin/scanopy-inventory.sh".into(),
+        hypervisor_account.clone(),
+        with_login(
+            credential(
+                "Hypervisor SSH",
+                "Runs the inventory script on the HQ Proxmox nodes, which sit outside Ansible.",
+                None,
+                CredentialType::SshScript {
+                    target_os: OsFamily::Unix,
+                    script: ScriptSource::HostFile {
+                        path: "/usr/local/bin/scanopy-inventory.sh".into(),
+                    },
+                    timeout_seconds: 60,
                 },
-                timeout_seconds: 60,
-                host_key_fingerprint: None,
-            },
+            ),
+            &hypervisor_account,
+        ),
+        with_login(
+            credential(
+                "KVM Inventory",
+                "Lists the VMs on the data center KVM host with virsh, over the inventory account.",
+                None,
+                CredentialType::Libvirt {
+                    connection_uri: "qemu:///system".to_string(),
+                },
+            ),
+            &inventory_account,
         ),
         credential(
             "Proxmox Cluster API",

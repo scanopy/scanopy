@@ -25,6 +25,7 @@ use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::{
     ApiError, ApiErrorResponse, EmptyApiResponse, PaginatedApiResponse,
 };
+use crate::server::shared::types::error_codes::ErrorCode;
 use crate::server::shared::validation::validate_site_ids_access;
 use crate::server::{
     config::AppState,
@@ -357,7 +358,16 @@ async fn hydrate_assignments(
         .get_host_assignments_for_credentials(&ids)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+    let users = state
+        .services
+        .credential_service
+        .users_of_logins(credentials)
+        .await
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     for credential in credentials.iter_mut() {
+        if let Some(used_by) = users.get(&credential.id) {
+            credential.base.used_by = used_by.clone();
+        }
         if let Some(site_ids) = site_map.get(&credential.id) {
             credential.base.assigned_site_ids = site_ids.clone();
         }
@@ -413,6 +423,20 @@ async fn enforce_supported_targets(
     let permitted = credential.base.credential_type.targets();
     let integration =
         ServiceDefinition::name(&*credential.base.credential_type.associated_service());
+
+    // A login runs nothing, so it has no target of its own: the credentials that use it do.
+    let assigned = !credential.base.assigned_site_ids.is_empty()
+        || !credential.base.host_assignments.is_empty();
+    if assigned
+        && credential.base.credential_type.discriminant().role()
+            == crate::server::credentials::r#impl::types::CredentialRole::Login
+    {
+        return Err(ApiError::validation(
+            ErrorCode::CredentialLoginNotAssignable {
+                name: credential.base.name.clone(),
+            },
+        ));
+    }
 
     if !credential.base.assigned_site_ids.is_empty() && !permitted.contains(&Target::Site) {
         return Err(ApiError::bad_request(&format!(

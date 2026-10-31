@@ -68,7 +68,8 @@ impl CredentialRunOutcome {
             | D::PodmanSocket
             | D::UnifiController
             | D::InstantOn
-            | D::Proxmox => Self::Collected {
+            | D::Proxmox
+            | D::Libvirt => Self::Collected {
                 hosts: 0,
                 hosts_with_guests_listed: Vec::new(),
             },

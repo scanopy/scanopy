@@ -80,11 +80,7 @@ pub(crate) fn retain_capable<C: DaemonCapability>(
         }
         C::withhold(&gap, typed);
         withheld.push(DiscoveryWarning::CredentialNeedsNewerDaemon {
-            integration: typed
-                .discriminant
-                .to_credential_type()
-                .to_query_payload()
-                .discriminant(),
+            integration: typed.discriminant.wire_discriminant(),
             credential_id: Some(*credential_id),
             gap: gap.into(),
             last_unsupported_daemon_version: last_without,
@@ -106,7 +102,9 @@ pub(crate) fn refusal_for_daemon(
     daemon_version: Option<&Version>,
 ) -> Option<String> {
     let mut typed = TypedCredentialMapping::new(credential.base.credential_type.discriminant());
-    typed.mapping.default_credential = Some(credential.base.credential_type.to_query_payload());
+    // The payload only matters to the SNMPv3 check; a credential that runs over a login is judged
+    // on its type, which needs no login to read.
+    typed.mapping.default_credential = credential.base.credential_type.to_query_payload(None);
 
     let missing = missing_gap::<ParsesCredentialType>(&(), &typed, daemon_version)
         .or_else(|| missing_gap::<UsesSnmpV3SecurityOptions>(&(), &typed, daemon_version))?;

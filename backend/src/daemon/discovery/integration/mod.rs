@@ -15,7 +15,9 @@ pub mod docker;
 pub mod failure;
 pub mod flex;
 pub mod gnmi;
+pub mod hypervisor;
 pub mod instant_on;
+pub mod libvirt;
 pub mod podman;
 pub mod proxmox;
 pub mod snmp;
@@ -481,6 +483,7 @@ impl IntegrationRegistry {
                 Box::new(wake_on_lan::WakeOnLanIntegration)
             }
             CredentialQueryPayloadDiscriminants::Proxmox => Box::new(proxmox::ProxmoxIntegration),
+            CredentialQueryPayloadDiscriminants::Libvirt => Box::new(libvirt::LibvirtIntegration),
             CredentialQueryPayloadDiscriminants::Unknown => return None,
         })
     }

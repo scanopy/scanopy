@@ -1,0 +1,160 @@
+@@hostname
+scanopy-libvirt-host
+@@ip-addr
+[{"ifindex":1,"ifname":"lo","flags":["LOOPBACK","UP","LOWER_UP"],"mtu":65536,"qdisc":"noqueue","operstate":"UNKNOWN","group":"default","txqlen":1000,"link_type":"loopback","address":"00:00:00:00:00:00","broadcast":"00:00:00:00:00:00","addr_info":[{"family":"inet","local":"127.0.0.1","prefixlen":8,"scope":"host","label":"lo","valid_life_time":4294967295,"preferred_life_time":4294967295},{"family":"inet6","local":"::1","prefixlen":128,"scope":"host","noprefixroute":true,"valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":2,"ifname":"eth0","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"fq_codel","master":"br0","operstate":"UP","group":"default","txqlen":1000,"link_type":"ether","address":"bc:24:11:b5:26:1f","broadcast":"ff:ff:ff:ff:ff:ff","altnames":["enp0s18"],"addr_info":[]},{"ifindex":3,"ifname":"br-iso","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"noqueue","operstate":"UP","group":"default","txqlen":1000,"link_type":"ether","address":"6e:e8:0a:b6:23:33","broadcast":"ff:ff:ff:ff:ff:ff","addr_info":[{"family":"inet6","local":"fe80::6ce8:aff:feb6:2333","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":4,"ifname":"br0","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"noqueue","operstate":"UP","group":"default","txqlen":1000,"link_type":"ether","address":"5a:8f:01:e8:ab:92","broadcast":"ff:ff:ff:ff:ff:ff","addr_info":[{"family":"inet","local":"192.168.7.172","prefixlen":22,"broadcast":"192.168.7.255","scope":"global","label":"br0","valid_life_time":4294967295,"preferred_life_time":4294967295},{"family":"inet6","local":"2001:db8:58d0:2001:db8:1ff:fee8:ab92","prefixlen":64,"scope":"global","dynamic":true,"mngtmpaddr":true,"noprefixroute":true,"valid_life_time":553815,"preferred_life_time":208215},{"family":"inet6","local":"fd0b:d38d:98f6:1:588f:1ff:fee8:ab92","prefixlen":64,"scope":"global","dynamic":true,"mngtmpaddr":true,"noprefixroute":true,"valid_life_time":2591918,"preferred_life_time":604718},{"family":"inet6","local":"fe80::588f:1ff:fee8:ab92","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":5,"ifname":"virbr0","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"noqueue","operstate":"UP","group":"default","txqlen":1000,"link_type":"ether","address":"52:54:00:09:2e:f8","broadcast":"ff:ff:ff:ff:ff:ff","addr_info":[{"family":"inet","local":"192.168.122.1","prefixlen":24,"broadcast":"192.168.122.255","scope":"global","label":"virbr0","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":6,"ifname":"docker0","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"noqueue","operstate":"UP","group":"default","link_type":"ether","address":"02:42:c6:7e:b8:8b","broadcast":"ff:ff:ff:ff:ff:ff","addr_info":[{"family":"inet","local":"172.17.0.1","prefixlen":16,"broadcast":"172.17.255.255","scope":"global","label":"docker0","valid_life_time":4294967295,"preferred_life_time":4294967295},{"family":"inet6","local":"fe80::42:c6ff:fe7e:b88b","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":8,"link_index":7,"ifname":"veth717ccc6","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"noqueue","master":"docker0","operstate":"UP","group":"default","link_type":"ether","address":"b6:60:06:c1:06:e9","broadcast":"ff:ff:ff:ff:ff:ff","link_netnsid":0,"addr_info":[{"family":"inet6","local":"fe80::b460:6ff:fec1:6e9","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":10,"ifname":"vnet0","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"noqueue","master":"br0","operstate":"UNKNOWN","group":"default","txqlen":1000,"link_type":"ether","address":"fe:54:00:7a:00:03","broadcast":"ff:ff:ff:ff:ff:ff","addr_info":[{"family":"inet6","local":"fe80::fc54:ff:fe7a:3","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":11,"ifname":"vnet1","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"noqueue","master":"br0","operstate":"UNKNOWN","group":"default","txqlen":1000,"link_type":"ether","address":"fe:54:00:7a:00:04","broadcast":"ff:ff:ff:ff:ff:ff","addr_info":[{"family":"inet6","local":"fe80::fc54:ff:fe7a:4","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":12,"ifname":"vnet2","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"noqueue","master":"br0","operstate":"UNKNOWN","group":"default","txqlen":1000,"link_type":"ether","address":"fe:54:00:7a:00:05","broadcast":"ff:ff:ff:ff:ff:ff","addr_info":[{"family":"inet6","local":"fe80::fc54:ff:fe7a:5","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":13,"ifname":"vnet3","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"noqueue","master":"virbr0","operstate":"UNKNOWN","group":"default","txqlen":1000,"link_type":"ether","address":"fe:54:00:7a:00:06","broadcast":"ff:ff:ff:ff:ff:ff","addr_info":[{"family":"inet6","local":"fe80::fc54:ff:fe7a:6","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":15,"ifname":"vnet5","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"noqueue","master":"virbr0","operstate":"UNKNOWN","group":"default","txqlen":1000,"link_type":"ether","address":"fe:54:00:7a:00:0a","broadcast":"ff:ff:ff:ff:ff:ff","addr_info":[{"family":"inet6","local":"fe80::fc54:ff:fe7a:a","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":16,"ifname":"vnet6","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"noqueue","master":"br-iso","operstate":"UNKNOWN","group":"default","txqlen":1000,"link_type":"ether","address":"e6:ad:62:fc:51:e1","broadcast":"ff:ff:ff:ff:ff:ff","addr_info":[{"family":"inet6","local":"fe80::e4ad:62ff:fefc:51e1","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":17,"ifname":"vnet7","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"noqueue","master":"br0","operstate":"UNKNOWN","group":"default","txqlen":1000,"link_type":"ether","address":"fe:54:00:7a:00:07","broadcast":"ff:ff:ff:ff:ff:ff","addr_info":[{"family":"inet6","local":"fe80::fc54:ff:fe7a:7","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]},{"ifindex":23,"ifname":"vnet13","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1500,"qdisc":"noqueue","master":"br0","operstate":"UNKNOWN","group":"default","txqlen":1000,"link_type":"ether","address":"46:b0:5e:c4:b6:39","broadcast":"ff:ff:ff:ff:ff:ff","addr_info":[{"family":"inet6","local":"fe80::fc54:ff:fe7a:9","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]}]
+@@brif br-iso
+vnet6
+@@brif br0
+eth0
+vnet0
+vnet1
+vnet13
+vnet2
+vnet7
+@@brif docker0
+veth717ccc6
+@@brif virbr0
+vnet3
+vnet5
+@@net default
+Name:           default
+UUID:           28d65056-47d1-4c2b-b40d-c7ccf2ae371f
+Active:         yes
+Persistent:     yes
+Autostart:      yes
+Bridge:         virbr0
+@@domains
+@@domain 6f75c934-7271-4982-b3f6-540c2fcd4b1f
+@@name
+kvm-noagent
+@@state
+running
+@@iflist
+ -   bridge   br0   virtio   52:54:00:7a:00:03
+@@addr lease
+@@addr arp
+@@addr agent
+@@guestinfo
+@@domain bb7a8487-e83c-468a-b320-bd65a442d674
+@@name
+kvm-nochannel
+@@state
+running
+@@iflist
+ -   bridge   br0   virtio   52:54:00:7a:00:04
+@@addr lease
+@@addr arp
+@@addr agent
+@@guestinfo
+@@domain b6d40ee5-b44c-4494-a1e1-5fa0aafeb818
+@@name
+kvm-agent
+@@state
+running
+@@iflist
+ -   bridge    br0       virtio   52:54:00:7a:00:05
+ -   network   default   virtio   52:54:00:7a:00:06
+@@addr lease
+ vnet3      52:54:00:7a:00:06    ipv4         192.168.122.218/24
+@@addr arp
+ vnet3      52:54:00:7a:00:06    ipv4         192.168.122.218/0
+@@addr agent
+ lo         00:00:00:00:00:00    ipv4         127.0.0.1/8
+ -          -                    ipv6         ::1/128
+ eth0       52:54:00:7a:00:05    ipv4         192.168.7.175/22
+ -          -                    ipv6         2001:db8:58d0:2001:db8:ff:fe7a:5/64
+ -          -                    ipv6         fd0b:d38d:98f6:1:5054:ff:fe7a:5/64
+ -          -                    ipv6         fe80::5054:ff:fe7a:5/64
+ eth1       52:54:00:7a:00:06    ipv4         192.168.122.218/24
+ -          -                    ipv6         fe80::5054:ff:fe7a:6/64
+@@guestinfo
+os.id               : alpine
+os.name             : Alpine Linux
+os.pretty-name      : Alpine Linux v3.20
+os.version-id       : 3.20.9
+os.machine          : x86_64
+os.kernel-release   : 6.6.121-0-virt
+os.kernel-version   : #1-Alpine SMP PREEMPT_DYNAMIC 2026-01-27 02:39:54
+hostname            : kvm-agent
+@@domain 85da7834-74e3-444e-bbc3-2ab2f916fd03
+@@name
+kvm-nat
+@@state
+running
+@@iflist
+ -   network   default   virtio   52:54:00:7a:00:0a
+@@addr lease
+ vnet5      52:54:00:7a:00:0a    ipv4         192.168.122.222/24
+@@addr arp
+ vnet5      52:54:00:7a:00:0a    ipv4         192.168.122.222/0
+@@addr agent
+@@guestinfo
+@@domain d4e10678-69c2-4a60-b345-0e2a8cf88afd
+@@name
+kvm-isolated
+@@state
+running
+@@iflist
+ -   bridge   br-iso   virtio   52:54:00:7a:00:0b
+@@addr lease
+@@addr arp
+@@addr agent
+@@guestinfo
+@@domain a045ea44-367c-4c76-a977-5de0e4993cfe
+@@name
+kvm-paused
+@@state
+paused
+@@iflist
+ -   bridge   br0   virtio   52:54:00:7a:00:07
+@@addr lease
+@@addr arp
+@@addr agent
+@@guestinfo
+@@domain d77188fd-0a65-4d23-829b-beba41ebbed2
+@@name
+kvm-docker
+@@state
+running
+@@iflist
+ -   bridge   br0   virtio   52:54:00:7a:00:09
+@@addr lease
+@@addr arp
+@@addr agent
+ lo         00:00:00:00:00:00    ipv4         127.0.0.1/8
+ -          -                    ipv6         ::1/128
+ eth0       52:54:00:7a:00:09    ipv4         192.168.7.177/22
+ -          -                    ipv6         2001:db8:58d0:2001:db8:ff:fe7a:9/64
+ -          -                    ipv6         fd0b:d38d:98f6:1:5054:ff:fe7a:9/64
+ -          -                    ipv6         fe80::5054:ff:fe7a:9/64
+ mv-lab     a6:21:77:75:e6:6e    ipv4         192.168.7.178/22
+ -          -                    ipv6         2001:db8:58d0:2001:db8:8c4f:3ad7:bf1a/64
+ -          -                    ipv6         2001:db8:58d0:2001:db8:77ff:fe75:e66e/64
+ -          -                    ipv6         fd0b:d38d:98f6:1:2001:db8:d484:c0/64
+ -          -                    ipv6         fd0b:d38d:98f6:1:a421:77ff:fe75:e66e/64
+ -          -                    ipv6         fe80::a421:77ff:fe75:e66e/64
+ docker0    02:42:ed:7c:59:b6    ipv4         172.17.0.1/16
+ br-9f15287d99bb 02:42:51:39:53:c9    ipv4         172.18.0.1/16
+ -          -                    ipv6         fe80::42:51ff:fe39:53c9/64
+ veth967e819 8e:66:a8:e5:ce:82    ipv6         fe80::8c66:a8ff:fee5:ce82/64
+@@guestinfo
+os.id               : alpine
+os.name             : Alpine Linux
+os.pretty-name      : Alpine Linux v3.20
+os.version-id       : 3.20.9
+os.machine          : x86_64
+os.kernel-release   : 6.6.121-0-virt
+os.kernel-version   : #1-Alpine SMP PREEMPT_DYNAMIC 2026-01-27 02:39:54
+hostname            : kvm-docker
+@@domain 93f26ca4-d7d1-4fd7-8543-3a8a209bc4c0
+@@name
+kvm-stopped
+@@state
+shut off
+@@iflist
+ -   bridge   br0   virtio   52:54:00:7a:00:08
+@@addr lease
+@@addr arp
+@@addr agent
+@@guestinfo
+@@end

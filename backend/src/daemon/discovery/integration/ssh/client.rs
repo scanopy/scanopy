@@ -193,6 +193,19 @@ impl Session {
         script: &str,
         timeout: Duration,
     ) -> Result<ScriptResult, SessionError> {
+        let result = self.exec(script, timeout, MAX_SCRIPT_OUTPUT_BYTES).await;
+        self.close().await;
+        result
+    }
+
+    /// Run `command` in an exec channel of its own, keeping at most `max_stdout` bytes of its
+    /// output. The session stays open for the next command.
+    pub async fn exec(
+        &self,
+        command: &str,
+        timeout: Duration,
+        max_stdout: usize,
+    ) -> Result<ScriptResult, SessionError> {
         let started = Instant::now();
         let mut channel = self
             .handle
@@ -200,7 +213,7 @@ impl Session {
             .await
             .map_err(|e| SessionError::Unreachable(e.to_string()))?;
         channel
-            .exec(true, script)
+            .exec(true, command)
             .await
             .map_err(|e| SessionError::Unreachable(e.to_string()))?;
 
@@ -216,7 +229,7 @@ impl Session {
             while let Some(msg) = channel.wait().await {
                 match msg {
                     ChannelMsg::Data { data } => {
-                        let room = MAX_SCRIPT_OUTPUT_BYTES.saturating_sub(result.stdout.len());
+                        let room = max_stdout.saturating_sub(result.stdout.len());
                         if data.len() > room {
                             result.stdout.extend_from_slice(&data[..room]);
                             result.stdout_overflowed = true;
@@ -244,10 +257,14 @@ impl Session {
         result.elapsed = started.elapsed();
 
         let _ = channel.close().await;
+        Ok(result)
+    }
+
+    /// End the session.
+    pub async fn close(self) {
         let _ = self
             .handle
             .disconnect(Disconnect::ByApplication, "", "English")
             .await;
-        Ok(result)
     }
 }

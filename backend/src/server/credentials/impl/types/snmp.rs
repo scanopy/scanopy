@@ -757,7 +757,7 @@ mod tests {
         assert_eq!(context_name.as_deref(), Some("vlan-20"));
 
         // And it reaches the daemon unchanged.
-        let CredentialQueryPayload::Snmp(snmp) = credential.to_query_payload() else {
+        let CredentialQueryPayload::Snmp(snmp) = credential.to_query_payload(None).unwrap() else {
             panic!("an SNMP credential");
         };
         assert_eq!(

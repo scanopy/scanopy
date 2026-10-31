@@ -207,6 +207,7 @@ impl DiscoveryWarningCode {
                 &["credential", "gap", "required", "daemon", "version"]
             }
             Self::CredentialWithoutTarget => &["credential"],
+            Self::CredentialLoginUnavailable => &["credential"],
             Self::CredentialRejected
             | Self::CredentialMalformed
             | Self::CredentialTlsFailed
@@ -222,9 +223,11 @@ impl DiscoveryWarningCode {
             Self::IntegrationWithoutCredential => &["integration", "count", "discovers"],
 
             // `addresses` renders each guest as its name and address, joined like any other.
-            Self::ProxmoxGuestOutsideScan => &["addresses"],
-            Self::ProxmoxGuestBehindNode => &["addresses", "bridge", "node"],
-            Self::ProxmoxGuestIsolated => &["addresses", "bridge"],
+            // `integration` names the hypervisor product, so Proxmox and libvirt guests are separate
+            // sentences.
+            Self::GuestOutsideScan => &["addresses", "integration"],
+            Self::GuestBehindHypervisor => &["addresses", "integration", "bridge", "hypervisor"],
+            Self::GuestIsolated => &["addresses", "integration", "bridge"],
 
             Self::ConnectionsWithoutProtocolResponse => &["cidr", "declined", "ports"],
 
@@ -270,6 +273,7 @@ impl DiscoveryWarningCode {
             | Self::CredentialGateClosed
             | Self::CredentialDaemonOsMismatch
             | Self::CredentialNeedsNewerDaemon
+            | Self::CredentialLoginUnavailable
             | Self::CredentialWithoutTarget
             | Self::CredentialRejected
             | Self::CredentialMalformed
@@ -280,9 +284,9 @@ impl DiscoveryWarningCode {
             | Self::CredentialUnreachable
             | Self::CredentialTimedOut
             // Recorded, and with nothing on them identified.
-            | Self::ProxmoxGuestOutsideScan
-            | Self::ProxmoxGuestBehindNode
-            | Self::ProxmoxGuestIsolated
+            | Self::GuestOutsideScan
+            | Self::GuestBehindHypervisor
+            | Self::GuestIsolated
             | Self::ScanTimeLimitWithEstimate
             | Self::ScanTimeLimit
             | Self::DcpSweepTimedOut
@@ -357,6 +361,7 @@ impl DiscoveryWarningCode {
             | Self::CredentialGateClosed
             | Self::CredentialDaemonOsMismatch
             | Self::CredentialNeedsNewerDaemon
+            | Self::CredentialLoginUnavailable
             | Self::CredentialWithoutTarget
             | Self::CredentialRejected
             | Self::CredentialMalformed
@@ -369,9 +374,9 @@ impl DiscoveryWarningCode {
             // Adding the credential is the fix, and the create flow opens pre-filled from the row.
             | Self::IntegrationWithoutCredential
             // A daemon where the guest is, or the guest's subnet in the scan.
-            | Self::ProxmoxGuestOutsideScan
-            | Self::ProxmoxGuestBehindNode
-            | Self::ProxmoxGuestIsolated
+            | Self::GuestOutsideScan
+            | Self::GuestBehindHypervisor
+            | Self::GuestIsolated
             // Scan settings: the duration to raise, or the coverage to narrow, or — for the
             // middlebox case — the "Trust Port-Only Detections" opt-in, once the reader has
             // decided the addresses really are empty.
@@ -501,6 +506,7 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             Self::CredentialDaemonOsMismatch => "Credential set up for another OS",
             Self::CredentialNeedsNewerDaemon => "Daemon too old for part of a credential",
             Self::CredentialWithoutTarget => "Credential has no target",
+            Self::CredentialLoginUnavailable => "Credential's login unavailable",
             Self::CredentialRejected => "Credential refused",
             Self::CredentialMalformed => "Credential incomplete",
             Self::CredentialTlsFailed => "TLS negotiation failed",
@@ -510,9 +516,11 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             Self::CredentialUnreachable => "Credential target unreachable",
             Self::CredentialTimedOut => "Credential attempt timed out",
             Self::IntegrationWithoutCredential => "{integration} found without a credential",
-            Self::ProxmoxGuestOutsideScan => "Proxmox VE guests outside the scan",
-            Self::ProxmoxGuestBehindNode => "Proxmox VE guests reachable only from their node",
-            Self::ProxmoxGuestIsolated => "Proxmox VE guests on an isolated bridge",
+            Self::GuestOutsideScan => "{integration} guests outside the scan",
+            Self::GuestBehindHypervisor => {
+                "{integration} guests reachable only from their hypervisor"
+            }
+            Self::GuestIsolated => "{integration} guests on an isolated bridge",
             Self::ConnectionsWithoutProtocolResponse => "Handshakes with nothing behind them",
             Self::ScanTimeLimitWithEstimate => "Scan hit its time limit",
             Self::ScanTimeLimit => "Scan hit its time limit",
@@ -631,6 +639,9 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             Self::CredentialWithoutTarget => {
                 "The {credential} credential is not assigned to a site or host, and no discovery targets it, so no daemon receives it. Add a target to the credential to use it."
             }
+            Self::CredentialLoginUnavailable => {
+                "The {credential} credential runs over an SSH login that no longer exists or is not a login, so no daemon received it. Choose a login for the credential to use it."
+            }
             Self::CredentialRejected => {
                 "The {credential} credential for {addresses} was refused — check the username, password or community string. ({detail})"
             }
@@ -658,14 +669,14 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             Self::IntegrationWithoutCredential => {
                 "{integration} answers on {count} host(s) that no {integration} credential works on. Add one to collect more: {discovers}"
             }
-            Self::ProxmoxGuestOutsideScan => {
-                "{addresses} run on Proxmox VE at addresses no subnet this scan covers, so they were recorded without ports or services. Add their subnet to the discovery, or scan it from a daemon on that network."
+            Self::GuestOutsideScan => {
+                "{addresses} run on {integration} at addresses no subnet this scan covers, so they were recorded without ports or services. Add their subnet to the discovery, or scan it from a daemon on that network."
             }
-            Self::ProxmoxGuestBehindNode => {
-                "{addresses} sit on {bridge}, a bridge with no uplink that only node {node} has an address on, so this scan reached no ports or services on them. Run a daemon on {node} to scan them."
+            Self::GuestBehindHypervisor => {
+                "{addresses} run on {integration} on {bridge}, a bridge with no uplink that only {hypervisor} has an address on, so this scan reached no ports or services on them. Run a daemon on {hypervisor} to scan them."
             }
-            Self::ProxmoxGuestIsolated => {
-                "{addresses} sit on {bridge}, a bridge with no uplink and no node address, so no daemon outside it reaches them and they were recorded without ports or services. Install a daemon on a guest attached to {bridge} to scan them."
+            Self::GuestIsolated => {
+                "{addresses} run on {integration} on {bridge}, a bridge with no uplink and no hypervisor address, so no daemon outside it reaches them and they were recorded without ports or services. Install a daemon on a guest attached to {bridge} to scan them."
             }
             Self::ConnectionsWithoutProtocolResponse => {
                 "{declined} address(es) in {cidr} completed a TCP connection on {ports} and then answered nothing, so no host was recorded at any of them. Something in the path — a firewall session helper, a load balancer, a scrubbing appliance — answers for addresses that hold no device, and a bare handshake cannot tell one from the other. If those addresses really do hold devices, scan the subnet from a daemon with an interface on it; if they are empty, nothing here needs fixing."
@@ -754,6 +765,7 @@ impl DiscoveryWarningCode {
             | Self::CredentialGateClosed
             | Self::CredentialDaemonOsMismatch
             | Self::CredentialNeedsNewerDaemon
+            | Self::CredentialLoginUnavailable
             | Self::CredentialWithoutTarget
             | Self::CredentialRejected
             | Self::CredentialMalformed
@@ -795,9 +807,9 @@ impl DiscoveryWarningCode {
             | Self::OutdatedDaemonFormat
             | Self::ProvisionalSubnetInferred
             | Self::UnconfirmedHostInferred
-            | Self::ProxmoxGuestBehindNode
-            | Self::ProxmoxGuestIsolated
-            | Self::ProxmoxGuestOutsideScan
+            | Self::GuestBehindHypervisor
+            | Self::GuestIsolated
+            | Self::GuestOutsideScan
             | Self::ReverseDnsTimedOut
             | Self::ScanTimeLimit
             | Self::ScanTimeLimitWithEstimate
@@ -856,6 +868,7 @@ impl DiscoveryWarningCode {
             | Self::CredentialGateClosed
             | Self::CredentialDaemonOsMismatch
             | Self::CredentialNeedsNewerDaemon
+            | Self::CredentialLoginUnavailable
             | Self::CredentialWithoutTarget
             | Self::CredentialRejected
             | Self::CredentialMalformed
@@ -880,9 +893,9 @@ impl DiscoveryWarningCode {
             | Self::OutdatedDaemonFormat
             | Self::ProvisionalSubnetInferred
             | Self::UnconfirmedHostInferred
-            | Self::ProxmoxGuestOutsideScan
-            | Self::ProxmoxGuestBehindNode
-            | Self::ProxmoxGuestIsolated
+            | Self::GuestOutsideScan
+            | Self::GuestBehindHypervisor
+            | Self::GuestIsolated
             | Self::ReverseDnsTimedOut
             | Self::ScanTimeLimit
             | Self::ScanTimeLimitWithEstimate
