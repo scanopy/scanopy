@@ -1,9 +1,10 @@
 use crate::daemon::runtime::state::DaemonStatus;
 use crate::daemon::shared::config::{DaemonArgs, parse_integration_target_tokens};
 use crate::server::auth::middleware::permissions::{
-    And, Authorized, IsDaemon, IsUser, Member, RequireVerified, Viewer,
+    And, Authorized, Can, Delete, IsDaemon, IsUser, Read, RequireVerified, Write,
 };
 use crate::server::credentials::r#impl::mapping::IntegrationTarget;
+use crate::server::daemon_api_keys::r#impl::base::DaemonApiKey;
 use crate::server::daemons::r#impl::api::{
     DaemonHealth, DaemonHeartbeatPayload, ProvisionDaemonRequest, ProvisionDaemonResponse,
     ProvisionEligibility, TestReachabilityRequest, TestReachabilityResponse,
@@ -283,7 +284,7 @@ fn active_session_error() -> ApiError {
 )]
 async fn update_daemon(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Daemon, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(mut request): ApiJson<Daemon>,
 ) -> ApiResult<Json<ApiResponse<Daemon>>> {
@@ -398,7 +399,7 @@ impl InstallCommandQuery {
 )]
 async fn get_install_command(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<DaemonApiKey, Read>>,
     Path(id): Path<Uuid>,
     Query(query): Query<InstallCommandQuery>,
 ) -> ApiResult<Json<ApiResponse<crate::server::daemons::r#impl::install_artifacts::InstallArtifacts>>>
@@ -444,7 +445,7 @@ async fn get_install_command(
 )]
 async fn get_upgrade_command(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<DaemonApiKey, Read>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<UpgradeArtifacts>>> {
     let daemon = Daemon::get_service(&state)
@@ -581,7 +582,7 @@ fn count_msi_download(state: &AppState, client_ip: std::net::IpAddr) {
 )]
 async fn delete_daemon(
     state: State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Daemon, Delete>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     if state
@@ -611,7 +612,7 @@ async fn delete_daemon(
 )]
 async fn bulk_delete_daemons(
     state: State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Daemon, Delete>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<crate::server::shared::handlers::traits::BulkDeleteResponse>>> {
     for id in &ids {
@@ -674,7 +675,7 @@ pub struct EmailInstallCommandRequest {
 )]
 async fn email_install_command(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<And<Member, IsUser>>>,
+    auth: Authorized<RequireVerified<And<IsUser, Can<DaemonApiKey, Read>>>>,
     ApiJson(request): ApiJson<EmailInstallCommandRequest>,
 ) -> ApiResult<Json<EmptyApiResponse>> {
     // Unreachable: `IsUser` has already rejected every variant that lacks an address, and the
@@ -802,10 +803,10 @@ pub fn create_internal_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn get_all(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Daemon, Read>>,
     Query(query): Query<DaemonFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<DaemonResponse>>> {
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     Ok(Json(list_page::<Daemon>(&state, &scope, &query).await?))
 }
 
@@ -828,7 +829,7 @@ async fn get_all(
 )]
 async fn get_by_id(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Daemon, Read>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<DaemonResponse>>> {
     let site_ids = auth.site_ids();
@@ -1271,7 +1272,7 @@ async fn load_reprovision_target(
 )]
 async fn get_provision_eligibility(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Daemon, Write>>,
 ) -> ApiResult<Json<ApiResponse<ProvisionEligibility>>> {
     let organization_id = auth.require_organization_id()?;
     let limit = state
@@ -1316,7 +1317,7 @@ async fn get_provision_eligibility(
 )]
 async fn provision_daemon(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Daemon, Write>>,
     ApiJson(request): ApiJson<ProvisionDaemonRequest>,
 ) -> ApiResult<Json<ApiResponse<ProvisionDaemonResponse>>> {
     let site_ids = auth.site_ids();
@@ -1390,7 +1391,7 @@ async fn provision_daemon(
 )]
 async fn test_reachability(
     State(state): State<Arc<AppState>>,
-    _auth: Authorized<Member>,
+    _auth: Authorized<Can<Daemon, Write>>,
     ApiJson(request): ApiJson<TestReachabilityRequest>,
 ) -> ApiResult<Json<ApiResponse<TestReachabilityResponse>>> {
     // Parse the URL

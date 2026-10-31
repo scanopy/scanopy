@@ -1,5 +1,5 @@
 use crate::server::auth::middleware::features::ensure_tagging_allowed;
-use crate::server::auth::middleware::permissions::{Authorized, Member, Viewer};
+use crate::server::auth::middleware::permissions::{Authorized, Can, Read, Write};
 use crate::server::hosts::r#impl::base::{Host, host_primary_address_join};
 use crate::server::services::definitions::ServiceDefinitionRegistry;
 use crate::server::services::r#impl::categories::ServiceCategory;
@@ -379,12 +379,12 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn get_all_services(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Service, Read>>,
     crate::server::shared::extractors::Query(query): crate::server::shared::extractors::Query<
         ServiceFilterQuery,
     >,
 ) -> ApiResult<Json<PaginatedApiResponse<Service>>> {
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     Ok(Json(list_page::<Service>(&state, &scope, &query).await?))
 }
 
@@ -416,7 +416,7 @@ async fn get_all_services(
 )]
 pub async fn create_service(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Service, Write>>,
     ApiJson(request): ApiJson<CreateServiceRequest>,
 ) -> ApiResult<Json<ApiResponse<Service>>> {
     // Validate user has access to the site
@@ -428,7 +428,7 @@ pub async fn create_service(
         &serde_json::to_value(&request).map_err(|e| ApiError::internal_error(&e.to_string()))?,
         None,
         &[],
-        &auth.site_ids(),
+        &auth.entity,
         auth.require_organization_id()?,
     )
     .await?;
@@ -491,7 +491,7 @@ pub async fn create_service(
 )]
 pub async fn update_service(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Service, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(service): ApiJson<Service>,
 ) -> ApiResult<Json<ApiResponse<Service>>> {

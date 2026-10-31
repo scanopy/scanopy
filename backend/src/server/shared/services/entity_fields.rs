@@ -1,6 +1,7 @@
 //! Resolves the field registry (`shared/entity_fields.rs`) against serialized entities, following
 //! relation hops through each related entity's own service.
 
+use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::shared::{
     entities::{ChangeTriggersTopologyStaleness, Entity as EntityEnum, EntityDiscriminants},
     entity_fields::EntityReference,
@@ -29,11 +30,11 @@ pub trait RelatedSource: Sync {
     ) -> Result<Vec<Value>>;
 }
 
-/// Related entities read through their services, scoped to what the caller can see and, for
-/// SCD2 entities, to live rows.
+/// Related entities read through their services, scoped to what `reader` may read of each type
+/// and, for SCD2 entities, to live rows.
 pub struct ServiceSource<'a> {
     pub services: &'a ServiceFactory,
-    pub site_ids: &'a [Uuid],
+    pub reader: &'a AuthenticatedEntity,
     pub organization_id: Uuid,
 }
 
@@ -53,7 +54,10 @@ impl ServiceSource<'_> {
             + serde::Serialize,
         S: CrudService<T> + Sync,
     {
-        let mut filter = StorableFilter::<T>::new_for_access(self.site_ids, &self.organization_id)
+        let Some(site_ids) = self.reader.readable_site_ids(T::entity_type().resource()) else {
+            return Ok(Vec::new());
+        };
+        let mut filter = StorableFilter::<T>::new_for_access(&site_ids, &self.organization_id)
             .uuids_column(column, ids);
         if T::HAS_SCD2 {
             filter = filter.live();
@@ -296,19 +300,25 @@ fn reference_ids(reference: &EntityReference, object: &Value) -> Vec<Uuid> {
 ///
 /// `stored` is the row being updated. Ids already on it pass, so an edit to another field can't
 /// fail on what the row already holds. `own_ids` are rows the same request creates, which no read
-/// can find yet. `site_ids` is the caller's. Sites themselves are checked across the organization:
-/// a key limited to one site can still save a user who holds others.
+/// can find yet. Each target is read as `caller`, so it needs `Read` on the target's resource.
+/// Sites themselves are checked across the organization: a key limited to one site can still save
+/// a user who holds others.
 pub async fn validate_references(
     services: &ServiceFactory,
     entity: EntityDiscriminants,
     incoming: &Value,
     stored: Option<&Value>,
     own_ids: &[Uuid],
-    site_ids: &[Uuid],
+    caller: &AuthenticatedEntity,
     organization_id: Uuid,
 ) -> Result<(), ApiError> {
     let entity_site = incoming.get("site_id").and_then(uuid_of);
     let mut organization_sites: Option<Vec<Uuid>> = None;
+    let source = ServiceSource {
+        services,
+        reader: caller,
+        organization_id,
+    };
 
     for reference in entity.references() {
         let held = stored
@@ -322,22 +332,21 @@ pub async fn validate_references(
             continue;
         }
 
-        if reference.target == EntityDiscriminants::Site && organization_sites.is_none() {
-            let sites = services
-                .site_service
-                .get_all(StorableFilter::new_from_org_id(&organization_id))
-                .await
-                .map_err(ApiError::from)?;
-            organization_sites = Some(sites.iter().map(|s| s.id).collect());
+        if reference.target == EntityDiscriminants::Site {
+            if organization_sites.is_none() {
+                let sites = services
+                    .site_service
+                    .get_all(StorableFilter::new_from_org_id(&organization_id))
+                    .await
+                    .map_err(ApiError::from)?;
+                organization_sites = Some(sites.iter().map(|s| s.id).collect());
+            }
+            let sites = organization_sites.as_deref().unwrap_or_default();
+            if !ids.iter().all(|id| sites.contains(id)) {
+                return Err(ApiError::entity_reference_refused(reference.key));
+            }
+            continue;
         }
-        let source = ServiceSource {
-            services,
-            site_ids: match (reference.target, &organization_sites) {
-                (EntityDiscriminants::Site, Some(sites)) => sites,
-                _ => site_ids,
-            },
-            organization_id,
-        };
 
         let rows = source
             .by_column(reference.target, "id", &ids)

@@ -1,6 +1,9 @@
+use crate::server::auth::access::{Action, Resource};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::middleware::features::{InviteUsersFeature, RequireFeature};
-use crate::server::auth::middleware::permissions::{Admin, Authorized, RequireVerified};
+use crate::server::auth::middleware::permissions::{
+    Authorized, Can, Delete, Read, RequireVerified, Write,
+};
 use crate::server::billing::types::base::{LimitSource, LimitType};
 use crate::server::config::AppState;
 use crate::server::invites::r#impl::base::Invite;
@@ -56,11 +59,12 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn create_invite(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Admin>>,
+    auth: Authorized<RequireVerified<Can<Invite, Write>>>,
     RequireFeature { plan, .. }: RequireFeature<InviteUsersFeature>,
     ApiJson(request): ApiJson<CreateInviteRequest>,
 ) -> ApiResult<Json<ApiResponse<Invite>>> {
-    let site_ids = auth.site_ids();
+    // The sites the caller can hand out: an invite is org-keyed, the sites in it aren't.
+    let site_ids = auth.entity.site_ids_for(Resource::Site, Action::Read);
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
@@ -229,7 +233,7 @@ async fn create_invite(
 )]
 async fn get_invite(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Invite, Read>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<Invite>>> {
     let organization_id = auth
@@ -264,7 +268,7 @@ async fn get_invite(
 )]
 async fn get_invites(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Invite, Read>>,
 ) -> ApiResult<Json<ApiResponse<Vec<Invite>>>> {
     let organization_id = auth
         .organization_id()
@@ -309,7 +313,7 @@ async fn get_invites(
 )]
 async fn revoke_invite(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Admin>>,
+    auth: Authorized<RequireVerified<Can<Invite, Delete>>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let organization_id = auth
@@ -354,7 +358,7 @@ async fn revoke_invite(
 )]
 async fn bulk_revoke_invites(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Admin>>,
+    auth: Authorized<RequireVerified<Can<Invite, Delete>>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     if ids.is_empty() {

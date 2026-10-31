@@ -2,6 +2,7 @@
 //! organization, and no call may succeed. The routes come from the OpenAPI spec, so a new route is
 //! probed without anyone adding it here.
 
+use std::cell::RefCell;
 use std::collections::{BTreeSet, HashMap};
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -15,6 +16,7 @@ use uuid::Uuid;
 
 use super::self_hosted_licensing::{cloud_test_state, create_org};
 use super::{site, subnet, user};
+use crate::server::auth::access::{Keying, RECORDED_CHECKS, Resource};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::billing::plans::get_enterprise_plan;
 use crate::server::config::AppState;
@@ -63,6 +65,22 @@ const CONTROL_EXEMPT: &[(&str, &str)] = &[
     ),
 ];
 
+/// Routes that take no authorization: auth flows, webhooks and public reads.
+pub(super) const PUBLIC: &[&str] = &[
+    "/api/auth/",
+    "/api/billing/webhooks",
+    "/api/config",
+    "/api/email/",
+    "/api/github-stars",
+    "/api/install/",
+    "/api/v1/licenses/entitlement",
+    "/api/v1/shares/public/",
+    "/api/version",
+];
+
+/// The response header carrying the checks a request made, set by [`serve_as`].
+const RECORDED_CHECKS_HEADER: &str = "x-recorded-checks";
+
 /// Entities keyed by organization rather than site.
 const ORG_KEYED: &[E] = &[
     E::Tag,
@@ -79,12 +97,29 @@ pub(super) async fn serve_as(state: &Arc<AppState>, caller: AuthenticatedEntity)
     let (public_shares, _) = create_public_share_routes().split_for_parts();
     let app = router
         .merge(public_shares)
+        .layer(axum_client_ip::ClientIpSource::ConnectInfo.into_extension())
         .layer(middleware::from_fn(
             move |mut request: Request<Body>, next: Next| {
                 let caller = caller.clone();
                 async move {
                     request.extensions_mut().insert(caller);
-                    next.run(request).await
+                    RECORDED_CHECKS
+                        .scope(RefCell::default(), async {
+                            let mut response = next.run(request).await;
+                            let checks = RECORDED_CHECKS.with(|checks| {
+                                checks
+                                    .borrow()
+                                    .iter()
+                                    .map(|(resource, action)| format!("{resource}:{action}"))
+                                    .collect::<Vec<_>>()
+                                    .join(",")
+                            });
+                            response
+                                .headers_mut()
+                                .insert(RECORDED_CHECKS_HEADER, checks.parse().unwrap());
+                            response
+                        })
+                        .await
                 }
             },
         ))
@@ -223,11 +258,17 @@ fn bodies(
     ]
 }
 
-#[tokio::test]
-async fn no_route_accepts_another_organizations_ids() {
-    let (state, _container) = cloud_test_state().await;
+/// An organization with demo data, an invite and a pair of mergeable subnets, as its owner sees it.
+struct SeededOrg {
+    id: Uuid,
+    /// The owner, as an authenticated entity.
+    owner: AuthenticatedEntity,
+    site_ids: Vec<Uuid>,
+    rows: HashMap<E, Vec<Value>>,
+}
 
-    let target = create_org(&state, get_enterprise_plan(), None).await;
+async fn seed_org(state: &Arc<AppState>) -> SeededOrg {
+    let target = create_org(state, get_enterprise_plan(), None).await;
     let owner = state
         .services
         .user_service
@@ -244,6 +285,121 @@ async fn no_route_accepts_another_organizations_ids() {
     )
     .await
     .expect("demo seeding succeeds");
+
+    state
+        .services
+        .invite_service
+        .create(
+            Invite::new(InviteBase {
+                organization_id: target.id,
+                permissions: UserOrgPermissions::Member,
+                url: "https://example.com/invite".to_string(),
+                created_by: owner.id,
+                expires_at: chrono::Utc::now() + chrono::Duration::days(7),
+                ..InviteBase::default()
+            }),
+            AuthenticatedEntity::System,
+        )
+        .await
+        .unwrap();
+
+    let site_ids: Vec<Uuid> = state
+        .services
+        .site_service
+        .get_all(
+            crate::server::shared::storage::filter::StorableFilter::new_from_org_id(&target.id),
+        )
+        .await
+        .unwrap()
+        .iter()
+        .map(|s| s.id)
+        .collect();
+    assert!(!site_ids.is_empty(), "the demo seeds sites");
+    let owner = AuthenticatedEntity::User {
+        user_id: owner.id,
+        organization_id: target.id,
+        permissions: UserOrgPermissions::Owner,
+        site_ids: site_ids.clone(),
+        email: owner.base.email.clone(),
+        email_verified: true,
+        terms_accepted_at: owner.base.terms_accepted_at,
+    };
+    let source = ServiceSource {
+        services: &state.services,
+        reader: &owner,
+        organization_id: target.id,
+    };
+    let mut rows: HashMap<E, Vec<Value>> = HashMap::new();
+    for entity in E::iter() {
+        rows.insert(entity, rows_of(&source, entity, target.id, &site_ids).await);
+    }
+    rows.insert(
+        E::Organization,
+        vec![serde_json::to_value(&target).unwrap()],
+    );
+    // A pair `POST /subnets/{id}/merge` accepts: the first row sits inside the second.
+    let cidr = |value: &str| {
+        SubnetCidr::new(
+            SubnetCidrValue(value.parse().unwrap()),
+            AttributeSource::DaemonSelfReport,
+        )
+    };
+    let mut contained = subnet(&site_ids[0]);
+    contained.base.cidr = cidr("10.77.1.0/24");
+    let mut covering = subnet(&site_ids[0]);
+    covering.base.cidr = cidr("10.77.0.0/16");
+    for (position, row) in [contained, covering].into_iter().enumerate() {
+        let created = state
+            .services
+            .subnet_service
+            .create(row, AuthenticatedEntity::System)
+            .await
+            .unwrap();
+        rows.get_mut(&E::Subnet)
+            .unwrap()
+            .insert(position, serde_json::to_value(&created).unwrap());
+    }
+
+    SeededOrg {
+        id: target.id,
+        owner,
+        site_ids,
+        rows,
+    }
+}
+
+/// The spec's operations with deletes last, so a hole in one doesn't remove the row the others are
+/// probed with.
+fn operations(spec: &Value) -> Vec<(String, String, &Value)> {
+    let mut routes: Vec<(String, String, &Value)> = Vec::new();
+    for (path, item) in spec["paths"].as_object().unwrap() {
+        for (method, operation) in item.as_object().unwrap() {
+            routes.push((method.clone(), path.clone(), operation));
+        }
+    }
+    routes.sort_by_key(|(method, _, _)| method == "delete");
+    routes
+}
+
+/// Whether a route names a row of its entity: by id in the path, or in a bulk body.
+fn names_rows(path: &str, operation: &Value) -> bool {
+    let has_path_id = operation["parameters"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .any(|p| p["in"] == "path" && p["schema"]["format"] == "uuid");
+    has_path_id || (path.contains("/bulk-") && !operation["requestBody"].is_null())
+}
+
+#[tokio::test]
+async fn no_route_accepts_another_organizations_ids() {
+    let (state, _container) = cloud_test_state().await;
+    let SeededOrg {
+        owner,
+        site_ids: target_sites,
+        rows,
+        ..
+    } = seed_org(&state).await;
 
     let attacker_org = create_org(&state, get_enterprise_plan(), None).await;
     let mut attacker = user(&attacker_org.id);
@@ -274,115 +430,20 @@ async fn no_route_accepts_another_organizations_ids() {
     )
     .await;
 
-    state
-        .services
-        .invite_service
-        .create(
-            Invite::new(InviteBase {
-                organization_id: target.id,
-                permissions: UserOrgPermissions::Member,
-                url: "https://example.com/invite".to_string(),
-                created_by: owner.id,
-                expires_at: chrono::Utc::now() + chrono::Duration::days(7),
-                ..InviteBase::default()
-            }),
-            AuthenticatedEntity::System,
-        )
-        .await
-        .unwrap();
-
-    let target_sites: Vec<Uuid> = state
-        .services
-        .site_service
-        .get_all(
-            crate::server::shared::storage::filter::StorableFilter::new_from_org_id(&target.id),
-        )
-        .await
-        .unwrap()
-        .iter()
-        .map(|s| s.id)
-        .collect();
-    assert!(!target_sites.is_empty(), "the demo seeds sites");
-    let owner_addr = serve_as(
-        &state,
-        AuthenticatedEntity::User {
-            user_id: owner.id,
-            organization_id: target.id,
-            permissions: UserOrgPermissions::Owner,
-            site_ids: target_sites.clone(),
-            email: owner.base.email.clone(),
-            email_verified: true,
-            terms_accepted_at: owner.base.terms_accepted_at,
-        },
-    )
-    .await;
-    let source = ServiceSource {
-        services: &state.services,
-        site_ids: &target_sites,
-        organization_id: target.id,
-    };
-    let mut rows: HashMap<E, Vec<Value>> = HashMap::new();
-    for entity in E::iter() {
-        rows.insert(
-            entity,
-            rows_of(&source, entity, target.id, &target_sites).await,
-        );
-    }
-    rows.insert(
-        E::Organization,
-        vec![serde_json::to_value(&target).unwrap()],
-    );
-    // A pair `POST /subnets/{id}/merge` accepts: the first row sits inside the second.
-    let cidr = |value: &str| {
-        SubnetCidr::new(
-            SubnetCidrValue(value.parse().unwrap()),
-            AttributeSource::DaemonSelfReport,
-        )
-    };
-    let mut contained = subnet(&target_sites[0]);
-    contained.base.cidr = cidr("10.77.1.0/24");
-    let mut covering = subnet(&target_sites[0]);
-    covering.base.cidr = cidr("10.77.0.0/16");
-    for (position, row) in [contained, covering].into_iter().enumerate() {
-        let created = state
-            .services
-            .subnet_service
-            .create(row, AuthenticatedEntity::System)
-            .await
-            .unwrap();
-        rows.get_mut(&E::Subnet)
-            .unwrap()
-            .insert(position, serde_json::to_value(&created).unwrap());
-    }
+    let owner_addr = serve_as(&state, owner).await;
 
     let spec = serde_json::to_value(crate::server::openapi::full_spec()).unwrap();
     let schemas = &spec["components"]["schemas"];
     let client = reqwest::Client::new();
 
-    // Deletes run last, so a hole in one doesn't remove the row the others are probed with.
-    let mut routes: Vec<(String, String, &Value)> = Vec::new();
-    for (path, item) in spec["paths"].as_object().unwrap() {
-        for (method, operation) in item.as_object().unwrap() {
-            routes.push((method.clone(), path.clone(), operation));
-        }
-    }
-    routes.sort_by_key(|(method, _, _)| method == "delete");
-
     let mut accepted = BTreeSet::new();
     let mut unprobeable = BTreeSet::new();
     let mut control_refused = BTreeSet::new();
     let mut statuses = Vec::new();
-    for (method, path, operation) in routes {
-        if EXEMPT.iter().any(|(prefix, _)| path.starts_with(prefix)) {
-            continue;
-        }
-        let has_path_id = operation["parameters"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .any(|p| p["in"] == "path" && p["schema"]["format"] == "uuid");
-        let bulk = path.contains("/bulk-") && !operation["requestBody"].is_null();
-        if !has_path_id && !bulk {
+    for (method, path, operation) in operations(&spec) {
+        if EXEMPT.iter().any(|(prefix, _)| path.starts_with(prefix))
+            || !names_rows(&path, operation)
+        {
             continue;
         }
         let Some(route_rows) = route_entity(operation)
@@ -431,6 +492,179 @@ async fn no_route_accepts_another_organizations_ids() {
     );
 }
 
+/// A key holding one empty site, at the highest role, so nothing but scope refuses it.
+#[tokio::test]
+async fn no_route_reaches_a_row_on_a_site_outside_the_callers_scope() {
+    let (state, _container) = cloud_test_state().await;
+    let seeded = seed_org(&state).await;
+    let other_site = state
+        .services
+        .site_service
+        .create(site(&seeded.id), AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    let in_scope = serve_as(&state, seeded.owner.clone()).await;
+    let out_of_scope = serve_as(
+        &state,
+        AuthenticatedEntity::ApiKey {
+            api_key_id: Uuid::new_v4(),
+            user_id: seeded.owner.user_id().unwrap(),
+            organization_id: seeded.id,
+            permissions: UserOrgPermissions::Owner,
+            site_ids: vec![other_site.id],
+        },
+    )
+    .await;
+
+    let spec = serde_json::to_value(crate::server::openapi::full_spec()).unwrap();
+    let schemas = &spec["components"]["schemas"];
+    let client = reqwest::Client::new();
+
+    let mut accepted = BTreeSet::new();
+    let mut control_refused = BTreeSet::new();
+    let mut resources_probed = BTreeSet::new();
+    for (method, path, operation) in operations(&spec) {
+        if EXEMPT.iter().any(|(prefix, _)| path.starts_with(prefix))
+            || !names_rows(&path, operation)
+        {
+            continue;
+        }
+        let Some(entity) = route_entity(operation) else {
+            continue;
+        };
+        let resource = entity.resource();
+        if resource.keying() != Keying::Site {
+            continue;
+        }
+        let Some(rows) = seeded.rows.get(&entity).filter(|rows| !rows.is_empty()) else {
+            continue;
+        };
+        let route = Route {
+            method: &method,
+            path: &path,
+            operation,
+            schemas,
+            rows,
+        };
+
+        if method == "get"
+            && !CONTROL_EXEMPT.iter().any(|(exempt, _)| path == *exempt)
+            && !route
+                .call(&client, in_scope, seeded.site_ids[0])
+                .await
+                .iter()
+                .any(|status| (200..300).contains(status))
+        {
+            control_refused.insert(format!("{method} {path}"));
+        }
+
+        resources_probed.insert(resource.to_string());
+        let statuses = route.call(&client, out_of_scope, other_site.id).await;
+        if statuses.iter().any(|status| (200..300).contains(status)) {
+            accepted.insert(format!("{method} {path} {statuses:?}"));
+        }
+    }
+
+    assert!(
+        control_refused.is_empty(),
+        "the rows' owner could not read these, so the test proves nothing there:\n{control_refused:#?}"
+    );
+    assert!(
+        accepted.is_empty(),
+        "reached a row on a site outside the caller's scope:\n{accepted:#?}"
+    );
+    let site_keyed = Resource::iter().filter(|r| r.keying() == Keying::Site);
+    for resource in site_keyed {
+        assert!(
+            resources_probed.contains(&resource.to_string()),
+            "no route probed {resource}"
+        );
+    }
+}
+
+/// Authenticated routes that run no `Can` check, and why.
+const NO_RESOURCE_CHECK: &[(&str, &str)] = &[
+    (
+        "get /api/v1/search",
+        "with no query it returns nothing; a query asks per type, covered by `global_search`",
+    ),
+    (
+        "get /api/v1/release-notes/unseen",
+        "the caller's own read marker",
+    ),
+    (
+        "post /api/v1/release-notes/seen",
+        "the caller's own read marker",
+    ),
+    (
+        "post /api/v1/organizations/profile",
+        "the caller's own onboarding answers",
+    ),
+    (
+        "post /api/v1/organizations/referral-source",
+        "the caller's own onboarding answer",
+    ),
+    (
+        "put /api/v1/users/{id}",
+        "refuses anyone but the record's own user",
+    ),
+];
+
+/// A route reached only with a daemon key. Its identity is the check, in `report_scope.rs`.
+fn daemon_only(operation: &Value) -> bool {
+    operation["security"].as_array().is_some_and(|schemes| {
+        !schemes.is_empty()
+            && schemes
+                .iter()
+                .all(|scheme| scheme.get("daemon_api_key").is_some())
+    })
+}
+
+#[tokio::test]
+async fn every_authenticated_route_records_an_authorization() {
+    let (state, _container) = cloud_test_state().await;
+    let seeded = seed_org(&state).await;
+    let addr = serve_as(&state, seeded.owner.clone()).await;
+
+    let spec = serde_json::to_value(crate::server::openapi::full_spec()).unwrap();
+    let schemas = &spec["components"]["schemas"];
+    let client = reqwest::Client::new();
+    let placeholder = vec![json!({"id": Uuid::nil()})];
+
+    let mut unrecorded = BTreeSet::new();
+    for (method, path, operation) in operations(&spec) {
+        let label = format!("{method} {path}");
+        if PUBLIC.iter().any(|prefix| path.starts_with(prefix))
+            || daemon_only(operation)
+            || NO_RESOURCE_CHECK.iter().any(|(exempt, _)| label == *exempt)
+        {
+            continue;
+        }
+        let rows = route_entity(operation)
+            .and_then(|entity| seeded.rows.get(&entity))
+            .filter(|rows| !rows.is_empty())
+            .unwrap_or(&placeholder);
+        let route = Route {
+            method: &method,
+            path: &path,
+            operation,
+            schemas,
+            rows,
+        };
+        let recorded = route
+            .recorded_checks(&client, addr, seeded.site_ids[0])
+            .await;
+        if recorded.is_empty() {
+            unrecorded.insert(label);
+        }
+    }
+
+    assert!(
+        unrecorded.is_empty(),
+        "these routes ran no authorization check:\n{unrecorded:#?}"
+    );
+}
+
 /// One operation from the spec, with the rows of the entity it acts on.
 pub(super) struct Route<'a> {
     pub(super) method: &'a str,
@@ -449,6 +683,40 @@ impl Route<'_> {
         addr: SocketAddr,
         own_site: Uuid,
     ) -> Vec<u16> {
+        let mut statuses = Vec::new();
+        for request in self.requests(client, addr, own_site) {
+            statuses.push(match request.send().await {
+                Ok(response) => response.status().as_u16(),
+                Err(_) => 0,
+            });
+        }
+        statuses
+    }
+
+    /// The checks the route recorded across its requests.
+    async fn recorded_checks(
+        &self,
+        client: &reqwest::Client,
+        addr: SocketAddr,
+        own_site: Uuid,
+    ) -> String {
+        let mut recorded = String::new();
+        for request in self.requests(client, addr, own_site) {
+            if let Ok(response) = request.send().await
+                && let Some(checks) = response.headers().get(RECORDED_CHECKS_HEADER)
+            {
+                recorded.push_str(checks.to_str().unwrap_or_default());
+            }
+        }
+        recorded
+    }
+
+    fn requests(
+        &self,
+        client: &reqwest::Client,
+        addr: SocketAddr,
+        own_site: Uuid,
+    ) -> Vec<reqwest::RequestBuilder> {
         let row = &self.rows[0];
         let other = self.rows.get(1).unwrap_or(row);
         let params: Vec<&Value> = self.operation["parameters"]
@@ -480,20 +748,19 @@ impl Route<'_> {
             .map(|name| (name.to_string(), own_site.to_string()))
             .collect();
 
-        let mut statuses = Vec::new();
-        for body in bodies(self.schemas, self.operation, row, other, own_site) {
-            let verb = reqwest::Method::from_bytes(self.method.to_uppercase().as_bytes()).unwrap();
-            let mut request = client
-                .request(verb, format!("http://{addr}{url}"))
-                .query(&query);
-            if let Some(body) = &body {
-                request = request.json(body);
-            }
-            statuses.push(match request.send().await {
-                Ok(response) => response.status().as_u16(),
-                Err(_) => 0,
-            });
-        }
-        statuses
+        bodies(self.schemas, self.operation, row, other, own_site)
+            .into_iter()
+            .map(|body| {
+                let verb =
+                    reqwest::Method::from_bytes(self.method.to_uppercase().as_bytes()).unwrap();
+                let request = client
+                    .request(verb, format!("http://{addr}{url}"))
+                    .query(&query);
+                match &body {
+                    Some(body) => request.json(body),
+                    None => request,
+                }
+            })
+            .collect()
     }
 }

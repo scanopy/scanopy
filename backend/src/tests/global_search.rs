@@ -6,6 +6,7 @@ use std::collections::HashSet;
 use email_address::EmailAddress;
 use uuid::Uuid;
 
+use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::hosts::r#impl::name::{HostName, HostNameSources};
 use crate::server::search::scope::{SearchQuery, SearchScope};
 use crate::server::search::{
@@ -31,7 +32,15 @@ fn scope(
     permissions: UserOrgPermissions,
 ) -> SearchScope {
     SearchScope {
-        site_ids,
+        reader: AuthenticatedEntity::User {
+            user_id,
+            organization_id: org_id,
+            permissions,
+            site_ids,
+            email: "searcher@example.com".parse().unwrap(),
+            email_verified: true,
+            terms_accepted_at: None,
+        },
         organization_id: org_id,
         permissions,
         session_user_id: Some(user_id),

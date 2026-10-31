@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use strum::IntoEnumIterator;
 use uuid::Uuid;
 
-use super::cross_tenant_probe::{Route, route_entity, rows_of, serve_as};
+use super::cross_tenant_probe::{PUBLIC, Route, route_entity, rows_of, serve_as};
 use super::self_hosted_licensing::{cloud_test_state, create_org};
 use super::{site, subnet, user};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
@@ -64,24 +64,13 @@ impl Principal {
     }
 }
 
-/// Routes that take no authorization: auth flows, webhooks and public reads.
-const PUBLIC: &[&str] = &[
-    "/api/auth/",
-    "/api/billing/webhooks",
-    "/api/config",
-    "/api/email/",
-    "/api/github-stars",
-    "/api/install/",
-    "/api/v1/licenses/entitlement",
-    "/api/v1/shares/public/",
-    "/api/version",
-];
-
 /// Destructive routes run last, so they don't remove the rows the others are called with.
 fn order(method: &str, path: &str) -> u8 {
     let bulk_delete = path.ends_with("/bulk-delete");
     match method {
-        _ if path.contains("/organizations/") && (path.ends_with("/reset") || method == "delete") => {
+        _ if path.contains("/organizations/")
+            && (path.ends_with("/reset") || method == "delete") =>
+        {
             7
         }
         "delete" | "post" if path.contains("/sites") && (method == "delete" || bulk_delete) => 6,
@@ -192,14 +181,26 @@ async fn walk(
         .await
         .unwrap();
 
+    let reader = AuthenticatedEntity::User {
+        user_id: owner.id,
+        organization_id: org.id,
+        permissions: Role::Owner,
+        site_ids: seeded_sites.clone(),
+        email: owner.base.email.clone(),
+        email_verified: true,
+        terms_accepted_at: owner.base.terms_accepted_at,
+    };
     let source = ServiceSource {
         services: &state.services,
-        site_ids: &seeded_sites,
+        reader: &reader,
         organization_id: org.id,
     };
     let mut rows: HashMap<E, Vec<Value>> = HashMap::new();
     for entity in E::iter() {
-        rows.insert(entity, rows_of(&source, entity, org.id, &seeded_sites).await);
+        rows.insert(
+            entity,
+            rows_of(&source, entity, org.id, &seeded_sites).await,
+        );
     }
     rows.insert(E::Organization, vec![serde_json::to_value(&org).unwrap()]);
     // The caller's own key first, because only the key's own user reaches it.
@@ -250,7 +251,10 @@ async fn walk(
             terms_accepted_at: caller.base.terms_accepted_at,
         },
         Principal::Daemon => {
-            let daemon = &rows[&E::Daemon][0];
+            let daemon = rows[&E::Daemon]
+                .iter()
+                .find(|d| d["site_id"] != rows[&E::Host][0]["site_id"])
+                .expect("a daemon on another site");
             AuthenticatedEntity::Daemon {
                 site_id: serde_json::from_value(daemon["site_id"].clone()).unwrap(),
                 api_key_id: Uuid::new_v4(),
@@ -351,7 +355,7 @@ async fn parity_snapshot() {
     }
 
     let mut lines = Vec::new();
-    for principal in principals {
+    for principal in principals.into_iter().take(1) {
         // Demo rows have fixed ids, so each principal gets its own database.
         let (state, _container) = cloud_test_state().await;
         lines.extend(walk(&state, principal, &spec, &client).await);

@@ -153,8 +153,7 @@ impl Assignment {
     /// Whether this assignment grants `action` on `resource` somewhere.
     fn allows(&self, resource: Resource, action: Action) -> bool {
         let limited_to_a_site = matches!(self.scope, AssignmentScope::Site(_));
-        let org_keyed_change =
-            resource.keying() == Keying::Organization && action != Action::Read;
+        let org_keyed_change = resource.keying() == Keying::Organization && action != Action::Read;
         resource.actions(self.role).contains(&action) && !(limited_to_a_site && org_keyed_change)
     }
 }
@@ -201,7 +200,10 @@ impl AccessSet {
     }
 
     #[cfg(test)]
-    pub fn from_assignments(assignments: Vec<Assignment>, organization_site_ids: Vec<Uuid>) -> Self {
+    pub fn from_assignments(
+        assignments: Vec<Assignment>,
+        organization_site_ids: Vec<Uuid>,
+    ) -> Self {
         Self {
             assignments,
             organization_site_ids,

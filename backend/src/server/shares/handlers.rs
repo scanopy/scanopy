@@ -20,7 +20,7 @@ use crate::server::{
         middleware::{
             auth::AuthenticatedEntity,
             features::{RequireFeature, SharingFeature},
-            permissions::{Authorized, Member, RequireVerified},
+            permissions::{Authorized, Can, RequireVerified, Write},
         },
         service::hash_password,
     },
@@ -138,7 +138,7 @@ pub fn create_public_router() -> OpenApiRouter<Arc<AppState>> {
 async fn create_share(
     State(state): State<Arc<AppState>>,
     _feature: RequireFeature<SharingFeature>,
-    auth: Authorized<RequireVerified<Member>>,
+    auth: Authorized<RequireVerified<Can<Share, Write>>>,
     ApiJson(CreateUpdateShareRequest { mut share }): ApiJson<CreateUpdateShareRequest>,
 ) -> ApiResult<Json<ApiResponse<Share>>> {
     // Validate allowed_domains for CSP safety
@@ -166,12 +166,7 @@ async fn create_share(
 
     share.base.created_by = auth.user_id().ok_or_else(ApiError::user_required)?;
 
-    create_handler::<Share>(
-        State(state),
-        auth.into_permission::<Member>(),
-        ApiJson(share),
-    )
-    .await
+    create_handler::<Share>(State(state), auth, ApiJson(share)).await
 }
 
 /// Update share
@@ -189,7 +184,7 @@ async fn create_share(
 )]
 async fn update_share(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Member>>,
+    auth: Authorized<RequireVerified<Can<Share, Write>>>,
     Path(id): Path<Uuid>,
     ApiJson(CreateUpdateShareRequest { mut share }): ApiJson<CreateUpdateShareRequest>,
 ) -> ApiResult<Json<ApiResponse<Share>>> {
@@ -227,13 +222,7 @@ async fn update_share(
     share.base.redact_password();
 
     // Delegate to generic handler
-    update_handler::<Share>(
-        State(state),
-        auth.into_permission::<Member>(),
-        Path(id),
-        ApiJson(share),
-    )
-    .await
+    update_handler::<Share>(State(state), auth, Path(id), ApiJson(share)).await
 }
 
 // ============================================================================

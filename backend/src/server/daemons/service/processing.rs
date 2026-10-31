@@ -258,7 +258,7 @@ impl DaemonService {
         // and sends nil; the server derives it from the 1:1 key. For a legacy
         // shared-key daemon the key's site equals request.site_id, so this is
         // a no-op there (and it stops a daemon claiming a site its key can't reach).
-        let effective_site_id = auth.site_ids().first().copied().unwrap_or(request.site_id);
+        let effective_site_id = auth.daemon_site_id().unwrap_or(request.site_id);
 
         // Check if this is a demo organization - block daemon registration
         let site = self

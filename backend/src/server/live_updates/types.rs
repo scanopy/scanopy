@@ -1,3 +1,4 @@
+use crate::server::auth::access::{AccessSet, Action, Resource};
 use crate::server::daemons::r#impl::api::DiscoveryUpdatePayload;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -30,13 +31,23 @@ impl LiveUpdate {
         }
     }
 
-    /// Whether a subscriber should get this event: it must be on one of their sites, and topology
-    /// events need the topology view on their plan.
-    pub fn is_visible_to(&self, site_ids: &[Uuid], topology_on_plan: bool) -> bool {
+    /// The resource this event reports on.
+    fn resource(&self) -> Resource {
+        match self {
+            LiveUpdate::Discovery(_) => Resource::Discovery,
+            LiveUpdate::Topology(_) => Resource::Topology,
+        }
+    }
+
+    /// Whether a subscriber should get this event: they must be able to read its resource on its
+    /// site, and topology events need the topology view on their plan.
+    pub fn is_visible_to(&self, access: &AccessSet, topology_on_plan: bool) -> bool {
         if matches!(self, LiveUpdate::Topology(_)) && !topology_on_plan {
             return false;
         }
-        site_ids.contains(&self.site_id())
+        access
+            .site_ids(self.resource(), Action::Read)
+            .contains(&self.site_id())
     }
 }
 
@@ -44,6 +55,11 @@ impl LiveUpdate {
 mod tests {
     use super::*;
     use crate::server::discovery::r#impl::types::DiscoveryType;
+    use crate::server::users::r#impl::permissions::UserOrgPermissions;
+
+    fn viewer_of(site_id: Uuid) -> AccessSet {
+        AccessSet::for_user(UserOrgPermissions::Viewer, vec![site_id])
+    }
 
     fn discovery(site_id: Uuid) -> LiveUpdate {
         LiveUpdate::Discovery(Box::new(DiscoveryUpdatePayload::new(
@@ -65,10 +81,10 @@ mod tests {
         let other = Uuid::new_v4();
 
         for update in [discovery(mine), topology(mine)] {
-            assert!(update.is_visible_to(&[mine], true));
+            assert!(update.is_visible_to(&viewer_of(mine), true));
         }
         for update in [discovery(other), topology(other)] {
-            assert!(!update.is_visible_to(&[mine], true));
+            assert!(!update.is_visible_to(&viewer_of(mine), true));
         }
     }
 
@@ -76,7 +92,7 @@ mod tests {
     fn a_plan_without_topology_gets_discovery_only() {
         let site = Uuid::new_v4();
 
-        assert!(discovery(site).is_visible_to(&[site], false));
-        assert!(!topology(site).is_visible_to(&[site], false));
+        assert!(discovery(site).is_visible_to(&viewer_of(site), false));
+        assert!(!topology(site).is_visible_to(&viewer_of(site), false));
     }
 }

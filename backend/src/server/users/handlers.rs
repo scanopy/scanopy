@@ -1,5 +1,6 @@
+use crate::server::auth::access::{Action, Resource};
 use crate::server::auth::middleware::permissions::{
-    Admin, Authorized, IsUser, Member, RequireVerified,
+    Authorized, Can, Delete, IsUser, Read, RequireVerified, Write,
 };
 use crate::server::openapi::tags as api_tags;
 use crate::server::shared::events::types::UpdateReason;
@@ -65,6 +66,9 @@ pub async fn get_user_by_id(
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<User>>> {
     let auth_org_id = auth.require_organization_id()?;
+    if !auth.entity.can(Resource::Member, Action::Read) && auth.user_id() != Some(id) {
+        return Err(ApiError::permission_denied());
+    }
     let service = User::get_service(&state);
 
     let mut user = service
@@ -103,7 +107,7 @@ pub async fn get_user_by_id(
 )]
 pub async fn get_all_users(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<User, Read>>,
     query: Query<NoFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<User>>> {
     let organization_id = auth
@@ -184,7 +188,7 @@ pub async fn get_all_users(
 )]
 pub async fn delete_user(
     state: State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Admin>>,
+    auth: Authorized<RequireVerified<Can<User, Delete>>>,
     id: Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let organization_id = auth
@@ -229,7 +233,7 @@ pub async fn delete_user(
         ));
     }
 
-    delete_handler::<User>(state, auth.into_permission::<Member>(), id).await
+    delete_handler::<User>(state, auth, id).await
 }
 
 /// Update your own user record
@@ -318,7 +322,7 @@ pub async fn update_user(
 )]
 async fn admin_update_user(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Admin>>,
+    auth: Authorized<RequireVerified<Can<User, Write>>>,
     Path(id): Path<Uuid>,
     ApiJson(mut request): ApiJson<User>,
 ) -> ApiResult<Json<ApiResponse<User>>> {
@@ -386,7 +390,7 @@ async fn admin_update_user(
         &state,
         &request,
         Some(&existing),
-        &auth.site_ids(),
+        &auth.entity,
         auth.require_organization_id()?,
     )
     .await?;
@@ -428,7 +432,7 @@ async fn admin_update_user(
 )]
 pub async fn bulk_delete_users(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Admin>>,
+    auth: Authorized<RequireVerified<Can<User, Delete>>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
     use crate::server::shared::handlers::traits::bulk_delete_handler;
@@ -467,12 +471,7 @@ pub async fn bulk_delete_users(
         ));
     }
 
-    bulk_delete_handler::<User>(
-        axum::extract::State(state),
-        auth.into_permission::<Member>(),
-        ApiJson(ids),
-    )
-    .await
+    bulk_delete_handler::<User>(axum::extract::State(state), auth, ApiJson(ids)).await
 }
 
 /// Refuses deleting yourself, or a user whose role you could not have granted. The users list

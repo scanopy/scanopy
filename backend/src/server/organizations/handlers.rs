@@ -1,6 +1,9 @@
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
-use crate::server::auth::middleware::permissions::{Authorized, IsUser, Member, Owner};
+use crate::server::auth::middleware::permissions::{
+    And, Authorized, Can, Delete, IsUser, Read, Write,
+};
 use crate::server::config::AppState;
+use crate::server::daemon_api_keys::r#impl::base::DaemonApiKey;
 use crate::server::openapi::tags as api_tags;
 use crate::server::organizations::demo_seed::seed_demo_data;
 use crate::server::organizations::demo_status::DemoPopulateStatus;
@@ -64,7 +67,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 pub async fn get_organization(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<IsUser>,
+    auth: Authorized<And<IsUser, Can<Organization, Read>>>,
 ) -> ApiResult<Json<ApiResponse<Organization>>> {
     let organization_id = auth.require_organization_id()?;
     let service = Organization::get_service(&state);
@@ -94,7 +97,7 @@ pub async fn get_organization(
 )]
 pub async fn update_org_name(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Organization, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(name): ApiJson<String>,
 ) -> ApiResult<Json<ApiResponse<Organization>>> {
@@ -281,7 +284,7 @@ pub struct DaemonPromptResponseRequest {
     )
 )]
 async fn daemon_prompt_response(
-    auth: Authorized<Member>,
+    auth: Authorized<Can<DaemonApiKey, Read>>,
     State(state): State<Arc<AppState>>,
     ApiJson(request): ApiJson<DaemonPromptResponseRequest>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
@@ -337,7 +340,7 @@ async fn daemon_prompt_response(
 )]
 pub async fn reset(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Organization, Delete>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let user_org_id = auth
@@ -378,7 +381,7 @@ pub async fn reset(
 )]
 pub async fn delete_organization(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Organization, Delete>>,
     Path(id): Path<Uuid>,
     session: Session,
 ) -> ApiResult<Json<ApiResponse<()>>> {
@@ -498,7 +501,7 @@ pub async fn delete_organization(
 )]
 pub async fn populate_demo_data(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Organization, Write>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<(StatusCode, Json<ApiResponse<DemoPopulateStatus>>)> {
     let user_org_id = auth
@@ -575,7 +578,7 @@ pub async fn populate_demo_data(
 )]
 pub async fn populate_demo_status(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<Organization, Write>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<DemoPopulateStatus>>> {
     let user_org_id = auth

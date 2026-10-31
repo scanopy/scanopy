@@ -1,4 +1,3 @@
-
 use super::*;
 use crate::server::shared::types::entity_field::FieldWrite;
 use crate::server::shared::types::examples;

@@ -1,7 +1,9 @@
 use crate::daemon::runtime::state::BufferedEntities;
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::middleware::features::{ensure_tagging_allowed, tags_changed};
-use crate::server::auth::middleware::permissions::{Authorized, IsDaemon, Member, Or, Viewer};
+use crate::server::auth::middleware::permissions::{
+    Authorized, Can, Delete, IsDaemon, Or, Read, Write,
+};
 use crate::server::billing::types::base::{LimitSource, LimitType};
 use crate::server::hosts::r#impl::os::HostOsFamily;
 use crate::server::interfaces::r#impl::base::Interface;
@@ -55,7 +57,7 @@ use axum::http::StatusCode;
 use axum::http::{HeaderMap, HeaderValue, header};
 use axum::response::{IntoResponse, Json};
 use serde::{Deserialize, Serialize};
-use std::io::{Cursor, Write};
+use std::io::{Cursor, Write as _};
 use std::sync::Arc;
 use utoipa::IntoParams;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -402,7 +404,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn confirm_host(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Host, Write>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<HostResponse>>> {
     settle_host(&state, auth, id, true).await
@@ -427,7 +429,7 @@ async fn confirm_host(
 )]
 async fn dismiss_host(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Host, Write>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<HostResponse>>> {
     settle_host(&state, auth, id, false).await
@@ -435,7 +437,7 @@ async fn dismiss_host(
 
 async fn settle_host(
     state: &AppState,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Host, Write>>,
     id: Uuid,
     confirm: bool,
 ) -> ApiResult<Json<ApiResponse<HostResponse>>> {
@@ -484,10 +486,10 @@ async fn settle_host(
 )]
 async fn get_all_hosts(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Host, Read>>,
     Query(query): Query<HostFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<HostResponse>>> {
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     Ok(Json(list_page::<Host>(&state, &scope, &query).await?))
 }
 
@@ -507,7 +509,7 @@ async fn get_all_hosts(
 )]
 async fn get_host_by_id(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Host, Read>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<HostResponse>>> {
     let site_ids = auth.site_ids();
@@ -562,7 +564,7 @@ async fn validate_host_request(
     mut request: serde_json::Value,
     stored: Option<&Host>,
     children: HostChildren<'_>,
-    site_ids: &[Uuid],
+    caller: &AuthenticatedEntity,
     organization_id: Uuid,
 ) -> Result<(), ApiError> {
     let HostChildren {
@@ -584,7 +586,7 @@ async fn validate_host_request(
         &request,
         stored.as_ref(),
         &own_addresses,
-        site_ids,
+        caller,
         organization_id,
     )
     .await?;
@@ -660,7 +662,7 @@ async fn validate_host_request(
 )]
 async fn create_host(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Or<Member, IsDaemon>>,
+    auth: Authorized<Or<Can<Host, Write>, IsDaemon>>,
     ApiJson(request): ApiJson<HostCreateRequestBody>,
 ) -> ApiResult<Json<ApiResponse<HostCreateResponse>>> {
     let site_ids = auth.site_ids();
@@ -763,7 +765,7 @@ async fn create_host(
                     interfaces: &request.interfaces,
                     services: &request.services,
                 },
-                &site_ids,
+                &entity,
                 site.base.organization_id,
             )
             .await?;
@@ -919,7 +921,7 @@ async fn host_update_changes_tags(
 )]
 async fn update_host(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Host, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(mut request): ApiJson<UpdateHostRequest>,
 ) -> ApiResult<Json<ApiResponse<HostResponse>>> {
@@ -961,7 +963,7 @@ async fn update_host(
             interfaces: request.interfaces.as_deref().unwrap_or_default(),
             services: request.services.as_deref().unwrap_or_default(),
         },
-        &site_ids,
+        &auth.entity,
         organization_id,
     )
     .await?;
@@ -1128,7 +1130,7 @@ async fn create_host_discovery(
 )]
 async fn merge_hosts(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Host, Write>>,
     Path((destination_host_id, other_host_id)): Path<(Uuid, Uuid)>,
 ) -> ApiResult<Json<ApiResponse<HostResponse>>> {
     let site_ids = auth.site_ids();
@@ -1221,7 +1223,7 @@ async fn merge_hosts(
 )]
 pub async fn delete_host(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Host, Delete>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     // An unconfirmed host is dismissed, not deleted: a deleted one comes back on the next scan.
@@ -1262,7 +1264,7 @@ pub async fn delete_host(
 )]
 pub async fn bulk_delete_hosts(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Host, Delete>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
     for host in state
@@ -1313,10 +1315,10 @@ pub async fn bulk_delete_hosts(
 )]
 async fn export_hosts_zip(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Host, Read>>,
     Query(query): Query<HostFilterQuery>,
 ) -> ApiResult<impl IntoResponse> {
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     let (site_ids, organization_id) = (scope.site_ids.clone(), scope.organization_id);
 
     // The list's own filter, so the export holds the rows the list showed.
@@ -1370,7 +1372,7 @@ async fn export_hosts_zip(
     // Build CSVs from the field registry, related entities read through their services.
     let source = ServiceSource {
         services: &state.services,
-        site_ids: &site_ids,
+        reader: &auth.entity,
         organization_id,
     };
     let csv_error =

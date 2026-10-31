@@ -6,15 +6,19 @@
 //!
 //! - `PermissionRequirement` trait: Core trait that checks if an entity meets a requirement
 //! - `Authorized<P>` extractor: Generic axum extractor that enforces a permission requirement
-//! - Permission levels: `Viewer`, `Member`, `Admin`, `Owner` - check User/ApiKey permission levels
+//! - `Can<T, A>`: requires action `A` on the resource of `T`, per the role table in
+//!   `auth/access.rs`, and scopes the handler's sites to that action on that resource
 //! - Auth type requirements: `IsDaemon`, `IsUser`, `IsApiKey` - check authentication type
-//! - Combinators: `Or<A, B>` - compose requirements
+//! - Combinators: `Or<A, B>`, `And<A, B>` - compose requirements
 use std::marker::PhantomData;
 
+use crate::server::auth::access::{Action, Resource};
 use crate::server::auth::middleware::auth::AuthError;
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::{
-    config::AppState, shared::types::api::ApiError, users::r#impl::permissions::UserOrgPermissions,
+    config::AppState,
+    shared::{storage::traits::Entity, types::api::ApiError},
+    users::r#impl::permissions::UserOrgPermissions,
 };
 use axum::{extract::FromRequestParts, http::request::Parts};
 use uuid::Uuid;
@@ -45,110 +49,122 @@ pub trait PermissionRequirement: Send + Sync + 'static {
 }
 
 // ============================================================================
-// Permission Level Requirements (for User/ApiKey only)
+// Resource Requirements
 // ============================================================================
 
-/// Requires Viewer or higher permission level.
+/// The types a role can grant access to: every entity, by `E::resource()`, plus the markers for
+/// resources no entity stands for.
+pub trait HasResource: 'static {
+    fn resource() -> Resource;
+}
+
+impl<T: Entity + 'static> HasResource for T {
+    fn resource() -> Resource {
+        T::entity_type().resource()
+    }
+}
+
+/// The organization's subscription.
+pub struct Billing;
+
+impl HasResource for Billing {
+    fn resource() -> Resource {
+        Resource::Billing
+    }
+}
+
+/// The organization's self-hosted license.
+pub struct License;
+
+impl HasResource for License {
+    fn resource() -> Resource {
+        Resource::License
+    }
+}
+
+/// An [`Action`] as a type, for [`Can`].
+pub trait ActionType: 'static {
+    const ACTION: Action;
+}
+
+pub struct Read;
+
+impl ActionType for Read {
+    const ACTION: Action = Action::Read;
+}
+
+pub struct Write;
+
+impl ActionType for Write {
+    const ACTION: Action = Action::Write;
+}
+
+pub struct Delete;
+
+impl ActionType for Delete {
+    const ACTION: Action = Action::Delete;
+}
+
+/// Requires holding action `A` on `T`'s resource somewhere. [`Authorized::site_ids`] then returns
+/// the sites where `A` on that resource is allowed, which is what the handler's site checks and
+/// list filters run against.
 ///
-/// Passes for: User/ApiKey with Viewer, Member, Admin, or Owner
+/// Passes for: User/ApiKey whose role grants `A` on the resource
+/// Fails for: everyone else, including Daemon, System and Anonymous
+pub struct Can<T, A>(PhantomData<fn() -> (T, A)>);
+
+impl<T: HasResource, A: ActionType> PermissionRequirement for Can<T, A> {
+    fn check(entity: &AuthenticatedEntity) -> Result<(), ApiError> {
+        if entity.can(T::resource(), A::ACTION) {
+            Ok(())
+        } else {
+            Err(ApiError::permission_denied())
+        }
+    }
+
+    fn description() -> &'static str {
+        "Insufficient permissions"
+    }
+}
+
+/// A requirement that decides which sites its caller may act on.
+pub trait Scoped: PermissionRequirement {
+    fn site_ids(entity: &AuthenticatedEntity) -> Vec<Uuid>;
+}
+
+impl<T: HasResource, A: ActionType> Scoped for Can<T, A> {
+    fn site_ids(entity: &AuthenticatedEntity) -> Vec<Uuid> {
+        entity.site_ids_for(T::resource(), A::ACTION)
+    }
+}
+
+/// A requirement that proves `Can<T, A>`, so a generic handler for `T` can accept it.
+pub trait Grants<T, A>: Scoped {}
+
+impl<T: HasResource, A: ActionType> Grants<T, A> for Can<T, A> {}
+
+// ============================================================================
+// Organization Membership
+// ============================================================================
+
+/// Requires a user or API key, whatever its role. For readers that span resource types and ask
+/// per type through [`AuthenticatedEntity::site_ids_for`], and for routes that decide from the
+/// request body which resource they touch.
+///
+/// Passes for: User, ApiKey
 /// Fails for: Daemon, System, Anonymous
-pub struct Viewer;
+pub struct InOrganization;
 
-impl PermissionRequirement for Viewer {
+impl PermissionRequirement for InOrganization {
     fn check(entity: &AuthenticatedEntity) -> Result<(), ApiError> {
         match entity {
-            AuthenticatedEntity::User { permissions, .. }
-            | AuthenticatedEntity::ApiKey { permissions, .. } => {
-                if *permissions >= UserOrgPermissions::Viewer {
-                    Ok(())
-                } else {
-                    Err(ApiError::permission_denied())
-                }
-            }
+            AuthenticatedEntity::User { .. } | AuthenticatedEntity::ApiKey { .. } => Ok(()),
             _ => Err(ApiError::permission_denied()),
         }
     }
 
     fn description() -> &'static str {
-        "Viewer permission required"
-    }
-}
-
-/// Requires Member or higher permission level.
-///
-/// Passes for: User/ApiKey with Member, Admin, or Owner
-/// Fails for: User/ApiKey with Viewer, Daemon, System, Anonymous
-pub struct Member;
-
-impl PermissionRequirement for Member {
-    fn check(entity: &AuthenticatedEntity) -> Result<(), ApiError> {
-        match entity {
-            AuthenticatedEntity::User { permissions, .. }
-            | AuthenticatedEntity::ApiKey { permissions, .. } => {
-                if *permissions >= UserOrgPermissions::Member {
-                    Ok(())
-                } else {
-                    Err(ApiError::permission_denied())
-                }
-            }
-            _ => Err(ApiError::permission_denied()),
-        }
-    }
-
-    fn description() -> &'static str {
-        "Member permission required"
-    }
-}
-
-/// Requires Admin or higher permission level.
-///
-/// Passes for: User/ApiKey with Admin or Owner
-/// Fails for: User/ApiKey with Member or Viewer, Daemon, System, Anonymous
-pub struct Admin;
-
-impl PermissionRequirement for Admin {
-    fn check(entity: &AuthenticatedEntity) -> Result<(), ApiError> {
-        match entity {
-            AuthenticatedEntity::User { permissions, .. }
-            | AuthenticatedEntity::ApiKey { permissions, .. } => {
-                if *permissions >= UserOrgPermissions::Admin {
-                    Ok(())
-                } else {
-                    Err(ApiError::permission_denied())
-                }
-            }
-            _ => Err(ApiError::permission_denied()),
-        }
-    }
-
-    fn description() -> &'static str {
-        "Admin permission required"
-    }
-}
-
-/// Requires Owner permission level.
-///
-/// Passes for: User/ApiKey with Owner
-/// Fails for: User/ApiKey with Admin, Member, or Viewer, Daemon, System, Anonymous
-pub struct Owner;
-
-impl PermissionRequirement for Owner {
-    fn check(entity: &AuthenticatedEntity) -> Result<(), ApiError> {
-        match entity {
-            AuthenticatedEntity::User { permissions, .. }
-            | AuthenticatedEntity::ApiKey { permissions, .. } => {
-                if *permissions >= UserOrgPermissions::Owner {
-                    Ok(())
-                } else {
-                    Err(ApiError::permission_denied())
-                }
-            }
-            _ => Err(ApiError::permission_denied()),
-        }
-    }
-
-    fn description() -> &'static str {
-        "Owner permission required"
+        "User or API key required"
     }
 }
 
@@ -383,46 +399,36 @@ impl<P: PermissionRequirement> PermissionRequirement for RequireVerified<P> {
     }
 }
 
-// ============================================================================
-// Satisfies Trait (Upgrade Guard)
-// ============================================================================
-
-/// Marker: P satisfies Q (P is at least as strict as Q).
-/// Prevents `into_permission` from upgrading permissions.
-pub trait Satisfies<Q: PermissionRequirement>: PermissionRequirement {}
-
-// Level hierarchy: Owner > Admin > Member > Viewer
-impl Satisfies<Owner> for Owner {}
-impl Satisfies<Admin> for Owner {}
-impl Satisfies<Member> for Owner {}
-impl Satisfies<Viewer> for Owner {}
-
-impl Satisfies<Admin> for Admin {}
-impl Satisfies<Member> for Admin {}
-impl Satisfies<Viewer> for Admin {}
-
-impl Satisfies<Member> for Member {}
-impl Satisfies<Viewer> for Member {}
-
-impl Satisfies<Viewer> for Viewer {}
-
-// RequireVerified<P> satisfies whatever P satisfies
-impl<P, Q> Satisfies<Q> for RequireVerified<P>
-where
-    P: PermissionRequirement + Satisfies<Q>,
-    Q: PermissionRequirement,
-{
+impl Scoped for IsDaemon {
+    fn site_ids(entity: &AuthenticatedEntity) -> Vec<Uuid> {
+        entity.daemon_site_id().into_iter().collect()
+    }
 }
 
-// And<A, B> satisfies Q if B satisfies Q.
-// Convention: And<AuthType, Level> — the level (B) determines hierarchy.
-impl<A, B, Q> Satisfies<Q> for And<A, B>
-where
-    A: PermissionRequirement,
-    B: PermissionRequirement + Satisfies<Q>,
-    Q: PermissionRequirement,
-{
+impl<A: Scoped, B: Scoped> Scoped for Or<A, B> {
+    fn site_ids(entity: &AuthenticatedEntity) -> Vec<Uuid> {
+        let mut site_ids = A::site_ids(entity);
+        site_ids.extend(B::site_ids(entity));
+        site_ids
+    }
 }
+
+// The scoped requirement of an `And` is its second parameter: `And<IsUser, Can<T, A>>`.
+impl<A: PermissionRequirement, B: Scoped> Scoped for And<A, B> {
+    fn site_ids(entity: &AuthenticatedEntity) -> Vec<Uuid> {
+        B::site_ids(entity)
+    }
+}
+
+impl<X: PermissionRequirement, P: Grants<T, A>, T, A> Grants<T, A> for And<X, P> {}
+
+impl<P: Scoped> Scoped for RequireVerified<P> {
+    fn site_ids(entity: &AuthenticatedEntity) -> Vec<Uuid> {
+        P::site_ids(entity)
+    }
+}
+
+impl<P: Grants<T, A>, T, A> Grants<T, A> for RequireVerified<P> {}
 
 // ============================================================================
 // The Authorized Extractor
@@ -438,12 +444,14 @@ pub struct Authorized<P: PermissionRequirement> {
     _marker: PhantomData<P>,
 }
 
-impl<P: PermissionRequirement> Authorized<P> {
-    /// Get the site IDs this entity has access to.
+impl<P: Scoped> Authorized<P> {
+    /// The sites where the action this requirement checked is allowed.
     pub fn site_ids(&self) -> Vec<Uuid> {
-        self.entity.site_ids()
+        P::site_ids(&self.entity)
     }
+}
 
+impl<P: PermissionRequirement> Authorized<P> {
     /// Get the organization ID, if applicable.
     pub fn organization_id(&self) -> Option<Uuid> {
         self.entity.organization_id()
@@ -483,20 +491,6 @@ impl<P: PermissionRequirement> Authorized<P> {
         self.entity
             .permissions()
             .ok_or_else(|| ApiError::internal_error("Permissions required"))
-    }
-
-    /// Convert to a different permission level.
-    /// Use this when a handler requires a lower permission level than what was checked.
-    /// For example, Admin -> Member, since Admin >= Member.
-    /// The `Satisfies<Q>` bound prevents upgrading permissions (e.g. Member -> Admin).
-    pub fn into_permission<Q: PermissionRequirement>(self) -> Authorized<Q>
-    where
-        P: Satisfies<Q>,
-    {
-        Authorized {
-            entity: self.entity,
-            _marker: PhantomData,
-        }
     }
 }
 

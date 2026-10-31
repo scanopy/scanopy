@@ -21,7 +21,7 @@ use crate::server::{
     },
     subnets::r#impl::base::Subnet,
     user_api_keys::r#impl::base::UserApiKey,
-    users::r#impl::{base::User, permissions::UserOrgPermissions},
+    users::r#impl::base::User,
 };
 
 use super::{
@@ -135,7 +135,10 @@ where
     S: CrudService<T> + Sync,
 {
     async move {
-        let base = StorableFilter::<T>::new_for_access(&scope.site_ids, &scope.organization_id);
+        let Some(site_ids) = scope.site_ids::<T>() else {
+            return Ok(empty());
+        };
+        let base = StorableFilter::<T>::new_for_access(&site_ids, &scope.organization_id);
         let Some((filter, order)) = search_filter(base, query) else {
             return Ok(empty());
         };
@@ -166,7 +169,10 @@ async fn hosts(
     scope: &SearchScope,
     query: &SearchQuery,
 ) -> anyhow::Result<Page> {
-    let base = StorableFilter::<Host>::new_from_site_ids(&scope.site_ids);
+    let Some(site_ids) = scope.site_ids::<Host>() else {
+        return Ok(empty());
+    };
+    let base = StorableFilter::<Host>::new_from_site_ids(&site_ids);
     let Some((filter, order)) = search_filter(base, query) else {
         return Ok(empty());
     };
@@ -186,7 +192,10 @@ async fn daemons(
     scope: &SearchScope,
     query: &SearchQuery,
 ) -> anyhow::Result<Page> {
-    let base = StorableFilter::<Daemon>::new_from_site_ids(&scope.site_ids);
+    let Some(site_ids) = scope.site_ids::<Daemon>() else {
+        return Ok(empty());
+    };
+    let base = StorableFilter::<Daemon>::new_from_site_ids(&site_ids);
     let Some((filter, order)) = search_filter(base, query) else {
         return Ok(empty());
     };
@@ -217,7 +226,10 @@ async fn subnets(
     scope: &SearchScope,
     query: &SearchQuery,
 ) -> anyhow::Result<Page> {
-    let base = StorableFilter::<Subnet>::new_from_site_ids(&scope.site_ids);
+    let Some(site_ids) = scope.site_ids::<Subnet>() else {
+        return Ok(empty());
+    };
+    let base = StorableFilter::<Subnet>::new_from_site_ids(&site_ids);
     let Some((filter, order)) = search_filter(base, query) else {
         return Ok(empty());
     };
@@ -240,7 +252,7 @@ async fn users(
     scope: &SearchScope,
     query: &SearchQuery,
 ) -> anyhow::Result<Page> {
-    if scope.permissions < UserOrgPermissions::Admin {
+    if scope.site_ids::<User>().is_none() {
         return Ok(empty());
     }
     let base = StorableFilter::<User>::new_from_org_id(&scope.organization_id);

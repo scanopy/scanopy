@@ -1,6 +1,6 @@
 use crate::server::openapi::tags as api_tags;
 use crate::server::{
-    auth::middleware::permissions::{Authorized, Viewer},
+    auth::middleware::permissions::{Authorized, InOrganization},
     config::AppState,
     shared::{
         extractors::Query,
@@ -40,7 +40,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn search(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<InOrganization>,
     Query(query): Query<GlobalSearchQuery>,
 ) -> ApiResult<Json<ApiResponse<GlobalSearchResponse>>> {
     let scope =

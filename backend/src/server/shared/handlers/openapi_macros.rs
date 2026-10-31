@@ -109,7 +109,7 @@ macro_rules! crud_get_by_id_handler {
         )]
         pub async fn get_by_id(
             state: axum::extract::State<std::sync::Arc<$crate::server::config::AppState>>,
-            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Viewer>,
+            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Can<$entity, $crate::server::auth::middleware::permissions::Read>>,
             path: axum::extract::Path<uuid::Uuid>,
         ) -> $crate::server::shared::types::api::ApiResult<
             axum::response::Json<$crate::server::shared::types::api::ApiResponse<$entity>>,
@@ -145,7 +145,7 @@ macro_rules! crud_create_handler {
         )]
         pub async fn create(
             state: axum::extract::State<std::sync::Arc<$crate::server::config::AppState>>,
-            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Member>,
+            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Can<$entity, $crate::server::auth::middleware::permissions::Write>>,
             body: $crate::server::shared::types::api::ApiJson<$entity>,
         ) -> $crate::server::shared::types::api::ApiResult<
             axum::response::Json<$crate::server::shared::types::api::ApiResponse<$entity>>,
@@ -184,7 +184,7 @@ macro_rules! crud_update_handler {
         )]
         pub async fn update(
             state: axum::extract::State<std::sync::Arc<$crate::server::config::AppState>>,
-            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Member>,
+            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Can<$entity, $crate::server::auth::middleware::permissions::Write>>,
             path: axum::extract::Path<uuid::Uuid>,
             body: $crate::server::shared::types::api::ApiJson<$entity>,
         ) -> $crate::server::shared::types::api::ApiResult<
@@ -225,7 +225,7 @@ macro_rules! crud_delete_handler {
         )]
         pub async fn delete(
             state: axum::extract::State<std::sync::Arc<$crate::server::config::AppState>>,
-            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Member>,
+            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Can<$entity, $crate::server::auth::middleware::permissions::Delete>>,
             path: axum::extract::Path<uuid::Uuid>,
         ) -> $crate::server::shared::types::api::ApiResult<
             axum::response::Json<$crate::server::shared::types::api::ApiResponse<()>>,
@@ -261,7 +261,7 @@ macro_rules! crud_bulk_delete_handler {
         )]
         pub async fn bulk_delete(
             state: axum::extract::State<std::sync::Arc<$crate::server::config::AppState>>,
-            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Member>,
+            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Can<$entity, $crate::server::auth::middleware::permissions::Delete>>,
             body: $crate::server::shared::types::api::ApiJson<Vec<uuid::Uuid>>,
         ) -> $crate::server::shared::types::api::ApiResult<
             axum::response::Json<
@@ -314,7 +314,7 @@ macro_rules! crud_export_csv_handler {
         )]
         pub async fn export_csv(
             state: axum::extract::State<std::sync::Arc<$crate::server::config::AppState>>,
-            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Viewer>,
+            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Can<$entity, $crate::server::auth::middleware::permissions::Read>>,
             query: $crate::server::shared::extractors::Query<__ExportCsvFilterQuery>,
         ) -> $crate::server::shared::types::api::ApiResult<impl axum::response::IntoResponse> {
             $crate::server::shared::handlers::csv::export_csv_handler::<$entity>(state, auth, query)
@@ -369,7 +369,7 @@ macro_rules! crud_get_all_handler {
         )]
         pub async fn get_all(
             state: axum::extract::State<std::sync::Arc<$crate::server::config::AppState>>,
-            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Viewer>,
+            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Can<$entity, $crate::server::auth::middleware::permissions::Read>>,
             query: $crate::server::shared::extractors::Query<__GetAllFilterQuery>,
         ) -> $crate::server::shared::types::api::ApiResult<
             axum::response::Json<__PaginatedResponse>,
@@ -414,10 +414,10 @@ macro_rules! crud_list_page_handler {
         )]
         pub async fn get_all(
             axum::extract::State(state): axum::extract::State<std::sync::Arc<$crate::server::config::AppState>>,
-            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Viewer>,
+            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Can<$entity, $crate::server::auth::middleware::permissions::Read>>,
             $crate::server::shared::extractors::Query(query): $crate::server::shared::extractors::Query<__ListFilterQuery>,
         ) -> $crate::server::shared::types::api::ApiResult<axum::response::Json<__ListPageResponse>> {
-            let scope = $crate::server::shared::handlers::traits::ListScope::of(&auth.entity)?;
+            let scope = $crate::server::shared::handlers::traits::ListScope::of(&auth)?;
             Ok(axum::response::Json(
                 $crate::server::shared::handlers::list::list_page::<$entity>(&state, &scope, &query)
                     .await?,
@@ -468,7 +468,7 @@ macro_rules! crud_get_field_values_handler {
         )]
         pub async fn get_field_values(
             state: axum::extract::State<std::sync::Arc<$crate::server::config::AppState>>,
-            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Viewer>,
+            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Can<$entity, $crate::server::auth::middleware::permissions::Read>>,
             path: axum::extract::Path<__FieldValuesOrderField>,
             query: $crate::server::shared::extractors::Query<__FieldValuesFilterQuery>,
         ) -> $crate::server::shared::types::api::ApiResult<

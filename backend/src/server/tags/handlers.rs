@@ -1,6 +1,7 @@
+use crate::server::auth::access::{Action, Resource};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::middleware::features::{RequireFeature, TaggingFeature};
-use crate::server::auth::middleware::permissions::{Admin, Authorized, Member, Viewer};
+use crate::server::auth::middleware::permissions::{Authorized, Can, InOrganization, Read, Write};
 use crate::server::shared::entities::{Entity as EntityEnum, EntityDiscriminants};
 use crate::server::shared::events::log::EventLog;
 use crate::server::shared::events::traits::{EntityScope, Event, OrgScope};
@@ -21,6 +22,7 @@ use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::{ApiError, ApiErrorResponse, PaginatedApiResponse};
 use crate::server::tags::groups::handlers::SYSTEM_SQL;
 use crate::server::tags::r#impl::base::Tag;
+use crate::server::user_api_keys::r#impl::base::UserApiKey;
 use crate::server::{
     config::AppState,
     shared::types::api::{ApiResponse, ApiResult, EmptyApiResponse},
@@ -217,11 +219,11 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn get_all_tags(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Tag, Read>>,
     Query(query): Query<TagFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<Tag>>> {
     // Tags are the organization's: `StorableFilter::new_for_access` scopes them to it.
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     Ok(Json(list_page::<Tag>(&state, &scope, &query).await?))
 }
 
@@ -247,7 +249,7 @@ async fn get_all_tags(
 )]
 pub async fn create_tag(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Tag, Write>>,
     ApiJson(tag): ApiJson<Tag>,
 ) -> ApiResult<Json<ApiResponse<Tag>>> {
     let organization_id = auth
@@ -265,12 +267,7 @@ pub async fn create_tag(
         )));
     }
 
-    let response = create_handler::<Tag>(
-        State(state.clone()),
-        auth.into_permission::<Member>(),
-        ApiJson(tag),
-    )
-    .await?;
+    let response = create_handler::<Tag>(State(state.clone()), auth, ApiJson(tag)).await?;
 
     // Emit onboarding milestones for first tag / first application tag
     if let Some(created_tag) = response.data() {
@@ -322,6 +319,19 @@ pub async fn create_tag(
     }
 
     Ok(response)
+}
+
+/// Tagging an entity is a `Write` on that entity, so the entity type in the request decides which
+/// resource the caller needs.
+fn require_write_on(
+    auth: &Authorized<InOrganization>,
+    entity_type: EntityDiscriminants,
+) -> Result<(), ApiError> {
+    if auth.entity.can(entity_type.resource(), Action::Write) {
+        Ok(())
+    } else {
+        Err(ApiError::permission_denied())
+    }
 }
 
 /// Resolve site_id and organization_id for an entity by looking it up via its service.
@@ -406,14 +416,29 @@ async fn resolve_entity_scope(
 /// id's `(site_id, organization_id)` and requires a match on whichever axis
 /// the entity is scoped by; an id that can't be resolved (missing / foreign) is
 /// rejected with the same error as a cross-tenant id (no existence oracle).
+///
+/// A user's API keys are theirs alone, whatever their role.
 async fn validate_entities_in_tenant(
     state: &AppState,
-    auth: &Authorized<Member>,
+    auth: &Authorized<InOrganization>,
     entity_ids: &[Uuid],
     entity_type: EntityDiscriminants,
 ) -> Result<(), ApiError> {
+    let resource = entity_type.resource();
+    if resource == Resource::UserApiKey {
+        for entity_id in entity_ids {
+            let key = state
+                .services
+                .user_api_key_service
+                .get_by_id(entity_id)
+                .await?;
+            if key.map(|key| key.base.user_id) != auth.user_id() {
+                return Err(ApiError::entity_access_denied::<UserApiKey>(*entity_id));
+            }
+        }
+    }
     let org_id = auth.require_organization_id()?;
-    let site_ids = auth.site_ids();
+    let site_ids = auth.entity.site_ids_for(resource, Action::Write);
     for entity_id in entity_ids {
         let (net, org) = resolve_entity_scope(state, entity_id, entity_type).await;
         let org_ok = org == Some(org_id);
@@ -523,10 +548,12 @@ pub struct SetTagsRequest {
 )]
 pub async fn bulk_add_tag(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<InOrganization>,
     _tagging: RequireFeature<TaggingFeature>,
     ApiJson(request): ApiJson<BulkTagRequest>,
 ) -> ApiResult<Json<ApiResponse<BulkTagResponse>>> {
+    require_write_on(&auth, request.entity_type)?;
+
     // Validate entity type is taggable
     if !request.entity_type.is_taggable() {
         return Err(ApiError::bad_request(&format!(
@@ -592,10 +619,12 @@ pub async fn bulk_add_tag(
 )]
 pub async fn bulk_remove_tag(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<InOrganization>,
     _tagging: RequireFeature<TaggingFeature>,
     ApiJson(request): ApiJson<BulkTagRequest>,
 ) -> ApiResult<Json<ApiResponse<BulkTagResponse>>> {
+    require_write_on(&auth, request.entity_type)?;
+
     // Validate entity type is taggable
     if !request.entity_type.is_taggable() {
         return Err(ApiError::bad_request(&format!(
@@ -656,10 +685,12 @@ pub async fn bulk_remove_tag(
 )]
 pub async fn set_entity_tags(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<InOrganization>,
     _tagging: RequireFeature<TaggingFeature>,
     ApiJson(request): ApiJson<SetTagsRequest>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
+    require_write_on(&auth, request.entity_type)?;
+
     // Validate entity type is taggable
     if !request.entity_type.is_taggable() {
         return Err(ApiError::bad_request(&format!(

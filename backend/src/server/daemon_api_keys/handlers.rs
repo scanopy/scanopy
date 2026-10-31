@@ -1,6 +1,6 @@
 use crate::server::shared::types::api::ApiJson;
 use crate::server::{
-    auth::middleware::permissions::{Authorized, Member},
+    auth::middleware::permissions::{Authorized, Can, Delete, Write},
     config::AppState,
     daemon_api_keys::r#impl::{api::DaemonApiKeyResponse, base::DaemonApiKey},
     daemons::r#impl::base::Daemon,
@@ -192,7 +192,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 pub async fn create_daemon_api_key(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<DaemonApiKey, Write>>,
     ApiJson(mut api_key): ApiJson<DaemonApiKey>,
 ) -> ApiResult<Json<ApiResponse<DaemonApiKeyResponse>>> {
     let site_ids = auth.site_ids();
@@ -238,7 +238,7 @@ pub async fn create_daemon_api_key(
 )]
 pub async fn update_daemon_api_key(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<DaemonApiKey, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(mut request): ApiJson<DaemonApiKey>,
 ) -> ApiResult<Json<ApiResponse<DaemonApiKey>>> {
@@ -284,7 +284,7 @@ pub async fn update_daemon_api_key(
 )]
 pub async fn rotate_key_handler(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<DaemonApiKey, Write>>,
     ClientIp(ip): ClientIp,
     user_agent: Option<TypedHeader<UserAgent>>,
     Path(api_key_id): Path<Uuid>,
@@ -297,12 +297,12 @@ pub async fn rotate_key_handler(
     // Capture the pre-rotation hash so we can evict it: after rotation the old
     // plaintext must stop authenticating immediately, not linger in the cache
     // until the TTL. The new hash is uncached (populated on its next auth).
-    let old_hashed_key = service
+    let existing = service
         .get_by_id(&api_key_id)
-        .await
-        .ok()
-        .flatten()
-        .map(|k| k.base.key);
+        .await?
+        .ok_or_else(|| ApiError::entity_not_found::<DaemonApiKey>(api_key_id))?;
+    validate_site_access(Some(existing.base.site_id), &auth.site_ids(), "rotate")?;
+    let old_hashed_key = existing.base.key;
 
     let key = service
         .rotate_key(api_key_id, ip, user_agent, auth.into_entity())
@@ -317,9 +317,7 @@ pub async fn rotate_key_handler(
             ApiError::internal_error(&e.to_string())
         })?;
 
-    if let Some(old_hashed_key) = old_hashed_key {
-        service.invalidate_resolution(&old_hashed_key).await;
-    }
+    service.invalidate_resolution(&old_hashed_key).await;
 
     Ok(Json(ApiResponse::success(key)))
 }
@@ -343,7 +341,7 @@ pub async fn rotate_key_handler(
 )]
 pub async fn delete_daemon_api_key(
     state: State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<DaemonApiKey, Delete>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let filter = StorableFilter::<Daemon>::new_from_uuid_column("api_key_id", &id);
@@ -396,7 +394,7 @@ pub async fn delete_daemon_api_key(
 )]
 pub async fn bulk_delete_daemon_api_keys(
     state: State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<DaemonApiKey, Delete>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
     let filter = StorableFilter::<Daemon>::new_from_uuids_column("api_key_id", &ids);

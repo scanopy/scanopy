@@ -20,10 +20,11 @@ use super::{organization, setup_test_db, site, user};
 use crate::server::auth::r#impl::api::RegisterRequest;
 use crate::server::auth::r#impl::base::{LoginRegisterParams, ProvisionOrg};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
-use crate::server::auth::middleware::permissions::{Authorized, Member, RequireVerified};
+use crate::server::auth::middleware::permissions::{Authorized, Can, RequireVerified, Write};
 use crate::server::config::{AppState, DeploymentType, ServerConfig};
 use crate::server::daemons::r#impl::api::ProvisionDaemonRequest;
 use crate::server::daemons::r#impl::base::{DaemonMode, DaemonOs};
+use crate::server::hosts::r#impl::base::Host;
 use crate::server::organizations::r#impl::base::Organization;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::types::api::ApiError;
@@ -134,7 +135,7 @@ fn wire_code(err: &ApiError) -> Option<&'static str> {
     err.error_code.as_ref().map(ErrorCode::code)
 }
 
-/// Run the `RequireVerified<Member>` extractor against a request carrying `entity`.
+/// Run a `RequireVerified` extractor against a request carrying `entity`.
 async fn require_verified(
     state: &Arc<AppState>,
     entity: AuthenticatedEntity,
@@ -142,7 +143,7 @@ async fn require_verified(
     let mut request = Request::new(Body::empty());
     request.extensions_mut().insert(entity);
     let (mut parts, _) = request.into_parts();
-    Authorized::<RequireVerified<Member>>::from_request_parts(&mut parts, state)
+    Authorized::<RequireVerified<Can<Host, Write>>>::from_request_parts(&mut parts, state)
         .await
         .map(|_| ())
         .map_err(|e| e.0)

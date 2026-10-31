@@ -14,7 +14,7 @@ use crate::server::{
             traits::{AuthScope, Event},
             types::{AuthOperation, UpdateReason},
         },
-        services::traits::CrudService,
+        services::{factory::ServiceFactory, traits::CrudService},
         storage::{filter::StorableFilter, traits::Unique},
         types::api::ApiError,
     },
@@ -272,15 +272,11 @@ impl AuthenticatedEntity {
         }
     }
 
-    /// Get site_ids that daemon / user / API key have access to
-    pub fn site_ids(&self) -> Vec<Uuid> {
+    /// The site a daemon's key belongs to.
+    pub fn daemon_site_id(&self) -> Option<Uuid> {
         match self {
-            AuthenticatedEntity::Daemon { site_id, .. } => vec![*site_id],
-            AuthenticatedEntity::User { site_ids, .. } => site_ids.clone(),
-            AuthenticatedEntity::ApiKey { site_ids, .. } => site_ids.clone(),
-            AuthenticatedEntity::ExternalService { .. } => vec![], // Global scope, no site restriction
-            AuthenticatedEntity::System => vec![],
-            AuthenticatedEntity::Anonymous => vec![],
+            AuthenticatedEntity::Daemon { site_id, .. } => Some(*site_id),
+            _ => None,
         }
     }
 
@@ -318,6 +314,49 @@ impl AuthenticatedEntity {
         self.access().site_ids(resource, action)
     }
 
+    /// The sites whose `resource` rows this principal may read, or `None` when it may not read
+    /// that resource at all. A daemon reads what its own site holds, to resolve what it reports.
+    pub fn readable_site_ids(&self, resource: Resource) -> Option<Vec<Uuid>> {
+        match self {
+            AuthenticatedEntity::Daemon { site_id, .. } => Some(vec![*site_id]),
+            _ => self
+                .can(resource, Action::Read)
+                .then(|| self.site_ids_for(resource, Action::Read)),
+        }
+    }
+
+    /// This principal's access as it stands now, for a connection that outlives one request.
+    /// `None` when the principal is gone or its key no longer works.
+    pub async fn current_access(
+        &self,
+        services: &ServiceFactory,
+    ) -> anyhow::Result<Option<AccessSet>> {
+        match self {
+            AuthenticatedEntity::User { user_id, .. } => {
+                let Some(user) = services.user_service.get_by_id(user_id).await? else {
+                    return Ok(None);
+                };
+                let site_ids = user_site_ids(services, &user).await?;
+                Ok(Some(AccessSet::for_user(user.base.permissions, site_ids)))
+            }
+            AuthenticatedEntity::ApiKey { api_key_id, .. } => {
+                let service = &services.user_api_key_service;
+                let Some(key) = service.get_by_id(api_key_id).await? else {
+                    return Ok(None);
+                };
+                if check_key_validity(&key).is_err() {
+                    return Ok(None);
+                }
+                let site_ids = service.get_site_ids(api_key_id).await?;
+                Ok(Some(AccessSet::for_api_key(key.base.permissions, site_ids)))
+            }
+            AuthenticatedEntity::Daemon { .. }
+            | AuthenticatedEntity::ExternalService { .. }
+            | AuthenticatedEntity::System
+            | AuthenticatedEntity::Anonymous => Ok(None),
+        }
+    }
+
     /// Check if this is a user (session-based authentication)
     pub fn is_user(&self) -> bool {
         matches!(self, AuthenticatedEntity::User { .. })
@@ -344,11 +383,6 @@ impl AuthenticatedEntity {
             self,
             AuthenticatedEntity::User { .. } | AuthenticatedEntity::ApiKey { .. }
         )
-    }
-
-    /// Check if this entity has access to the specified site
-    pub fn has_site_access(&self, site_id: &Uuid) -> bool {
-        self.site_ids().contains(site_id)
     }
 
     /// Get the email address if this is a User.
@@ -868,30 +902,9 @@ impl AuthenticatedEntity {
             return Err(AuthError(ApiError::not_authenticated()));
         }
 
-        let site_ids: Vec<Uuid> = if matches!(
-            user.base.permissions,
-            UserOrgPermissions::Owner | UserOrgPermissions::Admin
-        ) {
-            let org_filter = StorableFilter::<Site>::new_from_org_id(&user.base.organization_id);
-
-            app_state
-                .services
-                .site_service
-                .get_all(org_filter)
-                .await
-                .map_err(|_| AuthError(ApiError::internal_error("Failed to load sites")))?
-                .iter()
-                .map(|n| n.id)
-                .collect()
-        } else {
-            // Load site_ids from junction table for non-admin users
-            app_state
-                .services
-                .user_service
-                .get_site_ids(&user.id)
-                .await
-                .map_err(|_| AuthError(ApiError::internal_error("Failed to load user sites")))?
-        };
+        let site_ids = user_site_ids(&app_state.services, &user)
+            .await
+            .map_err(|_| AuthError(ApiError::internal_error("Failed to load sites")))?;
 
         Ok(AuthenticatedEntity::User {
             user_id: user.id,
@@ -902,6 +915,21 @@ impl AuthenticatedEntity {
             email_verified: user.base.email_verified,
             terms_accepted_at: user.base.terms_accepted_at,
         })
+    }
+}
+
+/// The sites a user holds: every site in the organization for an Owner or Admin, and the
+/// `user_site_access` rows for anyone else.
+async fn user_site_ids(services: &ServiceFactory, user: &User) -> anyhow::Result<Vec<Uuid>> {
+    if matches!(
+        user.base.permissions,
+        UserOrgPermissions::Owner | UserOrgPermissions::Admin
+    ) {
+        let org_filter = StorableFilter::<Site>::new_from_org_id(&user.base.organization_id);
+        let sites = services.site_service.get_all(org_filter).await?;
+        Ok(sites.iter().map(|site| site.id).collect())
+    } else {
+        services.user_service.get_site_ids(&user.id).await
     }
 }
 

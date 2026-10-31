@@ -4,7 +4,7 @@ use crate::server::{
     auth::middleware::{
         auth::AuthenticatedEntity,
         features::{ensure_tagging_allowed, tags_changed},
-        permissions::{Authorized, Member, Viewer},
+        permissions::{Authorized, Delete, Grants, Read, Scoped, Write},
     },
     config::AppState,
     shared::{
@@ -26,10 +26,8 @@ use crate::server::{
 };
 use async_trait::async_trait;
 use axum::{
-    Router,
     extract::{Path, State},
     response::Json,
-    routing::{delete, get, post, put},
 };
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -51,16 +49,16 @@ pub struct ListScope {
 }
 
 impl ListScope {
-    /// The scope of `entity`. Lists are organization data, so a caller with no organization is
-    /// refused.
-    pub fn of(entity: &AuthenticatedEntity) -> ApiResult<Self> {
+    /// The scope of an authorized caller: the sites where it may read what it asked for. Lists are
+    /// organization data, so a caller with no organization is refused.
+    pub fn of<P: Scoped>(auth: &Authorized<P>) -> ApiResult<Self> {
         Ok(Self {
-            site_ids: entity.site_ids(),
-            organization_id: entity
+            site_ids: auth.site_ids(),
+            organization_id: auth
                 .organization_id()
                 .ok_or_else(ApiError::organization_required)?,
-            user_id: entity.user_id(),
-            permissions: entity.permissions(),
+            user_id: auth.user_id(),
+            permissions: auth.entity.permissions(),
         })
     }
 }
@@ -130,27 +128,12 @@ where
     }
 }
 
-/// Create a standard CRUD router
-pub fn create_crud_router<T>() -> Router<Arc<AppState>>
-where
-    T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
-    EntityEnum: From<T>,
-{
-    Router::new()
-        .route("/", post(create_handler::<T>))
-        .route("/", get(get_all_handler::<T>))
-        .route("/{id}", put(update_handler::<T>))
-        .route("/{id}", delete(delete_handler::<T>))
-        .route("/{id}", get(get_by_id_handler::<T>))
-        .route("/bulk-delete", post(bulk_delete_handler::<T>))
-}
-
 /// [`validate_references`] for a typed entity.
 pub(crate) async fn validate_entity_references<T>(
     state: &AppState,
     entity: &T,
     stored: Option<&T>,
-    site_ids: &[Uuid],
+    caller: &AuthenticatedEntity,
     organization_id: Uuid,
 ) -> Result<(), ApiError>
 where
@@ -167,7 +150,7 @@ where
         &to_json(entity)?,
         stored.as_ref(),
         &[],
-        site_ids,
+        caller,
         organization_id,
     )
     .await
@@ -175,7 +158,7 @@ where
 
 pub async fn create_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<impl Grants<T, Write>>,
     ApiJson(mut entity): ApiJson<T>,
 ) -> ApiResult<Json<ApiResponse<T>>>
 where
@@ -194,14 +177,16 @@ where
         .ok_or_else(ApiError::organization_required)?;
     let user_id = auth.user_id();
 
+    // A row that is its own site (a `Site`) isn't on any site until it exists.
+    let entity_id = entity.id();
     validate_create_access(
-        service.get_site_id(&entity),
+        service.get_site_id(&entity).filter(|id| *id != entity_id),
         service.get_organization_id(&entity),
         &site_ids,
         organization_id,
     )?;
 
-    validate_entity_references::<T>(&state, &entity, None, &site_ids, organization_id).await?;
+    validate_entity_references::<T>(&state, &entity, None, &auth.entity, organization_id).await?;
 
     if tags_changed(None, entity.get_tags()) {
         ensure_tagging_allowed(&state, &organization_id).await?;
@@ -255,7 +240,7 @@ where
 /// cannot collect from the page it has loaded.
 pub async fn get_field_values_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<impl Grants<T, Read>>,
     Path(field): Path<T::OrderField>,
     Query(query): Query<T::FilterQuery>,
 ) -> ApiResult<Json<ApiResponse<Vec<GroupCount>>>>
@@ -263,7 +248,7 @@ where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
     EntityEnum: From<T>,
 {
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     let filter = field_values_filter::<T>(&scope, &query, field);
 
     let counts = T::get_service(&state)
@@ -293,14 +278,14 @@ where
 
 pub async fn get_all_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<impl Grants<T, Read>>,
     Query(query): Query<T::FilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<T>>>
 where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
     EntityEnum: From<T>,
 {
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     let user_id = scope.user_id;
 
     let filter = T::list_filter(&state, &query, &scope).await?;
@@ -337,7 +322,7 @@ where
 
 pub async fn get_by_id_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<impl Grants<T, Read>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<T>>>
 where
@@ -392,7 +377,7 @@ where
 
 pub async fn update_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<impl Grants<T, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(mut entity): ApiJson<T>,
 ) -> ApiResult<Json<ApiResponse<T>>>
@@ -453,8 +438,14 @@ where
         organization_id,
     )?;
 
-    validate_entity_references::<T>(&state, &entity, Some(&existing), &site_ids, organization_id)
-        .await?;
+    validate_entity_references::<T>(
+        &state,
+        &entity,
+        Some(&existing),
+        &auth.entity,
+        organization_id,
+    )
+    .await?;
 
     if tags_changed(existing.get_tags(), entity.get_tags()) {
         ensure_tagging_allowed(&state, &organization_id).await?;
@@ -487,7 +478,7 @@ where
 
 pub async fn delete_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<impl Grants<T, Delete>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>>
 where
@@ -552,7 +543,7 @@ where
 
 pub async fn bulk_delete_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<impl Grants<T, Delete>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>>
 where

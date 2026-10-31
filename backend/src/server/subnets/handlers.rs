@@ -1,5 +1,5 @@
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
-use crate::server::auth::middleware::permissions::{Authorized, IsDaemon, Member, Or, Viewer};
+use crate::server::auth::middleware::permissions::{Authorized, Can, IsDaemon, Or, Read, Write};
 use crate::server::ip_addresses::r#impl::base::IPAddress;
 use crate::server::openapi::tags as api_tags;
 use crate::server::shared::attribution::AttributeSource;
@@ -273,7 +273,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn get_subnet_by_id(
     state: State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Subnet, Read>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<SubnetResponse>>> {
     let site_ids = auth.site_ids();
@@ -324,7 +324,7 @@ async fn get_subnet_by_id(
 )]
 async fn get_all_subnets(
     state: State<Arc<AppState>>,
-    auth: Authorized<Or<Viewer, IsDaemon>>,
+    auth: Authorized<Or<Can<Subnet, Read>, IsDaemon>>,
     Query(query): Query<SubnetFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<SubnetResponse>>> {
     let site_ids = auth.site_ids();
@@ -383,7 +383,7 @@ async fn get_all_subnets(
 )]
 async fn create_subnet(
     state: State<Arc<AppState>>,
-    auth: Authorized<Or<Member, IsDaemon>>,
+    auth: Authorized<Or<Can<Subnet, Write>, IsDaemon>>,
     ApiJson(mut request): ApiJson<Subnet>,
 ) -> ApiResult<Json<ApiResponse<Subnet>>> {
     let site_ids = auth.site_ids();
@@ -418,7 +418,7 @@ async fn create_subnet(
                     &state,
                     &request,
                     None,
-                    &site_ids,
+                    &entity,
                     site.base.organization_id,
                 )
                 .await?;
@@ -445,7 +445,7 @@ async fn create_subnet(
                 &state,
                 &request,
                 None,
-                &site_ids,
+                &entity,
                 organization_id.ok_or_else(ApiError::organization_required)?,
             )
             .await?;
@@ -487,7 +487,7 @@ async fn create_subnet(
 )]
 async fn update_subnet(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Subnet, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(mut subnet): ApiJson<Subnet>,
 ) -> ApiResult<Json<ApiResponse<Subnet>>> {
@@ -517,7 +517,7 @@ async fn update_subnet(
         // Moving the range through this endpoint is a person's assertion, so it settles the
         // confidence ladder: `Confirmed` outranks anything a scan reads, which is what stops a
         // corrected range being re-corrected on the next discovery. This lives here rather than in
-        // `preserve_immutable_fields` because here it is *true* — the route is `Authorized<Member>`
+        // `preserve_immutable_fields` because here it is *true* — the route is `Authorized<Can<Subnet, Write>>`
         // and no daemon can reach it — whereas storage sees every writer alike.
         subnet.base.cidr =
             SubnetCidr::new(subnet.base.cidr.value().clone(), AttributeSource::Manual);
@@ -587,7 +587,7 @@ pub struct MergeSubnetRequest {
 )]
 async fn merge_subnet(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Subnet, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(request): ApiJson<MergeSubnetRequest>,
 ) -> ApiResult<Json<ApiResponse<Subnet>>> {

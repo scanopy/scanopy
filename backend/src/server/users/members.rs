@@ -14,7 +14,7 @@ use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::server::{
-    auth::middleware::permissions::{Admin, Authorized},
+    auth::middleware::permissions::{Authorized, Can, Read},
     config::AppState,
     invites::r#impl::base::Invite,
     shared::{
@@ -321,7 +321,7 @@ fn computed(field: &MemberOrderField, member: &Member) -> Option<Computed> {
 )]
 pub async fn list_members(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<User, Read>>,
     Query(query): Query<MemberFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<Member>>> {
     let organization_id = auth

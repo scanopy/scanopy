@@ -17,7 +17,7 @@ use crate::server::shared::types::api::PaginatedApiResponse;
 use crate::server::{
     auth::middleware::{
         features::{CreateSiteFeature, RequireFeature},
-        permissions::{Admin, Authorized, Member, Viewer},
+        permissions::{Authorized, Can, Delete, Read, Write},
     },
     shared::{
         events::{
@@ -168,11 +168,11 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn get_all_sites(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Site, Read>>,
     Query(query): Query<SiteListQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<Site>>> {
     // Sites are scoped to the caller's own sites by `StorableFilter::new_for_access`.
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     Ok(Json(list_page::<Site>(&state, &scope, &query).await?))
 }
 
@@ -191,7 +191,7 @@ async fn get_all_sites(
 )]
 async fn get_by_id_site(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Site, Read>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<Site>>> {
     let mut response = crate::server::shared::handlers::traits::get_by_id_handler::<Site>(
@@ -229,7 +229,7 @@ async fn get_by_id_site(
 )]
 async fn create_site(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Site, Write>>,
     RequireFeature { .. }: RequireFeature<CreateSiteFeature>,
     ApiJson(site): ApiJson<Site>,
 ) -> ApiResult<Json<ApiResponse<Site>>> {
@@ -250,12 +250,7 @@ async fn create_site(
             .await?;
     }
 
-    let response = create_handler::<Site>(
-        State(state.clone()),
-        auth.into_permission::<Member>(),
-        ApiJson(site),
-    )
-    .await?;
+    let response = create_handler::<Site>(State(state.clone()), auth, ApiJson(site)).await?;
 
     if let Some(site) = response.data() {
         let service = Site::get_service(&state);
@@ -323,7 +318,7 @@ async fn create_site(
 )]
 async fn update_site(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Site, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(site): ApiJson<Site>,
 ) -> ApiResult<Json<ApiResponse<Site>>> {
@@ -343,13 +338,8 @@ async fn update_site(
             .await?;
     }
 
-    let mut response = update_handler::<Site>(
-        State(state.clone()),
-        auth.into_permission::<Member>(),
-        Path(id),
-        ApiJson(site),
-    )
-    .await?;
+    let mut response =
+        update_handler::<Site>(State(state.clone()), auth, Path(id), ApiJson(site)).await?;
 
     let credential_ids = match credential_ids {
         Some(credential_ids) => {
@@ -392,7 +382,7 @@ async fn update_site(
 )]
 async fn delete_site(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Site, Delete>>,
     path: Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let organization_id = auth
@@ -409,7 +399,7 @@ async fn delete_site(
         )));
     }
 
-    delete_handler::<Site>(State(state), auth.into_permission::<Member>(), path).await
+    delete_handler::<Site>(State(state), auth, path).await
 }
 
 /// Bulk delete sites
@@ -426,7 +416,7 @@ async fn delete_site(
 )]
 async fn bulk_delete_sites(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Site, Delete>>,
     json: ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
     let organization_id = auth
@@ -443,5 +433,5 @@ async fn bulk_delete_sites(
         )));
     }
 
-    bulk_delete_handler::<Site>(State(state), auth.into_permission::<Member>(), json).await
+    bulk_delete_handler::<Site>(State(state), auth, json).await
 }
