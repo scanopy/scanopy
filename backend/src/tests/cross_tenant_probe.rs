@@ -103,7 +103,7 @@ pub(super) async fn serve_as(state: &Arc<AppState>, caller: AuthenticatedEntity)
 }
 
 /// Every row of `entity` in the organization, serialized.
-async fn rows_of(
+pub(super) async fn rows_of(
     source: &ServiceSource<'_>,
     entity: E,
     organization_id: Uuid,
@@ -127,7 +127,7 @@ async fn rows_of(
 }
 
 /// The entity a route operates on: the type named by its first OpenAPI tag.
-fn route_entity(operation: &Value) -> Option<E> {
+pub(super) fn route_entity(operation: &Value) -> Option<E> {
     let tags = operation["tags"].as_array()?;
     E::iter().find(|entity| {
         tags.iter()
@@ -432,18 +432,23 @@ async fn no_route_accepts_another_organizations_ids() {
 }
 
 /// One operation from the spec, with the rows of the entity it acts on.
-struct Route<'a> {
-    method: &'a str,
-    path: &'a str,
-    operation: &'a Value,
-    schemas: &'a Value,
-    rows: &'a [Value],
+pub(super) struct Route<'a> {
+    pub(super) method: &'a str,
+    pub(super) path: &'a str,
+    pub(super) operation: &'a Value,
+    pub(super) schemas: &'a Value,
+    pub(super) rows: &'a [Value],
 }
 
 impl Route<'_> {
     /// Calls the route with each body from [`bodies`], returning the statuses. A route naming two
     /// ids of one type gets two different rows, so a merge isn't refused as a merge with itself.
-    async fn call(&self, client: &reqwest::Client, addr: SocketAddr, own_site: Uuid) -> Vec<u16> {
+    pub(super) async fn call(
+        &self,
+        client: &reqwest::Client,
+        addr: SocketAddr,
+        own_site: Uuid,
+    ) -> Vec<u16> {
         let row = &self.rows[0];
         let other = self.rows.get(1).unwrap_or(row);
         let params: Vec<&Value> = self.operation["parameters"]
@@ -484,7 +489,10 @@ impl Route<'_> {
             if let Some(body) = &body {
                 request = request.json(body);
             }
-            statuses.push(request.send().await.unwrap().status().as_u16());
+            statuses.push(match request.send().await {
+                Ok(response) => response.status().as_u16(),
+                Err(_) => 0,
+            });
         }
         statuses
     }
