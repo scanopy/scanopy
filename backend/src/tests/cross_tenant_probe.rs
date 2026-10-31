@@ -66,7 +66,7 @@ const CONTROL_EXEMPT: &[(&str, &str)] = &[
 ];
 
 /// Routes that take no authorization: auth flows, webhooks and public reads.
-pub(super) const PUBLIC: &[&str] = &[
+const PUBLIC: &[&str] = &[
     "/api/auth/",
     "/api/billing/webhooks",
     "/api/config",
@@ -138,7 +138,7 @@ pub(super) async fn serve_as(state: &Arc<AppState>, caller: AuthenticatedEntity)
 }
 
 /// Every row of `entity` in the organization, serialized.
-pub(super) async fn rows_of(
+async fn rows_of(
     source: &ServiceSource<'_>,
     entity: E,
     organization_id: Uuid,
@@ -162,7 +162,7 @@ pub(super) async fn rows_of(
 }
 
 /// The entity a route operates on: the type named by its first OpenAPI tag.
-pub(super) fn route_entity(operation: &Value) -> Option<E> {
+fn route_entity(operation: &Value) -> Option<E> {
     let tags = operation["tags"].as_array()?;
     E::iter().find(|entity| {
         tags.iter()
@@ -666,23 +666,18 @@ async fn every_authenticated_route_records_an_authorization() {
 }
 
 /// One operation from the spec, with the rows of the entity it acts on.
-pub(super) struct Route<'a> {
-    pub(super) method: &'a str,
-    pub(super) path: &'a str,
-    pub(super) operation: &'a Value,
-    pub(super) schemas: &'a Value,
-    pub(super) rows: &'a [Value],
+struct Route<'a> {
+    method: &'a str,
+    path: &'a str,
+    operation: &'a Value,
+    schemas: &'a Value,
+    rows: &'a [Value],
 }
 
 impl Route<'_> {
     /// Calls the route with each body from [`bodies`], returning the statuses. A route naming two
     /// ids of one type gets two different rows, so a merge isn't refused as a merge with itself.
-    pub(super) async fn call(
-        &self,
-        client: &reqwest::Client,
-        addr: SocketAddr,
-        own_site: Uuid,
-    ) -> Vec<u16> {
+    async fn call(&self, client: &reqwest::Client, addr: SocketAddr, own_site: Uuid) -> Vec<u16> {
         let mut statuses = Vec::new();
         for request in self.requests(client, addr, own_site) {
             statuses.push(match request.send().await {
