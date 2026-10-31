@@ -2,7 +2,10 @@ use std::{fmt::Display, net::IpAddr, str::FromStr};
 
 use cidr::IpCidr;
 
+#[cfg(test)]
+use crate::server::auth::access::record_check;
 use crate::server::{
+    auth::access::{AccessSet, Action, Resource},
     config::AppState,
     daemon_api_keys::{r#impl::base::DaemonApiKey, service::ResolvedDaemonKey},
     shared::{
@@ -279,6 +282,40 @@ impl AuthenticatedEntity {
             AuthenticatedEntity::System => vec![],
             AuthenticatedEntity::Anonymous => vec![],
         }
+    }
+
+    /// What this user or API key can do. Everyone else holds no role.
+    fn access(&self) -> AccessSet {
+        match self {
+            AuthenticatedEntity::User {
+                permissions,
+                site_ids,
+                ..
+            } => AccessSet::for_user(*permissions, site_ids.clone()),
+            AuthenticatedEntity::ApiKey {
+                permissions,
+                site_ids,
+                ..
+            } => AccessSet::for_api_key(*permissions, site_ids.clone()),
+            AuthenticatedEntity::Daemon { .. }
+            | AuthenticatedEntity::ExternalService { .. }
+            | AuthenticatedEntity::System
+            | AuthenticatedEntity::Anonymous => AccessSet::default(),
+        }
+    }
+
+    /// Whether this principal holds `action` on `resource` anywhere.
+    pub fn can(&self, resource: Resource, action: Action) -> bool {
+        #[cfg(test)]
+        record_check(resource, action);
+        self.access().can(resource, action)
+    }
+
+    /// The sites where this principal may take `action` on `resource`.
+    pub fn site_ids_for(&self, resource: Resource, action: Action) -> Vec<Uuid> {
+        #[cfg(test)]
+        record_check(resource, action);
+        self.access().site_ids(resource, action)
     }
 
     /// Check if this is a user (session-based authentication)

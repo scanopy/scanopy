@@ -1,3 +1,4 @@
+pub mod access;
 pub mod disposable_email;
 pub mod email_domain;
 pub mod email_validation;
