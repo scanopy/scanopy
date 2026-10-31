@@ -93,6 +93,8 @@ async fn hosts_on(state: &AppState, tenant: &Tenant) -> usize {
         .len()
 }
 
+/// Subnets on the site, without the Internet and Remote rows: a subscriber seeds those after the
+/// site is created, so they can land between two counts.
 async fn subnets_on(state: &AppState, tenant: &Tenant) -> usize {
     state
         .services
@@ -102,7 +104,9 @@ async fn subnets_on(state: &AppState, tenant: &Tenant) -> usize {
             .id]))
         .await
         .unwrap()
-        .len()
+        .iter()
+        .filter(|subnet| !subnet.is_organizational_subnet())
+        .count()
 }
 
 #[tokio::test]
