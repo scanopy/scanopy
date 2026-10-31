@@ -132,6 +132,10 @@ pub struct ReleaseNote {
     /// licences when it doesn't email everyone. Notes from before the flag
     /// existed have none and don't.
     pub licensed_email: bool,
+    /// Whether this release asks users to upgrade their daemons. Notes from
+    /// before the flag existed have none and ask. Set in a file, it needs
+    /// `email` and `modal` on, so the ask reaches users.
+    pub daemon_upgrade: bool,
     /// The body, rendered from markdown with raw HTML left out.
     pub html: String,
     /// The body rendered as sections, split before each heading. The release
@@ -146,7 +150,8 @@ impl ReleaseNote {
     }
 
     /// Parse a notes file: YAML-style frontmatter (`version`, `date`, `title`,
-    /// `email`, optional `modal` and `licensed_email`), then the markdown body.
+    /// `email`, optional `modal`, `licensed_email` and `daemon_upgrade`), then the
+    /// markdown body.
     pub fn parse(source: &str) -> Result<Self, String> {
         let (frontmatter, body) = split_frontmatter(source)?;
         let required = |key: &str| frontmatter.required(key);
@@ -173,6 +178,13 @@ impl ReleaseNote {
             Some("true") => true,
             Some(other) => return Err(format!("licensed_email `{other}` is not true or false")),
         };
+        let daemon_upgrade = match frontmatter.field("daemon_upgrade").as_deref() {
+            None => true,
+            Some("true") if email && modal => true,
+            Some("true") => return Err("daemon_upgrade needs email and modal on".to_string()),
+            Some("false") => false,
+            Some(other) => return Err(format!("daemon_upgrade `{other}` is not true or false")),
+        };
 
         Ok(Self {
             version,
@@ -181,6 +193,7 @@ impl ReleaseNote {
             email,
             modal,
             licensed_email,
+            daemon_upgrade,
             html: render_markdown(body),
             sections: render_sections(body),
         })
@@ -253,6 +266,15 @@ impl Catalog {
             .iter()
             .filter(|note| &note.version > after && &note.version <= up_to)
             .collect()
+    }
+
+    /// The newest release at or below `up_to` that asks users to upgrade their
+    /// daemons.
+    pub fn daemon_upgrade_target(&self, up_to: &Version) -> Option<&Version> {
+        self.notes
+            .iter()
+            .find(|note| note.daemon_upgrade && &note.version <= up_to)
+            .map(|note| &note.version)
     }
 }
 
@@ -343,6 +365,51 @@ pub(crate) mod tests {
         assert_eq!(licensed("email: false"), Ok(false));
         assert_eq!(licensed("email: false\nlicensed_email: true"), Ok(true));
         assert!(licensed("email: false\nlicensed_email: yes").is_err());
+    }
+
+    /// Notes written before the `daemon_upgrade` flag existed ask for an upgrade,
+    /// as every release did.
+    #[test]
+    fn daemon_upgrade_defaults_to_on_when_the_flag_is_absent() {
+        let flagged = |extra: &str| {
+            ReleaseNote::parse(&note_file_with("0.18.0", extra).1).map(|note| note.daemon_upgrade)
+        };
+        assert_eq!(flagged("email: false"), Ok(true));
+        assert_eq!(flagged("email: false\ndaemon_upgrade: false"), Ok(false));
+        assert!(flagged("email: false\ndaemon_upgrade: maybe").is_err());
+    }
+
+    /// A release that asks for a daemon upgrade has to tell users, by email and
+    /// by modal.
+    #[test]
+    fn daemon_upgrade_needs_the_email_and_the_modal() {
+        let flagged = |extra: &str| {
+            ReleaseNote::parse(&note_file_with("0.18.0", extra).1).map(|note| note.daemon_upgrade)
+        };
+        assert_eq!(flagged("email: true\ndaemon_upgrade: true"), Ok(true));
+        assert!(flagged("email: false\ndaemon_upgrade: true").is_err());
+        assert!(flagged("email: true\nmodal: false\ndaemon_upgrade: true").is_err());
+    }
+
+    /// The target is the newest flagged release at or below the bound, whatever
+    /// unflagged releases sit above it.
+    #[test]
+    fn daemon_upgrade_target_is_the_newest_flagged_release_up_to_the_bound() {
+        let unflagged = "email: false\ndaemon_upgrade: false";
+        let catalog = Catalog::from_files([
+            note_file("0.18.0", false),
+            note_file_with("0.18.1", unflagged),
+            note_file_with("0.18.2", "email: true\ndaemon_upgrade: true"),
+            note_file_with("0.18.3", unflagged),
+            note_file_with("0.18.4", unflagged),
+            note_file("0.19.0", false),
+        ]);
+        let target = |up_to: Version| catalog.daemon_upgrade_target(&up_to).cloned();
+
+        assert_eq!(target(Version::new(0, 18, 4)), Some(Version::new(0, 18, 2)));
+        assert_eq!(target(Version::new(0, 18, 1)), Some(Version::new(0, 18, 0)));
+        assert_eq!(target(Version::new(0, 19, 0)), Some(Version::new(0, 19, 0)));
+        assert_eq!(target(Version::new(0, 17, 0)), None);
     }
 
     /// Sections split before every top-level heading, keep any lead-in as their
