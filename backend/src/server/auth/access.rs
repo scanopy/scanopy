@@ -57,10 +57,11 @@ pub enum Keying {
 }
 
 /// A principal's role on a site. Owner has none: it adds nothing on site-keyed resources.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Display, EnumIter, EnumString)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Display, EnumIter, EnumString)]
 pub enum SiteRole {
     Admin,
     Member,
+    #[default]
     Viewer,
 }
 
@@ -178,6 +179,36 @@ impl Grants {
     pub fn union(&self, other: &Grants) -> Grants {
         Self(self.0.union(&other.0).copied().collect())
     }
+
+    pub fn intersection(&self, other: &Grants) -> Grants {
+        Self(self.0.intersection(&other.0).copied().collect())
+    }
+
+    pub fn is_subset_of(&self, other: &Grants) -> bool {
+        self.0.is_subset(&other.0)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// Every grant a role can hold at `keying`.
+    fn every(keying: Keying) -> Grants {
+        match keying {
+            Keying::Organization => UserOrgPermissions::iter()
+                .fold(Grants::default(), |every, role| every.union(&role.grants())),
+            Keying::Site => {
+                SiteRole::iter().fold(Grants::default(), |every, role| every.union(&role.grants()))
+            }
+        }
+    }
+
+    /// The no-escalation rule for users and invites, at one scope: `granted` is a strict subset of
+    /// these grants, unless these are every grant at that scope. An Admin can't invite an Admin,
+    /// and an Owner can grant Owner.
+    pub fn may_grant_to_person(&self, granted: &Grants, keying: Keying) -> bool {
+        granted.is_subset_of(self) && (granted != self || Grants::every(keying).is_subset_of(self))
+    }
 }
 
 impl UserOrgPermissions {
@@ -211,16 +242,17 @@ impl SiteRole {
 }
 
 /// Where a site role holds.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum AssignmentScope {
     /// Every site in the organization, including sites created later.
+    #[default]
     AllSites,
     /// One site.
     Site(Uuid),
 }
 
 /// A site role at a scope.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Assignment {
     pub role: SiteRole,
     pub scope: AssignmentScope,
@@ -314,6 +346,48 @@ impl AccessSet {
                 .map(|(site_id, _)| *site_id)
                 .collect(),
         }
+    }
+
+    pub fn organization(&self) -> &Grants {
+        &self.organization
+    }
+
+    /// This access, limited to what `owner` holds at each level. Compares grants, so it holds for
+    /// roles with no order between them.
+    pub fn capped_by(&self, owner: &AccessSet) -> AccessSet {
+        let sites = self
+            .sites
+            .iter()
+            .filter_map(|(site_id, grants)| {
+                let capped = grants.intersection(owner.sites.get(site_id)?);
+                (!capped.is_empty()).then_some((*site_id, capped))
+            })
+            .collect();
+        Self::from_grants(self.organization.intersection(&owner.organization), sites)
+    }
+
+    /// Whether this principal may give, or manage, a person holding `granted`: the no-escalation
+    /// rule at the organization and on every site `granted` reaches.
+    pub fn may_grant_to_person(&self, granted: &AccessSet) -> bool {
+        let none = Grants::default();
+        self.organization
+            .may_grant_to_person(&granted.organization, Keying::Organization)
+            && granted.sites.iter().all(|(site_id, grants)| {
+                self.sites
+                    .get(site_id)
+                    .unwrap_or(&none)
+                    .may_grant_to_person(grants, Keying::Site)
+            })
+    }
+
+    /// Whether this principal may give a key `granted`. A subset is enough, so a user can make a
+    /// key at their own level.
+    pub fn may_grant_to_key(&self, granted: &AccessSet) -> bool {
+        let none = Grants::default();
+        granted.organization.is_subset_of(&self.organization)
+            && granted.sites.iter().all(|(site_id, grants)| {
+                grants.is_subset_of(self.sites.get(site_id).unwrap_or(&none))
+            })
     }
 }
 
@@ -502,6 +576,128 @@ mod tests {
         );
         assert_eq!(access.site_ids(Resource::Site, Action::Write), vec![site]);
         assert_eq!(access.site_ids(Resource::Host, Action::Read).len(), 2);
+    }
+
+    /// Generated access: organization grants plus grants on some of `sites`.
+    fn generated(seeded: &mut Seeded, sites: &[Uuid]) -> AccessSet {
+        let on_sites = sites
+            .iter()
+            .filter(|_| seeded.next() % 4 != 0)
+            .copied()
+            .collect::<Vec<_>>();
+        AccessSet::from_grants(
+            seeded.grants(Keying::Organization),
+            on_sites
+                .into_iter()
+                .map(|site_id| (site_id, seeded.grants(Keying::Site)))
+                .collect(),
+        )
+    }
+
+    /// True of every pair, including pairs with no order between them.
+    #[test]
+    fn a_capped_key_never_exceeds_its_owner() {
+        let mut seeded = Seeded(SEED);
+        let sites = [Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4()];
+        let mut unordered = 0;
+        for _ in 0..ROUNDS {
+            let key = generated(&mut seeded, &sites);
+            let owner = generated(&mut seeded, &sites);
+            if !key.may_grant_to_key(&owner) && !owner.may_grant_to_key(&key) {
+                unordered += 1;
+            }
+            let capped = key.capped_by(&owner);
+            for resource in Resource::iter() {
+                for action in Action::iter() {
+                    if capped.can(resource, action) {
+                        assert!(owner.can(resource, action), "{resource} {action}");
+                        assert!(key.can(resource, action), "{resource} {action}");
+                    }
+                    for site_id in capped.site_ids(resource, action) {
+                        assert!(owner.site_ids(resource, action).contains(&site_id));
+                        assert!(key.site_ids(resource, action).contains(&site_id));
+                    }
+                }
+            }
+            assert!(owner.may_grant_to_key(&capped));
+        }
+        assert!(unordered > 0, "the generator produced only ordered pairs");
+    }
+
+    /// A pair is refused when it holds anything the caller doesn't, at either level.
+    #[test]
+    fn a_grant_beyond_the_callers_is_refused() {
+        let mut seeded = Seeded(SEED);
+        let sites = [Uuid::new_v4(), Uuid::new_v4()];
+        for _ in 0..ROUNDS {
+            let caller = generated(&mut seeded, &sites);
+            let granted = generated(&mut seeded, &sites);
+            let within = |pairs: &Grants, held: &Grants| pairs.is_subset_of(held);
+            let none = Grants::default();
+            let beyond = !within(&granted.organization, &caller.organization)
+                || granted.sites.iter().any(|(site_id, grants)| {
+                    !within(grants, caller.sites.get(site_id).unwrap_or(&none))
+                });
+            assert_eq!(caller.may_grant_to_key(&granted), !beyond);
+            if beyond {
+                assert!(!caller.may_grant_to_person(&granted));
+            }
+        }
+    }
+
+    /// Holding exactly what is granted lets a user make a key, and a person only with every grant.
+    #[test]
+    fn a_person_needs_strictly_more_unless_the_caller_holds_every_grant() {
+        let mut seeded = Seeded(SEED);
+        let site = Uuid::new_v4();
+        for _ in 0..ROUNDS {
+            let access = generated(&mut seeded, &[site]);
+            assert!(access.may_grant_to_key(&access));
+            assert!(!access.may_grant_to_person(&access));
+        }
+        let every = AccessSet::from_grants(
+            Grants::every(Keying::Organization),
+            BTreeMap::from([(site, Grants::every(Keying::Site))]),
+        );
+        assert!(every.may_grant_to_person(&every));
+    }
+
+    #[test]
+    fn the_rule_holds_for_the_built_in_roles() {
+        use UserOrgPermissions::{Admin, Member, Owner};
+        let site = Uuid::new_v4();
+        let person = |role| AccessSet::new(role, &Assignment::for_person(role, &[site]), &[site]);
+        let key = |role| AccessSet::new(role, &Assignment::for_api_key(role, &[site]), &[site]);
+
+        assert!(!person(Admin).may_grant_to_person(&person(Admin)));
+        assert!(!person(Admin).may_grant_to_person(&person(Owner)));
+        assert!(person(Admin).may_grant_to_person(&person(Member)));
+        assert!(person(Owner).may_grant_to_person(&person(Owner)));
+        assert!(person(Admin).may_grant_to_key(&key(Admin)));
+        assert!(!person(Admin).may_grant_to_key(&key(Owner)));
+    }
+
+    /// An all-sites grant reaches sites a limited caller doesn't hold.
+    #[test]
+    fn a_limited_owner_key_cannot_grant_every_site() {
+        use UserOrgPermissions::{Admin, Owner};
+        let (held, other) = (Uuid::new_v4(), Uuid::new_v4());
+        let limited = AccessSet::new(Owner, &Assignment::for_api_key(Owner, &[held]), &[]);
+        let admin = AccessSet::new(Admin, &Assignment::for_person(Admin, &[]), &[held, other]);
+        assert!(!limited.may_grant_to_person(&admin));
+    }
+
+    #[test]
+    fn capping_drops_what_a_demoted_owner_lost() {
+        use UserOrgPermissions::{Admin, Member};
+        let (kept, lost) = (Uuid::new_v4(), Uuid::new_v4());
+        let key = AccessSet::new(Admin, &Assignment::for_api_key(Admin, &[kept, lost]), &[]);
+        let demoted = AccessSet::new(Member, &Assignment::for_person(Member, &[kept]), &[]);
+
+        let capped = key.capped_by(&demoted);
+        assert!(!capped.can(Resource::Credential, Action::Write));
+        assert_eq!(capped.site_ids(Resource::Host, Action::Write), vec![kept]);
+        assert!(capped.site_ids(Resource::Site, Action::Write).is_empty());
     }
 
     /// A key with no sites keeps its org role, and reaches no site.

@@ -145,7 +145,7 @@ impl OidcService {
             permissions,
             ip,
             user_agent,
-            site_ids,
+            site_assignments,
             invited_as,
         } = params;
 
@@ -210,7 +210,7 @@ impl OidcService {
                 provision_org,
                 email_verified,
                 permissions,
-                site_ids,
+                site_assignments,
                 terms_accepted_at,
                 deployment_type,
             })

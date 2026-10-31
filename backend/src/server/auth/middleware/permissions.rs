@@ -12,14 +12,13 @@
 //! - Combinators: `Or<A, B>`, `And<A, B>` - compose requirements
 use std::marker::PhantomData;
 
-use crate::server::auth::access::{Action, Resource};
+use crate::server::auth::access::{AccessSet, Action, Resource};
 use crate::server::auth::middleware::auth::AuthError;
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::{
     config::AppState,
     shared::{storage::traits::Entity, types::api::ApiError},
     sites::r#impl::Site,
-    users::r#impl::permissions::UserOrgPermissions,
 };
 use axum::{extract::FromRequestParts, http::request::Parts};
 use uuid::Uuid;
@@ -500,11 +499,9 @@ impl<P: PermissionRequirement> Authorized<P> {
             .ok_or_else(|| ApiError::internal_error("Organization ID required"))
     }
 
-    /// Get the permissions, or return an error if not available.
-    pub fn require_permissions(&self) -> Result<UserOrgPermissions, ApiError> {
-        self.entity
-            .permissions()
-            .ok_or_else(|| ApiError::internal_error("Permissions required"))
+    /// The caller's access, or an error for a caller that holds none.
+    pub fn require_access(&self) -> Result<&AccessSet, ApiError> {
+        self.entity.access().ok_or_else(ApiError::user_required)
     }
 }
 

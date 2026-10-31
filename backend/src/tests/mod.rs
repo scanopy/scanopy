@@ -322,6 +322,6 @@ pub fn list_scope(
         site_ids: site_ids.to_vec(),
         organization_id,
         user_id: None,
-        permissions: None,
+        organization_grants: None,
     }
 }

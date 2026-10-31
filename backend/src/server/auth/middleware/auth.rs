@@ -5,7 +5,7 @@ use cidr::IpCidr;
 #[cfg(test)]
 use crate::server::auth::access::record_check;
 use crate::server::{
-    auth::access::{AccessSet, Action, Assignment, Resource},
+    auth::access::{AccessSet, Action, Grants, Resource},
     config::AppState,
     daemon_api_keys::{r#impl::base::DaemonApiKey, service::ResolvedDaemonKey},
     shared::{
@@ -18,7 +18,6 @@ use crate::server::{
         storage::{filter::StorableFilter, traits::Unique},
         types::api::ApiError,
     },
-    sites::r#impl::Site,
     users::r#impl::{base::User, permissions::UserOrgPermissions},
 };
 use axum::{
@@ -296,6 +295,11 @@ impl AuthenticatedEntity {
         }
     }
 
+    /// The organization grants of this user or API key.
+    pub fn organization_grants(&self) -> Option<Grants> {
+        self.access().map(|access| access.organization().clone())
+    }
+
     /// Whether this principal holds `action` on `resource`: in its organization grants for an
     /// org-keyed resource, and on any site for a site-keyed one.
     pub fn can(&self, resource: Resource, action: Action) -> bool {
@@ -336,7 +340,7 @@ impl AuthenticatedEntity {
                 let Some(user) = services.user_service.get_by_id(user_id).await? else {
                     return Ok(None);
                 };
-                Ok(Some(user_access(services, &user).await?))
+                Ok(Some(services.access_service.user_access(&user).await?))
             }
             AuthenticatedEntity::ApiKey { api_key_id, .. } => {
                 let service = &services.user_api_key_service;
@@ -346,8 +350,7 @@ impl AuthenticatedEntity {
                 if check_key_validity(&key).is_err() {
                     return Ok(None);
                 }
-                let site_ids = service.get_site_ids(api_key_id).await?;
-                Ok(Some(api_key_access(key.base.permissions, &site_ids)))
+                services.access_service.api_key_access(&key).await
             }
             AuthenticatedEntity::Daemon { .. }
             | AuthenticatedEntity::ExternalService { .. }
@@ -604,13 +607,15 @@ impl AuthenticatedEntity {
                             )));
                         }
 
-                        // Get site access from junction table
-                        let site_ids = app_state
+                        let access = app_state
                             .services
-                            .user_api_key_service
-                            .get_site_ids(&api_key_id)
+                            .access_service
+                            .api_key_access(&user_api_key)
                             .await
-                            .unwrap_or_default();
+                            .map_err(|_| {
+                                AuthError(ApiError::internal_error("Failed to load access"))
+                            })?
+                            .ok_or_else(|| AuthError(ApiError::not_authenticated()))?;
 
                         // Update last used asynchronously (don't block auth)
                         user_api_key.set_last_used(Some(Utc::now()));
@@ -629,7 +634,7 @@ impl AuthenticatedEntity {
                             user_id,
                             organization_id,
                             permissions,
-                            access: api_key_access(permissions, &site_ids),
+                            access,
                         });
                     }
 
@@ -901,9 +906,12 @@ impl AuthenticatedEntity {
             return Err(AuthError(ApiError::not_authenticated()));
         }
 
-        let access = user_access(&app_state.services, &user)
+        let access = app_state
+            .services
+            .access_service
+            .user_access(&user)
             .await
-            .map_err(|_| AuthError(ApiError::internal_error("Failed to load sites")))?;
+            .map_err(|_| AuthError(ApiError::internal_error("Failed to load access")))?;
 
         Ok(AuthenticatedEntity::User {
             user_id: user.id,
@@ -915,29 +923,6 @@ impl AuthenticatedEntity {
             terms_accepted_at: user.base.terms_accepted_at,
         })
     }
-}
-
-/// What a user can do, from their role and site list.
-async fn user_access(services: &ServiceFactory, user: &User) -> anyhow::Result<AccessSet> {
-    let site_ids = services.user_service.get_site_ids(&user.id).await?;
-    let assignments = Assignment::for_person(user.base.permissions, &site_ids);
-    let org_filter = StorableFilter::<Site>::new_from_org_id(&user.base.organization_id);
-    let sites = services.site_service.get_all(org_filter).await?;
-    let organization_site_ids: Vec<Uuid> = sites.iter().map(|site| site.id).collect();
-    Ok(AccessSet::new(
-        user.base.permissions,
-        &assignments,
-        &organization_site_ids,
-    ))
-}
-
-/// What a key can do, from its role and site list.
-fn api_key_access(permissions: UserOrgPermissions, site_ids: &[Uuid]) -> AccessSet {
-    AccessSet::new(
-        permissions,
-        &Assignment::for_api_key(permissions, site_ids),
-        &[],
-    )
 }
 
 /// Helper to extract user agent from headers

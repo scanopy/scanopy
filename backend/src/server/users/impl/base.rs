@@ -1,6 +1,7 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
+use crate::server::auth::access::{Grants, Keying};
 use crate::server::{
     shared::{
         entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants},
@@ -269,12 +270,11 @@ pub struct User {
 }
 
 impl User {
-    /// Whether a member with `viewer_permissions` sees this user in the users list: an owner sees
-    /// everyone, anyone else sees the users below them and themselves.
-    pub fn is_listed_for(&self, viewer_permissions: UserOrgPermissions, viewer_id: Uuid) -> bool {
-        viewer_permissions == UserOrgPermissions::Owner
-            || self.base.permissions < viewer_permissions
-            || self.id == viewer_id
+    /// Whether a member with these organization grants sees this user in the users list: the
+    /// users whose role they could grant, and themselves.
+    pub fn is_listed_for(&self, viewer: &Grants, viewer_id: Uuid) -> bool {
+        self.id == viewer_id
+            || viewer.may_grant_to_person(&self.base.permissions.grants(), Keying::Organization)
     }
 
     pub fn set_password(&mut self, password_hash: String) {

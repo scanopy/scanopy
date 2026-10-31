@@ -677,7 +677,7 @@ async fn reset_organization_data(
 
     // Deletes run sequentially: several of these cascades overlap on shared
     // junction rows (e.g. networks and user_api_keys both cascade
-    // user_api_key_site_access; tags cascade entity_tags), so running them
+    // site_assignments; tags cascade entity_tags), so running them
     // concurrently risks lock-ordering deadlocks for negligible gain — the
     // reset is a handful of deletes and was never the slow part.
 

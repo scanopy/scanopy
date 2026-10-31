@@ -263,7 +263,7 @@ async fn users(
     found.sort_by(|a, b| a.base.email.as_str().cmp(b.base.email.as_str()));
     let listed: Vec<User> = found
         .into_iter()
-        .filter(|user| user.is_listed_for(scope.permissions, scope.user_id))
+        .filter(|user| user.is_listed_for(&scope.organization_grants, scope.user_id))
         .collect();
     Ok(Page {
         total_count: listed.len() as u64,

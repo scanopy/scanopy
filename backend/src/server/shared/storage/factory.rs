@@ -15,10 +15,9 @@ use crate::server::interface_neighbors::r#impl::base::{
 };
 use crate::server::license::instances::{LicenseInstance, ServerInstance};
 use crate::server::release_notes::storage::ReleaseAnnouncement;
+use crate::server::site_assignments::r#impl::base::SiteAssignment;
 use crate::server::tags::entity_tags::EntityTag;
 use crate::server::tags::groups::base::TagGroup;
-use crate::server::user_api_keys::r#impl::site_access::UserApiKeySiteAccess;
-use crate::server::users::r#impl::site_access::UserSiteAccess;
 use crate::server::vlans::r#impl::subnet_vlans::SubnetVlanRecord;
 use crate::server::{
     bindings::r#impl::base::Binding,
@@ -80,8 +79,7 @@ pub struct StorageFactory {
     pub vlans: Arc<GenericPostgresStorage<Vlan>>,
     // Rows stored under a parent: junction tables, and the non-entity tables a parent owns
     pub entity_tags: Arc<GenericChildStorage<EntityTag>>,
-    pub user_api_key_site_access: Arc<GenericChildStorage<UserApiKeySiteAccess>>,
-    pub user_site_access: Arc<GenericChildStorage<UserSiteAccess>>,
+    pub site_assignments: Arc<GenericChildStorage<SiteAssignment>>,
     pub dependency_members: Arc<GenericChildStorage<DependencyMemberRecord>>,
     pub subnet_vlan: Arc<GenericChildStorage<SubnetVlanRecord>>,
     pub site_credentials: Arc<GenericChildStorage<SiteCredential>>,
@@ -148,8 +146,7 @@ impl StorageFactory {
             interfaces: Arc::new(GenericPostgresStorage::new(pool.clone())),
             vlans: Arc::new(GenericPostgresStorage::new(pool.clone())),
             entity_tags: Arc::new(GenericChildStorage::new(pool.clone())),
-            user_api_key_site_access: Arc::new(GenericChildStorage::new(pool.clone())),
-            user_site_access: Arc::new(GenericChildStorage::new(pool.clone())),
+            site_assignments: Arc::new(GenericChildStorage::new(pool.clone())),
             dependency_members: Arc::new(GenericChildStorage::new(pool.clone())),
             subnet_vlan: Arc::new(GenericChildStorage::new(pool.clone())),
             site_credentials: Arc::new(GenericChildStorage::new(pool.clone())),

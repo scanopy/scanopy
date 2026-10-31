@@ -362,7 +362,7 @@ async fn get_all_subnets(
                 site_ids,
                 organization_id,
                 user_id: entity.user_id(),
-                permissions: entity.permissions(),
+                organization_grants: entity.organization_grants(),
             };
             Ok(Json(list_page::<Subnet>(&state, &scope, &query).await?))
         }

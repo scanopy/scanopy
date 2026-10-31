@@ -3,7 +3,7 @@
 //! probed without anyone adding it here.
 
 use std::cell::RefCell;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -16,7 +16,9 @@ use uuid::Uuid;
 
 use super::self_hosted_licensing::{cloud_test_state, create_org};
 use super::{access_on, site, subnet, user};
-use crate::server::auth::access::{Keying, RECORDED_CHECKS, Resource};
+use crate::server::auth::access::{
+    Assignment, AssignmentScope, Keying, RECORDED_CHECKS, Resource, SiteRole,
+};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::billing::plans::get_enterprise_plan;
 use crate::server::config::AppState;
@@ -29,6 +31,7 @@ use crate::server::shared::handlers::factory::{create_public_share_routes, creat
 use crate::server::shared::services::entity_fields::{RelatedSource, ServiceSource};
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::traits::Storable;
+use crate::server::site_assignments::r#impl::base::Principal;
 use crate::server::subnets::r#impl::base::{SubnetCidr, SubnetCidrValue};
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
 
@@ -580,6 +583,222 @@ async fn no_route_reaches_a_row_on_a_site_outside_the_callers_scope() {
             "no route probed {resource}"
         );
     }
+}
+
+/// Which rows of a seeded org's two first sites a walk calls routes with.
+#[derive(Clone, Copy)]
+enum Walked {
+    First,
+    Second,
+    Both,
+}
+
+/// In its own database, a user holding `role` and the assignments `assignments` builds from the
+/// org's first two sites calls every site-keyed route with `walked` rows. Returns each route, as
+/// the site's position plus the route, with its statuses. A read of a list is 200 when the
+/// response shows one of the site's rows and 404 when it doesn't.
+async fn statuses_on_site_keyed_routes(
+    role: UserOrgPermissions,
+    assignments: impl Fn(Uuid, Uuid) -> Vec<Assignment>,
+    walked: Walked,
+) -> BTreeMap<String, Vec<u16>> {
+    let (state, _container) = cloud_test_state().await;
+    let seeded = seed_org(&state).await;
+
+    // Site ids differ between databases and names don't, so the positions line up across walks.
+    let mut sites: Vec<(String, Uuid)> = seeded.rows[&E::Site]
+        .iter()
+        .map(|row| {
+            let id = serde_json::from_value(row["id"].clone()).unwrap();
+            (row["name"].to_string(), id)
+        })
+        .collect();
+    sites.sort();
+    assert!(sites.len() >= 2, "the demo seeds two sites");
+    let sides = match walked {
+        Walked::First => vec![0],
+        Walked::Second => vec![1],
+        Walked::Both => vec![0, 1],
+    };
+
+    let mut caller = user(&seeded.id);
+    caller.base.email = "walker@example.com".parse().unwrap();
+    caller.base.permissions = role;
+    let caller = state
+        .services
+        .user_service
+        .create(caller, AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    let access = &state.services.access_service;
+    access
+        .set_access(
+            Principal::User(caller.id),
+            role,
+            &assignments(sites[0].1, sites[1].1),
+            AuthenticatedEntity::System,
+        )
+        .await
+        .unwrap();
+    let addr = serve_as(
+        &state,
+        AuthenticatedEntity::User {
+            user_id: caller.id,
+            organization_id: seeded.id,
+            permissions: role,
+            access: access.user_access(&caller).await.unwrap(),
+            email: caller.base.email.clone(),
+            email_verified: true,
+            terms_accepted_at: None,
+        },
+    )
+    .await;
+
+    let spec = serde_json::to_value(crate::server::openapi::full_spec()).unwrap();
+    let schemas = &spec["components"]["schemas"];
+    let client = reqwest::Client::new();
+    let mut statuses_by_route = BTreeMap::new();
+    for (method, path, operation) in operations(&spec) {
+        let Some(entity) = route_entity(operation) else {
+            continue;
+        };
+        if entity.resource().keying() != Keying::Site
+            || daemon_only(operation)
+            || PUBLIC.iter().any(|prefix| path.starts_with(prefix))
+            || ORG_ROLE_ROUTES.contains(&format!("{method} {path}").as_str())
+        {
+            continue;
+        }
+        for side in &sides {
+            let site_id = sites[*side].1;
+            let mut rows: Vec<Value> = seeded.rows[&entity]
+                .iter()
+                .filter(|row| row["site_id"] == json!(site_id) || row["id"] == json!(site_id))
+                .cloned()
+                .collect();
+            // Row ids differ between databases, so walks line up on what names a row.
+            rows.sort_by_key(|row| {
+                [
+                    "name",
+                    "cidr",
+                    "ip_address",
+                    "mac_address",
+                    "number",
+                    "port",
+                ]
+                .map(|field| row[field].to_string())
+            });
+            if rows.is_empty() {
+                if names_rows(&path, operation) {
+                    continue;
+                }
+                rows.push(json!({"id": Uuid::nil(), "site_id": site_id}));
+            }
+            let route = Route {
+                method: &method,
+                path: &path,
+                operation,
+                schemas,
+                rows: &rows,
+            };
+            let statuses = if method == "get" && !names_rows(&path, operation) {
+                let mut shown = false;
+                for request in route.requests(&client, addr, site_id) {
+                    let request = request.query(&[("limit", "0")]);
+                    let text = request.send().await.unwrap().text().await.unwrap();
+                    shown |= rows
+                        .iter()
+                        .filter_map(|row| row["id"].as_str())
+                        .any(|id| text.contains(id));
+                }
+                vec![if shown { 200 } else { 404 }]
+            } else {
+                route.call(&client, addr, site_id).await
+            };
+            statuses_by_route.insert(format!("site {side}: {method} {path}"), statuses);
+        }
+    }
+    statuses_by_route
+}
+
+/// Routes on a site-keyed entity that the organization role answers for.
+const ORG_ROLE_ROUTES: &[&str] = &["post /api/v1/sites"];
+
+/// A user with Viewer on one site and Admin on another, set through `set_access`, gets on each site
+/// what a user holding that role everywhere gets there, on every site-keyed route.
+#[tokio::test]
+async fn each_action_follows_the_role_on_that_site() {
+    use UserOrgPermissions::{Admin, Viewer};
+    let everywhere = |role| {
+        move |_: Uuid, _: Uuid| {
+            vec![Assignment {
+                role,
+                scope: AssignmentScope::AllSites,
+            }]
+        }
+    };
+    let viewer =
+        statuses_on_site_keyed_routes(Viewer, everywhere(SiteRole::Viewer), Walked::First).await;
+    let admin =
+        statuses_on_site_keyed_routes(Admin, everywhere(SiteRole::Admin), Walked::Second).await;
+    let mixed = statuses_on_site_keyed_routes(
+        Viewer,
+        |first, second| {
+            vec![
+                Assignment {
+                    role: SiteRole::Viewer,
+                    scope: AssignmentScope::Site(first),
+                },
+                Assignment {
+                    role: SiteRole::Admin,
+                    scope: AssignmentScope::Site(second),
+                },
+            ]
+        },
+        Walked::Both,
+    )
+    .await;
+
+    assert_eq!(mixed.len(), viewer.len() + admin.len());
+    let succeeded = |statuses: &[u16]| -> Vec<bool> {
+        statuses.iter().map(|s| (200..300).contains(s)).collect()
+    };
+    let refused = |statuses: &[u16]| -> Vec<bool> {
+        statuses.iter().map(|s| matches!(s, 401..=403)).collect()
+    };
+    let mut differs = Vec::new();
+    // On the Viewer site a caller past `Can` for its other site is stopped later, as a 400, 403 or
+    // 404, so what compares is that nothing more succeeds. On the Admin site a row can fail on its
+    // own content, and what compares is that nothing is refused.
+    for (route, expected) in &viewer {
+        if succeeded(&mixed[route]) != succeeded(expected) {
+            differs.push(format!(
+                "{route}: {:?}, as Viewer {expected:?}",
+                mixed[route]
+            ));
+        }
+    }
+    for (route, expected) in &admin {
+        if refused(&mixed[route]) != refused(expected) {
+            differs.push(format!(
+                "{route}: {:?}, as Admin {expected:?}",
+                mixed[route]
+            ));
+        }
+    }
+    assert!(differs.is_empty(), "{differs:#?}");
+
+    let reached_only_as_admin = viewer
+        .iter()
+        .filter(|(route, statuses)| {
+            !succeeded(statuses).contains(&true)
+                && succeeded(&admin[&route.replacen("site 0", "site 1", 1)]).contains(&true)
+        })
+        .count();
+    assert!(
+        reached_only_as_admin > 20,
+        "the two roles differ on only {reached_only_as_admin} routes"
+    );
 }
 
 /// Authenticated routes that run no `Can` check, and why.

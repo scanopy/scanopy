@@ -1,6 +1,7 @@
 use crate::server::shared::events::types::{DeletionReason, UpdateReason};
 use crate::server::shared::extractors::Query;
 use crate::server::{
+    auth::access::Grants,
     auth::middleware::{
         auth::AuthenticatedEntity,
         features::{ensure_tagging_allowed, tags_changed},
@@ -22,7 +23,6 @@ use crate::server::{
             validate_entity, validate_read_access, validate_update_access,
         },
     },
-    users::r#impl::permissions::UserOrgPermissions,
 };
 use async_trait::async_trait;
 use axum::{
@@ -38,14 +38,14 @@ use uuid::Uuid;
 
 /// Who is reading a list, which decides the rows it may hold: the caller's sites and organization,
 /// and for lists of the caller's own things (their API keys) or ruled by their role (the users
-/// list), the user and their permissions.
+/// list), the user and their organization grants.
 #[derive(Debug, Clone)]
 pub struct ListScope {
     pub site_ids: Vec<Uuid>,
     pub organization_id: Uuid,
     /// The signed-in user, or the user an API key belongs to.
     pub user_id: Option<Uuid>,
-    pub permissions: Option<UserOrgPermissions>,
+    pub organization_grants: Option<Grants>,
 }
 
 impl ListScope {
@@ -58,7 +58,7 @@ impl ListScope {
                 .organization_id()
                 .ok_or_else(ApiError::organization_required)?,
             user_id: auth.user_id(),
-            permissions: auth.entity.permissions(),
+            organization_grants: auth.entity.organization_grants(),
         })
     }
 }

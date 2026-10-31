@@ -9,6 +9,7 @@ use uuid::Uuid;
 use super::cross_tenant_probe::serve_as;
 use super::self_hosted_licensing::{cloud_test_state, create_org};
 use super::{access_on, site, subnet, user};
+use crate::server::auth::access::Assignment;
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::billing::plans::get_enterprise_plan;
 use crate::server::config::AppState;
@@ -17,6 +18,7 @@ use crate::server::shared::api_key_common::{ApiKeyType, generate_api_key_for_sto
 use crate::server::shared::handlers::factory::create_router;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::traits::Storable;
+use crate::server::site_assignments::r#impl::base::Principal;
 use crate::server::user_api_keys::r#impl::base::{UserApiKey, UserApiKeyBase};
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
 
@@ -50,11 +52,43 @@ pub(super) async fn user_key(
         .create(user(&organization_id), AuthenticatedEntity::System)
         .await
         .unwrap();
+    set_user_access(state, owner.id, UserOrgPermissions::Owner, &[]).await;
+    user_key_of(state, owner.id, organization_id, permissions, site_ids).await
+}
+
+/// Give a user their role, on `site_ids` when the role is limited to sites.
+async fn set_user_access(
+    state: &AppState,
+    user_id: Uuid,
+    permissions: UserOrgPermissions,
+    site_ids: &[Uuid],
+) {
+    state
+        .services
+        .access_service
+        .set_access(
+            Principal::User(user_id),
+            permissions,
+            &Assignment::for_person(permissions, site_ids),
+            AuthenticatedEntity::System,
+        )
+        .await
+        .unwrap();
+}
+
+/// An enabled key for `user_id`, holding `site_ids`. Returns the plaintext.
+async fn user_key_of(
+    state: &AppState,
+    user_id: Uuid,
+    organization_id: Uuid,
+    permissions: UserOrgPermissions,
+    site_ids: Vec<Uuid>,
+) -> (Uuid, String) {
     let (plaintext, hashed) = generate_api_key_for_storage(ApiKeyType::User);
     let key = UserApiKey::new(UserApiKeyBase {
         key: hashed,
         name: "automation".to_string(),
-        user_id: owner.id,
+        user_id,
         organization_id,
         permissions,
         is_enabled: true,
@@ -62,8 +96,8 @@ pub(super) async fn user_key(
     });
     let created = state
         .services
-        .user_api_key_service
-        .create_with_sites(key, site_ids, AuthenticatedEntity::System)
+        .access_service
+        .create_api_key(key, site_ids, AuthenticatedEntity::System)
         .await
         .unwrap();
     (created.id, plaintext)
@@ -234,10 +268,16 @@ async fn an_open_stream_stops_delivering_a_site_the_key_lost() {
     // Seeding a site also broadcasts, so a `lost` event can pass its check just before the change.
     // `marker` only becomes visible with the change: nothing after its first event predates it.
     let marker = create_site().await.unwrap();
+    let role = UserOrgPermissions::Viewer;
     state
         .services
-        .user_api_key_service
-        .update_site_access(&key_id, &[kept.id, marker.id])
+        .access_service
+        .set_access(
+            Principal::ApiKey(key_id),
+            role,
+            &Assignment::for_api_key(role, &[kept.id, marker.id]),
+            AuthenticatedEntity::System,
+        )
         .await
         .unwrap();
     topology.broadcast_live_update(marker.id);
@@ -314,4 +354,200 @@ async fn a_key_that_creates_a_site_can_list_it_and_populate_it_and_keeps_its_oth
     )
     .await;
     assert_eq!(status, 200, "{body}");
+
+    // The creator's assignment is Admin on the new site, so the key can change it too.
+    let path = format!("/api/v1/sites/{created}");
+    let body = serde_json::to_value(site(&org.id)).unwrap();
+    let (status, body) = send(addr, reqwest::Method::PUT, &path, &key, Some(&body)).await;
+    assert_eq!(status, 200, "{body}");
+}
+
+/// The key cap, through the real router and a real key: what its user loses, the key loses, on the
+/// next request.
+#[tokio::test]
+async fn a_key_drops_with_its_owner() {
+    let (state, _container) = cloud_test_state().await;
+    let org = create_org(&state, get_enterprise_plan(), None).await;
+    let create_site = || {
+        state
+            .services
+            .site_service
+            .create(site(&org.id), AuthenticatedEntity::System)
+    };
+    let (kept, lost) = (create_site().await.unwrap(), create_site().await.unwrap());
+    let mut person = user(&org.id);
+    person.base.email = "keyholder@example.com".parse().unwrap();
+    person.base.permissions = UserOrgPermissions::Admin;
+    let person = state
+        .services
+        .user_service
+        .create(person, AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    let admin = UserOrgPermissions::Admin;
+    set_user_access(&state, person.id, admin, &[]).await;
+    let (_, key) = user_key_of(&state, person.id, org.id, admin, vec![kept.id, lost.id]).await;
+    let addr = serve(&state).await;
+
+    let listed = |body: &Value| -> Vec<Uuid> {
+        let rows = body["data"].as_array().cloned().unwrap_or_default();
+        let mut ids: Vec<Uuid> = rows
+            .iter()
+            .filter_map(|row| serde_json::from_value(row["id"].clone()).ok())
+            .collect();
+        ids.sort();
+        ids
+    };
+    let sites = "/api/v1/sites";
+    let (_, body) = send(addr, reqwest::Method::GET, sites, &key, None).await;
+    let mut both = vec![kept.id, lost.id];
+    both.sort();
+    assert_eq!(listed(&body), both);
+    let new_site = serde_json::to_value(site(&org.id)).unwrap();
+    let credentials = "/api/v1/credentials";
+    let credential = |name: &str| {
+        serde_json::to_value(Credential::new(CredentialBase {
+            name: name.to_string(),
+            organization_id: org.id,
+            ..CredentialBase::default()
+        }))
+        .unwrap()
+    };
+    let body = credential("before");
+    let (status, body) = send(addr, reqwest::Method::POST, credentials, &key, Some(&body)).await;
+    assert_eq!(
+        status, 200,
+        "the key writes credentials as an Admin: {body}"
+    );
+
+    // The owner is demoted and loses a site. The key's stored role and sites are untouched.
+    let member = UserOrgPermissions::Member;
+    set_user_access(&state, person.id, member, &[kept.id]).await;
+
+    let (_, body) = send(addr, reqwest::Method::GET, sites, &key, None).await;
+    assert_eq!(listed(&body), vec![kept.id], "the lost site is gone");
+    let body = credential("after");
+    let (status, _) = send(addr, reqwest::Method::POST, credentials, &key, Some(&body)).await;
+    assert_eq!(status, 403, "credential writes drop with the role");
+    let (status, _) = send(addr, reqwest::Method::POST, sites, &key, Some(&new_site)).await;
+    assert_eq!(status, 403, "so does creating a site");
+    let path = format!("/api/v1/sites/{}", kept.id);
+    let body = serde_json::to_value(site(&org.id)).unwrap();
+    let (status, _) = send(addr, reqwest::Method::PUT, &path, &key, Some(&body)).await;
+    assert_eq!(status, 403, "a Member's site role can't edit a site");
+    let new_subnet = serde_json::to_value(subnet(&kept.id)).unwrap();
+    let path = "/api/v1/subnets";
+    let (status, body) = send(addr, reqwest::Method::POST, path, &key, Some(&new_subnet)).await;
+    assert_eq!(status, 200, "what the owner kept, the key keeps: {body}");
+}
+
+/// A limited Owner key stays limited, and keeps billing.
+#[tokio::test]
+async fn an_owner_key_on_some_sites_stays_limited_and_keeps_owner_resources() {
+    let (state, _container) = cloud_test_state().await;
+    let org = create_org(&state, get_enterprise_plan(), None).await;
+    let create_site = || {
+        state
+            .services
+            .site_service
+            .create(site(&org.id), AuthenticatedEntity::System)
+    };
+    let (held, other) = (create_site().await.unwrap(), create_site().await.unwrap());
+    let (_, key) = user_key(&state, org.id, UserOrgPermissions::Owner, vec![held.id]).await;
+    let addr = serve(&state).await;
+
+    let (_, body) = send(addr, reqwest::Method::GET, "/api/v1/sites", &key, None).await;
+    let listed = body["data"].as_array().unwrap();
+    assert_eq!(listed.len(), 1, "{body}");
+    assert_eq!(listed[0]["id"], serde_json::json!(held.id));
+
+    let path = format!("/api/v1/sites/{}", other.id);
+    let (status, _) = send(addr, reqwest::Method::GET, &path, &key, None).await;
+    assert_eq!(status, 403);
+
+    let path = "/api/billing/save-offer-coupon";
+    let (status, body) = send(addr, reqwest::Method::GET, path, &key, None).await;
+    assert_ne!(status, 403, "the key keeps billing: {body}");
+}
+
+/// Escalation through the routes: an Admin can't invite an Admin, an Owner can, and a user can make
+/// a key at their own level and not above it.
+#[tokio::test]
+async fn invites_and_keys_stop_at_what_the_caller_could_grant() {
+    let (state, _container) = cloud_test_state().await;
+    let org = create_org(&state, get_enterprise_plan(), None).await;
+    let held = state
+        .services
+        .site_service
+        .create(site(&org.id), AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    let caller = |role: UserOrgPermissions, email: &str| {
+        let session = user(&org.id);
+        let state = state.clone();
+        let email = email.to_string();
+        async move {
+            let mut session = session;
+            session.base.email = email.parse().unwrap();
+            session.base.permissions = role;
+            let stored = state
+                .services
+                .user_service
+                .create(session, AuthenticatedEntity::System)
+                .await
+                .unwrap();
+            set_user_access(&state, stored.id, role, &[]).await;
+            serve_as(
+                &state,
+                AuthenticatedEntity::User {
+                    user_id: stored.id,
+                    organization_id: org.id,
+                    permissions: role,
+                    access: state
+                        .services
+                        .access_service
+                        .user_access(&stored)
+                        .await
+                        .unwrap(),
+                    email: stored.base.email.clone(),
+                    email_verified: true,
+                    terms_accepted_at: None,
+                },
+            )
+            .await
+        }
+    };
+    let admin = caller(UserOrgPermissions::Admin, "admin@example.com").await;
+    let owner = caller(UserOrgPermissions::Owner, "owner@example.com").await;
+
+    let client = reqwest::Client::new();
+    let invite = |addr: std::net::SocketAddr, role: UserOrgPermissions| {
+        client
+            .post(format!("http://{addr}/api/v1/invites"))
+            .json(&serde_json::json!({"permissions": role, "site_ids": []}))
+            .send()
+    };
+    let status = |response: reqwest::Response| response.status().as_u16();
+    use UserOrgPermissions::{Admin, Member, Owner};
+    assert_eq!(status(invite(admin, Admin).await.unwrap()), 403);
+    assert_eq!(status(invite(admin, Owner).await.unwrap()), 403);
+    assert_eq!(status(invite(admin, Member).await.unwrap()), 200);
+    assert_eq!(status(invite(owner, Owner).await.unwrap()), 200);
+
+    let key = |role: UserOrgPermissions| {
+        let body = serde_json::to_value(UserApiKey::new(UserApiKeyBase {
+            name: "own level".to_string(),
+            permissions: role,
+            is_enabled: true,
+            site_ids: vec![held.id],
+            ..UserApiKeyBase::default()
+        }))
+        .unwrap();
+        client
+            .post(format!("http://{admin}/api/v1/user-api-keys"))
+            .json(&body)
+            .send()
+    };
+    assert_eq!(status(key(Admin).await.unwrap()), 200);
+    assert_eq!(status(key(Owner).await.unwrap()), 403);
 }

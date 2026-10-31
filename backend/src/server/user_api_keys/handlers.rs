@@ -8,10 +8,13 @@ use crate::server::shared::storage::traits::Entity;
 use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::validation::validate_site_ids_access;
 use crate::server::{
-    auth::access::{Action, Resource},
+    auth::access::{Action, Assignment, Resource},
     auth::middleware::{
         features::{ApiKeyFeature, RequireFeature},
-        permissions::{And, Authorized, Can, Delete, IsUser, Read, RequireVerified, Write},
+        permissions::{
+            And, Authorized, Can, Delete, IsUser, PermissionRequirement, Read, RequireVerified,
+            Write,
+        },
     },
     config::AppState,
     shared::{
@@ -34,10 +37,8 @@ use crate::server::{
             PaginatedApiResponse,
         },
     },
-    user_api_keys::{
-        r#impl::{api::UserApiKeyResponse, base::UserApiKey},
-        service::UserApiKeyService,
-    },
+    site_assignments::r#impl::base::Principal,
+    user_api_keys::r#impl::{api::UserApiKeyResponse, base::UserApiKey},
     users::r#impl::permissions::UserOrgPermissions,
 };
 use axum::{
@@ -207,6 +208,27 @@ pub async fn get_all(
     Ok(Json(list_page::<UserApiKey>(&state, &scope, &query).await?))
 }
 
+/// Refuses a key holding anything its user doesn't, at the organization or on any site.
+async fn refuse_key_escalation<P: PermissionRequirement>(
+    state: &AppState,
+    auth: &Authorized<P>,
+    organization_id: Uuid,
+    key: &UserApiKey,
+) -> Result<(), ApiError> {
+    let role = key.base.permissions;
+    let assignments = Assignment::for_api_key(role, &key.base.site_ids);
+    let granted = state
+        .services
+        .access_service
+        .resolve(organization_id, role, &assignments)
+        .await?;
+    if auth.require_access()?.may_grant_to_key(&granted) {
+        Ok(())
+    } else {
+        Err(ApiError::permission_denied())
+    }
+}
+
 /// Create user API key
 #[utoipa::path(
     post,
@@ -230,17 +252,12 @@ pub async fn create_user_api_key(
 ) -> ApiResult<Json<ApiResponse<UserApiKeyResponse>>> {
     let user_id = auth.require_user_id()?;
     let organization_id = auth.require_organization_id()?;
-    let user_permissions = auth.require_permissions()?;
     // The sites the user can hand out: a key is org-keyed, the sites in it aren't.
     let user_site_ids = auth.entity.site_ids_for(Resource::Site, Action::Read);
     let entity = auth.entity.clone();
 
-    // Validate permissions don't exceed user's permissions
-    UserApiKeyService::validate_permissions(api_key.base.permissions, user_permissions)
-        .map_err(|_| ApiError::permission_denied())?;
-
-    // Validate site access is a subset of user's access
     validate_site_ids_access(&api_key.base.site_ids, &user_site_ids)?;
+    refuse_key_escalation(&state, &auth, organization_id, &api_key).await?;
 
     // Set user_id and organization_id from authenticated user
     api_key.base.user_id = user_id;
@@ -252,8 +269,10 @@ pub async fn create_user_api_key(
     let site_ids = api_key.base.site_ids.clone();
 
     let service = &state.services.user_api_key_service;
-    let api_key = service
-        .create_with_sites(api_key, site_ids, entity.clone())
+    let api_key = state
+        .services
+        .access_service
+        .create_api_key(api_key, site_ids, entity.clone())
         .await
         .map_err(|e| {
             tracing::error!(
@@ -313,7 +332,7 @@ pub async fn update_user_api_key(
     ApiJson(mut request): ApiJson<UserApiKey>,
 ) -> ApiResult<Json<ApiResponse<UserApiKey>>> {
     let user_id = auth.require_user_id()?;
-    let user_permissions = auth.require_permissions()?;
+    let organization_id = auth.require_organization_id()?;
     let user_site_ids = auth.entity.site_ids_for(Resource::Site, Action::Read);
 
     let service = &state.services.user_api_key_service;
@@ -329,29 +348,32 @@ pub async fn update_user_api_key(
         return Err(ApiError::entity_access_denied::<UserApiKey>(id));
     }
 
-    // Validate permissions don't exceed user's permissions
-    UserApiKeyService::validate_permissions(request.base.permissions, user_permissions)
-        .map_err(|_| ApiError::permission_denied())?;
-
-    // Validate site access is a subset of user's access
     validate_site_ids_access(&request.base.site_ids, &user_site_ids)?;
+    refuse_key_escalation(&state, &auth, organization_id, &request).await?;
 
     // Preserve immutable fields
     request.preserve_immutable_fields(&existing);
 
-    // Update site access
     let site_ids = request.base.site_ids.clone();
-    service.update_site_access(&id, &site_ids).await?;
+    let role = request.base.permissions;
+    let entity = auth.into_entity();
 
     // Update the entity
     let updated = service
-        .update(
-            &mut request,
-            auth.into_entity(),
-            UpdateReason::EntityRequested,
-        )
+        .update(&mut request, entity.clone(), UpdateReason::EntityRequested)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+
+    state
+        .services
+        .access_service
+        .set_access(
+            Principal::ApiKey(id),
+            role,
+            &Assignment::for_api_key(role, &site_ids),
+            entity,
+        )
+        .await?;
 
     // Return with hydrated site_ids
     let mut result = updated;

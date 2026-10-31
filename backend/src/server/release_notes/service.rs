@@ -665,7 +665,11 @@ mod tests {
         let event_bus = Arc::new(crate::server::shared::events::bus::EventBus::new());
         let user_service = Arc::new(UserService::new(
             storage.users.clone(),
-            storage.user_site_access.clone(),
+            Arc::new(
+                crate::server::site_assignments::service::SiteAssignmentService::new(
+                    storage.site_assignments.clone(),
+                ),
+            ),
             event_bus.clone(),
         ));
         let organization_service = cloud.then(|| {

@@ -42,7 +42,7 @@ fn scope(
             terms_accepted_at: None,
         },
         organization_id: org_id,
-        permissions,
+        organization_grants: permissions.grants(),
         session_user_id: Some(user_id),
         user_id,
     }

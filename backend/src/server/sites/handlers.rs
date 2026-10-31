@@ -1,4 +1,3 @@
-use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::shared::extractors::Query;
 use crate::server::shared::handlers::list::list_page;
 use crate::server::shared::handlers::ordering::OrderField;
@@ -255,16 +254,13 @@ async fn create_site(
     if let Some(site) = response.data() {
         let service = Site::get_service(&state);
 
-        // A key reads sites only from its own list, so without this it could not reach the
-        // site it just created.
-        if let AuthenticatedEntity::ApiKey { api_key_id, .. } = &entity {
-            state
-                .services
-                .user_api_key_service
-                .add_site_access(api_key_id, &site.id)
-                .await
-                .map_err(|e| ApiError::internal_error(&e.to_string()))?;
-        }
+        // Without this, a creator limited to listed sites could not reach the site it created.
+        state
+            .services
+            .access_service
+            .keep_creator_access(&entity, org_id, site.id)
+            .await
+            .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
         // Emit SecondSiteCreated telemetry event
         if let Some(organization_id) = organization_id {

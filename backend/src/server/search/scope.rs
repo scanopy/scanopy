@@ -4,9 +4,8 @@
 use uuid::Uuid;
 
 use crate::server::{
-    auth::middleware::auth::AuthenticatedEntity,
+    auth::{access::Grants, middleware::auth::AuthenticatedEntity},
     shared::storage::{filter::StorableFilter, traits::Entity},
-    users::r#impl::permissions::UserOrgPermissions,
 };
 
 /// Whose search this is: the rows a list endpoint would show this caller.
@@ -15,7 +14,7 @@ pub struct SearchScope {
     /// Who is searching. Each entity type asks what they may read of it.
     pub reader: AuthenticatedEntity,
     pub organization_id: Uuid,
-    pub permissions: UserOrgPermissions,
+    pub organization_grants: Grants,
     /// The signed-in user, for entities only their owner lists (user API keys). `None` for an API
     /// key, which those lists refuse.
     pub session_user_id: Option<Uuid>,
@@ -29,7 +28,7 @@ impl SearchScope {
         Some(Self {
             reader: entity.clone(),
             organization_id: entity.organization_id()?,
-            permissions: entity.permissions()?,
+            organization_grants: entity.organization_grants()?,
             session_user_id: entity.is_user().then(|| entity.user_id()).flatten(),
             user_id: entity.user_id()?,
         })
