@@ -146,7 +146,11 @@
     "Bacnet",
     "Tftp",
     "Mgcp",
-    "GoogleWifi"
+    "GoogleWifi",
+    "Lpd",
+    "Smux",
+    "Rpcbind",
+    "Llmnr"
   ],
   "ContainerNetworkType": [
     "MacVlan",
@@ -260,7 +264,8 @@
     "CredentialWithoutTarget",
     "ProxmoxGuestOutsideScan",
     "ProxmoxGuestBehindNode",
-    "ProxmoxGuestIsolated"
+    "ProxmoxGuestIsolated",
+    "UnconfirmedHostInferred"
   ],
   "EdgeStyle": [
     "Straight",
