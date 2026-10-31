@@ -91,6 +91,7 @@ impl CredentialService {
         site_id: &Uuid,
         credential_ids: &[Uuid],
     ) -> Result<(), Error> {
+        self.refuse_login_assignment(credential_ids).await?;
         let rows: Vec<SiteCredential> = credential_ids
             .iter()
             .map(|credential_id| SiteCredential {
@@ -152,6 +153,8 @@ impl CredentialService {
         host_id: &Uuid,
         assignments: &[CredentialAssignment],
     ) -> Result<(), Error> {
+        let ids: Vec<Uuid> = assignments.iter().map(|a| a.credential_id).collect();
+        self.refuse_login_assignment(&ids).await?;
         let rows: Vec<HostCredential> = assignments
             .iter()
             .map(|assignment| HostCredential {

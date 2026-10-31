@@ -80,6 +80,7 @@ pub mod self_hosted_licensing;
 pub mod session_gate;
 pub mod snapshot_close_and_clone;
 pub mod snmp_sim_resolution;
+pub mod ssh_logins;
 pub mod stripe_webhook_retries;
 pub mod stripe_webhooks;
 pub mod subnet_placement;

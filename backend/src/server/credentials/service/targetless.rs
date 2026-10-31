@@ -12,7 +12,8 @@ use super::*;
 /// and no discovery target (`targeted`), ordered by name.
 ///
 /// Seeded defaults are left out. The Docker and Podman sockets are offered to every new daemon as
-/// one-shot targets and keep nothing where no runtime answered, which is routine, not a mistake.
+/// one-shot targets and keep nothing where no runtime answered, which is routine, not a mistake. A
+/// login is left out too: it runs nothing, and reaches a daemon inside the credentials that use it.
 pub fn find_targetless(
     credentials: Vec<Credential>,
     assigned: &HashSet<Uuid>,
@@ -20,7 +21,12 @@ pub fn find_targetless(
 ) -> Vec<Credential> {
     let mut targetless: Vec<Credential> = credentials
         .into_iter()
-        .filter(|c| !c.is_default && !assigned.contains(&c.id) && !targeted.contains(&c.id))
+        .filter(|c| {
+            !c.is_default
+                && c.base.credential_type.discriminant().role() == CredentialRole::Dispatched
+                && !assigned.contains(&c.id)
+                && !targeted.contains(&c.id)
+        })
         .collect();
     targetless.sort_by(|a, b| a.base.name.cmp(&b.base.name));
     targetless
@@ -29,7 +35,7 @@ pub fn find_targetless(
 impl Credential {
     pub fn targetless_warning(&self) -> DiscoveryWarning {
         DiscoveryWarning::CredentialWithoutTarget {
-            integration: self.base.credential_type.to_query_payload().discriminant(),
+            integration: self.base.credential_type.discriminant().wire_discriminant(),
             credential_id: Some(self.id),
         }
     }

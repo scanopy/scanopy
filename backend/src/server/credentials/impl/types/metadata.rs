@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use crate::server::{
     billing::types::{base::BillingPlan, features::Feature},
+    credentials::r#impl::mapping::CredentialQueryPayloadDiscriminants,
     daemons::r#impl::version::last_without_credential_wire,
     services::r#impl::definitions::ServiceDefinition,
     shared::types::{
@@ -59,6 +60,18 @@ pub enum UpstreamSupport {
     /// Reverse-engineered from the vendor's own client. There is no published contract, so it can
     /// change or stop working without notice.
     Undocumented,
+}
+
+/// What a credential is for: run against hosts by an integration, or a login other credentials
+/// use to reach a host.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, IntoStaticStr, ToSchema, PartialEq, Eq)]
+pub enum CredentialRole {
+    /// Assigned to hosts or sites and sent to daemons, which run its integration.
+    Dispatched,
+    /// Who the daemon is on a host (an SSH account and its secret). Never assigned or sent on its
+    /// own: a dispatched credential names it as its login, and the daemon receives it inside that
+    /// credential.
+    Login,
 }
 
 /// A credential assigned to a host, optionally limited to specific ip_addresses.
@@ -162,12 +175,6 @@ impl CredentialTypeDiscriminants {
                 password: SecretValue::Inline {
                     value: SecretString::from(String::new()),
                 },
-                // The form opens on the default mode: a file already on the scanned host.
-                script: ScriptSource::HostFile {
-                    path: String::new().into(),
-                },
-                target_os: OsFamily::Unix,
-                timeout_seconds: default_ssh_timeout_seconds(),
                 host_key_fingerprint: None,
             },
             Self::SshKey => CredentialType::SshKey {
@@ -177,13 +184,15 @@ impl CredentialTypeDiscriminants {
                     value: SecretString::from(String::new()),
                 },
                 passphrase: None,
+                host_key_fingerprint: None,
+            },
+            Self::SshScript => CredentialType::SshScript {
                 // The form opens on the default mode: a file already on the scanned host.
                 script: ScriptSource::HostFile {
                     path: String::new().into(),
                 },
                 target_os: OsFamily::Unix,
                 timeout_seconds: default_ssh_timeout_seconds(),
-                host_key_fingerprint: None,
             },
             Self::WakeOnLan => CredentialType::WakeOnLan {
                 port: default_wake_on_lan_port(),
@@ -216,6 +225,7 @@ impl CredentialTypeDiscriminants {
             // Standard protocols: SSH (RFC 4253) and the AMD Magic Packet format.
             | Self::SshPassword
             | Self::SshKey
+            | Self::SshScript
             | Self::WakeOnLan
             // The Proxmox VE API is documented (pve.proxmox.com/pve-docs/api-viewer).
             | Self::ProxmoxApiToken => UpstreamSupport::Vendor,
@@ -259,8 +269,9 @@ impl CredentialTypeDiscriminants {
             Self::UnifiApiKey => "UniFi API Key",
             Self::UnifiLocalAdmin => "UniFi Local Admin",
             Self::InstantOnAccount => "Instant On Portal Account",
-            Self::SshPassword => "SSH Password",
-            Self::SshKey => "SSH Key",
+            Self::SshPassword => "SSH Login (Password)",
+            Self::SshKey => "SSH Login (Key)",
+            Self::SshScript => "SSH Script",
             Self::WakeOnLan => "Wake-on-LAN",
             Self::ProxmoxApiToken => "Proxmox VE API Token",
         }
@@ -292,8 +303,9 @@ impl CredentialTypeDiscriminants {
             Self::InstantOnAccount => {
                 "Connects to the Instant On cloud portal with a site account."
             }
-            Self::SshPassword => "Connects over SSH with a username and password.",
-            Self::SshKey => "Connects over SSH with a private key.",
+            Self::SshPassword => "A username and password other SSH credentials log in with.",
+            Self::SshKey => "A private key other SSH credentials log in with.",
+            Self::SshScript => "Connects over SSH with an SSH login.",
             Self::WakeOnLan => {
                 "Sends a magic packet over UDP. The daemon must be on the host's network segment, or the router must forward directed broadcasts or relay the packet."
             }
@@ -312,8 +324,9 @@ impl CredentialTypeDiscriminants {
             Self::UnifiApiKey => "API Key",
             Self::UnifiLocalAdmin => "Local Admin",
             Self::InstantOnAccount => "Portal Account",
-            Self::SshPassword => "Password",
-            Self::SshKey => "Key",
+            Self::SshPassword => "Login (Password)",
+            Self::SshKey => "Login (Key)",
+            Self::SshScript => "Script",
             Self::WakeOnLan => "Magic Packet",
             Self::ProxmoxApiToken => "API Token",
         }
@@ -323,11 +336,15 @@ impl CredentialTypeDiscriminants {
     /// the canonical discovery text plus the transport note. Derived, never
     /// hand-written per transport, so the two cannot drift.
     pub(crate) fn full_description(&self) -> String {
-        format!(
-            "{} {}",
-            self.integration().discovers(),
-            self.transport_note()
-        )
+        match self.role() {
+            // A login discovers nothing itself: the credentials that run over it do.
+            CredentialRole::Login => self.transport_note().to_string(),
+            CredentialRole::Dispatched => format!(
+                "{} {}",
+                self.integration().discovers(),
+                self.transport_note()
+            ),
+        }
     }
 
     fn category_str(&self) -> &'static str {
@@ -369,7 +386,9 @@ impl CredentialTypeDiscriminants {
             Self::InstantOnAccount => semver::Version::new(0, 17, 10),
             // SSH and Wake-on-LAN shipped in 0.17.19. Daemons from 0.17.3 would parse them to
             // `Unknown` and skip them; the gate keeps them off older daemons entirely.
-            Self::SshPassword | Self::SshKey | Self::WakeOnLan => semver::Version::new(0, 17, 18),
+            Self::SshPassword | Self::SshKey | Self::SshScript | Self::WakeOnLan => {
+                semver::Version::new(0, 17, 18)
+            }
             // Proxmox shipped in 0.17.21. That daemon is also the first whose ServerPoll
             // `create_host` returns the server's child ids, which guest linking depends on.
             Self::ProxmoxApiToken => semver::Version::new(0, 17, 20),
@@ -398,7 +417,7 @@ impl CredentialTypeDiscriminants {
             // once other Instant On models' payloads are seen.
             Self::InstantOnAccount => Stability::Beta,
             // New; the script contract and host-key handling may still move.
-            Self::SshPassword | Self::SshKey | Self::WakeOnLan => Stability::Beta,
+            Self::SshPassword | Self::SshKey | Self::SshScript | Self::WakeOnLan => Stability::Beta,
             // New; validated against one single-node PVE 8.4 lab. Multi-node clusters and PVE 9
             // are covered by the API's documented shape, not yet by a live cluster.
             Self::ProxmoxApiToken => Stability::Beta,
@@ -423,9 +442,71 @@ impl CredentialTypeDiscriminants {
             | Self::UnifiLocalAdmin
             | Self::SshPassword
             | Self::SshKey
+            | Self::SshScript
             | Self::WakeOnLan
             | Self::ProxmoxApiToken => None,
             Self::InstantOnAccount => Some(Feature::InstantOnIntegration),
+        }
+    }
+
+    /// What this type is for. Exhaustive, so a new type says whether it is a login.
+    pub fn role(&self) -> CredentialRole {
+        match self {
+            Self::SshPassword | Self::SshKey => CredentialRole::Login,
+            Self::SnmpCommunity
+            | Self::SnmpV3
+            | Self::Gnmi
+            | Self::DockerProxy
+            | Self::DockerSocket
+            | Self::PodmanProxy
+            | Self::PodmanSocket
+            | Self::UnifiApiKey
+            | Self::UnifiLocalAdmin
+            | Self::InstantOnAccount
+            | Self::SshScript
+            | Self::WakeOnLan
+            | Self::ProxmoxApiToken => CredentialRole::Dispatched,
+        }
+    }
+
+    /// The wire tag a credential of this type goes out under, for what must name it without
+    /// building the payload (a warning about a credential that was not sent).
+    pub fn wire_discriminant(&self) -> CredentialQueryPayloadDiscriminants {
+        use CredentialQueryPayloadDiscriminants as W;
+        match self {
+            Self::SnmpCommunity | Self::SnmpV3 => W::Snmp,
+            Self::Gnmi => W::Gnmi,
+            Self::DockerProxy => W::DockerProxy,
+            Self::DockerSocket => W::DockerSocket,
+            Self::PodmanProxy => W::PodmanProxy,
+            Self::PodmanSocket => W::PodmanSocket,
+            Self::UnifiApiKey | Self::UnifiLocalAdmin => W::UnifiController,
+            Self::InstantOnAccount => W::InstantOn,
+            Self::SshPassword | Self::SshKey | Self::SshScript => W::Ssh,
+            Self::WakeOnLan => W::WakeOnLan,
+            Self::ProxmoxApiToken => W::Proxmox,
+        }
+    }
+
+    /// Whether a credential of this type runs over a login it names (`login_credential_id`).
+    /// Exhaustive for the same reason as [`Self::role`].
+    pub fn requires_login(&self) -> bool {
+        match self {
+            Self::SshScript => true,
+            Self::SnmpCommunity
+            | Self::SnmpV3
+            | Self::Gnmi
+            | Self::DockerProxy
+            | Self::DockerSocket
+            | Self::PodmanProxy
+            | Self::PodmanSocket
+            | Self::UnifiApiKey
+            | Self::UnifiLocalAdmin
+            | Self::InstantOnAccount
+            | Self::SshPassword
+            | Self::SshKey
+            | Self::WakeOnLan
+            | Self::ProxmoxApiToken => false,
         }
     }
 
@@ -453,6 +534,10 @@ impl CredentialTypeDiscriminants {
             "last_unsupported_daemon_version": self.last_unsupported_daemon_version().to_string(),
             // Release maturity. The frontend renders a "Beta" tag; it is not a gate.
             "stability": self.stability(),
+            // A login is never assigned: the form skips assignments and other pickers leave it
+            // out. A type that requires one shows a login picker.
+            "role": self.role(),
+            "requires_login": self.requires_login(),
             // Whether the vendor publishes this API. Orthogonal to `stability` — an integration
             // can be fully validated and still be riding an undocumented endpoint.
             "upstream_support": self.upstream_support(),

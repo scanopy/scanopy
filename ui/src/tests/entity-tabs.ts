@@ -485,6 +485,11 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				organization_id: ORGANIZATION,
 				is_default: excluded(
 					"A default's description says what it is, and its row has no delete action"
+				),
+				// A login's users count in its Hosts cell ("Used by N"), where a script lists its hosts.
+				used_by: 'assigned_hosts',
+				login_credential_id: excluded(
+					'The login a credential runs over; its form shows it, and the login counts its users'
 				)
 			})
 		]

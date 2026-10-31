@@ -7,7 +7,12 @@
 	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
 	import type { components } from '$lib/api/schema';
 	import type { Credential } from '../types/base';
-	import { createDefaultCredential, getCredentialTypeId, isDaemonHostOnly } from '../types/base';
+	import {
+		createDefaultCredential,
+		getCredentialTypeId,
+		isDaemonHostOnly,
+		isLoginType
+	} from '../types/base';
 	import { credentialIntegrations, credentialTypes, entities } from '$lib/shared/stores/metadata';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
@@ -53,7 +58,8 @@
 		name = undefined,
 		initialIntegration = null,
 		initialHostIds = [],
-		initialSiteIds = []
+		initialSiteIds = [],
+		loginOnly = false
 	}: {
 		credential?: Credential | null;
 		isOpen?: boolean;
@@ -68,6 +74,9 @@
 		initialHostIds?: string[];
 		/** Create mode only: sites the new credential starts assigned to. */
 		initialSiteIds?: string[];
+		/** Create mode only: the type picker offers only SSH logins, for a login made from another
+		 *  credential's login picker. */
+		loginOnly?: boolean;
 	} = $props();
 
 	// Declared before the queries below, whose options TanStack reads as each query is created.
@@ -76,8 +85,10 @@
 	// The transports a pre-filled create flow offers: those that can apply where it comes assigned,
 	// falling back to all of the integration's when none can.
 	let typeChoices = $derived.by(() => {
-		if (isEditing || !initialIntegration) return undefined;
+		if (isEditing) return undefined;
 		const types = credentialTypes.getItems() ?? [];
+		if (loginOnly) return types.filter((t) => isLoginType(t.id)).map((t) => t.id);
+		if (!initialIntegration) return undefined;
 		const target = initialSiteIds.length ? 'Site' : initialHostIds.length ? 'Hosts' : null;
 		const fitting = typesForIntegration(types, initialIntegration, target);
 		return fitting.length ? fitting : typesForIntegration(types, initialIntegration, null);
@@ -133,8 +144,13 @@
 	let deleting = $state(false);
 	// Tabs, which are also the create flow's steps, in order: who the credential is, what it
 	// holds, where it applies. Creating walks them with Next and a stepper; editing jumps freely.
-	const steps = ['details', 'credential', 'assignments'] as const;
-	type Step = (typeof steps)[number];
+	let selectedTypeId = $state('SnmpCommunity');
+	const allSteps = ['details', 'credential', 'assignments'] as const;
+	type Step = (typeof allSteps)[number];
+	// A login is never assigned, so it has no Assignments step.
+	let steps = $derived<readonly Step[]>(
+		isLoginType(selectedTypeId) ? allSteps.filter((s) => s !== 'assignments') : allSteps
+	);
 	let activeTab = $state<Step>('details');
 	let furthestReached = $state(0);
 	let stepIndex = $derived(steps.indexOf(activeTab));
@@ -144,7 +160,9 @@
 			{ id: 'details', label: common_details(), icon: Info },
 			{ id: 'credential', label: common_credential(), icon: KeyRound },
 			{ id: 'assignments', label: common_assignments(), icon: Link }
-		].map((tab, i) => ({ ...tab, disabled: !isEditing && i > furthestReached }))
+		]
+			.filter((tab) => steps.includes(tab.id as Step))
+			.map((tab, i) => ({ ...tab, disabled: !isEditing && i > furthestReached }))
 	);
 	let saveLabel = $derived(
 		isEditing ? common_update() : isLastStep ? common_create() : common_next()
@@ -173,7 +191,6 @@
 	// Assignment state (source of truth; synced into the submit payload).
 	// The selected type drives which assignment surface(s) show; kept in sync via
 	// CredentialForm's onTypeChange and reset on open.
-	let selectedTypeId = $state('SnmpCommunity');
 	let assignedSiteIds = $state<string[]>([]);
 	let hostAssignments = $state<CredentialHostAssignment[]>([]);
 
@@ -218,6 +235,7 @@
 				organization_id: organization.id,
 				credential_type: credentialType,
 				daemon_os: credentialFormRef?.getDaemonOs() ?? null,
+				login_credential_id: credentialFormRef?.getLoginCredentialId() ?? null,
 				description: (formValues.description as string | null | undefined)?.trim() || null,
 				assigned_site_ids: permitted.assignedSiteIds,
 				host_assignments: permitted.hostAssignments
@@ -286,6 +304,11 @@
 	}
 
 	async function handleSave() {
+		// The login field unmounts off its step, so a save from Assignments checks it here.
+		if (!credentialFormRef?.validateLogin()) {
+			activeTab = 'credential';
+			return;
+		}
 		loading = true;
 		try {
 			await submitForm(form, (path) => credentialFormRef?.fieldLabel(path) ?? path);
@@ -301,7 +324,8 @@
 						role: 'danger' as const,
 						label: deleting ? common_deleting() : common_delete(),
 						onClick: handleDelete,
-						disabled: deleting || loading
+						// A login still in use can't go; the server refuses it too.
+						disabled: deleting || loading || credential.used_by.length > 0
 					}
 				]
 			: []),

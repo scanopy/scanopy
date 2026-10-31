@@ -18,8 +18,8 @@ use crate::server::bindings::r#impl::base::Binding;
 use crate::server::credentials::handlers::CredentialOrderField;
 use crate::server::credentials::r#impl::base::Credential;
 use crate::server::credentials::r#impl::types::{
-    CredentialIntegration, CredentialOsFields, CredentialTypeDiscriminants, OsFamily, Target,
-    UpstreamSupport,
+    CredentialIntegration, CredentialOsFields, CredentialRole, CredentialTypeDiscriminants,
+    OsFamily, Target, UpstreamSupport,
 };
 use crate::server::daemon_api_keys::handlers::DaemonApiKeyOrderField;
 use crate::server::daemon_api_keys::r#impl::base::DaemonApiKey;
@@ -153,6 +153,9 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
         // `Stability` does and for the same reason — and it is a *separate* axis: an
         // integration can be `Stable` and still ride an undocumented endpoint, as UniFi is.
         UpstreamSupport,
+        // Whether a credential type is a login other credentials use. Travels like `Stability`; the
+        // form and the pickers type it from here.
+        CredentialRole,
         // The integration a credential type belongs to. Travels inside `TypeMetadata.metadata` like
         // `Stability`, and keys `credential-integrations.json`; the picker types its
         // grouping key from here.

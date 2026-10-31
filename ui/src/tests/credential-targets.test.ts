@@ -214,7 +214,8 @@ describe('integrationTargetFor against the real credential-type fixture', () => 
 	it('never emits a scope the type does not declare', () => {
 		const ipCases = [[], [''], ['127.0.0.1'], ['10.0.0.5'], ['127.0.0.1', '10.0.0.5']];
 
-		for (const type of credentialTypes) {
+		// A login is assigned nowhere, so it declares no targets and no target is built for it.
+		for (const type of credentialTypes.filter((t) => t.metadata?.role !== 'Login')) {
 			const targets = (type.metadata?.targets ?? []) as CredentialTarget[];
 			expect(targets.length, `${type.id} declares no targets`).toBeGreaterThan(0);
 

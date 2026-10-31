@@ -76,6 +76,17 @@ export const ERROR_CODES = {
 		"'{name}' is a default credential and can't be deleted. Unassign it from sites and hosts instead.",
 	credential_default_settings_locked:
 		"'{name}' is a default credential. Its name, description and tags can change, but its settings can't.",
+	credential_login_required: 'Choose the SSH login this credential runs over.',
+	credential_login_invalid:
+		'The chosen login is not an SSH login of this organization. Choose another.',
+	credential_login_not_used:
+		'This type of credential runs over no login. Clear the login and save again.',
+	credential_login_daemon_os_mismatch:
+		"This credential and its login '{login}' read files on daemons of different OSes. Set both to the same Daemon OS.",
+	credential_login_in_use:
+		"'{name}' is the login for {users}. Choose another login for them before deleting it.",
+	credential_login_not_assignable:
+		"'{name}' is a login and is not assigned to sites or hosts. Assign a credential that uses it instead.",
 	discovery_historical_read_only: 'Historical discovery cannot be modified via API',
 	discovery_subnet_site_mismatch: "Subnet '{subnet}' is on a different site",
 	discovery_session_not_found: "Discovery session '{id}' not found",
@@ -183,6 +194,12 @@ export interface ErrorParams {
 	credential_default_exists: { name: string | number };
 	credential_default_delete_forbidden: { name: string | number };
 	credential_default_settings_locked: { name: string | number };
+	credential_login_required: Record<string, never>;
+	credential_login_invalid: Record<string, never>;
+	credential_login_not_used: Record<string, never>;
+	credential_login_daemon_os_mismatch: { login: string | number };
+	credential_login_in_use: { name: string | number; users: string | number };
+	credential_login_not_assignable: { name: string | number };
 	discovery_historical_read_only: Record<string, never>;
 	discovery_subnet_site_mismatch: { subnet: string | number };
 	discovery_session_not_found: { id: string | number };

@@ -207,6 +207,7 @@ impl DiscoveryWarningCode {
                 &["credential", "gap", "required", "daemon", "version"]
             }
             Self::CredentialWithoutTarget => &["credential"],
+            Self::CredentialLoginUnavailable => &["credential"],
             Self::CredentialRejected
             | Self::CredentialMalformed
             | Self::CredentialTlsFailed
@@ -272,6 +273,7 @@ impl DiscoveryWarningCode {
             | Self::CredentialGateClosed
             | Self::CredentialDaemonOsMismatch
             | Self::CredentialNeedsNewerDaemon
+            | Self::CredentialLoginUnavailable
             | Self::CredentialWithoutTarget
             | Self::CredentialRejected
             | Self::CredentialMalformed
@@ -359,6 +361,7 @@ impl DiscoveryWarningCode {
             | Self::CredentialGateClosed
             | Self::CredentialDaemonOsMismatch
             | Self::CredentialNeedsNewerDaemon
+            | Self::CredentialLoginUnavailable
             | Self::CredentialWithoutTarget
             | Self::CredentialRejected
             | Self::CredentialMalformed
@@ -503,6 +506,7 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             Self::CredentialDaemonOsMismatch => "Credential set up for another OS",
             Self::CredentialNeedsNewerDaemon => "Daemon too old for part of a credential",
             Self::CredentialWithoutTarget => "Credential has no target",
+            Self::CredentialLoginUnavailable => "Credential's login unavailable",
             Self::CredentialRejected => "Credential refused",
             Self::CredentialMalformed => "Credential incomplete",
             Self::CredentialTlsFailed => "TLS negotiation failed",
@@ -635,6 +639,9 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             Self::CredentialWithoutTarget => {
                 "The {credential} credential is not assigned to a site or host, and no discovery targets it, so no daemon receives it. Add a target to the credential to use it."
             }
+            Self::CredentialLoginUnavailable => {
+                "The {credential} credential runs over an SSH login that no longer exists or is not a login, so no daemon received it. Choose a login for the credential to use it."
+            }
             Self::CredentialRejected => {
                 "The {credential} credential for {addresses} was refused — check the username, password or community string. ({detail})"
             }
@@ -758,6 +765,7 @@ impl DiscoveryWarningCode {
             | Self::CredentialGateClosed
             | Self::CredentialDaemonOsMismatch
             | Self::CredentialNeedsNewerDaemon
+            | Self::CredentialLoginUnavailable
             | Self::CredentialWithoutTarget
             | Self::CredentialRejected
             | Self::CredentialMalformed
@@ -860,6 +868,7 @@ impl DiscoveryWarningCode {
             | Self::CredentialGateClosed
             | Self::CredentialDaemonOsMismatch
             | Self::CredentialNeedsNewerDaemon
+            | Self::CredentialLoginUnavailable
             | Self::CredentialWithoutTarget
             | Self::CredentialRejected
             | Self::CredentialMalformed

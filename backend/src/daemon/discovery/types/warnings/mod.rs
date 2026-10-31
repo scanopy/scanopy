@@ -508,6 +508,16 @@ pub enum DiscoveryWarning {
         #[schema(required)]
         credential_id: Option<Uuid>,
     },
+    /// A credential that runs over an SSH login whose login is gone or no longer usable, so it
+    /// was not sent. Raised by the server when it builds the scan's credentials, never a daemon.
+    #[schema(title = "CredentialLoginUnavailable")]
+    CredentialLoginUnavailable {
+        integration: CredentialQueryPayloadDiscriminants,
+        /// The stored credential. `None` once it is deleted.
+        #[serde(default)]
+        #[schema(required)]
+        credential_id: Option<Uuid>,
+    },
     /// The port the credential needs was not open, so it was never tried.
     #[schema(title = "CredentialGateClosed")]
     CredentialGateClosed {
@@ -962,6 +972,7 @@ pub enum DiscoveryWarningCode {
     CredentialDaemonOsMismatch,
     CredentialNeedsNewerDaemon,
     CredentialWithoutTarget,
+    CredentialLoginUnavailable,
     CredentialGateClosed,
     CredentialRejected,
     CredentialMalformed,
@@ -1060,6 +1071,9 @@ impl DiscoveryWarning {
                 DiscoveryWarningCode::CredentialNeedsNewerDaemon
             }
             Self::CredentialWithoutTarget { .. } => DiscoveryWarningCode::CredentialWithoutTarget,
+            Self::CredentialLoginUnavailable { .. } => {
+                DiscoveryWarningCode::CredentialLoginUnavailable
+            }
             Self::CredentialGateClosed { .. } => DiscoveryWarningCode::CredentialGateClosed,
             Self::CredentialRejected(_) => DiscoveryWarningCode::CredentialRejected,
             Self::CredentialMalformed(_) => DiscoveryWarningCode::CredentialMalformed,
@@ -1163,6 +1177,7 @@ impl DiscoveryWarning {
             // is a wire payload type, which an integration with two transports has no single one of.
             | Self::IntegrationWithoutCredential { .. }
             // No integration ran either: the daemon never received the credential.
+            | Self::CredentialLoginUnavailable { .. }
             | Self::CredentialWithoutTarget { .. }
             | Self::ConnectionsWithoutProtocolResponse { .. }
             | Self::ScanTimeLimitWithEstimate { .. }
@@ -1194,6 +1209,7 @@ impl DiscoveryWarning {
             | Self::CredentialGateClosed { credential_id, .. }
             | Self::CredentialDaemonOsMismatch { credential_id, .. }
             | Self::CredentialNeedsNewerDaemon { credential_id, .. }
+            | Self::CredentialLoginUnavailable { credential_id, .. }
             | Self::CredentialWithoutTarget { credential_id, .. } => *credential_id,
 
             Self::CredentialRejected(a)

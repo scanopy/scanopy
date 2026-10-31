@@ -29,7 +29,7 @@
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { permissions, credentialTypes, billingPlans } from '$lib/shared/stores/metadata';
-	import { getCredentialTypeId } from '$lib/features/credentials/types/base';
+	import { getCredentialTypeId, isLoginType } from '$lib/features/credentials/types/base';
 	import {
 		modalState,
 		openModal,
@@ -57,6 +57,9 @@
 		common_notApplicable,
 		common_noEntityYet,
 		credentials_defaultCantDelete,
+		credentials_loginInUse,
+		credentials_loginInUseBulk,
+		credentials_usedBy,
 		gettingStarted_stepDaemonLabel
 	} from '$lib/paraglide/messages';
 	import { useTagsQuery } from '$lib/features/tags/queries';
@@ -174,6 +177,18 @@
 		if (applicable) return items;
 		return [{ id: 'not-applicable', label: common_notApplicable(), color: 'Gray' }];
 	}
+
+	/** A login is assigned nowhere; what it has is the credentials that run over it. */
+	function loginUsage(credential: Credential): CardFieldItem[] | null {
+		if (!isLoginType(getCredentialTypeId(credential))) return null;
+		return [
+			{
+				id: 'used-by',
+				label: credentials_usedBy({ count: credential.used_by.length }),
+				color: 'Gray'
+			}
+		];
+	}
 	let isLoading = $derived(credentialsPageQuery.isPending && !credentialsPageQuery.data);
 	let pageLoad = $derived(loadFailure(organizationQuery, credentialsPageQuery));
 
@@ -213,7 +228,13 @@
 				isDelete: true,
 				onBulk: handleBulkDelete,
 				onClick: () => handleDeleteCredential(credential),
-				unavailable: disabledWhen(credential.is_default, credentials_defaultCantDelete())
+				unavailable:
+					disabledWhen(credential.is_default, credentials_defaultCantDelete()) ??
+					disabledWhen(
+						credential.used_by.length > 0,
+						credentials_loginInUse({ count: credential.used_by.length }),
+						credentials_loginInUseBulk()
+					)
 			}
 		];
 	}
@@ -309,7 +330,8 @@
 		hostsForCredential,
 		targetsFor,
 		daemonHostOnly,
-		assignmentItems
+		assignmentItems,
+		loginUsage
 	});
 </script>
 

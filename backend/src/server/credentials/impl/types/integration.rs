@@ -96,7 +96,7 @@ impl CredentialTypeDiscriminants {
             Self::PodmanProxy | Self::PodmanSocket => CredentialIntegration::Podman,
             Self::UnifiApiKey | Self::UnifiLocalAdmin => CredentialIntegration::UnifiController,
             Self::InstantOnAccount => CredentialIntegration::InstantOn,
-            Self::SshPassword | Self::SshKey => CredentialIntegration::Ssh,
+            Self::SshPassword | Self::SshKey | Self::SshScript => CredentialIntegration::Ssh,
             Self::WakeOnLan => CredentialIntegration::WakeOnLan,
             Self::ProxmoxApiToken => CredentialIntegration::Proxmox,
         }

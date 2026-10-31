@@ -23492,19 +23492,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-31T13:32:43.895275Z",
+              "created_at": "2026-10-31T14:22:09.642442Z",
               "first_discovery_id": null,
-              "id": "0cf832f4-abaa-491f-bbf9-fc45b6fc8883",
+              "id": "787c3f6f-b461-47a9-815e-47dca112abbb",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-31T13:32:43.895275Z",
+              "last_seen_at": "2026-10-31T14:22:09.642442Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-31T13:32:43.895275Z",
-              "valid_from": "2026-10-31T13:32:43.895275Z",
+              "updated_at": "2026-10-31T14:22:09.642442Z",
+              "valid_from": "2026-10-31T14:22:09.642442Z",
               "valid_to": null
             }
           },
@@ -25206,7 +25206,7 @@
               "created_at": "2026-01-15T10:30:00Z",
               "credential_assignments": [],
               "description": "Primary web server",
-              "device_type": "Server",
+              "device_type": "Sensor",
               "device_type_source": {
                 "service_id": "550e8400-e29b-41d4-a716-446655440007",
                 "service_name": "nginx",
@@ -25339,19 +25339,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-31T13:32:43.862532Z",
+                      "created_at": "2026-10-31T14:22:09.606588Z",
                       "first_discovery_id": null,
-                      "id": "1c903f03-a525-415f-9da2-c0491b04fa8b",
+                      "id": "ffd50f79-f570-4125-a813-038f816c4c62",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-31T13:32:43.862532Z",
+                      "last_seen_at": "2026-10-31T14:22:09.606588Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-31T13:32:43.862532Z",
-                      "valid_from": "2026-10-31T13:32:43.862532Z",
+                      "updated_at": "2026-10-31T14:22:09.606588Z",
+                      "valid_from": "2026-10-31T14:22:09.606588Z",
                       "valid_to": null
                     }
                   ],
@@ -25364,7 +25364,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "CrushFTP",
+                  "service_definition": "Nest Protect",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -26862,19 +26862,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-31T13:32:43.889830Z",
+                  "created_at": "2026-10-31T14:22:09.637180Z",
                   "first_discovery_id": null,
-                  "id": "8edf25e6-cdc9-44bf-a725-598b44dc3be7",
+                  "id": "2e2aa966-3dea-4128-a418-301188e143f4",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-31T13:32:43.889830Z",
+                  "last_seen_at": "2026-10-31T14:22:09.637180Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-31T13:32:43.889830Z",
-                  "valid_from": "2026-10-31T13:32:43.889830Z",
+                  "updated_at": "2026-10-31T14:22:09.637180Z",
+                  "valid_from": "2026-10-31T14:22:09.637180Z",
                   "valid_to": null
                 }
               ],
@@ -26887,7 +26887,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "CrushFTP",
+              "service_definition": "Nest Protect",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -30162,19 +30162,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-31T13:32:43.863171Z",
+          "created_at": "2026-10-31T14:22:09.607379Z",
           "first_discovery_id": null,
-          "id": "e56086f6-0667-4e60-b632-38115ca63065",
+          "id": "069a8e8d-d1df-48fe-ac0b-7f3c0b292f4a",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-31T13:32:43.863171Z",
+          "last_seen_at": "2026-10-31T14:22:09.607379Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-31T13:32:43.863171Z",
-          "valid_from": "2026-10-31T13:32:43.863171Z",
+          "updated_at": "2026-10-31T14:22:09.607379Z",
+          "valid_from": "2026-10-31T14:22:09.607379Z",
           "valid_to": null
         }
       },
@@ -31086,7 +31086,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "CrushFTP",
+              "service_definition": "Nest Protect",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -31345,9 +31345,11 @@
           "name",
           "description",
           "credential_type",
+          "login_credential_id",
           "tags",
           "assigned_site_ids",
-          "host_assignments"
+          "host_assignments",
+          "used_by"
         ],
         "properties": {
           "assigned_site_ids": {
@@ -31387,6 +31389,14 @@
             },
             "description": "Hosts this credential is assigned to (PerHost scope), with optional IP scoping.\nHydrated from the `host_credentials` junction table."
           },
+          "login_credential_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The SSH login this credential runs over, for a type that needs one (`SshScript`): another\ncredential of the organization whose role is `Login`. `None` for every other type."
+          },
           "name": {
             "type": "string",
             "description": "Human-facing name for this credential."
@@ -31403,6 +31413,15 @@
               "format": "uuid"
             },
             "description": "Tags assigned to this entity."
+          },
+          "used_by": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "readOnly": true
+            },
+            "description": "For a login: the credentials that run over it. Hydrated from their `login_credential_id`;\nempty for any other type. A value sent in a request is ignored."
           }
         }
       },
@@ -31491,6 +31510,14 @@
           "WakeOnLan",
           "Proxmox",
           "Unknown"
+        ]
+      },
+      "CredentialRole": {
+        "type": "string",
+        "description": "What a credential is for: run against hosts by an integration, or a login other credentials\nuse to reach a host.",
+        "enum": [
+          "Dispatched",
+          "Login"
         ]
       },
       "CredentialRunOutcome": {
@@ -31998,11 +32025,10 @@
           {
             "type": "object",
             "title": "SshPassword",
-            "description": "SSH with a password. The daemon runs `script` on the host; the script's stdout is one JSON\nobject whose keys (`SshScriptField`) fill existing host and interface fields.",
+            "description": "An SSH login with a password: who the daemon logs in as, and the host key it expects. A\nlogin does nothing on its own. A credential that runs over SSH (`SshScript`) names it as its\n`login_credential_id`.",
             "required": [
               "username",
               "password",
-              "script",
               "type"
             ],
             "properties": {
@@ -32022,19 +32048,6 @@
                 "description": "Port `sshd` listens on (default 22).",
                 "minimum": 0
               },
-              "script": {
-                "$ref": "#/components/schemas/ScriptSource"
-              },
-              "target_os": {
-                "$ref": "#/components/schemas/OsFamily",
-                "description": "The scanned host's OS: decides how a host-file path is validated and the shell the\nscript runs in."
-              },
-              "timeout_seconds": {
-                "type": "integer",
-                "format": "int32",
-                "description": "How long the script may run before the daemon closes the channel, in seconds (default 60).",
-                "minimum": 0
-              },
               "type": {
                 "type": "string",
                 "enum": [
@@ -32050,11 +32063,10 @@
           {
             "type": "object",
             "title": "SshKey",
-            "description": "SSH with a private key (optionally passphrase-protected). Same script contract as\n[`CredentialType::SshPassword`].",
+            "description": "An SSH login with a private key (optionally passphrase-protected). A login like\n[`CredentialType::SshPassword`].",
             "required": [
               "username",
               "private_key",
-              "script",
               "type"
             ],
             "properties": {
@@ -32084,6 +32096,27 @@
               "private_key": {
                 "$ref": "#/components/schemas/SecretValue"
               },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "SshKey"
+                ]
+              },
+              "username": {
+                "type": "string",
+                "description": "User the daemon logs in as."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "SshScript",
+            "description": "A script the daemon runs on the host over SSH, logged in with the credential's SSH login\n(`login_credential_id`). The script's stdout is one JSON object whose keys\n(`SshScriptField`) fill existing host and interface fields.",
+            "required": [
+              "script",
+              "type"
+            ],
+            "properties": {
               "script": {
                 "$ref": "#/components/schemas/ScriptSource"
               },
@@ -32100,12 +32133,8 @@
               "type": {
                 "type": "string",
                 "enum": [
-                  "SshKey"
+                  "SshScript"
                 ]
-              },
-              "username": {
-                "type": "string",
-                "description": "User the daemon logs in as."
               }
             }
           },
@@ -32206,6 +32235,7 @@
           "InstantOnAccount",
           "SshPassword",
           "SshKey",
+          "SshScript",
           "WakeOnLan",
           "ProxmoxApiToken"
         ]
@@ -35213,6 +35243,35 @@
                 "type": "string",
                 "enum": [
                   "CredentialWithoutTarget"
+                ]
+              },
+              "credential_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The stored credential. `None` once it is deleted."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialQueryPayloadDiscriminants"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "CredentialLoginUnavailable",
+            "description": "A credential that runs over an SSH login whose login is gone or no longer usable, so it\nwas not sent. Raised by the server when it builds the scan's credentials, never a daemon.",
+            "required": [
+              "integration",
+              "credential_id",
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "CredentialLoginUnavailable"
                 ]
               },
               "credential_id": {
@@ -39132,7 +39191,7 @@
           "created_at": "2026-01-15T10:30:00Z",
           "credential_assignments": [],
           "description": "Primary web server",
-          "device_type": "Server",
+          "device_type": "Sensor",
           "device_type_source": {
             "service_id": "550e8400-e29b-41d4-a716-446655440007",
             "service_name": "nginx",
@@ -39265,19 +39324,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-31T13:32:43.861785Z",
+                  "created_at": "2026-10-31T14:22:09.605626Z",
                   "first_discovery_id": null,
-                  "id": "4b8b2727-610b-4972-85ca-e1bccdd2ec37",
+                  "id": "ca8e187d-a8d5-4411-ba01-b49452efd3d3",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-31T13:32:43.861785Z",
+                  "last_seen_at": "2026-10-31T14:22:09.605626Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-31T13:32:43.861785Z",
-                  "valid_from": "2026-10-31T13:32:43.861785Z",
+                  "updated_at": "2026-10-31T14:22:09.605626Z",
+                  "valid_from": "2026-10-31T14:22:09.605626Z",
                   "valid_to": null
                 }
               ],
@@ -39290,7 +39349,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "CrushFTP",
+              "service_definition": "Nest Protect",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -43576,7 +43635,7 @@
                 "created_at": "2026-01-15T10:30:00Z",
                 "credential_assignments": [],
                 "description": "Primary web server",
-                "device_type": "Server",
+                "device_type": "Sensor",
                 "device_type_source": {
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "service_name": "nginx",
@@ -43709,19 +43768,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-31T13:32:43.845093Z",
+                        "created_at": "2026-10-31T14:22:09.581095Z",
                         "first_discovery_id": null,
-                        "id": "0cf44774-80a6-4e2d-9255-1b0bde8f44fa",
+                        "id": "e8d25a02-4166-4c91-81a9-14f66125e7df",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-31T13:32:43.845093Z",
+                        "last_seen_at": "2026-10-31T14:22:09.581095Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-31T13:32:43.845093Z",
-                        "valid_from": "2026-10-31T13:32:43.845093Z",
+                        "updated_at": "2026-10-31T14:22:09.581095Z",
+                        "valid_from": "2026-10-31T14:22:09.581095Z",
                         "valid_to": null
                       }
                     ],
@@ -43734,7 +43793,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "CrushFTP",
+                    "service_definition": "Nest Protect",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -43981,19 +44040,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-31T13:32:43.889044Z",
+                    "created_at": "2026-10-31T14:22:09.636350Z",
                     "first_discovery_id": null,
-                    "id": "78af674d-fe1a-4904-9f72-ec6cd61a3115",
+                    "id": "3194b82e-79cc-43bf-9eea-71fcea41eb3d",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-31T13:32:43.889044Z",
+                    "last_seen_at": "2026-10-31T14:22:09.636350Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-31T13:32:43.889044Z",
-                    "valid_from": "2026-10-31T13:32:43.889044Z",
+                    "updated_at": "2026-10-31T14:22:09.636350Z",
+                    "valid_from": "2026-10-31T14:22:09.636350Z",
                     "valid_to": null
                   }
                 ],
@@ -44006,7 +44065,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "CrushFTP",
+                "service_definition": "Nest Protect",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -46709,19 +46768,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-31T13:32:43.862953Z",
+              "created_at": "2026-10-31T14:22:09.607115Z",
               "first_discovery_id": null,
-              "id": "d9d3ab24-c3da-4eb4-87c8-3723a7af6298",
+              "id": "7cb5836a-799a-46ab-9b5a-3b1ea21886af",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-31T13:32:43.862953Z",
+              "last_seen_at": "2026-10-31T14:22:09.607115Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-31T13:32:43.862953Z",
-              "valid_from": "2026-10-31T13:32:43.862953Z",
+              "updated_at": "2026-10-31T14:22:09.607115Z",
+              "valid_from": "2026-10-31T14:22:09.607115Z",
               "valid_to": null
             }
           ],
@@ -46734,7 +46793,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "CrushFTP",
+          "service_definition": "Nest Protect",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -49169,7 +49228,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "e1008796-fb64-4eb2-829b-8f5def6862d4",
+                  "id": "548122ff-6802-4790-b97c-0a7267e0f2b6",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -49179,23 +49238,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "e0b6939d-9a8d-4f12-b094-03cb7f6c21e5",
+                  "id": "40e29246-5354-4248-ac12-09b0e20ea82f",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "31ff055b-cf35-4caa-b482-afa7096c7cb1",
+                  "id": "2ea839c4-484b-43c9-a179-bb6f8c591aa0",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "b559cb8a-123b-4e13-ba5e-aa5751412429",
+                  "id": "036d3d13-8ee2-4b62-bf92-163f67aa492c",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "e0b6939d-9a8d-4f12-b094-03cb7f6c21e5",
+                  "id": "40e29246-5354-4248-ac12-09b0e20ea82f",
                   "rule": "ByHost"
                 }
               ]
@@ -49225,19 +49284,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "daa286db-03d5-469f-878f-a90e139b0236",
+                "id": "c34496ff-f4e1-4ecc-af69-d6181e03d375",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "0b49f967-e0dc-4546-943e-71f21caeddb4",
+                "id": "a66fcffc-639e-4d20-8c3a-707582c49aa7",
                 "rule": "ByVLAN"
               },
               {
-                "id": "406712f2-070e-4f6c-91e3-0b7f771cce1e",
+                "id": "081cd7be-641e-4b22-9a3d-fae4eff4382d",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "45cb2057-ff8f-45e6-a938-7660e51577ba",
+                "id": "b9ce0cbf-0edb-4831-b843-044c834ca333",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -49258,7 +49317,7 @@
                 }
               },
               {
-                "id": "2d01627e-f8e5-46ae-8bce-17417b6f2edb",
+                "id": "54e848f7-a00d-45d7-8db9-ecf6f6a86ed3",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -49267,19 +49326,19 @@
                 }
               },
               {
-                "id": "9443bdc8-0fe5-47ba-b237-1f1ff3e3f8c0",
+                "id": "bdc47db4-3d9e-4412-9a17-03e2a6613640",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "8174a9b1-67f5-44c6-9277-1e8a400b24d9",
+                "id": "58496acc-3473-46d1-81b0-d95ff4f0c964",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "519b1163-5b1b-40b1-bf55-742179c641ac",
+                "id": "c7e1f744-fe33-4669-bd0e-17191146b320",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "431a09ee-7f3d-486a-a34c-78c56004ab8c",
+                "id": "85e09b5b-dbcd-43d4-bea7-0e4f04dcdfb3",
                 "rule": "ByStack"
               }
             ]

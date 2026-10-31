@@ -60,6 +60,8 @@ export interface CredentialColumnsContext {
 	targetsFor: (credential: Credential) => string[];
 	daemonHostOnly: (credential: Credential) => boolean;
 	assignmentItems: (applicable: boolean, items: CardFieldItem[]) => CardFieldItem[];
+	/** For an SSH login, which is assigned nowhere: how many credentials run over it. */
+	loginUsage: (credential: Credential) => CardFieldItem[] | null;
 }
 
 /**
@@ -227,6 +229,7 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 				getValue: (item: Credential) => ctx.hostsForCredential(item).map(hostDisplayName),
 				display: {
 					getItems: (item: Credential) =>
+						ctx.loginUsage(item) ??
 						ctx.assignmentItems(
 							// DaemonHost-only credentials (Docker/Podman sockets) are
 							// assigned to their daemon's host through the same junction.

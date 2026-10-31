@@ -53,6 +53,7 @@ impl CredentialTypeDiscriminants {
             | Self::InstantOnAccount
             | Self::SshPassword
             | Self::SshKey
+            | Self::SshScript
             | Self::WakeOnLan
             | Self::ProxmoxApiToken => None,
         }

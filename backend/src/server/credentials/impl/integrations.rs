@@ -327,11 +327,16 @@ mod tests {
         }
     }
 
-    /// Locks the de-duplication: each credential's full description is exactly the
-    /// canonical discovery text + its transport note (single source, derived).
+    /// Locks the de-duplication: each dispatched credential's full description is exactly the
+    /// canonical discovery text + its transport note (single source, derived). A login discovers
+    /// nothing itself, so it carries its transport note alone.
     #[test]
     fn credential_description_derives_from_canonical_text() {
         for disc in CredentialTypeDiscriminants::iter() {
+            if disc.role() == crate::server::credentials::r#impl::types::CredentialRole::Login {
+                assert_eq!(disc.full_description(), disc.transport_note());
+                continue;
+            }
             let expected = format!(
                 "{} {}",
                 disc.integration().discovers(),

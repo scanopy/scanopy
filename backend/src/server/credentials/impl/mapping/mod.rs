@@ -309,7 +309,7 @@ impl From<CredentialQueryPayloadDiscriminants> for super::types::CredentialTypeD
             CredentialQueryPayloadDiscriminants::Gnmi => Self::Gnmi,
             CredentialQueryPayloadDiscriminants::UnifiController => Self::UnifiApiKey,
             CredentialQueryPayloadDiscriminants::InstantOn => Self::InstantOnAccount,
-            CredentialQueryPayloadDiscriminants::Ssh => Self::SshKey,
+            CredentialQueryPayloadDiscriminants::Ssh => Self::SshScript,
             CredentialQueryPayloadDiscriminants::WakeOnLan => Self::WakeOnLan,
             CredentialQueryPayloadDiscriminants::Proxmox => Self::ProxmoxApiToken,
             // `Unknown` is the daemon-side forward-compat sentinel; the server only

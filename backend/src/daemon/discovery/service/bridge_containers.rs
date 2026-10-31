@@ -464,9 +464,11 @@ mod tests {
     }
 
     fn ssh_override(ip: &str) -> CredentialMapping<CredentialQueryPayload> {
-        let payload = CredentialTypeDiscriminants::SshPassword
+        let login = CredentialTypeDiscriminants::SshPassword.to_credential_type();
+        let payload = CredentialTypeDiscriminants::SshScript
             .to_credential_type()
-            .to_query_payload();
+            .to_query_payload(Some(&login))
+            .unwrap();
         CredentialMapping {
             default_credential: Some(payload.clone()),
             default_credential_id: None,

@@ -17,7 +17,8 @@
 	import {
 		createDefaultCredential,
 		credentialTypeUpgradeFeature,
-		isDaemonHostOnly as isDaemonHostOnlyTargets
+		isDaemonHostOnly as isDaemonHostOnlyTargets,
+		isLoginType
 	} from '$lib/features/credentials/types/base';
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
@@ -191,6 +192,8 @@
 	// (e.g. multiple Docker Proxies on different hosts) are never blanket-blocked.
 	let typeOptions = $derived(
 		credentialTypes.getItems().filter((t) => {
+			// A login is assigned nowhere; a credential here picks or creates one in its own form.
+			if (isLoginType(t.id)) return false;
 			// A daemon-host-only type (the local socket) can only be added once (one daemon
 			// host). Locked-only rows are excluded: they span every host on the site, and
 			// one assigned to some *other* host leaves this daemon's host free. When one
@@ -246,7 +249,9 @@
 		// only produce a duplicate.
 		const pendingIds = new Set(pendingCredentials.map((p) => p.credential.id));
 		const siteCredIds = new Set(siteCredentials.map((c) => c.id));
-		return credentialsQuery.data.filter((c) => !pendingIds.has(c.id) && !siteCredIds.has(c.id));
+		return credentialsQuery.data.filter(
+			(c) => !pendingIds.has(c.id) && !siteCredIds.has(c.id) && !isLoginType(c.credential_type.type)
+		);
 	});
 
 	// Refs to each CredentialForm for buildCredentialType()
@@ -515,6 +520,9 @@
 						// Set only when the credential reads something on the daemon; the form applies
 						// `fixedDaemonOs` itself. Without a form the server clears an unused one.
 						daemon_os: ref ? ref.getDaemonOs() : (fixedDaemonOs ?? p.credential.daemon_os),
+						login_credential_id: ref
+							? ref.getLoginCredentialId()
+							: p.credential.login_credential_id,
 						// Broadcast: assign as a site default. Per-host: leave to target_ips.
 						assigned_site_ids: isBroadcast && siteId ? [siteId] : []
 					},

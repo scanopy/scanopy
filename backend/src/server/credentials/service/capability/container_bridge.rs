@@ -182,7 +182,7 @@ mod tests {
         base::{Credential, CredentialBase},
         types::{CredentialAssignment, CredentialTypeDiscriminants},
     };
-    use crate::server::credentials::service::apply_host_assignment;
+    use crate::server::credentials::service::apply_host_assignment_standalone;
     use crate::server::credentials::service::capability::retain_capable;
     use crate::server::ip_addresses::r#impl::base::IPAddressBase;
 
@@ -221,7 +221,7 @@ mod tests {
             credential: Credential {
                 id: Uuid::new_v4(),
                 base: CredentialBase {
-                    credential_type: CredentialTypeDiscriminants::SshPassword.to_credential_type(),
+                    credential_type: CredentialTypeDiscriminants::SshScript.to_credential_type(),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -259,7 +259,7 @@ mod tests {
         tries: bool,
     ) -> (Vec<IpAddr>, Vec<DiscoveryWarning>) {
         let mut map = BTreeMap::new();
-        apply_host_assignment(
+        apply_host_assignment_standalone(
             &mut map,
             f.runtime_host,
             &CredentialAssignment {
@@ -294,7 +294,7 @@ mod tests {
     fn host_wide_assignment_expands_to_bridge_addresses() {
         let f = fixture();
         let mut map = BTreeMap::new();
-        apply_host_assignment(
+        apply_host_assignment_standalone(
             &mut map,
             f.runtime_host,
             &CredentialAssignment {
@@ -382,7 +382,7 @@ mod tests {
     #[test]
     fn a_shared_socket_credential_reaches_each_daemon_only_at_its_own_loopback() {
         use crate::server::credentials::r#impl::mapping::IntegrationTarget;
-        use crate::server::credentials::service::apply_integration_target;
+        use crate::server::credentials::service::apply_integration_target_standalone;
 
         let socket = Credential {
             id: Uuid::new_v4(),
@@ -402,7 +402,7 @@ mod tests {
         let sent_to = |daemon_host: Uuid, with_target: bool| {
             let mut map = BTreeMap::new();
             for (host, lo) in [(host_a, lo_a), (host_b, lo_b)] {
-                apply_host_assignment(
+                apply_host_assignment_standalone(
                     &mut map,
                     host,
                     &CredentialAssignment {
@@ -423,7 +423,7 @@ mod tests {
                 &mut map,
             );
             if with_target {
-                apply_integration_target(
+                apply_integration_target_standalone(
                     &mut map,
                     &IntegrationTarget::DaemonHost {
                         credential_id: socket.id,
@@ -462,7 +462,7 @@ mod tests {
 
         let kept = |placement: &DaemonPlacement| {
             let mut map = BTreeMap::new();
-            apply_host_assignment(
+            apply_host_assignment_standalone(
                 &mut map,
                 f.runtime_host,
                 &CredentialAssignment {

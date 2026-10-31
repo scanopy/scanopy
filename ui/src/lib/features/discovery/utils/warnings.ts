@@ -433,6 +433,8 @@ const WARNING_PARAMS = {
 	}),
 	// Server-raised, one per credential. The run's Credentials tab names each one.
 	CredentialWithoutTarget: (w) => ({ credential: integration(w[0].integration) }),
+	// Server-raised, one per credential whose SSH login is gone. The run's Credentials tab names it.
+	CredentialLoginUnavailable: (w) => ({ credential: integration(w[0].integration) }),
 
 	// One per host. The integration identifies the statement, so every host running one
 	// integration shares a sentence, and `discovers` is that integration's own description.

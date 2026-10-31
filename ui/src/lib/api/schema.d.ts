@@ -4227,19 +4227,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-31T13:32:43.895275Z",
+             *       "created_at": "2026-10-31T14:22:09.642442Z",
              *       "first_discovery_id": null,
-             *       "id": "0cf832f4-abaa-491f-bbf9-fc45b6fc8883",
+             *       "id": "787c3f6f-b461-47a9-815e-47dca112abbb",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-31T13:32:43.895275Z",
+             *       "last_seen_at": "2026-10-31T14:22:09.642442Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-10-31T13:32:43.895275Z",
-             *       "valid_from": "2026-10-31T13:32:43.895275Z",
+             *       "updated_at": "2026-10-31T14:22:09.642442Z",
+             *       "valid_from": "2026-10-31T14:22:09.642442Z",
              *       "valid_to": null
              *     }
              */
@@ -5003,7 +5003,7 @@ export interface components {
              *       "created_at": "2026-01-15T10:30:00Z",
              *       "credential_assignments": [],
              *       "description": "Primary web server",
-             *       "device_type": "Server",
+             *       "device_type": "Sensor",
              *       "device_type_source": {
              *         "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *         "service_name": "nginx",
@@ -5136,19 +5136,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-31T13:32:43.862532Z",
+             *               "created_at": "2026-10-31T14:22:09.606588Z",
              *               "first_discovery_id": null,
-             *               "id": "1c903f03-a525-415f-9da2-c0491b04fa8b",
+             *               "id": "ffd50f79-f570-4125-a813-038f816c4c62",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-31T13:32:43.862532Z",
+             *               "last_seen_at": "2026-10-31T14:22:09.606588Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-10-31T13:32:43.862532Z",
-             *               "valid_from": "2026-10-31T13:32:43.862532Z",
+             *               "updated_at": "2026-10-31T14:22:09.606588Z",
+             *               "valid_from": "2026-10-31T14:22:09.606588Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5161,7 +5161,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "CrushFTP",
+             *           "service_definition": "Nest Protect",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6193,19 +6193,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-31T13:32:43.889830Z",
+             *           "created_at": "2026-10-31T14:22:09.637180Z",
              *           "first_discovery_id": null,
-             *           "id": "8edf25e6-cdc9-44bf-a725-598b44dc3be7",
+             *           "id": "2e2aa966-3dea-4128-a418-301188e143f4",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-31T13:32:43.889830Z",
+             *           "last_seen_at": "2026-10-31T14:22:09.637180Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-10-31T13:32:43.889830Z",
-             *           "valid_from": "2026-10-31T13:32:43.889830Z",
+             *           "updated_at": "2026-10-31T14:22:09.637180Z",
+             *           "valid_from": "2026-10-31T14:22:09.637180Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6218,7 +6218,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "CrushFTP",
+             *       "service_definition": "Nest Protect",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7682,19 +7682,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-31T13:32:43.863171Z",
+         *       "created_at": "2026-10-31T14:22:09.607379Z",
          *       "first_discovery_id": null,
-         *       "id": "e56086f6-0667-4e60-b632-38115ca63065",
+         *       "id": "069a8e8d-d1df-48fe-ac0b-7f3c0b292f4a",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-31T13:32:43.863171Z",
+         *       "last_seen_at": "2026-10-31T14:22:09.607379Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-10-31T13:32:43.863171Z",
-         *       "valid_from": "2026-10-31T13:32:43.863171Z",
+         *       "updated_at": "2026-10-31T14:22:09.607379Z",
+         *       "valid_from": "2026-10-31T14:22:09.607379Z",
          *       "valid_to": null
          *     }
          */
@@ -8084,7 +8084,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "CrushFTP",
+         *           "service_definition": "Nest Protect",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8280,6 +8280,12 @@ export interface components {
              *     Hydrated from the `host_credentials` junction table.
              */
             host_assignments: components["schemas"]["CredentialHostAssignment"][];
+            /**
+             * Format: uuid
+             * @description The SSH login this credential runs over, for a type that needs one (`SshScript`): another
+             *     credential of the organization whose role is `Login`. `None` for every other type.
+             */
+            login_credential_id: string | null;
             /** @description Human-facing name for this credential. */
             name: string;
             /**
@@ -8289,6 +8295,11 @@ export interface components {
             organization_id: string;
             /** @description Tags assigned to this entity. */
             tags: string[];
+            /**
+             * @description For a login: the credentials that run over it. Hydrated from their `login_credential_id`;
+             *     empty for any other type. A value sent in a request is ignored.
+             */
+            used_by: string[];
         };
         /**
          * @description Host-keyed mirror of [`CredentialAssignment`]: a host this credential is
@@ -8335,6 +8346,12 @@ export interface components {
         };
         /** @enum {string} */
         CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Ssh" | "WakeOnLan" | "Proxmox" | "Unknown";
+        /**
+         * @description What a credential is for: run against hosts by an integration, or a login other credentials
+         *     use to reach a host.
+         * @enum {string}
+         */
+        CredentialRole: "Dispatched" | "Login";
         CredentialRunOutcome: {
             /**
              * Format: int32
@@ -8492,17 +8509,6 @@ export interface components {
              * @description Port `sshd` listens on (default 22).
              */
             port?: number;
-            script: components["schemas"]["ScriptSource"];
-            /**
-             * @description The scanned host's OS: decides how a host-file path is validated and the shell the
-             *     script runs in.
-             */
-            target_os?: components["schemas"]["OsFamily"];
-            /**
-             * Format: int32
-             * @description How long the script may run before the daemon closes the channel, in seconds (default 60).
-             */
-            timeout_seconds?: number;
             /** @enum {string} */
             type: "SshPassword";
             /** @description User the daemon logs in as. */
@@ -8517,6 +8523,11 @@ export interface components {
              */
             port?: number;
             private_key: components["schemas"]["SecretValue"];
+            /** @enum {string} */
+            type: "SshKey";
+            /** @description User the daemon logs in as. */
+            username: string;
+        } | {
             script: components["schemas"]["ScriptSource"];
             /**
              * @description The scanned host's OS: decides how a host-file path is validated and the shell the
@@ -8529,9 +8540,7 @@ export interface components {
              */
             timeout_seconds?: number;
             /** @enum {string} */
-            type: "SshKey";
-            /** @description User the daemon logs in as. */
-            username: string;
+            type: "SshScript";
         } | {
             /**
              * @description Send here instead of the target subnet's directed broadcast (router relay address, WoL
@@ -8566,7 +8575,7 @@ export interface components {
             type: "ProxmoxApiToken";
         };
         /** @enum {string} */
-        CredentialTypeDiscriminants: "SnmpCommunity" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount" | "SshPassword" | "SshKey" | "WakeOnLan" | "ProxmoxApiToken";
+        CredentialTypeDiscriminants: "SnmpCommunity" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount" | "SshPassword" | "SshKey" | "SshScript" | "WakeOnLan" | "ProxmoxApiToken";
         Daemon: components["schemas"]["DaemonBase"] & {
             /**
              * Format: date-time
@@ -9803,6 +9812,15 @@ export interface components {
         } | {
             /** @enum {string} */
             code: "CredentialWithoutTarget";
+            /**
+             * Format: uuid
+             * @description The stored credential. `None` once it is deleted.
+             */
+            credential_id: string | null;
+            integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
+        } | {
+            /** @enum {string} */
+            code: "CredentialLoginUnavailable";
             /**
              * Format: uuid
              * @description The stored credential. `None` once it is deleted.
@@ -11081,7 +11099,7 @@ export interface components {
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "credential_assignments": [],
          *       "description": "Primary web server",
-         *       "device_type": "Server",
+         *       "device_type": "Sensor",
          *       "device_type_source": {
          *         "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *         "service_name": "nginx",
@@ -11214,19 +11232,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-31T13:32:43.861785Z",
+         *               "created_at": "2026-10-31T14:22:09.605626Z",
          *               "first_discovery_id": null,
-         *               "id": "4b8b2727-610b-4972-85ca-e1bccdd2ec37",
+         *               "id": "ca8e187d-a8d5-4411-ba01-b49452efd3d3",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-31T13:32:43.861785Z",
+         *               "last_seen_at": "2026-10-31T14:22:09.605626Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-10-31T13:32:43.861785Z",
-         *               "valid_from": "2026-10-31T13:32:43.861785Z",
+         *               "updated_at": "2026-10-31T14:22:09.605626Z",
+         *               "valid_from": "2026-10-31T14:22:09.605626Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11239,7 +11257,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "CrushFTP",
+         *           "service_definition": "Nest Protect",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -14892,19 +14910,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-31T13:32:43.862953Z",
+         *           "created_at": "2026-10-31T14:22:09.607115Z",
          *           "first_discovery_id": null,
-         *           "id": "d9d3ab24-c3da-4eb4-87c8-3723a7af6298",
+         *           "id": "7cb5836a-799a-46ab-9b5a-3b1ea21886af",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-31T13:32:43.862953Z",
+         *           "last_seen_at": "2026-10-31T14:22:09.607115Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-10-31T13:32:43.862953Z",
-         *           "valid_from": "2026-10-31T13:32:43.862953Z",
+         *           "updated_at": "2026-10-31T14:22:09.607115Z",
+         *           "valid_from": "2026-10-31T14:22:09.607115Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -14917,7 +14935,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "CrushFTP",
+         *       "service_definition": "Nest Protect",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -16130,7 +16148,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "e1008796-fb64-4eb2-829b-8f5def6862d4",
+             *           "id": "548122ff-6802-4790-b97c-0a7267e0f2b6",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16140,23 +16158,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "e0b6939d-9a8d-4f12-b094-03cb7f6c21e5",
+             *           "id": "40e29246-5354-4248-ac12-09b0e20ea82f",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "31ff055b-cf35-4caa-b482-afa7096c7cb1",
+             *           "id": "2ea839c4-484b-43c9-a179-bb6f8c591aa0",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "b559cb8a-123b-4e13-ba5e-aa5751412429",
+             *           "id": "036d3d13-8ee2-4b62-bf92-163f67aa492c",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "e0b6939d-9a8d-4f12-b094-03cb7f6c21e5",
+             *           "id": "40e29246-5354-4248-ac12-09b0e20ea82f",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16170,19 +16188,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "daa286db-03d5-469f-878f-a90e139b0236",
+             *         "id": "c34496ff-f4e1-4ecc-af69-d6181e03d375",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "0b49f967-e0dc-4546-943e-71f21caeddb4",
+             *         "id": "a66fcffc-639e-4d20-8c3a-707582c49aa7",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "406712f2-070e-4f6c-91e3-0b7f771cce1e",
+             *         "id": "081cd7be-641e-4b22-9a3d-fae4eff4382d",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "45cb2057-ff8f-45e6-a938-7660e51577ba",
+             *         "id": "b9ce0cbf-0edb-4831-b843-044c834ca333",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16203,7 +16221,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "2d01627e-f8e5-46ae-8bce-17417b6f2edb",
+             *         "id": "54e848f7-a00d-45d7-8db9-ecf6f6a86ed3",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16212,19 +16230,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "9443bdc8-0fe5-47ba-b237-1f1ff3e3f8c0",
+             *         "id": "bdc47db4-3d9e-4412-9a17-03e2a6613640",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "8174a9b1-67f5-44c6-9277-1e8a400b24d9",
+             *         "id": "58496acc-3473-46d1-81b0-d95ff4f0c964",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "519b1163-5b1b-40b1-bf55-742179c641ac",
+             *         "id": "c7e1f744-fe33-4669-bd0e-17191146b320",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "431a09ee-7f3d-486a-a34c-78c56004ab8c",
+             *         "id": "85e09b5b-dbcd-43d4-bea7-0e4f04dcdfb3",
              *         "rule": "ByStack"
              *       }
              *     ]

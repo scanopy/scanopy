@@ -403,11 +403,8 @@ impl CredentialType {
                 port: _,
                 username: _,
                 password: _,
-                target_os: _,
-                script: _,
-                timeout_seconds: _,
                 host_key_fingerprint: _,
-            } => ssh_field_definitions(vec![FieldDefinition {
+            } => ssh_login_field_definitions(vec![FieldDefinition {
                 id: "password",
                 label: "Password",
                 field_type: FieldType::SecretPathOrInline,
@@ -431,11 +428,8 @@ impl CredentialType {
                 username: _,
                 private_key: _,
                 passphrase: _,
-                target_os: _,
-                script: _,
-                timeout_seconds: _,
                 host_key_fingerprint: _,
-            } => ssh_field_definitions(vec![
+            } => ssh_login_field_definitions(vec![
                 FieldDefinition {
                     id: "private_key",
                     label: "Private Key",
@@ -473,6 +467,11 @@ impl CredentialType {
                     field_set: None,
                 },
             ]),
+            Self::SshScript {
+                target_os: _,
+                script: _,
+                timeout_seconds: _,
+            } => ssh_script_field_definitions(),
             Self::WakeOnLan {
                 port: _,
                 wait_seconds: _,
@@ -621,9 +620,9 @@ impl CredentialType {
     }
 }
 
-/// Fields shared by both SSH transports, around the transport's own auth fields: connection
-/// first, then auth, then the script and how it is trusted and bounded.
-fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefinition> {
+/// Fields shared by both SSH logins, around the login's own auth fields: connection first, then
+/// auth, then the host key the login trusts.
+fn ssh_login_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefinition> {
     let mut fields = vec![
         FieldDefinition {
             id: "username",
@@ -634,7 +633,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             secret: false,
             optional: false,
             help_text: Some(
-                "Account the script runs as. Use a dedicated account with only the access the script needs.",
+                "Account the daemon logs in as. Use a dedicated account with only the access the credentials using this login need.",
             ),
             options: None,
             default_value: None,
@@ -663,7 +662,32 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
         },
     ];
     fields.extend(auth_fields);
-    fields.extend([
+    fields.push(FieldDefinition {
+        id: "host_key_fingerprint",
+        label: "Host Key Fingerprint",
+        field_type: FieldType::String,
+        placeholder: Some("SHA256:…"),
+        placeholder_by: None,
+        secret: false,
+        optional: true,
+        help_text: Some(
+            "Leave blank to trust the key each host presents the first time and refuse it if it later changes. Enter a fingerprint (ssh-keygen -lf) to require that key instead.",
+        ),
+        options: None,
+        default_value: None,
+        inline_format: None,
+        group: Some("Authentication"),
+        file_name: None,
+        half_width: false,
+        field_set: None,
+    });
+    fields
+}
+
+/// An SSH script credential's own fields: the script and how it runs. Its login is a credential
+/// of its own.
+fn ssh_script_field_definitions() -> Vec<FieldDefinition> {
+    vec![
         FieldDefinition {
             id: TARGET_OS_FIELD,
             label: "Scanned Host OS",
@@ -696,9 +720,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             }]),
             secret: false,
             optional: false,
-            help_text: Some(
-                "Runs at each scan. Must print one JSON object of host fields.",
-            ),
+            help_text: Some("Runs at each scan. Must print one JSON object of host fields."),
             options: None,
             default_value: None,
             inline_format: None,
@@ -724,27 +746,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             half_width: false,
             field_set: None,
         },
-        FieldDefinition {
-            id: "host_key_fingerprint",
-            label: "Host Key Fingerprint",
-            field_type: FieldType::String,
-            placeholder: Some("SHA256:…"),
-            placeholder_by: None,
-            secret: false,
-            optional: true,
-            help_text: Some(
-                "Leave blank to trust the key each host presents the first time and refuse it if it later changes. Enter a fingerprint (ssh-keygen -lf) to require that key instead.",
-            ),
-            options: None,
-            default_value: None,
-            inline_format: None,
-            group: Some("Script"),
-            file_name: None,
-            half_width: false,
-            field_set: None,
-        },
-    ]);
-    fields
+    ]
 }
 
 /// Connection fields shared by both UniFi transports. Only the auth fields differ, so the
@@ -964,14 +966,18 @@ mod tests {
     use crate::server::credentials::r#impl::types::CredentialTypeDiscriminants;
     use strum::IntoEnumIterator;
 
-    /// An SSH key credential's key, passphrase and a daemon-side script depend on the daemon's OS. A
-    /// socket credential depends on it through its placeholder alone.
+    /// An SSH key login's key and passphrase, and an SSH script's daemon-side script, depend on
+    /// the daemon's OS. A socket credential depends on it through its placeholder alone.
     #[test]
     fn os_fields_follow_field_types_and_placeholders() {
         let ssh = CredentialTypeDiscriminants::SshKey
             .to_credential_type()
             .os_fields();
-        assert_eq!(ssh.daemon, vec!["private_key", "passphrase", "script"]);
+        assert_eq!(ssh.daemon, vec!["private_key", "passphrase"]);
+        let script = CredentialTypeDiscriminants::SshScript
+            .to_credential_type()
+            .os_fields();
+        assert_eq!(script.daemon, vec!["script"]);
 
         let socket = CredentialTypeDiscriminants::DockerSocket
             .to_credential_type()
