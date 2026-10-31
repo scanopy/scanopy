@@ -106,20 +106,30 @@ pub struct OrgNotifications {
 )]
 pub struct OrganizationBase {
     /// Stripe customer ID - internal, not exposed to API
-    #[serde(default, skip_serializing)]
+    #[serde(skip)]
     pub stripe_customer_id: Option<String>,
     /// Human-facing name for this organization.
     #[validate(length(min = 0, max = 100))]
     pub name: String,
     /// The plan this organization is on.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only, required)]
     pub plan: BillingPlan,
     /// Current billing state of that plan.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only, required)]
     pub plan_status: Option<PlanStatus>,
     /// Progress through first-run setup.
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only, required)]
     pub onboarding: Vec<OnboardingOperationDiscriminants>,
     /// Whether a payment method is on file.
@@ -180,7 +190,10 @@ pub struct OrganizationBase {
     /// BillingPlanModal; the UI interprets the value based on plan_status
     /// (hide for paused/cancelled/past_due where the stored value can be
     /// stale or meaningless).
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub next_renewal_at: Option<DateTime<Utc>>,
     /// Latest entitlement an online license key fetched from Scanopy Cloud.
@@ -202,32 +215,38 @@ pub struct OrganizationBase {
     /// during a self-hosted trial, then the end of the last paid invoice's
     /// service period. While a sent invoice is unpaid, its due date plus a
     /// grace window. License keys and entitlements expire 7 days later.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub license_paid_through: Option<DateTime<Utc>>,
     /// Last time a self-hosted server fetched an entitlement with this org's
     /// online license key.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub license_checkin_at: Option<DateTime<Utc>>,
     /// Version embedded in online license keys - internal, not exposed to API.
     /// Rotating the key increments it, retiring every earlier key.
-    #[serde(default, skip_serializing)]
+    #[serde(skip)]
     pub license_key_version: i64,
     /// `iat` embedded in this org's online license key. Held so re-minting
     /// returns a byte-identical key rather than a new string each time; set on
     /// first issue and moved on rotation. Not key material.
-    #[serde(default, skip_serializing)]
+    #[serde(skip)]
     pub license_key_issued_at: Option<DateTime<Utc>>,
     /// Which license key this org currently has issued - internal, not exposed
     /// to API. `None` reads as online. Switching retires the previous key.
-    #[serde(default, skip_serializing)]
+    #[serde(skip)]
     pub license_key_type: Option<crate::server::license::types::LicenseKeyType>,
     /// Highest server version a check-in with this org's online key has
     /// reported - internal, not exposed to API. Several servers can share a
     /// key, so it only ever rises. `None` until a server new enough to send
     /// its version checks in.
-    #[serde(default, skip_serializing)]
+    #[serde(skip)]
     pub license_server_version: Option<Version>,
     /// The date this org's air-gapped key stays current until, or `None` when
     /// it holds an online key or that date has passed.

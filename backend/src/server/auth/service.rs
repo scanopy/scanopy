@@ -9,6 +9,7 @@ use crate::server::shared::types::api::ApiError;
 use crate::server::shared::types::error_codes::ErrorCode;
 use crate::server::{
     auth::{
+        access_service::AccessService,
         r#impl::{
             api::{LoginRequest, RegisterRequest},
             base::{LoginRegisterParams, PendingSetup, ProvisionUserParams},
@@ -28,6 +29,7 @@ use crate::server::{
         services::traits::CrudService,
         storage::{filter::StorableFilter, traits::Storable},
     },
+    site_assignments::r#impl::base::Principal,
     users::{
         r#impl::{
             base::{User, UserBase},
@@ -53,6 +55,7 @@ use validator::Validate;
 
 pub struct AuthService {
     pub user_service: Arc<UserService>,
+    access_service: Arc<AccessService>,
     organization_service: Arc<OrganizationService>,
     has_email_service: bool,
     login_attempts: Arc<RwLock<HashMap<EmailAddress, (u32, Instant)>>>,
@@ -83,6 +86,7 @@ impl AuthService {
 
     pub fn new(
         user_service: Arc<UserService>,
+        access_service: Arc<AccessService>,
         organization_service: Arc<OrganizationService>,
         has_email_service: bool,
         event_bus: Arc<EventBus>,
@@ -90,6 +94,7 @@ impl AuthService {
     ) -> Self {
         Self {
             user_service,
+            access_service,
             organization_service,
             has_email_service,
             login_attempts: Arc::new(RwLock::new(HashMap::new())),
@@ -151,7 +156,7 @@ impl AuthService {
             permissions,
             ip,
             user_agent,
-            site_ids,
+            site_assignments,
             invited_as,
         } = params;
 
@@ -189,7 +194,7 @@ impl AuthService {
                 email_verified: auto_verify,
                 provision_org,
                 permissions,
-                site_ids,
+                site_assignments,
                 terms_accepted_at,
                 deployment_type,
             })
@@ -244,7 +249,7 @@ impl AuthService {
             provision_org,
             email_verified,
             permissions,
-            site_ids,
+            site_assignments,
             terms_accepted_at,
             deployment_type,
         } = params;
@@ -357,7 +362,7 @@ impl AuthService {
                         hash,
                         organization_id,
                         permissions,
-                        site_ids,
+                        Vec::new(),
                         terms_accepted_at,
                     )),
                     AuthenticatedEntity::System,
@@ -374,7 +379,7 @@ impl AuthService {
                         oidc_provider,
                         organization_id,
                         permissions,
-                        site_ids,
+                        Vec::new(),
                         terms_accepted_at,
                     )),
                     AuthenticatedEntity::System,
@@ -383,6 +388,15 @@ impl AuthService {
         } else {
             Err(anyhow!("Must provide either password or OIDC credentials"))
         }?;
+
+        self.access_service
+            .set_access(
+                Principal::User(user.id),
+                permissions,
+                &site_assignments,
+                AuthenticatedEntity::System,
+            )
+            .await?;
 
         if let ProvisionOrg::New(PendingSetup {
             org_name,

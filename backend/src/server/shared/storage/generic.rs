@@ -125,9 +125,9 @@ where
             Some(c) if c.contains("group_bindings") => {
                 "This binding already exists in the group".to_string()
             }
-            // user_site_access(user_id, site_id)
-            Some(c) if c.contains("user_site_access") => {
-                "This user already has access to this site".to_string()
+            // site_assignments(principal, site_id)
+            Some(c) if c.contains("site_assignments") => {
+                "This site is already assigned".to_string()
             }
             // users - email or name
             Some(c) if c.contains("users") && c.contains("email") => {

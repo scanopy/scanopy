@@ -1,4 +1,6 @@
-use crate::server::auth::middleware::permissions::{Admin, Authorized, Viewer};
+use crate::server::auth::access::{Action, Resource};
+use crate::server::auth::middleware::auth::AuthenticatedEntity;
+use crate::server::auth::middleware::permissions::{Authorized, Can, Delete, Read, Write};
 use crate::server::credentials::r#impl::base::Credential;
 use crate::server::credentials::r#impl::mapping::Target;
 use crate::server::credentials::r#impl::types::{
@@ -484,6 +486,11 @@ async fn enforce_supported_targets(
     Ok(())
 }
 
+/// The sites a credential writer can assign to: a credential is org-keyed, its targets aren't.
+fn assignable_site_ids(entity: &AuthenticatedEntity) -> Vec<Uuid> {
+    entity.site_ids_for(Resource::Site, Action::Read)
+}
+
 async fn save_assignments(
     state: &AppState,
     credential: &mut Credential,
@@ -535,7 +542,7 @@ async fn save_assignments(
 )]
 async fn get_by_id_credential(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Credential, Read>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<Credential>>> {
     let mut response =
@@ -566,7 +573,7 @@ async fn get_by_id_credential(
 )]
 async fn update_credential(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Credential, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(mut entity): ApiJson<Credential>,
 ) -> ApiResult<Json<ApiResponse<Credential>>> {
@@ -578,18 +585,13 @@ async fn update_credential(
 
     let assigned_site_ids = entity.base.assigned_site_ids.clone();
     let host_assignments = entity.base.host_assignments.clone();
-    let site_ids = auth.site_ids();
+    let site_ids = assignable_site_ids(&auth.entity);
 
     enforce_supported_targets(&state, &entity, &site_ids).await?;
     enforce_single_endpoint(&state, &entity).await?;
 
-    let mut response = update_handler::<Credential>(
-        State(state.clone()),
-        auth.into_permission::<crate::server::auth::middleware::permissions::Member>(),
-        Path(id),
-        ApiJson(entity),
-    )
-    .await?;
+    let mut response =
+        update_handler::<Credential>(State(state.clone()), auth, Path(id), ApiJson(entity)).await?;
 
     if let Some(credential) = response.data_mut() {
         save_assignments(
@@ -621,15 +623,10 @@ async fn update_credential(
 )]
 async fn delete_credential(
     state: State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Credential, Delete>>,
     id: axum::extract::Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
-    delete_handler::<Credential>(
-        state,
-        auth.into_permission::<crate::server::auth::middleware::permissions::Member>(),
-        id,
-    )
-    .await
+    delete_handler::<Credential>(state, auth, id).await
 }
 
 /// Bulk delete credentials
@@ -646,15 +643,10 @@ async fn delete_credential(
 )]
 async fn bulk_delete_credentials(
     state: State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Credential, Delete>>,
     ids: ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
-    bulk_delete_handler::<Credential>(
-        state,
-        auth.into_permission::<crate::server::auth::middleware::permissions::Member>(),
-        ids,
-    )
-    .await
+    bulk_delete_handler::<Credential>(state, auth, ids).await
 }
 
 /// List credentials
@@ -674,12 +666,12 @@ async fn bulk_delete_credentials(
 )]
 async fn get_all_credentials(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Credential, Read>>,
     crate::server::shared::extractors::Query(query): crate::server::shared::extractors::Query<
         CredentialFilterQuery,
     >,
 ) -> ApiResult<Json<PaginatedApiResponse<Credential>>> {
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     Ok(Json(list_page::<Credential>(&state, &scope, &query).await?))
 }
 
@@ -699,22 +691,18 @@ async fn get_all_credentials(
 )]
 pub async fn create_credential(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Credential, Write>>,
     ApiJson(credential): ApiJson<Credential>,
 ) -> ApiResult<Json<ApiResponse<Credential>>> {
     let assigned_site_ids = credential.base.assigned_site_ids.clone();
     let host_assignments = credential.base.host_assignments.clone();
-    let site_ids = auth.site_ids();
+    let site_ids = assignable_site_ids(&auth.entity);
 
     enforce_supported_targets(&state, &credential, &site_ids).await?;
     enforce_single_endpoint(&state, &credential).await?;
 
-    let mut response = create_handler::<Credential>(
-        State(state.clone()),
-        auth.into_permission::<crate::server::auth::middleware::permissions::Member>(),
-        ApiJson(credential),
-    )
-    .await?;
+    let mut response =
+        create_handler::<Credential>(State(state.clone()), auth, ApiJson(credential)).await?;
 
     if let Some(created) = response.data_mut() {
         save_assignments(
@@ -761,7 +749,7 @@ fn check_bulk_create_size(len: usize) -> Result<(), ApiError> {
 )]
 async fn bulk_create_credentials(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Credential, Write>>,
     ApiJson(credentials): ApiJson<Vec<Credential>>,
 ) -> ApiResult<Json<ApiResponse<Vec<Credential>>>> {
     if credentials.is_empty() {
@@ -774,7 +762,7 @@ async fn bulk_create_credentials(
     // each credential's org to the caller's rather than trusting the body, and
     // validate assignment references (inside save_assignments).
     let org_id = auth.require_organization_id()?;
-    let site_ids = auth.site_ids();
+    let site_ids = assignable_site_ids(&auth.entity);
 
     // Validate all credential types and their assignments up front, so a batch containing one
     // contradicting credential creates none of them. The service checks the plan again per create.

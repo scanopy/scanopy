@@ -56,14 +56,22 @@ pub struct DaemonBase {
     pub user_id: Uuid,
     /// Foreign key to API key used for ServerPoll authentication.
     /// NULL for DaemonPoll daemons or those not yet linked to a key.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[schema(read_only)]
     pub api_key_id: Option<Uuid>,
     /// Whether the daemon is unreachable (for ServerPoll circuit breaker).
     /// Set to true after repeated polling failures, reset via retry-connection endpoint.
     #[serde(default)]
     pub is_unreachable: bool,
     /// Whether the daemon is on standby due to inactivity (no discovery in 30 days).
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub standby: bool,
     /// Timestamp of the most recent standby → active transition. Set by
@@ -72,7 +80,11 @@ pub struct DaemonBase {
     /// daemons within the grace window (see `STANDBY_GRACE_PERIOD_DAYS`)
     /// to prevent the "restart → cleared → re-standby'd before discovery
     /// runs" race.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored",
+        skip_serializing_if = "Option::is_none"
+    )]
     #[schema(read_only)]
     pub standby_cleared_at: Option<DateTime<Utc>>,
     /// The operating system the daemon runs on. Picked when the daemon is created, then checked

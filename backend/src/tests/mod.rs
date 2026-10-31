@@ -3,6 +3,7 @@ use crate::server::shared::attribution::AttributeSource;
 use crate::server::subnets::r#impl::base::{SubnetCidr, SubnetCidrValue};
 use crate::server::subnets::r#impl::base::{SubnetName, SubnetTypeAttributed};
 use crate::server::{
+    auth::access::{AccessSet, Assignment},
     config::{AppState, ServerConfig},
     daemons::r#impl::base::{Daemon, DaemonBase, DaemonMode},
     dependencies::r#impl::{
@@ -28,7 +29,10 @@ use crate::server::{
         types::SubnetType,
     },
     topology::types::edges::EdgeStyle,
-    users::r#impl::base::{User, UserBase},
+    users::r#impl::{
+        base::{User, UserBase},
+        permissions::UserOrgPermissions,
+    },
 };
 use axum::Router;
 use chrono::Utc;
@@ -41,8 +45,11 @@ use std::sync::Arc;
 use testcontainers::{ContainerAsync, GenericImage, ImageExt, core::WaitFor, runners::AsyncRunner};
 use uuid::Uuid;
 
+pub mod api_key_site_access;
 pub mod billing_emails_zero_amount;
 pub mod cloud_setup;
+pub mod cross_tenant_probe;
+pub mod daemon_report_scope;
 pub mod default_credentials;
 pub mod deletion_reasons;
 pub mod demo_data_seeding;
@@ -86,6 +93,7 @@ pub mod stripe_webhooks;
 pub mod subnet_placement;
 pub mod subnet_vlan_inference;
 pub mod tag_scope;
+pub mod tenant_isolation;
 pub mod terms_notices;
 pub mod virtualization_tree;
 pub mod virtualizer_cascade;
@@ -301,6 +309,11 @@ pub async fn setup_test_app() -> Router<Arc<AppState>> {
     router.with_state(state)
 }
 
+/// What a principal holding `role` on `site_ids` can do.
+pub fn access_on(role: UserOrgPermissions, site_ids: &[Uuid]) -> AccessSet {
+    AccessSet::new(role, &Assignment::for_api_key(role, site_ids), &[])
+}
+
 /// The scope of a caller who sees `site_ids` in `organization_id`, with no user behind it.
 pub fn list_scope(
     site_ids: &[Uuid],
@@ -310,6 +323,6 @@ pub fn list_scope(
         site_ids: site_ids.to_vec(),
         organization_id,
         user_id: None,
-        permissions: None,
+        organization_grants: None,
     }
 }

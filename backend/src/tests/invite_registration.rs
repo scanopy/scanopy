@@ -88,8 +88,8 @@ async fn org_with_invite(state: &AppState, expiration_hours: i64) -> Invite {
     );
     state
         .services
-        .invite_service
-        .create(invite, AuthenticatedEntity::System)
+        .access_service
+        .create_invite(invite, AuthenticatedEntity::System)
         .await
         .unwrap()
 }
@@ -106,10 +106,6 @@ async fn hold_invite(session: &Session, invite: &Invite) {
         .unwrap();
     session
         .insert("pending_invite_permissions", invite.base.permissions)
-        .await
-        .unwrap();
-    session
-        .insert("pending_site_ids", invite.base.site_ids.clone())
         .await
         .unwrap();
 }

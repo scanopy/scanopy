@@ -345,10 +345,20 @@ pub trait Entity: Storable + crate::server::shared::events::log::EntityLog {
         // Default: no-op
     }
 
-    /// Preserve entity-specific immutable fields from the existing entity.
-    /// Override for entities that have additional read-only fields beyond id/created_at.
-    fn preserve_immutable_fields(&mut self, _existing: &Self) {
-        // Default: no-op
+    /// Settle an incoming entity against the stored one, by each field's
+    /// [`FieldWrite`](crate::server::shared::types::entity_field::FieldWrite) in the registry.
+    /// Runs on API updates and on discovery's merges, so it reads typed fields, not JSON.
+    fn preserve_immutable_fields(&mut self, existing: &Self)
+    where
+        Self: 'static,
+    {
+        let fields = Self::entity_type().fields();
+        for rule in fields.iter().filter_map(|f| f.write.settled_rule()) {
+            rule.apply(self, existing);
+        }
+        for rule in fields.iter().filter_map(|f| f.write.merged_rule()) {
+            rule.apply(self, existing);
+        }
     }
 }
 

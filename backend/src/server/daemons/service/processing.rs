@@ -73,8 +73,11 @@ impl DaemonService {
             }
             resolved_ids
         } else {
-            self.filter_existing_subnet_ids(&status.capabilities.interfaced_subnet_ids)
-                .await
+            self.filter_existing_subnet_ids(
+                &status.capabilities.interfaced_subnet_ids,
+                daemon.base.site_id,
+            )
+            .await
         };
 
         self.set_interfaced_subnet_ids(&daemon_id, &subnet_ids)
@@ -134,14 +137,17 @@ impl DaemonService {
         }
     }
 
-    /// Keep only the subnet ids that currently exist as live `subnets` rows, so a
-    /// legacy daemon's stale/dangling id can't violate the junction FK. Goes through
-    /// `SubnetService` (not storage) to respect entity boundaries.
-    async fn filter_existing_subnet_ids(&self, ids: &[Uuid]) -> Vec<Uuid> {
+    /// Keep only the subnet ids that currently exist as live `subnets` rows on the daemon's
+    /// site, so a legacy daemon's stale/dangling id can't violate the junction FK and it can't
+    /// claim another site's subnet. Goes through `SubnetService` (not storage) to respect entity
+    /// boundaries.
+    async fn filter_existing_subnet_ids(&self, ids: &[Uuid], site_id: Uuid) -> Vec<Uuid> {
         if ids.is_empty() {
             return Vec::new();
         }
-        let filter = StorableFilter::<Subnet>::new_from_uuids_column("id", ids).live();
+        let filter = StorableFilter::<Subnet>::new_from_site_ids(&[site_id])
+            .uuids_column("id", ids)
+            .live();
         match self.subnet_service.get_all(filter).await {
             Ok(subnets) => {
                 let existing: std::collections::HashSet<Uuid> =
@@ -252,7 +258,7 @@ impl DaemonService {
         // and sends nil; the server derives it from the 1:1 key. For a legacy
         // shared-key daemon the key's site equals request.site_id, so this is
         // a no-op there (and it stops a daemon claiming a site its key can't reach).
-        let effective_site_id = auth.site_ids().first().copied().unwrap_or(request.site_id);
+        let effective_site_id = auth.daemon_site_id().unwrap_or(request.site_id);
 
         // Check if this is a demo organization - block daemon registration
         let site = self
@@ -306,6 +312,11 @@ impl DaemonService {
 
         // Check if daemon already exists (re-registration scenario)
         if let Some(mut existing_daemon) = self.get_by_id(&effective_daemon_id).await? {
+            // A shared key names its daemon by header, so the id proves nothing on its own.
+            if existing_daemon.base.site_id != effective_site_id {
+                return Err(ApiError::daemon_site_mismatch());
+            }
+
             // Update daemon with current info
             // NOTE: We do NOT update URL from registration request.
             // URL is only set via admin provisioning for ServerPoll daemons.
@@ -469,16 +480,22 @@ impl DaemonService {
         // host here. Every target — daemon-host sockets included — earns its assignment by
         // probing successfully during discovery, at which point it's assigned to the host it
         // worked on.
-        // If user_id is nil (old daemon), fall back to org owner
-        let user_id = if request.user_id.is_nil() {
-            self.user_service
+        // A nil user_id (old daemon) or one outside the org falls back to the org owner: the
+        // maintainer receives this daemon's alert emails.
+        let maintainer = self
+            .user_service
+            .get_by_id(&request.user_id)
+            .await?
+            .filter(|user| user.base.organization_id == org_id);
+        let user_id = match maintainer {
+            Some(user) => user.id,
+            None => self
+                .user_service
                 .get_organization_owners(&org_id)
                 .await?
                 .first()
                 .map(|u| u.id)
-                .unwrap_or(request.user_id)
-        } else {
-            request.user_id
+                .unwrap_or_default(),
         };
 
         let mut daemon = Daemon::new(DaemonBase {
@@ -542,12 +559,13 @@ impl DaemonService {
         );
 
         // Confirm the daemon exists (auth already scoped it to the caller's site).
-        if self.get_by_id(&daemon_id).await?.is_none() {
-            return Err(ApiError::entity_not_found::<Daemon>(daemon_id));
-        }
+        let daemon = self
+            .get_by_id(&daemon_id)
+            .await?
+            .ok_or_else(|| ApiError::entity_not_found::<Daemon>(daemon_id))?;
 
         let subnet_ids = self
-            .filter_existing_subnet_ids(&capabilities.interfaced_subnet_ids)
+            .filter_existing_subnet_ids(&capabilities.interfaced_subnet_ids, daemon.base.site_id)
             .await;
         self.set_interfaced_subnet_ids(&daemon_id, &subnet_ids)
             .await
@@ -568,7 +586,18 @@ impl DaemonService {
     /// deliberate trade: the scan record is written before the daemon is acknowledged, so a failure
     /// here is one the daemon sees and can retry, rather than a session silently lost after a
     /// successful ack.
-    pub async fn process_discovery_progress(&self, mut update: DiscoveryUpdatePayload) {
+    ///
+    /// `daemon_id` and `site_id` say whose report this is, from the caller's key or the daemon it
+    /// polled, never from the report.
+    pub async fn process_discovery_progress(
+        &self,
+        daemon_id: Uuid,
+        site_id: Uuid,
+        mut update: DiscoveryUpdatePayload,
+    ) -> Result<(), ApiError> {
+        self.scope_discovery_report(daemon_id, site_id, &mut update)
+            .await?;
+
         if update.phase == DiscoveryPhase::Complete
             && update.discovery_type.rescan_target_host_ids().is_none()
         {
@@ -593,6 +622,7 @@ impl DaemonService {
         }
 
         self.discovery_service.update_session(update).await;
+        Ok(())
     }
 
     /// Fold the subnets this scan found without the daemon naming them into the terminal payload,

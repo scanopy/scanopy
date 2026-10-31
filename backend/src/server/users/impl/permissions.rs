@@ -1,13 +1,16 @@
 use serde::{Deserialize, Serialize};
-use std::{cmp::Ordering, str::FromStr};
+use std::str::FromStr;
 use strum::{Display, EnumIter, IntoEnumIterator, IntoStaticStr};
 use utoipa::ToSchema;
 
-use crate::server::shared::{
-    entities::EntityDiscriminants,
-    types::{
-        Color, Icon,
-        metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider},
+use crate::server::{
+    auth::access::{Action, Keying, Resource},
+    shared::{
+        entities::EntityDiscriminants,
+        types::{
+            Color, Icon,
+            metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider},
+        },
     },
 };
 
@@ -40,30 +43,24 @@ impl UserOrgPermissions {
         self.into()
     }
 
-    /// Returns permission levels this user can assign to API keys.
-    /// Users can grant their own level or below.
+    /// The roles this role can give an API key, by the no-escalation rule.
     pub fn grantable_api_key_permissions(&self) -> Vec<UserOrgPermissions> {
-        UserOrgPermissions::iter().filter(|p| p <= self).collect()
+        let grants = self.grants();
+        UserOrgPermissions::iter()
+            .filter(|target| target.grants().is_subset_of(&grants))
+            .collect()
     }
 
-    /// Returns permission levels this user can assign to other users.
-    /// Only Owners can create Admins; Admins can only create Member/Viewer.
+    /// The roles this role can give another user, by the no-escalation rule. Nothing without
+    /// `Member` Write, which adding or changing a user takes.
     pub fn grantable_user_permissions(&self) -> Vec<UserOrgPermissions> {
-        match self {
-            UserOrgPermissions::Owner => UserOrgPermissions::iter().collect(),
-            UserOrgPermissions::Admin => UserOrgPermissions::iter().filter(|p| p < self).collect(),
-            _ => vec![],
+        let grants = self.grants();
+        if !grants.allows(Resource::Member, Action::Write) {
+            return vec![];
         }
-    }
-
-    /// Check if this permission level can grant a specific API key permission
-    pub fn can_grant_api_key_permission(&self, target: &UserOrgPermissions) -> bool {
-        target <= self
-    }
-
-    /// Check if this permission level can grant a specific user permission
-    pub fn can_grant_user_permission(&self, target: &UserOrgPermissions) -> bool {
-        self.grantable_user_permissions().contains(target)
+        UserOrgPermissions::iter()
+            .filter(|target| grants.may_grant_to_person(&target.grants(), Keying::Organization))
+            .collect()
     }
 }
 
@@ -78,32 +75,6 @@ impl FromStr for UserOrgPermissions {
             "Viewer" | "Visualizer" | "None" => Ok(UserOrgPermissions::Viewer),
             _ => Err(()),
         }
-    }
-}
-
-impl PartialOrd for UserOrgPermissions {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for UserOrgPermissions {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let self_rank = match self {
-            UserOrgPermissions::Owner => 4,
-            UserOrgPermissions::Admin => 3,
-            UserOrgPermissions::Member => 2,
-            UserOrgPermissions::Viewer => 1,
-        };
-
-        let other_rank = match other {
-            UserOrgPermissions::Owner => 4,
-            UserOrgPermissions::Admin => 3,
-            UserOrgPermissions::Member => 2,
-            UserOrgPermissions::Viewer => 1,
-        };
-
-        self_rank.cmp(&other_rank)
     }
 }
 

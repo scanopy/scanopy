@@ -12,7 +12,7 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::daemon::discovery::types::base::DiscoveryPhase;
-use crate::server::auth::middleware::permissions::{Authorized, Member};
+use crate::server::auth::middleware::permissions::{Authorized, Can, Write};
 use crate::server::config::AppState;
 use crate::server::daemons::r#impl::api::DiscoveryUpdatePayload;
 use crate::server::discovery::handlers::{session_starting_error, wake_daemon};
@@ -85,7 +85,7 @@ async fn load_all(
 )]
 async fn bulk_start_sessions(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Discovery, Write>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<Vec<DiscoveryUpdatePayload>>>> {
     let discoveries = load_all(&state, &ids, &auth.site_ids()).await?;
@@ -138,7 +138,7 @@ async fn bulk_start_sessions(
 )]
 async fn bulk_cancel_sessions(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Discovery, Write>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let discoveries = load_all(&state, &ids, &auth.site_ids()).await?;
@@ -196,7 +196,7 @@ pub struct BulkSetEnabledRequest {
 )]
 async fn bulk_set_enabled(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Discovery, Write>>,
     ApiJson(request): ApiJson<BulkSetEnabledRequest>,
 ) -> ApiResult<Json<ApiResponse<Vec<Discovery>>>> {
     let discoveries = load_all(&state, &request.ids, &auth.site_ids()).await?;

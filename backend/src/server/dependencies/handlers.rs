@@ -4,7 +4,7 @@ use axum::extract::{Path, State};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::server::auth::middleware::permissions::{Authorized, Member, Viewer};
+use crate::server::auth::middleware::permissions::{Authorized, Can, Read, Write};
 use crate::server::config::AppState;
 use crate::server::dependencies::r#impl::base::{Dependency, DependencyMembers};
 use crate::server::shared::events::traits::{Event, OrgScope};
@@ -162,7 +162,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn get_all_dependencies(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Dependency, Read>>,
     Query(query): Query<DependencyFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<Dependency>>> {
     let site_ids = auth.site_ids();
@@ -214,7 +214,7 @@ async fn get_all_dependencies(
 )]
 async fn create_dependency(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Dependency, Write>>,
     ApiJson(dependency): ApiJson<Dependency>,
 ) -> ApiResult<Json<ApiResponse<Dependency>>> {
     let organization_id = auth
@@ -271,7 +271,7 @@ async fn create_dependency(
 )]
 async fn update_dependency(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Dependency, Write>>,
     path: Path<Uuid>,
     ApiJson(dependency): ApiJson<Dependency>,
 ) -> ApiResult<Json<ApiResponse<Dependency>>> {

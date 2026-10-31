@@ -1,17 +1,21 @@
+use crate::server::auth::access::{AccessSet, Action, Assignment, Resource};
 use crate::server::auth::middleware::permissions::{
-    Admin, Authorized, IsUser, Member, RequireVerified,
+    Authorized, Can, Delete, IsUser, Read, RequireVerified, Write,
 };
 use crate::server::openapi::tags as api_tags;
 use crate::server::shared::events::types::UpdateReason;
 use crate::server::shared::extractors::Query;
 use crate::server::shared::handlers::query::{FilterQueryExtractor, NoFilterQuery};
-use crate::server::shared::handlers::traits::{BulkDeleteResponse, CrudHandlers, delete_handler};
+use crate::server::shared::handlers::traits::{
+    BulkDeleteResponse, CrudHandlers, delete_handler, validate_entity_references,
+};
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::Entity;
 use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::{
     ApiError, ApiErrorResponse, EmptyApiResponse, PaginatedApiResponse,
 };
+use crate::server::site_assignments::r#impl::base::Principal;
 use crate::server::users::r#impl::base::User;
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
 use crate::server::{
@@ -63,6 +67,9 @@ pub async fn get_user_by_id(
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<User>>> {
     let auth_org_id = auth.require_organization_id()?;
+    if !auth.entity.can(Resource::Member, Action::Read) && auth.user_id() != Some(id) {
+        return Err(ApiError::permission_denied());
+    }
     let service = User::get_service(&state);
 
     let mut user = service
@@ -101,24 +108,14 @@ pub async fn get_user_by_id(
 )]
 pub async fn get_all_users(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<User, Read>>,
     query: Query<NoFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<User>>> {
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
     let user_id = auth.user_id().ok_or_else(ApiError::user_required)?;
-
-    // Get user permissions from entity
-    let permissions = match &auth.entity {
-        crate::server::auth::middleware::auth::AuthenticatedEntity::User {
-            permissions, ..
-        }
-        | crate::server::auth::middleware::auth::AuthenticatedEntity::ApiKey {
-            permissions, ..
-        } => *permissions,
-        _ => return Err(ApiError::user_required()),
-    };
+    let viewer_grants = auth.require_access()?.organization();
 
     let org_filter = StorableFilter::<User>::new_from_org_id(&organization_id);
 
@@ -129,7 +126,7 @@ pub async fn get_all_users(
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?
         .into_iter()
-        .filter(|u| u.is_listed_for(permissions, user_id))
+        .filter(|u| u.is_listed_for(viewer_grants, user_id))
         .collect();
 
     // Apply pagination in-memory after filtering
@@ -182,23 +179,12 @@ pub async fn get_all_users(
 )]
 pub async fn delete_user(
     state: State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Admin>>,
+    auth: Authorized<RequireVerified<Can<User, Delete>>>,
     id: Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
-
-    // Get user permissions from entity
-    let permissions = match &auth.entity {
-        crate::server::auth::middleware::auth::AuthenticatedEntity::User {
-            permissions, ..
-        }
-        | crate::server::auth::middleware::auth::AuthenticatedEntity::ApiKey {
-            permissions, ..
-        } => *permissions,
-        _ => return Err(ApiError::user_required()),
-    };
 
     let user_to_be_deleted = state
         .services
@@ -207,11 +193,16 @@ pub async fn delete_user(
         .await?
         .ok_or_else(|| anyhow!("User {} does not exist", id.0))?;
 
+    let target_access = state
+        .services
+        .access_service
+        .user_access(&user_to_be_deleted)
+        .await?;
     refuse_user_delete(
         auth.user_id(),
-        permissions,
+        auth.require_access()?,
         user_to_be_deleted.id,
-        user_to_be_deleted.base.permissions,
+        &target_access,
     )?;
 
     let count_owners = state
@@ -227,7 +218,7 @@ pub async fn delete_user(
         ));
     }
 
-    delete_handler::<User>(state, auth.into_permission::<Member>(), id).await
+    delete_handler::<User>(state, auth, id).await
 }
 
 /// Update your own user record
@@ -316,22 +307,13 @@ pub async fn update_user(
 )]
 async fn admin_update_user(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Admin>>,
+    auth: Authorized<RequireVerified<Can<User, Write>>>,
     Path(id): Path<Uuid>,
     ApiJson(mut request): ApiJson<User>,
 ) -> ApiResult<Json<ApiResponse<User>>> {
     let admin_user_id = auth.user_id().ok_or_else(ApiError::user_required)?;
-
-    // Get admin permissions from entity
-    let admin_permissions = match &auth.entity {
-        crate::server::auth::middleware::auth::AuthenticatedEntity::User {
-            permissions, ..
-        }
-        | crate::server::auth::middleware::auth::AuthenticatedEntity::ApiKey {
-            permissions, ..
-        } => *permissions,
-        _ => return Err(ApiError::user_required()),
-    };
+    let organization_id = auth.require_organization_id()?;
+    let access_service = &state.services.access_service;
 
     let service = User::get_service(&state);
 
@@ -346,7 +328,7 @@ async fn admin_update_user(
     // service.update directly (bypassing the generic org-scoped handler), so
     // without this check an admin could modify a lower-privileged user in
     // another org by id.
-    if existing.base.organization_id != auth.require_organization_id()? {
+    if existing.base.organization_id != organization_id {
         return Err(ApiError::permission_denied());
     }
 
@@ -355,15 +337,9 @@ async fn admin_update_user(
         return Err(ApiError::permission_denied());
     }
 
-    // Can only edit users with lower permissions than yourself
-    if existing.base.permissions >= admin_permissions {
-        return Err(ApiError::permission_denied());
-    }
-
-    // Cannot promote user to same or higher level than yourself
-    if admin_permissions != UserOrgPermissions::Owner
-        && request.base.permissions >= admin_permissions
-    {
+    // Can only edit users you could have granted
+    let caller = auth.require_access()?;
+    if !caller.may_grant_to_person(&access_service.user_access(&existing).await?) {
         return Err(ApiError::permission_denied());
     }
 
@@ -380,25 +356,42 @@ async fn admin_update_user(
     request.base.email_settings = existing.base.email_settings.clone();
     request.base.display_settings = existing.base.display_settings.clone();
 
-    // Capture site_ids before update (they're stored in junction table, not user record)
-    let site_ids = request.base.site_ids.clone();
+    validate_entity_references::<User>(
+        &state,
+        &request,
+        Some(&existing),
+        &auth.entity,
+        organization_id,
+    )
+    .await?;
 
-    let updated = service
-        .update(
-            &mut request,
-            auth.into_entity(),
-            UpdateReason::EntityRequested,
-        )
-        .await
-        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+    // Cannot give what you could not grant. Runs after the references are checked, so a site
+    // outside the organization reads as a bad reference.
+    let role = request.base.permissions;
+    let assignments = Assignment::for_person(role, &request.base.site_ids);
+    let granted = access_service
+        .resolve(organization_id, role, &assignments)
+        .await?;
+    if !auth.require_access()?.may_grant_to_person(&granted) {
+        return Err(ApiError::permission_denied());
+    }
 
-    // Persist site_ids to the junction table
-    state
-        .services
-        .user_service
-        .set_site_ids(&id, &site_ids)
-        .await
-        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+    let entity = auth.into_entity();
+    access_service
+        .set_access(Principal::User(id), role, &assignments, entity.clone())
+        .await?;
+
+    // `set_access` writes and announces a changed role. A change of sites alone updates the user
+    // here.
+    let mut updated = if role == existing.base.permissions {
+        service
+            .update(&mut request, entity, UpdateReason::EntityRequested)
+            .await
+            .map_err(|e| ApiError::internal_error(&e.to_string()))?
+    } else {
+        request
+    };
+    service.hydrate_site_ids(&mut updated).await?;
 
     Ok(Json(ApiResponse::success(updated)))
 }
@@ -417,7 +410,7 @@ async fn admin_update_user(
 )]
 pub async fn bulk_delete_users(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Admin>>,
+    auth: Authorized<RequireVerified<Can<User, Delete>>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
     use crate::server::shared::handlers::traits::bulk_delete_handler;
@@ -426,22 +419,17 @@ pub async fn bulk_delete_users(
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
 
-    // Get user permissions from entity
-    let permissions = match &auth.entity {
-        crate::server::auth::middleware::auth::AuthenticatedEntity::User {
-            permissions, ..
-        }
-        | crate::server::auth::middleware::auth::AuthenticatedEntity::ApiKey {
-            permissions, ..
-        } => *permissions,
-        _ => return Err(ApiError::user_required()),
-    };
-
     let user_filter = StorableFilter::<User>::new_from_entity_ids(&ids);
     let users = state.services.user_service.get_all(user_filter).await?;
 
     for user in &users {
-        refuse_user_delete(auth.user_id(), permissions, user.id, user.base.permissions)?;
+        let target_access = state.services.access_service.user_access(user).await?;
+        refuse_user_delete(
+            auth.user_id(),
+            auth.require_access()?,
+            user.id,
+            &target_access,
+        )?;
     }
 
     let owners = state
@@ -456,26 +444,21 @@ pub async fn bulk_delete_users(
         ));
     }
 
-    bulk_delete_handler::<User>(
-        axum::extract::State(state),
-        auth.into_permission::<Member>(),
-        ApiJson(ids),
-    )
-    .await
+    bulk_delete_handler::<User>(axum::extract::State(state), auth, ApiJson(ids)).await
 }
 
 /// Refuses deleting yourself, or a user whose role you could not have granted. The users list
 /// offers Delete for exactly the users this lets through.
 fn refuse_user_delete(
     caller_id: Option<Uuid>,
-    caller_permissions: UserOrgPermissions,
+    caller_access: &AccessSet,
     target_id: Uuid,
-    target_permissions: UserOrgPermissions,
+    target_access: &AccessSet,
 ) -> Result<(), ApiError> {
     if caller_id == Some(target_id) {
         return Err(ApiError::forbidden("You can't delete your own user"));
     }
-    if !caller_permissions.can_grant_user_permission(&target_permissions) {
+    if !caller_access.may_grant_to_person(target_access) {
         return Err(ApiError::unauthorized(
             "You can only delete users whose role you could grant".to_string(),
         ));
@@ -486,26 +469,30 @@ fn refuse_user_delete(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::server::users::r#impl::permissions::UserOrgPermissions;
+
+    fn person(role: UserOrgPermissions) -> AccessSet {
+        AccessSet::new(role, &[], &[])
+    }
 
     #[test]
     fn a_user_cannot_delete_themselves() {
         let me = Uuid::new_v4();
-        assert!(
-            refuse_user_delete(
-                Some(me),
-                UserOrgPermissions::Owner,
-                me,
-                UserOrgPermissions::Owner
-            )
-            .is_err()
-        );
+        let owner = person(UserOrgPermissions::Owner);
+        assert!(refuse_user_delete(Some(me), &owner, me, &owner).is_err());
     }
 
     #[test]
     fn deleting_follows_who_you_could_grant() {
         let caller = Some(Uuid::new_v4());
         let refused = |caller_role, target_role| {
-            refuse_user_delete(caller, caller_role, Uuid::new_v4(), target_role).is_err()
+            refuse_user_delete(
+                caller,
+                &person(caller_role),
+                Uuid::new_v4(),
+                &person(target_role),
+            )
+            .is_err()
         };
         assert!(refused(
             UserOrgPermissions::Admin,

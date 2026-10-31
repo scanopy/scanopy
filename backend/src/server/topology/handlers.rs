@@ -6,7 +6,7 @@ use crate::server::{
     auth::middleware::{
         auth::AuthenticatedEntity,
         features::{ConfluenceExportFeature, MermaidExportFeature, RequireFeature},
-        permissions::{Authorized, Member, Viewer},
+        permissions::{Authorized, Can, Read, Write},
     },
     config::AppState,
     shared::{
@@ -126,7 +126,7 @@ pub struct TopologyExportQuery {
 )]
 async fn get_topology_data(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Topology, Read>>,
     Query(params): Query<TopologyDataQuery>,
 ) -> ApiResult<Json<ApiResponse<TopologyData>>> {
     let site_ids = auth.site_ids();
@@ -223,7 +223,7 @@ async fn get_topology_data(
 )]
 async fn update_topology(
     state: State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Topology, Write>>,
     id: Path<Uuid>,
     topology: ApiJson<Topology>,
 ) -> ApiResult<Json<ApiResponse<Topology>>> {
@@ -254,7 +254,7 @@ async fn update_topology(
 )]
 async fn get_all_topologies(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Topology, Read>>,
     query: Query<SiteFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<Topology>>> {
     let site_ids = auth.site_ids();
@@ -331,7 +331,7 @@ async fn get_all_topologies(
 )]
 async fn update_node_position(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Topology, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(request): ApiJson<TopologyNodePositionUpdate>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
@@ -385,7 +385,7 @@ async fn update_node_position(
 )]
 async fn update_edge_handles(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Topology, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(request): ApiJson<TopologyEdgeHandleUpdate>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
@@ -440,7 +440,7 @@ async fn update_edge_handles(
 )]
 async fn update_node_resize(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Topology, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(request): ApiJson<TopologyNodeResizeUpdate>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
@@ -497,7 +497,7 @@ async fn update_node_resize(
 )]
 async fn export_mermaid(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Topology, Read>>,
     _feature: RequireFeature<MermaidExportFeature>,
     Path(id): Path<Uuid>,
     query: Query<TopologyExportQuery>,
@@ -564,7 +564,7 @@ async fn export_mermaid(
 )]
 async fn export_confluence(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Topology, Read>>,
     _feature: RequireFeature<ConfluenceExportFeature>,
     Path(id): Path<Uuid>,
     query: Query<TopologyExportQuery>,

@@ -16,14 +16,15 @@ use email_address::EmailAddress;
 use testcontainers::{ContainerAsync, GenericImage};
 use uuid::Uuid;
 
-use super::{organization, setup_test_db, site, user};
+use super::{access_on, organization, setup_test_db, site, user};
 use crate::server::auth::r#impl::api::RegisterRequest;
 use crate::server::auth::r#impl::base::{LoginRegisterParams, ProvisionOrg};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
-use crate::server::auth::middleware::permissions::{Authorized, Member, RequireVerified};
+use crate::server::auth::middleware::permissions::{Authorized, Can, RequireVerified, Write};
 use crate::server::config::{AppState, DeploymentType, ServerConfig};
 use crate::server::daemons::r#impl::api::ProvisionDaemonRequest;
 use crate::server::daemons::r#impl::base::{DaemonMode, DaemonOs};
+use crate::server::hosts::r#impl::base::Host;
 use crate::server::organizations::r#impl::base::Organization;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::types::api::ApiError;
@@ -122,7 +123,7 @@ fn session_entity(user: &User, site_ids: Vec<Uuid>) -> AuthenticatedEntity {
         user_id: user.id,
         organization_id: user.base.organization_id,
         permissions: user.base.permissions,
-        site_ids,
+        access: access_on(user.base.permissions, &site_ids),
         email: user.base.email.clone(),
         email_verified: user.base.email_verified,
         terms_accepted_at: user.base.terms_accepted_at,
@@ -134,7 +135,7 @@ fn wire_code(err: &ApiError) -> Option<&'static str> {
     err.error_code.as_ref().map(ErrorCode::code)
 }
 
-/// Run the `RequireVerified<Member>` extractor against a request carrying `entity`.
+/// Run a `RequireVerified` extractor against a request carrying `entity`.
 async fn require_verified(
     state: &Arc<AppState>,
     entity: AuthenticatedEntity,
@@ -142,7 +143,7 @@ async fn require_verified(
     let mut request = Request::new(Body::empty());
     request.extensions_mut().insert(entity);
     let (mut parts, _) = request.into_parts();
-    Authorized::<RequireVerified<Member>>::from_request_parts(&mut parts, state)
+    Authorized::<RequireVerified<Can<Host, Write>>>::from_request_parts(&mut parts, state)
         .await
         .map(|_| ())
         .map_err(|e| e.0)
@@ -174,12 +175,12 @@ async fn require_verified_refuses_unverified_and_allows_verified() {
     .await;
 
     assert!(
-        require_verified(&state, session_entity(&verified, vec![]))
+        require_verified(&state, session_entity(&verified, vec![Uuid::new_v4()]))
             .await
             .is_ok()
     );
 
-    let refused = require_verified(&state, session_entity(&unverified, vec![]))
+    let refused = require_verified(&state, session_entity(&unverified, vec![Uuid::new_v4()]))
         .await
         .unwrap_err();
     assert_eq!(refused.status, axum::http::StatusCode::FORBIDDEN);
@@ -203,7 +204,7 @@ async fn require_verified_is_lifted_without_an_email_transport() {
     .await;
 
     assert!(
-        require_verified(&state, session_entity(&unverified, vec![]))
+        require_verified(&state, session_entity(&unverified, vec![Uuid::new_v4()]))
             .await
             .is_ok()
     );
@@ -319,7 +320,7 @@ async fn register_invited(
                 permissions: Some(UserOrgPermissions::Member),
                 ip: IP,
                 user_agent: None,
-                site_ids: vec![],
+                site_assignments: vec![],
                 invited_as: invited_as.map(EmailAddress::new_unchecked),
             },
             DeploymentType::Community,
@@ -546,7 +547,7 @@ async fn email_change_requests_are_limited_per_new_address() {
                 permissions: Some(UserOrgPermissions::Owner),
                 ip: IP,
                 user_agent: None,
-                site_ids: vec![],
+                site_assignments: vec![],
                 invited_as: None,
             },
             DeploymentType::Community,
@@ -599,7 +600,7 @@ async fn user_with_pending_email_change(state: &AppState) -> User {
                 permissions: Some(UserOrgPermissions::Owner),
                 ip: IP,
                 user_agent: None,
-                site_ids: vec![],
+                site_assignments: vec![],
                 invited_as: None,
             },
             DeploymentType::Community,

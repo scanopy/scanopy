@@ -31,6 +31,7 @@ pub mod search;
 pub mod services;
 pub mod shared;
 pub mod shares;
+pub mod site_assignments;
 pub mod sites;
 pub mod snapshots;
 pub mod snmp;

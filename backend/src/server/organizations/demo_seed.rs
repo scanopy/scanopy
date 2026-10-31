@@ -5,6 +5,7 @@
 //! because taking a `&ServiceFactory` rather than an `AppState` makes it directly drivable from
 //! `src/tests/demo_data_seeding.rs` against a testcontainers Postgres with the migrations applied.
 
+use crate::server::auth::access::Assignment;
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::service::hash_password;
 use crate::server::bindings::r#impl::base::Binding;
@@ -17,6 +18,7 @@ use crate::server::shared::services::factory::ServiceFactory;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::traits::{Entity, Storable, Storage};
 use crate::server::shared::types::api::{ApiError, ApiResult};
+use crate::server::site_assignments::r#impl::base::Principal;
 use crate::server::snapshots::types::base::{Snapshot, SnapshotBase};
 use crate::server::subnets::r#impl::base::Subnet;
 use crate::server::tags::entity_tags::EntityTag;
@@ -690,12 +692,21 @@ pub(crate) async fn insert_demo_data(
         .user_service
         .create(demo_admin, entity.clone())
         .await?;
+    services
+        .access_service
+        .set_access(
+            Principal::User(DEMO_USER_ID),
+            UserOrgPermissions::Admin,
+            &Assignment::for_person(UserOrgPermissions::Admin, &[]),
+            entity.clone(),
+        )
+        .await?;
 
-    // 13. User API Keys (depends on demo admin user + site access junction table)
+    // 13. User API Keys (depends on demo admin user, whose access caps theirs)
     for (api_key, site_ids) in demo_data.user_api_keys {
         services
-            .user_api_key_service
-            .create_with_sites(api_key, site_ids, entity.clone())
+            .access_service
+            .create_api_key(api_key, site_ids, entity.clone())
             .await
             .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     }

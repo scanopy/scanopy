@@ -46,7 +46,7 @@ use crate::server::shared::storage::traits::Entity;
 use crate::server::shared::types::Stability;
 use crate::server::shared::types::entities::{EntityFreshness, EntitySourceDiscriminants};
 use crate::server::shared::types::entity_field::{
-    EntityField, FieldFormat, FieldGroup, Hop, MetadataFixture, TableColumn,
+    EntityField, FieldFormat, FieldGroup, Hop, MetadataFixture,
 };
 use crate::server::shared::types::field_definition::{
     FieldDefinition, FieldType, InlineFormat, SelectOption,
@@ -191,7 +191,6 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
         FieldFormat,
         MetadataFixture,
         FieldGroup,
-        TableColumn,
         FieldDefinition,
         FieldType,
         SelectOption,

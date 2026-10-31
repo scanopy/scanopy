@@ -64,6 +64,11 @@ pub struct ShareBase {
     /// The site this entity belongs to.
     pub site_id: Uuid,
     /// User who created the share.
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
+    #[schema(read_only, required)]
     pub created_by: Uuid,
     /// Human-facing name for this share.
     pub name: String,

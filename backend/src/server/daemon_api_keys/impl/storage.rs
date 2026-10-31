@@ -164,25 +164,6 @@ impl Entity for DaemonApiKey {
         self.updated_at = time;
     }
 
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        // key hash cannot be changed via update (use rotate endpoint instead)
-        self.base.key = existing.base.key.clone();
-        // last_used is server-set only
-        self.base.last_used = existing.base.last_used;
-        // daemon_id is the 1:1 binding, set at provision only. It is read_only in the
-        // schema so a tab PUT omits it; without this it would deserialize to None and
-        // silently unbind the key from its daemon.
-        self.base.daemon_id = existing.base.daemon_id;
-        // plaintext is #[serde(skip)], so an inbound update request always deserializes it
-        // to None. Without preserving it here, any PUT (rename, enable/disable, the Manage-key
-        // modal) would persist NULL and break ServerPoll polling, which needs the stored
-        // plaintext to dial the daemon. It's only ever (re)set by provisioning and rotate,
-        // which write it explicitly and don't go through this update path.
-        if self.base.plaintext.is_none() {
-            self.base.plaintext = existing.base.plaintext.clone();
-        }
-    }
-
     fn get_tags(&self) -> Option<&Vec<Uuid>> {
         Some(&self.base.tags)
     }

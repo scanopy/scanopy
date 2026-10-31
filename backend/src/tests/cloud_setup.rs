@@ -120,7 +120,7 @@ async fn sign_up(services: &ServiceFactory, site: Option<PendingSiteSetup>) -> U
                 use_case: UseCase::InternalIt,
             }),
             permissions: None,
-            site_ids: Vec::new(),
+            site_assignments: Vec::new(),
             terms_accepted_at: None,
             email_verified: true,
             deployment_type: DeploymentType::Cloud,

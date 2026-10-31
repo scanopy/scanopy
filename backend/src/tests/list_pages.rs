@@ -179,7 +179,7 @@ async fn user_api_keys_list_only_the_callers_own() {
 
     let scope = ListScope {
         user_id: Some(me.id),
-        permissions: Some(UserOrgPermissions::Admin),
+        organization_grants: Some(UserOrgPermissions::Admin.grants()),
         ..list_scope(&[net.id], org.id)
     };
     let query = UserApiKeyFilterQuery::default();
@@ -801,7 +801,7 @@ async fn members_list_users_and_invites_the_caller_may_see() {
         &state,
         org.id,
         admin.id,
-        UserOrgPermissions::Admin,
+        &UserOrgPermissions::Admin.grants(),
         &MemberFilterQuery::default(),
     )
     .await
@@ -814,7 +814,7 @@ async fn members_list_users_and_invites_the_caller_may_see() {
         &state,
         org.id,
         admin.id,
-        UserOrgPermissions::Admin,
+        &UserOrgPermissions::Admin.grants(),
         &MemberFilterQuery {
             statuses: Some(vec![MemberStatus::Pending]),
             group_by: Some(MemberOrderField::InviteStatus),
@@ -832,7 +832,7 @@ async fn members_list_users_and_invites_the_caller_may_see() {
     // The export reads through `User::access_filter`, the same rule.
     let scope = ListScope {
         user_id: Some(admin.id),
-        permissions: Some(UserOrgPermissions::Admin),
+        organization_grants: Some(UserOrgPermissions::Admin.grants()),
         ..list_scope(&[], org.id)
     };
     let mut exported: Vec<Uuid> = state

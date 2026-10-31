@@ -5,7 +5,7 @@ use std::sync::Arc;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use crate::server::auth::middleware::permissions::{Authorized, Member, Viewer};
+use crate::server::auth::middleware::permissions::{Authorized, Can, Read, Write};
 use crate::server::config::AppState;
 use crate::server::hosts::r#impl::base::Host;
 use crate::server::interface_neighbors::r#impl::base::InterfaceNeighbours;
@@ -85,7 +85,7 @@ async fn validate_interface_site_consistency(
 )]
 async fn create_interface(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Interface, Write>>,
     ApiJson(interface): ApiJson<Interface>,
 ) -> ApiResult<Json<ApiResponse<Interface>>> {
     validate_interface_site_consistency(&state, &interface).await?;
@@ -114,7 +114,7 @@ async fn create_interface(
 )]
 async fn update_interface(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Interface, Write>>,
     path: Path<Uuid>,
     ApiJson(interface): ApiJson<Interface>,
 ) -> ApiResult<Json<ApiResponse<Interface>>> {
@@ -146,7 +146,7 @@ async fn update_interface(
 )]
 async fn get_interface_neighbours(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Interface, Read>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<InterfaceNeighbours>>> {
     let interface = state

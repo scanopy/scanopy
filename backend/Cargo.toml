@@ -1,6 +1,6 @@
 [package]
 name = "scanopy-server"
-version = "0.19.4"
+version = "0.19.5"
 edition = "2024"
 description = "Scanopy HTTP API server"
 # LICENSE.md (AGPL-3.0) or COMMERCIAL-LICENSE.md.

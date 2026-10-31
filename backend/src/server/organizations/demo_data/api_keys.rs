@@ -73,7 +73,7 @@ pub(super) fn generate_user_api_keys(
                     expires_at: Some(now + Duration::days(180)),
                     is_enabled: true,
                     tags: vec![],
-                    site_ids: vec![], // hydrated by create_with_sites
+                    site_ids: vec![], // set by create_api_key
                 },
             },
             vec![hq_id],
@@ -93,7 +93,7 @@ pub(super) fn generate_user_api_keys(
                     expires_at: None,
                     is_enabled: true,
                     tags: vec![],
-                    site_ids: vec![], // hydrated by create_with_sites
+                    site_ids: vec![], // set by create_api_key
                 },
             },
             site_ids,

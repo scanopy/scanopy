@@ -1,11 +1,16 @@
 //! Resolves the field registry (`shared/entity_fields.rs`) against serialized entities, following
 //! relation hops through each related entity's own service.
 
+use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::shared::{
     entities::{ChangeTriggersTopologyStaleness, Entity as EntityEnum, EntityDiscriminants},
+    entity_fields::EntityReference,
     services::{factory::ServiceFactory, traits::CrudService},
     storage::{filter::StorableFilter, traits::Entity},
-    types::entity_field::{EntityField, FieldFormat, Hop},
+    types::{
+        api::ApiError,
+        entity_field::{EntityField, FieldFormat, Hop},
+    },
 };
 use anyhow::Result;
 use async_trait::async_trait;
@@ -25,11 +30,11 @@ pub trait RelatedSource: Sync {
     ) -> Result<Vec<Value>>;
 }
 
-/// Related entities read through their services, scoped to what the caller can see and, for
-/// SCD2 entities, to live rows.
+/// Related entities read through their services, scoped to what `reader` may read of each type
+/// and, for SCD2 entities, to live rows.
 pub struct ServiceSource<'a> {
     pub services: &'a ServiceFactory,
-    pub site_ids: &'a [Uuid],
+    pub reader: &'a AuthenticatedEntity,
     pub organization_id: Uuid,
 }
 
@@ -49,7 +54,10 @@ impl ServiceSource<'_> {
             + serde::Serialize,
         S: CrudService<T> + Sync,
     {
-        let mut filter = StorableFilter::<T>::new_for_access(self.site_ids, &self.organization_id)
+        let Some(site_ids) = self.reader.readable_site_ids(T::entity_type().resource()) else {
+            return Ok(Vec::new());
+        };
+        let mut filter = StorableFilter::<T>::new_for_access(&site_ids, &self.organization_id)
             .uuids_column(column, ids);
         if T::HAS_SCD2 {
             filter = filter.live();
@@ -274,20 +282,106 @@ pub fn csv_text(format: FieldFormat, value: &Value) -> String {
     }
 }
 
+/// The ids `reference` holds on `object`.
+fn reference_ids(reference: &EntityReference, object: &Value) -> Vec<Uuid> {
+    let mut holders = vec![object.clone()];
+    for key in &reference.embedded {
+        holders = holders.iter().flat_map(|o| values_at(o, key)).collect();
+    }
+    holders
+        .iter()
+        .flat_map(|o| ids_at(o, reference.key))
+        .collect()
+}
+
+/// Refuses a request that names something its caller can't use: every id in `incoming` that the
+/// registry declares a reference must be a row the caller can reach, on the entity's own site when
+/// both have one. A missing id and another tenant's are refused alike.
+///
+/// `stored` is the row being updated. Ids already on it pass, so an edit to another field can't
+/// fail on what the row already holds. `own_ids` are rows the same request creates, which no read
+/// can find yet. Each target is read as `caller`, so it needs `Read` on the target's resource.
+/// Sites themselves are checked across the organization: a key limited to one site can still save
+/// a user who holds others.
+pub async fn validate_references(
+    services: &ServiceFactory,
+    entity: EntityDiscriminants,
+    incoming: &Value,
+    stored: Option<&Value>,
+    own_ids: &[Uuid],
+    caller: &AuthenticatedEntity,
+    organization_id: Uuid,
+) -> Result<(), ApiError> {
+    let entity_site = incoming.get("site_id").and_then(uuid_of);
+    let mut organization_sites: Option<Vec<Uuid>> = None;
+    let source = ServiceSource {
+        services,
+        reader: caller,
+        organization_id,
+    };
+
+    for reference in entity.references() {
+        let held = stored
+            .map(|row| reference_ids(&reference, row))
+            .unwrap_or_default();
+        let mut ids = reference_ids(&reference, incoming);
+        ids.retain(|id| !held.contains(id) && !own_ids.contains(id));
+        ids.sort();
+        ids.dedup();
+        if ids.is_empty() {
+            continue;
+        }
+
+        if reference.target == EntityDiscriminants::Site {
+            if organization_sites.is_none() {
+                let sites = services
+                    .site_service
+                    .get_all(StorableFilter::new_from_org_id(&organization_id))
+                    .await
+                    .map_err(ApiError::from)?;
+                organization_sites = Some(sites.iter().map(|s| s.id).collect());
+            }
+            let sites = organization_sites.as_deref().unwrap_or_default();
+            if !ids.iter().all(|id| sites.contains(id)) {
+                return Err(ApiError::entity_reference_refused(reference.key));
+            }
+            continue;
+        }
+
+        let rows = source
+            .by_column(reference.target, "id", &ids)
+            .await
+            .map_err(ApiError::from)?;
+        let usable = |id: &Uuid| {
+            rows.iter().any(|row| {
+                row.get("id").and_then(uuid_of) == Some(*id)
+                    && match (entity_site, row.get("site_id").and_then(uuid_of)) {
+                        (Some(own), Some(theirs)) => own == theirs,
+                        _ => true,
+                    }
+            })
+        };
+        if !ids.iter().all(usable) {
+            return Err(ApiError::entity_reference_refused(reference.key));
+        }
+    }
+    Ok(())
+}
+
 /// Columns every CSV leads with, ahead of the entity's registry fields.
 pub const CSV_SYSTEM_COLUMNS: &[&str] = &["id", "created_at", "updated_at"];
 
-/// CSV bytes for `roots` of `entity`: the system columns, then one column per registry field.
-/// A field with several values (children, arrays) joins them with `; `.
+/// CSV bytes for `roots` of `entity`: the system columns, then one column per exported registry
+/// field. A field with several values (children, arrays) joins them with `; `.
 pub async fn build_entity_csv<S: RelatedSource>(
     source: &S,
     entity: EntityDiscriminants,
     roots: &[Value],
 ) -> Result<Vec<u8>> {
-    let fields = entity.fields();
+    let fields: Vec<&EntityField> = entity.fields().iter().filter(|f| f.csv).collect();
     let mut resolver = FieldResolver::new(source);
     let mut columns = Vec::with_capacity(fields.len());
-    for field in fields {
+    for field in &fields {
         let values = resolver.resolve(field, roots).await?;
         columns.push(
             values
@@ -336,287 +430,4 @@ pub async fn entities_csv<S: RelatedSource, T: serde::Serialize>(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::server::shared::types::examples;
-    use serde_json::json;
-    use strum::IntoEnumIterator;
-
-    /// Related entities held in memory, keyed by type.
-    struct MemorySource(HashMap<EntityDiscriminants, Vec<Value>>);
-
-    #[async_trait]
-    impl RelatedSource for MemorySource {
-        async fn by_column(
-            &self,
-            entity: EntityDiscriminants,
-            column: &'static str,
-            ids: &[Uuid],
-        ) -> Result<Vec<Value>> {
-            Ok(self
-                .0
-                .get(&entity)
-                .into_iter()
-                .flatten()
-                .filter(|item| ids_at(item, column).iter().any(|id| ids.contains(id)))
-                .cloned()
-                .collect())
-        }
-    }
-
-    /// The serialized example of each entity type that has one.
-    fn example(entity: EntityDiscriminants) -> Option<Value> {
-        use EntityDiscriminants as E;
-        let value = match entity {
-            E::Site => serde_json::to_value(examples::site()),
-            E::Host => serde_json::to_value(examples::host()),
-            E::Subnet => serde_json::to_value(examples::subnet()),
-            E::IPAddress => serde_json::to_value(examples::ip_address()),
-            E::Port => serde_json::to_value(examples::port()),
-            E::Dependency => serde_json::to_value(examples::dependency()),
-            E::Service => serde_json::to_value(examples::service()),
-            E::Binding => serde_json::to_value(examples::binding()),
-            E::Tag => serde_json::to_value(examples::tag()),
-            E::TagGroup => serde_json::to_value(examples::tag_group()),
-            E::DaemonApiKey => serde_json::to_value(examples::daemon_api_key()),
-            E::Daemon => serde_json::to_value(examples::daemon()),
-            E::User => serde_json::to_value(examples::user()),
-            E::Organization => serde_json::to_value(examples::organization()),
-            E::Discovery => serde_json::to_value(examples::discovery()),
-            E::Interface => serde_json::to_value(examples::interface()),
-            E::Vlan
-            | E::UserApiKey
-            | E::Credential
-            | E::Invite
-            | E::Topology
-            | E::Snapshot
-            | E::Share => return None,
-        };
-        Some(value.expect("example serializes"))
-    }
-
-    /// The property schemas a type's serialized form can carry, from its OpenAPI schema, which
-    /// lists optional keys an example may omit.
-    fn schema_props(name: &str) -> HashMap<String, Value> {
-        static SPEC: std::sync::LazyLock<Value> = std::sync::LazyLock::new(|| {
-            serde_json::to_value(crate::server::openapi::full_spec()).unwrap()
-        });
-        let schemas = &SPEC["components"]["schemas"];
-        fn collect(schemas: &Value, schema: &Value, out: &mut HashMap<String, Value>) {
-            if let Some(reference) = schema.get("$ref").and_then(Value::as_str) {
-                let name = reference.rsplit('/').next().unwrap();
-                collect(schemas, &schemas[name], out);
-            }
-            if let Some(props) = schema.get("properties").and_then(Value::as_object) {
-                out.extend(props.iter().map(|(k, v)| (k.clone(), v.clone())));
-            }
-            for key in ["allOf", "oneOf", "anyOf"] {
-                for part in schema
-                    .get(key)
-                    .and_then(Value::as_array)
-                    .into_iter()
-                    .flatten()
-                {
-                    collect(schemas, part, out);
-                }
-            }
-        }
-        let mut out = HashMap::new();
-        collect(schemas, &schemas[name], &mut out);
-        out
-    }
-
-    /// Whether a property schema is an array, including an optional (`null | array`) one.
-    fn is_array(schema: &Value) -> bool {
-        let names_array = |t: &Value| {
-            t == "array"
-                || t.as_array()
-                    .is_some_and(|ts| ts.iter().any(|t| t == "array"))
-        };
-        schema.get("type").is_some_and(names_array)
-            || ["oneOf", "anyOf"].iter().any(|k| {
-                schema
-                    .get(*k)
-                    .and_then(Value::as_array)
-                    .is_some_and(|parts| parts.iter().any(is_array))
-            })
-    }
-
-    /// Every key a field's path and value read exists on the type it is read from, and `many`
-    /// is set exactly when one entity can yield several values.
-    fn check_field(root: &str, field: &EntityField) {
-        let props = |name: &str| schema_props(name);
-        let mut on = root.to_string();
-        let mut embedded = false;
-        let mut several = false;
-        for hop in field.path {
-            match *hop {
-                Hop::Parent {
-                    entity: target,
-                    key,
-                } => {
-                    if !embedded {
-                        let schema = props(&on).remove(key);
-                        let schema = schema.unwrap_or_else(|| {
-                            panic!("{root}.{}: no key `{key}` on {on}", field.id)
-                        });
-                        several |= is_array(&schema);
-                    }
-                    on = target.to_string();
-                    embedded = false;
-                }
-                Hop::Children {
-                    entity: target,
-                    key,
-                } => {
-                    assert!(
-                        props(target.as_ref()).contains_key(key),
-                        "{root}.{}: no key `{key}` on {target}",
-                        field.id
-                    );
-                    on = target.to_string();
-                    several = true;
-                }
-                Hop::Embedded { key } => {
-                    assert!(
-                        props(&on).contains_key(key),
-                        "{root}.{}: no array `{key}` on {on}",
-                        field.id
-                    );
-                    embedded = true;
-                    several = true;
-                }
-            }
-        }
-        if let (Some(path), false) = (field.field, embedded) {
-            let head = path.split('.').next().unwrap();
-            let schema = props(&on).remove(head);
-            let schema =
-                schema.unwrap_or_else(|| panic!("{root}.{}: no key `{head}` on {on}", field.id));
-            several |= field.path.is_empty() && is_array(&schema);
-        }
-        assert_eq!(
-            field.many, several,
-            "{root}.{}: `many` should be {several}",
-            field.id
-        );
-    }
-
-    #[test]
-    fn every_field_path_names_keys_the_serialized_entities_carry() {
-        for entity in EntityDiscriminants::iter() {
-            for field in entity.fields() {
-                check_field(entity.as_ref(), field);
-            }
-        }
-    }
-
-    #[test]
-    fn every_edge_field_names_keys_its_edge_type_carries() {
-        use crate::server::topology::types::edges::EdgeType;
-        use strum::IntoEnumIterator;
-        for edge_type in EdgeType::iter() {
-            for field in edge_type.fields() {
-                check_field("EdgeType", field);
-            }
-        }
-    }
-
-    #[test]
-    fn field_ids_are_unique_and_never_shadow_a_system_column() {
-        for entity in EntityDiscriminants::iter() {
-            let mut seen = std::collections::HashSet::new();
-            for field in entity.fields() {
-                assert!(
-                    seen.insert(field.id),
-                    "{entity}: duplicate field `{}`",
-                    field.id
-                );
-                assert!(
-                    !CSV_SYSTEM_COLUMNS.contains(&field.id),
-                    "{entity}: `{}` is a system column",
-                    field.id
-                );
-            }
-        }
-    }
-
-    /// A list-table column is either a field or a table column, so it has exactly one group.
-    #[test]
-    fn table_column_ids_are_unique_and_never_shadow_a_field() {
-        for entity in EntityDiscriminants::iter() {
-            let fields: std::collections::HashSet<_> =
-                entity.fields().iter().map(|f| f.id).collect();
-            let mut seen = std::collections::HashSet::new();
-            for column in entity.table_columns() {
-                assert!(
-                    seen.insert(column.id),
-                    "{entity}: duplicate table column `{}`",
-                    column.id
-                );
-                assert!(
-                    !fields.contains(column.id),
-                    "{entity}: table column `{}` is also a field",
-                    column.id
-                );
-            }
-        }
-    }
-
-    #[tokio::test]
-    async fn csv_rows_carry_own_parent_child_and_embedded_values() {
-        let mut host = example(EntityDiscriminants::Host).unwrap();
-        let mut ip = example(EntityDiscriminants::IPAddress).unwrap();
-        let mut other_ip = ip.clone();
-        let mut port = example(EntityDiscriminants::Port).unwrap();
-        let host_id = Uuid::new_v4();
-        let port_id = Uuid::new_v4();
-        host["id"] = json!(host_id);
-        ip["host_id"] = json!(host_id);
-        ip["ip_address"] = json!("10.0.0.5");
-        other_ip["id"] = json!(Uuid::new_v4());
-        other_ip["host_id"] = json!(host_id);
-        other_ip["ip_address"] = json!("10.0.0.6");
-        port["id"] = json!(port_id);
-        port["number"] = json!(443);
-        port["protocol"] = json!("Tcp");
-        let mut service = example(EntityDiscriminants::Service).unwrap();
-        service["host_id"] = json!(host_id);
-        service["bindings"] =
-            json!([{ "type": "Port", "port_id": port_id, "ip_address_id": null }]);
-
-        let source = MemorySource(HashMap::from([
-            (EntityDiscriminants::Host, vec![host.clone()]),
-            (EntityDiscriminants::IPAddress, vec![ip, other_ip]),
-            (EntityDiscriminants::Port, vec![port]),
-        ]));
-
-        let csv = build_entity_csv(&source, EntityDiscriminants::Service, &[service])
-            .await
-            .unwrap();
-        let mut reader = csv::Reader::from_reader(csv.as_slice());
-        let headers = reader.headers().unwrap().clone();
-        let row = reader.records().next().unwrap().unwrap();
-        let cell = |name: &str| row[headers.iter().position(|h| h == name).unwrap()].to_string();
-        assert_eq!(cell("host"), host_id.to_string());
-        assert_eq!(cell("port_bindings"), "443/tcp");
-
-        let csv = build_entity_csv(&source, EntityDiscriminants::Host, &[host])
-            .await
-            .unwrap();
-        let mut reader = csv::Reader::from_reader(csv.as_slice());
-        let headers = reader.headers().unwrap().clone();
-        let row = reader.records().next().unwrap().unwrap();
-        let ips = &row[headers.iter().position(|h| h == "interface_ip").unwrap()];
-        let mut ips: Vec<&str> = ips.split("; ").collect();
-        ips.sort();
-        assert_eq!(ips, ["10.0.0.5", "10.0.0.6"]);
-        assert_eq!(
-            headers
-                .iter()
-                .take(CSV_SYSTEM_COLUMNS.len())
-                .collect::<Vec<_>>(),
-            CSV_SYSTEM_COLUMNS
-        );
-    }
-}
+mod tests;

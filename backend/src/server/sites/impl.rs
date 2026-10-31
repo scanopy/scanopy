@@ -356,8 +356,14 @@ impl Entity for Site {
         ProductArea::Inventory
     }
 
+    /// A site is its own scope, so reaching a site by id takes access to that site.
     fn site_id(&self) -> Option<Uuid> {
-        None
+        Some(self.id)
+    }
+
+    /// A site is scoped to itself, not to a site column: its rows belong to the organization.
+    fn is_site_keyed() -> bool {
+        false
     }
 
     fn organization_id(&self) -> Option<Uuid> {

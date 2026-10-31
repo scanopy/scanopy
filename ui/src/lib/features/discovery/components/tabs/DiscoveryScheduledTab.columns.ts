@@ -19,17 +19,11 @@ import type { Daemon } from '$lib/features/daemons/types/base';
 import type { Site } from '$lib/features/sites/types';
 import type { Tag } from '$lib/features/tags/types/base';
 import {
-	common_lastRun,
 	common_legacy,
 	common_manual,
-	common_progress,
-	common_schedule,
-	common_status,
 	discovery_schedulePausedFreePlan,
 	discovery_schedulePausedLapsed,
 	common_tags,
-	discovery_completedScans,
-	discovery_forceFullScan,
 	discovery_legacyTagTitle,
 	discovery_runType
 } from '$lib/paraglide/messages';
@@ -106,7 +100,6 @@ export function discoveryScheduledColumns(ctx: DiscoveryScheduledColumnsContext)
 			getGroupValue: (item) => item.discovery_type.type
 		},
 		scan_count: {
-			label: discovery_completedScans(),
 			type: 'string',
 			// A count: it sorts, but every value would be its own group.
 			groupable: false,
@@ -114,7 +107,6 @@ export function discoveryScheduledColumns(ctx: DiscoveryScheduledColumnsContext)
 			display: { hiddenByDefault: true, align: 'right' }
 		},
 		force_full_scan: {
-			label: discovery_forceFullScan(),
 			type: 'boolean',
 			filterable: true,
 			serverFiltered: true,
@@ -124,7 +116,6 @@ export function discoveryScheduledColumns(ctx: DiscoveryScheduledColumnsContext)
 			display: { hiddenByDefault: true }
 		},
 		legacy: {
-			label: common_status(),
 			type: 'boolean',
 			filterable: true,
 			serverFiltered: true,
@@ -163,7 +154,6 @@ export function discoveryScheduledColumns(ctx: DiscoveryScheduledColumnsContext)
 			display: { order: 1 }
 		},
 		last_run: {
-			label: common_lastRun(),
 			// A date column so it sorts by time. The ISO string rather than a Date, so the cell
 			// renders it as recent activity (a Date renders as a compact date).
 			type: 'date',
@@ -183,7 +173,6 @@ export function discoveryScheduledColumns(ctx: DiscoveryScheduledColumnsContext)
 		[
 			{
 				key: 'schedule',
-				label: common_schedule(),
 				type: 'string',
 				getValue: (item) =>
 					item.run_type.type !== 'Scheduled'
@@ -197,7 +186,6 @@ export function discoveryScheduledColumns(ctx: DiscoveryScheduledColumnsContext)
 			},
 			{
 				key: 'progress',
-				label: common_progress(),
 				// Progress belongs to the run, not the record, so there is nothing to
 				// sort, filter or group by — but it is still a field, so a running scan
 				// shows its tracker in the table.

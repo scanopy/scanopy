@@ -209,34 +209,6 @@ impl Entity for Daemon {
     fn set_tags(&mut self, tags: Vec<Uuid>) {
         self.base.tags = tags;
     }
-
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        // `url` is editable for ServerPoll (it is the address the server dials, and a daemon
-        // can move); the update handler rejects changing it in DaemonPoll mode, where it is
-        // unused. Everything below is genuinely server-owned.
-        //
-        // site_id is the tenancy boundary — the daemon's key, host, seeded loopback and
-        // discovery jobs were all created against it. mode decides polling enrolment and the
-        // shape of the daemon's own on-disk config. Both are also overwritten by the daemon's
-        // handshake (see daemons/service/processing.rs), so a user edit would silently revert.
-        self.base.site_id = existing.base.site_id;
-        self.base.mode = existing.base.mode;
-        // host_id is the daemon's own Host record, created at provision time.
-        self.base.host_id = existing.base.host_id;
-        // api_key_id is the 1:1 key binding, maintained by provisioning.
-        self.base.api_key_id = existing.base.api_key_id;
-        // version is self-reported by the daemon on every handshake.
-        self.base.version = existing.base.version.clone();
-        // last_seen is server-set only
-        self.base.last_seen = existing.base.last_seen;
-        // standby is managed by the inactivity background task and the
-        // reactivation paths (startup + discovery queue); not user-editable.
-        self.base.standby = existing.base.standby;
-        // standby_cleared_at is server-managed alongside standby.
-        self.base.standby_cleared_at = existing.base.standby_cleared_at;
-        // os is chosen when the daemon is created and fixed after: credentials are checked against it.
-        self.base.os = existing.base.os;
-    }
 }
 
 #[cfg(test)]

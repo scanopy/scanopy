@@ -16566,7 +16566,7 @@ third-party/chromium/LICENSE.
 ISC License (ISC)
 --------------------------------------------------------------------------------
 Used by:
-  - lucide-icons 0.562.0 (https://github.com/WhySoBad/lucide-icons-rs)
+  - lucide-icons 1.65.0 (https://github.com/WhySoBad/lucide-icons-rs)
 
 ISC License
 
@@ -18848,7 +18848,7 @@ Used by:
   - ezk-sip-types 0.6.5 (https://github.com/kbalt/ezk)
   - governor 0.10.2 (https://github.com/boinkor-net/governor.git)
   - libm 0.2.15 (https://github.com/rust-lang/compiler-builtins)
-  - lucide-icons 0.562.0 (https://github.com/WhySoBad/lucide-icons-rs)
+  - lucide-icons 1.65.0 (https://github.com/WhySoBad/lucide-icons-rs)
   - mailchecker 6.0.21 (https://github.com/FGRibreau/mailchecker)
   - net-route 0.4.6 (https://github.com/johnyburd/net-route)
   - netlink-packet-core 0.7.0 (https://github.com/rust-netlink/netlink-packet-core)

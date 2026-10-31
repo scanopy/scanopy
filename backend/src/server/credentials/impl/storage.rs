@@ -168,8 +168,10 @@ impl Entity for Credential {
     fn set_tags(&mut self, tags: Vec<Uuid>) {
         self.base.tags = tags;
     }
+}
 
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
+impl Credential {
+    pub(crate) fn merge_credential_type(&mut self, existing: &Self) {
         self.base
             .credential_type
             .merge_redacted_secrets(&existing.base.credential_type);

@@ -193,6 +193,11 @@ pub enum ErrorCode {
     /// A login cannot be assigned to sites or hosts: the credentials that use it are
     CredentialLoginNotAssignable { name: String },
 
+    // === Entity references ===
+    /// An id in the request names something the caller can't use here. The same for a missing id
+    /// and another tenant's, so it says nothing about whether the id exists.
+    EntityReferenceRefused { field: String },
+
     // === Discovery ===
     /// Historical discovery cannot be modified via API
     DiscoveryHistoricalReadOnly,
@@ -423,6 +428,9 @@ impl ErrorCode {
                 "'{name}' is a login and is not assigned to sites or hosts. Assign a credential that uses it instead."
             }
 
+            // Entity references
+            Self::EntityReferenceRefused { .. } => "'{field}' isn't available here",
+
             // Discovery
             Self::DiscoveryHistoricalReadOnly => "Historical discovery cannot be modified via API",
             Self::DiscoverySubnetSiteMismatch { .. } => "Subnet '{subnet}' is on a different site",
@@ -618,6 +626,8 @@ impl ErrorCode {
             Self::CredentialLoginInUse { name, users } => {
                 Some(json_map! { "name" => name, "users" => users })
             }
+
+            Self::EntityReferenceRefused { field } => Some(json_map! { "field" => field }),
             Self::DiscoverySubnetSiteMismatch { subnet } => Some(json_map! { "subnet" => subnet }),
             Self::DiscoverySessionNotFound { id } => Some(json_map! {"id" => id}),
             Self::IpAddressOutOfRange { ip, subnet } => {

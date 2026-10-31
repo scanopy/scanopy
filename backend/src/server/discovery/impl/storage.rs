@@ -173,11 +173,6 @@ impl Entity for Discovery {
         ProductArea::Discovery
     }
 
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        // scan_count is server-managed — never overwritten by API updates
-        self.scan_count = existing.scan_count;
-    }
-
     fn site_id(&self) -> Option<Uuid> {
         Some(self.base.site_id)
     }

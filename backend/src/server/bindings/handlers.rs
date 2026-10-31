@@ -6,7 +6,7 @@ use std::sync::Arc;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use crate::server::auth::middleware::permissions::{Authorized, Member};
+use crate::server::auth::middleware::permissions::{Authorized, Can, Write};
 use crate::server::bindings::r#impl::base::{Binding, BindingType};
 use crate::server::bindings::service::BindingService;
 use crate::server::config::AppState;
@@ -153,7 +153,7 @@ async fn validate_no_binding_type_conflict(
 )]
 async fn create_binding(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Binding, Write>>,
     ApiJson(binding): ApiJson<Binding>,
 ) -> ApiResult<Json<ApiResponse<Binding>>> {
     // Guard tenancy before the supersede-delete below runs against a
@@ -222,7 +222,7 @@ async fn create_binding(
 )]
 async fn update_binding(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Binding, Write>>,
     path: Path<Uuid>,
     ApiJson(binding): ApiJson<Binding>,
 ) -> ApiResult<Json<ApiResponse<Binding>>> {

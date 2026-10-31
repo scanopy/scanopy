@@ -28,8 +28,8 @@ impl EventBusService<Site> for SiteService {
         &self.event_bus
     }
 
-    fn get_site_id(&self, _entity: &Site) -> Option<Uuid> {
-        None
+    fn get_site_id(&self, entity: &Site) -> Option<Uuid> {
+        Some(entity.id)
     }
     fn get_organization_id(&self, entity: &Site) -> Option<Uuid> {
         Some(entity.base.organization_id)

@@ -545,8 +545,6 @@ export interface EntityTypeMetadata {
 	entity_name_plural?: string;
 	/** What this entity type is described by; see `shared/entity-fields`. */
 	fields: components['schemas']['EntityField'][];
-	/** List-table columns that aren't fields, with the group the column menu files them under. */
-	table_columns: components['schemas']['TableColumn'][];
 	/** Fields that name one entity in text, tried in order. */
 	display_fields: string[];
 }
