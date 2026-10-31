@@ -231,17 +231,30 @@ async fn an_open_stream_stops_delivering_a_site_the_key_lost() {
     let event = next_event(&mut stream).await;
     assert!(event.contains(&lost.id.to_string()), "{event}");
 
+    // Seeding a site also broadcasts, so a `lost` event can pass its check just before the change.
+    // `marker` only becomes visible with the change: nothing after its first event predates it.
+    let marker = create_site().await.unwrap();
     state
         .services
         .user_api_key_service
-        .update_site_access(&key_id, &[kept.id])
+        .update_site_access(&key_id, &[kept.id, marker.id])
         .await
         .unwrap();
+    topology.broadcast_live_update(marker.id);
+    while !next_event(&mut stream)
+        .await
+        .contains(&marker.id.to_string())
+    {}
+
     topology.broadcast_live_update(lost.id);
-    topology.broadcast_live_update(kept.id);
-    let event = next_event(&mut stream).await;
-    assert!(event.contains(&kept.id.to_string()), "{event}");
-    assert!(!event.contains(&lost.id.to_string()), "{event}");
+    topology.broadcast_live_update(marker.id);
+    loop {
+        let event = next_event(&mut stream).await;
+        assert!(!event.contains(&lost.id.to_string()), "{event}");
+        if event.contains(&marker.id.to_string()) {
+            break;
+        }
+    }
 }
 
 #[tokio::test]
