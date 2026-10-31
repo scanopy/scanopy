@@ -337,9 +337,9 @@ async fn admin_update_user(
         return Err(ApiError::permission_denied());
     }
 
-    // Can only edit users you could have granted
+    // Can only edit users you could have granted, and not a peer
     let caller = auth.require_access()?;
-    if !caller.may_grant_to_person(&access_service.user_access(&existing).await?) {
+    if !caller.may_edit_person(&access_service.user_access(&existing).await?) {
         return Err(ApiError::permission_denied());
     }
 

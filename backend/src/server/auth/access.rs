@@ -380,6 +380,18 @@ impl AccessSet {
             })
     }
 
+    /// Whether this principal may edit a person who already holds `target`: what it may grant,
+    /// short of a peer holding the same access, so one Owner can't demote another.
+    pub fn may_edit_person(&self, target: &AccessSet) -> bool {
+        self != target && self.may_grant_to_person(target)
+    }
+
+    /// Whether this principal holds no site, so a site-keyed read returns nothing rather than
+    /// being refused.
+    pub fn on_no_site(&self) -> bool {
+        self.sites.is_empty()
+    }
+
     /// Whether this principal may give a key `granted`. A subset is enough, so a user can make a
     /// key at their own level.
     pub fn may_grant_to_key(&self, granted: &AccessSet) -> bool {
@@ -673,6 +685,8 @@ mod tests {
         assert!(!person(Admin).may_grant_to_person(&person(Owner)));
         assert!(person(Admin).may_grant_to_person(&person(Member)));
         assert!(person(Owner).may_grant_to_person(&person(Owner)));
+        assert!(!person(Owner).may_edit_person(&person(Owner)));
+        assert!(person(Owner).may_edit_person(&person(Admin)));
         assert!(person(Admin).may_grant_to_key(&key(Admin)));
         assert!(!person(Admin).may_grant_to_key(&key(Owner)));
     }
