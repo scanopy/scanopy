@@ -231,7 +231,7 @@
      its title, outside the title's pill. The tooltip says which and why. -->
 {#snippet statusBadge()}
 	{#if staleTag}
-		<span data-fixed class="flex shrink-0"><Tag {...staleTag} label={undefined} pill /></span>
+		<span data-fixed class="flex shrink-0"><Tag {...staleTag} label={undefined} /></span>
 	{/if}
 {/snippet}
 

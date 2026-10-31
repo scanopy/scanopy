@@ -494,9 +494,7 @@
 					{/if}
 				</div>
 				{#if staleTag}
-					<div class="scale-90">
-						<Tag {...staleTag} pill />
-					</div>
+					<Tag {...staleTag} label={undefined} />
 				{/if}
 				<div
 					data-entity-header
@@ -568,9 +566,7 @@
 			     staleness, header and a line naming what is missing. -->
 			{#if staleTag}
 				<div class="flex shrink-0 justify-center px-2 pt-2">
-					<div class="scale-90">
-						<Tag {...staleTag} pill />
-					</div>
+					<Tag {...staleTag} label={undefined} />
 				</div>
 			{/if}
 			{#if nodeRenderData.headerText}
