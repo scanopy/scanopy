@@ -4870,7 +4870,7 @@ export interface components {
                 /**
                  * Format: uuid
                  * @description The discovery configuration this session belongs to.
-                 *     Always enriched server-side; daemons do not send this field.
+                 *     Always set server-side. A value a daemon sends is discarded.
                  */
                 discovery_id?: string | null;
                 /** @description What type of discovery is running. */
@@ -7290,7 +7290,7 @@ export interface components {
                 /**
                  * Format: uuid
                  * @description The discovery configuration this session belongs to.
-                 *     Always enriched server-side; daemons do not send this field.
+                 *     Always set server-side. A value a daemon sends is discarded.
                  */
                 discovery_id?: string | null;
                 /** @description What type of discovery is running. */
@@ -8653,7 +8653,7 @@ export interface components {
              * @description Foreign key to API key used for ServerPoll authentication.
              *     NULL for DaemonPoll daemons or those not yet linked to a key.
              */
-            api_key_id?: string | null;
+            readonly api_key_id?: string | null;
             /**
              * Format: uuid
              * @description The host this entity belongs to.
@@ -9362,7 +9362,7 @@ export interface components {
             /**
              * Format: uuid
              * @description The discovery configuration this session belongs to.
-             *     Always enriched server-side; daemons do not send this field.
+             *     Always set server-side. A value a daemon sends is discarded.
              */
             discovery_id?: string | null;
             /** @description What type of discovery is running. */
@@ -10434,7 +10434,10 @@ export interface components {
         };
         /** @enum {string} */
         EntityDiscriminants: "Topology" | "Snapshot" | "Share" | "Dependency" | "Site" | "Vlan" | "Subnet" | "Host" | "Service" | "IPAddress" | "Interface" | "Port" | "Binding" | "Discovery" | "Daemon" | "DaemonApiKey" | "Credential" | "Tag" | "TagGroup" | "User" | "UserApiKey" | "Organization" | "Invite";
-        /** @description One fact that describes an entity, possibly read from a related entity. */
+        /**
+         * @description One fact that describes an entity, possibly read from a related entity. Every serialized key an
+         *     entity carries has one: the flags say which surfaces show it, and `write` says who sets it.
+         */
         EntityField: {
             /**
              * @description Dotted path to the value on the last object, or `None` for the object itself (an
@@ -10445,6 +10448,8 @@ export interface components {
             group: components["schemas"]["FieldGroup"];
             /** @description Stable key: the CSV header, the list-table column id and the diagram Shape Data name. */
             id: string;
+            /** @description Shown by the topology inspector and diagram Shape Data, and read by the topology search. */
+            inspector: boolean;
             /** @description English label; the UI translates it through a generated `meta_*` key. */
             label: string;
             /**
@@ -10461,8 +10466,10 @@ export interface components {
             searchable: boolean;
             /** @description Sibling field holding the value's attribution, for attributed host facts. */
             source_field?: string | null;
-            /** @description Shown by default in tables and in the inspector's details. Every field is exported. */
+            /** @description Shown by default in tables and in the inspector's details. */
             summary: boolean;
+            /** @description Offered as a list-table column. */
+            table: boolean;
         };
         /**
          * @description How recently discovery last observed an entity.
@@ -15129,7 +15136,7 @@ export interface components {
              * Format: uuid
              * @description User who created the share.
              */
-            created_by: string;
+            readonly created_by: string;
             /**
              * @description Which topology views are enabled for this share.
              *     None = all views (subject to data availability). Some(list) = only these views in order.
@@ -15662,17 +15669,6 @@ export interface components {
         SubnetTypeAttributed: {
             subnet_type: components["schemas"]["SubnetType"];
             subnet_type_source?: components["schemas"]["AttributeSource"];
-        };
-        /**
-         * @description A list-table column that is not a registry field: a value the table computes, reads from
-         *     another endpoint, or keeps out of CSV export (`created_at`, `last_seen_at`). Declared here so
-         *     the column menu files it under a group the backend chose. CSV, diagram Shape Data and the
-         *     inspector read only fields, never these.
-         */
-        TableColumn: {
-            group: components["schemas"]["FieldGroup"];
-            /** @description The column's key in the list table, and so in saved column preferences. */
-            id: string;
         };
         /** @enum {string} */
         TableDensity: "comfortable" | "compact";
@@ -16620,7 +16616,7 @@ export interface components {
              * Format: uuid
              * @description The organization that owns this record.
              */
-            organization_id: string;
+            readonly organization_id: string;
             /** @description Role the key is limited to, which cannot exceed the user's own. */
             permissions?: components["schemas"]["UserOrgPermissions"];
             /** @description Site IDs this key has access to (hydrated from junction table) */
@@ -16631,7 +16627,7 @@ export interface components {
              * Format: uuid
              * @description User the key acts on behalf of.
              */
-            user_id: string;
+            readonly user_id: string;
         };
         /**
          * @description Fields the user API key list can be ordered and grouped by.
@@ -16668,16 +16664,16 @@ export interface components {
              */
             readonly email_verification_required?: boolean;
             /** @description Whether the user has verified their email address */
-            email_verified?: boolean;
+            readonly email_verified?: boolean;
             /** @description Whether the user has a password set — computed from password_hash, never stored in DB */
             readonly has_password?: boolean;
             /**
              * Format: date-time
              * @description When the account was linked to the identity provider.
              */
-            oidc_linked_at?: string | null;
+            readonly oidc_linked_at?: string | null;
             /** @description Slug of the identity provider this account signs in through, when linked. */
-            oidc_provider?: string | null;
+            readonly oidc_provider?: string | null;
             /**
              * Format: uuid
              * @description The organization that owns this record.

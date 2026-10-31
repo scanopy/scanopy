@@ -16880,7 +16880,7 @@
                   "null"
                 ],
                 "format": "uuid",
-                "description": "The discovery configuration this session belongs to.\nAlways enriched server-side; daemons do not send this field."
+                "description": "The discovery configuration this session belongs to.\nAlways set server-side. A value a daemon sends is discarded."
               },
               "discovery_type": {
                 "$ref": "#/components/schemas/DiscoveryType",
@@ -21262,7 +21262,7 @@
                     "null"
                   ],
                   "format": "uuid",
-                  "description": "The discovery configuration this session belongs to.\nAlways enriched server-side; daemons do not send this field."
+                  "description": "The discovery configuration this session belongs to.\nAlways set server-side. A value a daemon sends is discarded."
                 },
                 "discovery_type": {
                   "$ref": "#/components/schemas/DiscoveryType",
@@ -24739,7 +24739,8 @@
               "null"
             ],
             "format": "uuid",
-            "description": "Foreign key to API key used for ServerPoll authentication.\nNULL for DaemonPoll daemons or those not yet linked to a key."
+            "description": "Foreign key to API key used for ServerPoll authentication.\nNULL for DaemonPoll daemons or those not yet linked to a key.",
+            "readOnly": true
           },
           "host_id": {
             "type": "string",
@@ -26181,7 +26182,7 @@
               "null"
             ],
             "format": "uuid",
-            "description": "The discovery configuration this session belongs to.\nAlways enriched server-side; daemons do not send this field."
+            "description": "The discovery configuration this session belongs to.\nAlways set server-side. A value a daemon sends is discarded."
           },
           "discovery_type": {
             "$ref": "#/components/schemas/DiscoveryType",
@@ -29250,7 +29251,7 @@
       },
       "EntityField": {
         "type": "object",
-        "description": "One fact that describes an entity, possibly read from a related entity.",
+        "description": "One fact that describes an entity, possibly read from a related entity. Every serialized key an\nentity carries has one: the flags say which surfaces show it, and `write` says who sets it.",
         "required": [
           "id",
           "label",
@@ -29259,7 +29260,9 @@
           "format",
           "summary",
           "many",
-          "searchable"
+          "searchable",
+          "table",
+          "inspector"
         ],
         "properties": {
           "field": {
@@ -29278,6 +29281,10 @@
           "id": {
             "type": "string",
             "description": "Stable key: the CSV header, the list-table column id and the diagram Shape Data name."
+          },
+          "inspector": {
+            "type": "boolean",
+            "description": "Shown by the topology inspector and diagram Shape Data, and read by the topology search."
           },
           "label": {
             "type": "string",
@@ -29307,7 +29314,11 @@
           },
           "summary": {
             "type": "boolean",
-            "description": "Shown by default in tables and in the inspector's details. Every field is exported."
+            "description": "Shown by default in tables and in the inspector's details."
+          },
+          "table": {
+            "type": "boolean",
+            "description": "Offered as a list-table column."
           }
         }
       },
@@ -39485,7 +39496,8 @@
           "created_by": {
             "type": "string",
             "format": "uuid",
-            "description": "User who created the share."
+            "description": "User who created the share.",
+            "readOnly": true
           },
           "enabled_views": {
             "type": [
@@ -40565,23 +40577,6 @@
           },
           "subnet_type_source": {
             "$ref": "#/components/schemas/AttributeSource"
-          }
-        }
-      },
-      "TableColumn": {
-        "type": "object",
-        "description": "A list-table column that is not a registry field: a value the table computes, reads from\nanother endpoint, or keeps out of CSV export (`created_at`, `last_seen_at`). Declared here so\nthe column menu files it under a group the backend chose. CSV, diagram Shape Data and the\ninspector read only fields, never these.",
-        "required": [
-          "id",
-          "group"
-        ],
-        "properties": {
-          "group": {
-            "$ref": "#/components/schemas/FieldGroup"
-          },
-          "id": {
-            "type": "string",
-            "description": "The column's key in the list table, and so in saved column preferences."
           }
         }
       },
@@ -42489,7 +42484,8 @@
           "organization_id": {
             "type": "string",
             "format": "uuid",
-            "description": "The organization that owns this record."
+            "description": "The organization that owns this record.",
+            "readOnly": true
           },
           "permissions": {
             "$ref": "#/components/schemas/UserOrgPermissions",
@@ -42514,7 +42510,8 @@
           "user_id": {
             "type": "string",
             "format": "uuid",
-            "description": "User the key acts on behalf of."
+            "description": "User the key acts on behalf of.",
+            "readOnly": true
           }
         }
       },
@@ -42580,7 +42577,8 @@
           },
           "email_verified": {
             "type": "boolean",
-            "description": "Whether the user has verified their email address"
+            "description": "Whether the user has verified their email address",
+            "readOnly": true
           },
           "has_password": {
             "type": "boolean",
@@ -42593,14 +42591,16 @@
               "null"
             ],
             "format": "date-time",
-            "description": "When the account was linked to the identity provider."
+            "description": "When the account was linked to the identity provider.",
+            "readOnly": true
           },
           "oidc_provider": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Slug of the identity provider this account signs in through, when linked."
+            "description": "Slug of the identity provider this account signs in through, when linked.",
+            "readOnly": true
           },
           "organization_id": {
             "type": "string",
