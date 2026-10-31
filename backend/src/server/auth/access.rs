@@ -8,13 +8,37 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
+use serde::Serialize;
+use strum::{Display, EnumIter, EnumString, IntoEnumIterator, IntoStaticStr};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::server::users::r#impl::permissions::UserOrgPermissions;
+use crate::server::{
+    shared::{
+        product_area::ProductArea,
+        types::{
+            Color, Icon,
+            metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider},
+        },
+    },
+    users::r#impl::permissions::UserOrgPermissions,
+};
 
 /// What a role grants access to. Child entities share their parent's resource.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Display, EnumIter)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Display,
+    EnumIter,
+    IntoStaticStr,
+    Serialize,
+    ToSchema,
+)]
 pub enum Resource {
     Site,
     Host,
@@ -40,11 +64,24 @@ pub enum Resource {
 
 /// What a role may do to a resource. `Write` is create and update, plus operations such as
 /// starting a scan or merging hosts.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Display, EnumIter)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Display, EnumIter, Serialize, ToSchema,
+)]
 pub enum Action {
     Read,
     Write,
     Delete,
+}
+
+/// How much of a resource a role holds, as the role comparison shows it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, Serialize, ToSchema)]
+pub enum AccessLevel {
+    /// Reads it, and no more.
+    View,
+    /// Changes it, short of what the top roles on it hold.
+    Edit,
+    /// Holds everything any role holds on it.
+    Full,
 }
 
 /// What a resource's rows belong to, which decides whose grants answer for it.
@@ -159,6 +196,138 @@ impl Resource {
             RoleTable::Site(table) => table(role.into()),
         }
     }
+
+    /// How much of this resource `role` holds, or `None` for no access.
+    pub fn level(self, role: UserOrgPermissions) -> Option<AccessLevel> {
+        let held = self.actions(role);
+        if held.is_empty() {
+            return None;
+        }
+        if !held.contains(&Action::Write) {
+            return Some(AccessLevel::View);
+        }
+        let holds_everything = UserOrgPermissions::iter()
+            .flat_map(|other| self.actions(other))
+            .all(|action| held.contains(action));
+        Some(if holds_everything {
+            AccessLevel::Full
+        } else {
+            AccessLevel::Edit
+        })
+    }
+
+    /// The part of the product this resource sits under in the role comparison.
+    pub fn area(self) -> ProductArea {
+        match self {
+            Resource::Topology | Resource::Share | Resource::Dependency => ProductArea::Topology,
+            Resource::Site
+            | Resource::NewSite
+            | Resource::Host
+            | Resource::Service
+            | Resource::Subnet
+            | Resource::Vlan => ProductArea::Inventory,
+            Resource::Discovery
+            | Resource::Daemon
+            | Resource::DaemonApiKey
+            | Resource::Credential => ProductArea::Discovery,
+            Resource::Tag | Resource::Member | Resource::UserApiKey | Resource::Organization => {
+                ProductArea::Platform
+            }
+            Resource::Billing | Resource::License => ProductArea::Billing,
+        }
+    }
+
+    /// Whether a lapsed org can still write this resource: the Settings routes the billing
+    /// middleware leaves open, and what sits outside that middleware.
+    pub fn writable_when_lapsed(self) -> bool {
+        matches!(
+            self,
+            Resource::Organization | Resource::Billing | Resource::License
+        )
+    }
+}
+
+impl HasId for Resource {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for Resource {
+    fn color(&self) -> Color {
+        Color::Gray
+    }
+
+    fn icon(&self) -> Icon {
+        Icon::ShieldCheck
+    }
+}
+
+impl TypeMetadataProvider for Resource {
+    fn name(&self) -> &'static str {
+        match self {
+            Resource::Site => "Sites",
+            Resource::Host => "Hosts",
+            Resource::Service => "Services",
+            Resource::Subnet => "Subnets",
+            Resource::Vlan => "VLANs",
+            Resource::Dependency => "Dependencies",
+            Resource::Topology => "Topologies",
+            Resource::Share => "Shares",
+            Resource::Discovery => "Scans",
+            Resource::Daemon => "Daemons",
+            Resource::DaemonApiKey => "Daemon API keys",
+            Resource::Credential => "Credentials",
+            Resource::Tag => "Tags",
+            Resource::Member => "Users and invites",
+            Resource::UserApiKey => "Your API keys",
+            Resource::Organization => "Organization settings",
+            Resource::Billing => "Billing",
+            Resource::License => "Licenses",
+            Resource::NewSite => "New sites",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        match self {
+            Resource::Site => "Site details and the sites themselves",
+            Resource::Host => "Hosts, their interfaces, addresses and ports",
+            Resource::Service => "Services and their bindings",
+            Resource::Subnet => "Subnets",
+            Resource::Vlan => "VLANs",
+            Resource::Dependency => "Dependencies between services",
+            Resource::Topology => "Topologies and their snapshots",
+            Resource::Share => "Share links and embeds",
+            Resource::Discovery => "Scans, their schedules and their history",
+            Resource::Daemon => "Daemons and their settings",
+            Resource::DaemonApiKey => {
+                "The keys daemons authenticate with, and their install and upgrade commands"
+            }
+            Resource::Credential => "Credentials scans use to reach devices",
+            Resource::Tag => "Tags and tag groups",
+            Resource::Member => "The people in the organization and their pending invites",
+            Resource::UserApiKey => "API keys you own",
+            Resource::Organization => "The organization's name and its deletion",
+            Resource::Billing => "The plan, payment method and invoices",
+            Resource::License => "Self-hosted license keys",
+            Resource::NewSite => "Adding a site to the organization",
+        }
+    }
+
+    fn category(&self) -> &'static str {
+        self.area().id()
+    }
+
+    fn metadata(&self) -> serde_json::Value {
+        let levels: serde_json::Map<String, serde_json::Value> = UserOrgPermissions::iter()
+            .map(|role| (role.id().to_string(), serde_json::json!(self.level(role))))
+            .collect();
+        serde_json::json!({
+            "per_site": self.keying() == Keying::Site,
+            "levels": levels,
+            "writable_when_lapsed": self.writable_when_lapsed(),
+        })
+    }
 }
 
 /// A value holding (resource, action) pairs. The only thing the evaluator reads.
@@ -190,6 +359,13 @@ impl Grants {
 
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+
+    fn pairs(&self) -> Vec<Grant> {
+        self.0
+            .iter()
+            .map(|&(resource, action)| Grant { resource, action })
+            .collect()
     }
 
     /// Every grant a role can hold at `keying`.
@@ -287,10 +463,20 @@ impl Assignment {
 }
 
 /// What a principal can do: its organization grants, and its grants on each site.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Eq)]
 pub struct AccessSet {
     organization: Grants,
     sites: BTreeMap<Uuid, Grants>,
+    /// What an all-sites assignment holds on every site, including sites created after this was
+    /// loaded. Already counted in `sites`, so the evaluator doesn't read it.
+    all_sites: Grants,
+}
+
+/// Two principals hold the same access when they hold the same grants, however assigned.
+impl PartialEq for AccessSet {
+    fn eq(&self, other: &Self) -> bool {
+        self.organization == other.organization && self.sites == other.sites
+    }
 }
 
 impl AccessSet {
@@ -302,10 +488,14 @@ impl AccessSet {
         organization_site_ids: &[Uuid],
     ) -> Self {
         let mut sites: BTreeMap<Uuid, Grants> = BTreeMap::new();
+        let mut all_sites = Grants::default();
         for assignment in assignments {
             let grants = assignment.role.grants();
             let covered = match assignment.scope {
-                AssignmentScope::AllSites => organization_site_ids,
+                AssignmentScope::AllSites => {
+                    all_sites = all_sites.union(&grants);
+                    organization_site_ids
+                }
                 AssignmentScope::Site(ref site_id) => std::slice::from_ref(site_id),
             };
             for site_id in covered {
@@ -313,13 +503,18 @@ impl AccessSet {
                 *held = held.union(&grants);
             }
         }
-        Self::from_grants(role.grants(), sites)
+        Self {
+            organization: role.grants(),
+            sites,
+            all_sites,
+        }
     }
 
     pub fn from_grants(organization: Grants, sites: BTreeMap<Uuid, Grants>) -> Self {
         Self {
             organization,
             sites,
+            all_sites: Grants::default(),
         }
     }
 
@@ -363,7 +558,27 @@ impl AccessSet {
                 (!capped.is_empty()).then_some((*site_id, capped))
             })
             .collect();
-        Self::from_grants(self.organization.intersection(&owner.organization), sites)
+        Self {
+            organization: self.organization.intersection(&owner.organization),
+            sites,
+            all_sites: self.all_sites.intersection(&owner.all_sites),
+        }
+    }
+
+    /// This access as sent to the person holding it.
+    pub fn to_grants(&self) -> AccessGrants {
+        AccessGrants {
+            organization: self.organization.pairs(),
+            all_sites: self.all_sites.pairs(),
+            sites: self
+                .sites
+                .iter()
+                .map(|(site_id, grants)| SiteGrants {
+                    site_id: *site_id,
+                    grants: grants.pairs(),
+                })
+                .collect(),
+        }
     }
 
     /// Whether this principal may give, or manage, a person holding `granted`: the no-escalation
@@ -401,6 +616,36 @@ impl AccessSet {
                 grants.is_subset_of(self.sites.get(site_id).unwrap_or(&none))
             })
     }
+}
+
+/// One action held on one resource.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, ToSchema)]
+pub struct Grant {
+    /// The resource the action applies to.
+    pub resource: Resource,
+    /// The action held on it.
+    pub action: Action,
+}
+
+/// The grants held on one site.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+pub struct SiteGrants {
+    /// The site these grants hold on.
+    pub site_id: Uuid,
+    /// What the principal can do on that site.
+    pub grants: Vec<Grant>,
+}
+
+/// What a principal can do: organization grants for org-keyed resources, and per-site grants for
+/// site-keyed ones.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+pub struct AccessGrants {
+    /// Grants that answer for org-keyed resources.
+    pub organization: Vec<Grant>,
+    /// Grants on each site the principal reaches. Empty for a principal on no site.
+    pub sites: Vec<SiteGrants>,
+    /// Grants held on every site, including sites created since this was read.
+    pub all_sites: Vec<Grant>,
 }
 
 #[cfg(test)]
@@ -453,6 +698,58 @@ mod tests {
                     [NONE, R, W, RW, RWD].contains(&actions),
                     "{resource} {role}: {actions:?}"
                 );
+            }
+        }
+    }
+
+    /// `Full` means no role holds more, and `Edit` means one does.
+    #[test]
+    fn full_is_the_most_any_role_holds_on_a_resource() {
+        for resource in Resource::iter() {
+            for role in UserOrgPermissions::iter() {
+                let lacks_something = UserOrgPermissions::iter().any(|other| {
+                    resource
+                        .actions(other)
+                        .iter()
+                        .any(|action| !resource.actions(role).contains(action))
+                });
+                match resource.level(role) {
+                    Some(AccessLevel::Full) => assert!(!lacks_something, "{resource} {role}"),
+                    Some(AccessLevel::Edit) => assert!(lacks_something, "{resource} {role}"),
+                    Some(AccessLevel::View) => {
+                        assert!(!resource.actions(role).contains(&Action::Write))
+                    }
+                    None => assert!(resource.actions(role).is_empty(), "{resource} {role}"),
+                }
+            }
+        }
+    }
+
+    /// What the UI reads per site is what the evaluator answers.
+    #[test]
+    fn grants_sent_to_the_client_match_the_evaluator() {
+        let mut seeded = Seeded(SEED);
+        let sites = [Uuid::new_v4(), Uuid::new_v4()];
+        for _ in 0..ROUNDS {
+            let access = generated(&mut seeded, &sites);
+            let sent = access.to_grants();
+            for resource in Resource::iter() {
+                for action in Action::iter() {
+                    let grant = Grant { resource, action };
+                    assert_eq!(
+                        sent.organization.contains(&grant),
+                        access.organization.allows(resource, action)
+                    );
+                    let sites_sent: Vec<Uuid> = sent
+                        .sites
+                        .iter()
+                        .filter(|site| site.grants.contains(&grant))
+                        .map(|site| site.site_id)
+                        .collect();
+                    if resource.keying() == Keying::Site {
+                        assert_eq!(sites_sent, access.site_ids(resource, action));
+                    }
+                }
             }
         }
     }
@@ -548,6 +845,47 @@ mod tests {
         let mut expected = sites;
         expected.sort();
         assert_eq!(access.site_ids(Resource::Host, Action::Delete), expected);
+    }
+
+    /// A site created after the access loaded isn't in `sites`, so the client reads `all_sites`.
+    #[test]
+    fn only_an_all_sites_assignment_reaches_a_site_created_later() {
+        let site = Uuid::new_v4();
+        let admin = AccessSet::new(
+            UserOrgPermissions::Admin,
+            &Assignment::for_person(UserOrgPermissions::Admin, &[]),
+            &[site],
+        );
+        let member = AccessSet::new(
+            UserOrgPermissions::Member,
+            &Assignment::for_person(UserOrgPermissions::Member, &[site]),
+            &[site],
+        );
+        let host_delete = Grant {
+            resource: Resource::Host,
+            action: Action::Delete,
+        };
+        assert!(admin.to_grants().all_sites.contains(&host_delete));
+        assert!(member.to_grants().all_sites.is_empty());
+    }
+
+    /// The same grants assigned two ways are peers, which `may_edit_person` depends on.
+    #[test]
+    fn access_compares_by_grants_not_by_how_they_were_assigned() {
+        let site = Uuid::new_v4();
+        let everywhere = Assignment {
+            role: SiteRole::Admin,
+            scope: AssignmentScope::AllSites,
+        };
+        let listed = Assignment {
+            role: SiteRole::Admin,
+            scope: AssignmentScope::Site(site),
+        };
+        let role = UserOrgPermissions::Admin;
+        assert_eq!(
+            AccessSet::new(role, &[everywhere], &[site]),
+            AccessSet::new(role, &[listed], &[site])
+        );
     }
 
     #[test]

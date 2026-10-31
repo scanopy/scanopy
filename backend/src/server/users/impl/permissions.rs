@@ -4,7 +4,7 @@ use strum::{Display, EnumIter, IntoEnumIterator, IntoStaticStr};
 use utoipa::ToSchema;
 
 use crate::server::{
-    auth::access::{Action, Keying, Resource},
+    auth::access::{AccessLevel, Action, Assignment, AssignmentScope, Keying, Resource},
     shared::{
         entities::EntityDiscriminants,
         types::{
@@ -62,6 +62,41 @@ impl UserOrgPermissions {
             .filter(|target| grants.may_grant_to_person(&target.grants(), Keying::Organization))
             .collect()
     }
+
+    /// The role one step below this one. Viewer is the baseline.
+    pub fn previous_role(&self) -> Option<UserOrgPermissions> {
+        match self {
+            UserOrgPermissions::Owner => Some(UserOrgPermissions::Admin),
+            UserOrgPermissions::Admin => Some(UserOrgPermissions::Member),
+            UserOrgPermissions::Member => Some(UserOrgPermissions::Viewer),
+            UserOrgPermissions::Viewer => None,
+        }
+    }
+
+    /// What this role adds over [`Self::previous_role`], one entry per level, the way
+    /// `BillingPlan::incremental_features` does for plans. Viewer lists all of its access.
+    pub fn incremental_access(&self) -> Vec<serde_json::Value> {
+        let inherited = self.previous_role();
+        AccessLevel::iter()
+            .filter_map(|level| {
+                let resources: Vec<Resource> = Resource::iter()
+                    .filter(|resource| {
+                        resource.level(*self) == Some(level)
+                            && inherited.and_then(|role| resource.level(role)) != Some(level)
+                    })
+                    .collect();
+                (!resources.is_empty())
+                    .then(|| serde_json::json!({ "level": level, "resources": resources }))
+            })
+            .collect()
+    }
+
+    /// Whether a person holding this role reaches every site, whatever their site list says.
+    fn reaches_all_sites(&self) -> bool {
+        Assignment::for_person(*self, &[])
+            .iter()
+            .any(|assignment| assignment.scope == AssignmentScope::AllSites)
+    }
 }
 
 impl FromStr for UserOrgPermissions {
@@ -98,13 +133,15 @@ impl TypeMetadataProvider for UserOrgPermissions {
     fn description(&self) -> &'static str {
         match self {
             UserOrgPermissions::Owner => {
-                "Full organization control: manage billing, invite any role, and access all administrative features"
+                "Answers for the organization: its billing, licenses and settings"
             }
             UserOrgPermissions::Admin => {
-                "Manage users and invites, create and modify all entities, but cannot access billing"
+                "Decides how the organization runs: users, sites, daemons and credentials"
             }
-            UserOrgPermissions::Member => "Create and modify entities for specific sites",
-            UserOrgPermissions::Viewer => "View entities.",
+            UserOrgPermissions::Member => {
+                "Keeps the network documented: hosts, topologies, scans and tags"
+            }
+            UserOrgPermissions::Viewer => "Sees the network and manages their own API keys",
         }
     }
 
@@ -118,13 +155,40 @@ impl TypeMetadataProvider for UserOrgPermissions {
     }
 
     fn metadata(&self) -> serde_json::Value {
-        let manage_org_entities: bool =
-            matches!(self, UserOrgPermissions::Owner | UserOrgPermissions::Admin);
-
         serde_json::json!({
             "grantable_api_key_permissions": self.grantable_api_key_permissions(),
             "grantable_user_permissions": self.grantable_user_permissions(),
-            "manage_org_entities": manage_org_entities,
+            "previous_role": self.previous_role(),
+            "incremental_access": self.incremental_access(),
+            "reaches_all_sites": self.reaches_all_sites(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A role's level on a resource is what it adds, or what the role below already holds.
+    #[test]
+    fn incremental_access_is_exactly_what_the_previous_role_lacks() {
+        for role in UserOrgPermissions::iter() {
+            let added = role.incremental_access();
+            for resource in Resource::iter() {
+                let listed = added.iter().any(|entry| {
+                    entry["level"] == serde_json::json!(resource.level(role))
+                        && entry["resources"]
+                            .as_array()
+                            .is_some_and(|r| r.contains(&serde_json::json!(resource)))
+                });
+                let unchanged =
+                    role.previous_role().and_then(|p| resource.level(p)) == resource.level(role);
+                assert_eq!(
+                    listed,
+                    resource.level(role).is_some() && !unchanged,
+                    "{role} on {resource}"
+                );
+            }
+        }
     }
 }

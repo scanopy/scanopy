@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scanopy API",
-    "description": "\nSite topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.4\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.4\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.19.4)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **site(s)**:\n\n- You can only access entities within your organization\n- Site-level entities (hosts, services, etc.) are filtered to sites you have access to\n- Use `?site_id=<UUID>` to filter list endpoints to a specific site\n- API keys can be scoped to a subset of your accessible sites\n",
+    "description": "\nSite topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.5\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.5\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.19.5)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **site(s)**:\n\n- You can only access entities within your organization\n- Site-level entities (hosts, services, etc.) are filtered to sites you have access to\n- Use `?site_id=<UUID>` to filter list endpoints to a specific site\n- API keys can be scoped to a subset of your accessible sites\n",
     "license": {
       "name": "Dual (AGPL3.0, Commercial License Available)"
     },
@@ -15642,6 +15642,56 @@
   },
   "components": {
     "schemas": {
+      "AccessGrants": {
+        "type": "object",
+        "description": "What a principal can do: organization grants for org-keyed resources, and per-site grants for\nsite-keyed ones.",
+        "required": [
+          "organization",
+          "sites",
+          "all_sites"
+        ],
+        "properties": {
+          "all_sites": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Grant"
+            },
+            "description": "Grants held on every site, including sites created since this was read."
+          },
+          "organization": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Grant"
+            },
+            "description": "Grants that answer for org-keyed resources."
+          },
+          "sites": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SiteGrants"
+            },
+            "description": "Grants on each site the principal reaches. Empty for a principal on no site."
+          }
+        }
+      },
+      "AccessLevel": {
+        "type": "string",
+        "description": "How much of a resource a role holds, as the role comparison shows it.",
+        "enum": [
+          "View",
+          "Edit",
+          "Full"
+        ]
+      },
+      "Action": {
+        "type": "string",
+        "description": "What a role may do to a resource. `Write` is create and update, plus operations such as\nstarting a scan or merging hosts.",
+        "enum": [
+          "Read",
+          "Write",
+          "Delete"
+        ]
+      },
       "ApiErrorResponse": {
         "type": "object",
         "description": "Error response type for API errors (no data field)",
@@ -16136,6 +16186,51 @@
               }
             ],
             "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_CurrentUser": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/User"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "access"
+                ],
+                "properties": {
+                  "access": {
+                    "$ref": "#/components/schemas/AccessGrants",
+                    "description": "The user's organization and per-site grants."
+                  }
+                }
+              }
+            ],
+            "description": "The signed-in user, with what they can do."
           },
           "error": {
             "type": [
@@ -23023,6 +23118,9 @@
           "PodmanPing",
           "Ipp",
           "Lpd",
+          "Smux",
+          "Rpcbind",
+          "Llmnr",
           "SpotifyConnect",
           "Vnc",
           "AppleLockdown",
@@ -24553,6 +24651,26 @@
           "WakeOnLan",
           "ProxmoxApiToken"
         ]
+      },
+      "CurrentUser": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/User"
+          },
+          {
+            "type": "object",
+            "required": [
+              "access"
+            ],
+            "properties": {
+              "access": {
+                "$ref": "#/components/schemas/AccessGrants",
+                "description": "The user's organization and per-site grants."
+              }
+            }
+          }
+        ],
+        "description": "The signed-in user, with what they can do."
       },
       "Daemon": {
         "allOf": [
@@ -30058,6 +30176,24 @@
               "$ref": "#/components/schemas/GlobalSearchGroup"
             },
             "description": "One group per entity type with at least one match."
+          }
+        }
+      },
+      "Grant": {
+        "type": "object",
+        "description": "One action held on one resource.",
+        "required": [
+          "resource",
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/Action",
+            "description": "The action held on it."
+          },
+          "resource": {
+            "$ref": "#/components/schemas/Resource",
+            "description": "The resource the action applies to."
           }
         }
       },
@@ -38222,6 +38358,31 @@
           }
         }
       },
+      "Resource": {
+        "type": "string",
+        "description": "What a role grants access to. Child entities share their parent's resource.",
+        "enum": [
+          "Site",
+          "Host",
+          "Service",
+          "Subnet",
+          "Vlan",
+          "Dependency",
+          "Topology",
+          "Share",
+          "Discovery",
+          "Daemon",
+          "DaemonApiKey",
+          "Credential",
+          "Tag",
+          "Member",
+          "UserApiKey",
+          "Organization",
+          "Billing",
+          "License",
+          "NewSite"
+        ]
+      },
       "RunType": {
         "oneOf": [
           {
@@ -39720,6 +39881,28 @@
               "format": "uuid"
             },
             "description": "Tags assigned to this entity."
+          }
+        }
+      },
+      "SiteGrants": {
+        "type": "object",
+        "description": "The grants held on one site.",
+        "required": [
+          "site_id",
+          "grants"
+        ],
+        "properties": {
+          "grants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Grant"
+            },
+            "description": "What the principal can do on that site."
+          },
+          "site_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The site these grants hold on."
           }
         }
       },

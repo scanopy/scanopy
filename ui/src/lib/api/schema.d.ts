@@ -4168,6 +4168,29 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description What a principal can do: organization grants for org-keyed resources, and per-site grants for
+         *     site-keyed ones.
+         */
+        AccessGrants: {
+            /** @description Grants held on every site, including sites created since this was read. */
+            all_sites: components["schemas"]["Grant"][];
+            /** @description Grants that answer for org-keyed resources. */
+            organization: components["schemas"]["Grant"][];
+            /** @description Grants on each site the principal reaches. Empty for a principal on no site. */
+            sites: components["schemas"]["SiteGrants"][];
+        };
+        /**
+         * @description How much of a resource a role holds, as the role comparison shows it.
+         * @enum {string}
+         */
+        AccessLevel: "View" | "Edit" | "Full";
+        /**
+         * @description What a role may do to a resource. `Write` is create and update, plus operations such as
+         *     starting a scan or merging hosts.
+         * @enum {string}
+         */
+        Action: "Read" | "Write" | "Delete";
         /** @description Error response type for API errors (no data field) */
         ApiErrorResponse: {
             /** @description Machine-readable error code for i18n translation */
@@ -4453,6 +4476,26 @@ export interface components {
                  * @description When this record was last modified.
                  */
                 readonly updated_at: string;
+            };
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_CurrentUser: {
+            /** @description The signed-in user, with what they can do. */
+            data?: components["schemas"]["User"] & {
+                /** @description The user's organization and per-site grants. */
+                access: components["schemas"]["AccessGrants"];
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -8567,6 +8610,11 @@ export interface components {
         };
         /** @enum {string} */
         CredentialTypeDiscriminants: "SnmpCommunity" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount" | "SshPassword" | "SshKey" | "WakeOnLan" | "ProxmoxApiToken";
+        /** @description The signed-in user, with what they can do. */
+        CurrentUser: components["schemas"]["User"] & {
+            /** @description The user's organization and per-site grants. */
+            access: components["schemas"]["AccessGrants"];
+        };
         Daemon: components["schemas"]["DaemonBase"] & {
             /**
              * Format: date-time
@@ -10734,6 +10782,13 @@ export interface components {
         GlobalSearchResponse: {
             /** @description One group per entity type with at least one match. */
             groups: components["schemas"]["GlobalSearchGroup"][];
+        };
+        /** @description One action held on one resource. */
+        Grant: {
+            /** @description The action held on it. */
+            action: components["schemas"]["Action"];
+            /** @description The resource the action applies to. */
+            resource: components["schemas"]["Resource"];
         };
         /** @description Size of one group in a grouped list, across every page. */
         GroupCount: {
@@ -14581,6 +14636,11 @@ export interface components {
             /** @description Single-use token from the password-reset email. */
             token: string;
         };
+        /**
+         * @description What a role grants access to. Child entities share their parent's resource.
+         * @enum {string}
+         */
+        Resource: "Site" | "Host" | "Service" | "Subnet" | "Vlan" | "Dependency" | "Topology" | "Share" | "Discovery" | "Daemon" | "DaemonApiKey" | "Credential" | "Tag" | "Member" | "UserApiKey" | "Organization" | "Billing" | "License" | "NewSite";
         RunType: {
             /** @description Cron expression deciding when the scan runs. */
             cron_schedule: string;
@@ -15275,6 +15335,16 @@ export interface components {
             stale_after_hours: number | null;
             /** @description Tags assigned to this entity. */
             tags: string[];
+        };
+        /** @description The grants held on one site. */
+        SiteGrants: {
+            /** @description What the principal can do on that site. */
+            grants: components["schemas"]["Grant"][];
+            /**
+             * Format: uuid
+             * @description The site these grants hold on.
+             */
+            site_id: string;
         };
         /**
          * @description Fields the sites list can be ordered and grouped by.
@@ -17183,13 +17253,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Current user */
+            /** @description Current user and what they can do */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_User"];
+                    "application/json": components["schemas"]["ApiResponse_CurrentUser"];
                 };
             };
             /** @description Not authenticated */
