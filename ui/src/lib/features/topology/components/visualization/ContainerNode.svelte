@@ -22,10 +22,10 @@
 	} from '../../queries';
 	import { useTopology, selectedTopologyId } from '../../context';
 	import type { RenderableTopology, TopologyNode } from '../../types/base';
-	import { containerEntity, resolveContainerNode } from '../../resolvers';
 	import { entityGlyph } from '../../entity-glyph';
-	import { entityTooltip } from '../../element-render-data';
-	import type { TooltipContent } from '$lib/shared/actions/tooltip';
+	import { containerEntity, resolveContainerNode, topologyLookup } from '../../resolvers';
+	import { entityTooltip } from '$lib/shared/entity-tooltip';
+	import type { TooltipOptions } from '$lib/shared/actions/tooltip';
 	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { getFreshnessTag } from '$lib/shared/utils/freshness';
 	import { getConfirmationTag } from '$lib/shared/utils/confirmation';
@@ -200,14 +200,12 @@
 
 	// Hover text for the header: the entity the container stands for, through the same tooltip
 	// its card would show; a grouping container with no entity names itself and what it holds.
-	let headerTooltip: TooltipContent | null = $derived.by(() => {
+	let headerTooltip: TooltipOptions['content'] = $derived.by(() => {
 		if (topology && containerSubject) {
-			return entityTooltip(containerSubject.entityType, containerSubject.entity, {
-				topology,
-				view: $activeView,
-				sites: sitesQuery.data ?? [],
-				name: headerText || undefined
-			});
+			const { entityType, entity } = containerSubject;
+			const lookup = topologyLookup(topology);
+			const name = headerText || undefined;
+			return () => entityTooltip(entityType, entity, { lookup, name });
 		}
 		if (!headerText) return null;
 		return { title: headerText, sections: childSummary ? [{ text: childSummary }] : [] };

@@ -1,6 +1,7 @@
-import { createRawSnippet, mount } from 'svelte';
+import { createRawSnippet, mount, unmount, untrack } from 'svelte';
 import Popover from '$lib/shared/components/data/Popover.svelte';
-import type { TooltipContent } from './tooltip';
+import TooltipChipView from '$lib/shared/components/data/TooltipChip.svelte';
+import type { MountTooltipChip, TooltipContent } from './tooltip';
 
 /**
  * The app's one tooltip: a single `Popover`, mounted at the first hover and kept. Showing it on
@@ -14,22 +15,46 @@ interface Shown {
 
 const state = $state<{ shown: Shown | null }>({ shown: null });
 let mounted = false;
+let staticChips = false;
+
+/** Whether chips in the tooltip stay inert: a public share has no entities to navigate to. */
+export function setTooltipChipsStatic(value: boolean) {
+	staticChips = value;
+}
+
+export function tooltipChipsAreStatic() {
+	return staticChips;
+}
 
 export function showTooltipPopover(
 	anchor: HTMLElement,
 	content: string | TooltipContent,
-	render: (content: string | TooltipContent) => HTMLElement
+	render: (content: string | TooltipContent, mountChip: MountTooltipChip) => HTMLElement
 ) {
 	state.shown = { anchor, content };
 	if (mounted) return;
 	mounted = true;
 
 	const body = createRawSnippet(() => ({
-		render: () => '<div class="text-secondary wrap-break-word text-xs leading-tight"></div>',
+		render: () =>
+			'<div data-tooltip-surface class="text-secondary wrap-break-word text-xs leading-tight"></div>',
 		setup(el: Element) {
 			// Redrawn in place whenever the tooltip moves to another element.
 			$effect(() => {
-				if (state.shown) el.replaceChildren(render(state.shown.content));
+				const shown = state.shown;
+				if (!shown) return;
+				const chips: ReturnType<typeof mount>[] = [];
+				const context = staticChips ? new Map([['staticTags', true]]) : undefined;
+				untrack(() => {
+					el.replaceChildren(
+						render(shown.content, (target, chip) => {
+							chips.push(mount(TooltipChipView, { target, props: { chip }, context }));
+						})
+					);
+				});
+				return () => {
+					for (const chip of chips) unmount(chip);
+				};
 			});
 		}
 	}));

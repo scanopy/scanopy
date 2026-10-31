@@ -32,6 +32,8 @@ type Obj = Record<string, unknown>;
  */
 export interface EntityLookup {
 	byColumn(type: EntityType, column: string, id: string): Obj[];
+	/** Whether this lookup holds a collection of `type`, so an empty result means there are none. */
+	loads(type: EntityType): boolean;
 }
 
 /**
@@ -58,7 +60,8 @@ export function collectionLookup(
 				indexes.set(key, index);
 			}
 			return index.get(id) ?? [];
-		}
+		},
+		loads: (type) => collections[type] !== undefined
 	};
 }
 

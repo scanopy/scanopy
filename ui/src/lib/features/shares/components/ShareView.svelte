@@ -14,6 +14,7 @@
 	import PasswordGate from './PasswordGate.svelte';
 	import ReadOnlyTopologyViewer from './ReadOnlyTopologyViewer.svelte';
 	import { AlertTriangle } from '@lucide/svelte';
+	import { setTooltipChipsStatic } from '$lib/shared/actions/tooltip-popover.svelte';
 	import { entityBundleFrom, toRenderableTopology } from '$lib/features/topology/enriched';
 	import type { TopologyView } from '$lib/features/topology/queries';
 
@@ -51,6 +52,7 @@
 	// but we also lock it so the theme store doesn't override it during the session)
 	let themeOverride: string | null = null;
 	onMount(async () => {
+		setTooltipChipsStatic(true);
 		const params = new URLSearchParams(window.location.search);
 		const t = params.get('theme');
 		if (t === 'light' || t === 'dark') {
@@ -62,6 +64,7 @@
 	});
 
 	onDestroy(() => {
+		setTooltipChipsStatic(false);
 		// Restore user's theme preference when navigating away
 		if (themeOverride && typeof window !== 'undefined') {
 			const stored = localStorage.getItem('scanopy-theme') || 'system';
