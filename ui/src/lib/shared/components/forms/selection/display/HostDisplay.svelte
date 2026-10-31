@@ -11,25 +11,15 @@
 		serviceDefinitions
 	} from '$lib/shared/stores/metadata';
 	import { entityRef, type TagProps } from '$lib/shared/components/data/types';
-	import { queryClient, queryKeys } from '$lib/api/query-client';
+	import { cachedEntities, queryKeys } from '$lib/api/query-client';
 	import {
 		hosts_networkIdentity_tagTitle,
 		hosts_networkIdentity_tagTitleUnresolved
 	} from '$lib/paraglide/messages';
 
-	/**
-	 * An entity with this id from any cached query under `rootKey`: plain arrays (the services
-	 * cache, by-id lookups) and paginated results (host lists, summaries). Display components are
-	 * plain objects outside any component, so they read the cache rather than subscribe to a query.
-	 */
+	/** An entity with this id from any cached query under `rootKey`. */
 	function findCached<T extends { id: string }>(rootKey: readonly unknown[], id: string): T | null {
-		for (const [, data] of queryClient.getQueriesData<unknown>({ queryKey: rootKey })) {
-			const items = Array.isArray(data) ? data : (data as { items?: unknown } | undefined)?.items;
-			if (!Array.isArray(items)) continue;
-			const found = (items as T[]).find((item) => item?.id === id);
-			if (found) return found;
-		}
-		return null;
+		return cachedEntities<T>(rootKey).find((item) => item.id === id) ?? null;
 	}
 
 	/**

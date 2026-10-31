@@ -1,4 +1,11 @@
-import { hideTooltipPopover, showTooltipPopover } from './tooltip-popover.svelte';
+import type { EntityRef } from '$lib/shared/components/data/types';
+import type { Color } from '$lib/shared/utils/styling';
+import type { IconComponent } from '$lib/shared/utils/types';
+import {
+	hideTooltipPopover,
+	showTooltipPopover,
+	tooltipChipsAreStatic
+} from './tooltip-popover.svelte';
 
 /**
  * Svelte action that shows a tooltip on hover.
@@ -14,18 +21,25 @@ import { hideTooltipPopover, showTooltipPopover } from './tooltip-popover.svelte
  * of the node itself, so a tooltip on part of a card clears the whole card.
  */
 
-/** One labelled fact: a muted label, an emphasized value, and the value's state colour if any. */
+/** A value drawn as the app draws it elsewhere: a `Tag`, or an `EntityTag` for a named entity. */
+export type TooltipChip =
+	| { type: 'Tag'; label: string; color: Color; icon?: IconComponent | null }
+	| { type: 'Entity'; label: string; color: Color; ref: EntityRef };
+
+/** One labelled fact: a muted label and an emphasized value, drawn as `chips` when it has them. */
 export interface TooltipRow {
 	label: string;
+	/** The plain text of the value. */
 	value: string;
-	/** CSS colour of a dot drawn before the value: the same colour the app paints that state. */
-	dot?: string;
+	chips?: TooltipChip[];
 }
 
 /** A list entry with a muted detail set apart on its right: a service and its ports. */
 export interface TooltipItem {
 	text: string;
 	detail?: string;
+	/** Draws the entry in place of `text`, which stays its plain form. */
+	chip?: TooltipChip;
 }
 
 /** A block of a structured tooltip, set off from the one above it by a rule. */
@@ -69,11 +83,37 @@ function el(
 	return e;
 }
 
+/** Mounts a chip's component into the empty element the renderer made for it. */
+export type MountTooltipChip = (target: HTMLElement, chip: TooltipChip) => void;
+
+/** A chip's place in the tooltip: `mountChip` fills it, so no chip text passes through here. */
+function chipSlot(doc: TooltipDocument, chip: TooltipChip, mountChip: MountTooltipChip) {
+	const slot = el(doc, 'span', { display: 'inline-flex', maxWidth: '100%', minWidth: '0' });
+	mountChip(slot, chip);
+	return slot;
+}
+
+/** Whether the tooltip holds a chip that navigates, so the pointer has to be able to reach it. */
+export function hasEntityChips(content: string | TooltipContent): boolean {
+	if (typeof content === 'string') return false;
+	const isEntity = (chip?: TooltipChip) => chip?.type === 'Entity';
+	return content.sections.some(
+		(section) =>
+			section.rows?.some((row) => row.chips?.some(isEntity)) ||
+			section.items?.some((item) => typeof item !== 'string' && isEntity(item.chip))
+	);
+}
+
 /**
  * The tooltip's body. Every string, which may come from a scanned device or a user (a hostname, a
- * service or tag name), is set through `textContent`, so markup in it renders as text.
+ * service or tag name), is set through `textContent`, so markup in it renders as text. Chips are
+ * `Tag` and `EntityTag` components, which render their labels as text too.
  */
-export function renderTooltip(doc: TooltipDocument, content: string | TooltipContent): HTMLElement {
+export function renderTooltip(
+	doc: TooltipDocument,
+	content: string | TooltipContent,
+	mountChip: MountTooltipChip
+): HTMLElement {
 	if (typeof content === 'string') {
 		// Keeps the line breaks of multi-line text.
 		return el(doc, 'div', { whiteSpace: 'pre-line' }, content);
@@ -130,22 +170,16 @@ export function renderTooltip(doc: TooltipDocument, content: string | TooltipCon
 					color: 'var(--color-text-primary)',
 					fontWeight: '500',
 					display: 'flex',
+					flexWrap: 'wrap',
 					alignItems: 'center',
-					gap: '5px',
+					gap: '4px',
 					minWidth: '0'
 				});
-				if (row.dot) {
-					value.appendChild(
-						el(doc, 'span', {
-							width: '8px',
-							height: '8px',
-							flexShrink: '0',
-							borderRadius: '9999px',
-							background: row.dot
-						})
-					);
+				if (row.chips?.length) {
+					for (const chip of row.chips) value.appendChild(chipSlot(doc, chip, mountChip));
+				} else {
+					value.appendChild(el(doc, 'span', { overflowWrap: 'anywhere' }, row.value));
 				}
-				value.appendChild(el(doc, 'span', { overflowWrap: 'anywhere' }, row.value));
 				grid.appendChild(value);
 			}
 			block.appendChild(grid);
@@ -158,8 +192,16 @@ export function renderTooltip(doc: TooltipDocument, content: string | TooltipCon
 				color: 'var(--color-text-primary)'
 			});
 			for (const item of section.items) {
+				const chip = typeof item === 'string' ? undefined : item.chip;
 				if (typeof item === 'string' || !item.detail) {
-					list.appendChild(el(doc, 'li', {}, typeof item === 'string' ? item : item.text));
+					const li = el(
+						doc,
+						'li',
+						{},
+						chip ? undefined : typeof item === 'string' ? item : item.text
+					);
+					if (chip) li.appendChild(chipSlot(doc, chip, mountChip));
+					list.appendChild(li);
 					continue;
 				}
 				// The detail sits right-aligned and muted, so it never reads as part of the name. The name
@@ -172,7 +214,14 @@ export function renderTooltip(doc: TooltipDocument, content: string | TooltipCon
 					alignItems: 'baseline',
 					gap: '12px'
 				});
-				line.appendChild(el(doc, 'span', { flex: '0 1 auto', maxWidth: '60%' }, item.text));
+				const name = el(
+					doc,
+					'span',
+					{ flex: '0 1 auto', maxWidth: '60%' },
+					chip ? undefined : item.text
+				);
+				if (chip) name.appendChild(chipSlot(doc, chip, mountChip));
+				line.appendChild(name);
 				line.appendChild(
 					el(
 						doc,
@@ -207,27 +256,56 @@ export interface TooltipTarget {
 /** Marks a registered element, so the nearest one under the pointer is a `closest` away. */
 const SOURCE_ATTRIBUTE = 'data-tooltip-source';
 
+/** Marks the tooltip's own surface, which holds chips of its own. */
+export const SURFACE_ATTRIBUTE = 'data-tooltip-surface';
+
+/** How long a tooltip with chips to click stays after the pointer leaves, to cross the gap to it. */
+const REACH_GRACE_MS = 150;
+
 /**
  * Which registered element the tooltip is on, as the pointer moves. `pointerover` and `pointerout`
  * both name where the pointer went; the tooltip follows to the nearest registered element there,
  * or closes when there is none. Moving between two registered elements switches straight from one
  * to the other, so the one tooltip moves rather than closing and reopening.
+ *
+ * `reachable` says the shown tooltip holds something to click. The pointer can then cross to the
+ * tooltip and stay on it, and chips inside it never become sources, so a nested chip opens no
+ * tooltip of its own.
  */
 export class TooltipTracker<T extends TooltipTarget> {
 	current: T | null = null;
+	private closing: ReturnType<typeof setTimeout> | undefined;
 
 	constructor(
 		private readonly onShow: (source: T) => void,
-		private readonly onHide: () => void
+		private readonly onHide: () => void,
+		private readonly reachable: () => boolean = () => false
 	) {}
 
 	/** The pointer is now over `target` (null: it left the document). */
 	moveTo(target: T | null) {
+		const onSurface = target?.closest(`[${SURFACE_ATTRIBUTE}]`) ?? null;
+		if (onSurface && this.current && this.reachable()) {
+			clearTimeout(this.closing);
+			return;
+		}
 		const source = (target?.closest(`[${SOURCE_ATTRIBUTE}]`) as T | null) ?? null;
+		clearTimeout(this.closing);
 		if (source === this.current) return;
+		if (!source && this.reachable()) {
+			this.closing = setTimeout(() => this.dismiss(), REACH_GRACE_MS);
+			return;
+		}
 		this.current = source;
 		if (source) this.onShow(source);
 		else this.onHide();
+	}
+
+	/** Closes the tooltip now, as a click on a chip inside it does. */
+	dismiss() {
+		clearTimeout(this.closing);
+		this.current = null;
+		this.onHide();
 	}
 
 	/**
@@ -244,8 +322,7 @@ export class TooltipTracker<T extends TooltipTarget> {
 	refresh(source: T, removed: boolean) {
 		if (source !== this.current) return;
 		if (removed) {
-			this.current = null;
-			this.onHide();
+			this.dismiss();
 		} else {
 			this.onShow(source);
 		}
@@ -260,16 +337,32 @@ function contentOf(node: HTMLElement): string | TooltipContent | null {
 	return given ?? node.getAttribute('data-tooltip');
 }
 
-const tracker = new TooltipTracker<HTMLElement>((node) => {
-	const content = contentOf(node);
-	if (!content) {
+/** Whether the tooltip now shown holds a chip to click. */
+let reachable = false;
+
+const tracker = new TooltipTracker<HTMLElement>(
+	(node) => {
+		const content = contentOf(node);
+		reachable = !!content && hasEntityChips(content) && !tooltipChipsAreStatic();
+		if (!content) {
+			hideTooltipPopover();
+			return;
+		}
+		const anchorClosest = sources.get(node)?.anchorClosest;
+		const anchor = (anchorClosest && node.closest<HTMLElement>(anchorClosest)) || node;
+		showTooltipPopover(anchor, content, (c, mountChip) => renderTooltip(document, c, mountChip));
+	},
+	() => {
+		reachable = false;
 		hideTooltipPopover();
-		return;
-	}
-	const anchorClosest = sources.get(node)?.anchorClosest;
-	const anchor = (anchorClosest && node.closest<HTMLElement>(anchorClosest)) || node;
-	showTooltipPopover(anchor, content, (c) => renderTooltip(document, c));
-}, hideTooltipPopover);
+	},
+	() => reachable
+);
+
+/** Closes the tooltip, for a click that navigates away from what it is on. */
+export function dismissTooltip() {
+	tracker.dismiss();
+}
 
 let listening = false;
 

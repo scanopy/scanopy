@@ -755,3 +755,10 @@ export function metadataName(category: TypeMetadataKeys, id: string): string {
 		id;
 	return metaName(category, id, fallback);
 }
+
+/** The colour of `id` in any type-metadata fixture, chosen at runtime as `metadataName` is. */
+export function metadataColor(category: TypeMetadataKeys, id: string): Color {
+	const $registry = get(metadata);
+	const item = ($registry?.[category] as TypeMetadata[] | undefined)?.find((i) => i.id === id);
+	return createColorHelper(item?.color || null).color;
+}

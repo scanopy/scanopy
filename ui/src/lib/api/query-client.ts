@@ -69,6 +69,23 @@ export function createQueryClient(): QueryClient {
 export const queryClient = createQueryClient();
 
 /**
+ * Every entity cached under `rootKey`, once each: plain arrays (the services cache, by-id lookups)
+ * and paginated results (host lists, summaries). For code outside a component, which reads the
+ * cache rather than subscribing to a query.
+ */
+export function cachedEntities<T extends { id: string }>(rootKey: readonly unknown[]): T[] {
+	const byId = new Map<string, T>();
+	for (const [, data] of queryClient.getQueriesData<unknown>({ queryKey: rootKey })) {
+		const items = Array.isArray(data) ? data : (data as { items?: unknown } | undefined)?.items;
+		if (!Array.isArray(items)) continue;
+		for (const item of items as T[]) {
+			if (item?.id && !byId.has(item.id)) byId.set(item.id, item);
+		}
+	}
+	return [...byId.values()];
+}
+
+/**
  * Query key factory for consistent cache key generation
  *
  * Usage:

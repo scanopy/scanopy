@@ -6,6 +6,8 @@
 	import type { Color } from '$lib/shared/utils/styling';
 	import type { IconComponent } from '$lib/shared/utils/types';
 	import { entityUIConfig } from '$lib/shared/entity-ui-config';
+	import { entityRefTooltip, hasEntityTooltip } from '$lib/shared/entity-tooltip';
+	import { dismissTooltip } from '$lib/shared/actions/tooltip';
 	import { navigateToEntity } from '$lib/shared/stores/modal-registry';
 	import { getContext } from 'svelte';
 
@@ -48,9 +50,16 @@
 	// The entity's own chip icon unless the caller passes one, so every chip for a host draws its
 	// device type the same way.
 	let chipIcon = $derived(icon ?? displayComponent?.getChipIcon?.(entityRef.data) ?? null);
+	// An entity topology draws shows topology's tooltip, built on hover. The rest, which never
+	// appear on the canvas, show their display component in a popover that exists only while open,
+	// so a table of chips adds no portals.
+	let sharesTooltip = $derived(hasEntityTooltip(entityRef.entityType));
+	let chipTooltip = $derived(
+		sharesTooltip && !disablePopover ? () => entityRefTooltip(entityRef) : null
+	);
 
 	function handleMouseEnter() {
-		if (!displayComponent || disablePopover) return;
+		if (!displayComponent || disablePopover || sharesTooltip) return;
 		clearTimeout(leaveTimeout);
 		hoverTimeout = setTimeout(() => {
 			isHovered = true;
@@ -81,6 +90,7 @@
 		e.preventDefault();
 		if (disabled || isStaticTags) return;
 		isHovered = false;
+		dismissTooltip();
 		navigateToEntity(entityRef.entityType, entityRef.entityId, entityRef.data);
 	}
 </script>
@@ -100,7 +110,7 @@
 		onmouseenter={handleMouseEnter}
 		onmouseleave={handleMouseLeave}
 	>
-		<Tag icon={chipIcon} {color} {disabled} {label} {badge} pill={true} />
+		<Tag icon={chipIcon} {color} {disabled} {label} {badge} pill={true} title={chipTooltip} />
 	</div>
 {:else}
 	<div
@@ -115,11 +125,11 @@
 		role="button"
 		tabindex="0"
 	>
-		<Tag icon={chipIcon} {color} {disabled} {label} {badge} pill={true} />
+		<Tag icon={chipIcon} {color} {disabled} {label} {badge} pill={true} title={chipTooltip} />
 	</div>
 {/if}
 
-{#if displayComponent && !isStaticTags}
+{#if displayComponent && isHovered && !isStaticTags}
 	<Popover
 		triggerElement={triggerEl}
 		isOpen={isHovered}

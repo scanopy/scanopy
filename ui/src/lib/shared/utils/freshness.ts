@@ -165,6 +165,7 @@ export function getFreshnessTag(
 		label: common_stale(),
 		color: toColor('amber'),
 		icon: Clock,
+		pill: true,
 		title: lastSeenLabel(entity, opts.entityTypeLabel)
 	};
 }

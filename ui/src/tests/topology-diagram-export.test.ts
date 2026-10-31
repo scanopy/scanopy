@@ -13,6 +13,16 @@ import { fieldKeys } from '$lib/features/topology/diagram-export/xml';
 import { buildVsdxParts, zipVsdx } from '$lib/features/topology/diagram-export/vsdx';
 import { createDescriber } from '$lib/features/topology/diagram-export/describe';
 import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
+import { topologyLookup } from '$lib/features/topology/resolvers';
+import { entityTooltip } from '$lib/shared/entity-tooltip';
+import { subnetTypes } from '$lib/shared/stores/metadata';
+
+const SUBNET = {
+	id: 'lan',
+	cidr: '10.0.0.0/24',
+	subnet_type: subnetTypes.getItems()[0].id,
+	vlan_ids: ['v10']
+};
 
 /**
  * A subnet holding a host card and a nested subcontainer (holding another card), plus a second
@@ -147,7 +157,8 @@ describe('diagram describer', () => {
 			{ id: 'i1', display_name: 'Gi0/1' },
 			{ id: 'i2', display_name: 'eth0' }
 		],
-		vlans: [{ id: 'v10', vlan_number: 10, name: 'users' }]
+		vlans: [{ id: 'v10', vlan_number: 10, name: 'users' }],
+		subnets: [SUBNET]
 	} as unknown as RenderableTopology;
 	const flowEdge = (id: string, data: Record<string, unknown>): Edge =>
 		({ id, source: 'a', target: 'b', data }) as unknown as Edge;
@@ -193,6 +204,28 @@ describe('diagram describer', () => {
 			.node({ id: 'vlan', type: 'Container', x: 0, y: 0, width: 10, height: 10 })
 			.data?.map((d) => d.value);
 		expect(boxValues).toEqual(expect.arrayContaining(['10', 'users']));
+	});
+
+	it('exports the values a tooltip draws as tags and entities as their plain text', () => {
+		const subnetBox = {
+			node_type: 'Container',
+			container_type: 'Subnet',
+			entity_id: SUBNET.id,
+			header: SUBNET.cidr
+		} as unknown as TopologyNode;
+		const describer = describerFor([], [], new Map([['lan', subnetBox]]));
+		const shapeValues = describer
+			.node({ id: 'lan', type: 'Container', x: 0, y: 0, width: 10, height: 10 })
+			.data?.map((d) => d.value);
+
+		const content = entityTooltip('Subnet', SUBNET, { lookup: topologyLookup(topology) });
+		const rows = content.sections.flatMap((s) => s.rows ?? []);
+		const chipRow = (type: string) => rows.find((r) => r.chips?.some((c) => c.type === type));
+		expect(chipRow('Tag')?.value).toBe(subnetTypes.getName(SUBNET.subnet_type));
+		expect(chipRow('Entity')?.value).toBeTruthy();
+		expect(shapeValues).toEqual(
+			expect.arrayContaining([chipRow('Tag')?.value, chipRow('Entity')?.value])
+		);
 	});
 
 	it('leaves out edges whose type is hidden and dependency preview edges', () => {
