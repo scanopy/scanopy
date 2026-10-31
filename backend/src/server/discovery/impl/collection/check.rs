@@ -2,10 +2,13 @@
 
 use std::collections::HashSet;
 
+use strum::IntoEnumIterator;
+
 use crate::server::{
+    credentials::r#impl::types::CredentialIntegration,
     hosts::r#impl::{
         base::{Host, HostBase},
-        virtualization::HostVirtualization,
+        virtualization::{HostVirtualizationDiscriminants, HostVirtualizationState},
     },
     interfaces::r#impl::base::{Interface, InterfaceBase},
     ip_addresses::r#impl::base::IPAddress,
@@ -18,6 +21,34 @@ use crate::server::{
 };
 
 use super::{CollectedData, Producer};
+
+/// What a guest host of virtualization `kind` counts as collected, and under whose source: the
+/// integration that declares reporting it ([`CredentialIntegration::host_virtualizations`]),
+/// through the source its own `collection` lists for that category. A kind no integration
+/// declares gets `Unspecified`, so a producer that starts to report it is flagged until one
+/// declares it. `None` for a network identity: an address the host presents from an interface of
+/// its own, whose addresses already count.
+fn guest_collection(
+    kind: HostVirtualizationDiscriminants,
+) -> Option<(CollectedData, AttributeSource)> {
+    let category = match kind.state() {
+        HostVirtualizationState::Virtualized => CollectedData::VirtualMachines,
+        HostVirtualizationState::Containerized => CollectedData::Containers,
+        HostVirtualizationState::NetworkIdentity | HostVirtualizationState::BareMetal => {
+            return None;
+        }
+    };
+    let source = CredentialIntegration::iter()
+        .find(|i| i.host_virtualizations().contains(&kind))
+        .and_then(|i| {
+            i.collection()
+                .iter()
+                .find(|(_, categories)| categories.contains(&category))
+                .map(|(source, _)| *source)
+        })
+        .unwrap_or(AttributeSource::Unspecified);
+    Some((category, source))
+}
 
 /// The `(category, source)` pairs a host submission carries, derived from which of its fields
 /// hold data and the source each one records.
@@ -117,31 +148,11 @@ pub fn present_in(
         mark(CollectedData::Subnets, subnet.base.cidr.source());
     }
 
-    if let Some(virtualization) = virtualization_metadata {
-        match virtualization {
-            HostVirtualization::Docker(_) => mark(
-                CollectedData::Containers,
-                AttributeSource::Probe(ClientProbe::Docker),
-            ),
-            HostVirtualization::Podman(_) => mark(
-                CollectedData::Containers,
-                AttributeSource::Probe(ClientProbe::Podman),
-            ),
-            HostVirtualization::Proxmox(_) => mark(
-                CollectedData::VirtualMachines,
-                AttributeSource::Probe(ClientProbe::Proxmox),
-            ),
-            // No integration reports these. A producer that starts to is flagged until an
-            // integration declares it.
-            HostVirtualization::Libvirt(_)
-            | HostVirtualization::VCenter(_)
-            | HostVirtualization::ESXi(_) => {
-                mark(CollectedData::VirtualMachines, AttributeSource::Unspecified)
-            }
-            // An address the host presents from an interface of its own. Its addresses already
-            // count.
-            HostVirtualization::NetworkIdentity(_) => {}
-        }
+    if let Some(virtualization) = virtualization_metadata
+        && let Some((category, source)) =
+            guest_collection(HostVirtualizationDiscriminants::from(virtualization))
+    {
+        mark(category, source);
     }
 
     for service in services {

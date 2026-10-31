@@ -1494,6 +1494,38 @@ mod tests {
         assert_eq!(container_of(&nodes, lxc_id), Some(hypervisor_boxes[0].id));
     }
 
+    /// Every hypervisor's guests group under its service in a hypervisor box, never a runtime's.
+    #[test]
+    fn every_hypervisors_guests_group_under_its_service() {
+        use crate::server::hosts::r#impl::virtualization::HostVirtualizationDiscriminants;
+        use crate::server::services::definitions::ServiceDefinitionRegistry;
+        for kind in HostVirtualizationDiscriminants::hypervisor_guests() {
+            let node = make_host("hv-01");
+            let mut manager = make_proxmox_service(node.id);
+            manager.base.service_definition =
+                ServiceDefinitionRegistry::find_by_id(kind.manager_definition())
+                    .expect("registered");
+            let mut vm = make_host("vm-web");
+            vm.base.virtualization_metadata = Some(kind.guest("vm-web", "100"));
+            vm.base.virtualization_service_id = Some(manager.id);
+            let vm_id = vm.id;
+
+            let (nodes, _edges) = build(&[node, vm], &[manager]);
+
+            assert!(
+                containers_of_type(&nodes, ContainerType::ContainerRuntime).is_empty(),
+                "{kind:?}"
+            );
+            let hypervisor_boxes = containers_of_type(&nodes, ContainerType::Hypervisor);
+            assert_eq!(hypervisor_boxes.len(), 1, "{kind:?}");
+            assert_eq!(
+                container_of(&nodes, vm_id),
+                Some(hypervisor_boxes[0].id),
+                "{kind:?}"
+            );
+        }
+    }
+
     fn make_identities_service(host_id: Uuid) -> Service {
         use crate::server::services::definitions::network_identities::NetworkIdentities;
         Service {

@@ -372,7 +372,7 @@ impl HostService {
 mod tests {
     use super::*;
     use crate::server::hosts::r#impl::virtualization::{
-        ContainerHostVirtualization, ContainerNetworkType, ProxmoxVirtualization,
+        ContainerHostVirtualization, ContainerNetworkType, HostVirtualizationDiscriminants,
     };
     use crate::server::ip_addresses::r#impl::base::{IPAddressBase, MacEvidence, MacEvidenceValue};
 
@@ -422,28 +422,26 @@ mod tests {
         );
     }
 
-    /// The same holds when the host the report matched is a hypervisor guest: a container is
-    /// never that guest.
+    /// The same holds when the host the report matched is a guest of any hypervisor: a container
+    /// is never that guest.
     #[test]
     fn a_guest_holding_a_container_address_gives_it_up() {
-        let (host, lan) = (Uuid::new_v4(), Uuid::new_v4());
-        let m = matched(
-            Some(HostVirtualization::Proxmox(ProxmoxVirtualization {
-                state: Default::default(),
-                vm_name: Some("docker".to_string()),
-                vm_id: Some("103".to_string()),
-                guest_type: None,
-            })),
-            vec![
-                row(host, lan, "192.168.4.63"),
-                row(host, lan, "192.168.7.231"),
-            ],
-        );
-        let incoming = [row(Uuid::nil(), lan, "192.168.7.231")];
-        assert!(
-            m.rows_a_container_takes(Some(&container()), &incoming)
-                .is_some()
-        );
+        for kind in HostVirtualizationDiscriminants::hypervisor_guests() {
+            let (host, lan) = (Uuid::new_v4(), Uuid::new_v4());
+            let m = matched(
+                Some(kind.guest("docker", "103")),
+                vec![
+                    row(host, lan, "192.168.4.63"),
+                    row(host, lan, "192.168.7.231"),
+                ],
+            );
+            let incoming = [row(Uuid::nil(), lan, "192.168.7.231")];
+            assert!(
+                m.rows_a_container_takes(Some(&container()), &incoming)
+                    .is_some(),
+                "{kind:?}"
+            );
+        }
     }
 
     /// A host holding only the container's addresses is the container's record from the sweep.
@@ -485,23 +483,24 @@ mod tests {
     }
 
     fn snmp_test() -> HostVirtualization {
-        HostVirtualization::Proxmox(ProxmoxVirtualization {
-            state: Default::default(),
-            vm_name: Some("snmp-test".to_string()),
-            vm_id: Some("107".to_string()),
-            guest_type: None,
-        })
+        HostVirtualizationDiscriminants::Proxmox.guest("snmp-test", "107")
     }
 
     const ETH0: &str = "02:e9:65:cc:7f:7b";
 
-    /// snmp-test as the dev DB held it on 2026-10-22, receiving its Proxmox report: eth0's
+    /// snmp-test as the dev DB held it on 2026-10-22, receiving its hypervisor's report: eth0's
     /// addresses under the config MAC, and an interface per macvlan link under the link's MAC.
     /// Three other devices' rows come off it, one host each: the VMware guest at 6.1 and the two
     /// sim links. The guest's own addresses, the `docker0` row its own SNMP read filed, and a
-    /// container's bridge address its runtime reported stay.
+    /// container's bridge address its runtime reported stay. The same under every hypervisor.
     #[test]
     fn a_guest_report_sheds_each_other_devices_rows_to_its_own_set() {
+        for kind in HostVirtualizationDiscriminants::hypervisor_guests() {
+            sheds_each_other_devices_rows(kind.guest("snmp-test", "107"));
+        }
+    }
+
+    fn sheds_each_other_devices_rows(guest: HostVirtualization) {
         let (vm, lan, v6, bridge) = (
             Uuid::new_v4(),
             Uuid::new_v4(),
@@ -509,7 +508,7 @@ mod tests {
             Uuid::new_v4(),
         );
         let config = AttributeSource::HypervisorConfig;
-        let agent = AttributeSource::Probe(ClientProbe::Proxmox);
+        let agent = AttributeSource::GuestAgent;
         let arp = AttributeSource::ArpReply;
         let own_421 = with_mac(row(vm, lan, "192.168.4.21"), ETH0, arp);
         let own_596 = with_mac(row(vm, lan, "192.168.5.96"), ETH0, config);
@@ -542,7 +541,7 @@ mod tests {
             AttributeSource::Probe(ClientProbe::Docker),
         );
         let m = matched(
-            Some(snmp_test()),
+            Some(guest),
             vec![
                 own_421,
                 own_596,

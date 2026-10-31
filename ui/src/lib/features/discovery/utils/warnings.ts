@@ -267,7 +267,7 @@ const addressesOf = (group_: { address: string }[]) =>
 		'conjunction'
 	);
 
-/** Each guest by its Proxmox VE name and address: an address on an internal bridge names nothing. */
+/** Each guest by its hypervisor's name for it and address: an address on an internal bridge names nothing. */
 const guestsOf = (group_: { address: string; guest: string }[]) =>
 	joinList(
 		group_.map((w) => `${w.guest} (${w.address})`),
@@ -439,15 +439,23 @@ const WARNING_PARAMS = {
 	IntegrationWithoutCredential: (w) =>
 		integrationWithoutCredentialParams(w[0].integration, w.length),
 
-	// One per guest. The bridge and node identify the statement, so guests on one bridge share a
-	// sentence.
-	ProxmoxGuestOutsideScan: (w) => ({ addresses: guestsOf(w) }),
-	ProxmoxGuestBehindNode: (w) => ({
+	// One per guest. The hypervisor integration, bridge and hypervisor host identify the statement,
+	// so guests on one bridge share a sentence.
+	GuestOutsideScan: (w) => ({
 		addresses: guestsOf(w),
-		bridge: w[0].bridge,
-		node: w[0].node
+		integration: integration(w[0].integration)
 	}),
-	ProxmoxGuestIsolated: (w) => ({ addresses: guestsOf(w), bridge: w[0].bridge }),
+	GuestBehindHypervisor: (w) => ({
+		addresses: guestsOf(w),
+		integration: integration(w[0].integration),
+		bridge: w[0].bridge,
+		hypervisor: w[0].hypervisor
+	}),
+	GuestIsolated: (w) => ({
+		addresses: guestsOf(w),
+		integration: integration(w[0].integration),
+		bridge: w[0].bridge
+	}),
 
 	// One warning per subnet, so the first is the only one — unlike the address-scoped codes above,
 	// which the daemon raises per host and the UI folds together here.

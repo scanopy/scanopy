@@ -4227,19 +4227,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-30T13:27:50.781197Z",
+             *       "created_at": "2026-10-31T13:32:43.895275Z",
              *       "first_discovery_id": null,
-             *       "id": "1197e35a-b113-4b09-af4b-58ac52b5a228",
+             *       "id": "0cf832f4-abaa-491f-bbf9-fc45b6fc8883",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-30T13:27:50.781197Z",
+             *       "last_seen_at": "2026-10-31T13:32:43.895275Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-10-30T13:27:50.781197Z",
-             *       "valid_from": "2026-10-30T13:27:50.781197Z",
+             *       "updated_at": "2026-10-31T13:32:43.895275Z",
+             *       "valid_from": "2026-10-31T13:32:43.895275Z",
              *       "valid_to": null
              *     }
              */
@@ -5136,19 +5136,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-30T13:27:50.744219Z",
+             *               "created_at": "2026-10-31T13:32:43.862532Z",
              *               "first_discovery_id": null,
-             *               "id": "2830c253-68ae-4585-a7f4-855fd3e68996",
+             *               "id": "1c903f03-a525-415f-9da2-c0491b04fa8b",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-30T13:27:50.744219Z",
+             *               "last_seen_at": "2026-10-31T13:32:43.862532Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-10-30T13:27:50.744219Z",
-             *               "valid_from": "2026-10-30T13:27:50.744219Z",
+             *               "updated_at": "2026-10-31T13:32:43.862532Z",
+             *               "valid_from": "2026-10-31T13:32:43.862532Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5161,7 +5161,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Gogs",
+             *           "service_definition": "CrushFTP",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6193,19 +6193,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-30T13:27:50.775587Z",
+             *           "created_at": "2026-10-31T13:32:43.889830Z",
              *           "first_discovery_id": null,
-             *           "id": "db7344bf-c182-47c0-b9ac-9df2e7cc7f49",
+             *           "id": "8edf25e6-cdc9-44bf-a725-598b44dc3be7",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-30T13:27:50.775587Z",
+             *           "last_seen_at": "2026-10-31T13:32:43.889830Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-10-30T13:27:50.775587Z",
-             *           "valid_from": "2026-10-30T13:27:50.775587Z",
+             *           "updated_at": "2026-10-31T13:32:43.889830Z",
+             *           "valid_from": "2026-10-31T13:32:43.889830Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6218,7 +6218,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Gogs",
+             *       "service_definition": "CrushFTP",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7682,19 +7682,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-30T13:27:50.744872Z",
+         *       "created_at": "2026-10-31T13:32:43.863171Z",
          *       "first_discovery_id": null,
-         *       "id": "3603dc76-ffb6-47f1-ba9d-a903cb048663",
+         *       "id": "e56086f6-0667-4e60-b632-38115ca63065",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-30T13:27:50.744872Z",
+         *       "last_seen_at": "2026-10-31T13:32:43.863171Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-10-30T13:27:50.744872Z",
-         *       "valid_from": "2026-10-30T13:27:50.744872Z",
+         *       "updated_at": "2026-10-31T13:32:43.863171Z",
+         *       "valid_from": "2026-10-31T13:32:43.863171Z",
          *       "valid_to": null
          *     }
          */
@@ -7965,7 +7965,7 @@ export interface components {
          *     `every_client_probe_variant_has_a_producer` is what now says so.
          * @enum {string}
          */
-        ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "Proxmox" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "EpicsCa" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula" | "BeszelAgent" | "H323" | "SnmpEngine" | "DockerPing" | "PodmanPing" | "Ipp" | "Lpd" | "SpotifyConnect" | "Vnc" | "AppleLockdown" | "DnsUdp" | "Ntp" | "Dhcp" | "Bacnet" | "Tftp" | "Mgcp" | "GoogleWifi";
+        ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "Proxmox" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "EpicsCa" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula" | "BeszelAgent" | "H323" | "SnmpEngine" | "DockerPing" | "PodmanPing" | "Ipp" | "Lpd" | "Smux" | "Rpcbind" | "Llmnr" | "SpotifyConnect" | "Vnc" | "AppleLockdown" | "DnsUdp" | "Ntp" | "Dhcp" | "Bacnet" | "Tftp" | "Mgcp" | "GoogleWifi";
         /** @enum {string} */
         ClockFormat: "browser_default" | "twelve_hour" | "twenty_four_hour";
         /** @enum {string} */
@@ -8084,7 +8084,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Gogs",
+         *           "service_definition": "CrushFTP",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9860,29 +9860,35 @@ export interface components {
             /** @description The guest's first address. */
             address: string;
             /** @enum {string} */
-            code: "ProxmoxGuestOutsideScan";
-            /** @description Its Proxmox VE name, else its VMID. */
+            code: "GuestOutsideScan";
+            /** @description Its name in its hypervisor, else the hypervisor's id for it. */
             guest: string;
+            /** @description The hypervisor integration that reported it. */
+            integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
         } | {
             /** @description The guest's first address. */
             address: string;
             /** @description The bridge its NIC is on. */
             bridge: string;
             /** @enum {string} */
-            code: "ProxmoxGuestBehindNode";
-            /** @description Its Proxmox VE name, else its VMID. */
+            code: "GuestBehindHypervisor";
+            /** @description Its name in its hypervisor, else the hypervisor's id for it. */
             guest: string;
-            /** @description The node it runs on. */
-            node: string;
+            /** @description The hypervisor host it runs on: a Proxmox VE node, a libvirt host. */
+            hypervisor: string;
+            /** @description The hypervisor integration that reported it. */
+            integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
         } | {
             /** @description The guest's first address. */
             address: string;
             /** @description The bridge its NIC is on. */
             bridge: string;
             /** @enum {string} */
-            code: "ProxmoxGuestIsolated";
-            /** @description Its Proxmox VE name, else its VMID. */
+            code: "GuestIsolated";
+            /** @description Its name in its hypervisor, else the hypervisor's id for it. */
             guest: string;
+            /** @description The hypervisor integration that reported it. */
+            integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
         } | {
             /** @description The subnet the addresses are in. */
             cidr: string;
@@ -11208,19 +11214,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-30T13:27:50.743430Z",
+         *               "created_at": "2026-10-31T13:32:43.861785Z",
          *               "first_discovery_id": null,
-         *               "id": "eab774be-1fd3-433a-97d4-2c3a4e9513f5",
+         *               "id": "4b8b2727-610b-4972-85ca-e1bccdd2ec37",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-30T13:27:50.743430Z",
+         *               "last_seen_at": "2026-10-31T13:32:43.861785Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-10-30T13:27:50.743430Z",
-         *               "valid_from": "2026-10-30T13:27:50.743430Z",
+         *               "updated_at": "2026-10-31T13:32:43.861785Z",
+         *               "valid_from": "2026-10-31T13:32:43.861785Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11233,7 +11239,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Gogs",
+         *           "service_definition": "CrushFTP",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -14886,19 +14892,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-30T13:27:50.744652Z",
+         *           "created_at": "2026-10-31T13:32:43.862953Z",
          *           "first_discovery_id": null,
-         *           "id": "588dd7f3-3564-4a9d-9647-5d568b3cda9a",
+         *           "id": "d9d3ab24-c3da-4eb4-87c8-3723a7af6298",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-30T13:27:50.744652Z",
+         *           "last_seen_at": "2026-10-31T13:32:43.862953Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-10-30T13:27:50.744652Z",
-         *           "valid_from": "2026-10-30T13:27:50.744652Z",
+         *           "updated_at": "2026-10-31T13:32:43.862953Z",
+         *           "valid_from": "2026-10-31T13:32:43.862953Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -14911,7 +14917,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Gogs",
+         *       "service_definition": "CrushFTP",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -16124,7 +16130,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "8359cdc9-f787-4e3a-be29-36c093779516",
+             *           "id": "e1008796-fb64-4eb2-829b-8f5def6862d4",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16134,23 +16140,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "8589acf6-db61-4360-a96f-1a5de1a70312",
+             *           "id": "e0b6939d-9a8d-4f12-b094-03cb7f6c21e5",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "043869dd-efe5-40a6-a4db-2c504bc08dd2",
+             *           "id": "31ff055b-cf35-4caa-b482-afa7096c7cb1",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "10d6e863-9d9a-43b8-8720-d3adb900d8e6",
+             *           "id": "b559cb8a-123b-4e13-ba5e-aa5751412429",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "8589acf6-db61-4360-a96f-1a5de1a70312",
+             *           "id": "e0b6939d-9a8d-4f12-b094-03cb7f6c21e5",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16164,19 +16170,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "e687f3af-643e-4166-9372-480c613b2c59",
+             *         "id": "daa286db-03d5-469f-878f-a90e139b0236",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "59bae1af-48ae-4a9d-8901-742a5962237e",
+             *         "id": "0b49f967-e0dc-4546-943e-71f21caeddb4",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "7d098cb5-a1f3-4b44-b2ad-eb84c9f3abce",
+             *         "id": "406712f2-070e-4f6c-91e3-0b7f771cce1e",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "fa92d20c-4c99-4385-b7e5-554e2f705091",
+             *         "id": "45cb2057-ff8f-45e6-a938-7660e51577ba",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16197,7 +16203,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "dd6508db-c3f5-47a8-b22d-96a381b5cf75",
+             *         "id": "2d01627e-f8e5-46ae-8bce-17417b6f2edb",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16206,19 +16212,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "8768cc4d-f427-41ea-9276-2bd74162d7e0",
+             *         "id": "9443bdc8-0fe5-47ba-b237-1f1ff3e3f8c0",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "599c0eca-c956-4de2-b72a-6c1208350cbe",
+             *         "id": "8174a9b1-67f5-44c6-9277-1e8a400b24d9",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "ab9ef755-540c-41f2-80ee-b0b30bcb57be",
+             *         "id": "519b1163-5b1b-40b1-bf55-742179c641ac",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "81c086c7-f636-4ef8-bc20-cba88bf034f1",
+             *         "id": "431a09ee-7f3d-486a-a34c-78c56004ab8c",
              *         "rule": "ByStack"
              *       }
              *     ]

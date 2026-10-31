@@ -15,6 +15,7 @@ pub mod docker;
 pub mod failure;
 pub mod flex;
 pub mod gnmi;
+pub mod hypervisor;
 pub mod instant_on;
 pub mod podman;
 pub mod proxmox;

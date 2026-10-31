@@ -15839,19 +15839,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-30T13:27:50.908908Z",
+              "created_at": "2026-10-31T13:32:43.985322Z",
               "first_discovery_id": null,
-              "id": "31a88c70-f82f-484f-aa6d-05846c56c340",
+              "id": "a369324b-4f9f-4f96-83cc-e8bc73c2ad11",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-30T13:27:50.908908Z",
+              "last_seen_at": "2026-10-31T13:32:43.985322Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-30T13:27:50.908908Z",
-              "valid_from": "2026-10-30T13:27:50.908908Z",
+              "updated_at": "2026-10-31T13:32:43.985322Z",
+              "valid_from": "2026-10-31T13:32:43.985322Z",
               "valid_to": null
             }
           },
@@ -17686,19 +17686,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-30T13:27:50.852706Z",
+                      "created_at": "2026-10-31T13:32:43.956623Z",
                       "first_discovery_id": null,
-                      "id": "a7f65aff-3536-4c58-b1ed-894500af395e",
+                      "id": "8bca954d-1501-486f-bbbc-024ade5396e7",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-30T13:27:50.852706Z",
+                      "last_seen_at": "2026-10-31T13:32:43.956623Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-30T13:27:50.852706Z",
-                      "valid_from": "2026-10-30T13:27:50.852706Z",
+                      "updated_at": "2026-10-31T13:32:43.956623Z",
+                      "valid_from": "2026-10-31T13:32:43.956623Z",
                       "valid_to": null
                     }
                   ],
@@ -17711,7 +17711,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Gogs",
+                  "service_definition": "CrushFTP",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -19209,19 +19209,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-30T13:27:50.901807Z",
+                  "created_at": "2026-10-31T13:32:43.980628Z",
                   "first_discovery_id": null,
-                  "id": "9ebb425e-bbc0-4981-9964-f80f98bba004",
+                  "id": "797cabe6-998d-4abc-8422-cb9a14926800",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-30T13:27:50.901807Z",
+                  "last_seen_at": "2026-10-31T13:32:43.980628Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-30T13:27:50.901807Z",
-                  "valid_from": "2026-10-30T13:27:50.901807Z",
+                  "updated_at": "2026-10-31T13:32:43.980628Z",
+                  "valid_from": "2026-10-31T13:32:43.980628Z",
                   "valid_to": null
                 }
               ],
@@ -19234,7 +19234,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Gogs",
+              "service_definition": "CrushFTP",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -22509,19 +22509,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-30T13:27:50.853389Z",
+          "created_at": "2026-10-31T13:32:43.957245Z",
           "first_discovery_id": null,
-          "id": "5dc92b21-ce11-4afa-a7b0-57706ea2586d",
+          "id": "861772d2-ea8b-4712-9103-e7766897b0d6",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-30T13:27:50.853389Z",
+          "last_seen_at": "2026-10-31T13:32:43.957245Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-30T13:27:50.853389Z",
-          "valid_from": "2026-10-30T13:27:50.853389Z",
+          "updated_at": "2026-10-31T13:32:43.957245Z",
+          "valid_from": "2026-10-31T13:32:43.957245Z",
           "valid_to": null
         }
       },
@@ -23023,6 +23023,9 @@
           "PodmanPing",
           "Ipp",
           "Lpd",
+          "Smux",
+          "Rpcbind",
+          "Llmnr",
           "SpotifyConnect",
           "Vnc",
           "AppleLockdown",
@@ -23430,7 +23433,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Gogs",
+              "service_definition": "CrushFTP",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -27832,11 +27835,12 @@
           },
           {
             "type": "object",
-            "title": "ProxmoxGuestOutsideScan",
-            "description": "A running guest at addresses no subnet this scan covers, on a shared network or one the\nnode's config doesn't list, so it was recorded without ports or services.",
+            "title": "GuestOutsideScan",
+            "description": "A running guest at addresses no subnet this scan covers, on a shared network or one the\nhypervisor's config doesn't list, so it was recorded without ports or services.",
             "required": [
               "address",
               "guest",
+              "integration",
               "code"
             ],
             "properties": {
@@ -27847,23 +27851,28 @@
               "code": {
                 "type": "string",
                 "enum": [
-                  "ProxmoxGuestOutsideScan"
+                  "GuestOutsideScan"
                 ]
               },
               "guest": {
                 "type": "string",
-                "description": "Its Proxmox VE name, else its VMID."
+                "description": "Its name in its hypervisor, else the hypervisor's id for it."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialQueryPayloadDiscriminants",
+                "description": "The hypervisor integration that reported it."
               }
             }
           },
           {
             "type": "object",
-            "title": "ProxmoxGuestBehindNode",
-            "description": "A running guest on a bridge with no uplink that only its node holds an address on (a NAT'd\n`vmbr1`), so only a daemon on that node reaches it.",
+            "title": "GuestBehindHypervisor",
+            "description": "A running guest on a bridge with no uplink that only its hypervisor holds an address on (a\nNAT'd `vmbr1`, libvirt's `virbr0`), so only a daemon on that hypervisor reaches it.",
             "required": [
               "address",
               "guest",
-              "node",
+              "integration",
+              "hypervisor",
               "bridge",
               "code"
             ],
@@ -27879,26 +27888,31 @@
               "code": {
                 "type": "string",
                 "enum": [
-                  "ProxmoxGuestBehindNode"
+                  "GuestBehindHypervisor"
                 ]
               },
               "guest": {
                 "type": "string",
-                "description": "Its Proxmox VE name, else its VMID."
+                "description": "Its name in its hypervisor, else the hypervisor's id for it."
               },
-              "node": {
+              "hypervisor": {
                 "type": "string",
-                "description": "The node it runs on."
+                "description": "The hypervisor host it runs on: a Proxmox VE node, a libvirt host."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialQueryPayloadDiscriminants",
+                "description": "The hypervisor integration that reported it."
               }
             }
           },
           {
             "type": "object",
-            "title": "ProxmoxGuestIsolated",
-            "description": "A running guest on a bridge with no uplink and no node address, so only a daemon on a guest\nattached to that bridge reaches it.",
+            "title": "GuestIsolated",
+            "description": "A running guest on a bridge with no uplink and no hypervisor address, so only a daemon on a\nguest attached to that bridge reaches it.",
             "required": [
               "address",
               "guest",
+              "integration",
               "bridge",
               "code"
             ],
@@ -27914,12 +27928,16 @@
               "code": {
                 "type": "string",
                 "enum": [
-                  "ProxmoxGuestIsolated"
+                  "GuestIsolated"
                 ]
               },
               "guest": {
                 "type": "string",
-                "description": "Its Proxmox VE name, else its VMID."
+                "description": "Its name in its hypervisor, else the hypervisor's id for it."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialQueryPayloadDiscriminants",
+                "description": "The hypervisor integration that reported it."
               }
             }
           },
@@ -31594,19 +31612,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-30T13:27:50.851866Z",
+                  "created_at": "2026-10-31T13:32:43.955885Z",
                   "first_discovery_id": null,
-                  "id": "40467d2a-79a6-458a-9377-c76d53d9220d",
+                  "id": "c8626b7d-1741-43fd-845a-ffa97bd8486a",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-30T13:27:50.851866Z",
+                  "last_seen_at": "2026-10-31T13:32:43.955885Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-30T13:27:50.851866Z",
-                  "valid_from": "2026-10-30T13:27:50.851866Z",
+                  "updated_at": "2026-10-31T13:32:43.955885Z",
+                  "valid_from": "2026-10-31T13:32:43.955885Z",
                   "valid_to": null
                 }
               ],
@@ -31619,7 +31637,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Gogs",
+              "service_definition": "CrushFTP",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -36038,19 +36056,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-30T13:27:50.829707Z",
+                        "created_at": "2026-10-31T13:32:43.941187Z",
                         "first_discovery_id": null,
-                        "id": "a41c1754-997b-4877-b4f7-ba94b6eec7a0",
+                        "id": "5d4c6c87-b0e3-441e-9e2d-5fb770914966",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-30T13:27:50.829707Z",
+                        "last_seen_at": "2026-10-31T13:32:43.941187Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-30T13:27:50.829707Z",
-                        "valid_from": "2026-10-30T13:27:50.829707Z",
+                        "updated_at": "2026-10-31T13:32:43.941187Z",
+                        "valid_from": "2026-10-31T13:32:43.941187Z",
                         "valid_to": null
                       }
                     ],
@@ -36063,7 +36081,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Gogs",
+                    "service_definition": "CrushFTP",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -36310,19 +36328,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-30T13:27:50.900854Z",
+                    "created_at": "2026-10-31T13:32:43.979876Z",
                     "first_discovery_id": null,
-                    "id": "eac72ae9-778c-454f-b39c-dcb50b47d1f6",
+                    "id": "05693e39-70fe-4180-8d09-2014927ef45e",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-30T13:27:50.900854Z",
+                    "last_seen_at": "2026-10-31T13:32:43.979876Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-30T13:27:50.900854Z",
-                    "valid_from": "2026-10-30T13:27:50.900854Z",
+                    "updated_at": "2026-10-31T13:32:43.979876Z",
+                    "valid_from": "2026-10-31T13:32:43.979876Z",
                     "valid_to": null
                   }
                 ],
@@ -36335,7 +36353,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Gogs",
+                "service_definition": "CrushFTP",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -39038,19 +39056,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-30T13:27:50.853169Z",
+              "created_at": "2026-10-31T13:32:43.957033Z",
               "first_discovery_id": null,
-              "id": "f9769872-25ce-40ed-b88f-2e8b5ac78328",
+              "id": "410082c5-759f-4ba2-8fa3-ed1e985e4cab",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-30T13:27:50.853169Z",
+              "last_seen_at": "2026-10-31T13:32:43.957033Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-30T13:27:50.853169Z",
-              "valid_from": "2026-10-30T13:27:50.853169Z",
+              "updated_at": "2026-10-31T13:32:43.957033Z",
+              "valid_from": "2026-10-31T13:32:43.957033Z",
               "valid_to": null
             }
           ],
@@ -39063,7 +39081,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Gogs",
+          "service_definition": "CrushFTP",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -41498,7 +41516,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "357a612c-f5d9-40e5-a5fb-31df8516ce70",
+                  "id": "666ed243-9502-4f05-8190-546c73bac929",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -41508,23 +41526,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "9ac25707-27c0-4112-8068-2d39b0e24e6f",
+                  "id": "e7830a51-0982-4671-9361-b0654d5e4933",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "a88c4962-4b6c-4454-9fab-a0f263be11fb",
+                  "id": "6385eb86-85b9-41a1-b91e-dc4748c7c768",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "e5b9ceee-6a39-4bb7-ad5c-d3fc34d92754",
+                  "id": "feebda61-f69a-4791-9c86-a5fef0bef301",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "9ac25707-27c0-4112-8068-2d39b0e24e6f",
+                  "id": "e7830a51-0982-4671-9361-b0654d5e4933",
                   "rule": "ByHost"
                 }
               ]
@@ -41554,19 +41572,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "5a72526f-81ef-4ce9-9e65-5865521445e5",
+                "id": "29cb7a3a-d78d-4315-a5ae-1b29999e901d",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "2c8289b7-ca2f-4856-8851-a272af08d84d",
+                "id": "e7a1f255-994a-4eda-ae05-3659e262cf81",
                 "rule": "ByVLAN"
               },
               {
-                "id": "8ba6ed72-5913-499f-b424-3f94ac820149",
+                "id": "d1c694ed-7b0a-46a7-ae88-6f6a60d98cf5",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "1a7a9195-d222-4719-af4d-abc65620a989",
+                "id": "ad836cf8-0607-4f1f-bc00-e617497cc2de",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -41587,7 +41605,7 @@
                 }
               },
               {
-                "id": "659845bc-3a29-462f-aede-24d44541f2e8",
+                "id": "4a117282-c141-4a75-af94-61a20f2936b6",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -41596,19 +41614,19 @@
                 }
               },
               {
-                "id": "b081e780-887a-44da-a978-cfb51814877c",
+                "id": "55de93ad-4277-47a0-8546-a4f07b861c30",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "b379e14a-4c23-48a9-ba06-560dc87bd95d",
+                "id": "223032de-c6e6-439b-beb9-4ba691951409",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "0d3df34a-bff9-4a86-98e8-9808891fcb98",
+                "id": "c840d0e4-8599-4988-985b-d77fb9265fdc",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "2ad098a9-059e-406d-a770-ce9bf8bf8b00",
+                "id": "d3fcbf2b-452e-4c6a-8d46-04daa256e401",
                 "rule": "ByStack"
               }
             ]
