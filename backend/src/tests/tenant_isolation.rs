@@ -924,8 +924,10 @@ async fn an_interface_cannot_name_a_vlan_from_another_organization() {
         .await
         .unwrap();
     let foreign_vlan: Vlan = {
-        let mut row = Vlan::default();
-        row.id = Uuid::new_v4();
+        let mut row = Vlan {
+            id: Uuid::new_v4(),
+            ..Default::default()
+        };
         row.base.vlan_number = 42;
         row.base.site_id = theirs.site.id;
         row.base.organization_id = theirs.org.id;

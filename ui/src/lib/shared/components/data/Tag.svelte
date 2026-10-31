@@ -3,7 +3,7 @@
 	import { createColorHelper, type Color } from '$lib/shared/utils/styling';
 	import { common_remove, common_unknown } from '$lib/paraglide/messages';
 	import type { IconComponent } from '$lib/shared/utils/types';
-	import { tooltip, type TooltipContent, type TooltipOptions } from '$lib/shared/actions/tooltip';
+	import { tooltip, type TooltipOptions } from '$lib/shared/actions/tooltip';
 	import type { Snippet } from 'svelte';
 
 	let {

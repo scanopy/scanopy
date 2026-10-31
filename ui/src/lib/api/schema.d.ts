@@ -4187,7 +4187,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.19.4"
+         *       "server_version": "0.19.5"
          *     }
          */
         ApiMeta: {
@@ -4198,7 +4198,7 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.19.4
+             * @example 0.19.5
              */
             server_version: string;
         };
@@ -4227,19 +4227,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-31T16:35:13.501641Z",
+             *       "created_at": "2026-10-31T19:54:47.747308Z",
              *       "first_discovery_id": null,
-             *       "id": "5eb8392a-4729-4d24-b06e-5bff5145760c",
+             *       "id": "e9663eba-18ec-4993-8b97-84816d96d82b",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-31T16:35:13.501641Z",
+             *       "last_seen_at": "2026-10-31T19:54:47.747308Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-10-31T16:35:13.501641Z",
-             *       "valid_from": "2026-10-31T16:35:13.501641Z",
+             *       "updated_at": "2026-10-31T19:54:47.747308Z",
+             *       "valid_from": "2026-10-31T19:54:47.747308Z",
              *       "valid_to": null
              *     }
              */
@@ -4870,7 +4870,7 @@ export interface components {
                 /**
                  * Format: uuid
                  * @description The discovery configuration this session belongs to.
-                 *     Always enriched server-side; daemons do not send this field.
+                 *     Always set server-side. A value a daemon sends is discarded.
                  */
                 discovery_id?: string | null;
                 /** @description What type of discovery is running. */
@@ -5136,19 +5136,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-31T16:35:13.458437Z",
+             *               "created_at": "2026-10-31T19:54:47.713981Z",
              *               "first_discovery_id": null,
-             *               "id": "9089497c-68d8-4ace-bc2f-20794d6cfdf6",
+             *               "id": "f9bcf039-2802-492a-b011-66aebb3d0b78",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-31T16:35:13.458437Z",
+             *               "last_seen_at": "2026-10-31T19:54:47.713981Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-10-31T16:35:13.458437Z",
-             *               "valid_from": "2026-10-31T16:35:13.458437Z",
+             *               "updated_at": "2026-10-31T19:54:47.713981Z",
+             *               "valid_from": "2026-10-31T19:54:47.713981Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5161,7 +5161,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Tenable Security Center",
+             *           "service_definition": "Lidarr",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6193,19 +6193,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-31T16:35:13.495742Z",
+             *           "created_at": "2026-10-31T19:54:47.741804Z",
              *           "first_discovery_id": null,
-             *           "id": "47b0dda5-6872-40da-a1bf-4beb392288aa",
+             *           "id": "28130ac9-df78-4e8d-a898-d27670111736",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-31T16:35:13.495742Z",
+             *           "last_seen_at": "2026-10-31T19:54:47.741804Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-10-31T16:35:13.495742Z",
-             *           "valid_from": "2026-10-31T16:35:13.495742Z",
+             *           "updated_at": "2026-10-31T19:54:47.741804Z",
+             *           "valid_from": "2026-10-31T19:54:47.741804Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6218,7 +6218,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Tenable Security Center",
+             *       "service_definition": "Lidarr",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7290,7 +7290,7 @@ export interface components {
                 /**
                  * Format: uuid
                  * @description The discovery configuration this session belongs to.
-                 *     Always enriched server-side; daemons do not send this field.
+                 *     Always set server-side. A value a daemon sends is discarded.
                  */
                 discovery_id?: string | null;
                 /** @description What type of discovery is running. */
@@ -7682,19 +7682,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-31T16:35:13.459137Z",
+         *       "created_at": "2026-10-31T19:54:47.714641Z",
          *       "first_discovery_id": null,
-         *       "id": "9aa393ac-a3a1-41f9-982b-01c0734b7224",
+         *       "id": "fe68d045-1b42-408a-9fde-8aa347506773",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-31T16:35:13.459137Z",
+         *       "last_seen_at": "2026-10-31T19:54:47.714641Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-10-31T16:35:13.459137Z",
-         *       "valid_from": "2026-10-31T16:35:13.459137Z",
+         *       "updated_at": "2026-10-31T19:54:47.714641Z",
+         *       "valid_from": "2026-10-31T19:54:47.714641Z",
          *       "valid_to": null
          *     }
          */
@@ -8084,7 +8084,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Tenable Security Center",
+         *           "service_definition": "Lidarr",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8667,7 +8667,7 @@ export interface components {
              * @description Foreign key to API key used for ServerPoll authentication.
              *     NULL for DaemonPoll daemons or those not yet linked to a key.
              */
-            api_key_id?: string | null;
+            readonly api_key_id?: string | null;
             /**
              * Format: uuid
              * @description The host this entity belongs to.
@@ -9376,7 +9376,7 @@ export interface components {
             /**
              * Format: uuid
              * @description The discovery configuration this session belongs to.
-             *     Always enriched server-side; daemons do not send this field.
+             *     Always set server-side. A value a daemon sends is discarded.
              */
             discovery_id?: string | null;
             /** @description What type of discovery is running. */
@@ -10463,7 +10463,10 @@ export interface components {
         };
         /** @enum {string} */
         EntityDiscriminants: "Topology" | "Snapshot" | "Share" | "Dependency" | "Site" | "Vlan" | "Subnet" | "Host" | "Service" | "IPAddress" | "Interface" | "Port" | "Binding" | "Discovery" | "Daemon" | "DaemonApiKey" | "Credential" | "Tag" | "TagGroup" | "User" | "UserApiKey" | "Organization" | "Invite";
-        /** @description One fact that describes an entity, possibly read from a related entity. */
+        /**
+         * @description One fact that describes an entity, possibly read from a related entity. Every serialized key an
+         *     entity carries has one: the flags say which surfaces show it, and `write` says who sets it.
+         */
         EntityField: {
             /**
              * @description Dotted path to the value on the last object, or `None` for the object itself (an
@@ -10474,6 +10477,8 @@ export interface components {
             group: components["schemas"]["FieldGroup"];
             /** @description Stable key: the CSV header, the list-table column id and the diagram Shape Data name. */
             id: string;
+            /** @description Shown by the topology inspector and diagram Shape Data, and read by the topology search. */
+            inspector: boolean;
             /** @description English label; the UI translates it through a generated `meta_*` key. */
             label: string;
             /**
@@ -10490,8 +10495,10 @@ export interface components {
             searchable: boolean;
             /** @description Sibling field holding the value's attribution, for attributed host facts. */
             source_field?: string | null;
-            /** @description Shown by default in tables and in the inspector's details. Every field is exported. */
+            /** @description Shown by default in tables and in the inspector's details. */
             summary: boolean;
+            /** @description Offered as a list-table column. */
+            table: boolean;
         };
         /**
          * @description How recently discovery last observed an entity.
@@ -11237,19 +11244,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-31T16:35:13.457641Z",
+         *               "created_at": "2026-10-31T19:54:47.713191Z",
          *               "first_discovery_id": null,
-         *               "id": "3c88c93d-6a49-4117-8826-c37673b30541",
+         *               "id": "f56f0c8a-c427-4fb6-a9ea-a960f40a0e73",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-31T16:35:13.457641Z",
+         *               "last_seen_at": "2026-10-31T19:54:47.713191Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-10-31T16:35:13.457641Z",
-         *               "valid_from": "2026-10-31T16:35:13.457641Z",
+         *               "updated_at": "2026-10-31T19:54:47.713191Z",
+         *               "valid_from": "2026-10-31T19:54:47.713191Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11262,7 +11269,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Tenable Security Center",
+         *           "service_definition": "Lidarr",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -13128,7 +13135,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.19.4"
+         *       "server_version": "0.19.5"
          *     }
          */
         PaginatedApiMeta: {
@@ -13141,7 +13148,7 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.19.4
+             * @example 0.19.5
              */
             server_version: string;
         };
@@ -14915,19 +14922,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-31T16:35:13.458900Z",
+         *           "created_at": "2026-10-31T19:54:47.714424Z",
          *           "first_discovery_id": null,
-         *           "id": "cfbde013-94b1-4e6f-96d6-ecec1c7558d0",
+         *           "id": "2b4099c7-ad3c-4224-8120-36fb0b88ba99",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-31T16:35:13.458900Z",
+         *           "last_seen_at": "2026-10-31T19:54:47.714424Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-10-31T16:35:13.458900Z",
-         *           "valid_from": "2026-10-31T16:35:13.458900Z",
+         *           "updated_at": "2026-10-31T19:54:47.714424Z",
+         *           "valid_from": "2026-10-31T19:54:47.714424Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -14940,7 +14947,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Tenable Security Center",
+         *       "service_definition": "Lidarr",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -15158,7 +15165,7 @@ export interface components {
              * Format: uuid
              * @description User who created the share.
              */
-            created_by: string;
+            readonly created_by: string;
             /**
              * @description Which topology views are enabled for this share.
              *     None = all views (subject to data availability). Some(list) = only these views in order.
@@ -15692,17 +15699,6 @@ export interface components {
             subnet_type: components["schemas"]["SubnetType"];
             subnet_type_source?: components["schemas"]["AttributeSource"];
         };
-        /**
-         * @description A list-table column that is not a registry field: a value the table computes, reads from
-         *     another endpoint, or keeps out of CSV export (`created_at`, `last_seen_at`). Declared here so
-         *     the column menu files it under a group the backend chose. CSV, diagram Shape Data and the
-         *     inspector read only fields, never these.
-         */
-        TableColumn: {
-            group: components["schemas"]["FieldGroup"];
-            /** @description The column's key in the list table, and so in saved column preferences. */
-            id: string;
-        };
         /** @enum {string} */
         TableDensity: "comfortable" | "compact";
         /**
@@ -16153,7 +16149,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "740e5668-328e-4a0f-9585-10fdb23f27cc",
+             *           "id": "c8868c50-b531-448a-8b4f-423bb30e863c",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16163,23 +16159,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "39848c08-0585-48cc-8106-4a156576ceb7",
+             *           "id": "b0525c61-84d8-42c3-812d-05a10b276085",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "1389959f-3e5a-4451-9da4-98e5f57667f9",
+             *           "id": "fa870cd2-912e-4676-99d1-1e2c1f396a74",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "647d0f5e-fdf5-4622-9d64-e87b551b8e80",
+             *           "id": "7ae7c117-10eb-4f7f-b400-b35f01fa2acc",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "39848c08-0585-48cc-8106-4a156576ceb7",
+             *           "id": "b0525c61-84d8-42c3-812d-05a10b276085",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16193,19 +16189,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "2c31b558-b2f4-4d83-b7fa-c55b300ed315",
+             *         "id": "902bd791-0cb2-4202-9090-d82866458d74",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "1ad95a04-f9cd-4365-b7a8-6b8fc1c7b591",
+             *         "id": "ada1f1a4-bc22-4233-b1fd-074d45ef9d84",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "3051f3ed-d04d-4e54-9a13-9e1a39039f44",
+             *         "id": "25b8e2d8-2e40-4dbc-b754-4bdb6f41fccf",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "8441435b-56fc-4263-a66b-d3f8bdefc652",
+             *         "id": "a3e7c018-152d-44fc-b18e-d5efbd9560c0",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16226,7 +16222,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "d1aba949-d469-463b-9f3c-f848f1b5dd7b",
+             *         "id": "d7d292a3-ae11-493c-bc98-110b5d549a66",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16235,19 +16231,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "ce34f365-b03c-4b20-b46f-5f29f4524ad7",
+             *         "id": "bf7406f4-bac9-4b20-9e03-a8ba96bd51d8",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "28337888-a032-4698-8a8d-03dd869e851a",
+             *         "id": "8717fbf0-505c-4878-b36e-f6661de24a51",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "3dd9d047-0325-4de1-93f6-5ecf9555f10e",
+             *         "id": "bf2473ac-082b-446a-aedf-06e9bc739033",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "fc5161cb-613d-4fde-be15-4eab5e39e41b",
+             *         "id": "9e305063-25e2-4b2b-b649-b172adc60762",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -16649,7 +16645,7 @@ export interface components {
              * Format: uuid
              * @description The organization that owns this record.
              */
-            organization_id: string;
+            readonly organization_id: string;
             /** @description Role the key is limited to, which cannot exceed the user's own. */
             permissions?: components["schemas"]["UserOrgPermissions"];
             /** @description Site IDs this key has access to (hydrated from junction table) */
@@ -16660,7 +16656,7 @@ export interface components {
              * Format: uuid
              * @description User the key acts on behalf of.
              */
-            user_id: string;
+            readonly user_id: string;
         };
         /**
          * @description Fields the user API key list can be ordered and grouped by.
@@ -16697,16 +16693,16 @@ export interface components {
              */
             readonly email_verification_required?: boolean;
             /** @description Whether the user has verified their email address */
-            email_verified?: boolean;
+            readonly email_verified?: boolean;
             /** @description Whether the user has a password set — computed from password_hash, never stored in DB */
             readonly has_password?: boolean;
             /**
              * Format: date-time
              * @description When the account was linked to the identity provider.
              */
-            oidc_linked_at?: string | null;
+            readonly oidc_linked_at?: string | null;
             /** @description Slug of the identity provider this account signs in through, when linked. */
-            oidc_provider?: string | null;
+            readonly oidc_provider?: string | null;
             /**
              * Format: uuid
              * @description The organization that owns this record.

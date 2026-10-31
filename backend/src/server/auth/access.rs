@@ -423,7 +423,7 @@ mod tests {
             Resource::iter()
                 .filter(|resource| resource.keying() == keying)
                 .flat_map(|resource| Action::iter().map(move |action| (resource, action)))
-                .filter(|_| self.next() % 2 == 0)
+                .filter(|_| self.next().is_multiple_of(2))
                 .collect()
         }
     }
@@ -582,7 +582,7 @@ mod tests {
     fn generated(seeded: &mut Seeded, sites: &[Uuid]) -> AccessSet {
         let on_sites = sites
             .iter()
-            .filter(|_| seeded.next() % 4 != 0)
+            .filter(|_| !seeded.next().is_multiple_of(4))
             .copied()
             .collect::<Vec<_>>();
         AccessSet::from_grants(

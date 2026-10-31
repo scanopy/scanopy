@@ -621,6 +621,12 @@ const CREDENTIAL: &[F] = &[
         .merged(merge!(Credential, merge_credential_type)),
     DESCRIPTION,
     F::new("daemon_os", "Daemon OS", G::Configuration),
+    F::internal("login_credential_id").entity(&[Hop::parent(E::Credential, "login_credential_id")]),
+    // Hydrated from the credentials that name this login; a request can't set it.
+    F::internal("used_by")
+        .entity(&[Hop::parent(E::Credential, "used_by")])
+        .many()
+        .server_owned(pin!(Credential, base.used_by)),
     ORGANIZATION_ID,
     F::internal("assigned_site_ids")
         .entity(&[Hop::parent(E::Site, "assigned_site_ids")])

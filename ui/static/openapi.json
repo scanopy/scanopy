@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scanopy API",
-    "description": "\nSite topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.4\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.4\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.19.4)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **site(s)**:\n\n- You can only access entities within your organization\n- Site-level entities (hosts, services, etc.) are filtered to sites you have access to\n- Use `?site_id=<UUID>` to filter list endpoints to a specific site\n- API keys can be scoped to a subset of your accessible sites\n",
+    "description": "\nSite topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.5\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.5\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.19.5)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **site(s)**:\n\n- You can only access entities within your organization\n- Site-level entities (hosts, services, etc.) are filtered to sites you have access to\n- Use `?site_id=<UUID>` to filter list endpoints to a specific site\n- API keys can be scoped to a subset of your accessible sites\n",
     "license": {
       "name": "Dual (AGPL3.0, Commercial License Available)"
     },
@@ -23355,12 +23355,12 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.19.4"
+            "example": "0.19.5"
           }
         },
         "example": {
           "api_version": 1,
-          "server_version": "0.19.4"
+          "server_version": "0.19.5"
         }
       },
       "ApiResponse": {
@@ -23492,19 +23492,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-31T16:35:13.501641Z",
+              "created_at": "2026-10-31T19:54:47.747308Z",
               "first_discovery_id": null,
-              "id": "5eb8392a-4729-4d24-b06e-5bff5145760c",
+              "id": "e9663eba-18ec-4993-8b97-84816d96d82b",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-31T16:35:13.501641Z",
+              "last_seen_at": "2026-10-31T19:54:47.747308Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-31T16:35:13.501641Z",
-              "valid_from": "2026-10-31T16:35:13.501641Z",
+              "updated_at": "2026-10-31T19:54:47.747308Z",
+              "valid_from": "2026-10-31T19:54:47.747308Z",
               "valid_to": null
             }
           },
@@ -24533,7 +24533,7 @@
                   "null"
                 ],
                 "format": "uuid",
-                "description": "The discovery configuration this session belongs to.\nAlways enriched server-side; daemons do not send this field."
+                "description": "The discovery configuration this session belongs to.\nAlways set server-side. A value a daemon sends is discarded."
               },
               "discovery_type": {
                 "$ref": "#/components/schemas/DiscoveryType",
@@ -25339,19 +25339,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-31T16:35:13.458437Z",
+                      "created_at": "2026-10-31T19:54:47.713981Z",
                       "first_discovery_id": null,
-                      "id": "9089497c-68d8-4ace-bc2f-20794d6cfdf6",
+                      "id": "f9bcf039-2802-492a-b011-66aebb3d0b78",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-31T16:35:13.458437Z",
+                      "last_seen_at": "2026-10-31T19:54:47.713981Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-31T16:35:13.458437Z",
-                      "valid_from": "2026-10-31T16:35:13.458437Z",
+                      "updated_at": "2026-10-31T19:54:47.713981Z",
+                      "valid_from": "2026-10-31T19:54:47.713981Z",
                       "valid_to": null
                     }
                   ],
@@ -25364,7 +25364,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Tenable Security Center",
+                  "service_definition": "Lidarr",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -26862,19 +26862,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-31T16:35:13.495742Z",
+                  "created_at": "2026-10-31T19:54:47.741804Z",
                   "first_discovery_id": null,
-                  "id": "47b0dda5-6872-40da-a1bf-4beb392288aa",
+                  "id": "28130ac9-df78-4e8d-a898-d27670111736",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-31T16:35:13.495742Z",
+                  "last_seen_at": "2026-10-31T19:54:47.741804Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-31T16:35:13.495742Z",
-                  "valid_from": "2026-10-31T16:35:13.495742Z",
+                  "updated_at": "2026-10-31T19:54:47.741804Z",
+                  "valid_from": "2026-10-31T19:54:47.741804Z",
                   "valid_to": null
                 }
               ],
@@ -26887,7 +26887,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Tenable Security Center",
+              "service_definition": "Lidarr",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -28915,7 +28915,7 @@
                     "null"
                   ],
                   "format": "uuid",
-                  "description": "The discovery configuration this session belongs to.\nAlways enriched server-side; daemons do not send this field."
+                  "description": "The discovery configuration this session belongs to.\nAlways set server-side. A value a daemon sends is discarded."
                 },
                 "discovery_type": {
                   "$ref": "#/components/schemas/DiscoveryType",
@@ -30162,19 +30162,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-31T16:35:13.459137Z",
+          "created_at": "2026-10-31T19:54:47.714641Z",
           "first_discovery_id": null,
-          "id": "9aa393ac-a3a1-41f9-982b-01c0734b7224",
+          "id": "fe68d045-1b42-408a-9fde-8aa347506773",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-31T16:35:13.459137Z",
+          "last_seen_at": "2026-10-31T19:54:47.714641Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-31T16:35:13.459137Z",
-          "valid_from": "2026-10-31T16:35:13.459137Z",
+          "updated_at": "2026-10-31T19:54:47.714641Z",
+          "valid_from": "2026-10-31T19:54:47.714641Z",
           "valid_to": null
         }
       },
@@ -31087,7 +31087,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Tenable Security Center",
+              "service_definition": "Lidarr",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -32449,7 +32449,8 @@
               "null"
             ],
             "format": "uuid",
-            "description": "Foreign key to API key used for ServerPoll authentication.\nNULL for DaemonPoll daemons or those not yet linked to a key."
+            "description": "Foreign key to API key used for ServerPoll authentication.\nNULL for DaemonPoll daemons or those not yet linked to a key.",
+            "readOnly": true
           },
           "host_id": {
             "type": "string",
@@ -33891,7 +33892,7 @@
               "null"
             ],
             "format": "uuid",
-            "description": "The discovery configuration this session belongs to.\nAlways enriched server-side; daemons do not send this field."
+            "description": "The discovery configuration this session belongs to.\nAlways set server-side. A value a daemon sends is discarded."
           },
           "discovery_type": {
             "$ref": "#/components/schemas/DiscoveryType",
@@ -37004,7 +37005,7 @@
       },
       "EntityField": {
         "type": "object",
-        "description": "One fact that describes an entity, possibly read from a related entity.",
+        "description": "One fact that describes an entity, possibly read from a related entity. Every serialized key an\nentity carries has one: the flags say which surfaces show it, and `write` says who sets it.",
         "required": [
           "id",
           "label",
@@ -37013,7 +37014,9 @@
           "format",
           "summary",
           "many",
-          "searchable"
+          "searchable",
+          "table",
+          "inspector"
         ],
         "properties": {
           "field": {
@@ -37032,6 +37035,10 @@
           "id": {
             "type": "string",
             "description": "Stable key: the CSV header, the list-table column id and the diagram Shape Data name."
+          },
+          "inspector": {
+            "type": "boolean",
+            "description": "Shown by the topology inspector and diagram Shape Data, and read by the topology search."
           },
           "label": {
             "type": "string",
@@ -37061,7 +37068,11 @@
           },
           "summary": {
             "type": "boolean",
-            "description": "Shown by default in tables and in the inspector's details. Every field is exported."
+            "description": "Shown by default in tables and in the inspector's details."
+          },
+          "table": {
+            "type": "boolean",
+            "description": "Offered as a list-table column."
           }
         }
       },
@@ -39348,19 +39359,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-31T16:35:13.457641Z",
+                  "created_at": "2026-10-31T19:54:47.713191Z",
                   "first_discovery_id": null,
-                  "id": "3c88c93d-6a49-4117-8826-c37673b30541",
+                  "id": "f56f0c8a-c427-4fb6-a9ea-a960f40a0e73",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-31T16:35:13.457641Z",
+                  "last_seen_at": "2026-10-31T19:54:47.713191Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-31T16:35:13.457641Z",
-                  "valid_from": "2026-10-31T16:35:13.457641Z",
+                  "updated_at": "2026-10-31T19:54:47.713191Z",
+                  "valid_from": "2026-10-31T19:54:47.713191Z",
                   "valid_to": null
                 }
               ],
@@ -39373,7 +39384,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Tenable Security Center",
+              "service_definition": "Lidarr",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -42829,7 +42840,7 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.19.4"
+            "example": "0.19.5"
           }
         },
         "example": {
@@ -42840,7 +42851,7 @@
             "offset": 0,
             "total_count": 142
           },
-          "server_version": "0.19.4"
+          "server_version": "0.19.5"
         }
       },
       "PaginatedApiResponse_Credential": {
@@ -43792,19 +43803,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-31T16:35:13.440229Z",
+                        "created_at": "2026-10-31T19:54:47.696240Z",
                         "first_discovery_id": null,
-                        "id": "4d6d5d25-2bff-468a-a182-a628fda8d076",
+                        "id": "bdc2460a-af70-49e2-88e4-7ed4d58ee5de",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-31T16:35:13.440229Z",
+                        "last_seen_at": "2026-10-31T19:54:47.696240Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-31T16:35:13.440229Z",
-                        "valid_from": "2026-10-31T16:35:13.440229Z",
+                        "updated_at": "2026-10-31T19:54:47.696240Z",
+                        "valid_from": "2026-10-31T19:54:47.696240Z",
                         "valid_to": null
                       }
                     ],
@@ -43817,7 +43828,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Tenable Security Center",
+                    "service_definition": "Lidarr",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -44064,19 +44075,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-31T16:35:13.494930Z",
+                    "created_at": "2026-10-31T19:54:47.741026Z",
                     "first_discovery_id": null,
-                    "id": "899803b5-39a0-4324-83c3-58ad42e7eaa0",
+                    "id": "24264e2c-e03c-4f0c-8d17-b267d94d779b",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-31T16:35:13.494930Z",
+                    "last_seen_at": "2026-10-31T19:54:47.741026Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-31T16:35:13.494930Z",
-                    "valid_from": "2026-10-31T16:35:13.494930Z",
+                    "updated_at": "2026-10-31T19:54:47.741026Z",
+                    "valid_from": "2026-10-31T19:54:47.741026Z",
                     "valid_to": null
                   }
                 ],
@@ -44089,7 +44100,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Tenable Security Center",
+                "service_definition": "Lidarr",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -46792,19 +46803,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-31T16:35:13.458900Z",
+              "created_at": "2026-10-31T19:54:47.714424Z",
               "first_discovery_id": null,
-              "id": "cfbde013-94b1-4e6f-96d6-ecec1c7558d0",
+              "id": "2b4099c7-ad3c-4224-8120-36fb0b88ba99",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-31T16:35:13.458900Z",
+              "last_seen_at": "2026-10-31T19:54:47.714424Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-31T16:35:13.458900Z",
-              "valid_from": "2026-10-31T16:35:13.458900Z",
+              "updated_at": "2026-10-31T19:54:47.714424Z",
+              "valid_from": "2026-10-31T19:54:47.714424Z",
               "valid_to": null
             }
           ],
@@ -46817,7 +46828,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Tenable Security Center",
+          "service_definition": "Lidarr",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -47239,7 +47250,8 @@
           "created_by": {
             "type": "string",
             "format": "uuid",
-            "description": "User who created the share."
+            "description": "User who created the share.",
+            "readOnly": true
           },
           "enabled_views": {
             "type": [
@@ -48322,23 +48334,6 @@
           }
         }
       },
-      "TableColumn": {
-        "type": "object",
-        "description": "A list-table column that is not a registry field: a value the table computes, reads from\nanother endpoint, or keeps out of CSV export (`created_at`, `last_seen_at`). Declared here so\nthe column menu files it under a group the backend chose. CSV, diagram Shape Data and the\ninspector read only fields, never these.",
-        "required": [
-          "id",
-          "group"
-        ],
-        "properties": {
-          "group": {
-            "$ref": "#/components/schemas/FieldGroup"
-          },
-          "id": {
-            "type": "string",
-            "description": "The column's key in the list table, and so in saved column preferences."
-          }
-        }
-      },
       "TableDensity": {
         "type": "string",
         "enum": [
@@ -49252,7 +49247,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "740e5668-328e-4a0f-9585-10fdb23f27cc",
+                  "id": "c8868c50-b531-448a-8b4f-423bb30e863c",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -49262,23 +49257,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "39848c08-0585-48cc-8106-4a156576ceb7",
+                  "id": "b0525c61-84d8-42c3-812d-05a10b276085",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "1389959f-3e5a-4451-9da4-98e5f57667f9",
+                  "id": "fa870cd2-912e-4676-99d1-1e2c1f396a74",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "647d0f5e-fdf5-4622-9d64-e87b551b8e80",
+                  "id": "7ae7c117-10eb-4f7f-b400-b35f01fa2acc",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "39848c08-0585-48cc-8106-4a156576ceb7",
+                  "id": "b0525c61-84d8-42c3-812d-05a10b276085",
                   "rule": "ByHost"
                 }
               ]
@@ -49308,19 +49303,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "2c31b558-b2f4-4d83-b7fa-c55b300ed315",
+                "id": "902bd791-0cb2-4202-9090-d82866458d74",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "1ad95a04-f9cd-4365-b7a8-6b8fc1c7b591",
+                "id": "ada1f1a4-bc22-4233-b1fd-074d45ef9d84",
                 "rule": "ByVLAN"
               },
               {
-                "id": "3051f3ed-d04d-4e54-9a13-9e1a39039f44",
+                "id": "25b8e2d8-2e40-4dbc-b754-4bdb6f41fccf",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "8441435b-56fc-4263-a66b-d3f8bdefc652",
+                "id": "a3e7c018-152d-44fc-b18e-d5efbd9560c0",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -49341,7 +49336,7 @@
                 }
               },
               {
-                "id": "d1aba949-d469-463b-9f3c-f848f1b5dd7b",
+                "id": "d7d292a3-ae11-493c-bc98-110b5d549a66",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -49350,19 +49345,19 @@
                 }
               },
               {
-                "id": "ce34f365-b03c-4b20-b46f-5f29f4524ad7",
+                "id": "bf7406f4-bac9-4b20-9e03-a8ba96bd51d8",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "28337888-a032-4698-8a8d-03dd869e851a",
+                "id": "8717fbf0-505c-4878-b36e-f6661de24a51",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "3dd9d047-0325-4de1-93f6-5ecf9555f10e",
+                "id": "bf2473ac-082b-446a-aedf-06e9bc739033",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "fc5161cb-613d-4fde-be15-4eab5e39e41b",
+                "id": "9e305063-25e2-4b2b-b649-b172adc60762",
                 "rule": "ByStack"
               }
             ]
@@ -50243,7 +50238,8 @@
           "organization_id": {
             "type": "string",
             "format": "uuid",
-            "description": "The organization that owns this record."
+            "description": "The organization that owns this record.",
+            "readOnly": true
           },
           "permissions": {
             "$ref": "#/components/schemas/UserOrgPermissions",
@@ -50268,7 +50264,8 @@
           "user_id": {
             "type": "string",
             "format": "uuid",
-            "description": "User the key acts on behalf of."
+            "description": "User the key acts on behalf of.",
+            "readOnly": true
           }
         }
       },
@@ -50334,7 +50331,8 @@
           },
           "email_verified": {
             "type": "boolean",
-            "description": "Whether the user has verified their email address"
+            "description": "Whether the user has verified their email address",
+            "readOnly": true
           },
           "has_password": {
             "type": "boolean",
@@ -50347,14 +50345,16 @@
               "null"
             ],
             "format": "date-time",
-            "description": "When the account was linked to the identity provider."
+            "description": "When the account was linked to the identity provider.",
+            "readOnly": true
           },
           "oidc_provider": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Slug of the identity provider this account signs in through, when linked."
+            "description": "Slug of the identity provider this account signs in through, when linked.",
+            "readOnly": true
           },
           "organization_id": {
             "type": "string",

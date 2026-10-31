@@ -44,6 +44,8 @@ export function showTooltipPopover(
 				const shown = state.shown;
 				if (!shown) return;
 				const chips: ReturnType<typeof mount>[] = [];
+				// A mount context, read once by each chip; nothing tracks it.
+				// eslint-disable-next-line svelte/prefer-svelte-reactivity
 				const context = staticChips ? new Map([['staticTags', true]]) : undefined;
 				untrack(() => {
 					el.replaceChildren(

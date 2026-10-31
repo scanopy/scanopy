@@ -59,7 +59,10 @@ pub struct CredentialBase {
     pub host_assignments: Vec<CredentialHostAssignment>,
     /// For a login: the credentials that run over it. Hydrated from their `login_credential_id`;
     /// empty for any other type. A value sent in a request is ignored.
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only, required)]
     pub used_by: Vec<Uuid>,
 }

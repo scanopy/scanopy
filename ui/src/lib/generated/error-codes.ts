@@ -87,6 +87,7 @@ export const ERROR_CODES = {
 		"'{name}' is the login for {users}. Choose another login for them before deleting it.",
 	credential_login_not_assignable:
 		"'{name}' is a login and is not assigned to sites or hosts. Assign a credential that uses it instead.",
+	entity_reference_refused: "'{field}' isn't available here",
 	discovery_historical_read_only: 'Historical discovery cannot be modified via API',
 	discovery_subnet_site_mismatch: "Subnet '{subnet}' is on a different site",
 	discovery_session_not_found: "Discovery session '{id}' not found",
@@ -200,6 +201,7 @@ export interface ErrorParams {
 	credential_login_daemon_os_mismatch: { login: string | number };
 	credential_login_in_use: { name: string | number; users: string | number };
 	credential_login_not_assignable: { name: string | number };
+	entity_reference_refused: { field: string | number };
 	discovery_historical_read_only: Record<string, never>;
 	discovery_subnet_site_mismatch: { subnet: string | number };
 	discovery_session_not_found: { id: string | number };

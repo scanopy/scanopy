@@ -34,9 +34,8 @@ impl CredentialService {
     ) -> Result<Option<Dispatchable>, Error> {
         let login = match credential.base.login_credential_id {
             Some(id) => {
-                if !logins.contains_key(&id) {
-                    let login = self.get_by_id(&id).await?.filter(|l| owned(l));
-                    logins.insert(id, login);
+                if let std::collections::hash_map::Entry::Vacant(entry) = logins.entry(id) {
+                    entry.insert(self.get_by_id(&id).await?.filter(|l| owned(l)));
                 }
                 logins.get(&id).and_then(Option::as_ref)
             }
