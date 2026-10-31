@@ -31,7 +31,17 @@
     "IcmpEcho",
     "PortScan",
     "InterfaceNameMatch",
-    "DnsSdServicePort"
+    "DnsSdServicePort",
+    "X509SubjectMatch",
+    "X509IssuerMatch",
+    "HtmlTitleMatch",
+    "HttpWwwAuthMatch",
+    "HttpCookieMatch",
+    "FaviconMatch",
+    "FtpBannerMatch",
+    "TelnetBannerMatch",
+    "RtspServerMatch",
+    "TcpStackMatch"
   ],
   "AuthenticatedEntity": [
     "User",
@@ -136,7 +146,11 @@
     "Bacnet",
     "Tftp",
     "Mgcp",
-    "GoogleWifi"
+    "GoogleWifi",
+    "Lpd",
+    "Smux",
+    "Rpcbind",
+    "Llmnr"
   ],
   "ContainerNetworkType": [
     "MacVlan",
@@ -247,7 +261,11 @@
     "IntegrationWithoutCredential",
     "SnmpWalkFailed",
     "CredentialNeedsNewerDaemon",
-    "CredentialWithoutTarget"
+    "CredentialWithoutTarget",
+    "ProxmoxGuestOutsideScan",
+    "ProxmoxGuestBehindNode",
+    "ProxmoxGuestIsolated",
+    "UnconfirmedHostInferred"
   ],
   "EdgeStyle": [
     "Straight",
