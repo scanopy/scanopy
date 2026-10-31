@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use super::cross_tenant_probe::serve_as;
 use super::self_hosted_licensing::{cloud_test_state, create_org};
-use super::{site, subnet, user};
+use super::{access_on, site, subnet, user};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::billing::plans::get_enterprise_plan;
 use crate::server::config::AppState;
@@ -112,7 +112,7 @@ async fn a_viewer_creates_rotates_and_deletes_their_own_key_and_no_one_elses() {
             user_id: viewer.id,
             organization_id: org.id,
             permissions: UserOrgPermissions::Viewer,
-            site_ids: vec![own_site.id],
+            access: access_on(UserOrgPermissions::Viewer, &[own_site.id]),
             email: viewer.base.email.clone(),
             email_verified: true,
             terms_accepted_at: None,

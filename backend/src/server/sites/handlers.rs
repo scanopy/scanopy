@@ -17,7 +17,7 @@ use crate::server::shared::types::api::PaginatedApiResponse;
 use crate::server::{
     auth::middleware::{
         features::{CreateSiteFeature, RequireFeature},
-        permissions::{Authorized, Can, Delete, Read, Write},
+        permissions::{Authorized, Can, Delete, NewSite, Read, Write},
     },
     shared::{
         events::{
@@ -229,7 +229,7 @@ async fn get_by_id_site(
 )]
 async fn create_site(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Can<Site, Write>>,
+    auth: Authorized<Can<NewSite, Write>>,
     RequireFeature { .. }: RequireFeature<CreateSiteFeature>,
     ApiJson(site): ApiJson<Site>,
 ) -> ApiResult<Json<ApiResponse<Site>>> {

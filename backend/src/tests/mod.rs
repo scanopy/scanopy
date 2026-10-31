@@ -3,6 +3,7 @@ use crate::server::shared::attribution::AttributeSource;
 use crate::server::subnets::r#impl::base::{SubnetCidr, SubnetCidrValue};
 use crate::server::subnets::r#impl::base::{SubnetName, SubnetTypeAttributed};
 use crate::server::{
+    auth::access::{AccessSet, Assignment},
     config::{AppState, ServerConfig},
     daemons::r#impl::base::{Daemon, DaemonBase, DaemonMode},
     dependencies::r#impl::{
@@ -28,7 +29,10 @@ use crate::server::{
         types::SubnetType,
     },
     topology::types::edges::EdgeStyle,
-    users::r#impl::base::{User, UserBase},
+    users::r#impl::{
+        base::{User, UserBase},
+        permissions::UserOrgPermissions,
+    },
 };
 use axum::Router;
 use chrono::Utc;
@@ -302,6 +306,11 @@ pub async fn setup_test_app() -> Router<Arc<AppState>> {
 
     let (router, _openapi) = crate::server::shared::handlers::factory::create_router(state.clone());
     router.with_state(state)
+}
+
+/// What a principal holding `role` on `site_ids` can do.
+pub fn access_on(role: UserOrgPermissions, site_ids: &[Uuid]) -> AccessSet {
+    AccessSet::new(role, &Assignment::for_api_key(role, site_ids), &[])
 }
 
 /// The scope of a caller who sees `site_ids` in `organization_id`, with no user behind it.

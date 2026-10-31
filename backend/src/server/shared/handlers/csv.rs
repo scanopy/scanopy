@@ -4,7 +4,7 @@
 //! Uses the same filtering as list endpoints but ignores pagination to export all matching records.
 
 use crate::server::{
-    auth::middleware::permissions::{Authorized, Grants, Read},
+    auth::middleware::permissions::{Authorized, Proves, Read},
     config::AppState,
     shared::{
         entities::{ChangeTriggersTopologyStaleness, Entity as EntityEnum},
@@ -33,7 +33,7 @@ use super::traits::{CrudHandlers, ListScope};
 /// registry, with related entities read through their own services.
 pub async fn export_csv_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<impl Grants<T, Read>>,
+    auth: Authorized<impl Proves<T, Read>>,
     Query(query): Query<T::FilterQuery>,
 ) -> ApiResult<impl IntoResponse>
 where

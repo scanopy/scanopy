@@ -4,7 +4,7 @@ use crate::server::{
     auth::middleware::{
         auth::AuthenticatedEntity,
         features::{ensure_tagging_allowed, tags_changed},
-        permissions::{Authorized, Delete, Grants, Read, Scoped, Write},
+        permissions::{Authorized, Delete, Proves, Read, Scoped, Write},
     },
     config::AppState,
     shared::{
@@ -158,7 +158,7 @@ where
 
 pub async fn create_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<impl Grants<T, Write>>,
+    auth: Authorized<impl Proves<T, Write>>,
     ApiJson(mut entity): ApiJson<T>,
 ) -> ApiResult<Json<ApiResponse<T>>>
 where
@@ -240,7 +240,7 @@ where
 /// cannot collect from the page it has loaded.
 pub async fn get_field_values_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<impl Grants<T, Read>>,
+    auth: Authorized<impl Proves<T, Read>>,
     Path(field): Path<T::OrderField>,
     Query(query): Query<T::FilterQuery>,
 ) -> ApiResult<Json<ApiResponse<Vec<GroupCount>>>>
@@ -278,7 +278,7 @@ where
 
 pub async fn get_all_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<impl Grants<T, Read>>,
+    auth: Authorized<impl Proves<T, Read>>,
     Query(query): Query<T::FilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<T>>>
 where
@@ -322,7 +322,7 @@ where
 
 pub async fn get_by_id_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<impl Grants<T, Read>>,
+    auth: Authorized<impl Proves<T, Read>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<T>>>
 where
@@ -377,7 +377,7 @@ where
 
 pub async fn update_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<impl Grants<T, Write>>,
+    auth: Authorized<impl Proves<T, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(mut entity): ApiJson<T>,
 ) -> ApiResult<Json<ApiResponse<T>>>
@@ -478,7 +478,7 @@ where
 
 pub async fn delete_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<impl Grants<T, Delete>>,
+    auth: Authorized<impl Proves<T, Delete>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>>
 where
@@ -543,7 +543,7 @@ where
 
 pub async fn bulk_delete_handler<T>(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<impl Grants<T, Delete>>,
+    auth: Authorized<impl Proves<T, Delete>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>>
 where

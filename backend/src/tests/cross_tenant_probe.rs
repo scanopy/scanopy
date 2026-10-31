@@ -15,7 +15,7 @@ use strum::IntoEnumIterator;
 use uuid::Uuid;
 
 use super::self_hosted_licensing::{cloud_test_state, create_org};
-use super::{site, subnet, user};
+use super::{access_on, site, subnet, user};
 use crate::server::auth::access::{Keying, RECORDED_CHECKS, Resource};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::billing::plans::get_enterprise_plan;
@@ -319,7 +319,7 @@ async fn seed_org(state: &Arc<AppState>) -> SeededOrg {
         user_id: owner.id,
         organization_id: target.id,
         permissions: UserOrgPermissions::Owner,
-        site_ids: site_ids.clone(),
+        access: access_on(UserOrgPermissions::Owner, &site_ids),
         email: owner.base.email.clone(),
         email_verified: true,
         terms_accepted_at: owner.base.terms_accepted_at,
@@ -422,7 +422,7 @@ async fn no_route_accepts_another_organizations_ids() {
             user_id: attacker.id,
             organization_id: attacker_org.id,
             permissions: UserOrgPermissions::Owner,
-            site_ids: vec![own_site.id],
+            access: access_on(UserOrgPermissions::Owner, &[own_site.id]),
             email: attacker.base.email.clone(),
             email_verified: true,
             terms_accepted_at: attacker.base.terms_accepted_at,
@@ -511,7 +511,7 @@ async fn no_route_reaches_a_row_on_a_site_outside_the_callers_scope() {
             user_id: seeded.owner.user_id().unwrap(),
             organization_id: seeded.id,
             permissions: UserOrgPermissions::Owner,
-            site_ids: vec![other_site.id],
+            access: access_on(UserOrgPermissions::Owner, &[other_site.id]),
         },
     )
     .await;

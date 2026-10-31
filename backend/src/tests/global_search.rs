@@ -36,7 +36,7 @@ fn scope(
             user_id,
             organization_id: org_id,
             permissions,
-            site_ids,
+            access: crate::tests::access_on(permissions, &site_ids),
             email: "searcher@example.com".parse().unwrap(),
             email_verified: true,
             terms_accepted_at: None,

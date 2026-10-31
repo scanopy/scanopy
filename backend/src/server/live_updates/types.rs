@@ -58,7 +58,7 @@ mod tests {
     use crate::server::users::r#impl::permissions::UserOrgPermissions;
 
     fn viewer_of(site_id: Uuid) -> AccessSet {
-        AccessSet::for_user(UserOrgPermissions::Viewer, vec![site_id])
+        crate::tests::access_on(UserOrgPermissions::Viewer, &[site_id])
     }
 
     fn discovery(site_id: Uuid) -> LiveUpdate {

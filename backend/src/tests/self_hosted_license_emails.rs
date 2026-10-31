@@ -399,7 +399,7 @@ fn user_entity(organization_id: Uuid, permissions: UserOrgPermissions) -> Authen
         user_id: Uuid::new_v4(),
         organization_id,
         permissions,
-        site_ids: vec![],
+        access: crate::tests::access_on(permissions, &[]),
         email: EmailAddress::new_unchecked("user@example.test"),
         email_verified: true,
         terms_accepted_at: None,

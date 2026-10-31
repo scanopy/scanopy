@@ -18,6 +18,7 @@ use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::{
     config::AppState,
     shared::{storage::traits::Entity, types::api::ApiError},
+    sites::r#impl::Site,
     users::r#impl::permissions::UserOrgPermissions,
 };
 use axum::{extract::FromRequestParts, http::request::Parts};
@@ -82,6 +83,15 @@ impl HasResource for License {
     }
 }
 
+/// Creating a site.
+pub struct NewSite;
+
+impl HasResource for NewSite {
+    fn resource() -> Resource {
+        Resource::NewSite
+    }
+}
+
 /// An [`Action`] as a type, for [`Can`].
 pub trait ActionType: 'static {
     const ACTION: Action;
@@ -139,9 +149,13 @@ impl<T: HasResource, A: ActionType> Scoped for Can<T, A> {
 }
 
 /// A requirement that proves `Can<T, A>`, so a generic handler for `T` can accept it.
-pub trait Grants<T, A>: Scoped {}
+pub trait Proves<T, A>: Scoped {}
 
-impl<T: HasResource, A: ActionType> Grants<T, A> for Can<T, A> {}
+impl<T: HasResource, A: ActionType> Proves<T, A> for Can<T, A> {}
+
+/// Creating a site is the one write on a site with no site to scope to, so `Can<NewSite, Write>`
+/// stands in for `Can<Site, Write>` on `POST /sites`.
+impl Proves<Site, Write> for Can<NewSite, Write> {}
 
 // ============================================================================
 // Organization Membership
@@ -420,7 +434,7 @@ impl<A: PermissionRequirement, B: Scoped> Scoped for And<A, B> {
     }
 }
 
-impl<X: PermissionRequirement, P: Grants<T, A>, T, A> Grants<T, A> for And<X, P> {}
+impl<X: PermissionRequirement, P: Proves<T, A>, T, A> Proves<T, A> for And<X, P> {}
 
 impl<P: Scoped> Scoped for RequireVerified<P> {
     fn site_ids(entity: &AuthenticatedEntity) -> Vec<Uuid> {
@@ -428,7 +442,7 @@ impl<P: Scoped> Scoped for RequireVerified<P> {
     }
 }
 
-impl<P: Grants<T, A>, T, A> Grants<T, A> for RequireVerified<P> {}
+impl<P: Proves<T, A>, T, A> Proves<T, A> for RequireVerified<P> {}
 
 // ============================================================================
 // The Authorized Extractor

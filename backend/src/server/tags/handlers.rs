@@ -1,4 +1,4 @@
-use crate::server::auth::access::{Action, Resource};
+use crate::server::auth::access::{Action, Keying, Resource};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::middleware::features::{RequireFeature, TaggingFeature};
 use crate::server::auth::middleware::permissions::{Authorized, Can, InOrganization, Read, Write};
@@ -321,13 +321,15 @@ pub async fn create_tag(
     Ok(response)
 }
 
-/// Tagging an entity is a `Write` on that entity, so the entity type in the request decides which
-/// resource the caller needs.
+/// Tagging an entity takes `Tag` Write and Read on that entity, so the entity type in the request
+/// decides which other resource the caller needs.
 fn require_write_on(
     auth: &Authorized<InOrganization>,
     entity_type: EntityDiscriminants,
 ) -> Result<(), ApiError> {
-    if auth.entity.can(entity_type.resource(), Action::Write) {
+    if auth.entity.can(Resource::Tag, Action::Write)
+        && auth.entity.can(entity_type.resource(), Action::Read)
+    {
         Ok(())
     } else {
         Err(ApiError::permission_denied())
@@ -413,9 +415,10 @@ async fn resolve_entity_scope(
 /// write tag-junction rows for it. Tag-org is validated separately by the
 /// service (`validate_tag_full`); this guards the *target entities*, which are
 /// otherwise caller-supplied ids written straight to the junction. Resolves each
-/// id's `(site_id, organization_id)` and requires a match on whichever axis
-/// the entity is scoped by; an id that can't be resolved (missing / foreign) is
-/// rejected with the same error as a cross-tenant id (no existence oracle).
+/// id's `(site_id, organization_id)` and requires Read on the entity: on its site
+/// for a site-keyed one, in the caller's organization otherwise. An id that can't
+/// be resolved (missing / foreign) is rejected with the same error as a
+/// cross-tenant id (no existence oracle).
 ///
 /// A user's API keys are theirs alone, whatever their role.
 async fn validate_entities_in_tenant(
@@ -438,12 +441,14 @@ async fn validate_entities_in_tenant(
         }
     }
     let org_id = auth.require_organization_id()?;
-    let site_ids = auth.entity.site_ids_for(resource, Action::Write);
+    let site_ids = auth.entity.site_ids_for(resource, Action::Read);
     for entity_id in entity_ids {
-        let (net, org) = resolve_entity_scope(state, entity_id, entity_type).await;
-        let org_ok = org == Some(org_id);
-        let net_ok = net.is_some_and(|n| site_ids.contains(&n));
-        if !(org_ok || net_ok) {
+        let (site, org) = resolve_entity_scope(state, entity_id, entity_type).await;
+        let readable = match resource.keying() {
+            Keying::Site => site.is_some_and(|site| site_ids.contains(&site)),
+            Keying::Organization => org == Some(org_id),
+        };
+        if !readable {
             return Err(ApiError::forbidden(
                 "Cannot modify tags on an entity outside your organization",
             ));

@@ -486,7 +486,7 @@ pub(crate) mod tests {
                 user_id: Uuid::new_v4(),
                 organization_id,
                 permissions: UserOrgPermissions::Member,
-                site_ids: vec![],
+                access: Default::default(),
             },
         );
 

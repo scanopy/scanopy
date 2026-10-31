@@ -54,7 +54,7 @@ fn session(user: &User, sites: Vec<Uuid>) -> AuthenticatedEntity {
         user_id: user.id,
         organization_id: user.base.organization_id,
         permissions: UserOrgPermissions::Owner,
-        site_ids: sites,
+        access: crate::tests::access_on(UserOrgPermissions::Owner, &sites),
         email: user.base.email.clone(),
         email_verified: true,
         terms_accepted_at: user.base.terms_accepted_at,

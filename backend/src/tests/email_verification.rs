@@ -16,7 +16,7 @@ use email_address::EmailAddress;
 use testcontainers::{ContainerAsync, GenericImage};
 use uuid::Uuid;
 
-use super::{organization, setup_test_db, site, user};
+use super::{access_on, organization, setup_test_db, site, user};
 use crate::server::auth::r#impl::api::RegisterRequest;
 use crate::server::auth::r#impl::base::{LoginRegisterParams, ProvisionOrg};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
@@ -123,7 +123,7 @@ fn session_entity(user: &User, site_ids: Vec<Uuid>) -> AuthenticatedEntity {
         user_id: user.id,
         organization_id: user.base.organization_id,
         permissions: user.base.permissions,
-        site_ids,
+        access: access_on(user.base.permissions, &site_ids),
         email: user.base.email.clone(),
         email_verified: user.base.email_verified,
         terms_accepted_at: user.base.terms_accepted_at,
@@ -175,12 +175,12 @@ async fn require_verified_refuses_unverified_and_allows_verified() {
     .await;
 
     assert!(
-        require_verified(&state, session_entity(&verified, vec![]))
+        require_verified(&state, session_entity(&verified, vec![Uuid::new_v4()]))
             .await
             .is_ok()
     );
 
-    let refused = require_verified(&state, session_entity(&unverified, vec![]))
+    let refused = require_verified(&state, session_entity(&unverified, vec![Uuid::new_v4()]))
         .await
         .unwrap_err();
     assert_eq!(refused.status, axum::http::StatusCode::FORBIDDEN);
@@ -204,7 +204,7 @@ async fn require_verified_is_lifted_without_an_email_transport() {
     .await;
 
     assert!(
-        require_verified(&state, session_entity(&unverified, vec![]))
+        require_verified(&state, session_entity(&unverified, vec![Uuid::new_v4()]))
             .await
             .is_ok()
     );

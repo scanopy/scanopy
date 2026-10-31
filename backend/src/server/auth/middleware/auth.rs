@@ -5,7 +5,7 @@ use cidr::IpCidr;
 #[cfg(test)]
 use crate::server::auth::access::record_check;
 use crate::server::{
-    auth::access::{AccessSet, Action, Resource},
+    auth::access::{AccessSet, Action, Assignment, Resource},
     config::AppState,
     daemon_api_keys::{r#impl::base::DaemonApiKey, service::ResolvedDaemonKey},
     shared::{
@@ -128,7 +128,9 @@ pub enum AuthenticatedEntity {
         user_id: Uuid,
         organization_id: Uuid,
         permissions: UserOrgPermissions,
-        site_ids: Vec<Uuid>,
+        /// Resolved per request, and never serialized.
+        #[serde(skip)]
+        access: AccessSet,
         email: EmailAddress,
         email_verified: bool,
         /// When the user last accepted the terms; read by the terms gate.
@@ -148,7 +150,9 @@ pub enum AuthenticatedEntity {
         user_id: Uuid,
         organization_id: Uuid,
         permissions: UserOrgPermissions,
-        site_ids: Vec<Uuid>,
+        /// Resolved per request, and never serialized.
+        #[serde(skip)]
+        access: AccessSet,
     },
     /// External service authentication (e.g., Prometheus, Grafana)
     ExternalService {
@@ -281,37 +285,33 @@ impl AuthenticatedEntity {
     }
 
     /// What this user or API key can do. Everyone else holds no role.
-    fn access(&self) -> AccessSet {
+    pub fn access(&self) -> Option<&AccessSet> {
         match self {
-            AuthenticatedEntity::User {
-                permissions,
-                site_ids,
-                ..
-            } => AccessSet::for_user(*permissions, site_ids.clone()),
-            AuthenticatedEntity::ApiKey {
-                permissions,
-                site_ids,
-                ..
-            } => AccessSet::for_api_key(*permissions, site_ids.clone()),
+            AuthenticatedEntity::User { access, .. }
+            | AuthenticatedEntity::ApiKey { access, .. } => Some(access),
             AuthenticatedEntity::Daemon { .. }
             | AuthenticatedEntity::ExternalService { .. }
             | AuthenticatedEntity::System
-            | AuthenticatedEntity::Anonymous => AccessSet::default(),
+            | AuthenticatedEntity::Anonymous => None,
         }
     }
 
-    /// Whether this principal holds `action` on `resource` anywhere.
+    /// Whether this principal holds `action` on `resource`: in its organization grants for an
+    /// org-keyed resource, and on any site for a site-keyed one.
     pub fn can(&self, resource: Resource, action: Action) -> bool {
         #[cfg(test)]
         record_check(resource, action);
-        self.access().can(resource, action)
+        self.access()
+            .is_some_and(|access| access.can(resource, action))
     }
 
     /// The sites where this principal may take `action` on `resource`.
     pub fn site_ids_for(&self, resource: Resource, action: Action) -> Vec<Uuid> {
         #[cfg(test)]
         record_check(resource, action);
-        self.access().site_ids(resource, action)
+        self.access()
+            .map(|access| access.site_ids(resource, action))
+            .unwrap_or_default()
     }
 
     /// The sites whose `resource` rows this principal may read, or `None` when it may not read
@@ -336,8 +336,7 @@ impl AuthenticatedEntity {
                 let Some(user) = services.user_service.get_by_id(user_id).await? else {
                     return Ok(None);
                 };
-                let site_ids = user_site_ids(services, &user).await?;
-                Ok(Some(AccessSet::for_user(user.base.permissions, site_ids)))
+                Ok(Some(user_access(services, &user).await?))
             }
             AuthenticatedEntity::ApiKey { api_key_id, .. } => {
                 let service = &services.user_api_key_service;
@@ -348,7 +347,7 @@ impl AuthenticatedEntity {
                     return Ok(None);
                 }
                 let site_ids = service.get_site_ids(api_key_id).await?;
-                Ok(Some(AccessSet::for_api_key(key.base.permissions, site_ids)))
+                Ok(Some(api_key_access(key.base.permissions, &site_ids)))
             }
             AuthenticatedEntity::Daemon { .. }
             | AuthenticatedEntity::ExternalService { .. }
@@ -436,7 +435,7 @@ impl From<User> for AuthenticatedEntity {
             user_id: value.id,
             organization_id: value.base.organization_id,
             permissions: value.base.permissions,
-            site_ids: vec![],
+            access: AccessSet::default(),
             email: value.base.email,
             email_verified: value.base.email_verified,
             terms_accepted_at: value.base.terms_accepted_at,
@@ -630,7 +629,7 @@ impl AuthenticatedEntity {
                             user_id,
                             organization_id,
                             permissions,
-                            site_ids,
+                            access: api_key_access(permissions, &site_ids),
                         });
                     }
 
@@ -902,7 +901,7 @@ impl AuthenticatedEntity {
             return Err(AuthError(ApiError::not_authenticated()));
         }
 
-        let site_ids = user_site_ids(&app_state.services, &user)
+        let access = user_access(&app_state.services, &user)
             .await
             .map_err(|_| AuthError(ApiError::internal_error("Failed to load sites")))?;
 
@@ -910,7 +909,7 @@ impl AuthenticatedEntity {
             user_id: user.id,
             organization_id: user.base.organization_id,
             permissions: user.base.permissions,
-            site_ids,
+            access,
             email: user.base.email,
             email_verified: user.base.email_verified,
             terms_accepted_at: user.base.terms_accepted_at,
@@ -918,19 +917,27 @@ impl AuthenticatedEntity {
     }
 }
 
-/// The sites a user holds: every site in the organization for an Owner or Admin, and the
-/// `user_site_access` rows for anyone else.
-async fn user_site_ids(services: &ServiceFactory, user: &User) -> anyhow::Result<Vec<Uuid>> {
-    if matches!(
+/// What a user can do, from their role and site list.
+async fn user_access(services: &ServiceFactory, user: &User) -> anyhow::Result<AccessSet> {
+    let site_ids = services.user_service.get_site_ids(&user.id).await?;
+    let assignments = Assignment::for_person(user.base.permissions, &site_ids);
+    let org_filter = StorableFilter::<Site>::new_from_org_id(&user.base.organization_id);
+    let sites = services.site_service.get_all(org_filter).await?;
+    let organization_site_ids: Vec<Uuid> = sites.iter().map(|site| site.id).collect();
+    Ok(AccessSet::new(
         user.base.permissions,
-        UserOrgPermissions::Owner | UserOrgPermissions::Admin
-    ) {
-        let org_filter = StorableFilter::<Site>::new_from_org_id(&user.base.organization_id);
-        let sites = services.site_service.get_all(org_filter).await?;
-        Ok(sites.iter().map(|site| site.id).collect())
-    } else {
-        services.user_service.get_site_ids(&user.id).await
-    }
+        &assignments,
+        &organization_site_ids,
+    ))
+}
+
+/// What a key can do, from its role and site list.
+fn api_key_access(permissions: UserOrgPermissions, site_ids: &[Uuid]) -> AccessSet {
+    AccessSet::new(
+        permissions,
+        &Assignment::for_api_key(permissions, site_ids),
+        &[],
+    )
 }
 
 /// Helper to extract user agent from headers
@@ -1079,7 +1086,8 @@ pub struct AuthenticatedApiKey {
     pub user_id: Uuid,
     pub organization_id: Uuid,
     pub permissions: UserOrgPermissions,
-    pub site_ids: Vec<Uuid>,
+    #[serde(skip)]
+    pub access: AccessSet,
 }
 
 impl From<AuthenticatedApiKey> for AuthenticatedEntity {
@@ -1089,7 +1097,7 @@ impl From<AuthenticatedApiKey> for AuthenticatedEntity {
             user_id: value.user_id,
             organization_id: value.organization_id,
             permissions: value.permissions,
-            site_ids: value.site_ids,
+            access: value.access,
         }
     }
 }
@@ -1109,13 +1117,13 @@ where
                 user_id,
                 organization_id,
                 permissions,
-                site_ids,
+                access,
             } => Ok(AuthenticatedApiKey {
                 api_key_id,
                 user_id,
                 organization_id,
                 permissions,
-                site_ids,
+                access,
             }),
             _ => Err(AuthError(ApiError::api_key_required())),
         }

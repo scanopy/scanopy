@@ -1,17 +1,20 @@
 //! What a principal may do: per resource type, per action, per site.
 //!
 //! A [`Resource`] is one thing an admin thinks about, so one per tab; `E::resource()` maps every
-//! entity onto one. A role is the set of (resource, actions) in [`Resource::actions`]. An
-//! [`Assignment`] gives a principal a role at a scope, and an [`AccessSet`] answers for all of a
-//! principal's assignments at once.
+//! entity onto one. [`Grants`] are (resource, action) pairs, and a role is a source of them. A
+//! principal holds one organization role, which answers for org-keyed resources, and any number of
+//! [`Assignment`]s, each a [`SiteRole`] at a scope, which answer for site-keyed resources. An
+//! [`AccessSet`] holds the resulting grants and is all the evaluator reads.
 
-use strum::{Display, EnumIter};
+use std::collections::{BTreeMap, BTreeSet};
+
+use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
 use uuid::Uuid;
 
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
 
 /// What a role grants access to. Child entities share their parent's resource.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Display, EnumIter)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Display, EnumIter)]
 pub enum Resource {
     Site,
     Host,
@@ -31,59 +34,63 @@ pub enum Resource {
     Organization,
     Billing,
     License,
+    /// Creating a site, which has no site to scope to. Updating and deleting one are `Site`.
+    NewSite,
 }
 
 /// What a role may do to a resource. `Write` is create and update, plus operations such as
 /// starting a scan or merging hosts.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Display, EnumIter)]
 pub enum Action {
     Read,
     Write,
     Delete,
 }
 
-/// What a resource's rows belong to, which decides what a site-scoped assignment reaches.
+/// What a resource's rows belong to, which decides whose grants answer for it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Keying {
-    /// A site: an assignment reaches the rows on the sites it covers.
+    /// A site: the grants the principal holds on that site answer.
     Site,
-    /// The organization: `Read` comes from any assignment, and `Write` and `Delete` need one that
-    /// isn't limited to a site, so a site-scoped person can't change what other sites share.
+    /// The organization: the organization grants answer.
     Organization,
+}
+
+/// A principal's role on a site. Owner has none: it adds nothing on site-keyed resources.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display, EnumIter, EnumString)]
+pub enum SiteRole {
+    Admin,
+    Member,
+    Viewer,
+}
+
+impl From<UserOrgPermissions> for SiteRole {
+    fn from(role: UserOrgPermissions) -> Self {
+        match role {
+            UserOrgPermissions::Owner | UserOrgPermissions::Admin => SiteRole::Admin,
+            UserOrgPermissions::Member => SiteRole::Member,
+            UserOrgPermissions::Viewer => SiteRole::Viewer,
+        }
+    }
 }
 
 const NONE: &[Action] = &[];
 const R: &[Action] = &[Action::Read];
+const W: &[Action] = &[Action::Write];
 const RW: &[Action] = &[Action::Read, Action::Write];
 const RWD: &[Action] = &[Action::Read, Action::Write, Action::Delete];
 
-impl Resource {
-    pub fn keying(self) -> Keying {
-        match self {
-            Resource::Site
-            | Resource::Host
-            | Resource::Service
-            | Resource::Subnet
-            | Resource::Vlan
-            | Resource::Dependency
-            | Resource::Topology
-            | Resource::Share
-            | Resource::Discovery
-            | Resource::Daemon
-            | Resource::DaemonApiKey => Keying::Site,
-            Resource::Credential
-            | Resource::Tag
-            | Resource::Member
-            | Resource::UserApiKey
-            | Resource::Organization
-            | Resource::Billing
-            | Resource::License => Keying::Organization,
-        }
-    }
+/// Which role answers for a resource, and what each of its values may do there.
+#[derive(Clone, Copy)]
+pub enum RoleTable {
+    Organization(fn(UserOrgPermissions) -> &'static [Action]),
+    Site(fn(SiteRole) -> &'static [Action]),
+}
 
+impl Resource {
     /// The role table. Viewer sees the network, Member keeps it documented, Admin decides how the
     /// org runs, Owner answers for the org.
-    pub fn actions(self, role: UserOrgPermissions) -> &'static [Action] {
+    pub fn grant(self) -> RoleTable {
         use UserOrgPermissions::{Admin, Member, Owner, Viewer};
         match self {
             Resource::Host
@@ -93,145 +100,220 @@ impl Resource {
             | Resource::Dependency
             | Resource::Topology
             | Resource::Share
-            | Resource::Discovery => match role {
-                Viewer => R,
-                Member | Admin | Owner => RWD,
-            },
-            Resource::Tag => match role {
+            | Resource::Discovery => RoleTable::Site(|role| match role {
+                SiteRole::Viewer => R,
+                SiteRole::Member | SiteRole::Admin => RWD,
+            }),
+            Resource::Site | Resource::Daemon => RoleTable::Site(|role| match role {
+                SiteRole::Viewer | SiteRole::Member => R,
+                SiteRole::Admin => RWD,
+            }),
+            Resource::DaemonApiKey => RoleTable::Site(|role| match role {
+                SiteRole::Viewer => NONE,
+                SiteRole::Member => R,
+                SiteRole::Admin => RWD,
+            }),
+            Resource::Credential => RoleTable::Organization(|role| match role {
+                Viewer | Member => R,
+                Admin | Owner => RWD,
+            }),
+            Resource::Tag => RoleTable::Organization(|role| match role {
                 Viewer => R,
                 Member => RW,
                 Admin | Owner => RWD,
-            },
-            Resource::Site | Resource::Daemon | Resource::Credential => match role {
-                Viewer | Member => R,
-                Admin | Owner => RWD,
-            },
-            Resource::DaemonApiKey => match role {
-                Viewer => NONE,
-                Member => R,
-                Admin | Owner => RWD,
-            },
-            Resource::Member => match role {
+            }),
+            Resource::Member => RoleTable::Organization(|role| match role {
                 Viewer | Member => NONE,
                 Admin | Owner => RWD,
-            },
-            Resource::UserApiKey => match role {
+            }),
+            Resource::UserApiKey => RoleTable::Organization(|role| match role {
                 Viewer | Member | Admin | Owner => RWD,
-            },
-            Resource::Organization => match role {
+            }),
+            Resource::Organization => RoleTable::Organization(|role| match role {
                 Viewer | Member | Admin => R,
                 Owner => RWD,
-            },
-            Resource::Billing | Resource::License => match role {
+            }),
+            Resource::Billing | Resource::License => RoleTable::Organization(|role| match role {
                 Viewer | Member | Admin => NONE,
                 Owner => RW,
-            },
+            }),
+            Resource::NewSite => RoleTable::Organization(|role| match role {
+                Viewer | Member => NONE,
+                Admin | Owner => W,
+            }),
+        }
+    }
+
+    pub fn keying(self) -> Keying {
+        match self.grant() {
+            RoleTable::Organization(_) => Keying::Organization,
+            RoleTable::Site(_) => Keying::Site,
+        }
+    }
+
+    /// What `role` allows on this resource, reading the organization or the site table.
+    pub fn actions(self, role: UserOrgPermissions) -> &'static [Action] {
+        match self.grant() {
+            RoleTable::Organization(table) => table(role),
+            RoleTable::Site(table) => table(role.into()),
         }
     }
 }
 
-/// Where a role holds.
+/// A value holding (resource, action) pairs. The only thing the evaluator reads.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Grants(BTreeSet<(Resource, Action)>);
+
+impl FromIterator<(Resource, Action)> for Grants {
+    fn from_iter<I: IntoIterator<Item = (Resource, Action)>>(pairs: I) -> Self {
+        Self(pairs.into_iter().collect())
+    }
+}
+
+impl Grants {
+    pub fn allows(&self, resource: Resource, action: Action) -> bool {
+        self.0.contains(&(resource, action))
+    }
+
+    pub fn union(&self, other: &Grants) -> Grants {
+        Self(self.0.union(&other.0).copied().collect())
+    }
+}
+
+impl UserOrgPermissions {
+    /// The organization grants of this role.
+    pub fn grants(self) -> Grants {
+        Resource::iter()
+            .flat_map(|resource| {
+                let actions = match resource.grant() {
+                    RoleTable::Organization(table) => table(self),
+                    RoleTable::Site(_) => NONE,
+                };
+                actions.iter().map(move |action| (resource, *action))
+            })
+            .collect()
+    }
+}
+
+impl SiteRole {
+    /// The grants of this role on a site.
+    pub fn grants(self) -> Grants {
+        Resource::iter()
+            .flat_map(|resource| {
+                let actions = match resource.grant() {
+                    RoleTable::Site(table) => table(self),
+                    RoleTable::Organization(_) => NONE,
+                };
+                actions.iter().map(move |action| (resource, *action))
+            })
+            .collect()
+    }
+}
+
+/// Where a site role holds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AssignmentScope {
     /// Every site in the organization, including sites created later.
     AllSites,
     /// One site.
     Site(Uuid),
-    /// Organization-keyed resources, and no site. `users.permissions` and
-    /// `user_api_keys.permissions` hold at this level whatever the site list says, which neither
-    /// of the other scopes can state.
-    Organization,
 }
 
+/// A site role at a scope.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Assignment {
-    pub role: UserOrgPermissions,
+    pub role: SiteRole,
     pub scope: AssignmentScope,
 }
 
 impl Assignment {
-    /// Whether this assignment grants `action` on `resource` somewhere.
-    fn allows(&self, resource: Resource, action: Action) -> bool {
-        let limited_to_a_site = matches!(self.scope, AssignmentScope::Site(_));
-        let org_keyed_change = resource.keying() == Keying::Organization && action != Action::Read;
-        resource.actions(self.role).contains(&action) && !(limited_to_a_site && org_keyed_change)
-    }
-}
-
-/// What a principal can do, from its assignments.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct AccessSet {
-    assignments: Vec<Assignment>,
-    /// Every site in the organization: what an all-sites assignment covers.
-    organization_site_ids: Vec<Uuid>,
-}
-
-impl AccessSet {
-    /// A user's access from `users.permissions` and `site_ids`: every site in the organization
-    /// for an Owner or Admin, and the rows of `user_site_access` for anyone else.
-    pub fn for_user(role: UserOrgPermissions, site_ids: Vec<Uuid>) -> Self {
+    /// What `permissions` plus `site_ids` mean on a user or invite: an Owner or Admin reaches every
+    /// site whatever the list says, and anyone else holds their role on the listed sites.
+    pub fn for_person(role: UserOrgPermissions, site_ids: &[Uuid]) -> Vec<Self> {
         match role {
-            UserOrgPermissions::Owner | UserOrgPermissions::Admin => Self {
-                assignments: vec![Assignment {
-                    role,
-                    scope: AssignmentScope::AllSites,
-                }],
-                organization_site_ids: site_ids,
-            },
+            UserOrgPermissions::Owner | UserOrgPermissions::Admin => vec![Self {
+                role: SiteRole::Admin,
+                scope: AssignmentScope::AllSites,
+            }],
             UserOrgPermissions::Member | UserOrgPermissions::Viewer => {
-                Self::for_listed_sites(role, &site_ids)
+                Self::for_api_key(role, site_ids)
             }
         }
     }
 
-    /// A key's access from `user_api_keys.permissions` and the rows of
-    /// `user_api_key_site_access`.
-    pub fn for_api_key(role: UserOrgPermissions, site_ids: Vec<Uuid>) -> Self {
-        Self::for_listed_sites(role, &site_ids)
-    }
-
-    fn for_listed_sites(role: UserOrgPermissions, site_ids: &[Uuid]) -> Self {
-        let scopes = std::iter::once(AssignmentScope::Organization)
-            .chain(site_ids.iter().copied().map(AssignmentScope::Site));
-        Self {
-            assignments: scopes.map(|scope| Assignment { role, scope }).collect(),
-            organization_site_ids: Vec::new(),
-        }
-    }
-
-    #[cfg(test)]
-    pub fn from_assignments(
-        assignments: Vec<Assignment>,
-        organization_site_ids: Vec<Uuid>,
-    ) -> Self {
-        Self {
-            assignments,
-            organization_site_ids,
-        }
-    }
-
-    /// Whether the principal holds `action` on `resource` anywhere.
-    pub fn can(&self, resource: Resource, action: Action) -> bool {
-        self.assignments
-            .iter()
-            .any(|assignment| assignment.allows(resource, action))
-    }
-
-    /// The sites where `action` on `resource` is allowed.
-    pub fn site_ids(&self, resource: Resource, action: Action) -> Vec<Uuid> {
-        let mut site_ids: Vec<Uuid> = self
-            .assignments
-            .iter()
-            .filter(|assignment| assignment.allows(resource, action))
-            .flat_map(|assignment| match assignment.scope {
-                AssignmentScope::AllSites => self.organization_site_ids.clone(),
-                AssignmentScope::Site(site_id) => vec![site_id],
-                AssignmentScope::Organization => Vec::new(),
-            })
-            .collect();
-        site_ids.sort();
-        site_ids.dedup();
+    /// What `permissions` plus `site_ids` mean on an API key: its role on the listed sites, and no
+    /// others, whatever the role.
+    pub fn for_api_key(role: UserOrgPermissions, site_ids: &[Uuid]) -> Vec<Self> {
         site_ids
+            .iter()
+            .map(|site_id| Self {
+                role: role.into(),
+                scope: AssignmentScope::Site(*site_id),
+            })
+            .collect()
+    }
+}
+
+/// What a principal can do: its organization grants, and its grants on each site.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct AccessSet {
+    organization: Grants,
+    sites: BTreeMap<Uuid, Grants>,
+}
+
+impl AccessSet {
+    /// The access of a principal holding `role` and `assignments`, in an organization with
+    /// `organization_site_ids`: what an all-sites assignment covers.
+    pub fn new(
+        role: UserOrgPermissions,
+        assignments: &[Assignment],
+        organization_site_ids: &[Uuid],
+    ) -> Self {
+        let mut sites: BTreeMap<Uuid, Grants> = BTreeMap::new();
+        for assignment in assignments {
+            let grants = assignment.role.grants();
+            let covered = match assignment.scope {
+                AssignmentScope::AllSites => organization_site_ids,
+                AssignmentScope::Site(ref site_id) => std::slice::from_ref(site_id),
+            };
+            for site_id in covered {
+                let held = sites.entry(*site_id).or_default();
+                *held = held.union(&grants);
+            }
+        }
+        Self::from_grants(role.grants(), sites)
+    }
+
+    pub fn from_grants(organization: Grants, sites: BTreeMap<Uuid, Grants>) -> Self {
+        Self {
+            organization,
+            sites,
+        }
+    }
+
+    /// Whether the principal holds `action` on `resource`: in its organization grants for an
+    /// org-keyed resource, and on any site for a site-keyed one.
+    pub fn can(&self, resource: Resource, action: Action) -> bool {
+        match resource.keying() {
+            Keying::Organization => self.organization.allows(resource, action),
+            Keying::Site => self
+                .sites
+                .values()
+                .any(|grants| grants.allows(resource, action)),
+        }
+    }
+
+    /// The sites holding `action` on `resource`. An org-keyed resource is held on none.
+    pub fn site_ids(&self, resource: Resource, action: Action) -> Vec<Uuid> {
+        match resource.keying() {
+            Keying::Organization => Vec::new(),
+            Keying::Site => self
+                .sites
+                .iter()
+                .filter(|(_, grants)| grants.allows(resource, action))
+                .map(|(site_id, _)| *site_id)
+                .collect(),
+        }
     }
 }
 
@@ -250,26 +332,39 @@ pub fn record_check(resource: Resource, action: Action) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use strum::IntoEnumIterator;
 
-    fn on_site(role: UserOrgPermissions, site_id: Uuid) -> AccessSet {
-        AccessSet::from_assignments(
-            vec![Assignment {
-                role,
-                scope: AssignmentScope::Site(site_id),
-            }],
-            vec![],
-        )
+    /// A small seeded generator: the same grants on every run, with no new dependency.
+    struct Seeded(u64);
+
+    impl Seeded {
+        fn next(&mut self) -> u64 {
+            self.0 ^= self.0 << 13;
+            self.0 ^= self.0 >> 7;
+            self.0 ^= self.0 << 17;
+            self.0
+        }
+
+        /// A random subset of the pairs of the resources `keying` selects.
+        fn grants(&mut self, keying: Keying) -> Grants {
+            Resource::iter()
+                .filter(|resource| resource.keying() == keying)
+                .flat_map(|resource| Action::iter().map(move |action| (resource, action)))
+                .filter(|_| self.next() % 2 == 0)
+                .collect()
+        }
     }
 
-    /// Read, Read plus Write, and all three: the only cells the role comparison can show.
+    const SEED: u64 = 0x9E37_79B9_7F4A_7C15;
+    const ROUNDS: usize = 500;
+
+    /// Read, Read plus Write, all three, or Write alone: the cells the role comparison can show.
     #[test]
     fn every_role_cell_is_none_view_edit_or_full() {
         for resource in Resource::iter() {
             for role in UserOrgPermissions::iter() {
                 let actions = resource.actions(role);
                 assert!(
-                    [NONE, R, RW, RWD].contains(&actions),
+                    [NONE, R, W, RW, RWD].contains(&actions),
                     "{resource} {role}: {actions:?}"
                 );
             }
@@ -291,31 +386,79 @@ mod tests {
         }
     }
 
+    /// Each role's grants name only the resources its own level answers for.
     #[test]
-    fn a_site_assignment_reaches_only_its_site() {
+    fn role_grants_stay_on_their_own_keying() {
+        for resource in Resource::iter() {
+            for action in Action::iter() {
+                if resource.keying() == Keying::Site {
+                    for role in UserOrgPermissions::iter() {
+                        assert!(!role.grants().allows(resource, action));
+                    }
+                } else {
+                    for role in SiteRole::iter() {
+                        assert!(!role.grants().allows(resource, action));
+                    }
+                }
+            }
+        }
+    }
+
+    /// Whatever the grants at either level, org-keyed answers read only the organization grants
+    /// and site-keyed answers only that site's.
+    #[test]
+    fn answers_come_only_from_the_grants_at_their_level() {
+        let mut seeded = Seeded(SEED);
         let (a, b) = (Uuid::new_v4(), Uuid::new_v4());
-        let access = on_site(UserOrgPermissions::Owner, a);
-        for resource in Resource::iter().filter(|r| r.keying() == Keying::Site) {
-            assert_eq!(access.site_ids(resource, Action::Read), vec![a]);
-            assert!(!access.site_ids(resource, Action::Read).contains(&b));
+        for _ in 0..ROUNDS {
+            // The wrong keying at each level, to prove it is ignored.
+            let organization = seeded
+                .grants(Keying::Organization)
+                .union(&seeded.grants(Keying::Site));
+            let on_a = seeded
+                .grants(Keying::Site)
+                .union(&seeded.grants(Keying::Organization));
+            let on_b = seeded.grants(Keying::Site);
+            let access = AccessSet::from_grants(
+                organization.clone(),
+                BTreeMap::from([(a, on_a.clone()), (b, on_b.clone())]),
+            );
+            for resource in Resource::iter() {
+                for action in Action::iter() {
+                    match resource.keying() {
+                        Keying::Organization => {
+                            assert_eq!(
+                                access.can(resource, action),
+                                organization.allows(resource, action),
+                                "{resource} {action}"
+                            );
+                            assert!(access.site_ids(resource, action).is_empty());
+                        }
+                        Keying::Site => {
+                            let sites = access.site_ids(resource, action);
+                            assert_eq!(
+                                sites.contains(&a),
+                                on_a.allows(resource, action),
+                                "{resource} {action}"
+                            );
+                            assert_eq!(
+                                sites.contains(&b),
+                                on_b.allows(resource, action),
+                                "{resource} {action}"
+                            );
+                            assert_eq!(access.can(resource, action), !sites.is_empty());
+                        }
+                    }
+                }
+            }
         }
     }
 
     #[test]
-    fn a_site_assignment_reads_but_cannot_change_org_keyed_resources() {
-        let access = on_site(UserOrgPermissions::Owner, Uuid::new_v4());
-        for resource in Resource::iter().filter(|r| r.keying() == Keying::Organization) {
-            assert!(access.can(resource, Action::Read), "{resource}");
-            assert!(!access.can(resource, Action::Write), "{resource}");
-            assert!(!access.can(resource, Action::Delete), "{resource}");
-        }
-    }
-
-    #[test]
-    fn an_all_sites_assignment_changes_org_keyed_resources_and_covers_every_site() {
+    fn an_all_sites_assignment_covers_every_site_in_the_organization() {
         let sites = vec![Uuid::new_v4(), Uuid::new_v4()];
-        let access = AccessSet::for_user(UserOrgPermissions::Admin, sites.clone());
-        assert!(access.can(Resource::Credential, Action::Write));
+        let assignments = Assignment::for_person(UserOrgPermissions::Admin, &[]);
+        let access = AccessSet::new(UserOrgPermissions::Admin, &assignments, &sites);
         let mut expected = sites;
         expected.sort();
         assert_eq!(access.site_ids(Resource::Host, Action::Delete), expected);
@@ -328,22 +471,46 @@ mod tests {
             role,
             scope: AssignmentScope::Site(site_id),
         };
-        let access = AccessSet::from_assignments(
-            vec![
-                scoped(UserOrgPermissions::Viewer, viewed),
-                scoped(UserOrgPermissions::Member, edited),
+        let access = AccessSet::new(
+            UserOrgPermissions::Viewer,
+            &[
+                scoped(SiteRole::Viewer, viewed),
+                scoped(SiteRole::Member, edited),
             ],
-            vec![],
+            &[],
         );
         assert_eq!(access.site_ids(Resource::Host, Action::Write), vec![edited]);
         assert_eq!(access.site_ids(Resource::Host, Action::Read).len(), 2);
     }
 
     #[test]
-    fn a_listed_role_keeps_its_org_level_actions_with_no_sites() {
-        let access = AccessSet::for_api_key(UserOrgPermissions::Owner, vec![]);
+    fn assignments_on_one_site_combine() {
+        let site = Uuid::new_v4();
+        let access = AccessSet::new(
+            UserOrgPermissions::Viewer,
+            &[
+                Assignment {
+                    role: SiteRole::Viewer,
+                    scope: AssignmentScope::AllSites,
+                },
+                Assignment {
+                    role: SiteRole::Admin,
+                    scope: AssignmentScope::Site(site),
+                },
+            ],
+            &[site, Uuid::new_v4()],
+        );
+        assert_eq!(access.site_ids(Resource::Site, Action::Write), vec![site]);
+        assert_eq!(access.site_ids(Resource::Host, Action::Read).len(), 2);
+    }
+
+    /// A key with no sites keeps its org role, and reaches no site.
+    #[test]
+    fn a_role_keeps_its_organization_grants_with_no_sites() {
+        let access = AccessSet::new(UserOrgPermissions::Owner, &[], &[]);
         assert!(access.can(Resource::Billing, Action::Write));
-        assert!(access.can(Resource::Site, Action::Write));
+        assert!(access.can(Resource::NewSite, Action::Write));
+        assert!(!access.can(Resource::Site, Action::Read));
         assert!(access.site_ids(Resource::Site, Action::Read).is_empty());
     }
 }

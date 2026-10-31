@@ -15,7 +15,7 @@ use uuid::Uuid;
 use super::self_hosted_licensing::{
     cloud_test_state, create_org, test_state_from, test_state_with_email_dir,
 };
-use super::user;
+use super::{access_on, user};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::middleware::session_gate::session_gate_middleware;
 use crate::server::auth::terms_gate::{TERMS_ACCEPTANCE_EFFECTIVE, acceptance_required};
@@ -31,7 +31,7 @@ fn session(user: &User) -> AuthenticatedEntity {
         user_id: user.id,
         organization_id: user.base.organization_id,
         permissions: UserOrgPermissions::Owner,
-        site_ids: vec![],
+        access: access_on(UserOrgPermissions::Owner, &[Uuid::new_v4()]),
         email: user.base.email.clone(),
         email_verified: true,
         terms_accepted_at: user.base.terms_accepted_at,
@@ -133,7 +133,7 @@ async fn a_user_who_accepted_earlier_terms_is_refused_until_they_accept_again() 
         user_id: stale.id,
         organization_id: org.id,
         permissions: UserOrgPermissions::Owner,
-        site_ids: vec![],
+        access: access_on(UserOrgPermissions::Owner, &[Uuid::new_v4()]),
     };
     assert_eq!(
         status(addr, reqwest::Method::GET, "/api/v1/hosts").await.0,
