@@ -1,0 +1,7 @@
+version: 2
+ethernets:
+  eth0:
+    match:
+      macaddress: "52:54:00:7a:00:0b"
+    set-name: eth0
+    addresses: [10.99.0.10/24]

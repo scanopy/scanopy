@@ -214,6 +214,8 @@ pub enum ClientProbe {
     InstantOn,
     /// The Proxmox VE API answered `/version` with the credential's API token.
     Proxmox,
+    /// `virsh` answered over SSH with the libvirt connection the credential names.
+    Libvirt,
     /// A well-formed MBAP frame came back with our transaction ID echoed. Says nothing about
     /// whether the device answered `0x2B` — a `0xAB` exception is still Modbus.
     ModbusTcp,
@@ -356,7 +358,8 @@ impl ClientProbe {
             | Self::Podman
             | Self::UnifiController
             | Self::InstantOn
-            | Self::Proxmox => M::Reported,
+            | Self::Proxmox
+            | Self::Libvirt => M::Reported,
             // We chose the address and the transport correlated the answer.
             Self::Snmp | Self::Gnmi => M::Queried,
             // Same, over the device's own product protocol.
@@ -444,6 +447,7 @@ impl ClientProbe {
             | Self::UnifiController
             | Self::InstantOn
             | Self::Proxmox
+            | Self::Libvirt
             | Self::SpotifyConnect => vec![],
             Self::ModbusTcp => vec![PortType::ModbusTcp],
             Self::OpcUa => vec![PortType::OpcUa],

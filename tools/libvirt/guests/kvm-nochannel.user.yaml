@@ -1,0 +1,3 @@
+#cloud-config
+hostname: kvm-nochannel
+# No agent channel in the domain at all: libvirt says the agent is not configured.

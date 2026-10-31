@@ -54,6 +54,7 @@ impl CredentialTypeDiscriminants {
             | Self::SshPassword
             | Self::SshKey
             | Self::SshScript
+            | Self::Libvirt
             | Self::WakeOnLan
             | Self::ProxmoxApiToken => None,
         }

@@ -234,6 +234,17 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
             ),
             &hypervisor_account,
         ),
+        with_login(
+            credential(
+                "KVM Inventory",
+                "Lists the VMs on the data center KVM host with virsh, over the inventory account.",
+                None,
+                CredentialType::Libvirt {
+                    connection_uri: "qemu:///system".to_string(),
+                },
+            ),
+            &inventory_account,
+        ),
         credential(
             "Proxmox Cluster API",
             "Read-only API token (PVEAuditor) for the HQ Proxmox cluster. Either node reports both.",

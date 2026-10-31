@@ -15839,19 +15839,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-31T14:22:09.729229Z",
+              "created_at": "2026-10-31T16:35:13.599113Z",
               "first_discovery_id": null,
-              "id": "2c01345a-bb33-4c28-8a91-82ab5361d9bd",
+              "id": "c28f9ee7-7e2e-4de4-b525-5e7c79e04862",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-31T14:22:09.729229Z",
+              "last_seen_at": "2026-10-31T16:35:13.599113Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-31T14:22:09.729229Z",
-              "valid_from": "2026-10-31T14:22:09.729229Z",
+              "updated_at": "2026-10-31T16:35:13.599113Z",
+              "valid_from": "2026-10-31T16:35:13.599113Z",
               "valid_to": null
             }
           },
@@ -17553,7 +17553,7 @@
               "created_at": "2026-01-15T10:30:00Z",
               "credential_assignments": [],
               "description": "Primary web server",
-              "device_type": "Sensor",
+              "device_type": "Server",
               "device_type_source": {
                 "service_id": "550e8400-e29b-41d4-a716-446655440007",
                 "service_name": "nginx",
@@ -17686,19 +17686,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-31T14:22:09.700336Z",
+                      "created_at": "2026-10-31T16:35:13.566968Z",
                       "first_discovery_id": null,
-                      "id": "1165aea1-61d4-42d1-aa32-dc35a1898a17",
+                      "id": "c84625a7-57e8-418e-b0e9-2e8daddaadae",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-31T14:22:09.700336Z",
+                      "last_seen_at": "2026-10-31T16:35:13.566968Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-31T14:22:09.700336Z",
-                      "valid_from": "2026-10-31T14:22:09.700336Z",
+                      "updated_at": "2026-10-31T16:35:13.566968Z",
+                      "valid_from": "2026-10-31T16:35:13.566968Z",
                       "valid_to": null
                     }
                   ],
@@ -17711,7 +17711,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Nest Protect",
+                  "service_definition": "Tenable Security Center",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -19209,19 +19209,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-31T14:22:09.724475Z",
+                  "created_at": "2026-10-31T16:35:13.594211Z",
                   "first_discovery_id": null,
-                  "id": "4935c7c9-2506-4fb0-b35e-d55527403472",
+                  "id": "735a234c-24a4-4905-a618-823acd9de46d",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-31T14:22:09.724475Z",
+                  "last_seen_at": "2026-10-31T16:35:13.594211Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-31T14:22:09.724475Z",
-                  "valid_from": "2026-10-31T14:22:09.724475Z",
+                  "updated_at": "2026-10-31T16:35:13.594211Z",
+                  "valid_from": "2026-10-31T16:35:13.594211Z",
                   "valid_to": null
                 }
               ],
@@ -19234,7 +19234,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Nest Protect",
+              "service_definition": "Tenable Security Center",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -22509,19 +22509,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-31T14:22:09.700959Z",
+          "created_at": "2026-10-31T16:35:13.567711Z",
           "first_discovery_id": null,
-          "id": "347856b5-b118-481a-8964-7ed63dd522e6",
+          "id": "5b095fa7-2e12-474a-b03e-4ebaa5ebd074",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-31T14:22:09.700959Z",
+          "last_seen_at": "2026-10-31T16:35:13.567711Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-31T14:22:09.700959Z",
-          "valid_from": "2026-10-31T14:22:09.700959Z",
+          "updated_at": "2026-10-31T16:35:13.567711Z",
+          "valid_from": "2026-10-31T16:35:13.567711Z",
           "valid_to": null
         }
       },
@@ -22982,6 +22982,7 @@
           "UnifiController",
           "InstantOn",
           "Proxmox",
+          "Libvirt",
           "ModbusTcp",
           "OpcUa",
           "EtherNetIp",
@@ -23433,7 +23434,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Nest Protect",
+              "service_definition": "Tenable Security Center",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -23810,7 +23811,8 @@
           "InstantOn",
           "Ssh",
           "WakeOnLan",
-          "Proxmox"
+          "Proxmox",
+          "Libvirt"
         ]
       },
       "CredentialOrderField": {
@@ -23856,6 +23858,7 @@
           "Ssh",
           "WakeOnLan",
           "Proxmox",
+          "Libvirt",
           "Unknown"
         ]
       },
@@ -24487,6 +24490,26 @@
           },
           {
             "type": "object",
+            "title": "Libvirt",
+            "description": "A libvirt/KVM host's domains, read with `virsh` over SSH, logged in with the credential's\nSSH login (`login_credential_id`). Each domain becomes a host under the hypervisor.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "connection_uri": {
+                "type": "string",
+                "description": "The connection URI `virsh` opens on the host (default `qemu:///system`)."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Libvirt"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "WakeOnLan",
             "description": "Wake-on-LAN: the daemon wakes the assigned hosts by MAC before the sweep, so a host that\nsleeps between scans is awake to be discovered.",
             "required": [
@@ -24583,6 +24606,7 @@
           "SshPassword",
           "SshKey",
           "SshScript",
+          "Libvirt",
           "WakeOnLan",
           "ProxmoxApiToken"
         ]
@@ -31538,7 +31562,7 @@
           "created_at": "2026-01-15T10:30:00Z",
           "credential_assignments": [],
           "description": "Primary web server",
-          "device_type": "Sensor",
+          "device_type": "Server",
           "device_type_source": {
             "service_id": "550e8400-e29b-41d4-a716-446655440007",
             "service_name": "nginx",
@@ -31671,19 +31695,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-31T14:22:09.699601Z",
+                  "created_at": "2026-10-31T16:35:13.566188Z",
                   "first_discovery_id": null,
-                  "id": "8d184428-2bbb-4c13-aada-f73ff74c8f4b",
+                  "id": "af129427-bee5-4fc9-a68c-4b6f89623c89",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-31T14:22:09.699601Z",
+                  "last_seen_at": "2026-10-31T16:35:13.566188Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-31T14:22:09.699601Z",
-                  "valid_from": "2026-10-31T14:22:09.699601Z",
+                  "updated_at": "2026-10-31T16:35:13.566188Z",
+                  "valid_from": "2026-10-31T16:35:13.566188Z",
                   "valid_to": null
                 }
               ],
@@ -31696,7 +31720,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Nest Protect",
+              "service_definition": "Tenable Security Center",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -35982,7 +36006,7 @@
                 "created_at": "2026-01-15T10:30:00Z",
                 "credential_assignments": [],
                 "description": "Primary web server",
-                "device_type": "Sensor",
+                "device_type": "Server",
                 "device_type_source": {
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "service_name": "nginx",
@@ -36115,19 +36139,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-31T14:22:09.684992Z",
+                        "created_at": "2026-10-31T16:35:13.549856Z",
                         "first_discovery_id": null,
-                        "id": "e94b091d-8d5f-4e3b-8a4f-8c0da437828f",
+                        "id": "011b57ec-268b-407f-a6e4-c2ff1b60509a",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-31T14:22:09.684992Z",
+                        "last_seen_at": "2026-10-31T16:35:13.549856Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-31T14:22:09.684992Z",
-                        "valid_from": "2026-10-31T14:22:09.684992Z",
+                        "updated_at": "2026-10-31T16:35:13.549856Z",
+                        "valid_from": "2026-10-31T16:35:13.549856Z",
                         "valid_to": null
                       }
                     ],
@@ -36140,7 +36164,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Nest Protect",
+                    "service_definition": "Tenable Security Center",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -36387,19 +36411,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-31T14:22:09.723726Z",
+                    "created_at": "2026-10-31T16:35:13.593139Z",
                     "first_discovery_id": null,
-                    "id": "cae7cba2-253e-4f67-9e84-6699371241e7",
+                    "id": "4c7c2ac4-55bc-422d-8ca6-a97fe05b4f7e",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-31T14:22:09.723726Z",
+                    "last_seen_at": "2026-10-31T16:35:13.593139Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-31T14:22:09.723726Z",
-                    "valid_from": "2026-10-31T14:22:09.723726Z",
+                    "updated_at": "2026-10-31T16:35:13.593139Z",
+                    "valid_from": "2026-10-31T16:35:13.593139Z",
                     "valid_to": null
                   }
                 ],
@@ -36412,7 +36436,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Nest Protect",
+                "service_definition": "Tenable Security Center",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -39115,19 +39139,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-31T14:22:09.700748Z",
+              "created_at": "2026-10-31T16:35:13.567439Z",
               "first_discovery_id": null,
-              "id": "412f153e-719d-4476-887c-3e28b282dec2",
+              "id": "6ea3bc33-a333-462a-84c5-a425abb4a317",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-31T14:22:09.700748Z",
+              "last_seen_at": "2026-10-31T16:35:13.567439Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-31T14:22:09.700748Z",
-              "valid_from": "2026-10-31T14:22:09.700748Z",
+              "updated_at": "2026-10-31T16:35:13.567439Z",
+              "valid_from": "2026-10-31T16:35:13.567439Z",
               "valid_to": null
             }
           ],
@@ -39140,7 +39164,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Nest Protect",
+          "service_definition": "Tenable Security Center",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -41575,7 +41599,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "ac792445-1371-4727-8d8a-1b37a58d982b",
+                  "id": "4248d99b-9089-4ace-ad74-ae3890b9ef74",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -41585,23 +41609,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "0f30065e-2d3b-4d97-9e03-c55574f909d6",
+                  "id": "a6ef1794-8f48-4140-9f78-08bdfdeb258b",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "c0cc1d9c-9046-4dab-a240-32157c24a776",
+                  "id": "c9c4b04d-362c-4ac0-9d01-867309da0f27",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "ae27b4c3-a087-40b1-ba00-6ef8470db8dc",
+                  "id": "6e22b5d7-22aa-480b-9b16-c1b6c44d45e5",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "0f30065e-2d3b-4d97-9e03-c55574f909d6",
+                  "id": "a6ef1794-8f48-4140-9f78-08bdfdeb258b",
                   "rule": "ByHost"
                 }
               ]
@@ -41631,19 +41655,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "fa5c7388-26fd-41ce-ae27-d535a2e205d8",
+                "id": "8e55559f-e419-4335-845a-5eceea835b9e",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "eb8ce6de-c79f-4663-b41f-f7eb40f9f963",
+                "id": "fef85fd3-a550-4299-b89b-52f3b50c3467",
                 "rule": "ByVLAN"
               },
               {
-                "id": "29e97c38-6692-4f01-8812-ef6ad62996c9",
+                "id": "d7242f2b-a9e1-435e-a5c0-2f80eeacbde5",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "dfa30c1c-c313-4079-aae5-52338e846cca",
+                "id": "f5723ad5-6cca-4073-ae03-e68b0aa78b8e",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -41664,7 +41688,7 @@
                 }
               },
               {
-                "id": "e8a75edd-5094-4494-a3fd-b224c47c3047",
+                "id": "369289ea-eae7-4604-8193-fcc059b015ec",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -41673,19 +41697,19 @@
                 }
               },
               {
-                "id": "b351fdf6-04a9-4ed7-8cf5-9bc77bdfa719",
+                "id": "6bfe45bd-6db8-437b-897b-0985f2f2e455",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "cb19d9f3-91ff-4bbf-a8fd-041954304e50",
+                "id": "4bfacd33-f853-466c-b07e-06e850accbd6",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "6ba76942-d795-4b1a-84a7-d987995053d4",
+                "id": "f139e17a-4116-405a-89fe-d1d890bedbe0",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "76cf7695-00df-42f6-b59a-0e9acdc3cbaf",
+                "id": "bd9ce3aa-0fa7-4223-bea7-a3ff3e949f72",
                 "rule": "ByStack"
               }
             ]

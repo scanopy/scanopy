@@ -1,0 +1,3 @@
+#cloud-config
+hostname: kvm-stopped
+# Defined and never started until the start-stopped scenario.

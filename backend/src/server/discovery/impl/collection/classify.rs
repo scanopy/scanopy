@@ -122,7 +122,8 @@ impl ClientProbe {
             | Self::Gnmi
             | Self::UnifiController
             | Self::InstantOn
-            | Self::Proxmox => C::Credentialed,
+            | Self::Proxmox
+            | Self::Libvirt => C::Credentialed,
 
             // Industrial protocols report the device's identity as well as confirming the port.
             Self::ModbusTcp | Self::EtherNetIp => {

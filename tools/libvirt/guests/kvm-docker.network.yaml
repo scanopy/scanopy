@@ -1,0 +1,10 @@
+version: 2
+ethernets:
+  eth0:
+    match:
+      macaddress: "52:54:00:7a:00:09"
+    set-name: eth0
+    addresses: [192.168.7.177/22]
+    gateway4: 192.168.4.1
+    nameservers:
+      addresses: [192.168.4.1]

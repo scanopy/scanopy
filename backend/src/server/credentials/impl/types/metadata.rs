@@ -194,6 +194,9 @@ impl CredentialTypeDiscriminants {
                 target_os: OsFamily::Unix,
                 timeout_seconds: default_ssh_timeout_seconds(),
             },
+            Self::Libvirt => CredentialType::Libvirt {
+                connection_uri: super::libvirt::default_libvirt_uri(),
+            },
             Self::WakeOnLan => CredentialType::WakeOnLan {
                 port: default_wake_on_lan_port(),
                 wait_seconds: default_wake_on_lan_wait_seconds(),
@@ -226,6 +229,8 @@ impl CredentialTypeDiscriminants {
             | Self::SshPassword
             | Self::SshKey
             | Self::SshScript
+            // libvirt's `virsh` and its output formats are documented (libvirt.org/manpages).
+            | Self::Libvirt
             | Self::WakeOnLan
             // The Proxmox VE API is documented (pve.proxmox.com/pve-docs/api-viewer).
             | Self::ProxmoxApiToken => UpstreamSupport::Vendor,
@@ -272,6 +277,7 @@ impl CredentialTypeDiscriminants {
             Self::SshPassword => "SSH Login (Password)",
             Self::SshKey => "SSH Login (Key)",
             Self::SshScript => "SSH Script",
+            Self::Libvirt => "libvirt",
             Self::WakeOnLan => "Wake-on-LAN",
             Self::ProxmoxApiToken => "Proxmox VE API Token",
         }
@@ -306,6 +312,7 @@ impl CredentialTypeDiscriminants {
             Self::SshPassword => "A username and password other SSH credentials log in with.",
             Self::SshKey => "A private key other SSH credentials log in with.",
             Self::SshScript => "Connects over SSH with an SSH login.",
+            Self::Libvirt => "Runs virsh over SSH, logged in with an SSH login.",
             Self::WakeOnLan => {
                 "Sends a magic packet over UDP. The daemon must be on the host's network segment, or the router must forward directed broadcasts or relay the packet."
             }
@@ -327,6 +334,7 @@ impl CredentialTypeDiscriminants {
             Self::SshPassword => "Login (Password)",
             Self::SshKey => "Login (Key)",
             Self::SshScript => "Script",
+            Self::Libvirt => "virsh over SSH",
             Self::WakeOnLan => "Magic Packet",
             Self::ProxmoxApiToken => "API Token",
         }
@@ -392,6 +400,8 @@ impl CredentialTypeDiscriminants {
             // Proxmox shipped in 0.17.21. That daemon is also the first whose ServerPoll
             // `create_host` returns the server's child ids, which guest linking depends on.
             Self::ProxmoxApiToken => semver::Version::new(0, 17, 20),
+            // libvirt ships after 0.19.5.
+            Self::Libvirt => semver::Version::new(0, 19, 5),
         }
     }
 
@@ -421,6 +431,7 @@ impl CredentialTypeDiscriminants {
             // New; validated against one single-node PVE 8.4 lab. Multi-node clusters and PVE 9
             // are covered by the API's documented shape, not yet by a live cluster.
             Self::ProxmoxApiToken => Stability::Beta,
+            Self::Libvirt => Stability::Beta,
         }
     }
 
@@ -443,6 +454,7 @@ impl CredentialTypeDiscriminants {
             | Self::SshPassword
             | Self::SshKey
             | Self::SshScript
+            | Self::Libvirt
             | Self::WakeOnLan
             | Self::ProxmoxApiToken => None,
             Self::InstantOnAccount => Some(Feature::InstantOnIntegration),
@@ -464,6 +476,7 @@ impl CredentialTypeDiscriminants {
             | Self::UnifiLocalAdmin
             | Self::InstantOnAccount
             | Self::SshScript
+            | Self::Libvirt
             | Self::WakeOnLan
             | Self::ProxmoxApiToken => CredentialRole::Dispatched,
         }
@@ -484,6 +497,7 @@ impl CredentialTypeDiscriminants {
             Self::InstantOnAccount => W::InstantOn,
             Self::SshPassword | Self::SshKey | Self::SshScript => W::Ssh,
             Self::WakeOnLan => W::WakeOnLan,
+            Self::Libvirt => W::Libvirt,
             Self::ProxmoxApiToken => W::Proxmox,
         }
     }
@@ -492,7 +506,7 @@ impl CredentialTypeDiscriminants {
     /// Exhaustive for the same reason as [`Self::role`].
     pub fn requires_login(&self) -> bool {
         match self {
-            Self::SshScript => true,
+            Self::SshScript | Self::Libvirt => true,
             Self::SnmpCommunity
             | Self::SnmpV3
             | Self::Gnmi

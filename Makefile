@@ -1,4 +1,4 @@
-.PHONY: daemon-build daemon-rebuild daemon-dev daemon-fix-perms help build test test-unit clean format lint lint-migrations generate-schema generate-messages generate-fixtures refresh-vendored-data third-party-notices seed-dev set-plan-community set-plan-starter set-plan-pro set-plan-team set-plan-business set-plan-enterprise set-plan-self-hosted-standard set-plan-self-hosted-plus test-plan test-merge test-results install-dev-mac install-dev-linux install-dev-windows snmp-seed-credentials snmp-fixtures snmp-deploy snmp-verify snmp-status ssh-lab-deploy ssh-lab-verify ssh-lab-status ssh-lab-rotate-hostkey wol-lab-provision wol-lab-listener wol-lab-sleep wol-lab-hibernate wol-lab-verify wol-lab-status wol-lab-log dcp-start dcp-stop dcp-verify dcp-status docker-proxy-up docker-proxy-up-tls docker-proxy-down docker-proxy-status podman-proxy-up podman-proxy-up-tls podman-proxy-down podman-proxy-status podman-workload-up podman-workload-down unifi-status unifi-capture issue-license new-terms-update daemon-clean daemon-purge daemon-logs daemon-restart daemon-stop daemon-start daemon-config
+.PHONY: daemon-build daemon-rebuild daemon-dev daemon-fix-perms help build test test-unit clean format lint lint-migrations generate-schema generate-messages generate-fixtures refresh-vendored-data third-party-notices seed-dev set-plan-community set-plan-starter set-plan-pro set-plan-team set-plan-business set-plan-enterprise set-plan-self-hosted-standard set-plan-self-hosted-plus test-plan test-merge test-results install-dev-mac install-dev-linux install-dev-windows snmp-seed-credentials snmp-fixtures snmp-deploy snmp-verify snmp-status ssh-lab-deploy ssh-lab-verify ssh-lab-status ssh-lab-rotate-hostkey wol-lab-provision wol-lab-listener wol-lab-sleep wol-lab-hibernate wol-lab-verify wol-lab-status wol-lab-log libvirt-lab-provision libvirt-lab-status libvirt-lab-capture dcp-start dcp-stop dcp-verify dcp-status docker-proxy-up docker-proxy-up-tls docker-proxy-down docker-proxy-status podman-proxy-up podman-proxy-up-tls podman-proxy-down podman-proxy-status podman-workload-up podman-workload-down unifi-status unifi-capture issue-license new-terms-update daemon-clean daemon-purge daemon-logs daemon-restart daemon-stop daemon-start daemon-config
 
 DAYS ?= 365
 PLAN ?= standard
@@ -104,6 +104,9 @@ help:
 	@echo "  make wol-lab-hibernate - Hibernate the WoL target VM to disk"
 	@echo "  make wol-lab-verify ADDR=<addr> - Send a magic packet from this Mac and wait for the VM"
 	@echo "  make wol-lab-status    - WoL target VM state and listener health"
+	@echo "  make libvirt-lab-provision - Build the libvirt KVM host and its guests (see tools/libvirt/LIBVIRT-TEST-ENV.md)"
+	@echo "  make libvirt-lab-status    - Every lab domain's state, NICs and addresses"
+	@echo "  make libvirt-lab-capture   - Record the inventory output as parse fixtures"
 	@echo "  make wol-lab-log       - Last 50 WoL listener log lines"
 	@echo "  make dcp-start       - Launch the local PROFINET DCP sim (see tools/dcp/DCP-TEST-ENV.md)"
 	@echo "  make dcp-stop        - Stop the local DCP sim"
@@ -688,6 +691,16 @@ wol-lab-status:
 
 wol-lab-log:
 	tools/wol/wol-test-env.sh listener-log
+
+libvirt-lab-provision:
+	tools/libvirt/provision.sh
+
+libvirt-lab-status:
+	tools/libvirt/libvirt-test-env.sh status
+
+# Records the inventory script's output from the lab, through the daemon's own code, as parse fixtures.
+libvirt-lab-capture:
+	cd backend && ~/.claude/scanopy/heavy cargo test --lib -- --ignored libvirt::lab_tests::capture --nocapture
 
 dcp-start:
 	tools/dcp/dcp-test-env.sh start

@@ -1165,6 +1165,7 @@ fn every_client_probe_variant_has_a_producer() {
         ClientProbe::UnifiController,
         ClientProbe::InstantOn,
         ClientProbe::Proxmox,
+        ClientProbe::Libvirt,
         ClientProbe::Gnmi,
     ];
     // Probes whose port comes from the host's mDNS advertisement, so they cannot be registry

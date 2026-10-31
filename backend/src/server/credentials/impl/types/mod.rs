@@ -15,6 +15,7 @@ use utoipa::ToSchema;
 
 pub mod container_proxy;
 pub mod instant_on;
+pub mod libvirt;
 pub mod paths;
 pub mod proxmox;
 pub mod snmp;
@@ -312,6 +313,14 @@ pub enum CredentialType {
         #[serde(default = "default_ssh_timeout_seconds")]
         timeout_seconds: u32,
     },
+    /// A libvirt/KVM host's domains, read with `virsh` over SSH, logged in with the credential's
+    /// SSH login (`login_credential_id`). Each domain becomes a host under the hypervisor.
+    #[schema(title = "Libvirt")]
+    Libvirt {
+        /// The connection URI `virsh` opens on the host (default `qemu:///system`).
+        #[serde(default = "libvirt::default_libvirt_uri")]
+        connection_uri: String,
+    },
     /// Wake-on-LAN: the daemon wakes the assigned hosts by MAC before the sweep, so a host that
     /// sleeps between scans is awake to be discovered.
     #[schema(title = "WakeOnLan")]
@@ -545,6 +554,7 @@ impl CredentialType {
             | (Self::SshPassword { .. }, _)
             | (Self::SshKey { .. }, _)
             | (Self::SshScript { .. }, _)
+            | (Self::Libvirt { .. }, _)
             | (Self::WakeOnLan { .. }, _)
             | (Self::ProxmoxApiToken { .. }, _) => {}
         }
@@ -589,6 +599,9 @@ impl CredentialType {
             // Like SNMP: the same account and script can serve a fleet, so a site assignment is a
             // reasonable way to apply it.
             Self::SshScript { .. } => vec![Target::Hosts, Target::Site],
+            // Like an SSH script: a hypervisor answers, and any other host has no `virsh` and is
+            // skipped without a finding.
+            Self::Libvirt { .. } => vec![Target::Hosts, Target::Site],
             // A login runs nothing, so it is assigned nowhere: the credentials that use it are.
             Self::SshPassword { .. } | Self::SshKey { .. } => vec![],
             // Named hosts only. A site assignment would wake every device on the subnet the
@@ -638,6 +651,8 @@ impl CredentialType {
             // Try-many: two SSH credentials (different accounts, different scripts) on one host
             // are both meaningful, and site-wide SSH must stay broadcastable.
             Self::SshScript { .. } => false,
+            // Try-many like SSH: each URI is its own reading of the host.
+            Self::Libvirt { .. } => false,
             // A login is never dispatched, so it meets no other credential on a host.
             Self::SshPassword { .. } | Self::SshKey { .. } => false,
             // Two WoL credentials on one host only send two packets; nothing to forbid.
@@ -723,7 +738,10 @@ impl CredentialType {
                 "token_secret" => inline_secret(token_secret),
                 _ => None,
             },
-            Self::DockerSocket { .. } | Self::PodmanSocket { .. } | Self::SshScript { .. } => None,
+            Self::DockerSocket { .. }
+            | Self::PodmanSocket { .. }
+            | Self::SshScript { .. }
+            | Self::Libvirt { .. } => None,
         }
     }
 
@@ -812,6 +830,7 @@ impl CredentialType {
                 target_os,
                 ..
             } => vec![script(source, *target_os)],
+            Self::Libvirt { .. } => vec![],
             Self::WakeOnLan {
                 secure_on_password, ..
             } => vec![
@@ -1028,6 +1047,21 @@ impl CredentialType {
                     target_os: *target_os,
                     timeout_seconds: *timeout_seconds,
                     host_key_fingerprint,
+                })
+            }
+            CredentialType::Libvirt { connection_uri } => {
+                let SshLogin {
+                    port,
+                    username,
+                    auth,
+                    host_key_fingerprint,
+                } = login?.ssh_login()?;
+                CredentialQueryPayload::Libvirt(libvirt::LibvirtQueryCredential {
+                    port,
+                    username,
+                    auth,
+                    host_key_fingerprint,
+                    connection_uri: connection_uri.trim().to_string(),
                 })
             }
             CredentialType::WakeOnLan {

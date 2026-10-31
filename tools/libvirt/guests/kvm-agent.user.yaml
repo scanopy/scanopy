@@ -1,0 +1,6 @@
+#cloud-config
+hostname: kvm-agent
+packages: [qemu-guest-agent]
+runcmd:
+  - rc-update add qemu-guest-agent default
+  - rc-service qemu-guest-agent start

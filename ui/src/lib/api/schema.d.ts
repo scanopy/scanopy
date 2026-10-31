@@ -4227,19 +4227,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-31T14:22:09.642442Z",
+             *       "created_at": "2026-10-31T16:35:13.501641Z",
              *       "first_discovery_id": null,
-             *       "id": "787c3f6f-b461-47a9-815e-47dca112abbb",
+             *       "id": "5eb8392a-4729-4d24-b06e-5bff5145760c",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-31T14:22:09.642442Z",
+             *       "last_seen_at": "2026-10-31T16:35:13.501641Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-10-31T14:22:09.642442Z",
-             *       "valid_from": "2026-10-31T14:22:09.642442Z",
+             *       "updated_at": "2026-10-31T16:35:13.501641Z",
+             *       "valid_from": "2026-10-31T16:35:13.501641Z",
              *       "valid_to": null
              *     }
              */
@@ -5003,7 +5003,7 @@ export interface components {
              *       "created_at": "2026-01-15T10:30:00Z",
              *       "credential_assignments": [],
              *       "description": "Primary web server",
-             *       "device_type": "Sensor",
+             *       "device_type": "Server",
              *       "device_type_source": {
              *         "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *         "service_name": "nginx",
@@ -5136,19 +5136,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-31T14:22:09.606588Z",
+             *               "created_at": "2026-10-31T16:35:13.458437Z",
              *               "first_discovery_id": null,
-             *               "id": "ffd50f79-f570-4125-a813-038f816c4c62",
+             *               "id": "9089497c-68d8-4ace-bc2f-20794d6cfdf6",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-31T14:22:09.606588Z",
+             *               "last_seen_at": "2026-10-31T16:35:13.458437Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-10-31T14:22:09.606588Z",
-             *               "valid_from": "2026-10-31T14:22:09.606588Z",
+             *               "updated_at": "2026-10-31T16:35:13.458437Z",
+             *               "valid_from": "2026-10-31T16:35:13.458437Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5161,7 +5161,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Nest Protect",
+             *           "service_definition": "Tenable Security Center",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6193,19 +6193,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-31T14:22:09.637180Z",
+             *           "created_at": "2026-10-31T16:35:13.495742Z",
              *           "first_discovery_id": null,
-             *           "id": "2e2aa966-3dea-4128-a418-301188e143f4",
+             *           "id": "47b0dda5-6872-40da-a1bf-4beb392288aa",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-31T14:22:09.637180Z",
+             *           "last_seen_at": "2026-10-31T16:35:13.495742Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-10-31T14:22:09.637180Z",
-             *           "valid_from": "2026-10-31T14:22:09.637180Z",
+             *           "updated_at": "2026-10-31T16:35:13.495742Z",
+             *           "valid_from": "2026-10-31T16:35:13.495742Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6218,7 +6218,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Nest Protect",
+             *       "service_definition": "Tenable Security Center",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7682,19 +7682,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-31T14:22:09.607379Z",
+         *       "created_at": "2026-10-31T16:35:13.459137Z",
          *       "first_discovery_id": null,
-         *       "id": "069a8e8d-d1df-48fe-ac0b-7f3c0b292f4a",
+         *       "id": "9aa393ac-a3a1-41f9-982b-01c0734b7224",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-31T14:22:09.607379Z",
+         *       "last_seen_at": "2026-10-31T16:35:13.459137Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-10-31T14:22:09.607379Z",
-         *       "valid_from": "2026-10-31T14:22:09.607379Z",
+         *       "updated_at": "2026-10-31T16:35:13.459137Z",
+         *       "valid_from": "2026-10-31T16:35:13.459137Z",
          *       "valid_to": null
          *     }
          */
@@ -7965,7 +7965,7 @@ export interface components {
          *     `every_client_probe_variant_has_a_producer` is what now says so.
          * @enum {string}
          */
-        ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "Proxmox" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "EpicsCa" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula" | "BeszelAgent" | "H323" | "SnmpEngine" | "DockerPing" | "PodmanPing" | "Ipp" | "Lpd" | "Smux" | "Rpcbind" | "Llmnr" | "SpotifyConnect" | "Vnc" | "AppleLockdown" | "DnsUdp" | "Ntp" | "Dhcp" | "Bacnet" | "Tftp" | "Mgcp" | "GoogleWifi";
+        ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "Proxmox" | "Libvirt" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "EpicsCa" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula" | "BeszelAgent" | "H323" | "SnmpEngine" | "DockerPing" | "PodmanPing" | "Ipp" | "Lpd" | "Smux" | "Rpcbind" | "Llmnr" | "SpotifyConnect" | "Vnc" | "AppleLockdown" | "DnsUdp" | "Ntp" | "Dhcp" | "Bacnet" | "Tftp" | "Mgcp" | "GoogleWifi";
         /** @enum {string} */
         ClockFormat: "browser_default" | "twelve_hour" | "twenty_four_hour";
         /** @enum {string} */
@@ -8084,7 +8084,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Nest Protect",
+         *           "service_definition": "Tenable Security Center",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8327,7 +8327,7 @@ export interface components {
          *     messages.
          * @enum {string}
          */
-        CredentialIntegration: "Snmp" | "Gnmi" | "Docker" | "Podman" | "UnifiController" | "InstantOn" | "Ssh" | "WakeOnLan" | "Proxmox";
+        CredentialIntegration: "Snmp" | "Gnmi" | "Docker" | "Podman" | "UnifiController" | "InstantOn" | "Ssh" | "WakeOnLan" | "Proxmox" | "Libvirt";
         /** @enum {string} */
         CredentialOrderField: "created_at" | "name" | "updated_at" | "credential_type" | "integration" | "beta" | "unofficial_api" | "daemon_os";
         /**
@@ -8345,7 +8345,7 @@ export interface components {
             daemon: string[];
         };
         /** @enum {string} */
-        CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Ssh" | "WakeOnLan" | "Proxmox" | "Unknown";
+        CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Ssh" | "WakeOnLan" | "Proxmox" | "Libvirt" | "Unknown";
         /**
          * @description What a credential is for: run against hosts by an integration, or a login other credentials
          *     use to reach a host.
@@ -8542,6 +8542,11 @@ export interface components {
             /** @enum {string} */
             type: "SshScript";
         } | {
+            /** @description The connection URI `virsh` opens on the host (default `qemu:///system`). */
+            connection_uri?: string;
+            /** @enum {string} */
+            type: "Libvirt";
+        } | {
             /**
              * @description Send here instead of the target subnet's directed broadcast (router relay address, WoL
              *     relay device, or `255.255.255.255`).
@@ -8575,7 +8580,7 @@ export interface components {
             type: "ProxmoxApiToken";
         };
         /** @enum {string} */
-        CredentialTypeDiscriminants: "SnmpCommunity" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount" | "SshPassword" | "SshKey" | "SshScript" | "WakeOnLan" | "ProxmoxApiToken";
+        CredentialTypeDiscriminants: "SnmpCommunity" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount" | "SshPassword" | "SshKey" | "SshScript" | "Libvirt" | "WakeOnLan" | "ProxmoxApiToken";
         Daemon: components["schemas"]["DaemonBase"] & {
             /**
              * Format: date-time
@@ -11099,7 +11104,7 @@ export interface components {
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "credential_assignments": [],
          *       "description": "Primary web server",
-         *       "device_type": "Sensor",
+         *       "device_type": "Server",
          *       "device_type_source": {
          *         "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *         "service_name": "nginx",
@@ -11232,19 +11237,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-31T14:22:09.605626Z",
+         *               "created_at": "2026-10-31T16:35:13.457641Z",
          *               "first_discovery_id": null,
-         *               "id": "ca8e187d-a8d5-4411-ba01-b49452efd3d3",
+         *               "id": "3c88c93d-6a49-4117-8826-c37673b30541",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-31T14:22:09.605626Z",
+         *               "last_seen_at": "2026-10-31T16:35:13.457641Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-10-31T14:22:09.605626Z",
-         *               "valid_from": "2026-10-31T14:22:09.605626Z",
+         *               "updated_at": "2026-10-31T16:35:13.457641Z",
+         *               "valid_from": "2026-10-31T16:35:13.457641Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11257,7 +11262,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Nest Protect",
+         *           "service_definition": "Tenable Security Center",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -14910,19 +14915,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-31T14:22:09.607115Z",
+         *           "created_at": "2026-10-31T16:35:13.458900Z",
          *           "first_discovery_id": null,
-         *           "id": "7cb5836a-799a-46ab-9b5a-3b1ea21886af",
+         *           "id": "cfbde013-94b1-4e6f-96d6-ecec1c7558d0",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-31T14:22:09.607115Z",
+         *           "last_seen_at": "2026-10-31T16:35:13.458900Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-10-31T14:22:09.607115Z",
-         *           "valid_from": "2026-10-31T14:22:09.607115Z",
+         *           "updated_at": "2026-10-31T16:35:13.458900Z",
+         *           "valid_from": "2026-10-31T16:35:13.458900Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -14935,7 +14940,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Nest Protect",
+         *       "service_definition": "Tenable Security Center",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -16148,7 +16153,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "548122ff-6802-4790-b97c-0a7267e0f2b6",
+             *           "id": "740e5668-328e-4a0f-9585-10fdb23f27cc",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16158,23 +16163,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "40e29246-5354-4248-ac12-09b0e20ea82f",
+             *           "id": "39848c08-0585-48cc-8106-4a156576ceb7",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "2ea839c4-484b-43c9-a179-bb6f8c591aa0",
+             *           "id": "1389959f-3e5a-4451-9da4-98e5f57667f9",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "036d3d13-8ee2-4b62-bf92-163f67aa492c",
+             *           "id": "647d0f5e-fdf5-4622-9d64-e87b551b8e80",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "40e29246-5354-4248-ac12-09b0e20ea82f",
+             *           "id": "39848c08-0585-48cc-8106-4a156576ceb7",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16188,19 +16193,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "c34496ff-f4e1-4ecc-af69-d6181e03d375",
+             *         "id": "2c31b558-b2f4-4d83-b7fa-c55b300ed315",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "a66fcffc-639e-4d20-8c3a-707582c49aa7",
+             *         "id": "1ad95a04-f9cd-4365-b7a8-6b8fc1c7b591",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "081cd7be-641e-4b22-9a3d-fae4eff4382d",
+             *         "id": "3051f3ed-d04d-4e54-9a13-9e1a39039f44",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "b9ce0cbf-0edb-4831-b843-044c834ca333",
+             *         "id": "8441435b-56fc-4263-a66b-d3f8bdefc652",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16221,7 +16226,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "54e848f7-a00d-45d7-8db9-ecf6f6a86ed3",
+             *         "id": "d1aba949-d469-463b-9f3c-f848f1b5dd7b",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16230,19 +16235,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "bdc47db4-3d9e-4412-9a17-03e2a6613640",
+             *         "id": "ce34f365-b03c-4b20-b46f-5f29f4524ad7",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "58496acc-3473-46d1-81b0-d95ff4f0c964",
+             *         "id": "28337888-a032-4698-8a8d-03dd869e851a",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "c7e1f744-fe33-4669-bd0e-17191146b320",
+             *         "id": "3dd9d047-0325-4de1-93f6-5ecf9555f10e",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "85e09b5b-dbcd-43d4-bea7-0e4f04dcdfb3",
+             *         "id": "fc5161cb-613d-4fde-be15-4eab5e39e41b",
              *         "rule": "ByStack"
              *       }
              *     ]
