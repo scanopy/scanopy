@@ -50,7 +50,7 @@ struct Lab {
     storage: StorageFactory,
     site_id: Uuid,
     subnet_id: Uuid,
-    _container: testcontainers::ContainerAsync<testcontainers::GenericImage>,
+    _container: super::TestDb,
 }
 
 impl Lab {

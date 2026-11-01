@@ -187,12 +187,7 @@ async fn a_self_hosted_server_enforcing_plan_limits_never_gates() {
 }
 
 /// A Scanopy Cloud server whose email transport writes into `dir`.
-async fn cloud_state_with_email(
-    dir: &tempfile::TempDir,
-) -> (
-    Arc<AppState>,
-    testcontainers::ContainerAsync<testcontainers::GenericImage>,
-) {
+async fn cloud_state_with_email(dir: &tempfile::TempDir) -> (Arc<AppState>, super::TestDb) {
     test_state_from(ServerConfig {
         stripe_secret: Some("sk_test_unused".to_string()),
         email_log_dir: Some(dir.path().to_path_buf()),

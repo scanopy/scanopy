@@ -13,12 +13,11 @@ use chrono::Utc;
 use email_address::EmailAddress;
 use governor::Quota;
 use std::num::NonZeroU32;
-use testcontainers::{ContainerAsync, GenericImage};
 use tokio::sync::broadcast::Receiver;
 use uuid::Uuid;
 
 use super::self_hosted_licensing::{reload, test_state_with_email_dir};
-use super::{organization, user};
+use super::{TestDb, organization, user};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::billing::plans::{get_free_plan, get_purchasable_plans};
 use crate::server::billing::service::stripe_client::tests::{client_for, fake_stripe};
@@ -79,9 +78,7 @@ pub(super) async fn billing_with(state: &AppState, router: Router) -> BillingSer
 
 /// A fresh database, plus a billing service whose Stripe serves the recorded
 /// subscription for `org_id` and lists no others.
-async fn billing_against_fake_stripe(
-    org_id: Uuid,
-) -> (Arc<AppState>, BillingService, ContainerAsync<GenericImage>) {
+async fn billing_against_fake_stripe(org_id: Uuid) -> (Arc<AppState>, BillingService, TestDb) {
     let (state, container) = test_state_with_email_dir(None).await;
     let subscription = subscription_for(org_id);
     let router = Router::new()

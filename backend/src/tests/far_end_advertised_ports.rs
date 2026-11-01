@@ -47,7 +47,7 @@ struct Lab {
     neighbours: std::sync::Arc<InterfaceNeighborService>,
     storage: StorageFactory,
     site_id: Uuid,
-    _container: testcontainers::ContainerAsync<testcontainers::GenericImage>,
+    _container: super::TestDb,
 }
 
 impl Lab {

@@ -32,13 +32,7 @@ use crate::server::subnets::r#impl::base::SubnetName;
 
 /// Seed a site with the two organizational catch-alls a real one is created with, plus whatever
 /// else the test wants it to hold.
-async fn site_holding(
-    cidrs: &[&str],
-) -> (
-    ServiceFactory,
-    uuid::Uuid,
-    testcontainers::ContainerAsync<testcontainers::GenericImage>,
-) {
+async fn site_holding(cidrs: &[&str]) -> (ServiceFactory, uuid::Uuid, super::TestDb) {
     let (storage, services, container) = test_services().await;
 
     let org = organization();

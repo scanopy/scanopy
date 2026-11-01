@@ -9,12 +9,11 @@ use axum::http::StatusCode;
 use axum_client_ip::ClientIp;
 use axum_extra::extract::Host;
 use email_address::EmailAddress;
-use testcontainers::{ContainerAsync, GenericImage};
 use tower_sessions::Session;
 use tower_sessions_memory_store::MemoryStore;
 use uuid::Uuid;
 
-use super::{organization, setup_test_db, user};
+use super::{TestDb, organization, setup_migrated_test_db, user};
 use crate::server::auth::handlers::oidc::oidc_authorize;
 use crate::server::auth::handlers::registration::register;
 use crate::server::auth::r#impl::api::{OidcAuthorizeParams, RegisterRequest};
@@ -36,8 +35,8 @@ const OIDC_SLUG: &str = "idp";
 
 /// App state on a fresh database with one OIDC provider configured. The issuer is
 /// unreachable, so an authorize request that gets past the gates fails at discovery.
-async fn test_state(disable_registration: bool) -> (Arc<AppState>, ContainerAsync<GenericImage>) {
-    let (pool, database_url, container) = setup_test_db().await;
+async fn test_state(disable_registration: bool) -> (Arc<AppState>, TestDb) {
+    let (pool, database_url, container) = setup_migrated_test_db().await;
     pool.close().await;
     let config = ServerConfig {
         database_url,
