@@ -51,12 +51,16 @@
 			{#each sections as section (section.label)}
 				<div class="space-y-1">
 					<h4 class="text-xs font-semibold text-primary">{section.label}</h4>
-					{#each section.rows as resource (resource)}
-						<div class="flex items-center justify-between gap-3 text-xs text-secondary">
-							<span class="truncate">{resources.getName(resource)}</span>
-							<RoleActionIcons held={roleActions(resource, role)} />
-						</div>
-					{/each}
+					<div>
+						{#each section.rows as resource (resource)}
+							<div
+								class="flex items-center justify-between gap-3 rounded-sm px-1.5 py-1 text-xs text-secondary odd:bg-gray-100 dark:odd:bg-gray-700/25"
+							>
+								<span class="truncate">{resources.getName(resource)}</span>
+								<RoleActionIcons held={roleActions(resource, role)} />
+							</div>
+						{/each}
+					</div>
 				</div>
 			{/each}
 		</div>
