@@ -8,11 +8,11 @@
 //! mutating operations since they don't have owner permissions.
 
 use crate::server::{
+    auth::access::{Action, Resource},
     auth::middleware::{auth::AuthenticatedEntity, cache::CachedSite},
     billing::types::base::BillingPlan,
     config::AppState,
     shared::types::api::ApiError,
-    users::r#impl::permissions::UserOrgPermissions,
 };
 use axum::{
     body::Body,
@@ -52,24 +52,20 @@ pub async fn demo_mode_middleware(
         .await
         .ok();
 
-    // Get org ID and permissions based on auth type
-    let (organization_id, permissions) = match &entity {
+    // Get org ID based on auth type
+    let organization_id = match &entity {
         Some(AuthenticatedEntity::User {
-            organization_id,
-            permissions,
-            ..
-        }) => (Some(*organization_id), Some(*permissions)),
-        Some(AuthenticatedEntity::ApiKey {
-            organization_id,
-            permissions,
-            ..
-        }) => (Some(*organization_id), Some(*permissions)),
+            organization_id, ..
+        })
+        | Some(AuthenticatedEntity::ApiKey {
+            organization_id, ..
+        }) => Some(*organization_id),
         Some(AuthenticatedEntity::Daemon { site_id, .. }) => {
             // Daemons: look up org from site
-            match CachedSite::get_or_load(&mut parts, &state, site_id).await {
-                Ok(site) => (Some(site.base.organization_id), None),
-                Err(_) => (None, None),
-            }
+            CachedSite::get_or_load(&mut parts, &state, site_id)
+                .await
+                .ok()
+                .map(|site| site.base.organization_id)
         }
         // System/Anonymous/ExternalService - allow through
         _ => {
@@ -100,8 +96,13 @@ pub async fn demo_mode_middleware(
         return next.run(request).await;
     }
 
-    // Allow owners in demo mode (daemons have no permissions, so they're blocked)
-    if permissions == Some(UserOrgPermissions::Owner) {
+    // Allow owners in demo mode, from access so a key follows its owner (daemons hold none, so
+    // they're blocked)
+    let is_owner = entity
+        .as_ref()
+        .and_then(AuthenticatedEntity::access)
+        .is_some_and(|access| access.can(Resource::Organization, Action::Delete));
+    if is_owner {
         return next.run(request).await;
     }
 

@@ -186,6 +186,12 @@ pub async fn delete_user(
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
 
+    let owners_lock = state
+        .services
+        .user_service
+        .lock_organization_owners(organization_id)
+        .await?;
+
     let user_to_be_deleted = state
         .services
         .user_service
@@ -218,7 +224,9 @@ pub async fn delete_user(
         ));
     }
 
-    delete_handler::<User>(state, auth, id).await
+    let deleted = delete_handler::<User>(state, auth, id).await?;
+    owners_lock.release().await.map_err(anyhow::Error::from)?;
+    Ok(deleted)
 }
 
 /// Update your own user record
@@ -337,9 +345,9 @@ async fn admin_update_user(
         return Err(ApiError::permission_denied());
     }
 
-    // Can only edit users you could have granted
+    // Can only edit users you could have granted, and not a peer
     let caller = auth.require_access()?;
-    if !caller.may_grant_to_person(&access_service.user_access(&existing).await?) {
+    if !caller.may_edit_person(&access_service.user_access(&existing).await?) {
         return Err(ApiError::permission_denied());
     }
 
@@ -419,6 +427,12 @@ pub async fn bulk_delete_users(
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
 
+    let owners_lock = state
+        .services
+        .user_service
+        .lock_organization_owners(organization_id)
+        .await?;
+
     let user_filter = StorableFilter::<User>::new_from_entity_ids(&ids);
     let users = state.services.user_service.get_all(user_filter).await?;
 
@@ -444,7 +458,10 @@ pub async fn bulk_delete_users(
         ));
     }
 
-    bulk_delete_handler::<User>(axum::extract::State(state), auth, ApiJson(ids)).await
+    let deleted =
+        bulk_delete_handler::<User>(axum::extract::State(state), auth, ApiJson(ids)).await?;
+    owners_lock.release().await.map_err(anyhow::Error::from)?;
+    Ok(deleted)
 }
 
 /// Refuses deleting yourself, or a user whose role you could not have granted. The users list

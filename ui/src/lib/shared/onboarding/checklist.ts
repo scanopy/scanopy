@@ -82,18 +82,15 @@ export function hasDaemon(onboarding: OnboardingOperation[]): boolean {
 }
 
 /**
- * Which pre-daemon prompt the homepage shows in the checklist's slot. The
+ * Whether the homepage shows the pre-daemon prompt in the checklist's slot. The
  * checklist carries its own daemon step, so the prompt only fills in once the
- * checklist is dismissed. Read-only users (Viewers, lapsed orgs) cannot create
- * a daemon and get the prompt without its install action.
+ * checklist is dismissed.
  */
 export function homeDaemonPrompt(
 	onboarding: OnboardingOperation[],
-	checklistDismissed: boolean,
-	isReadOnly: boolean
-): 'install' | 'readOnly' | null {
-	if (hasDaemon(onboarding) || !checklistDismissed) return null;
-	return isReadOnly ? 'readOnly' : 'install';
+	checklistDismissed: boolean
+): boolean {
+	return checklistDismissed && !hasDaemon(onboarding);
 }
 
 export function executeStepAction(step: ChecklistStep, navigate: (tab: string) => void): void {

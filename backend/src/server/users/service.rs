@@ -11,6 +11,7 @@ use crate::server::{
         storage::{
             filter::StorableFilter,
             generic::GenericPostgresStorage,
+            lock::{DEFAULT_LOCK_TIMEOUT, LockKey, SessionLockGuard, xact_lock},
             traits::{Entity, Storable, Storage},
         },
     },
@@ -23,6 +24,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
 use email_address::EmailAddress;
+use sqlx::{Postgres, Transaction};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -230,6 +232,59 @@ impl UserService {
             .user_permissions(&UserOrgPermissions::Owner);
 
         self.user_storage.get_all(filter).await
+    }
+
+    /// [`Self::get_organization_owners`] inside `tx`, for a read under the owners lock.
+    pub async fn get_organization_owners_in_tx(
+        &self,
+        organization_id: &Uuid,
+        tx: &mut Transaction<'_, Postgres>,
+    ) -> Result<Vec<User>> {
+        let filter = StorableFilter::<User>::new_from_org_id(organization_id)
+            .user_permissions(&UserOrgPermissions::Owner);
+        GenericPostgresStorage::<User>::get_all_in_tx(filter, tx).await
+    }
+
+    /// Read a user inside `tx`.
+    pub async fn get_in_tx(
+        &self,
+        id: &Uuid,
+        tx: &mut Transaction<'_, Postgres>,
+    ) -> Result<Option<User>> {
+        let filter = StorableFilter::<User>::new_from_entity_id(id);
+        let users = GenericPostgresStorage::<User>::get_all_in_tx(filter, tx).await?;
+        Ok(users.into_iter().next())
+    }
+
+    /// Hold `organization_id`'s owners lock until the guard is released. For a handler with no
+    /// transaction; it reads the owners and its targets after this returns.
+    pub async fn lock_organization_owners(
+        &self,
+        organization_id: Uuid,
+    ) -> Result<SessionLockGuard> {
+        Ok(self
+            .user_storage
+            .session_lock(
+                LockKey::OrganizationOwners { organization_id },
+                DEFAULT_LOCK_TIMEOUT,
+            )
+            .await?)
+    }
+
+    /// Hold `organization_id`'s owners lock until `tx` commits or rolls back. It contends with
+    /// [`Self::lock_organization_owners`] on the same key.
+    pub async fn lock_organization_owners_in_tx(
+        &self,
+        organization_id: Uuid,
+        tx: &mut Transaction<'_, Postgres>,
+    ) -> Result<()> {
+        xact_lock(
+            tx,
+            LockKey::OrganizationOwners { organization_id },
+            DEFAULT_LOCK_TIMEOUT,
+        )
+        .await?;
+        Ok(())
     }
 
     /// Returns all users with access to `site_id` within `organization_id`.

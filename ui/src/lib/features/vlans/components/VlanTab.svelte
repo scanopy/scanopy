@@ -47,7 +47,10 @@
 
 	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '$lib/features/auth/access';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
 	const VLAN_FIELD_VALUES = '/api/v1/vlans/field-values/{field}';
 
@@ -122,16 +125,23 @@
 
 	/** Row actions. */
 	function vlanActions(vlan: Vlan): CardAction[] {
-		if (isReadOnly) return [];
+		if (!can('Vlan', 'Write')) return [];
 		return [
-			{ label: common_edit(), icon: Edit, isOpen: true, onClick: () => handleEditVlan(vlan) },
+			{
+				label: common_edit(),
+				icon: Edit,
+				isOpen: true,
+				onClick: () => handleEditVlan(vlan),
+				unavailable: refusedUnless(can('Vlan', 'Write', vlan.site_id))
+			},
 			{
 				label: common_delete(),
 				icon: Trash2,
 				tone: 'danger',
 				isDelete: true,
 				onBulk: handleBulkDelete,
-				onClick: () => handleDeleteVlan(vlan)
+				onClick: () => handleDeleteVlan(vlan),
+				unavailable: refusedUnless(can('Vlan', 'Delete', vlan.site_id))
 			}
 		];
 	}
@@ -228,7 +238,7 @@
 			storageKey="scanopy-vlans-table-state"
 			defaults={tableDefaults}
 			entityType="Vlan"
-			canEditTags={!isReadOnly}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={getVlanTags}
 			getItemId={(item) => item.id}
 			serverPagination={vlansPagination}

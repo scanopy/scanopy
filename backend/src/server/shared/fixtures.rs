@@ -6,6 +6,7 @@ use crate::daemon::discovery::types::warnings::{
     ClaimSource, DiscoveryWarningCode, MalformedNeighbourConsequence, SnmpWalkCause, SnmpWalkGroup,
     WarningRemedy,
 };
+use crate::server::auth::access::Resource;
 use crate::server::auth::r#impl::oidc::IdentityProviderLogo;
 use crate::server::billing::plans::get_website_fixture_plans;
 use crate::server::billing::types::base::{BillingPlan, CancelReason, PlanStatus, SaveOffer};
@@ -343,6 +344,10 @@ pub fn generate_ui_data_fixtures(output_dir: &Path, force_logos: bool) {
         .map(|p| p.to_metadata())
         .collect();
     write_fixture(&permissions, output_dir, "permissions.json");
+
+    // What the role comparison lists: each resource with its level under every role.
+    let resources: Vec<TypeMetadata> = Resource::iter().map(|r| r.to_metadata()).collect();
+    write_fixture(&resources, output_dir, "resources.json");
 
     // Entity metadata (uses TypeMetadata for the metadata field with parent_entity)
     let entities: Vec<TypeMetadata> = EntityDiscriminants::iter()

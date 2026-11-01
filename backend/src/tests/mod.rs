@@ -45,6 +45,7 @@ use std::sync::Arc;
 use testcontainers::{ContainerAsync, GenericImage, ImageExt, core::WaitFor, runners::AsyncRunner};
 use uuid::Uuid;
 
+pub mod access_writes;
 pub mod api_key_site_access;
 pub mod billing_emails_zero_amount;
 pub mod cloud_setup;

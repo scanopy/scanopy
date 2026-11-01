@@ -1,6 +1,7 @@
 <script lang="ts">
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	import { useCan } from '$lib/features/auth/access';
 	import { pushError, pushSuccess } from '$lib/shared/stores/feedback';
 	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import InfoRow from '$lib/shared/components/data/InfoRow.svelte';
@@ -95,9 +96,10 @@
 	let showDeleteConfirm = $state(false);
 
 	const configQuery = useConfigQuery();
+	const can = useCan();
 
 	let org = $derived(organizationQuery.data);
-	let isOwner = $derived(currentUser?.permissions === 'Owner');
+	let isOwner = $derived(can('Organization', 'Write'));
 	let isDemoOrg = $derived(billingPlans.getMetadata(org?.plan?.type ?? null).is_demo === true);
 	// Reset and populate-demo hit main-app routes, which stay locked on a licensed
 	// plan.

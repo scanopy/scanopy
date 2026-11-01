@@ -63,7 +63,7 @@
 	// Permission levels that don't need site assignment
 	const sitesNotNeeded: string[] = permissions
 		.getItems()
-		.filter((p) => p.metadata.manage_org_entities)
+		.filter((p) => p.metadata.reaches_all_sites)
 		.map((p) => p.id);
 
 	// Selected sites state

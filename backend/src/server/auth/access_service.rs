@@ -4,6 +4,7 @@
 use std::sync::Arc;
 
 use anyhow::{Result, anyhow};
+use sqlx::{Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::server::{
@@ -24,6 +25,19 @@ use crate::server::{
         service::UserService,
     },
 };
+
+/// What a user with `role` holds: All sites at Admin for an Owner, otherwise `assignments`.
+fn held_by_person(role: UserOrgPermissions, assignments: &[Assignment]) -> &[Assignment] {
+    const EVERY_SITE: &[Assignment] = &[Assignment {
+        role: SiteRole::Admin,
+        scope: AssignmentScope::AllSites,
+    }];
+    if role == UserOrgPermissions::Owner {
+        EVERY_SITE
+    } else {
+        assignments
+    }
+}
 
 pub struct AccessService {
     site_assignments: Arc<SiteAssignmentService>,
@@ -118,7 +132,31 @@ impl AccessService {
         .await
     }
 
+    /// Lock the owners of `id`'s organization in `tx` and read the user under that lock.
+    async fn lock_user_in_tx(&self, id: Uuid, tx: &mut Transaction<'_, Postgres>) -> Result<User> {
+        let organization_id = self
+            .user_service
+            .get_in_tx(&id, tx)
+            .await?
+            .ok_or_else(|| anyhow!("User {id} does not exist"))?
+            .base
+            .organization_id;
+        self.user_service
+            .lock_organization_owners_in_tx(organization_id, tx)
+            .await?;
+        let user = self
+            .user_service
+            .get_in_tx(&id, tx)
+            .await?
+            .ok_or_else(|| anyhow!("User {id} does not exist"))?;
+        if user.base.organization_id != organization_id {
+            return Err(ApiError::conflict("This user just changed organization.").into());
+        }
+        Ok(user)
+    }
+
     /// Give `principal` this organization role and these site assignments, replacing what it held.
+    /// The role and rows commit together, and the Updated event follows the commit.
     ///
     /// The last Owner can't be demoted, and a user with org Owner always holds All sites at Admin,
     /// whatever `assignments` says. Keys have neither rule, so a limited Owner key stays limited.
@@ -132,17 +170,14 @@ impl AccessService {
         let reason = UpdateReason::EntityRequested;
         match principal {
             Principal::User(id) => {
-                let mut user = self
-                    .user_service
-                    .get_by_id(&id)
-                    .await?
-                    .ok_or_else(|| anyhow!("User {id} does not exist"))?;
-                let organization_id = user.base.organization_id;
-                if user.base.permissions == UserOrgPermissions::Owner
+                let mut tx = self.site_assignments.begin().await?;
+                let before = self.lock_user_in_tx(id, &mut tx).await?;
+                let organization_id = before.base.organization_id;
+                if before.base.permissions == UserOrgPermissions::Owner
                     && role != UserOrgPermissions::Owner
                     && self
                         .user_service
-                        .get_organization_owners(&organization_id)
+                        .get_organization_owners_in_tx(&organization_id, &mut tx)
                         .await?
                         .len()
                         <= 1
@@ -152,56 +187,110 @@ impl AccessService {
                     )
                     .into());
                 }
-                let every_site = [Assignment {
-                    role: SiteRole::Admin,
-                    scope: AssignmentScope::AllSites,
-                }];
-                let assignments = if role == UserOrgPermissions::Owner {
-                    &every_site[..]
-                } else {
-                    assignments
-                };
+                let mut after = before.clone();
+                after.base.permissions = role;
+                let role_changed = before.base.permissions != role;
+                if role_changed {
+                    self.user_service.update_in_tx(&after, &mut tx).await?;
+                }
                 self.site_assignments
-                    .replace(organization_id, principal, assignments)
+                    .replace_in_tx(
+                        organization_id,
+                        principal,
+                        held_by_person(role, assignments),
+                        &mut tx,
+                    )
                     .await?;
-                if user.base.permissions != role {
-                    user.base.permissions = role;
-                    self.user_service.update(&mut user, actor, reason).await?;
+                tx.commit().await?;
+                if role_changed {
+                    self.user_service
+                        .publish_updated(&before, &after, actor, reason)
+                        .await;
                 }
             }
             Principal::ApiKey(id) => {
-                let mut key = self
+                let before = self
                     .user_api_key_service
                     .get_by_id(&id)
                     .await?
                     .ok_or_else(|| anyhow!("API key {id} does not exist"))?;
-                self.site_assignments
-                    .replace(key.base.organization_id, principal, assignments)
-                    .await?;
-                if key.base.permissions != role {
-                    key.base.permissions = role;
+                let mut after = before.clone();
+                after.base.permissions = role;
+                let role_changed = before.base.permissions != role;
+                let mut tx = self.site_assignments.begin().await?;
+                if role_changed {
                     self.user_api_key_service
-                        .update(&mut key, actor, reason)
+                        .update_in_tx(&after, &mut tx)
                         .await?;
+                }
+                self.site_assignments
+                    .replace_in_tx(before.base.organization_id, principal, assignments, &mut tx)
+                    .await?;
+                tx.commit().await?;
+                if role_changed {
+                    self.user_api_key_service
+                        .publish_updated(&before, &after, actor, reason)
+                        .await;
                 }
             }
             Principal::Invite(id) => {
-                let mut invite = self
+                let before = self
                     .invite_service
                     .get_by_id(&id)
                     .await?
                     .ok_or_else(|| anyhow!("Invite {id} does not exist"))?;
+                let mut after = before.clone();
+                after.base.permissions = role;
+                let role_changed = before.base.permissions != role;
+                let mut tx = self.site_assignments.begin().await?;
+                if role_changed {
+                    self.invite_service.update_in_tx(&after, &mut tx).await?;
+                }
                 self.site_assignments
-                    .replace(invite.base.organization_id, principal, assignments)
+                    .replace_in_tx(before.base.organization_id, principal, assignments, &mut tx)
                     .await?;
-                if invite.base.permissions != role {
-                    invite.base.permissions = role;
+                tx.commit().await?;
+                if role_changed {
                     self.invite_service
-                        .update(&mut invite, actor, reason)
-                        .await?;
+                        .publish_updated(&before, &after, actor, reason)
+                        .await;
                 }
             }
         }
+        Ok(())
+    }
+
+    /// Move a user into `organization_id` with this role and these site assignments. The
+    /// organization, role and rows commit together, and the Updated event follows the commit.
+    ///
+    /// Takes the owners lock of the organization the user leaves. Nothing here refuses the last
+    /// Owner leaving.
+    pub async fn join_organization(
+        &self,
+        user_id: Uuid,
+        organization_id: Uuid,
+        role: UserOrgPermissions,
+        assignments: &[Assignment],
+        actor: AuthenticatedEntity,
+    ) -> Result<()> {
+        let mut tx = self.site_assignments.begin().await?;
+        let before = self.lock_user_in_tx(user_id, &mut tx).await?;
+        let mut after = before.clone();
+        after.base.organization_id = organization_id;
+        after.base.permissions = role;
+        self.user_service.update_in_tx(&after, &mut tx).await?;
+        self.site_assignments
+            .replace_in_tx(
+                organization_id,
+                Principal::User(user_id),
+                held_by_person(role, assignments),
+                &mut tx,
+            )
+            .await?;
+        tx.commit().await?;
+        self.user_service
+            .publish_updated(&before, &after, actor, UpdateReason::UserJoinedOrganization)
+            .await;
         Ok(())
     }
 

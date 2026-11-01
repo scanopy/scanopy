@@ -9,10 +9,10 @@ use crate::server::config::AppState;
 use crate::server::invites::r#impl::base::Invite;
 use crate::server::organizations::r#impl::api::CreateInviteRequest;
 use crate::server::shared::events::traits::{Event, OrgScope};
+use crate::server::shared::events::types::DeletionReason;
 use crate::server::shared::events::types::{
     BillingOperation, OnboardingOperation, OnboardingOperationDiscriminants,
 };
-use crate::server::shared::events::types::{DeletionReason, UpdateReason};
 use crate::server::shared::services::traits::{CrudService, EventBusService};
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::Entity;
@@ -521,60 +521,26 @@ async fn accept_invite_link(
                 Redirect::to(&format!("/?error={}", urlencoding::encode(&e.to_string())))
             })?
         {
-            let mut user = state
-                .services
-                .user_service
-                .get_by_id(&user_id)
-                .await
-                .map_err(|_| {
-                    Redirect::to(&format!(
-                        "/?error={}",
-                        urlencoding::encode(&format!(
-                            "Failed get user to update organization {}",
-                            user_id
-                        ))
-                    ))
-                })?
-                .ok_or_else(|| {
-                    Redirect::to(&format!(
-                        "/?error={}",
-                        urlencoding::encode(&format!(
-                            "Failed to update organization for user {}",
-                            user_id
-                        ))
-                    ))
-                })?;
-
-            user.base.organization_id = org_id;
-            user.base.permissions = permissions;
-            let failed = |_| {
-                Redirect::to(&format!(
-                    "/?error={}",
-                    urlencoding::encode(&format!("Failed update user organization {}", user_id))
-                ))
-            };
-            // Update user's organization
-            state
-                .services
-                .user_service
-                .update(
-                    &mut user,
-                    AuthenticatedEntity::System,
-                    UpdateReason::UserJoinedOrganization,
-                )
-                .await
-                .map_err(failed)?;
             state
                 .services
                 .access_service
-                .set_access(
-                    Principal::User(user_id),
+                .join_organization(
+                    user_id,
+                    org_id,
                     permissions,
                     &site_assignments,
                     AuthenticatedEntity::System,
                 )
                 .await
-                .map_err(failed)?;
+                .map_err(|_| {
+                    Redirect::to(&format!(
+                        "/?error={}",
+                        urlencoding::encode(&format!(
+                            "Failed update user organization {}",
+                            user_id
+                        ))
+                    ))
+                })?;
         }
 
         // Redirect to home

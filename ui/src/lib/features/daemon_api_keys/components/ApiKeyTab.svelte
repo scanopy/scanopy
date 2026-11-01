@@ -41,12 +41,15 @@
 		daemonApiKeys_inUseBulk
 	} from '$lib/paraglide/messages';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '$lib/features/auth/access';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
 	// Queries
 	const tagsQuery = useTagsQuery();
 	// Every key, bound or not: a deep link can name a key bound to a daemon.
-	const apiKeysQuery = useApiKeysQuery();
+	const apiKeysQuery = useApiKeysQuery({ enabled: () => can('DaemonApiKey', 'Read') });
 	// The page the table shows: keys no daemon is bound to, paged on the server. A key bound 1:1 to
 	// a daemon is managed from the daemon record, not this tab.
 	const page = listPageState(() => isActive);
@@ -144,10 +147,16 @@
 
 	/** Row actions. */
 	function apiKeyActions(apiKey: ApiKey): CardAction[] {
-		if (isReadOnly) return [];
+		if (!can('DaemonApiKey', 'Write')) return [];
 
 		return [
-			{ label: common_edit(), icon: Edit, isOpen: true, onClick: () => handleEditApiKey(apiKey) },
+			{
+				label: common_edit(),
+				icon: Edit,
+				isOpen: true,
+				onClick: () => handleEditApiKey(apiKey),
+				unavailable: refusedUnless(can('DaemonApiKey', 'Write', apiKey.site_id))
+			},
 			{
 				label: common_delete(),
 				icon: Trash2,
@@ -155,11 +164,13 @@
 				isDelete: true,
 				onBulk: handleBulkDelete,
 				onClick: () => handleDeleteApiKey(apiKey),
-				unavailable: disabledWhen(
-					apiKeyIdsInUse.has(apiKey.id),
-					daemonApiKeys_inUse(),
-					daemonApiKeys_inUseBulk()
-				)
+				unavailable:
+					refusedUnless(can('DaemonApiKey', 'Delete', apiKey.site_id)) ??
+					disabledWhen(
+						apiKeyIdsInUse.has(apiKey.id),
+						daemonApiKeys_inUse(),
+						daemonApiKeys_inUseBulk()
+					)
 			}
 		];
 	}
@@ -205,7 +216,7 @@
 			items={apiKeysData}
 			fields={apiKeyFields}
 			entityType="DaemonApiKey"
-			canEditTags={!isReadOnly}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={getApiKeyTags}
 			storageKey="scanopy-api-keys-table-state"
 			defaults={tableDefaults}

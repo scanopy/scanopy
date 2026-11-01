@@ -7,7 +7,7 @@
 	import { useDashboardQuery } from '$lib/features/home/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { isPlanLapsed } from '$lib/features/organizations/types';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	import { useCan } from '$lib/features/auth/access';
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
 	import GettingStartedChecklist from './GettingStartedChecklist.svelte';
 	import ActiveDiscoveries from './ActiveDiscoveries.svelte';
@@ -33,22 +33,21 @@
 	} from '$lib/paraglide/messages';
 	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	let { isActive = false }: TabProps = $props();
 
+	const can = useCan();
 	const dashboardQuery = useDashboardQuery();
 	const organizationQuery = useOrganizationQuery();
-	const currentUserQuery = useCurrentUserQuery();
 	const configQuery = useConfigQuery();
 	const sessionsQuery = useActiveSessionsQuery();
 
 	let dashboard = $derived(dashboardQuery.data);
 	let organization = $derived(organizationQuery.data);
-	let currentUser = $derived(currentUserQuery.data);
 	let activeSessions = $derived(sessionsQuery.data ?? []);
 	let pageLoad = $derived(loadFailure(dashboardQuery, organizationQuery));
 
 	let onboarding = $derived((organization?.onboarding ?? []) as OnboardingOperation[]);
-	let isOwner = $derived(currentUser?.permissions === 'Owner');
+	let isOwner = $derived(can('Billing', 'Write'));
 	let configData = $derived(configQuery.data);
 
 	// Checklist dismiss state
@@ -89,7 +88,7 @@
 	let showProfile = $derived(!showReferralSource);
 
 	// Fills the checklist's slot once it is dismissed before the first daemon
-	let daemonPrompt = $derived(homeDaemonPrompt(onboarding, checklistDismissed, isReadOnly));
+	let showDaemonPrompt = $derived(homeDaemonPrompt(onboarding, checklistDismissed));
 
 	// Navigation handler — sets the active tab via the URL hash
 	function navigateTo(tab: string) {
@@ -118,12 +117,9 @@
 				onDismiss={() => (checklistDismissed = true)}
 				{isActive}
 			/>
-		{:else if daemonPrompt}
+		{:else if showDaemonPrompt}
 			<section class="card-static card">
-				<PreDaemonEmptyState
-					title={gettingStarted_stepDaemonDescription()}
-					isReadOnly={daemonPrompt === 'readOnly'}
-				/>
+				<PreDaemonEmptyState title={gettingStarted_stepDaemonDescription()} />
 			</section>
 		{/if}
 

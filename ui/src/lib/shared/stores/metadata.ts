@@ -17,6 +17,7 @@ import planStatusesJson from '$lib/data/plan-statuses.json';
 import emailCategoriesJson from '$lib/data/email-categories.json';
 import featuresJson from '$lib/data/features.json';
 import permissionsJson from '$lib/data/permissions.json';
+import resourcesJson from '$lib/data/resources.json';
 import credentialTypesJson from '$lib/data/credential-types.json';
 import credentialIntegrationsJson from '$lib/data/credential-integrations.json';
 import conceptsJson from '$lib/data/concepts.json';
@@ -134,6 +135,7 @@ export interface MetadataRegistry {
 	email_categories: TypeMetadata[];
 	features: TypeMetadata[];
 	permissions: TypeMetadata[];
+	resources: TypeMetadata[];
 	concepts: EntityMetadata[];
 	credential_types: TypeMetadata[];
 	credential_integrations: TypeMetadata[];
@@ -236,7 +238,27 @@ export interface PermissionsMetadata {
 	grantable_api_key_permissions: string[];
 	/** Permission levels this user can assign to other users (Owners can grant all, Admins can grant Member/Viewer) */
 	grantable_user_permissions: string[];
-	manage_org_entities: boolean;
+	/** The role one step below; null for the baseline role. */
+	previous_role: components['schemas']['UserOrgPermissions'] | null;
+	/** What this role adds over `previous_role`, one entry per level. */
+	incremental_access: {
+		level: components['schemas']['AccessLevel'];
+		resources: components['schemas']['Resource'][];
+	}[];
+	/** A person holding this role reaches every site, whatever their site list says. */
+	reaches_all_sites: boolean;
+}
+
+export interface ResourceMetadata {
+	/** Grants on each site answer for this resource, rather than the organization role. */
+	per_site: boolean;
+	/** Each role's level; null for no access. A site-keyed row reads the site role the role maps to. */
+	levels: Record<
+		components['schemas']['UserOrgPermissions'],
+		components['schemas']['AccessLevel'] | null
+	>;
+	/** A lapsed org can still write this. */
+	writable_when_lapsed: boolean;
 }
 
 export interface SubnetTypeMetadata {
@@ -354,6 +376,7 @@ export const metadata = writable<MetadataRegistry>({
 	email_categories: emailCategoriesJson,
 	features: featuresJson,
 	permissions: permissionsJson,
+	resources: resourcesJson,
 	concepts: conceptsJson,
 	credential_types: credentialTypesJson,
 	credential_integrations: credentialIntegrationsJson,
@@ -629,6 +652,8 @@ export const features = createTypeMetadataHelpers<'features', FeatureMetadata>('
 export const permissions = createTypeMetadataHelpers<'permissions', PermissionsMetadata>(
 	'permissions'
 );
+/** What a role grants access to, with each role's level, keyed by `Resource`. */
+export const resources = createTypeMetadataHelpers<'resources', ResourceMetadata>('resources');
 export const concepts = createEntityMetadataHelpers('concepts');
 export const credentialTypes = createTypeMetadataHelpers<
 	'credential_types',

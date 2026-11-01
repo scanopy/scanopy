@@ -2,13 +2,13 @@ use std::{collections::HashMap, fmt::Display};
 
 use anyhow::Result;
 use chrono::Utc;
-use sqlx::PgPool;
+use sqlx::{PgPool, Postgres};
 use uuid::Uuid;
 
 use super::{
     filter::StorableFilter,
     generic::GenericPostgresStorage,
-    lock::{DEFAULT_LOCK_TIMEOUT, LockKey},
+    lock::{DEFAULT_LOCK_TIMEOUT, LockKey, xact_lock},
     snapshot::Snapshotable,
     traits::{Storable, Storage},
 };
@@ -171,6 +171,23 @@ impl<T: ChildStorableEntity + Display> GenericChildStorage<T> {
     pub async fn save_for_parent(&self, parent: &ParentRef, rows: &[T]) -> Result<Vec<T>> {
         self.replace_matching(parent, T::parent_filter(parent), rows)
             .await
+    }
+
+    /// [`Self::save_for_parent`] inside the caller's transaction, which holds the `JunctionSync`
+    /// lock until it commits or rolls back.
+    pub async fn save_for_parent_in_tx(
+        &self,
+        parent: &ParentRef,
+        rows: &[T],
+        tx: &mut sqlx::Transaction<'_, Postgres>,
+    ) -> Result<Vec<T>> {
+        xact_lock(tx, parent.lock_key(), DEFAULT_LOCK_TIMEOUT).await?;
+        GenericPostgresStorage::<T>::delete_by_filter_in_tx(T::parent_filter(parent), tx).await?;
+        let mut saved = Vec::with_capacity(rows.len());
+        for row in rows {
+            saved.push(GenericPostgresStorage::<T>::create_with_executor(row, &mut **tx).await?);
+        }
+        Ok(saved)
     }
 
     /// Add `row` to `parent`'s set, keeping the rest, under the same lock a replace holds.

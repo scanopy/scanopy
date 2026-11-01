@@ -56,7 +56,10 @@
 
 	const DISCOVERY_FIELD_VALUES = '/api/v1/discoveries/field-values/{field}';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '$lib/features/auth/access';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
 	// Organization query for onboarding state
 	const organizationQuery = useOrganizationQuery();
@@ -245,7 +248,7 @@
 			isOpen: true,
 			onClick: () => handleEditDiscovery(discovery)
 		};
-		if (isReadOnly) return [details];
+		if (!can('Discovery', 'Delete')) return [details];
 		return [
 			details,
 			{
@@ -254,7 +257,8 @@
 				tone: 'danger',
 				isDelete: true,
 				onBulk: handleBulkDelete,
-				onClick: () => handleDeleteDiscovery(discovery)
+				onClick: () => handleDeleteDiscovery(discovery),
+				unavailable: refusedUnless(can('Discovery', 'Delete', discovery.site_id))
 			}
 		];
 	}
@@ -304,7 +308,7 @@
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
 	{:else if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptDiscoveries()} {isReadOnly} />
+		<PreDaemonEmptyState title={daemons_installPromptDiscoveries()} />
 	{:else if isLoading}
 		<Loading />
 	{:else if listIsEmpty(discoveriesQuery, isNarrowed)}

@@ -351,9 +351,12 @@ pub async fn members_page(
     viewer_grants: &Grants,
     query: &MemberFilterQuery,
 ) -> ApiResult<PaginatedApiResponse<Member>> {
-    let users = User::get_service(state)
+    let service = User::get_service(state);
+    let mut users = service
         .get_all(StorableFilter::<User>::new_from_org_id(&organization_id))
-        .await?
+        .await?;
+    service.hydrate_site_ids_batch(&mut users).await?;
+    let users = users
         .into_iter()
         .filter(|u| u.is_listed_for(viewer_grants, viewer_id))
         .map(|u| Member::user(u, viewer_id));

@@ -466,7 +466,7 @@ export const activeView = writable<TopologyView>('L3Logical');
 
 /** When true, the topology is view-only: entity edits (tags, dependencies,
  *  descriptions), grouping-rule edits, and canvas layout edits are disabled.
- *  Driven by `TopologyTab` from `isReadOnly || a snapshot being selected` — a
+ *  Driven by `TopologyTab` from `can('Topology', 'Write')` and a snapshot being selected. A
  *  snapshot is historical, so it gets the same view-only treatment as an embed.
  *  The single reactive source the inspectors / grouping editor / edit-mode read. */
 export const topologyReadOnly = writable(false);
