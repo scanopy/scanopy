@@ -33,6 +33,7 @@ import {
 	credentials_targetSiteTooltip,
 	credentials_targetDaemonHostTooltip,
 	credentials_targetHostTooltip,
+	credentials_targetLoginTooltip,
 	snmp_adminStatusDown,
 	snmp_adminStatusUp,
 	snmp_operStatusDormant,
@@ -164,6 +165,24 @@ export function getTargetTagProps(target: string): TagProps {
 		icon: entities.getIconComponent('Host'),
 		title: credentials_targetHostTooltip()
 	};
+}
+
+/**
+ * The scope chips for a credential type: one per target, or for an SSH login, which has no
+ * targets of its own, one chip saying it signs in for the credentials that use it.
+ */
+export function getScopeTagProps(typeId: string): TagProps[] {
+	const metadata = credentialTypes.getMetadata(typeId);
+	if (metadata?.role === 'Login') {
+		return [
+			{
+				color: 'Gray',
+				icon: credentialTypes.getIconComponent(typeId),
+				title: credentials_targetLoginTooltip()
+			}
+		];
+	}
+	return (metadata?.targets ?? []).map((target: string) => getTargetTagProps(target));
 }
 
 /**

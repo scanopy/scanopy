@@ -368,8 +368,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			beta: server('beta'),
 			unofficial_api: server('unofficial_api'),
 			description: TEXT,
-			assigned_sites: { ...SHARED_ARRAY, filter: { param: 'site_ids' } },
-			assigned_hosts: ownedArray(SEARCH),
+			assignments: { ...SHARED_ARRAY, filter: { param: 'site_ids' } },
 			target: { ...SHARED_ARRAY, filter: { param: 'targets' } },
 			tags: { ...SHARED_ARRAY, filter: { param: 'tag_ids' } }
 		}

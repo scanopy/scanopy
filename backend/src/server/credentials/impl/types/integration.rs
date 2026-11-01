@@ -132,9 +132,8 @@ impl CredentialIntegration {
     pub fn credential_category(&self) -> CredentialCategory {
         match self {
             Self::Snmp | Self::Gnmi => CredentialCategory::NetworkMonitoring,
-            Self::Docker | Self::Podman | Self::Proxmox | Self::Libvirt => {
-                CredentialCategory::ContainerVirtualization
-            }
+            Self::Docker | Self::Podman => CredentialCategory::Containers,
+            Self::Proxmox | Self::Libvirt => CredentialCategory::Virtualization,
             Self::UnifiController | Self::InstantOn => CredentialCategory::NetworkController,
             Self::Ssh | Self::WakeOnLan => CredentialCategory::HostManagement,
         }

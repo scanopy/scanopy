@@ -30,9 +30,12 @@ pub enum CredentialCategory {
     /// Network monitoring protocols (SNMP, NetFlow, sFlow)
     #[strum(serialize = "Network Monitoring")]
     NetworkMonitoring,
-    /// Container and virtualization platforms (Docker, vSphere, ESXi)
-    #[strum(serialize = "Container & Virtualization")]
-    ContainerVirtualization,
+    /// Container runtimes (Docker, Podman)
+    #[strum(serialize = "Containers")]
+    Containers,
+    /// Hypervisors (Proxmox VE, libvirt)
+    #[strum(serialize = "Virtualization")]
+    Virtualization,
     /// Management controllers that hold an inventory of the devices they have adopted
     /// (UniFi, Omada, Meraki, Aruba Central). Distinct from `NetworkMonitoring`, which is
     /// for polling protocols — a controller is an API that reports someone else's devices.
@@ -42,6 +45,9 @@ pub enum CredentialCategory {
     /// (Wake-on-LAN).
     #[strum(serialize = "Host Management")]
     HostManagement,
+    /// Accounts other credentials sign in with (SSH logins), assigned nowhere themselves.
+    #[strum(serialize = "Logins")]
+    Logins,
 }
 
 /// Whether the vendor publishes and supports the API a credential type talks to.
@@ -256,7 +262,10 @@ impl EntityMetadataProvider for CredentialTypeDiscriminants {
         self.integration().color()
     }
     fn icon(&self) -> Icon {
-        self.integration().icon()
+        match self.role() {
+            CredentialRole::Login => Icon::UserKey,
+            CredentialRole::Dispatched => self.integration().icon(),
+        }
     }
 }
 
@@ -356,7 +365,10 @@ impl CredentialTypeDiscriminants {
     }
 
     fn category_str(&self) -> &'static str {
-        self.integration().credential_category().into()
+        match self.role() {
+            CredentialRole::Login => CredentialCategory::Logins.into(),
+            CredentialRole::Dispatched => self.integration().credential_category().into(),
+        }
     }
 
     /// The last daemon release that cannot parse credential mappings of this type over the
@@ -418,7 +430,11 @@ impl CredentialTypeDiscriminants {
             | Self::PodmanProxy
             | Self::PodmanSocket
             | Self::UnifiApiKey
-            | Self::UnifiLocalAdmin => Stability::Stable,
+            | Self::UnifiLocalAdmin
+            | Self::SshPassword
+            | Self::SshKey
+            | Self::SshScript
+            | Self::WakeOnLan => Stability::Stable,
             // New; validated against ArcOS and DNOS over plaintext only. TLS is wired but not
             // yet exercised against a TLS-enabled device, and `skip_verify` is not yet
             // supported, so the field shape may still move.
@@ -426,8 +442,6 @@ impl CredentialTypeDiscriminants {
             // New and validated against one operator's 1960s only; the field shape may still move
             // once other Instant On models' payloads are seen.
             Self::InstantOnAccount => Stability::Beta,
-            // New; the script contract and host-key handling may still move.
-            Self::SshPassword | Self::SshKey | Self::SshScript | Self::WakeOnLan => Stability::Beta,
             // New; validated against one single-node PVE 8.4 lab. Multi-node clusters and PVE 9
             // are covered by the API's documented shape, not yet by a live cluster.
             Self::ProxmoxApiToken => Stability::Beta,

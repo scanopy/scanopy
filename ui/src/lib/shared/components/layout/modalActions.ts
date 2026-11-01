@@ -184,13 +184,27 @@ function isChoiceButton(el: HTMLElement): boolean {
 /** Open modals, oldest first. Only the last one answers keys shared by every modal. */
 const openModals: symbol[] = [];
 
-/** Records `token`'s modal as opened on top; the returned function records it closed. */
+/**
+ * Records `token`'s modal as opened on top; the returned function records it closed.
+ *
+ * The page stops scrolling while any modal is open, and scrolls again only when the last one
+ * closes, so closing a dialog stacked over another leaves the one beneath it locked.
+ */
 export function registerOpenModal(token: symbol): () => void {
 	openModals.push(token);
+	if (typeof document !== 'undefined') document.body.style.overflow = 'hidden';
 	return () => {
 		const at = openModals.indexOf(token);
 		if (at !== -1) openModals.splice(at, 1);
+		if (openModals.length === 0 && typeof document !== 'undefined') {
+			document.body.style.overflow = '';
+		}
 	};
+}
+
+/** Whether any modal is open, for a modal about to open over it. */
+export function isAnyModalOpen(): boolean {
+	return openModals.length > 0;
 }
 
 export function isTopmostModal(token: symbol): boolean {

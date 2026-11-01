@@ -651,8 +651,7 @@ const CREDENTIAL: &[F] = &[
     F::column("beta", "Beta", G::Identity).computed(),
     F::column("unofficial_api", "Unofficial API", G::Identity).computed(),
     F::column("target", "Targets", G::Relationships).computed(),
-    F::column("assigned_sites", "Sites", G::Relationships).computed(),
-    F::column("assigned_hosts", "Hosts", G::Relationships).computed(),
+    F::column("assignments", "Assignments", G::Relationships).computed(),
     CREATED_AT,
     UPDATED_AT,
 ];
