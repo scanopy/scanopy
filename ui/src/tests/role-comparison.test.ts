@@ -1,17 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { roleColumns, roleLevel, roleSections } from '$lib/features/users/role-comparison';
+import {
+	actionColumns,
+	roleActions,
+	roleColumns,
+	roleResources,
+	roleSections
+} from '$lib/features/users/role-comparison';
 import { permissions, productAreas, resources } from '$lib/shared/stores/metadata';
 
+type Resource = Parameters<typeof roleActions>[0];
+
 describe('role comparison', () => {
-	it('lists every resource once, under its area, in area order', () => {
+	it('lists each resource at most once, under its area, in area order', () => {
 		const sections = roleSections();
 		const listed = sections.flatMap((section) => section.rows);
-		expect([...listed].sort()).toEqual(
-			resources
-				.getItems()
-				.map((r) => r.id)
-				.sort()
-		);
+		expect(new Set(listed).size).toBe(listed.length);
 
 		const order = productAreas.getItems().map((area) => area.id);
 		const ranks = sections.map((section) => order.indexOf(section.id));
@@ -21,6 +24,17 @@ describe('role comparison', () => {
 				expect(resources.getCategory(resource)).toBe(section.id);
 			}
 		}
+	});
+
+	it('leaves out only resources no role shows, and shows Create on sites instead', () => {
+		const listed = roleSections().flatMap((section) => section.rows);
+		for (const resource of resources.getItems()) {
+			const id = resource.id as Resource;
+			const shown = roleColumns().some((role) => roleActions(id, role.id).length > 0);
+			expect(listed.includes(id)).toBe(shown);
+		}
+		expect(roleActions('Site' as Resource, 'Admin')).toContain('Create');
+		expect(listed).not.toContain('NewSite');
 	});
 
 	it('shows the four roles, lowest first', () => {
@@ -36,25 +50,21 @@ describe('role comparison', () => {
 		const siteKeyed = resources.getItems().filter((r) => r.metadata.per_site);
 		expect(siteKeyed.length).toBeGreaterThan(0);
 		for (const resource of siteKeyed) {
-			const id = resource.id as Parameters<typeof roleLevel>[0];
-			expect(roleLevel(id, 'Owner')).toBe(roleLevel(id, 'Admin'));
+			const id = resource.id as Resource;
+			expect(roleActions(id, 'Owner')).toEqual(roleActions(id, 'Admin'));
 		}
 	});
 
-	it('lists everything a role holds, each resource once, at the level the grid shows', () => {
+	it('gives a role a row for exactly the resources it can act on', () => {
+		const known = actionColumns().map((action) => action.id);
 		for (const role of permissions.getItems()) {
-			const { access } = permissions.getMetadata(role.id);
-			const listed = access.flatMap(({ level, resources: held }) =>
-				held.map((resource) => {
-					expect(roleLevel(resource, role.id)).toBe(level);
-					return resource;
-				})
-			);
-			const reached = resources
-				.getItems()
-				.map((resource) => resource.id as Parameters<typeof roleLevel>[0])
-				.filter((resource) => roleLevel(resource, role.id) !== null);
-			expect([...listed].sort()).toEqual([...reached].sort());
+			for (const section of roleSections()) {
+				for (const resource of section.rows) {
+					const held = roleActions(resource, role.id);
+					expect(roleResources(role.id).includes(resource)).toBe(held.length > 0);
+					expect(held.every((action) => known.includes(action))).toBe(true);
+				}
+			}
 		}
 	});
 });

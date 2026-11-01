@@ -15674,16 +15674,6 @@
           }
         }
       },
-      "AccessLevel": {
-        "type": "string",
-        "description": "The actions a role holds on a resource, as the role comparison names them.",
-        "enum": [
-          "View",
-          "ViewEdit",
-          "ViewEditDelete",
-          "Add"
-        ]
-      },
       "Action": {
         "type": "string",
         "description": "What a role may do to a resource. `Write` is create and update, plus operations such as\nstarting a scan or merging hosts.",
@@ -28509,6 +28499,16 @@
           }
         ],
         "description": "A single non-fatal finding from one discovery run, about one device, neighbour, or the scan\nitself.\n\nSerialized with the code as the tag, so the generated TypeScript is a discriminated union the\nUI can switch on exhaustively. The derived `Deserialize` reads that shape; the leniency that\nkeeps historical records and pre-coded daemons working lives in [`deserialize_warnings`],\nwhich is applied at the one field that holds these."
+      },
+      "DisplayAction": {
+        "type": "string",
+        "description": "An action as the role comparison shows it. `Write` is one [`Action`] and reads as Edit, plus\nCreate on a resource where it adds rows.",
+        "enum": [
+          "View",
+          "Create",
+          "Edit",
+          "Delete"
+        ]
       },
       "DisplaySettings": {
         "type": "object",

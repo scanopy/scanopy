@@ -4181,11 +4181,6 @@ export interface components {
             sites: components["schemas"]["SiteGrants"][];
         };
         /**
-         * @description The actions a role holds on a resource, as the role comparison names them.
-         * @enum {string}
-         */
-        AccessLevel: "View" | "ViewEdit" | "ViewEditDelete" | "Add";
-        /**
          * @description What a role may do to a resource. `Write` is create and update, plus operations such as
          *     starting a scan or merging hosts.
          * @enum {string}
@@ -10069,6 +10064,12 @@ export interface components {
             /** @description The original warning text, rendered as-is. */
             detail: string;
         };
+        /**
+         * @description An action as the role comparison shows it. `Write` is one [`Action`] and reads as Edit, plus
+         *     Create on a resource where it adds rows.
+         * @enum {string}
+         */
+        DisplayAction: "View" | "Create" | "Edit" | "Delete";
         /**
          * @description Per-user display preferences for dates and times in the UI.
          *

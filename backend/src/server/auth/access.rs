@@ -73,17 +73,14 @@ pub enum Action {
     Delete,
 }
 
-/// The actions a role holds on a resource, as the role comparison names them.
+/// An action as the role comparison shows it. `Write` is one [`Action`] and reads as Edit, plus
+/// Create on a resource where it adds rows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, Serialize, ToSchema)]
-pub enum AccessLevel {
-    /// `Read`.
+pub enum DisplayAction {
     View,
-    /// `Read` and `Write`.
-    ViewEdit,
-    /// `Read`, `Write` and `Delete`.
-    ViewEditDelete,
-    /// `Write` alone, on a resource whose rows the role reads through another resource.
-    Add,
+    Create,
+    Edit,
+    Delete,
 }
 
 /// What a resource's rows belong to, which decides whose grants answer for it.
@@ -199,20 +196,50 @@ impl Resource {
         }
     }
 
-    /// What `role` holds on this resource, or `None` for no access.
-    pub fn level(self, role: UserOrgPermissions) -> Option<AccessLevel> {
-        let held = self.actions(role);
-        if held.is_empty() {
-            None
-        } else if !held.contains(&Action::Read) {
-            Some(AccessLevel::Add)
-        } else if held.contains(&Action::Delete) {
-            Some(AccessLevel::ViewEditDelete)
-        } else if held.contains(&Action::Write) {
-            Some(AccessLevel::ViewEdit)
-        } else {
-            Some(AccessLevel::View)
+    /// Whether `Write` on this resource adds rows. Creating a site is [`Resource::NewSite`], and
+    /// the rest of these are one record to edit.
+    fn write_creates(self) -> bool {
+        match self {
+            Resource::Host
+            | Resource::Service
+            | Resource::Subnet
+            | Resource::Vlan
+            | Resource::Dependency
+            | Resource::Topology
+            | Resource::Share
+            | Resource::Discovery
+            | Resource::Daemon
+            | Resource::DaemonApiKey
+            | Resource::Credential
+            | Resource::Tag
+            | Resource::Member
+            | Resource::UserApiKey => true,
+            Resource::Site
+            | Resource::NewSite
+            | Resource::Organization
+            | Resource::Billing
+            | Resource::License => false,
         }
+    }
+
+    /// What `role` holds on this resource, as the role comparison shows it. `NewSite` shows no
+    /// row of its own: it's the Create on `Site`.
+    pub fn display_actions(self, role: UserOrgPermissions) -> Vec<DisplayAction> {
+        if self == Resource::NewSite {
+            return Vec::new();
+        }
+        let held = self.actions(role);
+        let writes = held.contains(&Action::Write);
+        let creates = (writes && self.write_creates())
+            || (self == Resource::Site && Resource::NewSite.actions(role).contains(&Action::Write));
+        DisplayAction::iter()
+            .filter(|action| match action {
+                DisplayAction::View => held.contains(&Action::Read),
+                DisplayAction::Create => creates,
+                DisplayAction::Edit => writes,
+                DisplayAction::Delete => held.contains(&Action::Delete),
+            })
+            .collect()
     }
 
     /// The part of the product this resource sits under in the role comparison.
@@ -318,12 +345,16 @@ impl TypeMetadataProvider for Resource {
     }
 
     fn metadata(&self) -> serde_json::Value {
-        let levels: serde_json::Map<String, serde_json::Value> = UserOrgPermissions::iter()
-            .map(|role| (role.id().to_string(), serde_json::json!(self.level(role))))
-            .collect();
+        let display_actions: serde_json::Map<String, serde_json::Value> =
+            UserOrgPermissions::iter()
+                .map(|role| {
+                    let actions = self.display_actions(role);
+                    (role.id().to_string(), serde_json::json!(actions))
+                })
+                .collect();
         serde_json::json!({
             "per_site": self.keying() == Keying::Site,
-            "levels": levels,
+            "display_actions": display_actions,
             "writable_when_lapsed": self.writable_when_lapsed(),
         })
     }
@@ -687,35 +718,56 @@ mod tests {
     const SEED: u64 = 0x9E37_79B9_7F4A_7C15;
     const ROUNDS: usize = 500;
 
-    /// Read, Read plus Write, all three, or Write alone: the cells the role comparison can show.
+    /// The comparison never promises more or less than the role table grants.
     #[test]
-    fn every_role_cell_is_no_access_or_a_level() {
-        for resource in Resource::iter() {
+    fn displayed_actions_match_what_the_role_holds() {
+        for resource in Resource::iter().filter(|r| *r != Resource::NewSite) {
             for role in UserOrgPermissions::iter() {
-                let actions = resource.actions(role);
-                assert!(
-                    [NONE, R, W, RW, RWD].contains(&actions),
-                    "{resource} {role}: {actions:?}"
+                let shown = resource.display_actions(role);
+                let held = resource.actions(role);
+                let shows = |action| shown.contains(&action);
+                assert_eq!(
+                    shows(DisplayAction::View),
+                    held.contains(&Action::Read),
+                    "{resource} {role}"
                 );
+                assert_eq!(
+                    shows(DisplayAction::Edit),
+                    held.contains(&Action::Write),
+                    "{resource} {role}"
+                );
+                assert_eq!(
+                    shows(DisplayAction::Delete),
+                    held.contains(&Action::Delete),
+                    "{resource} {role}"
+                );
+                if shows(DisplayAction::Create) {
+                    let creates = if resource == Resource::Site {
+                        Resource::NewSite
+                    } else {
+                        resource
+                    };
+                    assert!(
+                        creates.actions(role).contains(&Action::Write),
+                        "{resource} {role}"
+                    );
+                }
             }
         }
     }
 
-    /// A level names exactly the actions held, so a label never promises more or less than the
-    /// role table grants.
+    /// Creating a site shows as Create on Sites, for exactly the roles that can do it.
     #[test]
-    fn a_level_names_exactly_the_actions_held() {
-        for resource in Resource::iter() {
-            for role in UserOrgPermissions::iter() {
-                let named = match resource.level(role) {
-                    None => NONE,
-                    Some(AccessLevel::View) => R,
-                    Some(AccessLevel::ViewEdit) => RW,
-                    Some(AccessLevel::ViewEditDelete) => RWD,
-                    Some(AccessLevel::Add) => W,
-                };
-                assert_eq!(resource.actions(role), named, "{resource} {role}");
-            }
+    fn new_sites_show_as_create_on_sites() {
+        for role in UserOrgPermissions::iter() {
+            assert!(Resource::NewSite.display_actions(role).is_empty());
+            assert_eq!(
+                Resource::Site
+                    .display_actions(role)
+                    .contains(&DisplayAction::Create),
+                Resource::NewSite.actions(role).contains(&Action::Write),
+                "{role}"
+            );
         }
     }
 

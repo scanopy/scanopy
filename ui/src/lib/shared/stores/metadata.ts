@@ -233,11 +233,6 @@ export interface PermissionsMetadata {
 	grantable_api_key_permissions: string[];
 	/** Permission levels this user can assign to other users (Owners can grant all, Admins can grant Member/Viewer) */
 	grantable_user_permissions: string[];
-	/** Everything this role holds, one entry per level. */
-	access: {
-		level: components['schemas']['AccessLevel'];
-		resources: components['schemas']['Resource'][];
-	}[];
 	/** A person holding this role reaches every site, whatever their site list says. */
 	reaches_all_sites: boolean;
 }
@@ -245,10 +240,10 @@ export interface PermissionsMetadata {
 export interface ResourceMetadata {
 	/** Grants on each site answer for this resource, rather than the organization role. */
 	per_site: boolean;
-	/** Each role's level; null for no access. A site-keyed row reads the site role the role maps to. */
-	levels: Record<
+	/** What each role can do here; empty for no access. A site-keyed row reads the site role the role maps to. */
+	display_actions: Record<
 		components['schemas']['UserOrgPermissions'],
-		components['schemas']['AccessLevel'] | null
+		components['schemas']['DisplayAction'][]
 	>;
 	/** A lapsed org can still write this. */
 	writable_when_lapsed: boolean;
