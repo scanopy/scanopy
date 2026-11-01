@@ -233,10 +233,8 @@ export interface PermissionsMetadata {
 	grantable_api_key_permissions: string[];
 	/** Permission levels this user can assign to other users (Owners can grant all, Admins can grant Member/Viewer) */
 	grantable_user_permissions: string[];
-	/** The role one step below; null for the baseline role. */
-	previous_role: components['schemas']['UserOrgPermissions'] | null;
-	/** What this role adds over `previous_role`, one entry per level. */
-	incremental_access: {
+	/** Everything this role holds, one entry per level. */
+	access: {
 		level: components['schemas']['AccessLevel'];
 		resources: components['schemas']['Resource'][];
 	}[];

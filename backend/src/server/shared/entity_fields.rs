@@ -3,7 +3,8 @@
 //! Every key an entity serializes has an entry here, whichever surfaces show it. Ids keep the
 //! column names CSV export used before the registry, and the list tables' column keys, so neither
 //! saved column preferences nor scripts reading the CSV lose a column. An `Entity` field whose id
-//! ends in `_id` is a foreign key: CSV writes the related entity's id.
+//! ends in `_id` is a foreign key: CSV writes the related entity's id. A field read through
+//! `Hop::Children` writes ids in CSV, whatever its format (`EntityField::for_csv`).
 
 use std::any::Any;
 

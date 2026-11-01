@@ -4181,10 +4181,10 @@ export interface components {
             sites: components["schemas"]["SiteGrants"][];
         };
         /**
-         * @description How much of a resource a role holds, as the role comparison shows it.
+         * @description The actions a role holds on a resource, as the role comparison names them.
          * @enum {string}
          */
-        AccessLevel: "View" | "Edit" | "Full";
+        AccessLevel: "View" | "ViewEdit" | "ViewEditDelete" | "Add";
         /**
          * @description What a role may do to a resource. `Write` is create and update, plus operations such as
          *     starting a scan or merging hosts.

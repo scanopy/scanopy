@@ -3,7 +3,12 @@ import type {
 	ComparisonColumn,
 	ComparisonSection
 } from '$lib/shared/components/data/ComparisonGrid.svelte';
-import { common_edit, common_full, common_view } from '$lib/paraglide/messages';
+import {
+	common_add,
+	common_view,
+	permissions_levelViewEdit,
+	permissions_levelViewEditDelete
+} from '$lib/paraglide/messages';
 import { permissions, productAreas, resources } from '$lib/shared/stores/metadata';
 
 type Resource = components['schemas']['Resource'];
@@ -12,8 +17,9 @@ type UserOrgPermissions = components['schemas']['UserOrgPermissions'];
 
 const LEVEL_NAMES: Record<AccessLevel, () => string> = {
 	View: () => common_view(),
-	Edit: () => common_edit(),
-	Full: () => common_full()
+	ViewEdit: () => permissions_levelViewEdit(),
+	ViewEditDelete: () => permissions_levelViewEditDelete(),
+	Add: () => common_add()
 };
 
 export function accessLevelName(level: AccessLevel): string {

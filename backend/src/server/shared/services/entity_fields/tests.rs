@@ -648,24 +648,32 @@ async fn csv_rows_carry_own_parent_child_and_embedded_values() {
     let mut other_ip = ip.clone();
     let mut port = example(EntityDiscriminants::Port).unwrap();
     let host_id = Uuid::new_v4();
+    let ip_id = Uuid::new_v4();
+    let other_ip_id = Uuid::new_v4();
     let port_id = Uuid::new_v4();
     host["id"] = json!(host_id);
+    ip["id"] = json!(ip_id);
     ip["host_id"] = json!(host_id);
     ip["ip_address"] = json!("10.0.0.5");
-    other_ip["id"] = json!(Uuid::new_v4());
+    other_ip["id"] = json!(other_ip_id);
     other_ip["host_id"] = json!(host_id);
     other_ip["ip_address"] = json!("10.0.0.6");
     port["id"] = json!(port_id);
+    port["host_id"] = json!(host_id);
     port["number"] = json!(443);
     port["protocol"] = json!("Tcp");
     let mut service = example(EntityDiscriminants::Service).unwrap();
     service["host_id"] = json!(host_id);
     service["bindings"] = json!([{ "type": "Port", "port_id": port_id, "ip_address_id": null }]);
+    let mut binding = example(EntityDiscriminants::Binding).unwrap();
+    binding["ip_address_id"] = json!(ip_id);
+    binding["port_id"] = json!(port_id);
 
     let source = MemorySource(HashMap::from([
         (EntityDiscriminants::Host, vec![host.clone()]),
-        (EntityDiscriminants::IPAddress, vec![ip, other_ip]),
+        (EntityDiscriminants::IPAddress, vec![ip.clone(), other_ip]),
         (EntityDiscriminants::Port, vec![port]),
+        (EntityDiscriminants::Binding, vec![binding]),
     ]));
 
     let csv = build_entity_csv(&source, EntityDiscriminants::Service, &[service])
@@ -685,14 +693,32 @@ async fn csv_rows_carry_own_parent_child_and_embedded_values() {
     let headers = reader.headers().unwrap().clone();
     let row = reader.records().next().unwrap().unwrap();
     let ips = &row[headers.iter().position(|h| h == "interface_ip").unwrap()];
-    let mut ips: Vec<&str> = ips.split("; ").collect();
+    let mut ips: Vec<String> = ips.split("; ").map(str::to_string).collect();
     ips.sort();
-    assert_eq!(ips, ["10.0.0.5", "10.0.0.6"]);
+    let mut expected = vec![ip_id.to_string(), other_ip_id.to_string()];
+    expected.sort();
+    assert_eq!(ips, expected);
+    assert_eq!(
+        &row[headers.iter().position(|h| h == "ports").unwrap()],
+        port_id.to_string()
+    );
     assert_eq!(
         headers
             .iter()
             .take(CSV_SYSTEM_COLUMNS.len())
             .collect::<Vec<_>>(),
         CSV_SYSTEM_COLUMNS
+    );
+
+    // Through a child row to its parent: the id of the row the path ends on.
+    let csv = build_entity_csv(&source, EntityDiscriminants::IPAddress, &[ip])
+        .await
+        .unwrap();
+    let mut reader = csv::Reader::from_reader(csv.as_slice());
+    let headers = reader.headers().unwrap().clone();
+    let row = reader.records().next().unwrap().unwrap();
+    assert_eq!(
+        &row[headers.iter().position(|h| h == "ports").unwrap()],
+        port_id.to_string()
     );
 }

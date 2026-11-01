@@ -23329,11 +23329,12 @@
       },
       "AccessLevel": {
         "type": "string",
-        "description": "How much of a resource a role holds, as the role comparison shows it.",
+        "description": "The actions a role holds on a resource, as the role comparison names them.",
         "enum": [
           "View",
-          "Edit",
-          "Full"
+          "ViewEdit",
+          "ViewEditDelete",
+          "Add"
         ]
       },
       "Action": {

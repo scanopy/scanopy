@@ -378,7 +378,12 @@ pub async fn build_entity_csv<S: RelatedSource>(
     entity: EntityDiscriminants,
     roots: &[Value],
 ) -> Result<Vec<u8>> {
-    let fields: Vec<&EntityField> = entity.fields().iter().filter(|f| f.csv).collect();
+    let fields: Vec<EntityField> = entity
+        .fields()
+        .iter()
+        .filter(|f| f.csv)
+        .map(|f| f.for_csv())
+        .collect();
     let mut resolver = FieldResolver::new(source);
     let mut columns = Vec::with_capacity(fields.len());
     for field in &fields {
