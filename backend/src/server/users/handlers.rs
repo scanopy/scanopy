@@ -250,8 +250,8 @@ pub async fn update_user(
 ) -> ApiResult<Json<ApiResponse<User>>> {
     let auth_user_id = auth.require_user_id()?;
     if auth_user_id != id {
-        return Err(ApiError::unauthorized(
-            "You can only update your own user record".to_string(),
+        return Err(ApiError::forbidden(
+            "You can only update your own user record",
         ));
     }
     let service = User::get_service(&state);
@@ -452,8 +452,8 @@ pub async fn bulk_delete_users(
         .await?;
 
     if owners.iter().all(|o| users.contains(o)) {
-        return Err(ApiError::unauthorized(
-            "Can't delete all of an organization's owners".to_string(),
+        return Err(ApiError::forbidden(
+            "Can't delete all of an organization's owners",
         ));
     }
 
@@ -475,8 +475,8 @@ fn refuse_user_delete(
         return Err(ApiError::forbidden("You can't delete your own user"));
     }
     if !caller_access.may_grant_to_person(target_access) {
-        return Err(ApiError::unauthorized(
-            "You can only delete users whose role you could grant".to_string(),
+        return Err(ApiError::forbidden(
+            "You can only delete users whose role you could grant",
         ));
     }
     Ok(())

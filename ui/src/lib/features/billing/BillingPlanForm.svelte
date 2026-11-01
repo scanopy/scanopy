@@ -48,10 +48,6 @@
 		common_unlimited,
 		common_yearly
 	} from '$lib/paraglide/messages';
-	import ComparisonGrid, {
-		type ComparisonColumn,
-		type ComparisonSection
-	} from '$lib/shared/components/data/ComparisonGrid.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import ToggleGroup from './ToggleGroup.svelte';
 	import type { BillingPlan, PlanPickerHosting } from './types';
@@ -319,41 +315,12 @@
 		return new SvelteMap(sortedEntries);
 	});
 
-	type ComparisonRow = { type: 'feature' | 'integration'; key: string };
-
-	let comparisonColumns: ComparisonColumn[] = $derived(
-		filteredPlans.map((plan) => ({
-			id: plan.type,
-			label: billingPlanHelpers.getName(plan.type)
-		}))
-	);
-
-	/**
-	 * One section per category, and the integrations themselves, one row each, after the category
-	 * holding the discovery-integrations feature they stand in for.
-	 */
-	let comparisonSections: ComparisonSection<ComparisonRow>[] = $derived(
-		[...groupedFeatures.entries()].flatMap(([category, categoryFeatures]) => [
-			{
-				id: category,
-				label: productAreaHelpers.getName(category),
-				icon: productAreaHelpers.getIconComponent(category),
-				rows: categoryFeatures.map((key): ComparisonRow => ({ type: 'feature', key }))
-			},
-			...(category === discoveryCategory && comparisonIntegrations.length > 0
-				? [
-						{
-							id: DISCOVERY_INTEGRATIONS,
-							label: featureHelpers.getName(DISCOVERY_INTEGRATIONS),
-							rows: comparisonIntegrations.map((key): ComparisonRow => ({
-								type: 'integration',
-								key
-							}))
-						}
-					]
-				: [])
-		])
-	);
+	// Grid column template for full comparison
+	let gridColumns = $derived.by(() => {
+		const planCount = filteredPlans.length;
+		if (planCount === 0) return '120px 1fr';
+		return `minmax(100px, 20%) repeat(${planCount}, minmax(100px, 1fr))`;
+	});
 
 	// ============================================================================
 	// Helper functions
@@ -656,53 +623,6 @@
 		<CategoryIcon class="h-3 w-3 shrink-0" />
 		{productAreaHelpers.getName(category)}
 	</div>
-{/snippet}
-
-<!-- A comparison row's label: a feature with its description and beta tag, or an integration. -->
-{#snippet comparisonRowLabel(row: ComparisonRow)}
-	{#if row.type === 'feature'}
-		{@const beta = betaTag(row.key)}
-		<div
-			class="explainer text-xs font-medium lg:text-sm"
-			data-tooltip={featureHelpers.getDescription(row.key)}
-			use:tooltip
-		>
-			{featureHelpers.getName(row.key)}
-		</div>
-		{#if beta}
-			<Tag {...beta} />
-		{/if}
-	{:else}
-		<div class="text-xs font-medium lg:text-sm">{integrationHelpers.getName(row.key)}</div>
-	{/if}
-{/snippet}
-
-<!-- A comparison row's value on one plan. -->
-{#snippet comparisonCell(row: ComparisonRow, column: ComparisonColumn)}
-	{#if row.type === 'feature'}
-		{@const value = getFeatureValue(column.id, row.key)}
-		{#if isComingSoon(row.key) && value}
-			<Tag label={common_comingSoon()} color="Gray" />
-		{:else if typeof value === 'boolean'}
-			{#if value}
-				<Check class="mx-auto h-4 w-4 text-success lg:h-5 lg:w-5" />
-			{:else}
-				<X class="mx-auto h-4 w-4 text-muted lg:h-5 lg:w-5" />
-			{/if}
-		{:else if typeof value === 'number' && value === 0}
-			<X class="mx-auto h-4 w-4 text-muted lg:h-5 lg:w-5" />
-		{:else if value === null}
-			<span class="text-tertiary">&mdash;</span>
-		{:else if row.key === SNAPSHOT_RETENTION}
-			<span class="text-xs text-secondary lg:text-sm">{formatSnapshotRetention(column.id)}</span>
-		{:else}
-			<span class="text-xs text-secondary lg:text-sm">{value}</span>
-		{/if}
-	{:else if planHasIntegration(column.id, row.key)}
-		<Check class="mx-auto h-4 w-4 text-success lg:h-5 lg:w-5" />
-	{:else}
-		<X class="mx-auto h-4 w-4 text-muted lg:h-5 lg:w-5" />
-	{/if}
 {/snippet}
 
 <div class="flex min-h-0 flex-1 flex-col {className}">
@@ -1050,15 +970,108 @@
 
 		<!-- Full Comparison Grid (expandable) -->
 		{#if showFullComparison}
-			<ComparisonGrid
-				class="mx-4 lg:mx-10"
-				labelHeading={common_feature()}
-				columns={comparisonColumns}
-				sections={comparisonSections}
-				getRowKey={(row) => row.key}
-				rowLabel={comparisonRowLabel}
-				cell={comparisonCell}
-			/>
+			<div class="card mx-4 overflow-auto p-0 lg:mx-10">
+				<!-- Plan Name Headers -->
+				<div
+					class="comparison-row comparison-header-row"
+					style="grid-template-columns: {gridColumns}"
+				>
+					<div class="comparison-label-cell">
+						<div class="text-xs font-medium lg:text-sm">{common_feature()}</div>
+					</div>
+					{#each filteredPlans as plan (plan.type)}
+						<div class="comparison-value-cell">
+							<span class="text-xs font-semibold text-primary lg:text-sm"
+								>{billingPlanHelpers.getName(plan.type)}</span
+							>
+						</div>
+					{/each}
+				</div>
+
+				{#each [...groupedFeatures.entries()] as [category, categoryFeatures] (category)}
+					{@const CategoryIcon = productAreaHelpers.getIconComponent(category)}
+					<!-- Category Header -->
+					<div class="comparison-category-row">
+						<span
+							class="flex items-center gap-2 p-2 text-xs font-semibold tracking-wide text-secondary uppercase lg:p-3 lg:text-sm"
+						>
+							<CategoryIcon class="h-4 w-4 shrink-0" />
+							{productAreaHelpers.getName(category)}
+						</span>
+					</div>
+
+					{#each categoryFeatures as featureKey (featureKey)}
+						{@const comingSoon = isComingSoon(featureKey)}
+						{@const beta = betaTag(featureKey)}
+						<div class="comparison-row" style="grid-template-columns: {gridColumns}">
+							<div class="comparison-label-cell gap-2">
+								<div
+									class="explainer text-xs font-medium lg:text-sm"
+									data-tooltip={featureHelpers.getDescription(featureKey)}
+									use:tooltip
+								>
+									{featureHelpers.getName(featureKey)}
+								</div>
+								{#if beta}
+									<Tag {...beta} />
+								{/if}
+							</div>
+							{#each filteredPlans as plan (plan.type)}
+								{@const value = getFeatureValue(plan.type, featureKey)}
+								<div class="comparison-value-cell">
+									{#if comingSoon && value}
+										<Tag label={common_comingSoon()} color="Gray" />
+									{:else if typeof value === 'boolean'}
+										{#if value}
+											<Check class="mx-auto h-4 w-4 text-success lg:h-5 lg:w-5" />
+										{:else}
+											<X class="mx-auto h-4 w-4 text-muted lg:h-5 lg:w-5" />
+										{/if}
+									{:else if typeof value === 'number' && value === 0}
+										<X class="mx-auto h-4 w-4 text-muted lg:h-5 lg:w-5" />
+									{:else if value === null}
+										<span class="text-tertiary">&mdash;</span>
+									{:else if featureKey === SNAPSHOT_RETENTION}
+										<span class="text-xs text-secondary lg:text-sm"
+											>{formatSnapshotRetention(plan.type)}</span
+										>
+									{:else}
+										<span class="text-xs text-secondary lg:text-sm">{value}</span>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/each}
+
+					<!-- The integrations themselves, one row each, after the category holding the
+					     discovery-integrations feature they stand in for. -->
+					{#if category === discoveryCategory && comparisonIntegrations.length > 0}
+						<div class="comparison-category-row">
+							<span class="p-2 text-xs font-medium text-tertiary lg:p-3 lg:text-sm">
+								{featureHelpers.getName(DISCOVERY_INTEGRATIONS)}
+							</span>
+						</div>
+						{#each comparisonIntegrations as integration (integration)}
+							<div class="comparison-row" style="grid-template-columns: {gridColumns}">
+								<div class="comparison-label-cell">
+									<div class="text-xs font-medium lg:text-sm">
+										{integrationHelpers.getName(integration)}
+									</div>
+								</div>
+								{#each filteredPlans as plan (plan.type)}
+									<div class="comparison-value-cell">
+										{#if planHasIntegration(plan.type, integration)}
+											<Check class="mx-auto h-4 w-4 text-success lg:h-5 lg:w-5" />
+										{:else}
+											<X class="mx-auto h-4 w-4 text-muted lg:h-5 lg:w-5" />
+										{/if}
+									</div>
+								{/each}
+							</div>
+						{/each}
+					{/if}
+				{/each}
+			</div>
 		{/if}
 	</div>
 	<!-- end scrollable content -->
@@ -1095,5 +1108,63 @@
 		grid-template-rows: subgrid;
 		grid-row: span 6;
 		row-gap: 0;
+	}
+
+	/* ============================================ */
+	/* Full comparison grid                         */
+	/* ============================================ */
+
+	.comparison-header-row {
+		background: var(--color-bg-surface);
+		position: sticky;
+		top: 0;
+		z-index: 11;
+	}
+
+	.comparison-category-row {
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.comparison-row {
+		display: grid;
+		min-width: 500px;
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.comparison-row:last-child {
+		border-bottom: none;
+	}
+
+	.comparison-label-cell {
+		padding: 0.5rem;
+		color: var(--color-text-tertiary);
+		text-align: left;
+		display: flex;
+		align-items: center;
+		position: sticky;
+		left: 0;
+		z-index: 10;
+		background: var(--color-bg-surface);
+		border-right: 1px solid var(--color-border);
+	}
+
+	.comparison-value-cell {
+		padding: 0.5rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		border-right: 1px solid var(--color-border);
+	}
+
+	.comparison-value-cell:last-child {
+		border-right: none;
+	}
+
+	@media (min-width: 1024px) {
+		.comparison-label-cell,
+		.comparison-value-cell {
+			padding: 0.75rem;
+		}
 	}
 </style>

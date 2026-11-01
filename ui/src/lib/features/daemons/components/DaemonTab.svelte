@@ -139,12 +139,16 @@
 	// The users who maintain the daemons on the page and the ones the maintainer filter offers, by
 	// id: the users list needs Admin, and a daemon's maintainer is often an admin or the owner,
 	// whom it leaves out.
-	const maintainersQuery = useUsersByIds(() => [
-		...new Set([
-			...pageDaemons.map((d) => d.user_id).filter((id): id is string => !!id),
-			...fieldValueOptions(maintainerValuesQuery.data)
-		])
-	]);
+	const maintainersQuery = useUsersByIds(() =>
+		can('Member', 'Read')
+			? [
+					...new Set([
+						...pageDaemons.map((d) => d.user_id).filter((id): id is string => !!id),
+						...fieldValueOptions(maintainerValuesQuery.data)
+					])
+				]
+			: []
+	);
 	let maintainers = $derived(maintainersQuery.data ?? []);
 
 	// Any daemon with a scheduled/active sunset. Drives a non-dismissable banner
