@@ -703,6 +703,32 @@ mod tests {
         );
     }
 
+    /// Read without its agent, `kvm-agent` is known only by its NAT lease, but its other NIC is on
+    /// the uplinked `br0`, where the sweep finds it: not reachable only from the hypervisor.
+    #[test]
+    fn a_guest_with_an_unaddressed_nic_on_an_uplinked_bridge_is_not_unreached() {
+        let inventory = parse::inventory(LAB_READ_ONLY);
+        let reading = read_domain(domain(&inventory, "kvm-agent"), &inventory);
+        assert!(
+            reading
+                .addresses
+                .iter()
+                .all(|a| a.ip.to_string().starts_with("192.168.122.")),
+            "the recording knows kvm-agent only by its NAT lease: {:?}",
+            reading.addresses
+        );
+        assert_eq!(
+            reach::unreached(
+                &reading.nics,
+                &reading.addresses,
+                &parse::bridges(&inventory),
+                &lan(),
+                "scanopy-libvirt-host",
+            ),
+            None
+        );
+    }
+
     /// A read-only connection lists the same domains in the same states, and asks the agent for
     /// nothing, so no domain gains an OS or identities from it.
     #[test]
