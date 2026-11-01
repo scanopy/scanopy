@@ -3356,6 +3356,7 @@
 	"sites_credentialHelpLinkText": "Learn about credential targets",
 	"sites_noCredentialsAssigned": "No credentials assigned",
 	"sites_siteNamePlaceholder": "e.g Home Site",
+	"sites_staleAfter": "Stale after",
 	"sites_staleAfterDefault": "{hours} (default)",
 	"sites_staleAfterHours": "Consider entities stale after",
 	"sites_staleAfterHoursHelp": "How long discovery can go without seeing a host, service or subnet on this site before it's flagged as stale. Set this to comfortably exceed your scan interval. Leave blank to use the default.",
