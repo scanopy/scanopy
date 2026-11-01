@@ -54,7 +54,10 @@ import type { Color } from '$lib/shared/utils/styling';
 import {
 	common_category,
 	common_created,
+	common_daemons,
 	common_host,
+	common_hosts,
+	common_hoursCount,
 	common_lastRun,
 	common_macAddress,
 	common_manager,
@@ -71,9 +74,11 @@ import {
 	hosts_deviceFacts_composeProject,
 	hosts_deviceFacts_guestType,
 	hosts_deviceFacts_networkType,
-	hosts_deviceType
+	hosts_deviceType,
+	sites_staleAfter
 } from '$lib/paraglide/messages';
 
+type DashboardSummary = components['schemas']['DashboardSummary'];
 type Dependency = components['schemas']['Dependency'];
 type Discovery = components['schemas']['Discovery'];
 type Topology = components['schemas']['Topology'];
@@ -507,6 +512,23 @@ function discoveryRows(discovery: Discovery): MaybeRow[] {
 	];
 }
 
+/** What a site holds, from the home page's summary, and how long until its entities go stale. */
+function siteRows(site: Site): MaybeRow[] {
+	const dashboard = queryClient.getQueryData<DashboardSummary>(queryKeys.dashboard.summary());
+	const summary = dashboard?.sites.find((s) => s.id === site.id);
+	const hours = site.effective_stale_after_hours;
+	return [
+		{ label: common_hosts(), value: summary?.host_count.toString() },
+		{ label: common_services(), value: summary?.service_count.toString() },
+		{ label: common_subnets(), value: summary?.subnet_count.toString() },
+		{ label: common_daemons(), value: summary?.daemon_count.toString() },
+		{
+			label: sites_staleAfter(),
+			value: hours == null ? null : common_hoursCount({ hours })
+		}
+	];
+}
+
 /** A dependency's member count, as the sentence the app shows it in. */
 function dependencyMemberCount(dependency: Dependency): TooltipSection {
 	const members = dependency.members;
@@ -579,6 +601,8 @@ export function entityTooltip(
 			const members = dependencyMemberCount(entity as Dependency);
 			return { ...content, sections: [...content.sections, members] };
 		}
+		case 'Site':
+			return registryTooltip(type, entity, title, lookup, { rows: siteRows(entity as Site) });
 		case 'Topology': {
 			const sites = queryClient.getQueryData<Site[]>(queryKeys.sites.all) ?? [];
 			const site = sites.find((s) => s.id === (entity as Topology).site_id);

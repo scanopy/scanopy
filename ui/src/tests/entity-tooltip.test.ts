@@ -24,12 +24,17 @@ import {
 } from '$lib/shared/stores/metadata';
 import { formatTimestamp } from '$lib/shared/utils/formatting';
 import {
+	common_hosts,
+	common_hoursCount,
 	common_lastRun,
 	common_manager,
 	common_moreItems,
 	common_operatingSystem,
+	common_services,
+	common_subnets,
 	dependencies_memberCount,
-	hosts_deviceType
+	hosts_deviceType,
+	sites_staleAfter
 } from '$lib/paraglide/messages';
 
 const rows = (content: TooltipContent): TooltipRow[] =>
@@ -350,6 +355,27 @@ describe('entities topology never draws', () => {
 
 		const scheduled = fromCache('Discovery', { ...discovery, run_type: { type: 'Scheduled' } });
 		expect(chipsOf(scheduled, common_lastRun())).toEqual([]);
+	});
+
+	it("counts what a site holds from the home page's summary, and shows its stale window", () => {
+		const site = { id: 'site', name: 'HQ', effective_stale_after_hours: 24 };
+		queryClient.setQueryData(queryKeys.dashboard.summary(), {
+			sites: [
+				{ id: 'other', host_count: 99, service_count: 99, subnet_count: 99, daemon_count: 99 },
+				{ id: 'site', host_count: 12, service_count: 34, subnet_count: 0, daemon_count: 1 }
+			]
+		});
+		const byLabel = new Map(rows(fromCache('Site', site)).map((r) => [r.label, r.value]));
+		expect(byLabel.get(common_hosts())).toBe('12');
+		expect(byLabel.get(common_services())).toBe('34');
+		// A site with none of something still says so.
+		expect(byLabel.get(common_subnets())).toBe('0');
+		expect(byLabel.get(sites_staleAfter())).toBe(common_hoursCount({ hours: 24 }));
+	});
+
+	it('drops the counts when the summary is not loaded, and keeps the stale window', () => {
+		const site = { id: 'site', name: 'HQ', effective_stale_after_hours: 24 };
+		expect(rows(fromCache('Site', site)).map((r) => r.label)).toEqual([sites_staleAfter()]);
 	});
 
 	it("counts a dependency's members, and names a topology's site", () => {
