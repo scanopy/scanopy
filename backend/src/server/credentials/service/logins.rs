@@ -295,9 +295,9 @@ mod tests {
         let CredentialQueryPayload::Ssh(ssh) = dispatch.payload else {
             panic!("an SSH payload");
         };
-        assert_eq!((ssh.port, ssh.username.as_str()), (2222, "scanopy"));
-        assert!(matches!(ssh.auth, SshAuth::Password { .. }));
-        assert_eq!(ssh.host_key_fingerprint.as_deref(), Some("SHA256:abc"));
+        assert_eq!((ssh.login.port, ssh.login.username.as_str()), (2222, "scanopy"));
+        assert!(matches!(ssh.login.auth, SshAuth::Password { .. }));
+        assert_eq!(ssh.login.host_key_fingerprint.as_deref(), Some("SHA256:abc"));
         assert_eq!(ssh.timeout_seconds, 30);
         assert_eq!(
             ssh.script,

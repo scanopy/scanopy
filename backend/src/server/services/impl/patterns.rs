@@ -1278,10 +1278,10 @@ impl Pattern<'_> {
 
                 if any_matched {
                     Ok(MatchResult {
+                        reached_off_network: off_network && ports.is_empty(),
                         ports,
                         endpoint: None,
                         mac_vendor: None,
-                        reached_off_network: off_network && ports.is_empty(),
                         details: MatchDetails {
                             reason: MatchReason::Container("Any of".to_string(), reasons),
                             confidence,
@@ -1352,10 +1352,10 @@ impl Pattern<'_> {
                     ports.dedup();
 
                     Ok(MatchResult {
+                        reached_off_network: off_network && ports.is_empty(),
                         ports,
                         endpoint: None,
                         mac_vendor: None,
-                        reached_off_network: off_network && ports.is_empty(),
                         details: MatchDetails {
                             reason: MatchReason::Container("All of".to_string(), reasons),
                             confidence,
