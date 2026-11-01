@@ -65,7 +65,7 @@
 					{#if release.daemon_upgrade_notice}
 						<div class="mb-3">
 							<InlineInfo title={releaseNotes_upgradeDaemons({ version: release.version })}>
-								<button type="button" class="btn-secondary mt-2 text-xs" onclick={goToDaemons}>
+								<button type="button" class="text-link hover:underline" onclick={goToDaemons}>
 									{releaseNotes_goToDaemons()}
 								</button>
 							</InlineInfo>
