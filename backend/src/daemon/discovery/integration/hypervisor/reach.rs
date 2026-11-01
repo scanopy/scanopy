@@ -57,6 +57,25 @@ pub fn unreached(
     }) {
         return None;
     }
+    // A NIC whose address nothing reported, on a bridge that is uplinked or not in the
+    // hypervisor's config, may well be on the scanned network: the sweep finds it by its MAC. Only
+    // the addresses the guest is known by say otherwise, so it is not called unreached. A guest
+    // read without its agent, known only by a NAT lease, has its LAN NIC in exactly this state.
+    let bridge_of = |nic: &ConfigNic| {
+        nic.bridge
+            .as_deref()
+            .and_then(|name| bridges.iter().find(|b| b.iface == name))
+    };
+    let unaddressed_on_the_network = nics.iter().any(|nic| {
+        let addressed = nic
+            .mac
+            .as_ref()
+            .is_some_and(|mac| addresses.iter().any(|a| a.mac.as_ref() == Some(mac)));
+        !addressed && bridge_of(nic).is_none_or(|b| b.uplinked)
+    });
+    if unaddressed_on_the_network {
+        return None;
+    }
     // The bridge of the NIC its first address sits on, else of its only NIC.
     let nic = first
         .mac
