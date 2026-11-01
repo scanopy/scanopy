@@ -38176,9 +38176,14 @@
           "date",
           "title",
           "html",
-          "url"
+          "url",
+          "daemon_upgrade_notice"
         ],
         "properties": {
+          "daemon_upgrade_notice": {
+            "type": "boolean",
+            "description": "Whether the modal tells the user to upgrade their daemons to this release."
+          },
           "date": {
             "type": "string",
             "format": "date",

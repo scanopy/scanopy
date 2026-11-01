@@ -14515,6 +14515,8 @@ export interface components {
         };
         /** @description One release's notes. */
         ReleaseNoteResponse: {
+            /** @description Whether the modal tells the user to upgrade their daemons to this release. */
+            daemon_upgrade_notice: boolean;
             /**
              * Format: date
              * @description The day the release was prepared.

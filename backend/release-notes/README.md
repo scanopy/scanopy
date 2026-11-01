@@ -48,9 +48,10 @@ Prepare Release sets `email`, `modal` and `daemon_upgrade` from its `announcemen
 
 - `No email or modal`: all three `false`.
 - `Email and modal`: `email` and `modal` are `true`.
-- `Email and modal with daemon upgrade notice`: all three `true`, and the notes end with an Upgrade
-  your daemons section linking to the upgrade guide. The section is part of the file, so it reaches
-  the release email, the licence owners' email, the modal and the website changelog.
+- `Email and modal with daemon upgrade notice`: all three `true`. The modal and the release email
+  show an inline callout linking to the Daemons tab, and the licence owners' email shows one linking
+  to the daemon upgrade guide. The server renders the callout from the flag, so a file set to `true`
+  by hand gets it too. It isn't part of the notes, so the website changelog doesn't show it.
 
 Edit a file here before the release is tagged. A server shows the copy it was built with, so a
 change after the tag reaches servers only with the next release.
