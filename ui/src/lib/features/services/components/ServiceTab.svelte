@@ -267,7 +267,7 @@
 				id: iface.id,
 				label: formatIPAddress(iface, isContainerSubnetFn),
 				color: entities.getColorHelper('IPAddress').color,
-				entityRef: entityRef('IPAddress', iface.id, iface, { subnets: subnetsData })
+				entityRef: entityRef('IPAddress', iface.id, iface)
 			}));
 	}
 

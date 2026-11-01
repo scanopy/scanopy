@@ -123,18 +123,15 @@ export interface EntityRef {
 	entityId: string;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	data: any;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	context?: any;
 }
 
 /** Shorthand to build an EntityRef — avoids casting at every call site. */
 export function entityRef(
 	entityType: EntityDiscriminants,
 	entityId: string,
-	data: object,
-	context?: object
+	data: object
 ): EntityRef {
-	return { entityType, entityId, data, context };
+	return { entityType, entityId, data };
 }
 
 /**

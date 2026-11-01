@@ -17,6 +17,7 @@
 		minWidth = '200px',
 		maxWidth = '350px',
 		matchTriggerWidth = false,
+		passthrough = false,
 		children
 	}: {
 		triggerElement?: HTMLElement | null;
@@ -47,6 +48,8 @@
 		maxWidth?: string;
 		/** Exactly as wide as the trigger, as a select's options are; overrides the min and max. */
 		matchTriggerWidth?: boolean;
+		/** Read-only content: the pointer passes through to whatever is underneath. */
+		passthrough?: boolean;
 		children: Snippet;
 	} = $props();
 
@@ -230,6 +233,7 @@
 		style:background="var(--color-bg-elevated)"
 		style:min-width={minWidth}
 		style:max-width={maxWidth}
+		style:pointer-events={passthrough ? 'none' : undefined}
 		{role}
 		aria-label={ariaLabel}
 		onfocusout={handleFocusOut}

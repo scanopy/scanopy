@@ -10463,6 +10463,8 @@ export interface components {
             source_field?: string | null;
             /** @description Shown by default in tables and in the inspector's details. Every field is exported. */
             summary: boolean;
+            /** @description Shown on the entity's hover tooltip, for a fact that isn't a `summary` default column. */
+            tooltip: boolean;
         };
         /**
          * @description How recently discovery last observed an entity.

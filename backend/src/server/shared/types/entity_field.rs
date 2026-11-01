@@ -235,6 +235,8 @@ pub struct EntityField {
     pub source_field: Option<&'static str>,
     /// Shown by default in tables and in the inspector's details. Every field is exported.
     pub summary: bool,
+    /// Shown on the entity's hover tooltip, for a fact that isn't a `summary` default column.
+    pub tooltip: bool,
     /// Whether one entity can hold several values: set by any `Children` or `Embedded` hop, and
     /// declared with [`EntityField::many`] for a key holding an array of ids or values.
     pub many: bool,
@@ -267,6 +269,7 @@ impl EntityField {
             format: FieldFormat::Text,
             source_field: None,
             summary: false,
+            tooltip: false,
             many: false,
             searchable: false,
         }
@@ -323,6 +326,13 @@ impl EntityField {
     pub const fn summary(self) -> Self {
         EntityField {
             summary: true,
+            ..self
+        }
+    }
+
+    pub const fn tooltip(self) -> Self {
+        EntityField {
+            tooltip: true,
             ..self
         }
     }

@@ -29258,6 +29258,7 @@
           "path",
           "format",
           "summary",
+          "tooltip",
           "many",
           "searchable"
         ],
@@ -29308,6 +29309,10 @@
           "summary": {
             "type": "boolean",
             "description": "Shown by default in tables and in the inspector's details. Every field is exported."
+          },
+          "tooltip": {
+            "type": "boolean",
+            "description": "Shown on the entity's hover tooltip, for a fact that isn't a `summary` default column."
           }
         }
       },

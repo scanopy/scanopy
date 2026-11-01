@@ -38,7 +38,6 @@
 		useBulkDeleteSitesMutation
 	} from '../queries';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import { isUserManagedSubnet, useSubnetsQuery } from '$lib/features/subnets/queries';
 	import { useVlansQuery } from '$lib/features/vlans/queries';
 	import { useDependenciesQuery } from '$lib/features/dependencies/queries';
@@ -76,15 +75,6 @@
 	const vlansQuery = useVlansQuery();
 	const credentialsQuery = useCredentialsQuery();
 	useDependenciesQuery();
-
-	// Only the hosts the daemons run on: each daemon chip needs one host name,
-	// and an unpaginated org-wide hosts query is ~1.9MB, shared by key with
-	// every other consumer.
-	let daemonHostIds = $derived([
-		...new Set((daemonsQuery.data ?? []).map((d) => d.host_id).filter((id): id is string => !!id))
-	]);
-	const daemonHostsQuery = useHostsByIds(() => daemonHostIds);
-	let daemonHosts = $derived(daemonHostsQuery.data ?? []);
 
 	// Mutations
 	const createSiteMutation = useCreateSiteMutation();
@@ -221,7 +211,6 @@
 			lookup: () => lookup,
 			tags: () => tagsData,
 			daemons: () => daemonsData,
-			daemonHosts: () => daemonHosts,
 			subnets: () => subnetsData,
 			vlans: () => vlansData,
 			credentials: () => credentialsData,

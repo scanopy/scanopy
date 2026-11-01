@@ -27,7 +27,8 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "tooltip": false
         }
       ],
       "has_end_marker": false,
@@ -68,7 +69,8 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "tooltip": false
         }
       ],
       "has_end_marker": false,
@@ -109,7 +111,8 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "tooltip": false
         }
       ],
       "has_end_marker": false,
@@ -150,7 +153,8 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": false
+          "summary": false,
+          "tooltip": false
         },
         {
           "field": null,
@@ -170,7 +174,8 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "tooltip": false
         },
         {
           "field": null,
@@ -190,7 +195,8 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": false
+          "summary": false,
+          "tooltip": false
         },
         {
           "field": null,
@@ -210,7 +216,8 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": false
+          "summary": false,
+          "tooltip": false
         }
       ],
       "has_end_marker": false,
@@ -251,7 +258,8 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "tooltip": false
         }
       ],
       "has_end_marker": false,
@@ -292,7 +300,8 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "tooltip": false
         }
       ],
       "has_end_marker": true,
@@ -333,7 +342,8 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "tooltip": false
         }
       ],
       "has_end_marker": true,
@@ -374,7 +384,8 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "tooltip": false
         },
         {
           "field": null,
@@ -394,7 +405,8 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "tooltip": false
         },
         {
           "field": "protocol",
@@ -409,7 +421,8 @@
           "path": [],
           "searchable": false,
           "source_field": null,
-          "summary": false
+          "summary": false,
+          "tooltip": false
         }
       ],
       "has_end_marker": false,
@@ -450,7 +463,8 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "tooltip": false
         },
         {
           "field": null,
@@ -470,7 +484,8 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "tooltip": false
         },
         {
           "field": "protocol",
@@ -485,7 +500,8 @@
           "path": [],
           "searchable": false,
           "source_field": null,
-          "summary": false
+          "summary": false,
+          "tooltip": false
         }
       ],
       "has_end_marker": false,

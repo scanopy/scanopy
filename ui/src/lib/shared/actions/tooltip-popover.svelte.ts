@@ -5,7 +5,8 @@ import type { MountTooltipChip, TooltipContent } from './tooltip';
 
 /**
  * The app's one tooltip: a single `Popover`, mounted at the first hover and kept. Showing it on
- * another element moves it there and swaps its content; it is never mounted twice.
+ * another element moves it there and swaps its content; it is never mounted twice. It is read-only:
+ * its chips stay static, and the pointer passes through it to whatever is underneath.
  */
 
 interface Shown {
@@ -15,16 +16,6 @@ interface Shown {
 
 const state = $state<{ shown: Shown | null }>({ shown: null });
 let mounted = false;
-let staticChips = false;
-
-/** Whether chips in the tooltip stay inert: a public share has no entities to navigate to. */
-export function setTooltipChipsStatic(value: boolean) {
-	staticChips = value;
-}
-
-export function tooltipChipsAreStatic() {
-	return staticChips;
-}
 
 export function showTooltipPopover(
 	anchor: HTMLElement,
@@ -36,15 +27,14 @@ export function showTooltipPopover(
 	mounted = true;
 
 	const body = createRawSnippet(() => ({
-		render: () =>
-			'<div data-tooltip-surface class="text-secondary wrap-break-word text-xs leading-tight"></div>',
+		render: () => '<div class="text-secondary wrap-break-word text-xs leading-tight"></div>',
 		setup(el: Element) {
 			// Redrawn in place whenever the tooltip moves to another element.
 			$effect(() => {
 				const shown = state.shown;
 				if (!shown) return;
 				const chips: ReturnType<typeof mount>[] = [];
-				const context = staticChips ? new Map([['staticTags', true]]) : undefined;
+				const context = new Map([['staticTags', true]]);
 				untrack(() => {
 					el.replaceChildren(
 						render(shown.content, (target, chip) => {
@@ -74,8 +64,9 @@ export function showTooltipPopover(
 				return typeof state.shown?.content === 'string' ? '250px' : '300px';
 			},
 			role: 'tooltip',
-			prefer: 'above',
+			align: 'start',
 			minWidth: '0',
+			passthrough: true,
 			onClose: hideTooltipPopover,
 			children: body
 		}

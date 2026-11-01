@@ -291,7 +291,7 @@ const TAG: &[F] = &[
 
 const TAG_GROUP: &[F] = &[
     F::new("name", "Name", G::Identity).summary(),
-    DESCRIPTION,
+    DESCRIPTION.tooltip(),
     F::new("group_type", "Group Type", G::Identity),
     F::new("entity_types", "Applies To", G::Configuration).many(),
 ];
@@ -320,8 +320,12 @@ const DISCOVERY: &[F] = &[
 
 const DAEMON_API_KEY: &[F] = &[
     F::new("name", "Name", G::Identity).summary(),
-    F::new("is_enabled", "Enabled", G::Access).format(FieldFormat::Boolean),
-    F::new("last_used", "Last Used", G::Access).format(TIMESTAMP),
+    F::new("is_enabled", "Enabled", G::Access)
+        .format(FieldFormat::Boolean)
+        .tooltip(),
+    F::new("last_used", "Last Used", G::Access)
+        .format(TIMESTAMP)
+        .tooltip(),
     F::new("expires_at", "Expires", G::Access).format(TIMESTAMP),
     F::new("daemon_id", "Daemon", G::Relationships).entity(&[Hop::parent(E::Daemon, "daemon_id")]),
     SITE,
@@ -330,8 +334,12 @@ const DAEMON_API_KEY: &[F] = &[
 const USER_API_KEY: &[F] = &[
     F::new("name", "Name", G::Identity).summary(),
     F::new("permissions", "Permissions", G::Access).metadata(Fx::Permissions),
-    F::new("is_enabled", "Enabled", G::Access).format(FieldFormat::Boolean),
-    F::new("last_used", "Last Used", G::Access).format(TIMESTAMP),
+    F::new("is_enabled", "Enabled", G::Access)
+        .format(FieldFormat::Boolean)
+        .tooltip(),
+    F::new("last_used", "Last Used", G::Access)
+        .format(TIMESTAMP)
+        .tooltip(),
     F::new("expires_at", "Expires", G::Access).format(TIMESTAMP),
     F::new("user_id", "User", G::Relationships).entity(&[Hop::parent(E::User, "user_id")]),
 ];
@@ -342,7 +350,7 @@ const CREDENTIAL: &[F] = &[
         .field("credential_type.type")
         .metadata(Fx::CredentialTypes)
         .summary(),
-    DESCRIPTION,
+    DESCRIPTION.tooltip(),
     F::new("daemon_os", "Daemon OS", G::Configuration),
 ];
 
