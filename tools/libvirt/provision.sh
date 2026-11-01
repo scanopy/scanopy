@@ -48,7 +48,7 @@ if [ -z "$vmid" ]; then
     # cpu=host passes VMX through for the nested guests. No firewall on net0, so Proxmox puts no
     # MAC filter on the guests' own MACs.
     node_ssh "set -e
-        qm create $vmid --name $VM_NAME --pool $LAB_POOL --memory 2560 --cores 2 --cpu host \
+        qm create $vmid --name $VM_NAME --pool $LAB_POOL --memory 3584 --cores 2 --cpu host \
             --net0 virtio,bridge=$LAB_BRIDGE --scsihw virtio-scsi-pci --serial0 socket --vga serial0
         qm importdisk $vmid $IMAGE $STORAGE >/dev/null
         qm set $vmid --scsi0 $STORAGE:vm-$vmid-disk-0 --boot order=scsi0 >/dev/null
