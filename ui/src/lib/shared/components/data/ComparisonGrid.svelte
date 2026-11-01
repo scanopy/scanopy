@@ -33,6 +33,7 @@
 		getRowKey,
 		rowLabel,
 		cell,
+		framed = true,
 		class: className = ''
 	}: {
 		/** Heads the label column. */
@@ -42,6 +43,8 @@
 		getRowKey: (row: Row) => string;
 		rowLabel: Snippet<[Row]>;
 		cell: Snippet<[Row, ComparisonColumn]>;
+		/** Draw the card around the grid. Off where the surface around it is already a panel. */
+		framed?: boolean;
 		class?: string;
 	} = $props();
 
@@ -52,7 +55,7 @@
 	);
 </script>
 
-<div class="card overflow-auto p-0 {className}">
+<div class="overflow-auto {framed ? 'card p-0' : ''} {className}">
 	<div class="comparison-row comparison-header-row" style="grid-template-columns: {gridColumns}">
 		<div class="comparison-label-cell">
 			<div class="text-xs font-medium lg:text-sm">{labelHeading}</div>

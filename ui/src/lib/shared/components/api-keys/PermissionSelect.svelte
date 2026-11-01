@@ -13,8 +13,10 @@
 	} from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
 	import { permissions, resources } from '$lib/shared/stores/metadata';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { accessLevelName } from '$lib/features/users/role-comparison';
+	import { roleActions, roleResources } from '$lib/features/users/role-comparison';
 	import { permissions_compareRoles } from '$lib/paraglide/messages';
+	import RoleActionIcons from './RoleActionIcons.svelte';
+	import RoleActionLegend from './RoleActionLegend.svelte';
 	import RoleComparisonModal from './RoleComparisonModal.svelte';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 
@@ -45,7 +47,6 @@
 		permissionFilter
 	}: Props = $props();
 
-	let selectedMetadata = $derived(permissions.getMetadata(field.state.value));
 	let showComparison = $state(false);
 
 	// Get current user to determine which permissions they can grant
@@ -93,14 +94,21 @@
 	{helpText}
 />
 
-<div class="mt-2 space-y-1 text-xs text-tertiary">
-	{#each selectedMetadata.access ?? [] as entry (entry.level)}
-		<p>
-			<span class="font-medium text-secondary">{accessLevelName(entry.level)}:</span>
-			{entry.resources.map((resource) => resources.getName(resource)).join(', ')}
-		</p>
-	{/each}
-	<button type="button" class="text-link hover:underline" onclick={() => (showComparison = true)}>
+<div class="mt-2 space-y-2">
+	<RoleActionLegend />
+	<div class="grid gap-x-6 gap-y-1 sm:grid-cols-2">
+		{#each roleResources(field.state.value) as resource (resource)}
+			<div class="flex items-center justify-between gap-3 text-xs text-secondary">
+				<span class="truncate">{resources.getName(resource)}</span>
+				<RoleActionIcons held={roleActions(resource, field.state.value)} />
+			</div>
+		{/each}
+	</div>
+	<button
+		type="button"
+		class="text-xs text-link hover:underline"
+		onclick={() => (showComparison = true)}
+	>
 		{permissions_compareRoles()}
 	</button>
 </div>

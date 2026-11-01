@@ -4,7 +4,7 @@ use strum::{Display, EnumIter, IntoEnumIterator, IntoStaticStr};
 use utoipa::ToSchema;
 
 use crate::server::{
-    auth::access::{AccessLevel, Action, Assignment, AssignmentScope, Keying, Resource},
+    auth::access::{Action, Assignment, AssignmentScope, Keying, Resource},
     shared::{
         entities::EntityDiscriminants,
         types::{
@@ -60,19 +60,6 @@ impl UserOrgPermissions {
         }
         UserOrgPermissions::iter()
             .filter(|target| grants.may_grant_to_person(&target.grants(), Keying::Organization))
-            .collect()
-    }
-
-    /// Everything this role holds, one entry per level.
-    pub fn access(&self) -> Vec<serde_json::Value> {
-        AccessLevel::iter()
-            .filter_map(|level| {
-                let resources: Vec<Resource> = Resource::iter()
-                    .filter(|resource| resource.level(*self) == Some(level))
-                    .collect();
-                (!resources.is_empty())
-                    .then(|| serde_json::json!({ "level": level, "resources": resources }))
-            })
             .collect()
     }
 
@@ -143,40 +130,7 @@ impl TypeMetadataProvider for UserOrgPermissions {
         serde_json::json!({
             "grantable_api_key_permissions": self.grantable_api_key_permissions(),
             "grantable_user_permissions": self.grantable_user_permissions(),
-            "access": self.access(),
             "reaches_all_sites": self.reaches_all_sites(),
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Every resource a role reaches appears exactly once, at its level, and no other does.
-    #[test]
-    fn access_lists_each_reached_resource_once_at_its_level() {
-        for role in UserOrgPermissions::iter() {
-            let access = role.access();
-            for resource in Resource::iter() {
-                let listed_at: Vec<&serde_json::Value> = access
-                    .iter()
-                    .flat_map(|entry| {
-                        entry["resources"]
-                            .as_array()
-                            .into_iter()
-                            .flatten()
-                            .filter(|listed| **listed == serde_json::json!(resource))
-                            .map(|_| &entry["level"])
-                    })
-                    .collect();
-                let held = resource.level(role).map(|level| serde_json::json!(level));
-                assert_eq!(
-                    listed_at,
-                    held.iter().collect::<Vec<_>>(),
-                    "{role} on {resource}"
-                );
-            }
-        }
     }
 }
