@@ -47,6 +47,13 @@ pub struct NetworkIdentity {
     pub source: AttributeSource,
 }
 
+/// Whether `ip` sits on a subnet the site holds that is neither a container bridge nor loopback:
+/// an address the rest of the network can reach, rather than one every Docker host also has.
+pub fn on_lan(subnets: &[Subnet], ip: IpAddr) -> bool {
+    placeable_subnet(subnets, ip)
+        .is_some_and(|s| !s.is_container_bridge_subnet() && !s.base.subnet_type().is_loopback())
+}
+
 /// The interfaces a running guest reports that are identities of their own, filed under `source`.
 ///
 /// An interface counts when it has a MAC, that MAC is not one the guest's config gives a NIC
@@ -61,10 +68,7 @@ pub fn network_identities(
     subnets: &[Subnet],
     source: AttributeSource,
 ) -> Vec<NetworkIdentity> {
-    let on_lan = |ip: IpAddr| {
-        placeable_subnet(subnets, ip)
-            .is_some_and(|s| !s.is_container_bridge_subnet() && !s.base.subnet_type().is_loopback())
-    };
+    let on_lan = |ip: IpAddr| on_lan(subnets, ip);
     let is_nic = |mac: &str| nics.iter().any(|n| n.mac.as_deref() == Some(mac));
     let is_unset = |mac: &str| {
         mac.parse::<mac_address::MacAddress>()

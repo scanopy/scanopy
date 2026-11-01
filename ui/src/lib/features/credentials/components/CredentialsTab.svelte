@@ -29,7 +29,7 @@
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { permissions, credentialTypes, billingPlans } from '$lib/shared/stores/metadata';
-	import { getCredentialTypeId, isLoginType } from '$lib/features/credentials/types/base';
+	import { getCredentialTypeId } from '$lib/features/credentials/types/base';
 	import {
 		modalState,
 		openModal,
@@ -59,7 +59,6 @@
 		credentials_defaultCantDelete,
 		credentials_loginInUse,
 		credentials_loginInUseBulk,
-		credentials_usedBy,
 		gettingStarted_stepDaemonLabel
 	} from '$lib/paraglide/messages';
 	import { useTagsQuery } from '$lib/features/tags/queries';
@@ -178,16 +177,10 @@
 		return [{ id: 'not-applicable', label: common_notApplicable(), color: 'Gray' }];
 	}
 
-	/** A login is assigned nowhere; what it has is the credentials that run over it. */
-	function loginUsage(credential: Credential): CardFieldItem[] | null {
-		if (!isLoginType(getCredentialTypeId(credential))) return null;
-		return [
-			{
-				id: 'used-by',
-				label: credentials_usedBy({ count: credential.used_by.length }),
-				color: 'Gray'
-			}
-		];
+	/** A login is assigned nowhere; what it has is the credentials that sign in with it. */
+	function usersOfLogin(credential: Credential): Credential[] {
+		const ids = new Set(credential.used_by);
+		return (credentialsQuery.data ?? []).filter((c) => ids.has(c.id));
 	}
 	let isLoading = $derived(credentialsPageQuery.isPending && !credentialsPageQuery.data);
 	let pageLoad = $derived(loadFailure(organizationQuery, credentialsPageQuery));
@@ -331,7 +324,7 @@
 		targetsFor,
 		daemonHostOnly,
 		assignmentItems,
-		loginUsage
+		usersOfLogin
 	});
 </script>
 

@@ -321,7 +321,9 @@ fn probe_failure(error: SessionError) -> ProbeFailure {
 }
 
 /// The host being scanned: named by its hostname, at the address it was reached at and every
-/// reachable address `ip addr` gives it. The libvirt service is added by the matcher.
+/// address `ip addr` gives it on a LAN subnet. Its own `docker0` and `br-*` are left out: 172.17.0.1
+/// is on every Docker host, and recorded here it would tie this host to all of them. The libvirt
+/// service is added by the matcher.
 fn hypervisor_host(
     inventory: &parse::Inventory,
     scanned: IpAddr,
@@ -348,7 +350,12 @@ fn hypervisor_host(
     };
     let mut seen = BTreeSet::new();
     let mut ip_addresses: Vec<IPAddress> = std::iter::once(scanned)
-        .chain(addresses.iter().map(|(_, ip)| *ip))
+        .chain(
+            addresses
+                .iter()
+                .map(|(_, ip)| *ip)
+                .filter(|ip| identities::on_lan(subnets, *ip)),
+        )
         .filter(|ip| seen.insert(*ip))
         .enumerate()
         .filter_map(|(position, ip)| {
@@ -656,6 +663,25 @@ mod tests {
         assert_eq!(of("br-iso"), (false, false));
     }
 
+    /// The KVM host keeps its LAN and `virbr0` addresses, not its own `docker0`, whose 172.17.0.1
+    /// every Docker host on the site also has.
+    #[test]
+    fn the_kvm_host_records_no_container_bridge_address() {
+        let mut subnets = lan();
+        subnets.push(subnet("192.168.122.0/24", SubnetType::Unknown));
+        subnets.push(subnet("172.17.0.0/16", SubnetType::DockerBridge));
+        let (_, addresses) = hypervisor_host(
+            &parse::inventory(LAB),
+            "192.168.7.172".parse().unwrap(),
+            &subnets,
+            Uuid::new_v4(),
+        );
+        let ips: Vec<IpAddr> = addresses.iter().map(|a| a.base.ip_address).collect();
+        assert!(ips.contains(&"192.168.7.172".parse().unwrap()), "{ips:?}");
+        assert!(ips.contains(&"192.168.122.1".parse().unwrap()), "{ips:?}");
+        assert!(!ips.contains(&"172.17.0.1".parse().unwrap()), "{ips:?}");
+    }
+
     /// A domain on libvirt's NAT network, at a lease address outside the scan, is reachable only
     /// from the KVM host, through `virbr0`.
     #[test]
@@ -747,13 +773,28 @@ mod lab_tests {
     async fn capture() {
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/tests/libvirt");
         std::fs::create_dir_all(&dir).unwrap();
-        let global_prefix = regex::Regex::new(r"\b[23][0-9a-f]{3}:[0-9a-f]{1,4}:").unwrap();
+        // Candidate tokens only; whether one is an address, and a global one, is the parse's call.
+        let hex_run = regex::Regex::new(r"[0-9A-Fa-f:]+").unwrap();
+        let documentation_prefix = |token: &regex::Captures| {
+            let token = &token[0];
+            match token.parse::<std::net::Ipv6Addr>() {
+                Ok(ip) if ip.segments()[0] & 0xe000 == 0x2000 => {
+                    let mut segments = ip.segments();
+                    segments[0] = 0x2001;
+                    segments[1] = 0x0db8;
+                    std::net::Ipv6Addr::from(segments).to_string()
+                }
+                _ => token.to_string(),
+            }
+        };
         for (user, read_only, file) in [
             ("scanopy", false, "lab_inventory.txt"),
             ("scanopy-ro", true, "lab_inventory_read_only.txt"),
         ] {
             let output = inventory_as(user, read_only).await;
-            let output = global_prefix.replace_all(&output, "2001:db8:").into_owned();
+            let output = hex_run
+                .replace_all(&output, documentation_prefix)
+                .into_owned();
             std::fs::write(dir.join(file), &output).unwrap();
             let parsed = parse::inventory(&output);
             println!(

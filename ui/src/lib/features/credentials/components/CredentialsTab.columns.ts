@@ -8,7 +8,8 @@ import type { Tag } from '$lib/features/tags/types/base';
 import { credentialIntegrations, credentialTypes, entities } from '$lib/shared/stores/metadata';
 import {
 	getCredentialTypeId,
-	getTargetTagProps,
+	getScopeTagProps,
+	isLoginType,
 	getUpstreamSupportTagProps
 } from '$lib/features/credentials/types/base';
 import { getStabilityTagProps } from '$lib/shared/utils/stability';
@@ -16,6 +17,7 @@ import type { Host } from '$lib/features/hosts/types/base';
 import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 import osFamilies from '$lib/data/os-families.json';
 import {
+	common_assignments,
 	common_beta,
 	credentials_betaTooltip,
 	common_created,
@@ -23,8 +25,6 @@ import {
 	common_type,
 	common_updated,
 	credentials_unofficialApi,
-	common_hosts,
-	common_sites,
 	common_tags,
 	common_targets
 } from '$lib/paraglide/messages';
@@ -60,8 +60,8 @@ export interface CredentialColumnsContext {
 	targetsFor: (credential: Credential) => string[];
 	daemonHostOnly: (credential: Credential) => boolean;
 	assignmentItems: (applicable: boolean, items: CardFieldItem[]) => CardFieldItem[];
-	/** For an SSH login, which is assigned nowhere: how many credentials run over it. */
-	loginUsage: (credential: Credential) => CardFieldItem[] | null;
+	/** For an SSH login, which is assigned nowhere: the credentials that sign in with it. */
+	usersOfLogin: (credential: Credential) => Credential[];
 }
 
 /**
@@ -196,55 +196,61 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 		[
 			{ key: 'description', searchable: true },
 			{
-				key: 'assigned_sites',
-				label: common_sites(),
+				// Where a credential applies: its sites, then its hosts. A login applies nowhere
+				// itself, so it lists the credentials that sign in with it.
+				key: 'assignments',
+				label: common_assignments(),
 				type: 'array',
-				// Credentials share sites, so this filters. Hosts are near-unique per credential,
+				// Credentials share sites, so sites filter. Hosts are near-unique per credential,
 				// so search covers those.
+				searchable: true,
 				filterable: true,
 				serverFiltered: true,
 				queryParam: 'site_ids',
 				filterOptions: ctx.sites().map((site) => site.id),
-				getValue: (item: Credential) => ctx.sitesForCredential(item).map((n) => n.name),
+				getValue: (item: Credential) => [
+					...ctx.sitesForCredential(item).map((site) => site.name),
+					...ctx.hostsForCredential(item).map(hostDisplayName),
+					...ctx.usersOfLogin(item).map((user) => user.name)
+				],
 				getFilterValue: (item: Credential) => ctx.sitesForCredential(item).map((n) => n.id),
 				filterLabel: (id) => ctx.sites().find((n) => n.id === id)?.name ?? id,
 				display: {
-					getItems: (item: Credential) =>
-						ctx.assignmentItems(
-							ctx.targetsFor(item).includes('Site'),
-							ctx.sitesForCredential(item).map((site) => ({
-								id: site.id,
-								label: site.name,
-								color: entities.getColorHelper('Site').color,
-								entityRef: entityRef('Site', site.id, site)
-							}))
-						)
-				}
-			},
-			{
-				key: 'assigned_hosts',
-				label: common_hosts(),
-				type: 'array',
-				searchable: true,
-				getValue: (item: Credential) => ctx.hostsForCredential(item).map(hostDisplayName),
-				display: {
-					getItems: (item: Credential) =>
-						ctx.loginUsage(item) ??
-						ctx.assignmentItems(
-							// DaemonHost-only credentials (Docker/Podman sockets) are
-							// assigned to their daemon's host through the same junction.
-							ctx.targetsFor(item).some((t) => t === 'Hosts' || t === 'DaemonHost'),
-							ctx.hostsForCredential(item).map((host) => ({
-								id: host.id,
-								label: hostDisplayName(host),
-								// A daemon-host credential reaches that host *through* its
-								// daemon, so it reads as a daemon relationship rather than a
-								// host one. Only credentials that target hosts generally get
-								// the host colour.
-								color: entities.getColorHelper(ctx.daemonHostOnly(item) ? 'Daemon' : 'Host').color,
-								entityRef: entityRef('Host', host.id, host)
-							}))
-						)
+					getItems: (item: Credential) => {
+						if (isLoginType(getCredentialTypeId(item))) {
+							return ctx.usersOfLogin(item).map((user) => ({
+								id: user.id,
+								label: user.name,
+								color: entities.getColorHelper('Credential').color,
+								entityRef: entityRef('Credential', user.id, user)
+							}));
+						}
+						const targets = ctx.targetsFor(item);
+						return ctx.assignmentItems(
+							// DaemonHost-only credentials (Docker/Podman sockets) are assigned to
+							// their daemon's host through the same junction.
+							targets.some((t) => t === 'Site' || t === 'Hosts' || t === 'DaemonHost'),
+							[
+								...ctx.sitesForCredential(item).map((site) => ({
+									id: site.id,
+									label: site.name,
+									color: entities.getColorHelper('Site').color,
+									entityRef: entityRef('Site', site.id, site)
+								})),
+								...ctx.hostsForCredential(item).map((host) => ({
+									id: host.id,
+									label: hostDisplayName(host),
+									// A daemon-host credential reaches that host *through* its
+									// daemon, so it reads as a daemon relationship rather than a
+									// host one. Only credentials that target hosts generally get
+									// the host colour.
+									color: entities.getColorHelper(ctx.daemonHostOnly(item) ? 'Daemon' : 'Host')
+										.color,
+									entityRef: entityRef('Host', host.id, host)
+								}))
+							]
+						);
+					}
 				}
 			},
 			{
@@ -275,13 +281,11 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 					// it neither sorts nor groups.
 					hiddenByDefault: true,
 					// Coloured chips per target rather than undifferentiated grey.
-					getItems: (item: Credential) => {
-						const meta = credentialTypes.getMetadata(getCredentialTypeId(item));
-						return (meta?.targets ?? []).map((target: string) => ({
-							id: target,
-							...getTargetTagProps(target)
-						}));
-					}
+					getItems: (item: Credential) =>
+						getScopeTagProps(getCredentialTypeId(item)).map((scope, i) => ({
+							id: String(i),
+							...scope
+						}))
 				}
 			},
 			{

@@ -16,6 +16,12 @@ write_files:
     permissions: "0755"
     content: |
       #!/bin/sh
+      # Each interface answers ARP only for its own addresses, as tools/ssh and tools/snmp set.
+      # Left at the defaults, eth0 answers for .178 with its own MAC and the sweep files .178
+      # under kvm-docker itself. Alpine's strict rp_filter would then drop mv-lab's ARP, since
+      # the route back to the LAN is eth0's; loose is Ubuntu's default, which those labs run on.
+      sysctl -qw net.ipv4.conf.all.arp_ignore=1 net.ipv4.conf.all.arp_announce=2 \
+        net.ipv4.conf.all.rp_filter=2
       ip link add mv-lab link eth0 type macvlan mode bridge
       ip addr add 192.168.7.178/22 dev mv-lab
       ip link set mv-lab up

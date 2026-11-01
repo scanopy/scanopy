@@ -462,8 +462,7 @@ const CREDENTIAL_COLUMNS: &[C] = &[
     C::new("beta", G::Identity),
     C::new("unofficial_api", G::Identity),
     C::new("target", G::Relationships),
-    C::new("assigned_sites", G::Relationships),
-    C::new("assigned_hosts", G::Relationships),
+    C::new("assignments", G::Relationships),
     CREATED_AT,
     UPDATED_AT,
 ];

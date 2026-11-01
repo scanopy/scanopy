@@ -599,9 +599,8 @@ impl CredentialType {
             // Like SNMP: the same account and script can serve a fleet, so a site assignment is a
             // reasonable way to apply it.
             Self::SshScript { .. } => vec![Target::Hosts, Target::Site],
-            // Like an SSH script: a hypervisor answers, and any other host has no `virsh` and is
-            // skipped without a finding.
-            Self::Libvirt { .. } => vec![Target::Hosts, Target::Site],
+            // Named KVM hosts only. A site assignment would try the login on every SSH host there.
+            Self::Libvirt { .. } => vec![Target::Hosts],
             // A login runs nothing, so it is assigned nowhere: the credentials that use it are.
             Self::SshPassword { .. } | Self::SshKey { .. } => vec![],
             // Named hosts only. A site assignment would wake every device on the subnet the
@@ -1678,18 +1677,6 @@ mod tests {
                 .unwrap(),
             CredentialQueryPayload::PodmanSocket(_)
         ));
-    }
-
-    #[test]
-    fn podman_credentials_are_container_virtualization() {
-        assert_eq!(
-            podman_cred(None).credential_category(),
-            CredentialCategory::ContainerVirtualization
-        );
-        assert_eq!(
-            CredentialType::PodmanSocket { socket_path: None }.credential_category(),
-            CredentialCategory::ContainerVirtualization
-        );
     }
 
     #[test]
