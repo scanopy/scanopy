@@ -364,11 +364,14 @@ function useOwnerInvoiceBillingStatusQuery() {
  * everyone else, and shares its cache entry with the Billing tab's own copy, so a licensed
  * org pays for one request however many callers read it.
  */
-export function useHasPendingQuote(): { current: boolean } {
+export function useHasPendingQuote(): { current: boolean; loading: boolean } {
 	const query = useOwnerInvoiceBillingStatusQuery();
 	return {
 		get current() {
 			return query.data?.pending_quote != null;
+		},
+		get loading() {
+			return query.isLoading;
 		}
 	};
 }

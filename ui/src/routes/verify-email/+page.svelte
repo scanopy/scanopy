@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import AuthBackground from '$lib/shared/components/layout/AuthBackground.svelte';
-	import { goto } from '$app/navigation';
+	import { goto, preloadCode } from '$app/navigation';
 	import {
 		useVerifyEmailMutation,
 		useResendVerificationMutation
@@ -56,13 +56,15 @@
 			return;
 		}
 
+		// The app follows straight after verification, so its code is ready by then.
+		void preloadCode(resolve('/'));
+
 		try {
 			await verifyMutation.mutateAsync({ token });
 			status = 'success';
-			// Fetch organization data before navigating
+			// The app decides what to open from the org, so it arrives with this in the cache.
 			await fetchOrganization();
-			// Auto-navigate after delay
-			setTimeout(() => navigate(), 2000);
+			void navigate();
 		} catch (e) {
 			status = 'error';
 			errorMessage = e instanceof Error ? e.message : verifyEmail_failed();

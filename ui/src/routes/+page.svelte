@@ -45,6 +45,11 @@
 		isPlanUnchosen,
 		isSelfHostedPlanLocked as isSelfHostedPlanLockedFor
 	} from '$lib/features/organizations/types';
+	import {
+		isShellReady,
+		shouldCloseBillingPlanLink,
+		shouldOpenLicenseSettings
+	} from '$lib/features/organizations/onload-gates';
 	import { billingPlans } from '$lib/shared/stores/metadata';
 	import { licenseTabVisible } from '$lib/features/settings/license-tab';
 	import { billingOverModal, reopenSettingsAfterBilling } from '$lib/features/billing/stores';
@@ -82,6 +87,8 @@
 		configQuery.data != null && isLicenseSigningAvailable(configQuery.data)
 	);
 	let organization = $derived(organizationQuery.data);
+	// The shell paints with the modal these two decide, rather than a request before it.
+	let shellReady = $derived(isShellReady(organizationQuery, configQuery));
 	// A licensed self-hosted plan on Scanopy Cloud locks the main app:
 	// the backend rejects main-app routes, and the org only gets Settings (its keys
 	// live on the License tab). Switching to a cloud plan unlocks it on the next
@@ -284,16 +291,22 @@
 	let licenseSettingsOpenedFor = $state<string | null>(null);
 	$effect(() => {
 		// A license org whose trial never started is the billing gate's, above.
-		if (!isSelfHostedPlanLocked || planUnchosen) {
-			licenseSettingsOpenedFor = null;
-			return;
-		}
+		const locked = isSelfHostedPlanLocked && !planUnchosen;
+		if (!locked) licenseSettingsOpenedFor = null;
 		const planType = organization?.plan?.type ?? null;
-		if (planType == null || licenseSettingsOpenedFor === planType) return;
-		if (!appInitialized || showBillingModal) return;
-		if ($modalState.name !== null && $modalState.name !== 'settings') return;
-		licenseSettingsOpenedFor = planType;
-		openModal('settings', { tab: licenseLockTab });
+		if (
+			shouldOpenLicenseSettings({
+				locked,
+				planType,
+				openedFor: licenseSettingsOpenedFor,
+				appInitialized,
+				planPickerShowing: showBillingModal,
+				modalName: $modalState.name
+			})
+		) {
+			licenseSettingsOpenedFor = planType;
+			openModal('settings', { tab: licenseLockTab });
+		}
 	});
 
 	// A URL deep link (initModalFromUrl) can name a main-app modal, and the org may
@@ -429,12 +442,21 @@
 		appInitialized = true;
 		initModalFromUrl();
 		deepLinkOpened = $modalState.name !== null;
+	}
 
-		// Block billing modal deep-link in non-cloud environments
-		if (!isCloudDeployment && $modalState.name === 'billing-plan') {
+	// Block billing modal deep-link in non-cloud environments. Config can land after
+	// initializeApp, so this waits for it rather than closing a Cloud link.
+	$effect(() => {
+		if (
+			shouldCloseBillingPlanLink({
+				modalName: $modalState.name,
+				configLoaded: configQuery.data != null,
+				isCloudDeployment
+			})
+		) {
 			closeModal();
 		}
-	}
+	});
 
 	// Reactive effect: initialize app when authenticated
 	// The layout handles auth check via TanStack Query, so we just wait for it to complete
@@ -468,7 +490,7 @@
 		<AuthBackground />
 		<EmailVerificationGate isOpen={true} />
 	</div>
-{:else if appInitialized}
+{:else if appInitialized && shellReady}
 	<div class="flex h-dvh flex-col">
 		<!-- Banners span the full width, sidebar included.
 		     Only while the main app is reachable. When it is gated, or the org is on

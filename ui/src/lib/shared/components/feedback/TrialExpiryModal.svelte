@@ -4,6 +4,7 @@
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { hasLicensedPlan } from '$lib/features/organizations/types';
+	import { shouldShowTrialExpiryModal } from '$lib/features/organizations/onload-gates';
 	import { useHasPendingQuote } from '$lib/features/billing/queries';
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
 	import { getTrialDaysLeft, isTrialingWithoutPayment } from '$lib/shared/utils/trial';
@@ -49,12 +50,14 @@
 	const hasPendingQuote = useHasPendingQuote();
 
 	let isOpen = $derived(
-		isTrialingWithoutPayment(org, isCloudDeployment) &&
-			!hasPendingQuote.current &&
-			trialDaysLeft !== null &&
-			trialDaysLeft <= 1 &&
-			!dismissedTodayState &&
-			!blocked
+		shouldShowTrialExpiryModal({
+			trialingWithoutPayment: isTrialingWithoutPayment(org, isCloudDeployment),
+			hasPendingQuote: hasPendingQuote.current,
+			pendingQuoteLoading: hasPendingQuote.loading,
+			trialDaysLeft,
+			dismissedToday: dismissedTodayState,
+			blocked
+		})
 	);
 	$effect(() => {
 		open = isOpen;
