@@ -13,7 +13,12 @@
 	let { role }: { role: string } = $props();
 
 	let expanded = $state(false);
-	let held = $derived(roleResources(role));
+	/** Fewest actions first. Ties keep their product area order. */
+	let held = $derived(
+		roleResources(role).toSorted(
+			(a, b) => roleActions(a, role).length - roleActions(b, role).length
+		)
+	);
 	let sections = $derived([
 		{
 			label: permissions_perSite(),
