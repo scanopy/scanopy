@@ -290,7 +290,9 @@
 						{/snippet}
 					</form.Field>
 
-					<RoleAccessSummary role={permissionsValue} />
+					{#if permissionsValue}
+						<RoleAccessSummary role={permissionsValue} />
+					{/if}
 
 					<form.Field name="tags">
 						{#snippet children(field)}
