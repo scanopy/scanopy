@@ -63,27 +63,12 @@ impl UserOrgPermissions {
             .collect()
     }
 
-    /// The role one step below this one. Viewer is the baseline.
-    pub fn previous_role(&self) -> Option<UserOrgPermissions> {
-        match self {
-            UserOrgPermissions::Owner => Some(UserOrgPermissions::Admin),
-            UserOrgPermissions::Admin => Some(UserOrgPermissions::Member),
-            UserOrgPermissions::Member => Some(UserOrgPermissions::Viewer),
-            UserOrgPermissions::Viewer => None,
-        }
-    }
-
-    /// What this role adds over [`Self::previous_role`], one entry per level, the way
-    /// `BillingPlan::incremental_features` does for plans. Viewer lists all of its access.
-    pub fn incremental_access(&self) -> Vec<serde_json::Value> {
-        let inherited = self.previous_role();
+    /// Everything this role holds, one entry per level.
+    pub fn access(&self) -> Vec<serde_json::Value> {
         AccessLevel::iter()
             .filter_map(|level| {
                 let resources: Vec<Resource> = Resource::iter()
-                    .filter(|resource| {
-                        resource.level(*self) == Some(level)
-                            && inherited.and_then(|role| resource.level(role)) != Some(level)
-                    })
+                    .filter(|resource| resource.level(*self) == Some(level))
                     .collect();
                 (!resources.is_empty())
                     .then(|| serde_json::json!({ "level": level, "resources": resources }))
@@ -158,8 +143,7 @@ impl TypeMetadataProvider for UserOrgPermissions {
         serde_json::json!({
             "grantable_api_key_permissions": self.grantable_api_key_permissions(),
             "grantable_user_permissions": self.grantable_user_permissions(),
-            "previous_role": self.previous_role(),
-            "incremental_access": self.incremental_access(),
+            "access": self.access(),
             "reaches_all_sites": self.reaches_all_sites(),
         })
     }
@@ -169,23 +153,27 @@ impl TypeMetadataProvider for UserOrgPermissions {
 mod tests {
     use super::*;
 
-    /// A role's level on a resource is what it adds, or what the role below already holds.
+    /// Every resource a role reaches appears exactly once, at its level, and no other does.
     #[test]
-    fn incremental_access_is_exactly_what_the_previous_role_lacks() {
+    fn access_lists_each_reached_resource_once_at_its_level() {
         for role in UserOrgPermissions::iter() {
-            let added = role.incremental_access();
+            let access = role.access();
             for resource in Resource::iter() {
-                let listed = added.iter().any(|entry| {
-                    entry["level"] == serde_json::json!(resource.level(role))
-                        && entry["resources"]
+                let listed_at: Vec<&serde_json::Value> = access
+                    .iter()
+                    .flat_map(|entry| {
+                        entry["resources"]
                             .as_array()
-                            .is_some_and(|r| r.contains(&serde_json::json!(resource)))
-                });
-                let unchanged =
-                    role.previous_role().and_then(|p| resource.level(p)) == resource.level(role);
+                            .into_iter()
+                            .flatten()
+                            .filter(|listed| **listed == serde_json::json!(resource))
+                            .map(|_| &entry["level"])
+                    })
+                    .collect();
+                let held = resource.level(role).map(|level| serde_json::json!(level));
                 assert_eq!(
-                    listed,
-                    resource.level(role).is_some() && !unchanged,
+                    listed_at,
+                    held.iter().collect::<Vec<_>>(),
                     "{role} on {resource}"
                 );
             }

@@ -14,10 +14,7 @@
 	import { permissions, resources } from '$lib/shared/stores/metadata';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { accessLevelName } from '$lib/features/users/role-comparison';
-	import {
-		permissions_compareRoles,
-		permissions_everythingInRolePlus
-	} from '$lib/paraglide/messages';
+	import { permissions_compareRoles } from '$lib/paraglide/messages';
 	import RoleComparisonModal from './RoleComparisonModal.svelte';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 
@@ -97,14 +94,7 @@
 />
 
 <div class="mt-2 space-y-1 text-xs text-tertiary">
-	{#if selectedMetadata.previous_role}
-		<p class="font-medium text-secondary">
-			{permissions_everythingInRolePlus({
-				role: permissions.getName(selectedMetadata.previous_role)
-			})}
-		</p>
-	{/if}
-	{#each selectedMetadata.incremental_access ?? [] as entry (entry.level)}
+	{#each selectedMetadata.access ?? [] as entry (entry.level)}
 		<p>
 			<span class="font-medium text-secondary">{accessLevelName(entry.level)}:</span>
 			{entry.resources.map((resource) => resources.getName(resource)).join(', ')}

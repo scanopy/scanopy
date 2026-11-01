@@ -373,6 +373,24 @@ impl EntityField {
         !self.table && !self.inspector && !self.csv
     }
 
+    /// This field as CSV reads it. A field read through `Hop::Children` writes the ids of the rows
+    /// its path ends on, which join to those rows' own export. Every other surface reads the field
+    /// as declared.
+    pub const fn for_csv(self) -> Self {
+        let mut i = 0;
+        while i < self.path.len() {
+            if matches!(self.path[i], Hop::Children { .. }) {
+                return EntityField {
+                    field: None,
+                    format: FieldFormat::Entity,
+                    ..self
+                };
+            }
+            i += 1;
+        }
+        self
+    }
+
     /// The table works this value out, or reads it from another endpoint or a response type.
     pub const fn computed(self) -> Self {
         EntityField {

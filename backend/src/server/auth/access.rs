@@ -73,15 +73,17 @@ pub enum Action {
     Delete,
 }
 
-/// How much of a resource a role holds, as the role comparison shows it.
+/// The actions a role holds on a resource, as the role comparison names them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, Serialize, ToSchema)]
 pub enum AccessLevel {
-    /// Reads it, and no more.
+    /// `Read`.
     View,
-    /// Changes it, short of what the top roles on it hold.
-    Edit,
-    /// Holds everything any role holds on it.
-    Full,
+    /// `Read` and `Write`.
+    ViewEdit,
+    /// `Read`, `Write` and `Delete`.
+    ViewEditDelete,
+    /// `Write` alone, on a resource whose rows the role reads through another resource.
+    Add,
 }
 
 /// What a resource's rows belong to, which decides whose grants answer for it.
@@ -197,23 +199,20 @@ impl Resource {
         }
     }
 
-    /// How much of this resource `role` holds, or `None` for no access.
+    /// What `role` holds on this resource, or `None` for no access.
     pub fn level(self, role: UserOrgPermissions) -> Option<AccessLevel> {
         let held = self.actions(role);
         if held.is_empty() {
-            return None;
-        }
-        if !held.contains(&Action::Write) {
-            return Some(AccessLevel::View);
-        }
-        let holds_everything = UserOrgPermissions::iter()
-            .flat_map(|other| self.actions(other))
-            .all(|action| held.contains(action));
-        Some(if holds_everything {
-            AccessLevel::Full
+            None
+        } else if !held.contains(&Action::Read) {
+            Some(AccessLevel::Add)
+        } else if held.contains(&Action::Delete) {
+            Some(AccessLevel::ViewEditDelete)
+        } else if held.contains(&Action::Write) {
+            Some(AccessLevel::ViewEdit)
         } else {
-            AccessLevel::Edit
-        })
+            Some(AccessLevel::View)
+        }
     }
 
     /// The part of the product this resource sits under in the role comparison.
@@ -690,7 +689,7 @@ mod tests {
 
     /// Read, Read plus Write, all three, or Write alone: the cells the role comparison can show.
     #[test]
-    fn every_role_cell_is_none_view_edit_or_full() {
+    fn every_role_cell_is_no_access_or_a_level() {
         for resource in Resource::iter() {
             for role in UserOrgPermissions::iter() {
                 let actions = resource.actions(role);
@@ -702,25 +701,20 @@ mod tests {
         }
     }
 
-    /// `Full` means no role holds more, and `Edit` means one does.
+    /// A level names exactly the actions held, so a label never promises more or less than the
+    /// role table grants.
     #[test]
-    fn full_is_the_most_any_role_holds_on_a_resource() {
+    fn a_level_names_exactly_the_actions_held() {
         for resource in Resource::iter() {
             for role in UserOrgPermissions::iter() {
-                let lacks_something = UserOrgPermissions::iter().any(|other| {
-                    resource
-                        .actions(other)
-                        .iter()
-                        .any(|action| !resource.actions(role).contains(action))
-                });
-                match resource.level(role) {
-                    Some(AccessLevel::Full) => assert!(!lacks_something, "{resource} {role}"),
-                    Some(AccessLevel::Edit) => assert!(lacks_something, "{resource} {role}"),
-                    Some(AccessLevel::View) => {
-                        assert!(!resource.actions(role).contains(&Action::Write))
-                    }
-                    None => assert!(resource.actions(role).is_empty(), "{resource} {role}"),
-                }
+                let named = match resource.level(role) {
+                    None => NONE,
+                    Some(AccessLevel::View) => R,
+                    Some(AccessLevel::ViewEdit) => RW,
+                    Some(AccessLevel::ViewEditDelete) => RWD,
+                    Some(AccessLevel::Add) => W,
+                };
+                assert_eq!(resource.actions(role), named, "{resource} {role}");
             }
         }
     }

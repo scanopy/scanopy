@@ -27,8 +27,8 @@ describe('role comparison', () => {
 		const columns = roleColumns().map((column) => column.id);
 		expect(columns).toHaveLength(permissions.getItems().length);
 		for (const [index, role] of columns.entries()) {
-			const previous = permissions.getMetadata(role).previous_role;
-			expect(previous).toBe(index === 0 ? null : columns[index - 1]);
+			const grantable = permissions.getMetadata(role).grantable_api_key_permissions;
+			expect([...grantable].sort()).toEqual(columns.slice(0, index + 1).sort());
 		}
 	});
 
@@ -41,15 +41,20 @@ describe('role comparison', () => {
 		}
 	});
 
-	it('lists under each role only what the role below lacks', () => {
+	it('lists everything a role holds, each resource once, at the level the grid shows', () => {
 		for (const role of permissions.getItems()) {
-			const { previous_role, incremental_access } = permissions.getMetadata(role.id);
-			for (const { level, resources: added } of incremental_access) {
-				for (const resource of added) {
+			const { access } = permissions.getMetadata(role.id);
+			const listed = access.flatMap(({ level, resources: held }) =>
+				held.map((resource) => {
 					expect(roleLevel(resource, role.id)).toBe(level);
-					if (previous_role) expect(roleLevel(resource, previous_role)).not.toBe(level);
-				}
-			}
+					return resource;
+				})
+			);
+			const reached = resources
+				.getItems()
+				.map((resource) => resource.id as Parameters<typeof roleLevel>[0])
+				.filter((resource) => roleLevel(resource, role.id) !== null);
+			expect([...listed].sort()).toEqual([...reached].sort());
 		}
 	});
 });

@@ -50,8 +50,9 @@
 {/snippet}
 
 <GenericModal {isOpen} {onClose} title={permissions_compareRoles()} size="xl">
-	<div class="p-4">
+	<div class="flex min-h-0 flex-1 flex-col p-4">
 		<ComparisonGrid
+			class="min-h-0 flex-1"
 			labelHeading={common_access()}
 			columns={roleColumns()}
 			sections={roleSections()}
