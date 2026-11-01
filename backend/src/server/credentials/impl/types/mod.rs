@@ -35,7 +35,7 @@ pub use fields::{CredentialOsFields, DAEMON_OS_FIELD, TARGET_OS_FIELD};
 pub use integration::{CredentialIntegration, InterfaceViewScope};
 pub use metadata::{
     CredentialAssignment, CredentialCategory, CredentialHostAssignment, CredentialRole,
-    UpstreamSupport,
+    ReachDeclaration, UpstreamSupport,
 };
 pub use paths::{CredentialPath, DaemonPath, DaemonSocket, HostPath, OsFamily};
 // `Target` is the strum-discriminant of `IntegrationTarget` (single source of truth for the
@@ -54,7 +54,8 @@ pub use snmp::{
 pub use instant_on::InstantOnQueryCredential;
 pub use proxmox::{ProxmoxQueryCredential, default_proxmox_port};
 pub use ssh::{
-    ScriptSource, SshAuth, SshQueryCredential, default_ssh_port, default_ssh_timeout_seconds,
+    ScriptSource, SshAuth, SshLogin, SshQueryCredential, default_ssh_port,
+    default_ssh_timeout_seconds,
 };
 pub use unifi::{UnifiAuth, UnifiQueryCredential, default_unifi_port, default_unifi_site};
 pub use wake_on_lan::{
@@ -1031,35 +1032,15 @@ impl CredentialType {
                 target_os,
                 script,
                 timeout_seconds,
-            } => {
-                let SshLogin {
-                    port,
-                    username,
-                    auth,
-                    host_key_fingerprint,
-                } = login?.ssh_login()?;
-                CredentialQueryPayload::Ssh(SshQueryCredential {
-                    port,
-                    username,
-                    auth,
-                    script: script.clone(),
-                    target_os: *target_os,
-                    timeout_seconds: *timeout_seconds,
-                    host_key_fingerprint,
-                })
-            }
+            } => CredentialQueryPayload::Ssh(SshQueryCredential {
+                login: login?.ssh_login()?,
+                script: script.clone(),
+                target_os: *target_os,
+                timeout_seconds: *timeout_seconds,
+            }),
             CredentialType::Libvirt { connection_uri } => {
-                let SshLogin {
-                    port,
-                    username,
-                    auth,
-                    host_key_fingerprint,
-                } = login?.ssh_login()?;
                 CredentialQueryPayload::Libvirt(libvirt::LibvirtQueryCredential {
-                    port,
-                    username,
-                    auth,
-                    host_key_fingerprint,
+                    login: login?.ssh_login()?,
                     connection_uri: connection_uri.trim().to_string(),
                 })
             }
@@ -1121,15 +1102,6 @@ impl CredentialType {
             _ => None,
         }
     }
-}
-
-/// An SSH login in wire form: what every credential that runs over SSH sends the daemon to log
-/// in with.
-pub struct SshLogin {
-    pub port: u16,
-    pub username: String,
-    pub auth: SshAuth,
-    pub host_key_fingerprint: Option<String>,
 }
 
 /// A blank optional text field means "not set"; normalise it to `None` so the daemon never has to
@@ -1960,6 +1932,92 @@ mod tests {
                     field.id,
                     field.field_type,
                 );
+            }
+        }
+    }
+
+    /// A credential type's reach is declared once (`CredentialTypeDiscriminants::reach`). Its form
+    /// fields and the payload it dispatches each state the same facts again, so they are checked
+    /// against the declaration here: a port field the declaration names exists and is a port, a
+    /// type that signs in through a login has no port of its own, and the payload's reach is the
+    /// declared one carrying the credential's (or its login's) actual port.
+    #[test]
+    fn every_credential_type_dispatches_the_reach_it_declares() {
+        use crate::server::credentials::r#impl::mapping::CredentialReach;
+        use crate::server::ports::r#impl::base::PortType;
+
+        // A port field's value, read off the stored credential's own serialisation.
+        let port_value = |credential: &CredentialType, field: &str| -> u16 {
+            let json = serde_json::to_value(credential).unwrap();
+            u16::try_from(json[field].as_u64().unwrap_or_else(|| {
+                panic!("{credential:?} has no numeric '{field}'")
+            }))
+            .unwrap()
+        };
+        let has_port_field = |disc: CredentialTypeDiscriminants, field: &str| {
+            disc.to_credential_type()
+                .field_definitions()
+                .iter()
+                .any(|f| f.id == field && matches!(f.field_type, FieldType::Port))
+        };
+        let login = CredentialTypeDiscriminants::SshKey;
+        let ReachDeclaration::LoginTransport { field: login_field } = login.reach() else {
+            panic!("an SSH login is a login transport");
+        };
+
+        for disc in CredentialTypeDiscriminants::iter() {
+            let declared = disc.reach();
+            match declared {
+                ReachDeclaration::OwnPortField { field }
+                | ReachDeclaration::LoginTransport { field } => assert!(
+                    has_port_field(disc, field),
+                    "{disc:?} declares its port in '{field}', which is not a port field"
+                ),
+                ReachDeclaration::ThroughLogin => assert!(
+                    !has_port_field(disc, "port"),
+                    "{disc:?} signs in through a login, so its port is the login's, not a field of \
+                     its own"
+                ),
+                ReachDeclaration::FixedUdpPorts(_) | ReachDeclaration::NoPort => {}
+            }
+
+            if disc.role() == CredentialRole::Login {
+                continue;
+            }
+            let credential = disc.to_credential_type();
+            let login_credential = login.to_credential_type();
+            let payload = credential
+                .to_query_payload(disc.requires_login().then_some(&login_credential))
+                .unwrap_or_else(|| panic!("{disc:?} dispatches a payload"));
+            match (declared, payload.reach()) {
+                (ReachDeclaration::OwnPortField { field }, CredentialReach::OwnPorts(ports)) => {
+                    assert_eq!(
+                        ports,
+                        vec![PortType::new_tcp(port_value(&credential, field))],
+                        "{disc:?}"
+                    )
+                }
+                (ReachDeclaration::FixedUdpPorts(numbers), CredentialReach::OwnPorts(ports)) => {
+                    assert_eq!(
+                        ports,
+                        numbers
+                            .iter()
+                            .map(|n| PortType::new_udp(*n))
+                            .collect::<Vec<_>>(),
+                        "{disc:?}"
+                    )
+                }
+                (ReachDeclaration::ThroughLogin, CredentialReach::ThroughLogin { port, .. }) => {
+                    assert_eq!(
+                        port,
+                        PortType::new_tcp(port_value(&login_credential, login_field)),
+                        "{disc:?}"
+                    )
+                }
+                (ReachDeclaration::NoPort, CredentialReach::NoPort) => {}
+                (declared, dispatched) => panic!(
+                    "{disc:?} declares {declared:?} but dispatches a payload reaching {dispatched:?}"
+                ),
             }
         }
     }

@@ -51,13 +51,6 @@ impl DiscoveryIntegration for DockerIntegration {
         CONTAINER_SCAN_TIMEOUT
     }
 
-    fn probe_gate_ports(&self, credential: &CredentialQueryPayload) -> Vec<PortType> {
-        match credential {
-            CredentialQueryPayload::DockerProxy(docker) => vec![PortType::new_tcp(docker.port)],
-            _ => vec![],
-        }
-    }
-
     async fn probe(&self, ctx: &ProbeContext<'_>) -> Result<ProbeSuccess, ProbeFailure> {
         container::probe_proxy(ctx, ContainerRuntime::Docker).await
     }

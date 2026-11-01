@@ -21,7 +21,7 @@ use super::{
 use crate::daemon::discovery::service::ops::HostData;
 use crate::daemon::discovery::service::warnings::AttemptOutcome;
 use crate::server::credentials::r#impl::mapping::{
-    CredentialQueryPayload, CredentialQueryPayloadDiscriminants, SshQueryCredential,
+    CredentialQueryPayload, CredentialQueryPayloadDiscriminants, SshLogin, SshQueryCredential,
 };
 use crate::server::credentials::r#impl::types::ssh_script::{
     MAX_SCRIPT_OUTPUT_BYTES, SshScriptOutcome, SshScriptOutput, SshScriptRun,
@@ -66,27 +66,16 @@ impl DiscoveryIntegration for SshIntegration {
         MAX_SCRIPT_TIMEOUT + client::CONNECT_TIMEOUT * 2
     }
 
-    fn probe_gate_ports(&self, credential: &CredentialQueryPayload) -> Vec<PortType> {
-        self::credential(credential)
-            .map(|c| vec![PortType::new_tcp(c.port)])
-            .unwrap_or_default()
-    }
-
     async fn probe(&self, ctx: &ProbeContext<'_>) -> Result<ProbeSuccess, ProbeFailure> {
         let cred = credential(ctx.credential)
             .ok_or_else(|| ProbeFailure::malformed("Expected SSH credential"))?;
-        let session = connect_trusted(
-            ctx,
-            cred.port,
-            &cred.username,
-            &cred.auth,
-            cred.host_key_fingerprint.as_deref(),
-        )
-        .await?;
+        let session = connect_trusted(ctx, &cred.login).await?;
 
+        // No evidence of its own: the script signs in through its login, and dispatch credits
+        // the login's port to the SSH service (`CredentialReach::ThroughLogin`).
         Ok(ProbeSuccess {
-            client_probe: Some(ClientProbe::Ssh),
-            ports: vec![PortType::new_tcp(cred.port)],
+            client_probe: None,
+            ports: vec![],
             handle: Some(Box::new(SshProbeHandle {
                 session: tokio::sync::Mutex::new(Some(session)),
             })),
@@ -230,18 +219,22 @@ impl SshIntegration {
     }
 }
 
-/// Log in over SSH at the probed address, trusting the host key only when it is the required one,
-/// or the one pinned on first use, or the first key seen there (pinned once the login succeeds).
-/// Nothing is sent to a host whose key fails that. Shared by every integration that runs over
-/// SSH, so they pin and check keys alike, keyed by `ip:port`.
+/// Log in with `login` at the probed address, trusting the host key only when it is the required
+/// one, or the one pinned on first use, or the first key seen there (pinned once the login
+/// succeeds). Nothing is sent to a host whose key fails that. Shared by every integration that
+/// signs in over SSH, so they pin and check keys alike, keyed by `ip:port`.
 pub(crate) async fn connect_trusted(
     ctx: &ProbeContext<'_>,
-    port: u16,
-    username: &str,
-    auth: &crate::server::credentials::r#impl::mapping::SshAuth,
-    required_fingerprint: Option<&str>,
+    login: &SshLogin,
 ) -> Result<client::Session, ProbeFailure> {
-    let handshake = client::handshake(ctx.ip, port)
+    let SshLogin {
+        port,
+        username,
+        auth,
+        host_key_fingerprint,
+    } = login;
+    let required_fingerprint = host_key_fingerprint.as_deref();
+    let handshake = client::handshake(ctx.ip, *port)
         .await
         .map_err(|e| ProbeFailure::not_this_service(format!("SSH handshake failed: {e}")))?;
     let observed = handshake.fingerprint().to_string();

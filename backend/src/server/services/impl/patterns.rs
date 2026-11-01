@@ -30,6 +30,11 @@ pub struct MatchResult {
     pub ports: Vec<PortType>,
     pub endpoint: Option<Endpoint>,
     pub mac_vendor: Option<String>,
+    /// The evidence was a client probe that reached the service without a port on this address:
+    /// a local socket, a login it signed in through, a cloud portal. Such a service is nothing the
+    /// network can reach, so it gets no binding rather than one on the address. Only meaningful
+    /// with no `ports`.
+    pub reached_off_network: bool,
     pub details: MatchDetails,
 }
 
@@ -974,6 +979,7 @@ impl Pattern<'_> {
                         ports: vec![*matched_port],
                         endpoint: None,
                         mac_vendor: None,
+                        reached_off_network: false,
                         details: MatchDetails {
                             reason: MatchReason::Reason(reason),
                             confidence,
@@ -1046,6 +1052,7 @@ impl Pattern<'_> {
                         ports: vec![response.endpoint.port_type],
                         endpoint: Some(response.endpoint.clone()),
                         mac_vendor: None,
+                        reached_off_network: false,
                         details: MatchDetails {
                             reason: MatchReason::Reason(reason),
                             confidence: MatchConfidence::High,
@@ -1120,6 +1127,7 @@ impl Pattern<'_> {
                         ports: vec![response.endpoint.port_type],
                         endpoint: Some(response.endpoint.clone()),
                         mac_vendor: None,
+                        reached_off_network: false,
                         details: MatchDetails {
                             reason: MatchReason::Reason(reason),
                             confidence: MatchConfidence::High,
@@ -1159,6 +1167,7 @@ impl Pattern<'_> {
                             ports: vec![],
                             endpoint: None,
                             mac_vendor: Some(entry.company_name.clone()),
+                            reached_off_network: false,
                             details: MatchDetails {
                                 reason: MatchReason::Reason(format!(
                                     "Mac address is from vendor {}",
@@ -1201,6 +1210,7 @@ impl Pattern<'_> {
                     ports: vec![],
                     endpoint: None,
                     mac_vendor: None,
+                    reached_off_network: false,
                     details: MatchDetails {
                         reason: MatchReason::Reason(format!("{}", e)),
                         confidence: MatchConfidence::Low,
@@ -1222,6 +1232,7 @@ impl Pattern<'_> {
                     ports: vec![],
                     endpoint: None,
                     mac_vendor: None,
+                    reached_off_network: false,
                     details: MatchDetails {
                         reason: MatchReason::Reason(format!("Optional, absent: {e}")),
                         confidence: MatchConfidence::NotApplicable,
@@ -1234,6 +1245,7 @@ impl Pattern<'_> {
                 let mut endpoint = None;
                 let mut mac_vendor = None;
                 let mut any_matched = false;
+                let mut off_network = false;
                 let mut confidence = MatchConfidence::Low;
                 let mut reasons = Vec::new();
                 let mut no_match_errors = String::new();
@@ -1241,6 +1253,7 @@ impl Pattern<'_> {
                     Ok(result) => {
                         any_matched = true;
                         ports.extend(result.ports);
+                        off_network |= result.reached_off_network;
                         reasons.push(result.details.reason);
 
                         if result.endpoint.is_some() && endpoint.is_none() {
@@ -1268,6 +1281,7 @@ impl Pattern<'_> {
                         ports,
                         endpoint: None,
                         mac_vendor: None,
+                        reached_off_network: off_network && ports.is_empty(),
                         details: MatchDetails {
                             reason: MatchReason::Container("Any of".to_string(), reasons),
                             confidence,
@@ -1280,6 +1294,7 @@ impl Pattern<'_> {
 
             Pattern::AllOf(patterns) => {
                 let mut all_matched = true;
+                let mut off_network = false;
                 let mut ports = Vec::new();
                 let mut endpoint = None;
                 let mut mac_vendor = None;
@@ -1288,6 +1303,7 @@ impl Pattern<'_> {
                 let mut no_match_errors = String::new();
                 patterns.iter().for_each(|p| match p.matches(params) {
                     Ok(result) => {
+                        off_network |= result.reached_off_network;
                         ports.extend(result.ports);
                         reasons.push(result.details.reason);
                         matched_confidences.push(result.details.confidence);
@@ -1339,6 +1355,7 @@ impl Pattern<'_> {
                         ports,
                         endpoint: None,
                         mac_vendor: None,
+                        reached_off_network: off_network && ports.is_empty(),
                         details: MatchDetails {
                             reason: MatchReason::Container("All of".to_string(), reasons),
                             confidence,
@@ -1399,6 +1416,7 @@ impl Pattern<'_> {
                         ports: vec![],
                         endpoint: None,
                         mac_vendor: None,
+                        reached_off_network: false,
                         details: MatchDetails {
                             reason: MatchReason::Reason(reason),
                             confidence: MatchConfidence::High,
@@ -1417,6 +1435,7 @@ impl Pattern<'_> {
                         ports: vec![],
                         endpoint: None,
                         mac_vendor: None,
+                        reached_off_network: false,
                         details: MatchDetails {
                             reason: MatchReason::Reason(format!(
                                 "Subnet {} is type {}",
@@ -1447,6 +1466,7 @@ impl Pattern<'_> {
                         ports: port_function(params),
                         endpoint: None,
                         mac_vendor: None,
+                        reached_off_network: false,
                         details: MatchDetails {
                             reason: MatchReason::Reason(reason.to_string()),
                             confidence: *confidence,
@@ -1464,6 +1484,9 @@ impl Pattern<'_> {
                         ports: ports.clone(),
                         endpoint: None,
                         mac_vendor: None,
+                        // A probe that answered on no port reached the service over a socket, a
+                        // login it signed in through, or a cloud portal: nothing on the network.
+                        reached_off_network: ports.is_empty(),
                         details: MatchDetails {
                             reason: MatchReason::Reason(format!(
                                 "Client probe {:?} succeeded",
@@ -1483,6 +1506,7 @@ impl Pattern<'_> {
                     ports: vec![],
                     endpoint: None,
                     mac_vendor: None,
+                    reached_off_network: false,
                     details: MatchDetails {
                         reason: MatchReason::Reason(
                             "Service is running in a container".to_string(),
@@ -1503,6 +1527,7 @@ impl Pattern<'_> {
                         ports: vec![],
                         endpoint: None,
                         mac_vendor: None,
+                        reached_off_network: false,
                         details: MatchDetails {
                             reason: MatchReason::Reason(format!(
                                 "Controller reported device type '{}'",
@@ -1549,6 +1574,7 @@ impl Pattern<'_> {
                     },
                     endpoint: None,
                     mac_vendor: None,
+                    reached_off_network: false,
                     details: MatchDetails {
                         reason: MatchReason::Reason(match txt {
                             Some((key, value)) => format!(
@@ -1587,6 +1613,7 @@ impl Pattern<'_> {
                         .collect(),
                     endpoint: None,
                     mac_vendor: None,
+                    reached_off_network: false,
                     details: MatchDetails {
                         reason: MatchReason::Reason(format!(
                             "TLS certificate on {} issued by {}",
@@ -1634,6 +1661,7 @@ impl Pattern<'_> {
                     ports,
                     endpoint: None,
                     mac_vendor: None,
+                    reached_off_network: false,
                     details: MatchDetails {
                         reason: MatchReason::Reason(format!(
                             "{} on {} names {}",

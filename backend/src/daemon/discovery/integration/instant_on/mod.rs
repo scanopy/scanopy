@@ -77,12 +77,6 @@ impl DiscoveryIntegration for InstantOnIntegration {
         Duration::from_secs(180)
     }
 
-    /// Empty, and not an oversight: there is no port on the target host to gate on, because the
-    /// request goes to HPE's cloud rather than to the host at all.
-    fn probe_gate_ports(&self, _credential: &CredentialQueryPayload) -> Vec<PortType> {
-        vec![]
-    }
-
     async fn probe(&self, ctx: &ProbeContext<'_>) -> Result<ProbeSuccess, ProbeFailure> {
         let CredentialQueryPayload::InstantOn(credential) = ctx.credential else {
             return Err(ProbeFailure::malformed("Not an Instant On credential"));
