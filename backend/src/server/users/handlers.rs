@@ -25,7 +25,6 @@ use crate::server::{
         types::api::{ApiResponse, ApiResult},
     },
 };
-use anyhow::anyhow;
 use axum::extract::{Path, State};
 use axum::response::Json;
 use std::sync::Arc;
@@ -197,7 +196,7 @@ pub async fn delete_user(
         .user_service
         .get_by_id(&id.0)
         .await?
-        .ok_or_else(|| anyhow!("User {} does not exist", id.0))?;
+        .ok_or_else(|| ApiError::not_found(format!("User {} does not exist", id.0)))?;
 
     let target_access = state
         .services
