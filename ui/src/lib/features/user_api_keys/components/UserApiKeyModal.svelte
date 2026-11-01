@@ -15,6 +15,7 @@
 	// Shared components
 	import ApiKeyGenerator from '$lib/shared/components/api-keys/ApiKeyGenerator.svelte';
 	import PermissionSelect from '$lib/shared/components/api-keys/PermissionSelect.svelte';
+	import RoleAccessSummary from '$lib/shared/components/api-keys/RoleAccessSummary.svelte';
 	import SiteAccessSelect from '$lib/shared/components/api-keys/SiteAccessSelect.svelte';
 
 	import type { UserApiKey } from '../queries';
@@ -288,6 +289,8 @@
 							/>
 						{/snippet}
 					</form.Field>
+
+					<RoleAccessSummary role={permissionsValue} />
 
 					<form.Field name="tags">
 						{#snippet children(field)}

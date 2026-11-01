@@ -11,13 +11,8 @@
 		SimpleOptionDisplay,
 		type SimpleOption
 	} from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
-	import { permissions, resources } from '$lib/shared/stores/metadata';
+	import { permissions } from '$lib/shared/stores/metadata';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { roleActions, roleResources } from '$lib/features/users/role-comparison';
-	import { permissions_compareRoles } from '$lib/paraglide/messages';
-	import RoleActionIcons from './RoleActionIcons.svelte';
-	import RoleActionLegend from './RoleActionLegend.svelte';
-	import RoleComparisonModal from './RoleComparisonModal.svelte';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 
 	interface Props {
@@ -47,7 +42,6 @@
 		permissionFilter
 	}: Props = $props();
 
-	let showComparison = $state(false);
 
 	// Get current user to determine which permissions they can grant
 	const currentUserQuery = useCurrentUserQuery();
@@ -93,24 +87,3 @@
 	error={field.state.meta.isTouched ? (field.state.meta.errors?.[0] ?? null) : null}
 	{helpText}
 />
-
-<div class="mt-2 space-y-2">
-	<RoleActionLegend />
-	<div class="grid gap-x-6 gap-y-1 sm:grid-cols-2">
-		{#each roleResources(field.state.value) as resource (resource)}
-			<div class="flex items-center justify-between gap-3 text-xs text-secondary">
-				<span class="truncate">{resources.getName(resource)}</span>
-				<RoleActionIcons held={roleActions(resource, field.state.value)} />
-			</div>
-		{/each}
-	</div>
-	<button
-		type="button"
-		class="text-xs text-link hover:underline"
-		onclick={() => (showComparison = true)}
-	>
-		{permissions_compareRoles()}
-	</button>
-</div>
-
-<RoleComparisonModal isOpen={showComparison} onClose={() => (showComparison = false)} />

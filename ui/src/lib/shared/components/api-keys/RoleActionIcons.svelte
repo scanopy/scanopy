@@ -5,7 +5,7 @@
 	 */
 	import type { components } from '$lib/api/schema';
 	import { tooltip } from '$lib/shared/actions/tooltip';
-	import { actionColumns } from '$lib/features/users/role-comparison';
+	import { actionColumns } from '$lib/features/users/role-access';
 
 	let { held }: { held: components['schemas']['DisplayAction'][] } = $props();
 </script>
