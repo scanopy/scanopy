@@ -40,6 +40,8 @@ pub struct ReleaseNoteResponse {
     pub html: String,
     /// This release on the public changelog.
     pub url: String,
+    /// Whether the modal tells the user to upgrade their daemons to this release.
+    pub daemon_upgrade_notice: bool,
 }
 
 impl From<&ReleaseNote> for ReleaseNoteResponse {
@@ -50,6 +52,7 @@ impl From<&ReleaseNote> for ReleaseNoteResponse {
             title: note.title.clone(),
             html: note.html.clone(),
             url: note.url(),
+            daemon_upgrade_notice: note.daemon_upgrade_notice,
         }
     }
 }

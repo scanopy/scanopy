@@ -136,6 +136,10 @@ pub struct ReleaseNote {
     /// before the flag existed have none and ask. Set in a file, it needs
     /// `email` and `modal` on, so the ask reaches users.
     pub daemon_upgrade: bool,
+    /// Whether the modal and the emails show the daemon upgrade callout: this
+    /// file sets `daemon_upgrade: true`. Notes from before the flag existed
+    /// count as asking but never had a callout.
+    pub daemon_upgrade_notice: bool,
     /// The body, rendered from markdown with raw HTML left out.
     pub html: String,
     /// The body rendered as sections, split before each heading. The release
@@ -185,6 +189,7 @@ impl ReleaseNote {
             Some("false") => false,
             Some(other) => return Err(format!("daemon_upgrade `{other}` is not true or false")),
         };
+        let daemon_upgrade_notice = frontmatter.field("daemon_upgrade").as_deref() == Some("true");
 
         Ok(Self {
             version,
@@ -194,6 +199,7 @@ impl ReleaseNote {
             modal,
             licensed_email,
             daemon_upgrade,
+            daemon_upgrade_notice,
             html: render_markdown(body),
             sections: render_sections(body),
         })
@@ -365,6 +371,20 @@ pub(crate) mod tests {
         assert_eq!(licensed("email: false"), Ok(false));
         assert_eq!(licensed("email: false\nlicensed_email: true"), Ok(true));
         assert!(licensed("email: false\nlicensed_email: yes").is_err());
+    }
+
+    /// A file without the flag asks for an upgrade but shows no callout, so a
+    /// shipped release doesn't announce one it never made.
+    #[test]
+    fn only_a_file_that_sets_daemon_upgrade_shows_the_notice() {
+        let notice = |extra| {
+            ReleaseNote::parse(&note_file_with("0.18.0", extra).1)
+                .unwrap()
+                .daemon_upgrade_notice
+        };
+        assert!(notice("email: true\ndaemon_upgrade: true"));
+        assert!(!notice("email: true\ndaemon_upgrade: false"));
+        assert!(!notice("email: true"));
     }
 
     /// Notes written before the `daemon_upgrade` flag existed ask for an upgrade,
