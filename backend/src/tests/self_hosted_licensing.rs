@@ -16,10 +16,9 @@ use axum::{Json, Router};
 use axum_client_ip::ClientIp;
 use chrono::{DateTime, Duration, Utc};
 use email_address::EmailAddress;
-use testcontainers::{ContainerAsync, GenericImage};
 use uuid::Uuid;
 
-use super::{organization, setup_test_db, user};
+use super::{TestDb, organization, setup_migrated_test_db, user};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::middleware::billing::require_billing_for_users;
 use crate::server::billing::plans::{
@@ -48,7 +47,7 @@ use crate::server::shared::types::error_codes::ErrorCode;
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
 
 /// App state on a fresh database, billing enforced, signing with the test key.
-async fn test_state() -> (Arc<AppState>, ContainerAsync<GenericImage>) {
+async fn test_state() -> (Arc<AppState>, TestDb) {
     test_state_with_email_dir(None).await
 }
 
@@ -56,7 +55,7 @@ async fn test_state() -> (Arc<AppState>, ContainerAsync<GenericImage>) {
 /// given, so a test can read what a subscriber actually rendered.
 pub(super) async fn test_state_with_email_dir(
     email_log_dir: Option<PathBuf>,
-) -> (Arc<AppState>, ContainerAsync<GenericImage>) {
+) -> (Arc<AppState>, TestDb) {
     test_state_from(ServerConfig {
         enforce_plan_limits_for_testing: true,
         email_log_dir,
@@ -68,7 +67,7 @@ pub(super) async fn test_state_with_email_dir(
 /// App state for Scanopy Cloud on a fresh database. A Stripe secret alone makes
 /// the deployment cloud; with no webhook secret no billing service is built, so
 /// nothing reaches Stripe.
-pub(super) async fn cloud_test_state() -> (Arc<AppState>, ContainerAsync<GenericImage>) {
+pub(super) async fn cloud_test_state() -> (Arc<AppState>, TestDb) {
     test_state_from(ServerConfig {
         stripe_secret: Some("sk_test_unused".to_string()),
         ..ServerConfig::default()
@@ -77,10 +76,8 @@ pub(super) async fn cloud_test_state() -> (Arc<AppState>, ContainerAsync<Generic
 }
 
 /// App state on a fresh database from `config`, signing with the test key.
-pub(super) async fn test_state_from(
-    config: ServerConfig,
-) -> (Arc<AppState>, ContainerAsync<GenericImage>) {
-    let (pool, database_url, container) = setup_test_db().await;
+pub(super) async fn test_state_from(config: ServerConfig) -> (Arc<AppState>, TestDb) {
+    let (pool, database_url, container) = setup_migrated_test_db().await;
     pool.close().await;
     let config = ServerConfig {
         database_url,

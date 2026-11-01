@@ -53,13 +53,11 @@ strip = true        # Remove debug symbols
 # Development profile for faster builds
 [profile.dev]
 opt-level = 0       # No optimization for faster builds
-# Line tables give file/line in backtraces and panics, which is what debugging a test failure
-# actually needs. Full `debug = true` also emits variable and type info for a stepping debugger,
-# which is where most of the object size and link time goes.
-debug = "line-tables-only"
-# macOS default is to run dsymutil and pack debuginfo into a .dSYM on every link. Leaving it in
-# the object files skips that step.
-split-debuginfo = "unpacked"
+# No debug info. Panic messages keep file and line, which come from `#[track_caller]`; backtrace
+# frames keep function names and lose line numbers. On macOS any debug info makes rustc keep every
+# object file in target/debug/deps, and old ones are never removed: one worktree reached 31 GB.
+# For a stepping debugger: CARGO_PROFILE_DEV_DEBUG=line-tables-only cargo build
+debug = false
 lto = false         # No LTO for faster builds
 incremental = true  # Enable incremental compilation
 

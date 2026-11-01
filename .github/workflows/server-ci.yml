@@ -78,6 +78,11 @@ jobs:
       - name: Clippy server
         run: cargo clippy --bin server --all-features -- -D warnings
 
+      # Compiles without running. Nothing else on a PR builds this target, so a changed signature
+      # would otherwise surface at release.
+      - name: Compile integration tests
+        run: cargo test --no-run --test integration
+
       # The OpenAPI documentation gate, ahead of the full test run so a gap fails in seconds
       # rather than after every other test. The full run below reuses this build.
       - name: Lint OpenAPI spec
