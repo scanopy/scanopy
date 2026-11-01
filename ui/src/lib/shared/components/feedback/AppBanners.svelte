@@ -69,9 +69,13 @@
 <!-- One chain, mutually exclusive by construction: a licence that is locked must
      not also announce a grace period or an approaching expiry. -->
 {#if configQuery.data?.license_status === 'expired' || configQuery.data?.license_status === 'invalid'}
-	<LicenseLockedBanner status={configQuery.data.license_status} refusedFor={instanceOverrun} />
+	<LicenseLockedBanner
+		status={configQuery.data.license_status}
+		refusedFor={instanceOverrun}
+		problem={configQuery.data.license_problem}
+	/>
 {:else if configQuery.data?.license_status === 'pending'}
-	<LicensePendingBanner />
+	<LicensePendingBanner problem={configQuery.data.license_problem} />
 {:else if configQuery.data?.license_in_grace_period && configQuery.data?.license_valid_through && configQuery.data?.license_expiry}
 	<LicenseGraceBanner
 		validThrough={configQuery.data.license_valid_through}

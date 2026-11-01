@@ -525,6 +525,16 @@ impl ApiError {
         Self::coded(StatusCode::FORBIDDEN, ErrorCode::LicensePlanHasNoKey)
     }
 
+    /// The presented online key was rotated or changed type.
+    pub fn license_key_regenerated() -> Self {
+        Self::coded(StatusCode::FORBIDDEN, ErrorCode::LicenseKeyRegenerated)
+    }
+
+    /// The organization the presented online key names no longer exists.
+    pub fn license_organization_missing() -> Self {
+        Self::coded(StatusCode::FORBIDDEN, ErrorCode::LicenseOrganizationMissing)
+    }
+
     /// Conflict (409) - cannot leave an air-gapped key while it is still valid.
     /// The request is well formed and the caller is entitled to make it; the
     /// organization is in a state that forbids the transition.

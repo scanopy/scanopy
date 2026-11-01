@@ -4,6 +4,8 @@
 	import { pushError, pushSuccess } from '$lib/shared/stores/feedback';
 	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import InfoRow from '$lib/shared/components/data/InfoRow.svelte';
+	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
+	import { licenseProblemMessage } from './license-problem';
 	import {
 		useOrganizationQuery,
 		useUpdateOrganizationMutation,
@@ -50,9 +52,12 @@
 		settings_org_deleteSuccess,
 		settings_org_deleteTypeName,
 		settings_org_info,
+		settings_billing_license_installLinkText,
 		settings_billing_license_lastCheckIn,
 		settings_billing_license_validThrough,
+		settings_org_communityLicenseHint,
 		settings_org_licenseKeyType,
+		settings_org_licenseStatus,
 		settings_org_namePlaceholder,
 		settings_org_populateConfirm,
 		settings_org_populateDemo,
@@ -256,6 +261,19 @@
 									? common_online()
 									: common_offline()}
 							</InfoRow>
+						{/if}
+						{#if configQuery.data?.license_problem}
+							<InfoRow label={settings_org_licenseStatus()}>
+								{licenseProblemMessage(configQuery.data.license_problem)}
+							</InfoRow>
+						{/if}
+						{#if configQuery.data?.deployment_type === 'community'}
+							<DocsHint
+								class="mt-2"
+								text={settings_org_communityLicenseHint()}
+								href="https://scanopy.net/docs/self-hosted-server/installation/?edition=commercial"
+								linkText={settings_billing_license_installLinkText()}
+							/>
 						{/if}
 						{#if configQuery.data?.license_key_type === 'Online'}
 							<InfoRow label={settings_billing_license_lastCheckIn()}>
