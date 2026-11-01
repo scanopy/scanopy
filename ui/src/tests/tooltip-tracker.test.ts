@@ -1,17 +1,15 @@
-import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
-import { SURFACE_ATTRIBUTE, TooltipTracker, type TooltipTarget } from '$lib/shared/actions/tooltip';
+import { describe, it, expect } from 'vitest';
+import { TooltipTracker, type TooltipTarget } from '$lib/shared/actions/tooltip';
 
 /** An element in a tree, as far as the tracker reads one: whether it or an ancestor is registered. */
 class FakeTarget implements TooltipTarget {
 	constructor(
 		readonly name: string,
 		readonly parent: FakeTarget | null = null,
-		readonly registered = false,
-		readonly surface = false
+		readonly registered = false
 	) {}
-	closest(selector: string): FakeTarget | null {
-		const matches = selector.includes(SURFACE_ATTRIBUTE) ? this.surface : this.registered;
-		return matches ? this : (this.parent?.closest(selector) ?? null);
+	closest(): FakeTarget | null {
+		return this.registered ? this : (this.parent?.closest() ?? null);
 	}
 }
 
@@ -79,83 +77,18 @@ describe('TooltipTracker', () => {
 	});
 });
 
-describe('a tooltip holding chips to click', () => {
-	const page = new FakeTarget('page');
-	const chip = new FakeTarget('chip', page, true);
-	const other = new FakeTarget('other', page, true);
-	const surface = new FakeTarget('surface', null, false, true);
-	const nested = new FakeTarget('nested', surface, true);
-
-	function trackReachable() {
-		const events: string[] = [];
-		const tracker = new TooltipTracker<FakeTarget>(
-			(source) => events.push(`show ${source.name}`),
-			() => events.push('hide'),
-			() => true
-		);
-		return { tracker, events };
-	}
-
-	beforeEach(() => {
-		vi.useFakeTimers();
-	});
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
-	it('waits for the pointer to cross the gap, and stays once it arrives', () => {
-		const { tracker, events } = trackReachable();
-		tracker.moveTo(chip);
-		tracker.moveTo(page);
-		tracker.moveTo(surface);
-		vi.runAllTimers();
-		expect(events).toEqual(['show chip']);
-	});
-
-	it('closes after the grace when the pointer goes nowhere', () => {
-		const { tracker, events } = trackReachable();
-		tracker.moveTo(chip);
-		tracker.moveTo(page);
-		expect(events).toEqual(['show chip']);
-		vi.runAllTimers();
-		expect(events).toEqual(['show chip', 'hide']);
-		expect(tracker.current).toBeNull();
-	});
-
-	it('gives a nested chip no tooltip of its own', () => {
-		const { tracker, events } = trackReachable();
-		tracker.moveTo(chip);
-		tracker.moveTo(nested);
-		vi.runAllTimers();
-		expect(events).toEqual(['show chip']);
-	});
-
-	it('switches to another source at once', () => {
-		const { tracker, events } = trackReachable();
-		tracker.moveTo(chip);
-		tracker.moveTo(page);
-		tracker.moveTo(other);
-		vi.runAllTimers();
-		expect(events).toEqual(['show chip', 'show other']);
-	});
-
-	it('closes on leaving the tooltip, and at once on a chip click', () => {
-		const { tracker, events } = trackReachable();
-		tracker.moveTo(chip);
-		tracker.moveTo(surface);
-		tracker.moveTo(page);
-		vi.runAllTimers();
-		expect(events).toEqual(['show chip', 'hide']);
-
-		tracker.moveTo(chip);
-		tracker.dismiss();
-		expect(events).toEqual(['show chip', 'hide', 'show chip', 'hide']);
-	});
-
-	it('closes as it always did when there is nothing in it to reach', () => {
+describe('dismissing the tooltip', () => {
+	it('closes it now, and shows again on the next element the pointer reaches', () => {
+		const page = new FakeTarget('page');
+		const chip = new FakeTarget('chip', page, true);
+		const other = new FakeTarget('other', page, true);
 		const { tracker, events } = track();
 		tracker.moveTo(chip);
-		tracker.moveTo(surface);
+		tracker.dismiss();
 		expect(events).toEqual(['show chip', 'hide']);
+		expect(tracker.current).toBeNull();
+
+		tracker.moveTo(other);
+		expect(events).toEqual(['show chip', 'hide', 'show other']);
 	});
 });

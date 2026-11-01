@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-	hasEntityChips,
-	renderTooltip,
-	type TooltipChip,
-	type TooltipContent
-} from '$lib/shared/actions/tooltip';
+import { renderTooltip, type TooltipChip, type TooltipContent } from '$lib/shared/actions/tooltip';
 import { hostTooltip, serviceTooltip } from '$lib/shared/entity-tooltip';
 import type { Host } from '$lib/features/hosts/types/base';
 import type { Service } from '$lib/features/services/types/base';
@@ -130,18 +125,6 @@ describe('renderTooltip', () => {
 		expect(tip.texts()).toEqual(['5432/tcp', 'web']);
 	});
 
-	it('marks a tooltip reachable only for a chip that navigates', () => {
-		const row = (chips: TooltipChip[]) => ({
-			sections: [{ rows: [{ label: 'l', value: 'v', chips }] }]
-		});
-		expect(hasEntityChips(row([entityChip]))).toBe(true);
-		expect(hasEntityChips(row([tagChip]))).toBe(false);
-		expect(hasEntityChips({ sections: [{ items: [{ text: 'db', chip: entityChip }] }] })).toBe(
-			true
-		);
-		expect(hasEntityChips('plain')).toBe(false);
-	});
-
 	it('renders markup in a value as text', () => {
 		const hostile = '<img src=x onerror=alert(1)>';
 		const tip = render({
@@ -178,7 +161,7 @@ describe('icon card tooltip content', () => {
 	});
 
 	it('drops facts with no value', () => {
-		const content = hostTooltip(guest, { ipAddress: null, services: [] });
+		const content = hostTooltip(guest, { services: [] });
 		const rows = content.sections.flatMap((s) => s.rows ?? []);
 		expect(rows.every((r) => r.value)).toBe(true);
 		// No services: no empty list under a heading.

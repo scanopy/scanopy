@@ -238,7 +238,7 @@ export function hostColumns(ctx: HostColumnsContext) {
 								id: i.id,
 								label: formatIPAddress(i, isContainerSubnetFn),
 								color: entities.getColorHelper('IPAddress').color,
-								entityRef: entityRef('IPAddress', i.id, i, { subnets: ctx.subnets() })
+								entityRef: entityRef('IPAddress', i.id, i)
 							}))
 				}
 			},
@@ -480,11 +480,7 @@ export function hostColumns(ctx: HostColumnsContext) {
 							label: formatPort(port),
 							color: entities.getColorHelper('Port').color,
 							// What the popover needs to name the service on the port and its addresses.
-							entityRef: entityRef('Port', port.id, port, {
-								currentServices: ctx.allServices().filter((s) => s.host_id === host.id),
-								ip_addresses: ctx.hostIPAddresses(host),
-								isContainerSubnet: isContainerSubnetFn
-							})
+							entityRef: entityRef('Port', port.id, port)
 						}))
 				}
 			},

@@ -1,11 +1,7 @@
 import type { EntityRef } from '$lib/shared/components/data/types';
 import type { Color } from '$lib/shared/utils/styling';
 import type { IconComponent } from '$lib/shared/utils/types';
-import {
-	hideTooltipPopover,
-	showTooltipPopover,
-	tooltipChipsAreStatic
-} from './tooltip-popover.svelte';
+import { hideTooltipPopover, showTooltipPopover } from './tooltip-popover.svelte';
 
 /**
  * Svelte action that shows a tooltip on hover.
@@ -91,17 +87,6 @@ function chipSlot(doc: TooltipDocument, chip: TooltipChip, mountChip: MountToolt
 	const slot = el(doc, 'span', { display: 'inline-flex', maxWidth: '100%', minWidth: '0' });
 	mountChip(slot, chip);
 	return slot;
-}
-
-/** Whether the tooltip holds a chip that navigates, so the pointer has to be able to reach it. */
-export function hasEntityChips(content: string | TooltipContent): boolean {
-	if (typeof content === 'string') return false;
-	const isEntity = (chip?: TooltipChip) => chip?.type === 'Entity';
-	return content.sections.some(
-		(section) =>
-			section.rows?.some((row) => row.chips?.some(isEntity)) ||
-			section.items?.some((item) => typeof item !== 'string' && isEntity(item.chip))
-	);
 }
 
 /**
@@ -256,46 +241,24 @@ export interface TooltipTarget {
 /** Marks a registered element, so the nearest one under the pointer is a `closest` away. */
 const SOURCE_ATTRIBUTE = 'data-tooltip-source';
 
-/** Marks the tooltip's own surface, which holds chips of its own. */
-export const SURFACE_ATTRIBUTE = 'data-tooltip-surface';
-
-/** How long a tooltip with chips to click stays after the pointer leaves, to cross the gap to it. */
-const REACH_GRACE_MS = 150;
-
 /**
  * Which registered element the tooltip is on, as the pointer moves. `pointerover` and `pointerout`
  * both name where the pointer went; the tooltip follows to the nearest registered element there,
  * or closes when there is none. Moving between two registered elements switches straight from one
  * to the other, so the one tooltip moves rather than closing and reopening.
- *
- * `reachable` says the shown tooltip holds something to click. The pointer can then cross to the
- * tooltip and stay on it, and chips inside it never become sources, so a nested chip opens no
- * tooltip of its own.
  */
 export class TooltipTracker<T extends TooltipTarget> {
 	current: T | null = null;
-	private closing: ReturnType<typeof setTimeout> | undefined;
 
 	constructor(
 		private readonly onShow: (source: T) => void,
-		private readonly onHide: () => void,
-		private readonly reachable: () => boolean = () => false
+		private readonly onHide: () => void
 	) {}
 
 	/** The pointer is now over `target` (null: it left the document). */
 	moveTo(target: T | null) {
-		const onSurface = target?.closest(`[${SURFACE_ATTRIBUTE}]`) ?? null;
-		if (onSurface && this.current && this.reachable()) {
-			clearTimeout(this.closing);
-			return;
-		}
 		const source = (target?.closest(`[${SOURCE_ATTRIBUTE}]`) as T | null) ?? null;
-		clearTimeout(this.closing);
 		if (source === this.current) return;
-		if (!source && this.reachable()) {
-			this.closing = setTimeout(() => this.dismiss(), REACH_GRACE_MS);
-			return;
-		}
 		this.current = source;
 		if (source) this.onShow(source);
 		else this.onHide();
@@ -303,7 +266,6 @@ export class TooltipTracker<T extends TooltipTarget> {
 
 	/** Closes the tooltip now, as a click on a chip inside it does. */
 	dismiss() {
-		clearTimeout(this.closing);
 		this.current = null;
 		this.onHide();
 	}
@@ -337,27 +299,16 @@ function contentOf(node: HTMLElement): string | TooltipContent | null {
 	return given ?? node.getAttribute('data-tooltip');
 }
 
-/** Whether the tooltip now shown holds a chip to click. */
-let reachable = false;
-
-const tracker = new TooltipTracker<HTMLElement>(
-	(node) => {
-		const content = contentOf(node);
-		reachable = !!content && hasEntityChips(content) && !tooltipChipsAreStatic();
-		if (!content) {
-			hideTooltipPopover();
-			return;
-		}
-		const anchorClosest = sources.get(node)?.anchorClosest;
-		const anchor = (anchorClosest && node.closest<HTMLElement>(anchorClosest)) || node;
-		showTooltipPopover(anchor, content, (c, mountChip) => renderTooltip(document, c, mountChip));
-	},
-	() => {
-		reachable = false;
+const tracker = new TooltipTracker<HTMLElement>((node) => {
+	const content = contentOf(node);
+	if (!content) {
 		hideTooltipPopover();
-	},
-	() => reachable
-);
+		return;
+	}
+	const anchorClosest = sources.get(node)?.anchorClosest;
+	const anchor = (anchorClosest && node.closest<HTMLElement>(anchorClosest)) || node;
+	showTooltipPopover(anchor, content, (c, mountChip) => renderTooltip(document, c, mountChip));
+}, hideTooltipPopover);
 
 /** Closes the tooltip, for a click that navigates away from what it is on. */
 export function dismissTooltip() {
