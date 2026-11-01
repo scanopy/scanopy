@@ -51,7 +51,7 @@ make libvirt-lab-status
 
 It needs the Proxmox lab settings `tools/wol/` reads (`~/.config/scanopy-lab/proxmox.env`:
 `PROXMOX_HOST`, `LAB_BRIDGE`) and root SSH to the node with `~/.ssh/proxmox-lab`. The VM takes
-2.5 GB of the node's memory.
+3.5 GB of the node's memory.
 
 ## Credentials for a scan
 
