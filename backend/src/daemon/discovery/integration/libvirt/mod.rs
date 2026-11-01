@@ -54,6 +54,7 @@ use crate::server::shared::attribution::{AttributeSource, Attributed};
 use crate::server::shared::position::renumber_positions;
 use crate::server::shared::types::guest_state::GuestState;
 use crate::server::subnets::r#impl::base::Subnet;
+use crate::server::subnets::r#impl::inference::placeable_subnet;
 
 /// The source of what libvirt reports about the host and its domains in its own words: the host's
 /// name and addresses, and the addresses its leases and ARP table hold for a domain.
@@ -96,26 +97,13 @@ impl DiscoveryIntegration for LibvirtIntegration {
         INVENTORY_TIMEOUT + Duration::from_secs(60)
     }
 
-    fn probe_gate_ports(&self, credential: &CredentialQueryPayload) -> Vec<PortType> {
-        self::credential(credential)
-            .map(|c| vec![PortType::new_tcp(c.port)])
-            .unwrap_or_default()
-    }
-
     /// Log in, then ask `virsh` for the connection. With full access first, since only that lets
     /// the guest agent be read; failing that, libvirt's read-only socket, which every account may
     /// open on a default install. A host with no `virsh` is not a libvirt host.
     async fn probe(&self, ctx: &ProbeContext<'_>) -> Result<ProbeSuccess, ProbeFailure> {
         let cred = credential(ctx.credential)
             .ok_or_else(|| ProbeFailure::malformed("Expected a libvirt credential"))?;
-        let session = connect_trusted(
-            ctx,
-            cred.port,
-            &cred.username,
-            &cred.auth,
-            cred.host_key_fingerprint.as_deref(),
-        )
-        .await?;
+        let session = connect_trusted(ctx, &cred.login).await?;
 
         let mut refusal = String::new();
         for read_only in [false, true] {
@@ -130,9 +118,11 @@ impl DiscoveryIntegration for LibvirtIntegration {
             match result.exit_code {
                 Some(0) => {
                     tracing::info!(ip = %ctx.ip, read_only, "Opened the libvirt connection");
+                    // libvirtd answered on its local socket, so its service owns no port. The
+                    // login's port goes to the SSH service (`CredentialReach::ThroughLogin`).
                     return Ok(ProbeSuccess {
                         client_probe: Some(ClientProbe::Libvirt),
-                        ports: vec![PortType::new_tcp(cred.port)],
+                        ports: vec![],
                         handle: Some(Box::new(LibvirtProbeHandle {
                             session: tokio::sync::Mutex::new(Some(session)),
                             read_only,
@@ -225,7 +215,6 @@ impl DiscoveryIntegration for LibvirtIntegration {
                 host,
                 ip_addresses,
                 client_probe: ClientProbe::Libvirt,
-                port: cred.port,
                 source: REPORTED,
                 guests: HostVirtualizationDiscriminants::Libvirt,
             },
@@ -320,10 +309,18 @@ fn probe_failure(error: SessionError) -> ProbeFailure {
     }
 }
 
+/// Whether `ip` sits on a subnet the site already knows as a container bridge: a `docker0` or
+/// `br-*` the runtime's own API reported. 172.17.0.1 is on every Docker host, so recorded on this
+/// one it would tie it to all of them. An address on a subnet nobody knows yet is kept, as a
+/// libvirt network's `virbr0` is on a first scan; interface names cannot tell a container bridge
+/// from any other bridge (#663).
+fn on_container_bridge(subnets: &[Subnet], ip: IpAddr) -> bool {
+    placeable_subnet(subnets, ip).is_some_and(|s| s.is_container_bridge_subnet())
+}
+
 /// The host being scanned: named by its hostname, at the address it was reached at and every
-/// address `ip addr` gives it on a LAN subnet. Its own `docker0` and `br-*` are left out: 172.17.0.1
-/// is on every Docker host, and recorded here it would tie this host to all of them. The libvirt
-/// service is added by the matcher.
+/// address `ip addr` gives it but those on a known container bridge. The libvirt service is added
+/// by the matcher.
 fn hypervisor_host(
     inventory: &parse::Inventory,
     scanned: IpAddr,
@@ -354,7 +351,7 @@ fn hypervisor_host(
             addresses
                 .iter()
                 .map(|(_, ip)| *ip)
-                .filter(|ip| identities::on_lan(subnets, *ip)),
+                .filter(|ip| !on_container_bridge(subnets, *ip)),
         )
         .filter(|ip| seen.insert(*ip))
         .enumerate()
@@ -667,8 +664,9 @@ mod tests {
     /// every Docker host on the site also has.
     #[test]
     fn the_kvm_host_records_no_container_bridge_address() {
+        // A first scan: nothing knows `virbr0`'s 192.168.122.0/24 yet, and the site holds the
+        // Docker bridge another host's runtime reported.
         let mut subnets = lan();
-        subnets.push(subnet("192.168.122.0/24", SubnetType::Unknown));
         subnets.push(subnet("172.17.0.0/16", SubnetType::DockerBridge));
         let (_, addresses) = hypervisor_host(
             &parse::inventory(LAB),
@@ -702,6 +700,32 @@ mod tests {
                 hypervisor: "scanopy-libvirt-host".to_string(),
                 bridge: "virbr0".to_string(),
             }
+        );
+    }
+
+    /// Read without its agent, `kvm-agent` is known only by its NAT lease, but its other NIC is on
+    /// the uplinked `br0`, where the sweep finds it: not reachable only from the hypervisor.
+    #[test]
+    fn a_guest_with_an_unaddressed_nic_on_an_uplinked_bridge_is_not_unreached() {
+        let inventory = parse::inventory(LAB_READ_ONLY);
+        let reading = read_domain(domain(&inventory, "kvm-agent"), &inventory);
+        assert!(
+            reading
+                .addresses
+                .iter()
+                .all(|a| a.ip.to_string().starts_with("192.168.122.")),
+            "the recording knows kvm-agent only by its NAT lease: {:?}",
+            reading.addresses
+        );
+        assert_eq!(
+            reach::unreached(
+                &reading.nics,
+                &reading.addresses,
+                &parse::bridges(&inventory),
+                &lan(),
+                "scanopy-libvirt-host",
+            ),
+            None
         );
     }
 

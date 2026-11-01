@@ -82,13 +82,6 @@ impl DiscoveryIntegration for UnifiIntegration {
         Duration::from_secs(180)
     }
 
-    fn probe_gate_ports(&self, credential: &CredentialQueryPayload) -> Vec<PortType> {
-        match credential {
-            CredentialQueryPayload::UnifiController(c) => vec![PortType::new_tcp(c.port)],
-            _ => vec![],
-        }
-    }
-
     async fn probe(&self, ctx: &ProbeContext<'_>) -> Result<ProbeSuccess, ProbeFailure> {
         let CredentialQueryPayload::UnifiController(credential) = ctx.credential else {
             return Err(ProbeFailure::malformed("Not a UniFi credential"));
