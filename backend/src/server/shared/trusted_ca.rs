@@ -106,24 +106,30 @@ impl TrustedCaBundle {
 /// `SCANOPY_TRUSTED_CA_BUNDLE`. rustls errors reach callers wrapped in `io::Error`, whose
 /// payload is only reachable through `get_ref`, so both links are followed.
 pub fn is_untrusted_certificate(err: &(dyn std::error::Error + 'static)) -> bool {
+    certificate_error(err).is_some()
+}
+
+/// The rustls certificate rejection in `err`'s source chain, if there is one.
+pub fn certificate_error<'a>(
+    err: &'a (dyn std::error::Error + 'static),
+) -> Option<&'a rustls::CertificateError> {
     let mut current = Some(err);
     while let Some(e) = current {
-        if matches!(
-            e.downcast_ref::<rustls::Error>(),
-            Some(rustls::Error::InvalidCertificate(_))
-        ) {
-            return true;
+        if let Some(rustls::Error::InvalidCertificate(certificate)) =
+            e.downcast_ref::<rustls::Error>()
+        {
+            return Some(certificate);
         }
-        if let Some(inner) = e
+        if let Some(certificate) = e
             .downcast_ref::<std::io::Error>()
             .and_then(|io| io.get_ref())
-            && is_untrusted_certificate(inner)
+            .and_then(|inner| certificate_error(inner))
         {
-            return true;
+            return Some(certificate);
         }
         current = e.source();
     }
-    false
+    None
 }
 
 /// Test fixtures: throwaway CAs and a local HTTPS server whose leaf is signed by CA A.

@@ -109,6 +109,10 @@ pub enum ErrorCode {
     LicenseInstanceLimitReached { active: u32, limit: u32 },
     /// The organization's plan is not a self-hosted license plan, so it has no key
     LicensePlanHasNoKey,
+    /// The presented key was rotated or changed type, so it is retired
+    LicenseKeyRegenerated,
+    /// The organization the presented key names no longer exists
+    LicenseOrganizationMissing,
 
     // === Generic Entity Operations ===
     /// Entity was not found
@@ -341,6 +345,10 @@ impl ErrorCode {
             Self::LicensePlanHasNoKey => {
                 "This organization's plan has no license key. License keys come with the Self-Hosted Standard and Plus plans."
             }
+            Self::LicenseKeyRegenerated => {
+                "This license key was regenerated. Copy the current key from Scanopy Cloud."
+            }
+            Self::LicenseOrganizationMissing => "This license key's organization no longer exists",
             Self::LicenseInstanceLimitReached { .. } => {
                 "This license key is in use on {active} servers and your plan covers {limit}, so this server is in read-only mode. Delete a server you no longer run under License in Scanopy Cloud, then restart this one."
             }
@@ -537,6 +545,8 @@ impl ErrorCode {
             | Self::AuthDemoMode
             | Self::LicenseLocked
             | Self::LicensePlanHasNoKey
+            | Self::LicenseKeyRegenerated
+            | Self::LicenseOrganizationMissing
             | Self::AuthPasswordLoginDisabled
             | Self::AuthRegistrationDisabled
             | Self::AuthOrgLimitReached

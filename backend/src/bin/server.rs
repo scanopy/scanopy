@@ -654,7 +654,7 @@ async fn main() -> anyhow::Result<()> {
     if deployment_type != DeploymentType::Cloud {
         match &state.license_service {
             None => {
-                tracing::info!(target: LOG_TARGET, "  License:         not required (community)");
+                tracing::info!(target: LOG_TARGET, "  License:         not required (community). To apply a license, set SCANOPY_LICENSE_KEY and recreate the server");
             }
             Some(license_service) => {
                 let license_status = license_service.current_status().await;
@@ -691,7 +691,7 @@ async fn main() -> anyhow::Result<()> {
                         tracing::warn!(
                             target: LOG_TARGET,
                             "  License:         PENDING — server is in read-only mode until it reaches {} for its first entitlement",
-                            scanopy::server::license::service::CLOUD_BASE_URL,
+                            license_service.base_url(),
                         );
                     }
                 }

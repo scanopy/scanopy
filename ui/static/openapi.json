@@ -26547,6 +26547,17 @@
                   }
                 ]
               },
+              "license_problem": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/LicenseProblem",
+                    "description": "Why the last check-in failed, or why the configured key is unusable.\n`None` when the last check-in worked or none has finished yet."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "license_signing_available": {
                 "type": "boolean",
                 "description": "Whether this deployment can sign license keys. False on any server\nwithout a signing key, where the Settings License tab and the\nself-hosted plans would otherwise offer something the mint path\nrefuses. Reads the built issuer rather than the config value, since a\nkey can be present but unparseable."
@@ -41471,6 +41482,26 @@
           "Offline"
         ]
       },
+      "LicenseProblem": {
+        "type": "string",
+        "description": "Why this server has no working entitlement, as the public config endpoint\nreports it. `/api/config` needs no login, so it carries this type alone:\naddresses, URLs and raw error text stay in the server log.",
+        "enum": [
+          "dns",
+          "connect",
+          "timeout",
+          "untrusted_certificate",
+          "certificate_dates",
+          "proxy",
+          "server_error",
+          "rate_limited",
+          "key_malformed",
+          "key_regenerated",
+          "organization_missing",
+          "plan_has_no_key",
+          "instance_limit",
+          "key_refused"
+        ]
+      },
       "LicenseStatusDiscriminants": {
         "type": "string",
         "description": "Runtime license state as reported by the public config endpoint.",
@@ -45561,6 +45592,17 @@
               {
                 "$ref": "#/components/schemas/LicenseKeyType",
                 "description": "Whether the configured key is an offline key or an online key that\nfetches its entitlement from Scanopy Cloud. `None` when no key applies."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "license_problem": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LicenseProblem",
+                "description": "Why the last check-in failed, or why the configured key is unusable.\n`None` when the last check-in worked or none has finished yet."
               },
               {
                 "type": "null"
