@@ -283,7 +283,7 @@
 								selectedSiteIds={field.state.value ?? []}
 								onChange={handleSiteChange}
 								permissionLevel={permissionsValue}
-								helpText="Leave empty for org-scoped resources only (tags, users)"
+								helpText=""
 								alwaysShowSelection={true}
 								required={false}
 							/>
