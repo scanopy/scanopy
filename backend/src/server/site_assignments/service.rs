@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use anyhow::Result;
+use sqlx::{Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::server::{
@@ -91,19 +92,25 @@ impl SiteAssignmentService {
         })
     }
 
-    /// Replace every row of `principal`.
-    pub(crate) async fn replace(
+    /// A transaction for a principal's role and rows to commit together.
+    pub(crate) async fn begin(&self) -> Result<Transaction<'static, Postgres>> {
+        self.storage.inner().begin_multi_table_transaction().await
+    }
+
+    /// Replace every row of `principal`, inside `tx`.
+    pub(crate) async fn replace_in_tx(
         &self,
         organization_id: Uuid,
         principal: Principal,
         assignments: &[Assignment],
+        tx: &mut Transaction<'_, Postgres>,
     ) -> Result<()> {
         let rows: Vec<SiteAssignment> = assignments
             .iter()
             .map(|assignment| Self::row(organization_id, principal, *assignment))
             .collect();
         self.storage
-            .save_for_parent(&principal.parent(), &rows)
+            .save_for_parent_in_tx(&principal.parent(), &rows, tx)
             .await?;
         Ok(())
     }

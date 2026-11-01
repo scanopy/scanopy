@@ -81,6 +81,10 @@ pub enum LockKey {
     /// tags), so registration and a billing event landing together can't both create a site.
     /// Taken before `SiteSetup` and `TagGroups`, never after.
     CloudSetup { organization_id: Uuid },
+    /// Serialize changes to who holds Owner in an organization (deleting, demoting or moving a
+    /// user out), so two of them can't each count the other and leave no Owner. The owners and
+    /// the targets are read under it. Taken before `JunctionSync`, never after.
+    OrganizationOwners { organization_id: Uuid },
     /// Serialize filling in one site's system subnets and live topology, so the org's cloud
     /// setup and the site's Created event can't both create them.
     SiteSetup { site_id: Uuid },
@@ -120,6 +124,9 @@ impl LockKey {
             LockKey::Organization(id) => format!("organization:{id}"),
             LockKey::TagGroups { organization_id } => format!("tag-groups:{organization_id}"),
             LockKey::CloudSetup { organization_id } => format!("cloud-setup:{organization_id}"),
+            LockKey::OrganizationOwners { organization_id } => {
+                format!("organization-owners:{organization_id}")
+            }
             LockKey::SiteSetup { site_id } => format!("site-setup:{site_id}"),
             LockKey::ReleaseAnnouncement => "release-announcement".to_string(),
             LockKey::ServerInstance => "server-instance".to_string(),
@@ -316,6 +323,10 @@ mod tests {
             }
             .pg_key(),
             LockKey::CloudSetup {
+                organization_id: uuid_a(),
+            }
+            .pg_key(),
+            LockKey::OrganizationOwners {
                 organization_id: uuid_a(),
             }
             .pg_key(),
