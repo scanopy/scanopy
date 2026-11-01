@@ -68,6 +68,26 @@ pub enum UpstreamSupport {
     Undocumented,
 }
 
+/// How a credential type reaches its host, and which service owns the port it goes through
+/// ([`CredentialTypeDiscriminants::reach`]). The dispatched payload states the same with its port
+/// values ([`CredentialReach`](crate::server::credentials::r#impl::mapping::CredentialReach)).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReachDeclaration {
+    /// Its own service listens on the TCP port held in its `field`: gNMI, UniFi, Proxmox VE, the
+    /// Docker/Podman API proxy.
+    OwnPortField { field: &'static str },
+    /// Its own service listens on these fixed UDP ports: SNMP.
+    FixedUdpPorts(&'static [u16]),
+    /// Signs in through a login it names, whose service owns the port. Its own service owns none:
+    /// SSH Script, libvirt.
+    ThroughLogin,
+    /// A login: the port in its `field` is the transport the credentials that name it sign in
+    /// through. SSH login (password or key).
+    LoginTransport { field: &'static str },
+    /// Reaches the host without a port on it: a local socket, a cloud portal, a broadcast.
+    NoPort,
+}
+
 /// What a credential is for: run against hosts by an integration, or a login other credentials
 /// use to reach a host.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, IntoStaticStr, ToSchema, PartialEq, Eq)]
@@ -475,24 +495,39 @@ impl CredentialTypeDiscriminants {
         }
     }
 
-    /// What this type is for. Exhaustive, so a new type says whether it is a login.
-    pub fn role(&self) -> CredentialRole {
+    /// How a credential of this type reaches its host, and which service owns the port it goes
+    /// through. The one declaration of whether a type signs in through a login, is a login, or owns
+    /// ports of its own: [`Self::role`] and [`Self::requires_login`] read it, and
+    /// `every_credential_type_dispatches_the_reach_it_declares` checks each type's fields and
+    /// dispatched payload against it. Exhaustive, so a new type has to answer.
+    pub fn reach(&self) -> ReachDeclaration {
         match self {
-            Self::SshPassword | Self::SshKey => CredentialRole::Login,
-            Self::SnmpCommunity
-            | Self::SnmpV3
-            | Self::Gnmi
+            Self::SnmpCommunity | Self::SnmpV3 => ReachDeclaration::FixedUdpPorts(&[161, 1161]),
+            Self::Gnmi
             | Self::DockerProxy
-            | Self::DockerSocket
             | Self::PodmanProxy
-            | Self::PodmanSocket
             | Self::UnifiApiKey
             | Self::UnifiLocalAdmin
-            | Self::InstantOnAccount
-            | Self::SshScript
-            | Self::Libvirt
-            | Self::WakeOnLan
-            | Self::ProxmoxApiToken => CredentialRole::Dispatched,
+            | Self::ProxmoxApiToken => ReachDeclaration::OwnPortField { field: "port" },
+            Self::SshPassword | Self::SshKey => ReachDeclaration::LoginTransport { field: "port" },
+            Self::SshScript | Self::Libvirt => ReachDeclaration::ThroughLogin,
+            // A local socket, HPE's cloud portal, a broadcast packet. Wake-on-LAN's UDP port field
+            // is the packet's destination, not a port it owns on the host.
+            Self::DockerSocket | Self::PodmanSocket | Self::InstantOnAccount | Self::WakeOnLan => {
+                ReachDeclaration::NoPort
+            }
+        }
+    }
+
+    /// What this type is for: a login is the type whose port is a transport others sign in
+    /// through ([`Self::reach`]).
+    pub fn role(&self) -> CredentialRole {
+        match self.reach() {
+            ReachDeclaration::LoginTransport { .. } => CredentialRole::Login,
+            ReachDeclaration::OwnPortField { .. }
+            | ReachDeclaration::FixedUdpPorts(_)
+            | ReachDeclaration::ThroughLogin
+            | ReachDeclaration::NoPort => CredentialRole::Dispatched,
         }
     }
 
@@ -516,26 +551,10 @@ impl CredentialTypeDiscriminants {
         }
     }
 
-    /// Whether a credential of this type runs over a login it names (`login_credential_id`).
-    /// Exhaustive for the same reason as [`Self::role`].
+    /// Whether a credential of this type signs in through a login it names
+    /// (`login_credential_id`), as its [`Self::reach`] declares.
     pub fn requires_login(&self) -> bool {
-        match self {
-            Self::SshScript | Self::Libvirt => true,
-            Self::SnmpCommunity
-            | Self::SnmpV3
-            | Self::Gnmi
-            | Self::DockerProxy
-            | Self::DockerSocket
-            | Self::PodmanProxy
-            | Self::PodmanSocket
-            | Self::UnifiApiKey
-            | Self::UnifiLocalAdmin
-            | Self::InstantOnAccount
-            | Self::SshPassword
-            | Self::SshKey
-            | Self::WakeOnLan
-            | Self::ProxmoxApiToken => false,
-        }
+        matches!(self.reach(), ReachDeclaration::ThroughLogin)
     }
 
     /// Whether an organization on `plan` can create a credential of this type.

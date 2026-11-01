@@ -78,13 +78,6 @@ impl DiscoveryIntegration for PodmanIntegration {
         CONTAINER_SCAN_TIMEOUT
     }
 
-    fn probe_gate_ports(&self, credential: &CredentialQueryPayload) -> Vec<PortType> {
-        match credential {
-            CredentialQueryPayload::PodmanProxy(podman) => vec![PortType::new_tcp(podman.port)],
-            _ => vec![],
-        }
-    }
-
     async fn probe(&self, ctx: &ProbeContext<'_>) -> Result<ProbeSuccess, ProbeFailure> {
         container::probe_proxy(ctx, ContainerRuntime::Podman).await
     }

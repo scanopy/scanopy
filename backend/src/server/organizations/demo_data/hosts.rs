@@ -2624,6 +2624,10 @@ pub(super) fn generate_hosts_and_services(
             if let Some(p) = port {
                 ports.push(p);
             }
+            // libvirtd answers on its local socket, reached through the SSH login, so its service
+            // binds nothing: port 22 is SSH's, below.
+            let mut svc = svc;
+            svc.base.bindings.clear();
             services.push(svc);
         }
         if let Some((svc, port)) = create_service(
