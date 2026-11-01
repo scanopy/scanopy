@@ -3499,6 +3499,7 @@
 	"topology_neighborLinkPortsUnknown": "These devices report each other as neighbors, but the ports connecting them could not be identified.",
 	"topology_noHiddenRules": "No hidden rules",
 	"topology_noNodesToExport": "No nodes to export",
+	"topology_noSiteAccess": "You don't have access to any sites. Ask an admin to add you to one.",
 	"topology_noSites": "This organization has no sites. Add one on the Sites page.",
 	"topology_optionDisabledRebuildRequired": "Rebuild topology to change this option",
 	"topology_optionsHint": "These settings apply to the entire topology",

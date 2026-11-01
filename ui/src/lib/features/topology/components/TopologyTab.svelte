@@ -104,6 +104,7 @@
 		daemons_installPromptTopology,
 		topology_asOf,
 		common_current,
+		topology_noSiteAccess,
 		topology_noSites,
 		topology_siteTopologyMissing,
 		topology_snapshotDeleteConfirm,
@@ -853,7 +854,7 @@
 				<Loading />
 			{:else if sitesData.length === 0}
 				<div class="card-static card text-secondary">
-					{topology_noSites()}
+					{can('NewSite', 'Write') ? topology_noSites() : topology_noSiteAccess()}
 				</div>
 			{:else if $selectedSiteId && !currentTopologyRow}
 				<LoadFailedState
