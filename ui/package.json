@@ -72,7 +72,7 @@
 		}
 	},
 	"dependencies": {
-		"@beyonk/gdpr-cookie-consent-banner": "^16.0.2",
+		"@beyonk/gdpr-cookie-consent-banner": "^16.0.3",
 		"@lucide/svelte": "^1.65.0",
 		"@peculiar/x509": "^1.14.3",
 		"@stripe/stripe-js": "^9.17.0",
