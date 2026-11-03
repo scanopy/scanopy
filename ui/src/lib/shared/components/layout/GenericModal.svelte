@@ -45,8 +45,9 @@
 		assignModalKeys,
 		closesModalOnEscape,
 		ENTER_KEY,
-		isAnyModalOpen,
+		isStackedModal,
 		isTopmostModal,
+		openModalStack,
 		keyPausedAt,
 		registerOpenModal,
 		resolveModalKeydown,
@@ -252,10 +253,9 @@
 	// A modal opened over another leaves the darkening to the one beneath, so stacking doesn't
 	// shroud the page twice.
 	const stackToken = Symbol();
-	let stacked = $state(false);
+	let stacked = $derived(isStackedModal($openModalStack, stackToken));
 	$effect(() => {
 		if (!isOpen) return;
-		stacked = isAnyModalOpen();
 		return registerOpenModal(stackToken);
 	});
 
@@ -535,13 +535,13 @@
 {#if isOpen || keepMounted}
 	<!-- Modal backdrop -->
 	<div
-		class="{showBackdrop && !stacked
-			? 'modal-page modal-background'
-			: 'modal-page'} {stacked ? 'p-4' : ''} {anchor === 'container'
-			? 'modal-page-anchored'
-			: ''} {compactPadding ? 'px-2! py-1! sm:px-4! sm:py-4!' : ''} {listOrder
-			? 'sm:px-16!'
-			: ''} {showBackButton ? 'max-sm:pt-16!' : ''} {isOpen ? '' : 'invisible'}"
+		class="{showBackdrop && !stacked ? 'modal-page modal-background' : 'modal-page'} {stacked
+			? 'p-4'
+			: ''} {anchor === 'container' ? 'modal-page-anchored' : ''} {compactPadding
+			? 'px-2! py-1! sm:px-4! sm:py-4!'
+			: ''} {listOrder ? 'sm:px-16!' : ''} {showBackButton ? 'max-sm:pt-16!' : ''} {isOpen
+			? ''
+			: 'invisible'}"
 		inert={!isOpen}
 		aria-hidden={!isOpen}
 		onclick={handleBackdropClick}
