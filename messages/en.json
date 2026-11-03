@@ -2257,6 +2257,7 @@
 	"meta_entities_Binding_field_site_id_label": "Site",
 	"meta_entities_Credential_field_assignments_label": "Assignments",
 	"meta_entities_Credential_field_beta_label": "Beta",
+	"meta_entities_Credential_field_category_label": "Category",
 	"meta_entities_Credential_field_created_at_label": "Created",
 	"meta_entities_Credential_field_credential_type_label": "Credential Type",
 	"meta_entities_Credential_field_daemon_os_label": "Daemon OS",
