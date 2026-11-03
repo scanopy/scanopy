@@ -11,7 +11,6 @@
 		Monitor,
 		LifeBuoy
 	} from '@lucide/svelte';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useCan } from '$lib/features/auth/access';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import {
@@ -72,11 +71,9 @@
 		licensedPlanPending?: boolean;
 	} = $props();
 
-	// TanStack Query for current user and organization
-	const currentUserQuery = useCurrentUserQuery();
+	// TanStack Query for organization
 	const organizationQuery = useOrganizationQuery();
 
-	let currentUser = $derived(currentUserQuery.data);
 	let org = $derived(organizationQuery.data);
 
 	const configQuery = useConfigQuery();

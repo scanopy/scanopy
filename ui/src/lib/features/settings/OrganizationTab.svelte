@@ -1,6 +1,5 @@
 <script lang="ts">
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useCan } from '$lib/features/auth/access';
 	import { pushError, pushSuccess } from '$lib/shared/stores/feedback';
 	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
@@ -81,8 +80,6 @@
 	} = $props();
 
 	// TanStack Query for current user
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
 
 	// TanStack Query for organization
 	const organizationQuery = useOrganizationQuery();

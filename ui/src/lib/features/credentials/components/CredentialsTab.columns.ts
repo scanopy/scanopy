@@ -113,6 +113,7 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 				getGroupValue: (item: Credential) => integrationId(item),
 				getValue: (item: Credential) => credentialIntegrations.getName(integrationId(item)),
 				display: {
+					hiddenByDefault: true,
 					getItems: (item: Credential) => {
 						const id = integrationId(item);
 						return [
@@ -134,8 +135,7 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 				groupable: true,
 				// The server groups on the category's label.
 				getGroupValue: (item: Credential) => categoryOf(item),
-				getValue: (item: Credential) => categoryOf(item),
-				display: { hiddenByDefault: true }
+				getValue: (item: Credential) => categoryOf(item)
 			},
 			credential_type: {
 				label: common_type(),

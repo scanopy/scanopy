@@ -4168,6 +4168,24 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description What a principal can do: organization grants for org-keyed resources, and per-site grants for
+         *     site-keyed ones.
+         */
+        AccessGrants: {
+            /** @description Grants held on every site, including sites created since this was read. */
+            all_sites: components["schemas"]["Grant"][];
+            /** @description Grants that answer for org-keyed resources. */
+            organization: components["schemas"]["Grant"][];
+            /** @description Grants on each site the principal reaches. Empty for a principal on no site. */
+            sites: components["schemas"]["SiteGrants"][];
+        };
+        /**
+         * @description What a role may do to a resource. `Write` is create and update, plus operations such as
+         *     starting a scan or merging hosts.
+         * @enum {string}
+         */
+        Action: "Read" | "Write" | "Delete";
         /** @description Error response type for API errors (no data field) */
         ApiErrorResponse: {
             /** @description Machine-readable error code for i18n translation */
@@ -4187,7 +4205,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.19.5"
+         *       "server_version": "0.19.6"
          *     }
          */
         ApiMeta: {
@@ -4198,7 +4216,7 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.19.5
+             * @example 0.19.6
              */
             server_version: string;
         };
@@ -4227,19 +4245,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-31T19:54:47.747308Z",
+             *       "created_at": "2026-11-03T22:25:05.869448Z",
              *       "first_discovery_id": null,
-             *       "id": "e9663eba-18ec-4993-8b97-84816d96d82b",
+             *       "id": "ef1d6909-1d53-43d4-9115-26baefb56328",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-31T19:54:47.747308Z",
+             *       "last_seen_at": "2026-11-03T22:25:05.869448Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-10-31T19:54:47.747308Z",
-             *       "valid_from": "2026-10-31T19:54:47.747308Z",
+             *       "updated_at": "2026-11-03T22:25:05.869448Z",
+             *       "valid_from": "2026-11-03T22:25:05.869448Z",
              *       "valid_to": null
              *     }
              */
@@ -4453,6 +4471,26 @@ export interface components {
                  * @description When this record was last modified.
                  */
                 readonly updated_at: string;
+            };
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_CurrentUser: {
+            /** @description The signed-in user, with what they can do. */
+            data?: components["schemas"]["User"] & {
+                /** @description The user's organization and per-site grants. */
+                access: components["schemas"]["AccessGrants"];
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -5136,19 +5174,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-31T19:54:47.713981Z",
+             *               "created_at": "2026-11-03T22:25:05.836217Z",
              *               "first_discovery_id": null,
-             *               "id": "f9bcf039-2802-492a-b011-66aebb3d0b78",
+             *               "id": "3910cb97-304d-4868-b210-9825f7b62ef3",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-31T19:54:47.713981Z",
+             *               "last_seen_at": "2026-11-03T22:25:05.836217Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-10-31T19:54:47.713981Z",
-             *               "valid_from": "2026-10-31T19:54:47.713981Z",
+             *               "updated_at": "2026-11-03T22:25:05.836217Z",
+             *               "valid_from": "2026-11-03T22:25:05.836217Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5161,7 +5199,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Lidarr",
+             *           "service_definition": "Grafana",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6194,19 +6232,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-31T19:54:47.741804Z",
+             *           "created_at": "2026-11-03T22:25:05.864139Z",
              *           "first_discovery_id": null,
-             *           "id": "28130ac9-df78-4e8d-a898-d27670111736",
+             *           "id": "a8dcdd0d-b644-4925-aadc-d6a1e35a40f7",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-31T19:54:47.741804Z",
+             *           "last_seen_at": "2026-11-03T22:25:05.864139Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-10-31T19:54:47.741804Z",
-             *           "valid_from": "2026-10-31T19:54:47.741804Z",
+             *           "updated_at": "2026-11-03T22:25:05.864139Z",
+             *           "valid_from": "2026-11-03T22:25:05.864139Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6219,7 +6257,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Lidarr",
+             *       "service_definition": "Grafana",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7683,19 +7721,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-31T19:54:47.714641Z",
+         *       "created_at": "2026-11-03T22:25:05.836891Z",
          *       "first_discovery_id": null,
-         *       "id": "fe68d045-1b42-408a-9fde-8aa347506773",
+         *       "id": "a094d60b-ecfc-4ce9-ac54-1f13542d5a30",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-31T19:54:47.714641Z",
+         *       "last_seen_at": "2026-11-03T22:25:05.836891Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-10-31T19:54:47.714641Z",
-         *       "valid_from": "2026-10-31T19:54:47.714641Z",
+         *       "updated_at": "2026-11-03T22:25:05.836891Z",
+         *       "valid_from": "2026-11-03T22:25:05.836891Z",
          *       "valid_to": null
          *     }
          */
@@ -8085,7 +8123,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Lidarr",
+         *           "service_definition": "Grafana",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8330,7 +8368,7 @@ export interface components {
          */
         CredentialIntegration: "Snmp" | "Gnmi" | "Docker" | "Podman" | "UnifiController" | "InstantOn" | "Ssh" | "WakeOnLan" | "Proxmox" | "Libvirt";
         /** @enum {string} */
-        CredentialOrderField: "created_at" | "name" | "updated_at" | "credential_type" | "integration" | "beta" | "unofficial_api" | "daemon_os";
+        CredentialOrderField: "created_at" | "name" | "updated_at" | "credential_type" | "integration" | "category" | "beta" | "unofficial_api" | "daemon_os";
         /**
          * @description Which fields depend on the credential's Daemon OS. Computed from the field definitions, so the
          *     form places the Daemon OS picker without its own rule: with the one field that depends on it, or
@@ -8582,6 +8620,11 @@ export interface components {
         };
         /** @enum {string} */
         CredentialTypeDiscriminants: "SnmpCommunity" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount" | "SshPassword" | "SshKey" | "SshScript" | "Libvirt" | "WakeOnLan" | "ProxmoxApiToken";
+        /** @description The signed-in user, with what they can do. */
+        CurrentUser: components["schemas"]["User"] & {
+            /** @description The user's organization and per-site grants. */
+            access: components["schemas"]["AccessGrants"];
+        };
         Daemon: components["schemas"]["DaemonBase"] & {
             /**
              * Format: date-time
@@ -10052,6 +10095,12 @@ export interface components {
             detail: string;
         };
         /**
+         * @description An action as the role comparison shows it. `Write` is one [`Action`] and reads as Edit, plus
+         *     Create on a resource where it adds rows.
+         * @enum {string}
+         */
+        DisplayAction: "View" | "Create" | "Edit" | "Delete";
+        /**
          * @description Per-user display preferences for dates and times in the UI.
          *
          *     Stored as a JSONB blob with `#[serde(default)]` on the struct, so a stored
@@ -10500,6 +10549,8 @@ export interface components {
             summary: boolean;
             /** @description Offered as a list-table column. */
             table: boolean;
+            /** @description Shown on the entity's hover tooltip, for a fact that isn't a `summary` default column. */
+            tooltip: boolean;
         };
         /**
          * @description How recently discovery last observed an entity.
@@ -10764,6 +10815,13 @@ export interface components {
         GlobalSearchResponse: {
             /** @description One group per entity type with at least one match. */
             groups: components["schemas"]["GlobalSearchGroup"][];
+        };
+        /** @description One action held on one resource. */
+        Grant: {
+            /** @description The action held on it. */
+            action: components["schemas"]["Action"];
+            /** @description The resource the action applies to. */
+            resource: components["schemas"]["Resource"];
         };
         /** @description Size of one group in a grouped list, across every page. */
         GroupCount: {
@@ -11245,19 +11303,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-31T19:54:47.713191Z",
+         *               "created_at": "2026-11-03T22:25:05.835427Z",
          *               "first_discovery_id": null,
-         *               "id": "f56f0c8a-c427-4fb6-a9ea-a960f40a0e73",
+         *               "id": "d48e86c8-a0e6-4249-83f4-7c25a00d6a7b",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-31T19:54:47.713191Z",
+         *               "last_seen_at": "2026-11-03T22:25:05.835427Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-10-31T19:54:47.713191Z",
-         *               "valid_from": "2026-10-31T19:54:47.713191Z",
+         *               "updated_at": "2026-11-03T22:25:05.835427Z",
+         *               "valid_from": "2026-11-03T22:25:05.835427Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11270,7 +11328,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Lidarr",
+         *           "service_definition": "Grafana",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -13143,7 +13201,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.19.5"
+         *       "server_version": "0.19.6"
          *     }
          */
         PaginatedApiMeta: {
@@ -13156,7 +13214,7 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.19.5
+             * @example 0.19.6
              */
             server_version: string;
         };
@@ -14524,6 +14582,8 @@ export interface components {
         };
         /** @description One release's notes. */
         ReleaseNoteResponse: {
+            /** @description Whether the modal tells the user to upgrade their daemons to this release. */
+            daemon_upgrade_notice: boolean;
             /**
              * Format: date
              * @description The day the release was prepared.
@@ -14619,6 +14679,11 @@ export interface components {
             /** @description Single-use token from the password-reset email. */
             token: string;
         };
+        /**
+         * @description What a role grants access to. Child entities share their parent's resource.
+         * @enum {string}
+         */
+        Resource: "Site" | "Host" | "Service" | "Subnet" | "Vlan" | "Dependency" | "Topology" | "Share" | "Discovery" | "Daemon" | "DaemonApiKey" | "Credential" | "Tag" | "Member" | "UserApiKey" | "Organization" | "Billing" | "License" | "NewSite";
         RunType: {
             /** @description Cron expression deciding when the scan runs. */
             cron_schedule: string;
@@ -14931,19 +14996,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-31T19:54:47.714424Z",
+         *           "created_at": "2026-11-03T22:25:05.836669Z",
          *           "first_discovery_id": null,
-         *           "id": "2b4099c7-ad3c-4224-8120-36fb0b88ba99",
+         *           "id": "0617146d-9c3f-4b4c-a6c6-1a339469f4c2",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-31T19:54:47.714424Z",
+         *           "last_seen_at": "2026-11-03T22:25:05.836669Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-10-31T19:54:47.714424Z",
-         *           "valid_from": "2026-10-31T19:54:47.714424Z",
+         *           "updated_at": "2026-11-03T22:25:05.836669Z",
+         *           "valid_from": "2026-11-03T22:25:05.836669Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -14956,7 +15021,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Lidarr",
+         *       "service_definition": "Grafana",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -15313,6 +15378,16 @@ export interface components {
             stale_after_hours: number | null;
             /** @description Tags assigned to this entity. */
             tags: string[];
+        };
+        /** @description The grants held on one site. */
+        SiteGrants: {
+            /** @description What the principal can do on that site. */
+            grants: components["schemas"]["Grant"][];
+            /**
+             * Format: uuid
+             * @description The site these grants hold on.
+             */
+            site_id: string;
         };
         /**
          * @description Fields the sites list can be ordered and grouped by.
@@ -16158,7 +16233,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "c8868c50-b531-448a-8b4f-423bb30e863c",
+             *           "id": "136d3236-c4f3-4e49-9e4e-10c2aafab68e",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16168,23 +16243,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "b0525c61-84d8-42c3-812d-05a10b276085",
+             *           "id": "924d0f90-3320-40c2-9ed3-d48076d03529",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "fa870cd2-912e-4676-99d1-1e2c1f396a74",
+             *           "id": "2b513178-6637-47fa-b4f5-03d862977ebc",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "7ae7c117-10eb-4f7f-b400-b35f01fa2acc",
+             *           "id": "c23cb9f5-53ba-4a4f-a6fb-46f8287ea085",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "b0525c61-84d8-42c3-812d-05a10b276085",
+             *           "id": "924d0f90-3320-40c2-9ed3-d48076d03529",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16198,19 +16273,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "902bd791-0cb2-4202-9090-d82866458d74",
+             *         "id": "23eb1ae9-70e6-4def-83ba-e12499d3c57b",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "ada1f1a4-bc22-4233-b1fd-074d45ef9d84",
+             *         "id": "c8b47712-17a7-48eb-bd27-e3c9c0796154",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "25b8e2d8-2e40-4dbc-b754-4bdb6f41fccf",
+             *         "id": "fa2c260f-7b0f-4389-b92b-c615695ddb76",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "a3e7c018-152d-44fc-b18e-d5efbd9560c0",
+             *         "id": "c322d6c4-7f90-4b65-905a-45d393e488ba",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16231,7 +16306,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "d7d292a3-ae11-493c-bc98-110b5d549a66",
+             *         "id": "4c9d1ce2-cec5-4daf-8425-24c56a31b52a",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16240,19 +16315,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "bf7406f4-bac9-4b20-9e03-a8ba96bd51d8",
+             *         "id": "a8267243-dd8e-4a36-8bc8-2b1d4bd26c43",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "8717fbf0-505c-4878-b36e-f6661de24a51",
+             *         "id": "0ff04269-e118-4ebf-ada7-5dc0dcf34c32",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "bf2473ac-082b-446a-aedf-06e9bc739033",
+             *         "id": "f1fd7958-599d-467e-a259-b0a16bdb39c1",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "9e305063-25e2-4b2b-b649-b172adc60762",
+             *         "id": "f9ee288a-bb4e-47ce-b350-58c561df38e7",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -17221,13 +17296,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Current user */
+            /** @description Current user and what they can do */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_User"];
+                    "application/json": components["schemas"]["ApiResponse_CurrentUser"];
                 };
             };
             /** @description Not authenticated */

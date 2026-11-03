@@ -490,12 +490,7 @@ pub async fn probe_integrations(
             matches!(credential.reach(), CredentialReach::OwnPorts(_)) || ports.is_empty(),
             "{discriminant:?} reported ports {ports:?} it does not own"
         );
-        results.credit_probe(
-            credential.reach(),
-            client_probe,
-            ports,
-            &mut all_open_ports,
-        );
+        results.credit_probe(credential.reach(), client_probe, ports, &mut all_open_ports);
         if let Some(handle) = handle {
             results.probe_handles.insert(discriminant, handle);
         }

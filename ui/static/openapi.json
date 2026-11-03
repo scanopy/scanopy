@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scanopy API",
-    "description": "\nSite topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.5\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.5\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.19.5)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **site(s)**:\n\n- You can only access entities within your organization\n- Site-level entities (hosts, services, etc.) are filtered to sites you have access to\n- Use `?site_id=<UUID>` to filter list endpoints to a specific site\n- API keys can be scoped to a subset of your accessible sites\n",
+    "description": "\nSite topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.6\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.6\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.19.6)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **site(s)**:\n\n- You can only access entities within your organization\n- Site-level entities (hosts, services, etc.) are filtered to sites you have access to\n- Use `?site_id=<UUID>` to filter list endpoints to a specific site\n- API keys can be scoped to a subset of your accessible sites\n",
     "license": {
       "name": "Dual (AGPL3.0, Commercial License Available)"
     },
@@ -216,11 +216,11 @@
         "operationId": "get_current_user",
         "responses": {
           "200": {
-            "description": "Current user",
+            "description": "Current user and what they can do",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponse_User"
+                  "$ref": "#/components/schemas/ApiResponse_CurrentUser"
                 }
               }
             }
@@ -23295,6 +23295,47 @@
   },
   "components": {
     "schemas": {
+      "AccessGrants": {
+        "type": "object",
+        "description": "What a principal can do: organization grants for org-keyed resources, and per-site grants for\nsite-keyed ones.",
+        "required": [
+          "organization",
+          "sites",
+          "all_sites"
+        ],
+        "properties": {
+          "all_sites": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Grant"
+            },
+            "description": "Grants held on every site, including sites created since this was read."
+          },
+          "organization": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Grant"
+            },
+            "description": "Grants that answer for org-keyed resources."
+          },
+          "sites": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SiteGrants"
+            },
+            "description": "Grants on each site the principal reaches. Empty for a principal on no site."
+          }
+        }
+      },
+      "Action": {
+        "type": "string",
+        "description": "What a role may do to a resource. `Write` is create and update, plus operations such as\nstarting a scan or merging hosts.",
+        "enum": [
+          "Read",
+          "Write",
+          "Delete"
+        ]
+      },
       "ApiErrorResponse": {
         "type": "object",
         "description": "Error response type for API errors (no data field)",
@@ -23355,12 +23396,12 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.19.5"
+            "example": "0.19.6"
           }
         },
         "example": {
           "api_version": 1,
-          "server_version": "0.19.5"
+          "server_version": "0.19.6"
         }
       },
       "ApiResponse": {
@@ -23492,19 +23533,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-31T19:54:47.747308Z",
+              "created_at": "2026-11-03T22:25:05.869448Z",
               "first_discovery_id": null,
-              "id": "e9663eba-18ec-4993-8b97-84816d96d82b",
+              "id": "ef1d6909-1d53-43d4-9115-26baefb56328",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-31T19:54:47.747308Z",
+              "last_seen_at": "2026-11-03T22:25:05.869448Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-31T19:54:47.747308Z",
-              "valid_from": "2026-10-31T19:54:47.747308Z",
+              "updated_at": "2026-11-03T22:25:05.869448Z",
+              "valid_from": "2026-11-03T22:25:05.869448Z",
               "valid_to": null
             }
           },
@@ -23789,6 +23830,51 @@
               }
             ],
             "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_CurrentUser": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/User"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "access"
+                ],
+                "properties": {
+                  "access": {
+                    "$ref": "#/components/schemas/AccessGrants",
+                    "description": "The user's organization and per-site grants."
+                  }
+                }
+              }
+            ],
+            "description": "The signed-in user, with what they can do."
           },
           "error": {
             "type": [
@@ -25339,19 +25425,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-31T19:54:47.713981Z",
+                      "created_at": "2026-11-03T22:25:05.836217Z",
                       "first_discovery_id": null,
-                      "id": "f9bcf039-2802-492a-b011-66aebb3d0b78",
+                      "id": "3910cb97-304d-4868-b210-9825f7b62ef3",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-31T19:54:47.713981Z",
+                      "last_seen_at": "2026-11-03T22:25:05.836217Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-31T19:54:47.713981Z",
-                      "valid_from": "2026-10-31T19:54:47.713981Z",
+                      "updated_at": "2026-11-03T22:25:05.836217Z",
+                      "valid_from": "2026-11-03T22:25:05.836217Z",
                       "valid_to": null
                     }
                   ],
@@ -25364,7 +25450,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Lidarr",
+                  "service_definition": "Grafana",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -26873,19 +26959,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-31T19:54:47.741804Z",
+                  "created_at": "2026-11-03T22:25:05.864139Z",
                   "first_discovery_id": null,
-                  "id": "28130ac9-df78-4e8d-a898-d27670111736",
+                  "id": "a8dcdd0d-b644-4925-aadc-d6a1e35a40f7",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-31T19:54:47.741804Z",
+                  "last_seen_at": "2026-11-03T22:25:05.864139Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-31T19:54:47.741804Z",
-                  "valid_from": "2026-10-31T19:54:47.741804Z",
+                  "updated_at": "2026-11-03T22:25:05.864139Z",
+                  "valid_from": "2026-11-03T22:25:05.864139Z",
                   "valid_to": null
                 }
               ],
@@ -26898,7 +26984,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Lidarr",
+              "service_definition": "Grafana",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -30173,19 +30259,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-31T19:54:47.714641Z",
+          "created_at": "2026-11-03T22:25:05.836891Z",
           "first_discovery_id": null,
-          "id": "fe68d045-1b42-408a-9fde-8aa347506773",
+          "id": "a094d60b-ecfc-4ce9-ac54-1f13542d5a30",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-31T19:54:47.714641Z",
+          "last_seen_at": "2026-11-03T22:25:05.836891Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-31T19:54:47.714641Z",
-          "valid_from": "2026-10-31T19:54:47.714641Z",
+          "updated_at": "2026-11-03T22:25:05.836891Z",
+          "valid_from": "2026-11-03T22:25:05.836891Z",
           "valid_to": null
         }
       },
@@ -31098,7 +31184,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Lidarr",
+              "service_definition": "Grafana",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -31487,6 +31573,7 @@
           "updated_at",
           "credential_type",
           "integration",
+          "category",
           "beta",
           "unofficial_api",
           "daemon_os"
@@ -32274,6 +32361,26 @@
           "WakeOnLan",
           "ProxmoxApiToken"
         ]
+      },
+      "CurrentUser": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/User"
+          },
+          {
+            "type": "object",
+            "required": [
+              "access"
+            ],
+            "properties": {
+              "access": {
+                "$ref": "#/components/schemas/AccessGrants",
+                "description": "The user's organization and per-site grants."
+              }
+            }
+          }
+        ],
+        "description": "The signed-in user, with what they can do."
       },
       "Daemon": {
         "allOf": [
@@ -36156,6 +36263,16 @@
         ],
         "description": "A single non-fatal finding from one discovery run, about one device, neighbour, or the scan\nitself.\n\nSerialized with the code as the tag, so the generated TypeScript is a discriminated union the\nUI can switch on exhaustively. The derived `Deserialize` reads that shape; the leniency that\nkeeps historical records and pre-coded daemons working lives in [`deserialize_warnings`],\nwhich is applied at the one field that holds these."
       },
+      "DisplayAction": {
+        "type": "string",
+        "description": "An action as the role comparison shows it. `Write` is one [`Action`] and reads as Edit, plus\nCreate on a resource where it adds rows.",
+        "enum": [
+          "View",
+          "Create",
+          "Edit",
+          "Delete"
+        ]
+      },
       "DisplaySettings": {
         "type": "object",
         "description": "Per-user display preferences for dates and times in the UI.\n\nStored as a JSONB blob with `#[serde(default)]` on the struct, so a stored\nobject missing a key (including the `{}` every existing row starts with)\nreads as that field's default. Every default reproduces the UI's\nbehaviour from before the setting existed, except `table_density`, which\ndefaults to the tighter of its two layouts.",
@@ -37024,6 +37141,7 @@
           "path",
           "format",
           "summary",
+          "tooltip",
           "many",
           "searchable",
           "table",
@@ -37084,6 +37202,10 @@
           "table": {
             "type": "boolean",
             "description": "Offered as a list-table column."
+          },
+          "tooltip": {
+            "type": "boolean",
+            "description": "Shown on the entity's hover tooltip, for a fact that isn't a `summary` default column."
           }
         }
       },
@@ -37823,6 +37945,24 @@
               "$ref": "#/components/schemas/GlobalSearchGroup"
             },
             "description": "One group per entity type with at least one match."
+          }
+        }
+      },
+      "Grant": {
+        "type": "object",
+        "description": "One action held on one resource.",
+        "required": [
+          "resource",
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/Action",
+            "description": "The action held on it."
+          },
+          "resource": {
+            "$ref": "#/components/schemas/Resource",
+            "description": "The resource the action applies to."
           }
         }
       },
@@ -39370,19 +39510,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-31T19:54:47.713191Z",
+                  "created_at": "2026-11-03T22:25:05.835427Z",
                   "first_discovery_id": null,
-                  "id": "f56f0c8a-c427-4fb6-a9ea-a960f40a0e73",
+                  "id": "d48e86c8-a0e6-4249-83f4-7c25a00d6a7b",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-31T19:54:47.713191Z",
+                  "last_seen_at": "2026-11-03T22:25:05.835427Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-31T19:54:47.713191Z",
-                  "valid_from": "2026-10-31T19:54:47.713191Z",
+                  "updated_at": "2026-11-03T22:25:05.835427Z",
+                  "valid_from": "2026-11-03T22:25:05.835427Z",
                   "valid_to": null
                 }
               ],
@@ -39395,7 +39535,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Lidarr",
+              "service_definition": "Grafana",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -42871,7 +43011,7 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.19.5"
+            "example": "0.19.6"
           }
         },
         "example": {
@@ -42882,7 +43022,7 @@
             "offset": 0,
             "total_count": 142
           },
-          "server_version": "0.19.5"
+          "server_version": "0.19.6"
         }
       },
       "PaginatedApiResponse_Credential": {
@@ -43834,19 +43974,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-31T19:54:47.696240Z",
+                        "created_at": "2026-11-03T22:25:05.818417Z",
                         "first_discovery_id": null,
-                        "id": "bdc2460a-af70-49e2-88e4-7ed4d58ee5de",
+                        "id": "01b5a9e2-d5b2-4d1e-91da-29951852e43c",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-31T19:54:47.696240Z",
+                        "last_seen_at": "2026-11-03T22:25:05.818417Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-31T19:54:47.696240Z",
-                        "valid_from": "2026-10-31T19:54:47.696240Z",
+                        "updated_at": "2026-11-03T22:25:05.818417Z",
+                        "valid_from": "2026-11-03T22:25:05.818417Z",
                         "valid_to": null
                       }
                     ],
@@ -43859,7 +43999,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Lidarr",
+                    "service_definition": "Grafana",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -44106,19 +44246,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-31T19:54:47.741026Z",
+                    "created_at": "2026-11-03T22:25:05.863330Z",
                     "first_discovery_id": null,
-                    "id": "24264e2c-e03c-4f0c-8d17-b267d94d779b",
+                    "id": "3ff5f737-68b5-48da-bc97-ab28e60672fa",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-31T19:54:47.741026Z",
+                    "last_seen_at": "2026-11-03T22:25:05.863330Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-31T19:54:47.741026Z",
-                    "valid_from": "2026-10-31T19:54:47.741026Z",
+                    "updated_at": "2026-11-03T22:25:05.863330Z",
+                    "valid_from": "2026-11-03T22:25:05.863330Z",
                     "valid_to": null
                   }
                 ],
@@ -44131,7 +44271,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Lidarr",
+                "service_definition": "Grafana",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -45871,9 +46011,14 @@
           "date",
           "title",
           "html",
-          "url"
+          "url",
+          "daemon_upgrade_notice"
         ],
         "properties": {
+          "daemon_upgrade_notice": {
+            "type": "boolean",
+            "description": "Whether the modal tells the user to upgrade their daemons to this release."
+          },
           "date": {
             "type": "string",
             "format": "date",
@@ -46017,6 +46162,31 @@
             "writeOnly": true
           }
         }
+      },
+      "Resource": {
+        "type": "string",
+        "description": "What a role grants access to. Child entities share their parent's resource.",
+        "enum": [
+          "Site",
+          "Host",
+          "Service",
+          "Subnet",
+          "Vlan",
+          "Dependency",
+          "Topology",
+          "Share",
+          "Discovery",
+          "Daemon",
+          "DaemonApiKey",
+          "Credential",
+          "Tag",
+          "Member",
+          "UserApiKey",
+          "Organization",
+          "Billing",
+          "License",
+          "NewSite"
+        ]
       },
       "RunType": {
         "oneOf": [
@@ -46845,19 +47015,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-31T19:54:47.714424Z",
+              "created_at": "2026-11-03T22:25:05.836669Z",
               "first_discovery_id": null,
-              "id": "2b4099c7-ad3c-4224-8120-36fb0b88ba99",
+              "id": "0617146d-9c3f-4b4c-a6c6-1a339469f4c2",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-31T19:54:47.714424Z",
+              "last_seen_at": "2026-11-03T22:25:05.836669Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-31T19:54:47.714424Z",
-              "valid_from": "2026-10-31T19:54:47.714424Z",
+              "updated_at": "2026-11-03T22:25:05.836669Z",
+              "valid_from": "2026-11-03T22:25:05.836669Z",
               "valid_to": null
             }
           ],
@@ -46870,7 +47040,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Lidarr",
+          "service_definition": "Grafana",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -47516,6 +47686,28 @@
               "format": "uuid"
             },
             "description": "Tags assigned to this entity."
+          }
+        }
+      },
+      "SiteGrants": {
+        "type": "object",
+        "description": "The grants held on one site.",
+        "required": [
+          "site_id",
+          "grants"
+        ],
+        "properties": {
+          "grants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Grant"
+            },
+            "description": "What the principal can do on that site."
+          },
+          "site_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The site these grants hold on."
           }
         }
       },
@@ -49289,7 +49481,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "c8868c50-b531-448a-8b4f-423bb30e863c",
+                  "id": "136d3236-c4f3-4e49-9e4e-10c2aafab68e",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -49299,23 +49491,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "b0525c61-84d8-42c3-812d-05a10b276085",
+                  "id": "924d0f90-3320-40c2-9ed3-d48076d03529",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "fa870cd2-912e-4676-99d1-1e2c1f396a74",
+                  "id": "2b513178-6637-47fa-b4f5-03d862977ebc",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "7ae7c117-10eb-4f7f-b400-b35f01fa2acc",
+                  "id": "c23cb9f5-53ba-4a4f-a6fb-46f8287ea085",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "b0525c61-84d8-42c3-812d-05a10b276085",
+                  "id": "924d0f90-3320-40c2-9ed3-d48076d03529",
                   "rule": "ByHost"
                 }
               ]
@@ -49345,19 +49537,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "902bd791-0cb2-4202-9090-d82866458d74",
+                "id": "23eb1ae9-70e6-4def-83ba-e12499d3c57b",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "ada1f1a4-bc22-4233-b1fd-074d45ef9d84",
+                "id": "c8b47712-17a7-48eb-bd27-e3c9c0796154",
                 "rule": "ByVLAN"
               },
               {
-                "id": "25b8e2d8-2e40-4dbc-b754-4bdb6f41fccf",
+                "id": "fa2c260f-7b0f-4389-b92b-c615695ddb76",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "a3e7c018-152d-44fc-b18e-d5efbd9560c0",
+                "id": "c322d6c4-7f90-4b65-905a-45d393e488ba",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -49378,7 +49570,7 @@
                 }
               },
               {
-                "id": "d7d292a3-ae11-493c-bc98-110b5d549a66",
+                "id": "4c9d1ce2-cec5-4daf-8425-24c56a31b52a",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -49387,19 +49579,19 @@
                 }
               },
               {
-                "id": "bf7406f4-bac9-4b20-9e03-a8ba96bd51d8",
+                "id": "a8267243-dd8e-4a36-8bc8-2b1d4bd26c43",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "8717fbf0-505c-4878-b36e-f6661de24a51",
+                "id": "0ff04269-e118-4ebf-ada7-5dc0dcf34c32",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "bf2473ac-082b-446a-aedf-06e9bc739033",
+                "id": "f1fd7958-599d-467e-a259-b0a16bdb39c1",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "9e305063-25e2-4b2b-b649-b172adc60762",
+                "id": "f9ee288a-bb4e-47ce-b350-58c561df38e7",
                 "rule": "ByStack"
               }
             ]

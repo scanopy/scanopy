@@ -10,7 +10,6 @@
 	import { createEmptySiteFormData } from '../queries';
 	import { pushError } from '$lib/shared/stores/feedback';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useCan } from '$lib/features/auth/access';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
@@ -69,8 +68,6 @@
 	const organizationQuery = useOrganizationQuery();
 	let organization = $derived(organizationQuery.data);
 
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
 	const can = useCan();
 
 	const configQuery = useConfigQuery();

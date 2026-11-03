@@ -10,9 +10,9 @@ use strum::EnumDiscriminants;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::server::shared::types::metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider};
 use crate::server::ports::r#impl::base::PortType;
 use crate::server::services::r#impl::patterns::ClientProbe;
+use crate::server::shared::types::metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider};
 use crate::server::shared::types::{Color, Icon};
 
 mod resolvable;
@@ -439,10 +439,9 @@ impl CredentialQueryPayload {
     /// `every_credential_type_dispatches_the_reach_it_declares`.
     pub fn reach(&self) -> CredentialReach {
         match self {
-            Self::Snmp(_) => CredentialReach::OwnPorts(vec![
-                PortType::new_udp(161),
-                PortType::new_udp(1161),
-            ]),
+            Self::Snmp(_) => {
+                CredentialReach::OwnPorts(vec![PortType::new_udp(161), PortType::new_udp(1161)])
+            }
             Self::Gnmi(g) => CredentialReach::OwnPorts(vec![PortType::new_tcp(g.port)]),
             Self::DockerProxy(d) | Self::PodmanProxy(d) => {
                 CredentialReach::OwnPorts(vec![PortType::new_tcp(d.port)])

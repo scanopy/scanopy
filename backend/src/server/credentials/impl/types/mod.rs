@@ -1949,9 +1949,11 @@ mod tests {
         // A port field's value, read off the stored credential's own serialisation.
         let port_value = |credential: &CredentialType, field: &str| -> u16 {
             let json = serde_json::to_value(credential).unwrap();
-            u16::try_from(json[field].as_u64().unwrap_or_else(|| {
-                panic!("{credential:?} has no numeric '{field}'")
-            }))
+            u16::try_from(
+                json[field]
+                    .as_u64()
+                    .unwrap_or_else(|| panic!("{credential:?} has no numeric '{field}'")),
+            )
             .unwrap()
         };
         let has_port_field = |disc: CredentialTypeDiscriminants, field: &str| {
