@@ -287,7 +287,23 @@ impl LicenseService {
         problem: LicenseProblem,
         instances: Option<InstanceUsage>,
     ) {
-        tracing::warn!(%reason, "Scanopy Cloud rejected the license key: {}", problem.log_message());
+        // A refusal the client classified carries its own wording; keeping the
+        // cloud's text too would name the same cause twice. The cloud's text
+        // stays where it adds a fact: the instance counts, or the cause of a
+        // refusal the client doesn't recognise.
+        let reason = match problem {
+            LicenseProblem::KeyRefused | LicenseProblem::InstanceLimit => {
+                tracing::warn!(%reason, "Scanopy Cloud rejected the license key: {}", problem.log_message());
+                reason
+            }
+            _ => {
+                tracing::warn!(
+                    "Scanopy Cloud rejected the license key: {}",
+                    problem.log_message()
+                );
+                problem.log_message().to_string()
+            }
+        };
         let checked_at = Utc::now();
         {
             let mut state = self.state.write().await;
