@@ -56,6 +56,15 @@ static INTEGRATION_SQL: LazyLock<String> = LazyLock::new(|| {
     case_sql(CREDENTIAL_TYPE_SQL, arms)
 });
 
+/// The category each credential type is listed under, from
+/// `CredentialTypeDiscriminants::category_str`, the label the type picker groups by.
+static CATEGORY_SQL: LazyLock<String> = LazyLock::new(|| {
+    let arms: Vec<(&str, &str)> = CredentialTypeDiscriminants::iter()
+        .map(|t| (t.into(), t.category_str()))
+        .collect();
+    case_sql(CREDENTIAL_TYPE_SQL, arms)
+});
+
 /// Whether the credential's type is in beta, from `CredentialTypeDiscriminants::stability`.
 static BETA_SQL: LazyLock<String> = LazyLock::new(|| {
     in_sql(
@@ -90,6 +99,9 @@ pub enum CredentialOrderField {
     CredentialType,
     /// The integration the type is a transport of, e.g. `Docker` for its socket and its proxy.
     Integration,
+    /// The category the type is listed under, e.g. `Logins` for SSH logins: what the type picker
+    /// groups by, and the table by default.
+    Category,
     /// Whether the type is in beta.
     Beta,
     /// Whether the type reads an API its vendor doesn't publish.
@@ -106,6 +118,7 @@ impl OrderField for CredentialOrderField {
             Self::UpdatedAt => "credentials.updated_at",
             Self::CredentialType => CREDENTIAL_TYPE_SQL,
             Self::Integration => INTEGRATION_SQL.as_str(),
+            Self::Category => CATEGORY_SQL.as_str(),
             Self::Beta => BETA_SQL.as_str(),
             Self::UnofficialApi => UNOFFICIAL_API_SQL.as_str(),
             // Stored as a JSON string; unwrapped so it groups and filters as the bare family.

@@ -297,7 +297,7 @@
 	}
 
 	const tableDefaults: TableDefaults<CredentialOrderField> = {
-		group: 'integration',
+		group: 'category',
 		sort: { field: 'name', direction: 'asc' }
 	};
 

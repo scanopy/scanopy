@@ -649,6 +649,7 @@ const CREDENTIAL: &[F] = &[
     F::internal("is_default"),
     TAGS,
     F::column("integration", "Integration", G::Identity).computed(),
+    F::column("category", "Category", G::Identity).computed(),
     F::column("beta", "Beta", G::Identity).computed(),
     F::column("unofficial_api", "Unofficial API", G::Identity).computed(),
     F::column("target", "Targets", G::Relationships).computed(),
