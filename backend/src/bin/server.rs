@@ -654,7 +654,7 @@ async fn main() -> anyhow::Result<()> {
     if deployment_type != DeploymentType::Cloud {
         match &state.license_service {
             None => {
-                tracing::info!(target: LOG_TARGET, "  License:         not required (community). To apply a license, set SCANOPY_LICENSE_KEY and restart the server. With Docker Compose, run docker compose up -d: docker compose restart keeps the old environment");
+                tracing::info!(target: LOG_TARGET, "  License:         not required (community). To apply a license, set SCANOPY_LICENSE_KEY. Steps: https://scanopy.net/docs/self-hosted-server/installation/?edition=commercial");
             }
             Some(license_service) => {
                 let license_status = license_service.current_status().await;
