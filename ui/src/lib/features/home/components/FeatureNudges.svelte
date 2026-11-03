@@ -163,20 +163,24 @@
 					{
 						tab: 'hosts',
 						count: dashboard.unconfirmed_host_count,
-						label: home_nudges_unconfirmedReviewHosts()
+						label: home_nudges_unconfirmedReviewHosts(),
+						editable: can('Host', 'Write')
 					},
 					{
 						tab: 'subnets',
 						count: dashboard.unconfirmed_subnet_count,
-						label: home_nudges_unconfirmedReviewSubnets()
+						label: home_nudges_unconfirmedReviewSubnets(),
+						editable: can('Subnet', 'Write')
 					}
 				]
-					.filter(({ count }) => count > 0)
+					.filter(({ count, editable }) => count > 0 && editable)
 					.map(({ tab, label }) => ({
 						label,
 						onAction: () => openTab(tab, new URLSearchParams({ sources: 'Inferred' }))
 					})),
-				visible: dashboard.unconfirmed_host_count + dashboard.unconfirmed_subnet_count > 0,
+				visible:
+					(dashboard.unconfirmed_host_count > 0 && can('Host', 'Write')) ||
+					(dashboard.unconfirmed_subnet_count > 0 && can('Subnet', 'Write')),
 				icon: CircleDashedCheck,
 				iconColor: entitySources.getColorHelper('Inferred').icon,
 				dismissOnAction: false
