@@ -338,8 +338,8 @@ impl CredentialTypeDiscriminants {
             Self::InstantOnAccount => {
                 "Connects to the Instant On cloud portal with a site account."
             }
-            Self::SshPassword => "A username and password other SSH credentials log in with.",
-            Self::SshKey => "A private key other SSH credentials log in with.",
+            Self::SshPassword => "A username and password other credentials log in with.",
+            Self::SshKey => "A private key other credentials log in with.",
             Self::SshScript => "Connects over SSH with an SSH login.",
             Self::Libvirt => "Runs virsh over SSH, logged in with an SSH login.",
             Self::WakeOnLan => {
@@ -384,7 +384,7 @@ impl CredentialTypeDiscriminants {
         }
     }
 
-    fn category_str(&self) -> &'static str {
+    pub(crate) fn category_str(&self) -> &'static str {
         match self.role() {
             CredentialRole::Login => CredentialCategory::Logins.into(),
             CredentialRole::Dispatched => self.integration().credential_category().into(),

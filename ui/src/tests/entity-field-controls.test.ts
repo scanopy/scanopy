@@ -365,6 +365,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			daemon_os: server('daemon_os'),
 			credential_type: server('type'),
 			integration: server('integrations'),
+			category: { sort: true, group: true, filter: 'The integration filter narrows it' },
 			beta: server('beta'),
 			unofficial_api: server('unofficial_api'),
 			description: TEXT,

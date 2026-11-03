@@ -8329,7 +8329,7 @@ export interface components {
          */
         CredentialIntegration: "Snmp" | "Gnmi" | "Docker" | "Podman" | "UnifiController" | "InstantOn" | "Ssh" | "WakeOnLan" | "Proxmox" | "Libvirt";
         /** @enum {string} */
-        CredentialOrderField: "created_at" | "name" | "updated_at" | "credential_type" | "integration" | "beta" | "unofficial_api" | "daemon_os";
+        CredentialOrderField: "created_at" | "name" | "updated_at" | "credential_type" | "integration" | "category" | "beta" | "unofficial_api" | "daemon_os";
         /**
          * @description Which fields depend on the credential's Daemon OS. Computed from the field definitions, so the
          *     form places the Daemon OS picker without its own rule: with the one field that depends on it, or

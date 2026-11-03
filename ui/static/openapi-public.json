@@ -23823,6 +23823,7 @@
           "updated_at",
           "credential_type",
           "integration",
+          "category",
           "beta",
           "unofficial_api",
           "daemon_os"

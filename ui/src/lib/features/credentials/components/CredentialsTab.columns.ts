@@ -19,6 +19,7 @@ import osFamilies from '$lib/data/os-families.json';
 import {
 	common_assignments,
 	common_beta,
+	common_category,
 	credentials_betaTooltip,
 	common_created,
 	common_integration,
@@ -33,6 +34,11 @@ import { tagNames } from '$lib/features/tags/columns';
 /** The integration a credential's type belongs to, as its `credentialIntegrations` id. */
 function integrationId(item: Credential): string {
 	return credentialTypes.getMetadata(getCredentialTypeId(item))?.integration ?? '';
+}
+
+/** The category a credential's type is listed under, as its metadata names it. */
+function categoryOf(item: Credential): string {
+	return credentialTypes.getCategory(getCredentialTypeId(item)) ?? '';
 }
 
 /** Whether a credential's type is in beta. */
@@ -125,6 +131,18 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 						];
 					}
 				}
+			},
+			// The category the type picker lists the type under (Logins, Containers,
+			// Virtualization...). What the table groups by, so logins sit apart from the
+			// credentials that use them.
+			category: {
+				label: common_category(),
+				type: 'string',
+				groupable: true,
+				// The server groups on the category's label.
+				getGroupValue: (item: Credential) => categoryOf(item),
+				getValue: (item: Credential) => categoryOf(item),
+				display: { hiddenByDefault: true }
 			},
 			credential_type: {
 				label: common_type(),

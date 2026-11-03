@@ -459,6 +459,7 @@ const DISCOVERY_COLUMNS: &[C] = &[
 
 const CREDENTIAL_COLUMNS: &[C] = &[
     C::new("integration", G::Identity),
+    C::new("category", G::Identity),
     C::new("beta", G::Identity),
     C::new("unofficial_api", G::Identity),
     C::new("target", G::Relationships),
