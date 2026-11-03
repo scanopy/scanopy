@@ -748,6 +748,67 @@ async fn every_documented_tag_filter_narrows_the_rows() {
     .await;
 }
 
+/// The site filter reads each user's stored assignments, and the page carries them for the Sites
+/// column.
+#[tokio::test]
+async fn members_filter_by_the_sites_assigned_to_them() {
+    use crate::server::auth::access::Assignment;
+    use crate::server::auth::middleware::auth::AuthenticatedEntity;
+    use crate::server::site_assignments::r#impl::base::Principal;
+    use crate::server::users::r#impl::permissions::UserOrgPermissions;
+    use crate::server::users::members::{Member, MemberFilterQuery, members_page};
+
+    let (storage, state, _container) = test_state().await;
+    let org = organization();
+    storage.organizations.create(&org).await.unwrap();
+    let (office, lab) = (site(&org.id), site(&org.id));
+    storage.sites.create(&office).await.unwrap();
+    storage.sites.create(&lab).await.unwrap();
+
+    let role = UserOrgPermissions::Member;
+    let mut assigned = Vec::new();
+    for (email, site_id) in [
+        ("office@porto.example", office.id),
+        ("lab@porto.example", lab.id),
+    ] {
+        let mut u = user(&org.id);
+        u.base.email = email_address::EmailAddress::new_unchecked(email);
+        u.base.permissions = role;
+        storage.users.create(&u).await.unwrap();
+        state
+            .services
+            .access_service
+            .set_access(
+                Principal::User(u.id),
+                role,
+                &Assignment::for_person(role, &[site_id]),
+                AuthenticatedEntity::System,
+            )
+            .await
+            .unwrap();
+        assigned.push(u);
+    }
+
+    let page = members_page(
+        &state,
+        org.id,
+        Uuid::new_v4(),
+        &UserOrgPermissions::Owner.grants(),
+        &MemberFilterQuery {
+            site_ids: Some(vec![office.id]),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let [Member::User { id, data, .. }] = page.data.as_slice() else {
+        panic!("one member is on the office site, got {}", page.data.len());
+    };
+    assert_eq!(*id, assigned[0].id);
+    assert_eq!(data.base.site_ids, vec![office.id]);
+}
+
 /// The members list holds the users and invites the caller may see, filters and groups on what
 /// the server derives, and the user CSV export holds no more of the organization than it does.
 #[tokio::test]

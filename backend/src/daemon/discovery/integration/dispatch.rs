@@ -21,7 +21,7 @@ use crate::daemon::discovery::service::warnings::{
 use crate::daemon::shared::config::ConfigStore;
 use crate::daemon::utils::base::PlatformDaemonUtils;
 use crate::server::credentials::r#impl::mapping::{
-    CredentialMapping, CredentialQueryPayload, CredentialQueryPayloadDiscriminants,
+    CredentialMapping, CredentialQueryPayload, CredentialQueryPayloadDiscriminants, CredentialReach,
 };
 use crate::server::credentials::r#impl::types::{
     CredentialAssignment, CredentialTypeDiscriminants,
@@ -197,6 +197,47 @@ pub struct IntegrationProbeResults {
     /// surface. Only credentials the user deliberately assigned to a host appear here — a
     /// site default failing is routine, since it is tried at every address in the subnet.
     pub credential_issues: Vec<CredentialIssue>,
+}
+
+impl IntegrationProbeResults {
+    /// Record what a successful probe proved, as service-matching evidence. The credential's
+    /// `reach`, not its probe, says whose service owns the port it came through. Its own, for the
+    /// ports it reported. Or the login it signed in with: the login's port is credited to the
+    /// login's probe, so the SSH service keeps it, and the credential's own service matches on its
+    /// probe alone, owning no port.
+    fn credit_probe(
+        &mut self,
+        reach: CredentialReach,
+        client_probe: Option<ClientProbe>,
+        ports: Vec<PortType>,
+        all_open_ports: &mut Vec<PortType>,
+    ) {
+        let (own_ports, through_login) = match reach {
+            CredentialReach::OwnPorts(_) => (ports, None),
+            CredentialReach::ThroughLogin { probe, port } => (vec![], Some((probe, port))),
+            CredentialReach::NoPort => (vec![], None),
+        };
+        let mut credit = |probe: ClientProbe, ports: Vec<PortType>| {
+            for port in &ports {
+                if !all_open_ports.contains(port) {
+                    all_open_ports.push(*port);
+                    self.additional_ports.push(*port);
+                }
+            }
+            let answered = self.client_responses.entry(probe).or_default();
+            for port in ports {
+                if !answered.contains(&port) {
+                    answered.push(port);
+                }
+            }
+        };
+        if let Some(client_probe) = client_probe {
+            credit(client_probe, own_ports);
+        }
+        if let Some((probe, port)) = through_login {
+            credit(probe, vec![port]);
+        }
+    }
 }
 
 /// Probe all integrations for a host IP against credential mappings.
@@ -445,15 +486,16 @@ pub async fn probe_integrations(
             handle,
         } = success;
         tracing::info!(ip = %ip, integration = ?discriminant, ports = ?ports, "Integration probe succeeded");
-        for port in &ports {
-            if !all_open_ports.contains(port) {
-                all_open_ports.push(*port);
-                results.additional_ports.push(*port);
-            }
-        }
-        if let Some(client_probe) = client_probe {
-            results.client_responses.insert(client_probe, ports);
-        }
+        debug_assert!(
+            matches!(credential.reach(), CredentialReach::OwnPorts(_)) || ports.is_empty(),
+            "{discriminant:?} reported ports {ports:?} it does not own"
+        );
+        results.credit_probe(
+            credential.reach(),
+            client_probe,
+            ports,
+            &mut all_open_ports,
+        );
         if let Some(handle) = handle {
             results.probe_handles.insert(discriminant, handle);
         }
@@ -745,6 +787,94 @@ pub(crate) fn credential_assignments_from_probes(
 mod tests {
     use super::*;
     use crate::server::credentials::r#impl::mapping::ContainerSocketQueryCredential;
+
+    fn empty_results() -> IntegrationProbeResults {
+        IntegrationProbeResults {
+            client_responses: HashMap::new(),
+            probe_handles: HashMap::new(),
+            working_credential_ids: HashMap::new(),
+            additional_ports: Vec::new(),
+            credential_issues: Vec::new(),
+        }
+    }
+
+    fn through_ssh_login(port: u16) -> CredentialReach {
+        CredentialReach::ThroughLogin {
+            probe: ClientProbe::Ssh,
+            port: PortType::new_tcp(port),
+        }
+    }
+
+    /// libvirt signs in through an SSH login: the login's port is SSH's evidence, and libvirt's
+    /// own probe answers with none, so its service owns no port.
+    #[test]
+    fn a_credential_through_a_login_credits_the_port_to_the_login() {
+        let mut results = empty_results();
+        let mut open = vec![PortType::new_tcp(22)];
+        results.credit_probe(
+            through_ssh_login(22),
+            Some(ClientProbe::Libvirt),
+            vec![],
+            &mut open,
+        );
+        assert_eq!(
+            results.client_responses.get(&ClientProbe::Ssh),
+            Some(&vec![PortType::new_tcp(22)])
+        );
+        assert_eq!(
+            results.client_responses.get(&ClientProbe::Libvirt),
+            Some(&vec![])
+        );
+        assert!(results.additional_ports.is_empty(), "22 was already open");
+    }
+
+    /// An SSH script has no evidence of its own; its login's port still makes the SSH service,
+    /// on whatever port the login uses, and that port joins the open ports.
+    #[test]
+    fn a_login_on_a_non_standard_port_still_makes_the_ssh_service() {
+        let mut results = empty_results();
+        let mut open = vec![];
+        results.credit_probe(through_ssh_login(2222), None, vec![], &mut open);
+        assert_eq!(
+            results.client_responses.get(&ClientProbe::Ssh),
+            Some(&vec![PortType::new_tcp(2222)])
+        );
+        assert_eq!(open, vec![PortType::new_tcp(2222)]);
+        assert_eq!(results.additional_ports, vec![PortType::new_tcp(2222)]);
+    }
+
+    /// The SSH banner probe and an SSH login both name port 22: one entry, not two.
+    #[test]
+    fn a_login_crediting_a_port_already_answered_adds_nothing() {
+        let mut results = empty_results();
+        results
+            .client_responses
+            .insert(ClientProbe::Ssh, vec![PortType::new_tcp(22)]);
+        let mut open = vec![PortType::new_tcp(22)];
+        results.credit_probe(through_ssh_login(22), None, vec![], &mut open);
+        assert_eq!(
+            results.client_responses.get(&ClientProbe::Ssh),
+            Some(&vec![PortType::new_tcp(22)])
+        );
+    }
+
+    /// A credential that owns its port (Proxmox's API) keeps crediting it to its own probe.
+    #[test]
+    fn a_credential_that_owns_its_port_credits_it_to_its_own_probe() {
+        let mut results = empty_results();
+        let mut open = vec![];
+        results.credit_probe(
+            CredentialReach::OwnPorts(vec![PortType::new_tcp(8006)]),
+            Some(ClientProbe::Proxmox),
+            vec![PortType::new_tcp(8006)],
+            &mut open,
+        );
+        assert_eq!(
+            results.client_responses.get(&ClientProbe::Proxmox),
+            Some(&vec![PortType::new_tcp(8006)])
+        );
+        assert_eq!(open, vec![PortType::new_tcp(8006)]);
+    }
 
     fn snmp_mapping() -> CredentialMapping<CredentialQueryPayload> {
         CredentialMapping {

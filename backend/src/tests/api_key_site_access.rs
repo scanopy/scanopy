@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use super::cross_tenant_probe::serve_as;
 use super::self_hosted_licensing::{cloud_test_state, create_org};
-use super::{access_on, site, subnet, user};
+use super::{access_on, host, site, subnet, user};
 use crate::server::auth::access::Assignment;
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::billing::plans::get_enterprise_plan;
@@ -364,6 +364,42 @@ async fn a_key_that_creates_a_site_can_list_it_and_populate_it_and_keeps_its_oth
 
 /// The key cap, through the real router and a real key: what its user loses, the key loses, on the
 /// next request.
+/// The first screen a person with no sites sees reads lists, so those stay empty, not refused.
+#[tokio::test]
+async fn a_key_on_no_site_reads_empty_lists_and_changes_nothing() {
+    let (state, _container) = cloud_test_state().await;
+    let org = create_org(&state, get_enterprise_plan(), None).await;
+    let elsewhere = state
+        .services
+        .site_service
+        .create(site(&org.id), AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    let (_, key) = user_key(&state, org.id, UserOrgPermissions::Member, vec![]).await;
+    let addr = serve(&state).await;
+
+    for path in ["/api/v1/sites", "/api/v1/hosts", "/api/v1/subnets"] {
+        let (status, body) = send(addr, reqwest::Method::GET, path, &key, None).await;
+        assert_eq!(status, 200, "{path}: {body}");
+        assert_eq!(body["data"], serde_json::json!([]), "{path}");
+    }
+
+    let path = format!("/api/v1/sites/{}", elsewhere.id);
+    let (status, _) = send(addr, reqwest::Method::GET, &path, &key, None).await;
+    assert_ne!(status, 200, "a site read by id");
+
+    let host = serde_json::to_value(host(&elsewhere.id)).unwrap();
+    let (status, _) = send(
+        addr,
+        reqwest::Method::POST,
+        "/api/v1/hosts",
+        &key,
+        Some(&host),
+    )
+    .await;
+    assert_eq!(status, 403, "a write stays refused");
+}
+
 #[tokio::test]
 async fn a_key_drops_with_its_owner() {
     let (state, _container) = cloud_test_state().await;

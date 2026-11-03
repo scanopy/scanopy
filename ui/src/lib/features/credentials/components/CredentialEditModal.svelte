@@ -43,6 +43,7 @@
 		credentials_description,
 		credentials_docsGuide,
 		credentials_docsGuideLinkText,
+		credentials_loginInUse,
 		credentials_typeNeedsDaemon
 	} from '$lib/paraglide/messages';
 
@@ -325,7 +326,11 @@
 						label: deleting ? common_deleting() : common_delete(),
 						onClick: handleDelete,
 						// A login still in use can't go; the server refuses it too.
-						disabled: deleting || loading || credential.used_by.length > 0
+						disabled: deleting || loading || credential.used_by.length > 0,
+						tooltip:
+							credential.used_by.length > 0
+								? credentials_loginInUse({ count: credential.used_by.length })
+								: undefined
 					}
 				]
 			: []),

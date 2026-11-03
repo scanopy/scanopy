@@ -1,4 +1,4 @@
-.PHONY: daemon-build daemon-rebuild daemon-dev daemon-fix-perms help build test test-unit clean format lint lint-migrations generate-schema generate-messages generate-fixtures refresh-vendored-data third-party-notices seed-dev set-plan-community set-plan-starter set-plan-pro set-plan-team set-plan-business set-plan-enterprise set-plan-self-hosted-standard set-plan-self-hosted-plus test-plan test-merge test-results install-dev-mac install-dev-linux install-dev-windows snmp-seed-credentials snmp-fixtures snmp-deploy snmp-verify snmp-status ssh-lab-deploy ssh-lab-verify ssh-lab-status ssh-lab-rotate-hostkey wol-lab-provision wol-lab-listener wol-lab-sleep wol-lab-hibernate wol-lab-verify wol-lab-status wol-lab-log libvirt-lab-provision libvirt-lab-status libvirt-lab-capture dcp-start dcp-stop dcp-verify dcp-status docker-proxy-up docker-proxy-up-tls docker-proxy-down docker-proxy-status podman-proxy-up podman-proxy-up-tls podman-proxy-down podman-proxy-status podman-workload-up podman-workload-down unifi-status unifi-capture issue-license new-terms-update daemon-clean daemon-purge daemon-logs daemon-restart daemon-stop daemon-start daemon-config
+.PHONY: daemon-build daemon-rebuild daemon-dev daemon-fix-perms help build test test-unit clean format seed-target lint lint-migrations generate-schema generate-messages generate-fixtures refresh-vendored-data third-party-notices seed-dev set-plan-community set-plan-starter set-plan-pro set-plan-team set-plan-business set-plan-enterprise set-plan-self-hosted-standard set-plan-self-hosted-plus test-plan test-merge test-results install-dev-mac install-dev-linux install-dev-windows snmp-seed-credentials snmp-fixtures snmp-deploy snmp-verify snmp-status ssh-lab-deploy ssh-lab-verify ssh-lab-status ssh-lab-rotate-hostkey wol-lab-provision wol-lab-listener wol-lab-sleep wol-lab-hibernate wol-lab-verify wol-lab-status wol-lab-log libvirt-lab-provision libvirt-lab-status libvirt-lab-capture dcp-start dcp-stop dcp-verify dcp-status docker-proxy-up docker-proxy-up-tls docker-proxy-down docker-proxy-status podman-proxy-up podman-proxy-up-tls podman-proxy-down podman-proxy-status podman-workload-up podman-workload-down unifi-status unifi-capture issue-license new-terms-update daemon-clean daemon-purge daemon-logs daemon-restart daemon-stop daemon-start daemon-config
 
 DAYS ?= 365
 PLAN ?= standard
@@ -17,16 +17,10 @@ SCANOPY_BUILD_WRAPPER ?=
 # With no references in .env, no .env, or no op CLI, the command runs unchanged.
 OP_RUN := $(shell [ -f .env ] && grep -qE '^[A-Za-z_][A-Za-z0-9_]*=["'\'']?op://' .env && command -v op >/dev/null 2>&1 && echo 'op run --env-file=$(CURDIR)/.env --')
 
-# Opt-in shared compilation cache across worktrees: `SCCACHE=1 make <target>`, with sccache
-# installed (`brew install sccache`).
-#
-# Off by default on purpose. sccache cannot cache incremental builds, so it has to turn
-# incremental off, and that makes a repeat build in one worktree slower. It pays for itself when
-# a *different* worktree compiles the same crates for the first time, and not otherwise — so turn
-# it on when opening a new worktree, not for everyday work in one.
-ifeq ($(SCCACHE),1)
-export RUSTC_WRAPPER := sccache
-export CARGO_INCREMENTAL := 0
+# `sudo cargo` leaves root-owned files through backend/target, and every later build then dies with
+# "Permission denied" on a fingerprint file. Targets that need root elevate only for that step.
+ifneq ($(SUDO_USER),)
+$(error Run make without sudo. Targets elevate only where they must. A build as root makes backend/target root-owned)
 endif
 
 help:
@@ -52,6 +46,7 @@ help:
 	@echo "  make lint           - Run all linters (includes lint-migrations)"
 	@echo "  make lint-migrations - Lint post-20260501 migrations with squawk"
 	@echo "  make format         - Format all code"
+	@echo "  make seed-target    - Start a new worktree's backend/target from the main checkout's third-party crates"
 	@echo "  make generate-types  - Generate TypeScript types from Rust"
 	@echo "  make generate-messages - Generate i18n message functions from messages/*.json"
 	@echo "  make generate-fixtures - Regenerate ui/src/lib/data/*.json and logos from backend; skipped when backend/ is unchanged"
@@ -196,11 +191,6 @@ daemon-config:
 # non-sudo build then dies with "Permission denied" on a fingerprint file. All the
 # targets below build here and only elevate to move or run the finished binary.
 daemon-build:
-	@if [ -n "$$SUDO_USER" ]; then \
-		echo "Refusing to build under sudo — it would make backend/target root-owned."; \
-		echo "Run 'make $@' without sudo; the targets elevate only where they must."; \
-		exit 1; \
-	fi
 	cd backend && $(SCANOPY_BUILD_WRAPPER) cargo build --bin daemon
 
 # Rebuild and push the result into the installed background service.
@@ -385,6 +375,10 @@ test:
 	rm -rf ./data/daemon_config/* ./data/daemon_serverpoll_config/*
 	@export DATABASE_URL="postgresql://postgres:password@localhost:5432/scanopy_test" && \
 	cd backend && $(SCANOPY_BUILD_WRAPPER) cargo test -- --nocapture --test-threads=1
+
+# Run once in a new worktree, before its first build.
+seed-target:
+	@backend/scripts/seed-target.sh
 
 format:
 	@echo "Formatting Server..."

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import DOMPurify from 'dompurify';
+	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import { formatLongDate } from '$lib/shared/utils/formatting';
 	import type { UnseenReleaseNotes } from './queries';
@@ -7,7 +8,9 @@
 	import {
 		common_close,
 		releaseNotes_earlierReleases,
-		releaseNotes_title
+		releaseNotes_goToDaemons,
+		releaseNotes_title,
+		releaseNotes_upgradeDaemons
 	} from '$lib/paraglide/messages';
 
 	let {
@@ -38,6 +41,11 @@
 		return container.innerHTML;
 	}
 
+	function goToDaemons() {
+		onClose();
+		window.location.hash = 'daemons';
+	}
+
 	let actions = $derived<ModalAction[]>([
 		{ role: 'primary', label: common_close(), onClick: () => onClose() }
 	]);
@@ -54,6 +62,15 @@
 							v{release.version} · {formatLongDate(release.date, 'UTC')}
 						</span>
 					</div>
+					{#if release.daemon_upgrade_notice}
+						<div class="mb-3">
+							<InlineInfo title={releaseNotes_upgradeDaemons({ version: release.version })}>
+								<button type="button" class="text-link hover:underline" onclick={goToDaemons}>
+									{releaseNotes_goToDaemons()}
+								</button>
+							</InlineInfo>
+						</div>
+					{/if}
 					<div class="release-notes-body text-sm text-secondary">
 						<!-- eslint-disable-next-line svelte/no-at-html-tags -- sanitized above -->
 						{@html sanitize(release.html)}

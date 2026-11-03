@@ -57,7 +57,10 @@
 		users_cantDeleteUngrantableBulk
 	} from '$lib/paraglide/messages';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { useCan } from '$lib/features/auth/access';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
 	// Query
 	const currentUserQuery = useCurrentUserQuery();
@@ -130,12 +133,7 @@
 	}
 
 	// Check if user can invite
-	let canInviteUsers = $derived(
-		!isReadOnly && currentUser
-			? (permissions.getMetadata(currentUser.permissions)?.grantable_user_permissions?.length ??
-					0) > 0
-			: false
-	);
+	let canInviteUsers = $derived(can('Member', 'Write'));
 
 	async function handleBulkDelete(ids: string[]) {
 		if (confirm(common_confirmBulkDelete({ count: ids.length, entity: common_users() }))) {

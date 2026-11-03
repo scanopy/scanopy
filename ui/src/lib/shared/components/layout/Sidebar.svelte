@@ -1,8 +1,8 @@
 <script lang="ts">
 	import daemonVersionGates from '$lib/data/daemon-version-gates.json';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	import { useCan, type Resource } from '$lib/features/auth/access';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { isBillingPlanActive, isPlanLapsed } from '$lib/features/organizations/types';
+	import { isBillingPlanActive } from '$lib/features/organizations/types';
 	import SettingsModal from '$lib/features/settings/SettingsModal.svelte';
 	import { billingPlans, entities, productAreas } from '$lib/shared/stores/metadata';
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
@@ -23,7 +23,6 @@
 	import { tableSearchFocused } from '$lib/shared/components/data/controls/listShortcuts';
 	import { onMount } from 'svelte';
 	import type { Component } from 'svelte';
-	import type { UserOrgPermissions } from '$lib/features/users/types';
 	import type { SubTab } from '$lib/shared/components/layout/ContentSubTabs.svelte';
 	import {
 		common_plans,
@@ -78,7 +77,6 @@
 				id: string;
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				component: any;
-				isReadOnly: boolean;
 				subTabIds?: string[];
 				subTabDefs?: SubTab[];
 				subTabNotifications?: Record<string, string>;
@@ -98,7 +96,6 @@
 			id: string;
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			component: any;
-			isReadOnly: boolean;
 			subTabIds?: string[];
 			subTabDefs?: SubTab[];
 			subTabNotifications?: Record<string, string>;
@@ -124,9 +121,6 @@
 	} = $props();
 
 	// TanStack Query for current user and organization
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
-
 	const organizationQuery = useOrganizationQuery();
 	let organization = $derived(organizationQuery.data);
 
@@ -136,10 +130,9 @@
 	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
 
 	// Derived values from queries
-	let userPermissions = $derived(currentUser?.permissions);
+	const can = useCan();
 	let isBillingEnabled = $derived(organization ? isBillingPlanActive(organization) : false);
 	let planMeta = $derived(billingPlans.getMetadata(organization?.plan?.type ?? null));
-	let isDemoOrg = $derived(planMeta.is_demo === true);
 	// A free tier: cloud Free (`is_free`), or self-hosted Community, the one plan that is neither
 	// commercial nor billed through Stripe. Both have plans to move up to; Starter, though not
 	// commercial, is a paid Stripe plan.
@@ -147,7 +140,7 @@
 		planMeta.is_free === true ||
 			(planMeta.is_commercial === false && planMeta.is_stripe_managed === false)
 	);
-	let isOwner = $derived(userPermissions === 'Owner');
+	let isOwner = $derived(can('Billing', 'Write'));
 	let trialDaysLeft = $derived(getTrialDaysLeft(organization));
 	let showTrialPill = $derived(
 		isOwner &&
@@ -163,12 +156,6 @@
 		if (trialDaysLeft === 1) return billing_trialPillOneDay();
 		return billing_trialPill({ days: trialDaysLeft });
 	});
-	// A lapsed org (subscription ended, no paid plan chosen since) is read-only
-	// for everyone: the backend refuses its writes, so the tabs drop their edit
-	// affordances the same way they do for a Viewer.
-	let isReadOnly = $derived(
-		userPermissions === 'Viewer' || (organization != null && isPlanLapsed(organization))
-	);
 
 	// Show notification on settings only when trialing without payment method
 	// Free plan users don't need a payment method, so no dot for them.
@@ -199,22 +186,17 @@
 
 	// Legacy (unbound) daemon API keys. When none exist, the Daemon API Keys sub-tab is
 	// hidden and the Daemons group collapses to a single-entity page (no tab strip).
-	const daemonApiKeysQuery = useApiKeysQuery({ enabled: () => mainAppAvailable });
+	const daemonApiKeysQuery = useApiKeysQuery({
+		enabled: () => mainAppAvailable && can('DaemonApiKey', 'Read')
+	});
 	let hasLegacyDaemonKeys = $derived(
 		(daemonApiKeysQuery.data ?? []).some((k) => k.daemon_id == null)
 	);
 
 	// Whether a content sub-tab should be shown: permission-gated, plus data gates
 	// (the Daemon API Keys sub-tab only appears while legacy keys exist).
-	function isSubTabVisible(st: {
-		id: string;
-		requiredPermissions?: UserOrgPermissions[];
-	}): boolean {
-		const permitted =
-			!st.requiredPermissions ||
-			st.requiredPermissions.length === 0 ||
-			!!(userPermissions && st.requiredPermissions.includes(userPermissions));
-		if (!permitted) return false;
+	function isSubTabVisible(st: { id: string; requires?: Resource }): boolean {
+		if (st.requires && !can(st.requires, 'Read')) return false;
 		if (st.id === entityUIConfig.DaemonApiKey!.tabId && !hasLegacyDaemonKeys) return false;
 		return true;
 	}
@@ -250,11 +232,10 @@
 		component?: Component;
 		position?: 'main' | 'bottom';
 		onClick?: () => void | Promise<void>;
-		requiredPermissions?: UserOrgPermissions[]; // Which permissions can see this item. If empty, Viewer+ is allowed.
+		requires?: Resource; // The resource a user has to be able to read to see this item.
 		requiresBilling?: boolean; // Whether this requires billing to be enabled
-		hideInDemo?: boolean; // Whether to hide this in demo mode
 		children?: NavItem[]; // Nested child items (displayed indented under parent)
-		subTabs?: (SubTab & { requiredPermissions?: UserOrgPermissions[] })[]; // Content area sub-tabs
+		subTabs?: (SubTab & { requires?: Resource })[]; // Content area sub-tabs
 	}
 
 	interface NavSection {
@@ -356,7 +337,7 @@
 					}),
 					icon: entities.getIconComponent('DaemonApiKey'),
 					component: ApiKeyTab,
-					requiredPermissions: ['Member', 'Admin', 'Owner'] as UserOrgPermissions[]
+					requires: 'DaemonApiKey'
 				}
 			]
 		},
@@ -386,7 +367,7 @@
 			icon: entities.getIconComponent('User'),
 			entityType: 'User',
 			component: UserTab,
-			requiredPermissions: ['Admin', 'Owner']
+			requires: 'Member'
 		},
 		UserApiKey: {
 			id: entityUIConfig.UserApiKey!.tabId,
@@ -394,7 +375,7 @@
 			icon: entities.getIconComponent('UserApiKey'),
 			entityType: 'UserApiKey',
 			component: UserApiKeyTab,
-			requiredPermissions: ['Member', 'Admin', 'Owner']
+			requires: 'UserApiKey'
 		},
 		Credential: {
 			id: entityUIConfig.Credential!.tabId,
@@ -447,7 +428,6 @@
 			id: string;
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			component: any;
-			isReadOnly: boolean;
 			subTabIds?: string[];
 			subTabDefs?: SubTab[];
 			subTabNotifications?: Record<string, string>;
@@ -462,7 +442,6 @@
 					tabs.push({
 						id: item.id,
 						component: null,
-						isReadOnly,
 						subTabIds: visibleSubTabs.map((st) => st.id),
 						subTabDefs: visibleSubTabs,
 						subTabNotifications:
@@ -472,7 +451,7 @@
 					});
 				}
 			} else if (item.component) {
-				tabs.push({ id: item.id, component: item.component, isReadOnly });
+				tabs.push({ id: item.id, component: item.component });
 			}
 			// Also extract tabs from children
 			if (item.children) {
@@ -497,22 +476,6 @@
 		allTabs = tabs;
 	});
 
-	// Helper to check if user has required permissions
-	function hasRequiredPermissions(item: NavItem): boolean {
-		// If no permissions specified, everyone can see it
-		if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
-			return true;
-		}
-
-		// If user has no permissions, they can't see items with permission requirements
-		if (!userPermissions) {
-			return false;
-		}
-
-		// Check if user's permission is in the allowed list
-		return item.requiredPermissions.includes(userPermissions);
-	}
-
 	// Helper to check billing requirements
 	function meetsBillingRequirement(item: NavItem): boolean {
 		// If billing not required, always show
@@ -524,22 +487,9 @@
 		return isBillingEnabled;
 	}
 
-	// Helper to check demo mode requirements
-	function meetsDemoModeRequirements(item: NavItem): boolean {
-		// Only hide items marked hideInDemo when in demo mode and user is not Owner
-		if (item.hideInDemo && isDemoOrg && userPermissions != 'Owner') {
-			return false;
-		}
-		return true;
-	}
-
 	// Helper to check if item should be visible
 	function isItemVisible(item: NavItem): boolean {
-		return (
-			hasRequiredPermissions(item) &&
-			meetsBillingRequirement(item) &&
-			meetsDemoModeRequirements(item)
-		);
+		return (!item.requires || can(item.requires, 'Read')) && meetsBillingRequirement(item);
 	}
 
 	// Helper to filter an item and its children/subTabs

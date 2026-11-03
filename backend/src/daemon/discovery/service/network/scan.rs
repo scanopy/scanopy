@@ -1748,11 +1748,14 @@ impl NetworkScan {
         // fill, so `Pattern::ClientResponse` needs no second channel.
         for result in &app_probe_results {
             if let Some(client_probe) = result.client_probe {
-                probe_results
+                // An SSH login's credit and the SSH banner probe both name port 22.
+                let answered = probe_results
                     .client_responses
                     .entry(client_probe)
-                    .or_default()
-                    .push(result.port);
+                    .or_default();
+                if !answered.contains(&result.port) {
+                    answered.push(result.port);
+                }
             }
         }
         let client_responses = &probe_results.client_responses;

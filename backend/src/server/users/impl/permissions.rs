@@ -4,7 +4,7 @@ use strum::{Display, EnumIter, IntoEnumIterator, IntoStaticStr};
 use utoipa::ToSchema;
 
 use crate::server::{
-    auth::access::{Action, Keying, Resource},
+    auth::access::{Action, Assignment, AssignmentScope, Keying, Resource},
     shared::{
         entities::EntityDiscriminants,
         types::{
@@ -62,6 +62,13 @@ impl UserOrgPermissions {
             .filter(|target| grants.may_grant_to_person(&target.grants(), Keying::Organization))
             .collect()
     }
+
+    /// Whether a person holding this role reaches every site, whatever their site list says.
+    fn reaches_all_sites(&self) -> bool {
+        Assignment::for_person(*self, &[])
+            .iter()
+            .any(|assignment| assignment.scope == AssignmentScope::AllSites)
+    }
 }
 
 impl FromStr for UserOrgPermissions {
@@ -98,13 +105,15 @@ impl TypeMetadataProvider for UserOrgPermissions {
     fn description(&self) -> &'static str {
         match self {
             UserOrgPermissions::Owner => {
-                "Full organization control: manage billing, invite any role, and access all administrative features"
+                "Answers for the organization: its billing, licenses and settings"
             }
             UserOrgPermissions::Admin => {
-                "Manage users and invites, create and modify all entities, but cannot access billing"
+                "Decides how the organization runs: users, sites, daemons and credentials"
             }
-            UserOrgPermissions::Member => "Create and modify entities for specific sites",
-            UserOrgPermissions::Viewer => "View entities.",
+            UserOrgPermissions::Member => {
+                "Keeps the network documented: hosts, topologies, scans and tags"
+            }
+            UserOrgPermissions::Viewer => "Sees the network and manages their own API keys",
         }
     }
 
@@ -118,13 +127,10 @@ impl TypeMetadataProvider for UserOrgPermissions {
     }
 
     fn metadata(&self) -> serde_json::Value {
-        let manage_org_entities: bool =
-            matches!(self, UserOrgPermissions::Owner | UserOrgPermissions::Admin);
-
         serde_json::json!({
             "grantable_api_key_permissions": self.grantable_api_key_permissions(),
             "grantable_user_permissions": self.grantable_user_permissions(),
-            "manage_org_entities": manage_org_entities,
+            "reaches_all_sites": self.reaches_all_sites(),
         })
     }
 }

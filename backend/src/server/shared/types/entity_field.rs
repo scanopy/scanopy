@@ -287,6 +287,8 @@ pub struct EntityField {
     pub source_field: Option<&'static str>,
     /// Shown by default in tables and in the inspector's details.
     pub summary: bool,
+    /// Shown on the entity's hover tooltip, for a fact that isn't a `summary` default column.
+    pub tooltip: bool,
     /// Whether one entity can hold several values: set by any `Children` or `Embedded` hop, and
     /// declared with [`EntityField::many`] for a key holding an array of ids or values.
     pub many: bool,
@@ -335,6 +337,7 @@ impl EntityField {
             format: FieldFormat::Text,
             source_field: None,
             summary: false,
+            tooltip: false,
             many: false,
             searchable: false,
             table: true,
@@ -368,6 +371,24 @@ impl EntityField {
     /// Whether any surface shows this field.
     pub const fn is_internal(&self) -> bool {
         !self.table && !self.inspector && !self.csv
+    }
+
+    /// This field as CSV reads it. A field read through `Hop::Children` writes the ids of the rows
+    /// its path ends on, which join to those rows' own export. Every other surface reads the field
+    /// as declared.
+    pub const fn for_csv(self) -> Self {
+        let mut i = 0;
+        while i < self.path.len() {
+            if matches!(self.path[i], Hop::Children { .. }) {
+                return EntityField {
+                    field: None,
+                    format: FieldFormat::Entity,
+                    ..self
+                };
+            }
+            i += 1;
+        }
+        self
     }
 
     /// The table works this value out, or reads it from another endpoint or a response type.
@@ -465,6 +486,13 @@ impl EntityField {
     pub const fn summary(self) -> Self {
         EntityField {
             summary: true,
+            ..self
+        }
+    }
+
+    pub const fn tooltip(self) -> Self {
+        EntityField {
+            tooltip: true,
             ..self
         }
     }

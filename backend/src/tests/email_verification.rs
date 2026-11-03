@@ -13,10 +13,9 @@ use axum::http::Request;
 use axum::middleware::{self, Next};
 use chrono::{Duration, Utc};
 use email_address::EmailAddress;
-use testcontainers::{ContainerAsync, GenericImage};
 use uuid::Uuid;
 
-use super::{access_on, organization, setup_test_db, site, user};
+use super::{TestDb, access_on, organization, setup_migrated_test_db, site, user};
 use crate::server::auth::r#impl::api::RegisterRequest;
 use crate::server::auth::r#impl::base::{LoginRegisterParams, ProvisionOrg};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
@@ -37,10 +36,8 @@ const IP: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 
 /// App state on a fresh database. `email_log_dir` set means the server has an email
 /// transport; `None` means it has none.
-async fn test_state(
-    email_log_dir: Option<PathBuf>,
-) -> (Arc<AppState>, ContainerAsync<GenericImage>) {
-    let (pool, database_url, container) = setup_test_db().await;
+async fn test_state(email_log_dir: Option<PathBuf>) -> (Arc<AppState>, TestDb) {
+    let (pool, database_url, container) = setup_migrated_test_db().await;
     pool.close().await;
     let config = ServerConfig {
         database_url,
@@ -51,11 +48,7 @@ async fn test_state(
 }
 
 /// State with an email transport writing into a temp dir the caller keeps alive.
-async fn state_with_email() -> (
-    Arc<AppState>,
-    ContainerAsync<GenericImage>,
-    tempfile::TempDir,
-) {
+async fn state_with_email() -> (Arc<AppState>, TestDb, tempfile::TempDir) {
     let dir = tempfile::tempdir().unwrap();
     let (state, container) = test_state(Some(dir.path().to_path_buf())).await;
     (state, container, dir)

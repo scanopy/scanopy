@@ -25,7 +25,6 @@ use crate::server::{
         types::api::{ApiResponse, ApiResult},
     },
 };
-use anyhow::anyhow;
 use axum::extract::{Path, State};
 use axum::response::Json;
 use std::sync::Arc;
@@ -186,12 +185,18 @@ pub async fn delete_user(
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
 
+    let owners_lock = state
+        .services
+        .user_service
+        .lock_organization_owners(organization_id)
+        .await?;
+
     let user_to_be_deleted = state
         .services
         .user_service
         .get_by_id(&id.0)
         .await?
-        .ok_or_else(|| anyhow!("User {} does not exist", id.0))?;
+        .ok_or_else(|| ApiError::not_found(format!("User {} does not exist", id.0)))?;
 
     let target_access = state
         .services
@@ -218,7 +223,9 @@ pub async fn delete_user(
         ));
     }
 
-    delete_handler::<User>(state, auth, id).await
+    let deleted = delete_handler::<User>(state, auth, id).await?;
+    owners_lock.release().await.map_err(anyhow::Error::from)?;
+    Ok(deleted)
 }
 
 /// Update your own user record
@@ -243,8 +250,8 @@ pub async fn update_user(
 ) -> ApiResult<Json<ApiResponse<User>>> {
     let auth_user_id = auth.require_user_id()?;
     if auth_user_id != id {
-        return Err(ApiError::unauthorized(
-            "You can only update your own user record".to_string(),
+        return Err(ApiError::forbidden(
+            "You can only update your own user record",
         ));
     }
     let service = User::get_service(&state);
@@ -337,9 +344,9 @@ async fn admin_update_user(
         return Err(ApiError::permission_denied());
     }
 
-    // Can only edit users you could have granted
+    // Can only edit users you could have granted, and not a peer
     let caller = auth.require_access()?;
-    if !caller.may_grant_to_person(&access_service.user_access(&existing).await?) {
+    if !caller.may_edit_person(&access_service.user_access(&existing).await?) {
         return Err(ApiError::permission_denied());
     }
 
@@ -419,6 +426,12 @@ pub async fn bulk_delete_users(
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
 
+    let owners_lock = state
+        .services
+        .user_service
+        .lock_organization_owners(organization_id)
+        .await?;
+
     let user_filter = StorableFilter::<User>::new_from_entity_ids(&ids);
     let users = state.services.user_service.get_all(user_filter).await?;
 
@@ -439,12 +452,15 @@ pub async fn bulk_delete_users(
         .await?;
 
     if owners.iter().all(|o| users.contains(o)) {
-        return Err(ApiError::unauthorized(
-            "Can't delete all of an organization's owners".to_string(),
+        return Err(ApiError::forbidden(
+            "Can't delete all of an organization's owners",
         ));
     }
 
-    bulk_delete_handler::<User>(axum::extract::State(state), auth, ApiJson(ids)).await
+    let deleted =
+        bulk_delete_handler::<User>(axum::extract::State(state), auth, ApiJson(ids)).await?;
+    owners_lock.release().await.map_err(anyhow::Error::from)?;
+    Ok(deleted)
 }
 
 /// Refuses deleting yourself, or a user whose role you could not have granted. The users list
@@ -459,8 +475,8 @@ fn refuse_user_delete(
         return Err(ApiError::forbidden("You can't delete your own user"));
     }
     if !caller_access.may_grant_to_person(target_access) {
-        return Err(ApiError::unauthorized(
-            "You can only delete users whose role you could grant".to_string(),
+        return Err(ApiError::forbidden(
+            "You can only delete users whose role you could grant",
         ));
     }
     Ok(())

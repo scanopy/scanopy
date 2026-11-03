@@ -470,6 +470,14 @@ where
         Ok(entities.to_vec())
     }
 
+    /// Delete the rows matching `filter` within an externally-owned transaction.
+    pub async fn delete_by_filter_in_tx(
+        filter: StorableFilter<T>,
+        tx: &mut sqlx::Transaction<'_, Postgres>,
+    ) -> Result<usize, anyhow::Error> {
+        Self::delete_by_filter_with_executor(filter, &mut **tx).await
+    }
+
     /// Set `snapshot_id` on the rows `ids` name, within an externally-owned transaction.
     ///
     /// `snapshot_id` isn't in `to_params`, so the other `*_in_tx` writes neither set nor clear

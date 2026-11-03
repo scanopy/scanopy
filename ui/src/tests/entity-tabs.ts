@@ -472,12 +472,12 @@ export const COVERAGE: Record<string, TabCoverage> = {
 	'credentials/components/CredentialsTab.svelte': {
 		schemas: [
 			decide('Credential', {
-				assigned_site_ids: 'assigned_sites',
+				assigned_site_ids: 'assignments',
 				created_at: 'created_at',
 				credential_type: 'credential_type',
 				daemon_os: 'daemon_os',
 				description: 'description',
-				host_assignments: 'assigned_hosts',
+				host_assignments: 'assignments',
 				name: 'name',
 				tags: 'tags',
 				updated_at: 'updated_at',
@@ -486,8 +486,8 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				is_default: excluded(
 					"A default's description says what it is, and its row has no delete action"
 				),
-				// A login's users count in its Hosts cell ("Used by N"), where a script lists its hosts.
-				used_by: 'assigned_hosts',
+				// A login's Assignments cell lists the credentials that sign in with it.
+				used_by: 'assignments',
 				login_credential_id: excluded(
 					'The login a credential runs over; its form shows it, and the login counts its users'
 				)

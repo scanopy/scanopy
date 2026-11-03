@@ -193,12 +193,10 @@ pub async fn get_entitlement(
     let organization = service
         .get_by_id(&organization_id)
         .await?
-        .ok_or_else(|| ApiError::forbidden("This license key's organization no longer exists"))?;
+        .ok_or_else(ApiError::license_organization_missing)?;
 
     if i64::from(claims.key_version) != organization.base.license_key_version {
-        return Err(ApiError::forbidden(
-            "This license key was regenerated. Copy the current key from Scanopy Cloud.",
-        ));
+        return Err(ApiError::license_key_regenerated());
     }
     // Refused before the check-in is recorded. A 403 is final on the
     // self-hosted side, so a server still running the key of an org that moved

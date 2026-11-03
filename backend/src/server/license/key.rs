@@ -3,6 +3,7 @@ use jsonwebtoken::{Algorithm, DecodingKey, Validation};
 use super::crypto::decoding_key;
 use super::mint::{LICENSE_ISSUER, LICENSE_SUBJECT, decode_online_key};
 use super::online::OnlineKeyClaims;
+use super::problem::LicenseProblem;
 use super::types::{LicenseClaims, LicenseKeyType, LicenseStatus};
 
 /// The key `SCANOPY_LICENSE_KEY` holds, told apart by the `sub` claim, with an
@@ -59,6 +60,22 @@ impl LicenseKey {
         Self(raw)
     }
 
+    /// Clean up a key as a person configured it. Copying from a wrapped terminal
+    /// or a document can add line breaks, spaces, a byte-order mark or quotes,
+    /// none of which a key can contain. `None` when nothing remains, which is
+    /// the same as no key: `SCANOPY_LICENSE_KEY=` with no value.
+    pub fn normalized(raw: &str) -> Option<Self> {
+        let stripped: String = raw
+            .chars()
+            .filter(|c| !c.is_whitespace() && !matches!(c, '\u{feff}' | '\u{200b}'))
+            .collect();
+        let unquoted = ['"', '\'']
+            .iter()
+            .find_map(|quote| stripped.strip_prefix(*quote)?.strip_suffix(*quote))
+            .unwrap_or(&stripped);
+        (!unquoted.is_empty()).then(|| Self(unquoted.to_string()))
+    }
+
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -98,7 +115,10 @@ impl LicenseKey {
                     LicenseStatus::Valid(token_data.claims)
                 }
             }
-            Err(e) => LicenseStatus::Invalid(e.to_string()),
+            Err(e) => LicenseStatus::Invalid(format!(
+                "{} ({e})",
+                LicenseProblem::KeyMalformed.log_message()
+            )),
         }
     }
 

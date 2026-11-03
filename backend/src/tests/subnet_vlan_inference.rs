@@ -45,7 +45,7 @@ struct Lab {
     subnet_id: Uuid,
     /// VLAN number to the VLAN entity the switch's scan resolves it to.
     vlans: HashMap<u16, Uuid>,
-    _container: testcontainers::ContainerAsync<testcontainers::GenericImage>,
+    _container: super::TestDb,
 }
 
 impl Lab {

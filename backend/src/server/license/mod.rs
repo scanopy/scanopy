@@ -5,5 +5,6 @@ pub mod key;
 pub mod middleware;
 pub mod mint;
 pub mod online;
+pub mod problem;
 pub mod service;
 pub mod types;

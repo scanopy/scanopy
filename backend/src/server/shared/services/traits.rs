@@ -535,6 +535,17 @@ where
         Ok(updated)
     }
 
+    /// Write `entity`'s row in the caller's transaction: no tags and no event. The caller calls
+    /// [`Self::publish_updated`] after it commits.
+    async fn update_in_tx(
+        &self,
+        entity: &T,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    ) -> Result<(), anyhow::Error> {
+        GenericPostgresStorage::<T>::update_many_in_tx(std::slice::from_ref(entity), tx).await?;
+        Ok(())
+    }
+
     /// The Updated event for `before` becoming `after`, logged as the entity's [`EntityLog`](crate::server::shared::events::log::EntityLog)
     /// says. For services whose own update or upsert writes storage directly.
     async fn publish_updated(

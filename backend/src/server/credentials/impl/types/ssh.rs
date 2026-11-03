@@ -6,8 +6,10 @@
 //! `UnifiQueryCredential`.
 
 use crate::server::credentials::r#impl::mapping::{
-    BannerField, BannerFieldValue, ResolvableSecret,
+    BannerField, BannerFieldValue, CredentialReach, ResolvableSecret,
 };
+use crate::server::ports::r#impl::base::PortType;
+use crate::server::services::r#impl::patterns::ClientProbe;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -43,25 +45,32 @@ pub enum SshAuth {
     },
 }
 
+/// An SSH login in wire form: what every credential that signs in over SSH sends the daemon to log
+/// in with. Built once from the login credential (`CredentialType::ssh_login`) and flattened into
+/// each payload that runs over it, so the wire keeps its top-level `port`, `username`, `auth` and
+/// `host_key_fingerprint`.
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
-pub struct SshQueryCredential {
+pub struct SshLogin {
     pub port: u16,
     pub username: String,
     pub auth: SshAuth,
-    /// The scanned host's OS, which decides the shell the script runs in.
-    #[serde(default)]
-    pub target_os: OsFamily,
-    /// What runs in the `exec` channel. Its stdout must be one JSON object of `SshScriptField`
-    /// keys. A `DaemonFile` is read off the daemon's own disk, like every other credential file.
-    pub script: ScriptSource,
-    pub timeout_seconds: u32,
     /// Require this host key (OpenSSH `SHA256:…` fingerprint). `None` ⇒ the daemon pins the
     /// first key it sees per address and port.
     #[serde(default)]
     pub host_key_fingerprint: Option<String>,
 }
 
-impl SshQueryCredential {
+impl SshLogin {
+    /// How a credential that signs in with this login reaches the host: through `sshd` on the
+    /// login's port, which the SSH service owns.
+    pub fn reach(&self) -> CredentialReach {
+        CredentialReach::ThroughLogin {
+            probe: ClientProbe::Ssh,
+            port: PortType::new_tcp(self.port),
+        }
+    }
+
+    /// The login's lines of a credential's banner: where it connects, as whom, and with what.
     pub fn banner_lines(&self) -> Vec<BannerField> {
         let mut lines = vec![
             BannerField {
@@ -83,6 +92,26 @@ impl SshQueryCredential {
                 value: private_key.banner_value(),
             }),
         }
+        lines
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+pub struct SshQueryCredential {
+    #[serde(flatten)]
+    pub login: SshLogin,
+    /// The scanned host's OS, which decides the shell the script runs in.
+    #[serde(default)]
+    pub target_os: OsFamily,
+    /// What runs in the `exec` channel. Its stdout must be one JSON object of `SshScriptField`
+    /// keys. A `DaemonFile` is read off the daemon's own disk, like every other credential file.
+    pub script: ScriptSource,
+    pub timeout_seconds: u32,
+}
+
+impl SshQueryCredential {
+    pub fn banner_lines(&self) -> Vec<BannerField> {
+        let mut lines = self.login.banner_lines();
         lines.push(BannerField {
             label: "Script",
             value: match &self.script {

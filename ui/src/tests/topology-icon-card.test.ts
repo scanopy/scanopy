@@ -189,9 +189,11 @@ describe('a manager box opens and closes', () => {
 });
 
 describe('facts the detailed card printed reach the tooltip', () => {
-	it("names an address card's address", () => {
-		const result = render(addressNode, 'L3Logical');
-		expect(rowValues(result.iconCard!.tooltip())).toContain('mgmt');
+	it("gives an address card the address's tooltip, not its host's", () => {
+		const tooltip = render(addressNode, 'L3Logical').iconCard!.tooltip();
+		expect(rowValues(tooltip)).toContain('mgmt');
+		expect(rowValues(tooltip)).toContain('guest');
+		expect(rowValues(tooltip)).not.toContain(deviceTypes.getName('Unidentified'));
 	});
 
 	it('lists each service with the ports it listens on at this address only, set apart', () => {

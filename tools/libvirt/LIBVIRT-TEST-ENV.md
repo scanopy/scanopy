@@ -34,7 +34,7 @@ the NAT network.
 | `kvm-agent` | running | `br0` .175 (05), `default` NAT (06) | running | Agent addresses, OS and hostname; two configured MACs |
 | `kvm-paused` | paused | `br0` .176 (07) | none | State Paused |
 | `kvm-stopped` | shut off | `br0`, .180 once started (08) | none | Recorded by MAC alone, state Stopped |
-| `kvm-docker` | running | `br0` .177 (09) | running | `docker0` and a `br-*` network kept off its addresses; a macvlan link `mv-lab` at .178 as a network identity |
+| `kvm-docker` | running | `br0` .177 (09) | running | `docker0` and a `br-*` network kept off its addresses; a macvlan link `mv-lab` at .178 as a network identity. The guest sets `arp_ignore=1`, `arp_announce=2` and loose `rp_filter`, so .178 answers ARP with `mv-lab`'s MAC rather than eth0's |
 | `kvm-nat` | running | `default` NAT only (0a) | none | Warning: reachable only from the hypervisor |
 | `kvm-isolated` | running | `br-iso`, 10.99.0.10 (0b) | none | Recorded by MAC with no warning: with no agent, and no address on `br-iso` for the host to learn it from, libvirt never sees its address |
 
@@ -51,7 +51,7 @@ make libvirt-lab-status
 
 It needs the Proxmox lab settings `tools/wol/` reads (`~/.config/scanopy-lab/proxmox.env`:
 `PROXMOX_HOST`, `LAB_BRIDGE`) and root SSH to the node with `~/.ssh/proxmox-lab`. The VM takes
-2.5 GB of the node's memory.
+3.5 GB of the node's memory.
 
 ## Credentials for a scan
 
@@ -60,8 +60,10 @@ It needs the Proxmox lab settings `tools/wol/` reads (`~/.config/scanopy-lab/pro
 2. **SSH login** `libvirt-lab-ro`: the same, username `scanopy-ro`.
 3. **libvirt** `KVM lab`: login `libvirt-lab`, connection URI `qemu:///system`. Assign it to the
    host at 192.168.7.172.
-4. For the no-`virsh` case, also assign `KVM lab` to the SSH lab's `inventory-ok` target,
-   192.168.7.160 (`tools/ssh/`).
+4. For the no-`virsh` case: an SSH login `ssh-lab` (SSH Login (Key), username `scanopy-ssh`, the
+   key `~/.config/scanopy-lab/ssh/id_ed25519` from `tools/ssh/`), and a second libvirt credential
+   `KVM lab (no virsh)` on it, assigned to the SSH lab's `inventory-ok` target, 192.168.7.160.
+   `KVM lab` itself is refused there, since `scanopy` has no account on the SSH lab.
 
 Scan from a daemon on the lab LAN (192.168.4.0/22), so the sweep learns the running guests' MACs
 from ARP.
@@ -72,7 +74,7 @@ Each is followed by a scan. `libvirt-test-env.sh scenario <name>` makes the chan
 
 | Scenario | Change | Expected after the scan |
 | --- | --- | --- |
-| baseline | none | 192.168.7.172 has the libvirt (KVM) and Docker services. All eight domains sit under libvirt in the Workloads view with their states. `kvm-noagent`, `kvm-nochannel`, `kvm-agent` and `kvm-docker` are each one host, joined to the host the sweep found at their address. `kvm-agent` and `kvm-docker` show the OS and hostname their agent reads. The host at .178 sits under `kvm-docker` as a network identity, and `lab-mv` under Docker. The run warns that `kvm-nat` is reachable only from the hypervisor. `kvm-isolated` is recorded by its MAC, with no warning. 192.168.7.160 shows the libvirt credential as not this service. |
+| baseline | none | 192.168.7.172 has the libvirt (KVM) service and none of its own `docker0` addresses. Its Docker listens only on its socket, so no scan sees it. All eight domains sit under libvirt in the Workloads view with their states. `kvm-noagent`, `kvm-nochannel`, `kvm-agent` and `kvm-docker` are each one host, joined to the host the sweep found at their address. `kvm-agent` and `kvm-docker` show the OS and hostname their agent reads. The host at .178 sits under `kvm-docker` as a network identity. `lab-mv` (.179) is a host of its own. The run warns that `kvm-nat` is reachable only from the hypervisor. `kvm-isolated` is recorded by its MAC, with no warning. 192.168.7.160 shows `KVM lab (no virsh)` as not this service. |
 | read-only | Change `KVM lab`'s login to `libvirt-lab-ro` | The same domains and states. No agent OS, hostname or identity is refreshed, and nothing fails. |
 | start-stopped | `kvm-stopped` starts | `kvm-stopped` is Running, and its host gains 192.168.7.180 and stays one host. |
 | undefine | `kvm-paused` is destroyed and undefined | Its host is deleted. |

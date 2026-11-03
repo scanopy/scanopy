@@ -14,6 +14,7 @@ use utoipa::openapi::security::{ApiKey, ApiKeyValue, SecurityScheme};
 use utoipa::openapi::{Components, OpenApi, PathItem};
 
 use crate::daemon::discovery::types::warnings::SnmpCheck;
+use crate::server::auth::access::DisplayAction;
 use crate::server::bindings::r#impl::base::Binding;
 use crate::server::credentials::handlers::CredentialOrderField;
 use crate::server::credentials::r#impl::base::Credential;
@@ -122,6 +123,9 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
         // into the schema — but the frontend must derive its union from here
         // rather than hand-maintaining one.
         EntityFreshness,
+        // What a role holds on a resource. Travels inside the resources fixture's untyped
+        // `TypeMetadata.metadata`, so nothing else pulls it into the schema.
+        DisplayAction,
         // A view's element hierarchy, filters and element marks. Travels inside the views fixture's
         // untyped `TypeMetadata.metadata`, so nothing else pulls it into the schema; the topology
         // types its colour marks and filters from here.

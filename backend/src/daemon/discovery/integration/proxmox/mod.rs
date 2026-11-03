@@ -70,7 +70,6 @@ use types::{
 /// Connected client carried from `probe` to `execute`.
 struct ProxmoxProbeHandle {
     client: ProxmoxClient,
-    port: u16,
 }
 
 pub struct ProxmoxIntegration;
@@ -89,13 +88,6 @@ impl DiscoveryIntegration for ProxmoxIntegration {
     /// guest (the agent's interfaces, OS and hostname), each bounded at 30s.
     fn timeout(&self) -> Duration {
         Duration::from_secs(300)
-    }
-
-    fn probe_gate_ports(&self, credential: &CredentialQueryPayload) -> Vec<PortType> {
-        match credential {
-            CredentialQueryPayload::Proxmox(c) => vec![PortType::new_tcp(c.port)],
-            _ => vec![],
-        }
     }
 
     async fn probe(&self, ctx: &ProbeContext<'_>) -> Result<ProbeSuccess, ProbeFailure> {
@@ -119,10 +111,7 @@ impl DiscoveryIntegration for ProxmoxIntegration {
         Ok(ProbeSuccess {
             client_probe: Some(ClientProbe::Proxmox),
             ports: vec![PortType::new_tcp(credential.port)],
-            handle: Some(Box::new(ProxmoxProbeHandle {
-                client,
-                port: credential.port,
-            })),
+            handle: Some(Box::new(ProxmoxProbeHandle { client })),
         })
     }
 
@@ -187,7 +176,7 @@ impl DiscoveryIntegration for ProxmoxIntegration {
                 host_data.offer_os(Attributed::new(HostOsValue(os.clone()), REPORTED));
             }
             bridges.insert(node.name.clone(), reading.bridges.clone());
-            match create_node_host(ctx, &subnets, node, &reading, handle.port).await {
+            match create_node_host(ctx, &subnets, node, &reading).await {
                 Ok(Some((host_id, service_id))) => {
                     owners.insert(node.name.clone(), service_id);
                     node_hosts.insert(node.name.clone(), host_id);
@@ -475,7 +464,6 @@ async fn create_node_host(
     subnets: &[Subnet],
     node: &NodeSpec,
     reading: &NodeReading,
-    port: u16,
 ) -> Result<Option<(Uuid, Uuid)>, Error> {
     let Some(ip) = node.ip else {
         return Ok(None);
@@ -496,7 +484,6 @@ async fn create_node_host(
             // The node answered the API, which is what the Proxmox VE definition's
             // `ClientResponse` arm matches.
             client_probe: ClientProbe::Proxmox,
-            port,
             source: REPORTED,
             guests: HostVirtualizationDiscriminants::Proxmox,
         },

@@ -12,7 +12,7 @@ import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import { useOrganizationQuery } from '$lib/features/organizations/queries';
 import { hasLicensedPlan, type Organization } from '$lib/features/organizations/types';
 import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
-import { useCurrentUserQuery } from '$lib/features/auth/queries';
+import { useCan } from '$lib/features/auth/access';
 
 type PauseDuration = components['schemas']['PauseDuration'];
 type CancelSubscriptionRequest = components['schemas']['CancelSubscriptionRequest'];
@@ -346,10 +346,10 @@ export function useInvoiceBillingStatusQuery(enabled: () => boolean = () => true
 /** The invoice-billing state, read only where the endpoint allows it: an Owner of a licensed org. */
 function useOwnerInvoiceBillingStatusQuery() {
 	const organizationQuery = useOrganizationQuery();
-	const currentUserQuery = useCurrentUserQuery();
+	const can = useCan();
 	return useInvoiceBillingStatusQuery(
 		() =>
-			currentUserQuery.data?.permissions === 'Owner' &&
+			can('Billing', 'Read') &&
 			organizationQuery.data != null &&
 			hasLicensedPlan(organizationQuery.data)
 	);

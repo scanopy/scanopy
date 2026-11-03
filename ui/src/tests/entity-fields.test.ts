@@ -24,6 +24,7 @@ function field(path: EntityField['path'], value: string | null, many = false): E
 		field: value,
 		format: { type: 'Text' },
 		summary: false,
+		tooltip: false,
 		many,
 		searchable: false,
 		table: true,

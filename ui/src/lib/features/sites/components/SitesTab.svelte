@@ -14,9 +14,7 @@
 	import { useCredentialsQuery } from '$lib/features/credentials/queries';
 	import { Trash2, Edit } from '@lucide/svelte';
 	import { useTagsQuery } from '$lib/features/tags/queries';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { permissions } from '$lib/shared/stores/metadata';
 	import type { TabProps } from '$lib/shared/types';
 	import {
 		common_confirmBulkDelete,
@@ -28,7 +26,10 @@
 		sites_confirmDelete
 	} from '$lib/paraglide/messages';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '$lib/features/auth/access';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 	import {
 		useSitesQuery,
 		useSitesListQuery,
@@ -38,7 +39,6 @@
 		useBulkDeleteSitesMutation
 	} from '../queries';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import { isUserManagedSubnet, useSubnetsQuery } from '$lib/features/subnets/queries';
 	import { useVlansQuery } from '$lib/features/vlans/queries';
 	import { useDependenciesQuery } from '$lib/features/dependencies/queries';
@@ -51,8 +51,6 @@
 	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 
 	// Queries
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
 
 	const organizationQuery = useOrganizationQuery();
 	let org = $derived(organizationQuery.data);
@@ -76,15 +74,6 @@
 	const vlansQuery = useVlansQuery();
 	const credentialsQuery = useCredentialsQuery();
 	useDependenciesQuery();
-
-	// Only the hosts the daemons run on: each daemon chip needs one host name,
-	// and an unpaginated org-wide hosts query is ~1.9MB, shared by key with
-	// every other consumer.
-	let daemonHostIds = $derived([
-		...new Set((daemonsQuery.data ?? []).map((d) => d.host_id).filter((id): id is string => !!id))
-	]);
-	const daemonHostsQuery = useHostsByIds(() => daemonHostIds);
-	let daemonHosts = $derived(daemonHostsQuery.data ?? []);
 
 	// Mutations
 	const createSiteMutation = useCreateSiteMutation();
@@ -130,25 +119,26 @@
 		}
 	});
 
-	let canManageSites = $derived(
-		!isReadOnly && currentUser
-			? permissions.getMetadata(currentUser.permissions).manage_org_entities
-			: false
-	);
-
 	/** Row actions. */
 	function siteActions(site: Site): CardAction[] {
-		if (!canManageSites) return [];
+		if (!can('Site', 'Write')) return [];
 
 		return [
-			{ label: common_edit(), icon: Edit, isOpen: true, onClick: () => handleEditSite(site) },
+			{
+				label: common_edit(),
+				icon: Edit,
+				isOpen: true,
+				onClick: () => handleEditSite(site),
+				unavailable: refusedUnless(can('Site', 'Write', site.id))
+			},
 			{
 				label: common_delete(),
 				icon: Trash2,
 				tone: 'danger',
 				isDelete: true,
 				onBulk: handleBulkDelete,
-				onClick: () => handleDeleteSite(site)
+				onClick: () => handleDeleteSite(site),
+				unavailable: refusedUnless(can('Site', 'Delete', site.id))
 			}
 		];
 	}
@@ -221,7 +211,6 @@
 			lookup: () => lookup,
 			tags: () => tagsData,
 			daemons: () => daemonsData,
-			daemonHosts: () => daemonHosts,
 			subnets: () => subnetsData,
 			vlans: () => vlansData,
 			credentials: () => credentialsData,
@@ -244,7 +233,7 @@
 				{sitesData.length} / {siteLimit}
 			</span>
 		{/if}
-		{#if canManageSites}
+		{#if can('NewSite', 'Write')}
 			<CreateButton
 				onclick={handleCreateSite}
 				upgrade={isAtSiteLimit
@@ -265,8 +254,8 @@
 		<EmptyState
 			title={common_noEntityYet({ entity: common_sites() })}
 			subtitle=""
-			onClick={handleCreateSite}
-			cta={common_create()}
+			onClick={can('NewSite', 'Write') ? handleCreateSite : undefined}
+			cta={can('NewSite', 'Write') ? common_create() : ''}
 		/>
 	{:else}
 		<DataControls
@@ -275,7 +264,7 @@
 			items={pageSites}
 			fields={siteFields}
 			entityType="Site"
-			canEditTags={canManageSites}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={getSiteTags}
 			storageKey="scanopy-sites-table-state"
 			defaults={tableDefaults}

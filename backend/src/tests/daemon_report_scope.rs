@@ -66,10 +66,7 @@ async fn poll(state: &AppState, daemon: &Daemon, response: DiscoveryPollResponse
 }
 
 /// Self-hosted, because the SSRF guard refuses a loopback daemon on cloud.
-async fn polling_state() -> (
-    Arc<AppState>,
-    testcontainers::ContainerAsync<testcontainers::GenericImage>,
-) {
+async fn polling_state() -> (Arc<AppState>, super::TestDb) {
     test_state_from(ServerConfig::default()).await
 }
 

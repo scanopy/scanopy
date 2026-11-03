@@ -243,7 +243,7 @@ async fn a_scan_sends_the_script_with_its_login() {
     let Some(CredentialQueryPayload::Ssh(ssh)) = &mapping.default_credential else {
         panic!("an SSH payload");
     };
-    assert_eq!(ssh.username, "scanopy");
-    assert!(matches!(ssh.auth, SshAuth::Password { .. }));
+    assert_eq!(ssh.login.username, "scanopy");
+    assert!(matches!(ssh.login.auth, SshAuth::Password { .. }));
     assert!(matches!(ssh.script, ScriptSource::Inline { .. }));
 }

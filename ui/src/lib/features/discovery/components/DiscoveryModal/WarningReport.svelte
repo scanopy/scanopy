@@ -69,6 +69,7 @@
 		discovery_warningAffectsAddresses,
 		discovery_warningAffectsHosts,
 		discovery_warningAffectsSubnets,
+		gettingStarted_stepDaemonLabel,
 		hosts_resolveUnconfirmed,
 		subnets_resolveRange
 	} from '$lib/paraglide/messages';
@@ -240,11 +241,20 @@
 		return label ? { label, entity: { type: 'Credential', id: credentialId } } : null;
 	}
 
-	/** The codes whose answer is a scan setting rather than a credential. */
-	const SCAN_SETTING_CODES = new Set<WarningEntry['code']>([
-		'ScanTimeLimit',
-		'ScanTimeLimitWithEstimate',
-		'WarningsTruncated'
+	/** The codes whose answer is a scan setting, and the editor tab that holds it. */
+	const SCAN_SETTING_TABS = new Map<WarningEntry['code'], string>([
+		// Max Discovery Duration lives on Detection, not Performance.
+		['ScanTimeLimit', 'detection'],
+		['ScanTimeLimitWithEstimate', 'detection'],
+		['WarningsTruncated', 'detection'],
+		// The guests' subnet is added to the scan's targets.
+		['GuestOutsideScan', 'targets']
+	]);
+
+	/** Guests only a daemon beside them can reach: on the hypervisor, or on their bridge. */
+	const NEEDS_A_DAEMON_CODES = new Set<WarningEntry['code']>([
+		'GuestBehindHypervisor',
+		'GuestIsolated'
 	]);
 
 	/**
@@ -261,10 +271,11 @@
 	/**
 	 * Where a row hands off to, when Scanopy owns the fix.
 	 *
-	 * Only five destinations are real, and a row without one renders no button rather than a dead
-	 * one. The credential family is recognised by the `integration` field on the payload rather
-	 * than by a list of code names here — those eleven variants are exactly the ones that carry it,
-	 * so the set cannot drift out of step with the backend.
+	 * A row without a destination renders no button rather than a dead one. The hypervisor guest
+	 * warnings come first: they carry an `integration` only to name the hypervisor, and what they
+	 * ask for is a daemon or a scan setting. Past them, an `integration` on the payload marks a
+	 * credential warning, recognised by the field rather than a list of code names so that one a
+	 * newer daemon sends (`Unknown` here) still gets its credential.
 	 */
 	function actionFor(
 		entry: WarningEntry
@@ -338,15 +349,28 @@
 			};
 		}
 
+		if (NEEDS_A_DAEMON_CODES.has(entry.code)) {
+			return {
+				label: gettingStarted_stepDaemonLabel(),
+				icon: entities.getIconComponent('Daemon'),
+				run: () => {
+					window.location.hash = 'daemons';
+					openModal('create-daemon');
+				}
+			};
+		}
+
 		const scanId = scanSettingsTarget;
-		if (scanId && SCAN_SETTING_CODES.has(entry.code)) {
+		const scanTab = SCAN_SETTING_TABS.get(entry.code);
+		if (scanTab) {
+			// A rescan's discovery is gone by now, so it has no settings to open.
+			if (!scanId) return null;
 			return {
 				label: discovery_scanSettings(),
 				icon: createIconComponent('sliders-horizontal'),
 				run: () => {
 					window.location.hash = 'discovery-scans';
-					// Max Discovery Duration lives on Detection, not Performance.
-					openModal('discovery-editor', { id: scanId, tab: 'detection' });
+					openModal('discovery-editor', { id: scanId, tab: scanTab });
 				}
 			};
 		}

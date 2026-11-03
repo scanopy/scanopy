@@ -38,7 +38,12 @@ import { entities, serviceDefinitions, views } from '$lib/shared/stores/metadata
 import { getFreshnessTag } from '$lib/shared/utils/freshness';
 import { getConfirmationTag } from '$lib/shared/utils/confirmation';
 import type { TooltipContent } from '$lib/shared/actions/tooltip';
-import { hostTooltip, interfaceTooltip, serviceTooltip } from '$lib/shared/entity-tooltip';
+import {
+	hostTooltip,
+	interfaceTooltip,
+	ipAddressTooltip,
+	serviceTooltip
+} from '$lib/shared/entity-tooltip';
 import type { Site } from '$lib/features/sites/types';
 import { get } from 'svelte/store';
 import { activeView, hiddenEntityTypesIn, topologyOptions } from './queries';
@@ -93,7 +98,7 @@ export interface ElementIconCard {
 	/**
 	 * The services running on what the card stands for, as definitions for a stack of round badges
 	 * on a device glyph: one per definition, the one that decided the device type first, then those
-	 * with a logo. At most `BADGE_STACK_MAX`; the tooltip lists every service.
+	 * with a logo. At most `BADGE_STACK_MAX`; the tooltip lists more.
 	 */
 	badgeDefinitions: string[];
 	label: string;
@@ -308,14 +313,12 @@ function buildIconCard(
 		label: address ?? hostName,
 		sublabel: address && host.hostname && host.hostname !== address ? host.hostname : null,
 		os: host.os ?? null,
-		tooltip: () =>
-			hostTooltip(host, {
-				name: hostName,
-				ipAddress,
-				deviceType,
-				services: data.services,
-				lookup: topologyLookup(inputs.topology)
-			}),
+		tooltip: () => {
+			const lookup = topologyLookup(inputs.topology);
+			return ipAddress
+				? ipAddressTooltip(ipAddress, { services: data.services, lookup })
+				: hostTooltip(host, { name: hostName, deviceType, services: data.services, lookup });
+		},
 		groups: data.inlineGroups.map((g) => iconCardGroup(inputs, g))
 	};
 }

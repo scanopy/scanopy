@@ -6044,6 +6044,7 @@ export interface components {
                  */
                 license_key_grace_days: number;
                 license_key_type?: components["schemas"]["LicenseKeyType"] | null;
+                license_problem?: components["schemas"]["LicenseProblem"] | null;
                 /**
                  * @description Whether this deployment can sign license keys. False on any server
                  *     without a signing key, where the Settings License tab and the
@@ -12560,6 +12561,13 @@ export interface components {
          */
         LicenseKeyType: "Online" | "Offline";
         /**
+         * @description Why this server has no working entitlement, as the public config endpoint
+         *     reports it. `/api/config` needs no login, so it carries this type alone:
+         *     addresses, URLs and raw error text stay in the server log.
+         * @enum {string}
+         */
+        LicenseProblem: "dns" | "connect" | "timeout" | "untrusted_certificate" | "certificate_dates" | "proxy" | "server_error" | "rate_limited" | "key_malformed" | "key_regenerated" | "organization_missing" | "plan_has_no_key" | "instance_limit" | "key_refused";
+        /**
          * @description Runtime license state as reported by the public config endpoint.
          * @enum {string}
          */
@@ -14373,6 +14381,7 @@ export interface components {
              */
             license_key_grace_days: number;
             license_key_type?: components["schemas"]["LicenseKeyType"] | null;
+            license_problem?: components["schemas"]["LicenseProblem"] | null;
             /**
              * @description Whether this deployment can sign license keys. False on any server
              *     without a signing key, where the Settings License tab and the

@@ -6,17 +6,36 @@ import type { RenderableTopology } from '$lib/features/topology/types/base';
 import { topologyLookup } from '$lib/features/topology/resolvers';
 import type { TooltipChip, TooltipContent, TooltipRow } from '$lib/shared/actions/tooltip';
 import { entityRef } from '$lib/shared/components/data/types';
-import { collectionLookup } from '$lib/shared/entity-fields';
+import { collectionLookup, entityFieldLabel, entityFields } from '$lib/shared/entity-fields';
 import {
 	entityCacheLookup,
 	entityRefTooltip,
 	entityTooltip,
-	hasEntityTooltip,
 	hostTooltip,
 	interfaceTooltip,
 	serviceTooltip
 } from '$lib/shared/entity-tooltip';
-import { entities, guestStates, ifOperStatuses, subnetTypes } from '$lib/shared/stores/metadata';
+import {
+	credentialTypes,
+	entities,
+	guestStates,
+	ifOperStatuses,
+	subnetTypes
+} from '$lib/shared/stores/metadata';
+import { formatTimestamp } from '$lib/shared/utils/formatting';
+import {
+	common_hosts,
+	common_hoursCount,
+	common_lastRun,
+	common_manager,
+	common_moreItems,
+	common_operatingSystem,
+	common_services,
+	common_subnets,
+	dependencies_memberCount,
+	hosts_deviceType,
+	sites_staleAfter
+} from '$lib/paraglide/messages';
 
 const rows = (content: TooltipContent): TooltipRow[] =>
 	content.sections.flatMap((s) => s.rows ?? []);
@@ -37,6 +56,7 @@ const address = {
 	host_id: 'guest',
 	subnet_id: subnet.id,
 	ip_address: '10.0.0.5',
+	mac_address: 'AA:BB:CC:00:11:22',
 	name: 'mgmt'
 } as unknown as IPAddress;
 const manager = { id: 'pve', name: 'Proxmox VE', host_id: 'hypervisor', bindings: [] };
@@ -171,12 +191,16 @@ describe('entity-valued rows', () => {
 		expect(refs).toEqual(expect.arrayContaining(['IPAddress', 'Subnet', 'Vlan']));
 	});
 
-	it('shows an address as its card does: the host, its subnet, its services with ports', () => {
+	it('shows an address as an address: its MAC, host, subnet and services, no host facts', () => {
 		const content = entityTooltip('IPAddress', address, { lookup });
-		expect(content.title).toBe('guest');
+		expect(content.title).toBe('10.0.0.5');
 		expect(rows(content).map((r) => r.value)).toEqual(
-			expect.arrayContaining(['10.0.0.5', 'mgmt', 'LAN'])
+			expect.arrayContaining(['mgmt', 'AA:BB:CC:00:11:22', 'guest', 'LAN'])
 		);
+		const labels = rows(content).map((r) => r.label);
+		expect(labels).not.toContain(hosts_deviceType());
+		expect(labels).not.toContain(common_operatingSystem());
+		expect(labels).not.toContain(common_manager());
 		const items = content.sections.flatMap((s) => s.items ?? []);
 		expect(items).toEqual([
 			expect.objectContaining({
@@ -233,12 +257,158 @@ describe('one definition on both surfaces', () => {
 		expect(content?.title).toBe('guest');
 	});
 
-	it('covers what topology draws, and leaves the rest to their display component', () => {
-		for (const type of ['Host', 'Service', 'Interface', 'IPAddress', 'Subnet', 'Vlan', 'Tag']) {
-			expect(hasEntityTooltip(type)).toBe(true);
+	it('titles a chip as it reads, for a type whose display field is an id', () => {
+		const binding = { id: '00000000-uuid', service_id: web.id };
+		queryClient.setQueryData(queryKeys.services.all, collections.Service);
+		const content = entityRefTooltip(entityRef('Binding', binding.id, binding), '80/tcp on eth0');
+		expect(content?.title).toBe('80/tcp on eth0');
+		expect(rows(content!).map((r) => r.value)).toContain(web.name);
+	});
+
+	it('resolves relations through every collection a chip can name', () => {
+		queryClient.setQueryData(queryKeys.hosts.lists(), { items: [guest], pagination: null });
+		const daemon = { id: 'd', name: 'dmn', host_id: guest.id, interfaced_subnet_ids: [] };
+		queryClient.setQueryData(queryKeys.daemons.all, [daemon]);
+		const discovery = {
+			id: 'run',
+			name: 'nightly',
+			daemon_id: daemon.id,
+			created_at: '2026-01-02T03:04:05Z',
+			run_type: { type: 'Scheduled' }
+		};
+
+		const content = entityRefTooltip(entityRef('Discovery', discovery.id, discovery));
+		expect(rows(content!).flatMap((r) => r.chips ?? [])).toContainEqual(
+			expect.objectContaining({ type: 'Entity', label: daemon.name })
+		);
+		expect(
+			rows(entityRefTooltip(entityRef('Daemon', daemon.id, daemon))!).map((r) => r.value)
+		).toContain('guest');
+	});
+});
+
+describe('entities topology never draws', () => {
+	const fromCache = (type: Parameters<typeof entityRef>[0], entity: object) =>
+		entityTooltip(type, entity, { lookup });
+
+	afterEach(() => queryClient.clear());
+
+	it("shows a credential's own description, and no row without one", () => {
+		const credential = {
+			id: 'c',
+			name: 'snmp-ro',
+			credential_type: { type: credentialTypes.getItems()[0].id }
+		};
+		const label = entityFieldLabel(
+			'Credential',
+			entityFields('Credential').find((f) => f.id === 'description')!
+		);
+		const described = fromCache('Credential', { ...credential, description: 'Core switches' });
+		expect(rows(described).find((r) => r.label === label)?.value).toBe('Core switches');
+		for (const description of [null, '', '   ']) {
+			const blank = fromCache('Credential', { ...credential, description } as never);
+			expect(rows(blank).map((r) => r.label)).not.toContain(label);
 		}
-		for (const type of ['Credential', 'Daemon', 'Site', 'User', 'Discovery']) {
-			expect(hasEntityTooltip(type)).toBe(false);
-		}
+	});
+
+	it('shows fields flagged for the tooltip, not the rest of what the registry holds', () => {
+		const key = {
+			id: 'k',
+			name: 'ci',
+			is_enabled: true,
+			last_used: '2026-01-02T03:04:05Z',
+			expires_at: '2027-01-02T03:04:05Z'
+		};
+		const labels = rows(fromCache('DaemonApiKey', key)).map((r) => r.label);
+		const label = (id: string) =>
+			entityFieldLabel(
+				'DaemonApiKey',
+				entityFields('DaemonApiKey').find((f) => f.id === id)!
+			);
+		expect(labels).toEqual(expect.arrayContaining([label('is_enabled'), label('last_used')]));
+		expect(labels).not.toContain(label('expires_at'));
+	});
+
+	it('lists the services on a port with their addresses', () => {
+		const content = fromCache('Port', { ...port, host_id: guest.id } as never);
+		expect(content.sections.flatMap((s) => s.items ?? [])).toEqual([
+			expect.objectContaining({ text: 'nginx', detail: '10.0.0.5' })
+		]);
+	});
+
+	it("shows a daemon's subnets as chips", () => {
+		const daemon = { id: 'd', name: 'dmn', interfaced_subnet_ids: [subnet.id] };
+		const chips = rows(fromCache('Daemon', daemon)).flatMap((r) => r.chips ?? []);
+		expect(chips).toContainEqual(expect.objectContaining({ type: 'Entity', label: 'LAN' }));
+	});
+
+	it("shows a discovery's date, and its last run as a tag when it has one", () => {
+		const discovery = {
+			id: 'run',
+			name: 'nightly',
+			created_at: '2026-01-02T03:04:05Z',
+			run_type: { type: 'Historical', results: { phase: 'Complete' } }
+		};
+		const content = fromCache('Discovery', discovery);
+		expect(rows(content).map((r) => r.value)).toContain(formatTimestamp(discovery.created_at));
+		expect(chipsOf(content, common_lastRun())).toHaveLength(1);
+
+		const scheduled = fromCache('Discovery', { ...discovery, run_type: { type: 'Scheduled' } });
+		expect(chipsOf(scheduled, common_lastRun())).toEqual([]);
+	});
+
+	it("counts what a site holds from the home page's summary, and shows its stale window", () => {
+		const site = { id: 'site', name: 'HQ', effective_stale_after_hours: 24 };
+		queryClient.setQueryData(queryKeys.dashboard.summary(), {
+			sites: [
+				{ id: 'other', host_count: 99, service_count: 99, subnet_count: 99, daemon_count: 99 },
+				{ id: 'site', host_count: 12, service_count: 34, subnet_count: 0, daemon_count: 1 }
+			]
+		});
+		const byLabel = new Map(rows(fromCache('Site', site)).map((r) => [r.label, r.value]));
+		expect(byLabel.get(common_hosts())).toBe('12');
+		expect(byLabel.get(common_services())).toBe('34');
+		// A site with none of something still says so.
+		expect(byLabel.get(common_subnets())).toBe('0');
+		expect(byLabel.get(sites_staleAfter())).toBe(common_hoursCount({ hours: 24 }));
+	});
+
+	it('drops the counts when the summary is not loaded, and keeps the stale window', () => {
+		const site = { id: 'site', name: 'HQ', effective_stale_after_hours: 24 };
+		expect(rows(fromCache('Site', site)).map((r) => r.label)).toEqual([sites_staleAfter()]);
+	});
+
+	it("counts a dependency's members, and names a topology's site", () => {
+		const dependency = {
+			id: 'dep',
+			name: 'checkout',
+			dependency_type: 'RequestPath',
+			members: { type: 'Services', service_ids: ['a', 'b'] }
+		};
+		const sections = fromCache('Dependency', dependency).sections;
+		expect(sections.at(-1)?.text).toBe(dependencies_memberCount({ count: 2 }));
+
+		queryClient.setQueryData(queryKeys.sites.all, [{ id: 'site', name: 'HQ' }]);
+		const topology = entityTooltip(
+			'Topology',
+			{ id: 't', site_id: 'site' },
+			{ lookup, name: 'Main' }
+		);
+		expect(rows(topology).map((r) => r.value)).toContain('HQ');
+	});
+});
+
+describe('a read-only tooltip', () => {
+	it('lists the first services and counts the rest, since it cannot scroll', () => {
+		const many = Array.from({ length: 15 }, (_, i) => ({
+			id: `s${i}`,
+			name: `service-${i}`
+		})) as unknown as Service[];
+		const items = hostTooltip(guest, { services: many }).sections.flatMap((s) => s.items ?? []);
+		expect(items).toHaveLength(13);
+		expect(items.at(-1)).toBe(common_moreItems({ count: 3 }));
+
+		const exact = hostTooltip(guest, { services: many.slice(0, 12) });
+		expect(exact.sections.flatMap((s) => s.items ?? [])).toHaveLength(12);
 	});
 });

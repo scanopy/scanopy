@@ -9,7 +9,6 @@ import { entities } from '$lib/shared/stores/metadata';
 import type { Site } from '../types';
 import type { Credential } from '$lib/features/credentials/types/base';
 import type { Daemon } from '$lib/features/daemons/types/base';
-import type { Host } from '$lib/features/hosts/types/base';
 import type { Subnet } from '$lib/features/subnets/types/base';
 import type { Tag } from '$lib/features/tags/types/base';
 import type { Vlan } from '$lib/features/vlans/types/base';
@@ -27,7 +26,6 @@ export interface SiteColumnsContext {
 	tags: () => Tag[];
 	daemons: () => Daemon[];
 	/** The hosts the daemons run on, for each daemon chip's host name. */
-	daemonHosts: () => Host[];
 	/** Already narrowed to user-managed subnets. */
 	subnets: () => Subnet[];
 	vlans: () => Vlan[];
@@ -153,10 +151,7 @@ export function siteColumns(ctx: SiteColumnsContext) {
 							id: daemon.id,
 							label: daemon.name,
 							color: entities.getColorHelper('Daemon').color,
-							entityRef: entityRef('Daemon', daemon.id, daemon, {
-								hosts: ctx.daemonHosts(),
-								subnets: ctx.subnets()
-							})
+							entityRef: entityRef('Daemon', daemon.id, daemon)
 						}))
 				}
 			},

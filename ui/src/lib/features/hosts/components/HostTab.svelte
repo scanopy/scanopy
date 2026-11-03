@@ -49,7 +49,10 @@
 		hosts_resolveUnconfirmed
 	} from '$lib/paraglide/messages';
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '$lib/features/auth/access';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 	import { missingRootIds } from '../virtualization-tree';
 	import {
 		useHostsQuery,
@@ -374,14 +377,13 @@
 
 	/** Row actions. */
 	function hostActions(host: Host): CardAction[] {
-		if (isReadOnly) return [];
+		if (!can('Host', 'Write')) return [];
 
+		const writeRefusal = refusedUnless(can('Host', 'Write', host.site_id));
 		// An unconfirmed host is settled first, through Resolve: confirm, merge or dismiss it.
-		const unresolved = disabledWhen(
-			isUnconfirmed(host),
-			hosts_resolveFirst(),
-			hosts_resolveFirstBulk()
-		);
+		const unresolved =
+			writeRefusal ??
+			disabledWhen(isUnconfirmed(host), hosts_resolveFirst(), hosts_resolveFirstBulk());
 
 		return [
 			// Only where there is something to resolve, as on the Subnets tab.
@@ -389,7 +391,7 @@
 				label: hosts_resolveUnconfirmed(),
 				icon: CircleDashedCheck,
 				onClick: () => handleResolveHost(host),
-				unavailable: hiddenWhen(!isUnconfirmed(host), hosts_alreadyConfirmed())
+				unavailable: hiddenWhen(!isUnconfirmed(host), hosts_alreadyConfirmed()) ?? writeRefusal
 			},
 			{
 				label: common_edit(),
@@ -426,7 +428,7 @@
 				isDelete: true,
 				onBulk: handleBulkDelete,
 				onClick: () => handleDeleteHost(host),
-				unavailable: unresolved
+				unavailable: refusedUnless(can('Host', 'Delete', host.site_id)) ?? unresolved
 			}
 		];
 	}
@@ -576,7 +578,7 @@
 					{totalHostCount} / {hostLimit}
 				</span>
 			{/if}
-			{#if !isReadOnly}
+			{#if can('Host', 'Write')}
 				<CreateButton
 					onclick={handleCreateHost}
 					upgrade={isAtHostLimit
@@ -592,7 +594,7 @@
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
 	{:else if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptHosts()} {isReadOnly} />
+		<PreDaemonEmptyState title={daemons_installPromptHosts()} />
 	{:else if isInitialLoading}
 		<!-- Loading state (only on initial load) -->
 		<Loading />
@@ -601,8 +603,8 @@
 		<EmptyState
 			title={common_noEntityYet({ entity: common_hosts() })}
 			subtitle=""
-			onClick={handleCreateHost}
-			cta={common_create()}
+			onClick={can('Host', 'Write') ? handleCreateHost : undefined}
+			cta={can('Host', 'Write') ? common_create() : ''}
 		/>
 	{:else}
 		<DataControls
@@ -613,7 +615,7 @@
 			storageKey="scanopy-hosts-table-state"
 			defaults={tableDefaults}
 			entityType="Host"
-			canEditTags={!isReadOnly}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={getHostTags}
 			getItemId={(item) => item.id}
 			serverPagination={hostsPagination}

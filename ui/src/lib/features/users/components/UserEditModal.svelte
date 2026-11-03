@@ -5,6 +5,7 @@
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
 	import PermissionSelect from '$lib/shared/components/api-keys/PermissionSelect.svelte';
+	import RoleAccessSummary from '$lib/shared/components/api-keys/RoleAccessSummary.svelte';
 	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
 	import { SiteDisplay } from '$lib/shared/components/forms/selection/display/SiteDisplay.svelte';
 	import { entities, permissions, metadata } from '$lib/shared/stores/metadata';
@@ -63,7 +64,7 @@
 	// Permission levels that don't need site assignment
 	const sitesNotNeeded: string[] = permissions
 		.getItems()
-		.filter((p) => p.metadata.manage_org_entities)
+		.filter((p) => p.metadata.reaches_all_sites)
 		.map((p) => p.id);
 
 	// Selected sites state
@@ -240,6 +241,8 @@
 						{:else}
 							<InlineInfo body={users_hasAllSites({ permissions: permissionsValue })} />
 						{/if}
+
+						<RoleAccessSummary role={permissionsValue} />
 					</InfoCard>
 				</div>
 			{/if}

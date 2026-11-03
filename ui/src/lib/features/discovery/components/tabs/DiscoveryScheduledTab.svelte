@@ -78,7 +78,10 @@
 
 	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '$lib/features/auth/access';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
 	// Organization query for onboarding state
 	const organizationQuery = useOrganizationQuery();
@@ -280,8 +283,9 @@
 	 * tooltip carries the reason.
 	 */
 	function discoveryActions(discovery: Discovery): CardAction[] {
-		if (isReadOnly) return [];
+		if (!can('Discovery', 'Write')) return [];
 
+		const writeRefusal = refusedUnless(can('Discovery', 'Write', discovery.site_id));
 		const session = getActiveSession(discovery);
 		const running = session !== null;
 		const isRescan = discovery.discovery_type.type === 'Rescan';
@@ -301,11 +305,9 @@
 				tone: 'warning',
 				onClick: () => session?.session_id && handleCancelDiscovery(session.session_id),
 				onBulk: handleBulkCancel,
-				unavailable: hiddenWhen(
-					!session?.session_id,
-					discovery_notRunning(),
-					discovery_notRunningBulk()
-				)
+				unavailable:
+					hiddenWhen(!session?.session_id, discovery_notRunning(), discovery_notRunningBulk()) ??
+					writeRefusal
 			},
 			{
 				label: isEnabled ? common_disable() : common_enable(),
@@ -316,6 +318,7 @@
 				onBulk: setEnabled(!isEnabled),
 				unavailable:
 					hiddenWhen(!isScheduled, discovery_noSchedule(), discovery_noScheduleBulk()) ??
+					writeRefusal ??
 					whileRunning(discovery_cannotToggleWhileRunning()),
 				tooltip: isEnabled ? discovery_disableScheduleTooltip() : discovery_enableScheduleTooltip()
 			},
@@ -324,14 +327,14 @@
 				icon: Edit,
 				isOpen: true,
 				onClick: () => handleEditDiscovery(discovery),
-				unavailable: whileRescan
+				unavailable: writeRefusal ?? whileRescan
 			},
 			{
 				label: common_run(),
 				icon: Play,
 				onClick: () => handleDiscoveryRun(discovery),
 				onBulk: handleBulkRun,
-				unavailable: whileRescan ?? whileRunning(discovery_alreadyRunning())
+				unavailable: writeRefusal ?? whileRescan ?? whileRunning(discovery_alreadyRunning())
 			},
 			{
 				label: common_delete(),
@@ -340,7 +343,9 @@
 				isDelete: true,
 				onBulk: handleBulkDelete,
 				onClick: () => handleDeleteDiscovery(discovery),
-				unavailable: whileRunning(discovery_cannotDeleteWhileRunning())
+				unavailable:
+					refusedUnless(can('Discovery', 'Delete', discovery.site_id)) ??
+					whileRunning(discovery_cannotDeleteWhileRunning())
 			}
 		];
 	}
@@ -398,7 +403,7 @@
 
 <!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
 {#snippet toolbarActions()}
-	{#if hasDaemon(onboarding) && !isReadOnly}
+	{#if hasDaemon(onboarding) && can('Discovery', 'Write')}
 		<CreateButton onclick={handleCreateDiscovery} />
 	{/if}
 {/snippet}
@@ -417,7 +422,7 @@
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
 	{:else if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptDiscoveries()} {isReadOnly} />
+		<PreDaemonEmptyState title={daemons_installPromptDiscoveries()} />
 	{:else if isLoading}
 		<Loading />
 	{:else if page.isEmpty(discoveriesQuery)}
@@ -425,8 +430,8 @@
 		<EmptyState
 			title={discovery_noScheduledSessions()}
 			subtitle=""
-			onClick={isReadOnly ? undefined : handleCreateDiscovery}
-			cta={isReadOnly ? undefined : common_create()}
+			onClick={can('Discovery', 'Write') ? handleCreateDiscovery : undefined}
+			cta={can('Discovery', 'Write') ? common_create() : undefined}
 		/>
 	{:else}
 		<DataControls
@@ -442,7 +447,7 @@
 			onQueryChange={page.onQueryChange}
 			serverQuery={{ stale: false }}
 			entityType="Discovery"
-			canEditTags={!isReadOnly}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={(item) => item.tags}
 			onCsvExport={handleCsvExport}
 			getActions={discoveryActions}

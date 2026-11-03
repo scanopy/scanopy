@@ -9,6 +9,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { liveUpdatesSSEManager } from '$lib/shared/live-updates';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	import { useCan } from '$lib/features/auth/access';
 
 	import { attachUrlState, setActiveTab } from '$lib/shared/stores/url-state';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
@@ -72,6 +73,7 @@
 
 	// TanStack Query for current user
 	const currentUserQuery = useCurrentUserQuery();
+	const can = useCan();
 	let isAuthenticated = $derived(currentUserQuery.data != null);
 	let isCheckingAuth = $derived(currentUserQuery.isPending);
 	// The server refuses this user's main-app requests until they accept the
@@ -166,10 +168,10 @@
 	// Daemon prompt: driven by modal registry
 	let showDaemonPrompt = $derived($modalState.name === 'daemon-prompt');
 	const daemonPromptResponseMutation = useDaemonPromptResponseMutation();
-	// Don't nag Viewers (they can't install daemons) and never re-show the prompt once
+	// Don't nag anyone who can't install a daemon, and never re-show the prompt once
 	// the user has responded to it (either CTA persists an onboarding milestone).
-	let isViewer = $derived(currentUserQuery.data?.permissions === 'Viewer');
-	let isOwner = $derived(currentUserQuery.data?.permissions === 'Owner');
+	let canInstallDaemon = $derived(can('Daemon', 'Write'));
+	let isOwner = $derived(can('Billing', 'Write'));
 	let daemonPromptResponded = $derived(
 		(organization?.onboarding?.includes('DaemonPromptDismissed') ?? false) ||
 			(organization?.onboarding?.includes('DaemonPromptAccepted') ?? false)
@@ -244,7 +246,6 @@
 			id: string;
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			component: any;
-			isReadOnly: boolean;
 			subTabIds?: string[];
 			subTabDefs?: SubTab[];
 			subTabNotifications?: Record<string, string>;
@@ -364,7 +365,7 @@
 	// no daemon that hasn't answered the prompt.
 	let daemonPromptWanted = $derived(
 		!isMainAppLocked &&
-			!isViewer &&
+			canInstallDaemon &&
 			(organization?.onboarding?.includes('OrgCreated') ?? false) &&
 			!organization?.onboarding?.includes('FirstDaemonRegistered') &&
 			!daemonPromptResponded &&
@@ -580,7 +581,6 @@
 									<ContentSubTabs
 										tabs={tab.subTabDefs}
 										bind:activeTab
-										isReadOnly={tab.isReadOnly}
 										notifications={tab.subTabNotifications}
 									/>
 								</div>
@@ -588,7 +588,7 @@
 								<div
 									class={activeTab !== tab.id ? 'relative h-0 overflow-hidden contain-[paint]' : ''}
 								>
-									<tab.component isReadOnly={tab.isReadOnly} isActive={activeTab === tab.id} />
+									<tab.component isActive={activeTab === tab.id} />
 								</div>
 							{/if}
 						{/each}
@@ -644,7 +644,7 @@
 				openModal('settings', { tab: 'billing' });
 			} else if (
 				!overModal &&
-				!isViewer &&
+				canInstallDaemon &&
 				!daemonPromptResponded &&
 				hasSite &&
 				daemonsQuery.data?.length === 0

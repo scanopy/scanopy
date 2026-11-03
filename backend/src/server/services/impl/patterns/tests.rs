@@ -784,6 +784,55 @@ fn test_client_response_without_port() {
         result.ports.is_empty(),
         "Should return no ports for local socket case"
     );
+    assert!(
+        result.reached_off_network,
+        "a probe that answered on no port reached the service off the network"
+    );
+}
+
+/// A service a probe reached on a port is on the network there, even when another arm of its
+/// pattern answered off it.
+#[test]
+fn a_client_response_with_a_port_is_on_the_network() {
+    let mut ctx = TestContext::new();
+    let api_port = PortType::new_tcp(2376);
+    ctx.client_responses
+        .insert(super::ClientProbe::Docker, vec![api_port]);
+    ctx.client_responses
+        .insert(super::ClientProbe::Podman, vec![]);
+
+    let ports = vec![api_port];
+    let baseline = ctx.create_baseline_params(&ports);
+    let params = ctx.create_params_with_ports(&baseline, &ports);
+    let result = Pattern::AnyOf(vec![
+        Pattern::ClientResponse(super::ClientProbe::Docker),
+        Pattern::ClientResponse(super::ClientProbe::Podman),
+    ])
+    .matches(&params)
+    .expect("both probes answered");
+    assert_eq!(result.ports, vec![api_port]);
+    assert!(!result.reached_off_network);
+}
+
+/// An off-network answer carries through a composite that adds no port, so the service still
+/// gets no binding.
+#[test]
+fn an_off_network_answer_carries_through_a_composite_without_ports() {
+    let mut ctx = TestContext::new();
+    ctx.client_responses
+        .insert(super::ClientProbe::Libvirt, vec![]);
+
+    let ports = vec![];
+    let baseline = ctx.create_baseline_params(&ports);
+    let params = ctx.create_params_with_ports(&baseline, &ports);
+    let result = Pattern::AllOf(vec![
+        Pattern::ClientResponse(super::ClientProbe::Libvirt),
+        Pattern::Optional(Box::new(Pattern::Port(PortType::new_tcp(16509)))),
+    ])
+    .matches(&params)
+    .expect("the probe answered");
+    assert!(result.ports.is_empty());
+    assert!(result.reached_off_network);
 }
 
 #[test]

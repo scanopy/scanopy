@@ -26,9 +26,7 @@ pub struct HypervisorHost {
     /// The probe that answered, which is what its hypervisor service definition's
     /// `ClientResponse` arm matches.
     pub client_probe: ClientProbe,
-    /// The port the probe answered on.
-    pub port: u16,
-    /// The source of the port the probe answered on.
+    /// The source of what the probe found.
     pub source: AttributeSource,
     /// The guests it runs: its service's role names them.
     pub guests: HostVirtualizationDiscriminants,
@@ -50,7 +48,6 @@ pub async fn create_hypervisor_host(
         host,
         ip_addresses,
         client_probe,
-        port,
         source,
         guests,
     } = hypervisor;
@@ -65,8 +62,10 @@ pub async fn create_hypervisor_host(
         return Ok(None);
     };
 
-    // The real matcher, fed the probe's answer.
-    let all_ports = vec![PortType::new_tcp(port)];
+    // The real matcher, fed the probe's answer on the ports the hypervisor's own service owns:
+    // Proxmox VE's API port. None for libvirt, which signs in through an SSH login and answers
+    // on a local socket, so its service is never in the way of the SSH service on that port.
+    let all_ports = ctx.credential.reach().own_ports();
     let client_responses = HashMap::from([(client_probe, all_ports.clone())]);
     let daemon_id = ctx.ops.daemon_id().await?;
     let (services, ports) = ctx.ops.match_services(

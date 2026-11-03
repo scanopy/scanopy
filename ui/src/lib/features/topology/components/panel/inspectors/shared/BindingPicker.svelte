@@ -173,9 +173,7 @@
 			</span>
 		{:else if ipCandidates.length === 1}
 			<EntityTag
-				entityRef={entityRef('IPAddress', ipCandidates[0].ipAddress.id, ipCandidates[0].ipAddress, {
-					subnets: subnetsData
-				})}
+				entityRef={entityRef('IPAddress', ipCandidates[0].ipAddress.id, ipCandidates[0].ipAddress)}
 				label={ipLabel(ipCandidates[0].ipAddress)}
 				icon={entities.getIconComponent('IPAddress')}
 				color={entities.getColorHelper('IPAddress').color}
@@ -185,7 +183,7 @@
 		{:else}
 			{@const ipOptions: EntityTagOption[] = ipCandidates.map((c) => ({
 				id: c.bindingId,
-				entityRef: entityRef('IPAddress', c.ipAddress.id, c.ipAddress, { subnets: subnetsData }),
+				entityRef: entityRef('IPAddress', c.ipAddress.id, c.ipAddress),
 				label: ipLabel(c.ipAddress),
 				icon: entities.getIconComponent('IPAddress'),
 				color: entities.getColorHelper('IPAddress').color
@@ -218,12 +216,7 @@
 		{/if}
 	{:else if bindingCandidates.length === 1}
 		<EntityTag
-			entityRef={entityRef(
-				'Binding',
-				bindingCandidates[0].id,
-				bindingCandidates[0],
-				bindingContext
-			)}
+			entityRef={entityRef('Binding', bindingCandidates[0].id, bindingCandidates[0])}
 			label={BindingDisplay.getLabel?.(bindingCandidates[0], bindingContext) ?? ''}
 			icon={entities.getIconComponent('Port')}
 			color={entities.getColorHelper('Port').color}
@@ -233,7 +226,7 @@
 	{:else}
 		{@const bindingOptions: EntityTagOption[] = bindingCandidates.map((b) => ({
 			id: b.id,
-			entityRef: entityRef('Binding', b.id, b, bindingContext),
+			entityRef: entityRef('Binding', b.id, b),
 			label: BindingDisplay.getLabel?.(b, bindingContext) ?? '',
 			icon: entities.getIconComponent('Port'),
 			color: entities.getColorHelper('Port').color

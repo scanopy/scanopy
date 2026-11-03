@@ -42,6 +42,7 @@
 		permissionFilter
 	}: Props = $props();
 
+
 	// Get current user to determine which permissions they can grant
 	const currentUserQuery = useCurrentUserQuery();
 	let currentUser = $derived(currentUserQuery.data);

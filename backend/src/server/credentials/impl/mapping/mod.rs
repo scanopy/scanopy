@@ -11,6 +11,8 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::server::shared::types::metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider};
+use crate::server::ports::r#impl::base::PortType;
+use crate::server::services::r#impl::patterns::ClientProbe;
 use crate::server::shared::types::{Color, Icon};
 
 mod resolvable;
@@ -21,9 +23,57 @@ pub use super::types::container_proxy::ContainerProxyQueryCredential;
 pub use super::types::instant_on::InstantOnQueryCredential;
 pub use super::types::libvirt::LibvirtQueryCredential;
 pub use super::types::proxmox::ProxmoxQueryCredential;
-pub use super::types::ssh::{ScriptSource, SshAuth, SshQueryCredential};
+pub use super::types::ssh::{ScriptSource, SshAuth, SshLogin, SshQueryCredential};
 pub use super::types::unifi::{UnifiAuth, UnifiQueryCredential};
 pub use super::types::wake_on_lan::WakeOnLanQueryCredential;
+
+/// How a credential reaches the host it is assigned to, and which service owns the port it goes
+/// through. The one answer to "does it sign in through a login, which ports does it need, and are
+/// they its own service's or the login's": the light scan, the probe gate, dispatch's evidence for
+/// service matching and a hypervisor's own service all read it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CredentialReach {
+    /// The integration's own service listens on these ports and owns them: SNMP, gNMI, the
+    /// Docker/Podman API proxy, UniFi, Proxmox VE.
+    OwnPorts(Vec<PortType>),
+    /// Signs in through a login, whose service owns the port: the login proved `probe` answers
+    /// there. The credential's own service owns no port. SSH Script and libvirt.
+    ThroughLogin { probe: ClientProbe, port: PortType },
+    /// Reaches the host without a port on it: a local socket, the Instant On cloud portal, a
+    /// Wake-on-LAN broadcast.
+    NoPort,
+}
+
+impl CredentialReach {
+    /// Port numbers the light scan includes, so the ports the credential goes through are always
+    /// scanned.
+    pub fn scan_ports(&self) -> Vec<u16> {
+        match self {
+            Self::OwnPorts(ports) => ports.iter().map(PortType::number).collect(),
+            Self::ThroughLogin { port, .. } => vec![port.number()],
+            Self::NoPort => vec![],
+        }
+    }
+
+    /// TCP ports the scan must find open before the probe runs. A UDP port is never in the
+    /// scan's open ports (SNMP probes its own), so it gates nothing.
+    pub fn gate_ports(&self) -> Vec<PortType> {
+        match self {
+            Self::OwnPorts(ports) => ports.iter().filter(|p| p.is_tcp()).copied().collect(),
+            Self::ThroughLogin { port, .. } => vec![*port],
+            Self::NoPort => vec![],
+        }
+    }
+
+    /// The ports the credential's own service owns. None when it signs in through a login or
+    /// reaches the host without a port.
+    pub fn own_ports(&self) -> Vec<PortType> {
+        match self {
+            Self::OwnPorts(ports) => ports.clone(),
+            Self::ThroughLogin { .. } | Self::NoPort => vec![],
+        }
+    }
+}
 
 /// Container-runtime (Docker/Podman) socket query credential. The daemon connects via a local
 /// Unix socket; `socket_path` optionally repoints it (e.g. rootless Podman at
@@ -363,6 +413,16 @@ fn resolve_ssh_auth(auth: &SshAuth, label: &str) -> Result<SshAuth, anyhow::Erro
     })
 }
 
+impl SshLogin {
+    /// This login with its auth files read, for every credential that signs in with it.
+    fn resolve_file_paths(&self, label: &str) -> Result<SshLogin, anyhow::Error> {
+        Ok(SshLogin {
+            auth: resolve_ssh_auth(&self.auth, label)?,
+            ..self.clone()
+        })
+    }
+}
+
 impl CredentialQueryPayload {
     /// The proxy credential for either container-runtime proxy variant
     /// (Docker/Podman), which share the same Docker-compatible API shape.
@@ -373,24 +433,32 @@ impl CredentialQueryPayload {
         }
     }
 
-    /// Ports that should be included in light scans for this credential type.
-    /// Used by network scanning to ensure integration-relevant ports are always scanned.
-    pub fn required_scan_ports(&self) -> Vec<u16> {
+    /// How this credential reaches its host, and whose service owns the port it goes through.
+    /// Exhaustive, so a new payload has to answer. Checked against the credential type's
+    /// [`ReachDeclaration`](super::types::metadata::ReachDeclaration) by
+    /// `every_credential_type_dispatches_the_reach_it_declares`.
+    pub fn reach(&self) -> CredentialReach {
         match self {
-            Self::Snmp(_) => vec![161, 1161],
-            Self::Gnmi(g) => vec![g.port],
-            Self::DockerProxy(d) | Self::PodmanProxy(d) => vec![d.port],
-            Self::DockerSocket(_) | Self::PodmanSocket(_) => vec![],
-            Self::UnifiController(u) => vec![u.port],
-            // Nothing to scan for: the endpoint is HPE's cloud, and the switch this credential is
-            // bound to does not have to expose any port for the fetch to work.
-            Self::InstantOn(_) => vec![],
-            Self::Ssh(s) => vec![s.port],
+            Self::Snmp(_) => CredentialReach::OwnPorts(vec![
+                PortType::new_udp(161),
+                PortType::new_udp(1161),
+            ]),
+            Self::Gnmi(g) => CredentialReach::OwnPorts(vec![PortType::new_tcp(g.port)]),
+            Self::DockerProxy(d) | Self::PodmanProxy(d) => {
+                CredentialReach::OwnPorts(vec![PortType::new_tcp(d.port)])
+            }
+            // A local Unix socket or named pipe on the daemon's own machine.
+            Self::DockerSocket(_) | Self::PodmanSocket(_) => CredentialReach::NoPort,
+            Self::UnifiController(u) => CredentialReach::OwnPorts(vec![PortType::new_tcp(u.port)]),
+            // The endpoint is HPE's cloud, and the switch this credential is bound to does not
+            // have to expose any port for the fetch to work.
+            Self::InstantOn(_) => CredentialReach::NoPort,
+            Self::Ssh(s) => s.login.reach(),
             // The packet is UDP to a broadcast address; a sleeping host has no port to find open.
-            Self::WakeOnLan(_) => vec![],
-            Self::Proxmox(p) => vec![p.port],
-            Self::Libvirt(l) => vec![l.port],
-            Self::Unknown => vec![],
+            Self::WakeOnLan(_) => CredentialReach::NoPort,
+            Self::Proxmox(p) => CredentialReach::OwnPorts(vec![PortType::new_tcp(p.port)]),
+            Self::Libvirt(l) => l.login.reach(),
+            Self::Unknown => CredentialReach::NoPort,
         }
     }
 
@@ -424,11 +492,11 @@ impl CredentialQueryPayload {
             Self::Gnmi(g) => secret(&g.password),
             Self::Ssh(s) => {
                 matches!(s.script, ScriptSource::DaemonFile { .. })
-                    || ssh_auth_reads_daemon_paths(&s.auth, secret)
+                    || ssh_auth_reads_daemon_paths(&s.login.auth, secret)
             }
             Self::WakeOnLan(w) => w.secure_on_password.as_ref().is_some_and(secret),
             Self::Proxmox(p) => secret(&p.token_secret),
-            Self::Libvirt(l) => ssh_auth_reads_daemon_paths(&l.auth, secret),
+            Self::Libvirt(l) => ssh_auth_reads_daemon_paths(&l.login.auth, secret),
             Self::Unknown => false,
         }
     }
@@ -598,14 +666,11 @@ impl CredentialQueryPayload {
                 tls: g.tls,
                 skip_verify: g.skip_verify,
             })),
-            Self::Ssh(s) => {
-                let auth = resolve_ssh_auth(&s.auth, label)?;
-                Ok(Self::Ssh(SshQueryCredential {
-                    auth,
-                    script: s.script.resolve_daemon_file()?,
-                    ..s.clone()
-                }))
-            }
+            Self::Ssh(s) => Ok(Self::Ssh(SshQueryCredential {
+                login: s.login.resolve_file_paths(label)?,
+                script: s.script.resolve_daemon_file()?,
+                ..s.clone()
+            })),
             Self::WakeOnLan(w) => {
                 let secure_on_password = w
                     .secure_on_password
@@ -626,7 +691,7 @@ impl CredentialQueryPayload {
                 ..p.clone()
             })),
             Self::Libvirt(l) => Ok(Self::Libvirt(LibvirtQueryCredential {
-                auth: resolve_ssh_auth(&l.auth, label)?,
+                login: l.login.resolve_file_paths(label)?,
                 ..l.clone()
             })),
             Self::Unknown => Ok(Self::Unknown),

@@ -5,8 +5,12 @@
  * lacks leaves its row out, or falls back to the metadata name where one exists.
  */
 
-import type { Host, HostVirtualization, IPAddress } from '$lib/features/hosts/types/base';
+import type { components } from '$lib/api/schema';
+import type { Daemon } from '$lib/features/daemons/types/base';
+import { runOutcomeTag } from '$lib/features/discovery/utils/outcome';
+import type { Host, HostVirtualization, IPAddress, Port } from '$lib/features/hosts/types/base';
 import type { Service, ServiceVirtualization } from '$lib/features/services/types/base';
+import type { Site } from '$lib/features/sites/types';
 import type { Tag, TagGroup } from '$lib/features/tags/types/base';
 import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 import { hostOsIcon, hostOsLabel } from '$lib/features/hosts/host-os';
@@ -35,7 +39,6 @@ import {
 } from '$lib/shared/entity-fields';
 import {
 	containerNetworkTypes,
-	containerTypes,
 	deviceTypes,
 	entities,
 	guestStates,
@@ -44,27 +47,41 @@ import {
 	proxmoxGuestTypes,
 	serviceCategories,
 	serviceDefinitions,
-	serviceVirtualizations,
-	views
+	serviceVirtualizations
 } from '$lib/shared/stores/metadata';
-import { formatPort } from '$lib/shared/utils/formatting';
+import { formatPort, formatTimestamp } from '$lib/shared/utils/formatting';
 import type { Color } from '$lib/shared/utils/styling';
 import {
 	common_category,
+	common_created,
+	common_daemons,
 	common_host,
-	common_ipAddress,
+	common_hosts,
+	common_hoursCount,
+	common_lastRun,
+	common_macAddress,
 	common_manager,
+	common_moreItems,
 	common_name,
 	common_operatingSystem,
 	common_services,
+	common_site,
 	common_status,
+	common_subnets,
 	common_tags,
 	common_virtualization,
+	dependencies_memberCount,
 	hosts_deviceFacts_composeProject,
 	hosts_deviceFacts_guestType,
 	hosts_deviceFacts_networkType,
-	hosts_deviceType
+	hosts_deviceType,
+	sites_staleAfter
 } from '$lib/paraglide/messages';
+
+type DashboardSummary = components['schemas']['DashboardSummary'];
+type Dependency = components['schemas']['Dependency'];
+type Discovery = components['schemas']['Discovery'];
+type Topology = components['schemas']['Topology'];
 
 /** A tooltip row before empty values are dropped. */
 type MaybeRow = { label: string; value: string | null | undefined; chips?: TooltipChip[] };
@@ -197,6 +214,9 @@ function serviceGuestRows(
 	];
 }
 
+/** The most services a tooltip lists. It can't be scrolled, so the rest are counted. */
+const MAX_TOOLTIP_SERVICES = 12;
+
 /** A titled tooltip: one row per value present, then the services under their own heading. */
 function titledTooltip(
 	title: string,
@@ -204,12 +224,27 @@ function titledTooltip(
 	services: (string | TooltipItem)[] = []
 ): TooltipContent {
 	const present: TooltipRow[] = rows.flatMap(({ label, value, chips }) =>
-		value ? [{ label, value, chips }] : []
+		value?.trim() ? [{ label, value, chips }] : []
 	);
 	const sections: TooltipSection[] = [];
 	if (present.length > 0) sections.push({ rows: present });
-	if (services.length > 0) sections.push({ heading: common_services(), items: services });
+	if (services.length > 0) {
+		const hidden = services.length - MAX_TOOLTIP_SERVICES;
+		sections.push({
+			heading: common_services(),
+			items:
+				hidden > 0
+					? [...services.slice(0, MAX_TOOLTIP_SERVICES), common_moreItems({ count: hidden })]
+					: services
+		});
+	}
 	return { title, sections };
+}
+
+function hostRow(host: Host | null | undefined): MaybeRow {
+	if (!host) return { label: common_host(), value: null };
+	const name = hostDisplayName(host);
+	return { label: common_host(), value: name, chips: [entityChip('Host', host, name)] };
 }
 
 /**
@@ -218,17 +253,15 @@ function titledTooltip(
  */
 export function serviceTooltip(
 	service: Service,
-	{ host, lookup = NO_ENTITIES }: { host?: Host | null; lookup?: EntityLookup } = {}
+	{
+		host,
+		name,
+		lookup = NO_ENTITIES
+	}: { host?: Host | null; name?: string; lookup?: EntityLookup } = {}
 ): TooltipContent {
 	const category = serviceDefinitions.getCategory(service.service_definition);
-	return titledTooltip(service.name, [
-		host
-			? {
-					label: common_host(),
-					value: hostDisplayName(host),
-					chips: [entityChip('Host', host, hostDisplayName(host))]
-				}
-			: { label: common_host(), value: null },
+	return titledTooltip(name ?? service.name, [
+		hostRow(host),
 		tagRow(common_category(), category ? serviceCategories.getTag(category) : null),
 		...serviceGuestRows(service.virtualization_metadata, service.virtualization_service_id, lookup),
 		tagsRow(service.tags, lookup)
@@ -259,21 +292,46 @@ function serviceWithPorts(
 }
 
 /**
- * A host's hover text: its name as the title, then the address the tooltip is for and its subnet
- * when there is one, its device type and how it runs as a guest, its tags, then its services, each
- * with its ports at that address.
+ * An address's hover text: the address as the title, its name, MAC, host and subnet, then the
+ * services bound there, each with its ports at that address.
+ */
+export function ipAddressTooltip(
+	address: IPAddress,
+	{
+		name,
+		services,
+		lookup = NO_ENTITIES
+	}: { name?: string; services: Service[]; lookup?: EntityLookup }
+): TooltipContent {
+	return titledTooltip(
+		name ?? address.ip_address,
+		[
+			{ label: common_name(), value: address.name },
+			{ label: common_macAddress(), value: address.mac_address },
+			hostRow(byId<Host>(lookup, 'Host', address.host_id)),
+			entityRow(
+				entities.getName('Subnet'),
+				'Subnet',
+				byId<object>(lookup, 'Subnet', address.subnet_id)
+			)
+		],
+		services.map((service) => serviceWithPorts(service, address.id, lookup))
+	);
+}
+
+/**
+ * A host's hover text: its name as the title, its device type and how it runs as a guest, its
+ * tags, then its services.
  */
 export function hostTooltip(
 	host: Host,
 	{
 		name,
-		ipAddress,
 		deviceType,
 		services,
 		lookup = NO_ENTITIES
 	}: {
 		name?: string;
-		ipAddress?: IPAddress | null;
 		deviceType?: string | null;
 		services: Service[];
 		lookup?: EntityLookup;
@@ -283,13 +341,6 @@ export function hostTooltip(
 	return titledTooltip(
 		name ?? hostDisplayName(host),
 		[
-			{ label: common_ipAddress(), value: ipAddress?.ip_address },
-			{ label: common_name(), value: ipAddress?.name },
-			entityRow(
-				entities.getName('Subnet'),
-				'Subnet',
-				byId<object>(lookup, 'Subnet', ipAddress?.subnet_id)
-			),
 			tagRow(hosts_deviceType(), deviceType ? deviceTypes.getTag(deviceType) : null),
 			{
 				label: common_operatingSystem(),
@@ -308,9 +359,7 @@ export function hostTooltip(
 			...hostGuestRows(host.virtualization_metadata, host.virtualization_service_id, lookup),
 			tagsRow(host.tags, lookup)
 		],
-		services.map((service) =>
-			ipAddress ? serviceWithPorts(service, ipAddress.id, lookup) : serviceListItem(service)
-		)
+		services.map(serviceListItem)
 	);
 }
 
@@ -395,29 +444,107 @@ export function interfaceTooltip(
 	);
 }
 
-/** An entity's summary fields, then the related entities `lookup` carries. */
-function registryTooltip(type: EntityType, entity: object, title: string, lookup: EntityLookup) {
+/**
+ * An entity's summary and tooltip fields, then the related entities `lookup` carries, then `rows`
+ * and `services`: what a type adds that the registry has no field for.
+ */
+function registryTooltip(
+	type: EntityType,
+	entity: object,
+	title: string,
+	lookup: EntityLookup,
+	{ rows = [], services = [] }: { rows?: MaybeRow[]; services?: TooltipItem[] } = {}
+) {
 	// A relation into a collection the lookup does not load would read as empty, so it is left out.
 	// A list of related entities is shown only where the registry marks it a summary (a subnet's
 	// VLANs); a long one (a VLAN's interfaces) is the inspector's.
 	const fields = entityFields(type);
 	const reachable = (f: EntityField) =>
 		f.path.every((hop) => hop.type === 'Embedded' || lookup.loads(hop.entity));
-	const rows = fields
+	const fieldRows = fields
 		.filter(
 			(f) =>
-				(f.summary && f.path.length === 0) ||
+				((f.summary || f.tooltip) && f.path.length === 0) ||
 				(f.format.type === 'Entity' && (!f.many || f.summary) && reachable(f))
 		)
 		.map((f) => fieldRow(type, f, entity, lookup))
 		.filter((row) => row.value !== title);
-	return titledTooltip(title, rows);
+	return titledTooltip(title, [...fieldRows, ...rows], services);
+}
+
+/** A port's services, each with the addresses it listens on through this port. */
+function portServices(port: Port, lookup: EntityLookup): TooltipItem[] {
+	const services = lookup.byColumn('Service', 'host_id', port.host_id) as Service[];
+	return services.flatMap((service) => {
+		const bindings = (service.bindings ?? []).filter(
+			(b) => b.type === 'Port' && b.port_id === port.id
+		);
+		if (bindings.length === 0) return [];
+		const addresses = bindings.flatMap(
+			(b) => byId<IPAddress>(lookup, 'IPAddress', b.ip_address_id)?.ip_address ?? []
+		);
+		return [{ ...serviceListItem(service), detail: addresses.join(', ') || undefined }];
+	});
+}
+
+/** The subnets a daemon has an interface on. */
+function daemonSubnetsRow(daemon: Daemon, lookup: EntityLookup): MaybeRow {
+	const chips = (daemon.interfaced_subnet_ids ?? []).flatMap((id) => {
+		const subnet = byId<object>(lookup, 'Subnet', id);
+		return subnet ? [entityChip('Subnet', subnet)] : [];
+	});
+	return {
+		label: common_subnets(),
+		value: chips.map((chip) => chip.label).join(', '),
+		chips
+	};
+}
+
+/** When a discovery was created, and how its run ended if it has one. */
+function discoveryRows(discovery: Discovery): MaybeRow[] {
+	const outcome = runOutcomeTag(
+		discovery.run_type.type === 'Historical' ? discovery.run_type.results : null,
+		{ includeCompleted: true }
+	);
+	return [
+		{ label: common_created(), value: formatTimestamp(discovery.created_at) },
+		tagRow(common_lastRun(), outcome)
+	];
+}
+
+/** What a site holds, from the home page's summary, and how long until its entities go stale. */
+function siteRows(site: Site): MaybeRow[] {
+	const dashboard = queryClient.getQueryData<DashboardSummary>(queryKeys.dashboard.summary());
+	const summary = dashboard?.sites.find((s) => s.id === site.id);
+	const hours = site.effective_stale_after_hours;
+	return [
+		{ label: common_hosts(), value: summary?.host_count.toString() },
+		{ label: common_services(), value: summary?.service_count.toString() },
+		{ label: common_subnets(), value: summary?.subnet_count.toString() },
+		{ label: common_daemons(), value: summary?.daemon_count.toString() },
+		{
+			label: sites_staleAfter(),
+			value: hours == null ? null : common_hoursCount({ hours })
+		}
+	];
+}
+
+/** A dependency's member count, as the sentence the app shows it in. */
+function dependencyMemberCount(dependency: Dependency): TooltipSection {
+	const members = dependency.members;
+	const count =
+		members?.type === 'Services'
+			? members.service_ids.length
+			: members?.type === 'Bindings'
+				? members.binding_ids.length
+				: 0;
+	return { text: dependencies_memberCount({ count }) };
 }
 
 /**
  * Any entity's hover text, by its type: a host, service, port or address the way its card shows
- * it, and any other entity (a subnet, a VLAN) as its summary fields, the ones the inspector shows
- * by default. `name` replaces the entity's own display text as the title.
+ * it, and any other entity as its registry fields plus what its type adds. `name` replaces the
+ * entity's own display text as the title.
  */
 export function entityTooltip(
 	entityType: string,
@@ -425,6 +552,7 @@ export function entityTooltip(
 	{ lookup, name }: { lookup: EntityLookup; name?: string }
 ): TooltipContent {
 	const type = entityType as EntityType;
+	const title = name ?? entityDisplayText(type, entity);
 	switch (type) {
 		case 'Host': {
 			const host = entity as Host;
@@ -439,30 +567,51 @@ export function entityTooltip(
 			const service = entity as Service;
 			return serviceTooltip(service, {
 				host: byId<Host>(lookup, 'Host', service.host_id),
+				name,
 				lookup
 			});
 		}
 		case 'Interface':
-			return interfaceTooltip(entity, name ?? entityDisplayText(type, entity), lookup);
+			return interfaceTooltip(entity, title, lookup);
 		case 'IPAddress': {
 			const address = entity as IPAddress;
-			const host = byId<Host>(lookup, 'Host', address.host_id);
-			if (!host) {
-				return registryTooltip(type, entity, name ?? entityDisplayText(type, entity), lookup);
-			}
-			const services = lookup.byColumn('Service', 'host_id', host.id) as Service[];
-			return hostTooltip(host, {
+			const services = lookup.byColumn('Service', 'host_id', address.host_id) as Service[];
+			return ipAddressTooltip(address, {
 				name,
-				ipAddress: address,
-				deviceType: host.device_type ?? 'Unidentified',
 				services: services.filter((s) =>
 					(s.bindings ?? []).some((b) => b.ip_address_id == null || b.ip_address_id === address.id)
 				),
 				lookup
 			});
 		}
+		case 'Port':
+			return registryTooltip(type, entity, title, lookup, {
+				services: portServices(entity as Port, lookup)
+			});
+		case 'Daemon':
+			return registryTooltip(type, entity, title, lookup, {
+				rows: [daemonSubnetsRow(entity as Daemon, lookup)]
+			});
+		case 'Discovery':
+			return registryTooltip(type, entity, title, lookup, {
+				rows: discoveryRows(entity as Discovery)
+			});
+		case 'Dependency': {
+			const content = registryTooltip(type, entity, title, lookup);
+			const members = dependencyMemberCount(entity as Dependency);
+			return { ...content, sections: [...content.sections, members] };
+		}
+		case 'Site':
+			return registryTooltip(type, entity, title, lookup, { rows: siteRows(entity as Site) });
+		case 'Topology': {
+			const sites = queryClient.getQueryData<Site[]>(queryKeys.sites.all) ?? [];
+			const site = sites.find((s) => s.id === (entity as Topology).site_id);
+			return registryTooltip(type, entity, title, lookup, {
+				rows: [{ label: common_site(), value: site?.name }]
+			});
+		}
 		default:
-			return registryTooltip(type, entity, name ?? entityDisplayText(type, entity), lookup);
+			return registryTooltip(type, entity, title, lookup);
 	}
 }
 
@@ -476,45 +625,26 @@ export function entityCacheLookup(): EntityLookup {
 		IPAddress: cachedEntities(queryKeys.ipAddresses.all),
 		Subnet: cachedEntities(queryKeys.subnets.all),
 		Vlan: cachedEntities(queryKeys.vlans.all),
-		Tag: cachedEntities(queryKeys.tags.all)
+		Tag: cachedEntities(queryKeys.tags.all),
+		TagGroup: cachedEntities(queryKeys.tagGroups.all),
+		Daemon: cachedEntities(queryKeys.daemons.all),
+		Discovery: cachedEntities(queryKeys.discovery.all),
+		Credential: cachedEntities(queryKeys.credentials.all),
+		User: cachedEntities(queryKeys.users.all),
+		DaemonApiKey: cachedEntities(queryKeys.apiKeys.all),
+		UserApiKey: cachedEntities(queryKeys.userApiKeys.all)
 	});
 }
 
-let canvasTypes: Set<string> | null = null;
-
 /**
- * Whether topology draws this entity type, as a card or as a container, and so owns its tooltip.
- * Read from the views and container types the backend declares.
+ * The tooltip of a chip, titled as the chip reads: the cached entity when there is one, as a ref
+ * can carry a partial object, else the ref's own data. Null when the ref carries nothing to
+ * describe.
  */
-export function hasEntityTooltip(entityType: string): boolean {
-	canvasTypes ??= new Set(
-		[
-			...views.getItems().flatMap((view) => {
-				const config = (
-					view.metadata as {
-						element_config?: {
-							container_entity?: string | null;
-							element_entities?: { entity_type: string }[];
-						};
-					} | null
-				)?.element_config;
-				return [
-					config?.container_entity,
-					...(config?.element_entities ?? []).map((e) => e.entity_type)
-				];
-			}),
-			...containerTypes.getItems().map((type) => type.metadata?.entity_type)
-		].filter((type): type is string => !!type)
-	);
-	return canvasTypes.has(entityType);
-}
-
-/**
- * The tooltip of a chip: the cached entity when there is one, as a ref can carry a partial object,
- * else the ref's own data. Null when the ref carries nothing to describe.
- */
-export function entityRefTooltip(ref: EntityRef): TooltipContent | null {
+export function entityRefTooltip(ref: EntityRef, label?: string): TooltipContent | null {
 	const lookup = entityCacheLookup();
 	const entity = lookup.byColumn(ref.entityType, 'id', ref.entityId)[0] ?? ref.data;
-	return entity ? entityTooltip(ref.entityType, entity, { lookup }) : null;
+	return entity
+		? entityTooltip(ref.entityType, entity, { lookup, name: label || undefined })
+		: null;
 }

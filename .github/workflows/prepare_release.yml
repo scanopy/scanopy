@@ -27,7 +27,7 @@ on:
           - backward-compatible
           - downtime
       announcement:
-        description: 'How users hear about this release when servers upgrade. A daemon upgrade notice adds an upgrade section to the notes and marks older daemons Outdated, so it always goes out by email and modal. Used when the notes are generated.'
+        description: 'How users hear about this release when servers upgrade. A daemon upgrade notice adds an upgrade callout to the email and modal and marks older daemons Outdated, so it always goes out by email and modal. Used when the notes are generated.'
         required: false
         default: 'No email or modal'
         type: choice
@@ -236,12 +236,6 @@ jobs:
           echo "---"
           echo ""
           printf '%s\n' "$NOTES"
-          if [ "$DAEMON_UPGRADE" = "true" ]; then
-            echo ""
-            echo "## Upgrade your daemons"
-            echo ""
-            echo "This release asks you to upgrade your daemons. Open Discover > Daemons and upgrade each daemon marked Outdated. See [Upgrading Daemons](https://scanopy.net/docs/setting-up-daemons/upgrading-daemons/)."
-          fi
         } > "$NOTES_FILE"
         cat "$NOTES_FILE"
 
@@ -283,7 +277,7 @@ jobs:
           MODAL_LINE="\`modal: false\`: the modal doesn't open for this release. Its notes show the next time a release opens it. Set it to \`true\` to open it now."
         fi
         if [ "$DAEMON_UPGRADE" = "true" ]; then
-          DAEMON_UPGRADE_LINE="\`daemon_upgrade: true\`: daemons older than v${VERSION} show Outdated, and the notes end with an upgrade section. It needs \`email: true\` and \`modal: true\`. Re-run Prepare Release to change it."
+          DAEMON_UPGRADE_LINE="\`daemon_upgrade: true\`: daemons older than v${VERSION} show Outdated, and the email and modal show an upgrade callout. It needs \`email: true\` and \`modal: true\`. Re-run Prepare Release to change it."
         else
           DAEMON_UPGRADE_LINE="\`daemon_upgrade: false\`: daemons stay current against the last release that asked. Re-run Prepare Release with the daemon upgrade notice when this release changes a daemon capability or the daemon wire format: those warnings fire whatever the flag says."
         fi

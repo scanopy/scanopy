@@ -56,7 +56,7 @@ struct Lab {
     storage: crate::server::shared::storage::factory::StorageFactory,
     site_id: Uuid,
     _subnet_id: Uuid,
-    _container: testcontainers::ContainerAsync<testcontainers::GenericImage>,
+    _container: super::TestDb,
 }
 
 impl Lab {

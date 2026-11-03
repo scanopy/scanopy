@@ -35,8 +35,8 @@
 		useRotateApiKeyMutation
 	} from '$lib/features/daemon_api_keys/queries';
 	import { useUsersByIds, useUsersQuery } from '$lib/features/users/queries';
-	import { canListUsers } from '$lib/features/users/types';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	import { useCan } from '$lib/features/auth/access';
 	import ApiKeyFormFields from '$lib/features/daemon_api_keys/components/ApiKeyFormFields.svelte';
 	import { createApiKeyForm } from '$lib/features/daemon_api_keys/form';
 	import DaemonKeyAssociation from './DaemonKeyAssociation.svelte';
@@ -77,10 +77,11 @@
 	const updateDaemonMutation = useUpdateDaemonMutation();
 	const updateApiKeyMutation = useUpdateApiKeyMutation();
 	const rotateApiKeyMutation = useRotateApiKeyMutation();
-	const apiKeysQuery = useApiKeysQuery();
+	const can = useCan();
+	const apiKeysQuery = useApiKeysQuery({ enabled: () => can('DaemonApiKey', 'Read') });
 	const currentUserQuery = useCurrentUserQuery();
 	let currentUser = $derived(currentUserQuery.data);
-	let canListAllUsers = $derived(currentUser ? canListUsers(currentUser.permissions) : false);
+	let canListAllUsers = $derived(can('Member', 'Read'));
 	// The users list needs Admin. Below that, the picker offers the current maintainer and the
 	// user themselves, fetched by id.
 	const usersQuery = useUsersQuery({ enabled: () => isOpen && canListAllUsers });

@@ -3,7 +3,7 @@
 	import type { Site } from '$lib/features/sites/types';
 	import type { Credential } from '$lib/features/credentials/types/base';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	import { useCan } from '$lib/features/auth/access';
 	import { useCredentialsQuery } from '$lib/features/credentials/queries';
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
@@ -54,14 +54,13 @@
 	const organizationQuery = useOrganizationQuery();
 	let organization = $derived(organizationQuery.data);
 
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
+	const can = useCan();
 
-	// Demo mode check: only Owner can modify credential settings in demo orgs
+	// Which note the list carries: in a demo org only an Owner can modify credential settings.
 	let isDemoOrg = $derived(
 		billingPlans.getMetadata(organization?.plan?.type ?? null).is_demo === true
 	);
-	let isNonOwnerInDemo = $derived(isDemoOrg && currentUser?.permissions !== 'Owner');
+	let isNonOwnerInDemo = $derived(isDemoOrg && !can('Organization', 'Delete'));
 
 	// TanStack Query for credentials and subnets
 	const credentialsQuery = useCredentialsQuery();

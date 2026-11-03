@@ -1,42 +1,25 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use backon::{ExponentialBuilder, Retryable};
 use chrono::{DateTime, Utc};
-use rand::Rng;
-use reqwest::StatusCode;
 use tokio::sync::RwLock;
 
 use super::instances::service::LicenseInstanceService;
 use super::key::{ConfiguredKey, LicenseKey};
-use super::online::{
-    ENTITLEMENT_PATH, EntitlementRequest, EntitlementResponse, InstanceUsage, SERVER_VERSION_HEADER,
-};
+use super::online::InstanceUsage;
+use super::problem::LicenseProblem;
 use super::types::{LicenseKeyType, LicenseStatus};
 use crate::server::billing::plans::{get_community_plan, plan_for_license};
 use crate::server::billing::types::base::BillingPlan;
-use crate::server::metrics::dependency::{Dependency, observe_http};
 use crate::server::organizations::service::OrganizationService;
 use crate::server::shared::trusted_ca::TrustedCaBundle;
-use crate::server::shared::types::api::{ApiErrorResponse, ApiResponse};
-use crate::server::shared::types::error_codes::ErrorCode;
+
+mod check_in;
 
 /// Scanopy Cloud, which serves entitlements for online keys.
 pub const CLOUD_BASE_URL: &str = "https://app.scanopy.net";
 
-/// Base wait between online-key check-ins. Each wait adds a random delay of
-/// up to `CHECK_IN_JITTER`, so instances don't check in at the same moment.
-const CHECK_IN_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
-const CHECK_IN_JITTER: Duration = Duration::from_secs(30 * 60);
 const CHECK_IN_TIMEOUT: Duration = Duration::from_secs(10);
-
-/// Retry spacing for a check-in that reached nobody. A server that boots before
-/// its network is up, or before the cloud it points at is listening, would
-/// otherwise hold whatever status it started with until the next interval —
-/// `Pending`, and unlicensed, on a first run.
-const CHECK_IN_RETRY_MIN_DELAY: Duration = Duration::from_secs(5);
-const CHECK_IN_RETRY_MAX_DELAY: Duration = Duration::from_secs(10 * 60);
-const CHECK_IN_RETRY_TIMES: usize = 6;
 
 pub struct LicenseService {
     /// The key from `SCANOPY_LICENSE_KEY`. Fixed for the life of the process.
@@ -69,6 +52,9 @@ struct LicenseState {
     /// Why the cloud rejected the online key (400/403). Cleared by the next
     /// entitlement.
     rejection: Option<String>,
+    /// Why the last check-in failed, or why the key itself is unusable.
+    /// Cleared by the next entitlement.
+    problem: Option<LicenseProblem>,
     /// The instance count the cloud reported at the last check-in. In memory
     /// only: the check-in at startup fills it again.
     instances: Option<InstanceUsage>,
@@ -154,9 +140,15 @@ impl LicenseService {
             entitlement,
             entitlement_at,
             rejection: None,
+            problem: None,
             instances: None,
         };
         state.status = state.derive_status(&license_key, &key_type);
+        // A key that fails verification takes the offline path and never checks
+        // in, so this is the only place that can name the problem.
+        if matches!(state.status, LicenseStatus::Invalid(_)) {
+            state.problem = Some(LicenseProblem::KeyMalformed);
+        }
 
         let base_url = base_url.unwrap_or_else(|| CLOUD_BASE_URL.to_string());
         if base_url != CLOUD_BASE_URL {
@@ -208,6 +200,19 @@ impl LicenseService {
     /// When the cloud last answered a check-in. Always `None` for offline keys.
     pub async fn entitlement_at(&self) -> Option<DateTime<Utc>> {
         self.state.read().await.entitlement_at
+    }
+
+    /// Why this server is locked, for the UI. A licensed server riding out a
+    /// failed check-in on its entitlement has nothing to act on, so it reports
+    /// none. The log still records that failure.
+    pub async fn problem(&self) -> Option<LicenseProblem> {
+        let state = self.state.read().await;
+        state.status.is_locked().then_some(state.problem).flatten()
+    }
+
+    /// Where check-ins go.
+    pub fn base_url(&self) -> &str {
+        &self.base_url
     }
 
     /// The plan the current license entitles: the licensed tier when `Valid`,
@@ -267,216 +272,26 @@ impl LicenseService {
             tracing::error!(error = %e, "Failed to reconcile self-hosted org plans to license entitlement");
         }
     }
-
-    /// Check in now, then every `CHECK_IN_INTERVAL` plus jitter. Online keys
-    /// only; the caller spawns this.
-    pub async fn run_check_ins(self: Arc<Self>) {
-        loop {
-            let _ = (|| self.try_check_in(&self.base_url))
-                .retry(
-                    ExponentialBuilder::default()
-                        .with_min_delay(CHECK_IN_RETRY_MIN_DELAY)
-                        .with_max_delay(CHECK_IN_RETRY_MAX_DELAY)
-                        .with_max_times(CHECK_IN_RETRY_TIMES)
-                        .with_jitter(),
-                )
-                .notify(|e, delay| {
-                    tracing::debug!(
-                        error = %e,
-                        "License check-in failed; retrying in {delay:?}"
-                    );
-                })
-                .await;
-
-            let jitter = rand::rng().random_range(Duration::ZERO..=CHECK_IN_JITTER);
-            tokio::time::sleep(CHECK_IN_INTERVAL + jitter).await;
-        }
-    }
-
-    /// Present the online key to `{base_url}{ENTITLEMENT_PATH}`.
-    ///
-    /// - 200 swaps in the returned entitlement.
-    /// - 400 or 403 means the cloud rejected the key: status becomes `Invalid`.
-    /// - Anything else, including transport errors, leaves status unchanged;
-    ///   the cached entitlement stays in force until it expires.
-    pub async fn check_in(&self, base_url: &str) {
-        if let Err(e) = self.try_check_in(base_url).await {
-            tracing::debug!(error = %e, "License check-in failed; keeping the current entitlement");
-        }
-    }
-
-    /// [`LicenseService::check_in`], reporting whether the cloud answered.
-    ///
-    /// `Err` means nothing was obtained — a transport error, or a response that
-    /// carried no usable entitlement — and the caller may retry. A rejection is
-    /// `Ok`: the cloud answered, and retrying will not change its verdict.
-    async fn try_check_in(&self, base_url: &str) -> Result<(), anyhow::Error> {
-        if !self.is_online() {
-            return Ok(());
-        }
-
-        let request = EntitlementRequest {
-            key: self.license_key.as_str().to_string(),
-            instance_id: self.instance_id,
-            non_production: Some(self.non_production),
-        };
-        let send = self
-            .http
-            .post(format!("{base_url}{ENTITLEMENT_PATH}"))
-            .header(SERVER_VERSION_HEADER, env!("CARGO_PKG_VERSION"))
-            .json(&request)
-            .send();
-        let response = observe_http(Dependency::LicenseServer, send).await?;
-
-        let http_status = response.status();
-        match http_status {
-            StatusCode::OK => match response
-                .json::<ApiResponse<EntitlementResponse>>()
-                .await
-                .map(ApiResponse::into_data)
-            {
-                Ok(Some(data)) => {
-                    self.apply_entitlement(data.entitlement, data.instances)
-                        .await;
-                    Ok(())
-                }
-                Ok(None) => Err(anyhow::anyhow!("check-in returned no entitlement")),
-                Err(e) => Err(anyhow::anyhow!("check-in returned an unreadable body: {e}")),
-            },
-            StatusCode::BAD_REQUEST | StatusCode::FORBIDDEN => {
-                let body = response.json::<ApiErrorResponse>().await.ok();
-
-                // A `license_locked` 403 comes from the called server's own
-                // license guard, not from a verdict on this key: that server is
-                // itself locked, or the base URL points somewhere unexpected.
-                // Keep the cached entitlement and retry.
-                if body.as_ref().and_then(|body| body.code.as_deref())
-                    == Some(ErrorCode::LicenseLocked.code())
-                {
-                    return Err(anyhow::anyhow!(
-                        "check-in was refused by a locked server, which is not a verdict on this key"
-                    ));
-                }
-
-                // Refused because the key already runs on as many servers of
-                // this server's class as the plan covers: keep the counts so
-                // the UI can say so.
-                let instances = body
-                    .as_ref()
-                    .filter(|body| {
-                        body.code.as_deref()
-                            == Some(
-                                ErrorCode::LicenseInstanceLimitReached {
-                                    active: 0,
-                                    limit: 0,
-                                }
-                                .code(),
-                            )
-                    })
-                    .and_then(|body| body.params.as_ref())
-                    .and_then(|params| {
-                        let count = |key: &str| {
-                            params
-                                .get(key)
-                                .and_then(serde_json::Value::as_u64)
-                                .and_then(|n| u32::try_from(n).ok())
-                        };
-                        let (active, limit) = (count("active")?, Some(count("limit")?));
-                        Some(if self.non_production {
-                            InstanceUsage {
-                                non_production_active: active,
-                                non_production_limit: limit,
-                                ..InstanceUsage::default()
-                            }
-                        } else {
-                            InstanceUsage {
-                                active,
-                                limit,
-                                ..InstanceUsage::default()
-                            }
-                        })
-                    });
-
-                let reason = body.and_then(|body| body.error).unwrap_or_else(|| {
-                    format!("License key rejected by Scanopy Cloud ({http_status})")
-                });
-                self.reject(reason, instances).await;
-                Ok(())
-            }
-            _ => Err(anyhow::anyhow!("check-in returned {http_status}")),
-        }
-    }
-
-    /// Swap in an entitlement the cloud returned, persist it, and reconcile org
-    /// plans to it. An entitlement that fails verification (bad signature,
-    /// another org) is a bad response rather than a verdict on the key, so it
-    /// leaves state unchanged.
-    async fn apply_entitlement(&self, token: String, instances: Option<InstanceUsage>) {
-        let ConfiguredKey::Online(claims) = &self.key_type else {
-            return;
-        };
-        let entitlement = LicenseKey::new(token.clone());
-        let new_status = entitlement.validate_entitlement(claims);
-        if let LicenseStatus::Invalid(reason) = &new_status {
-            tracing::warn!(%reason, "Scanopy Cloud returned an entitlement that failed verification; keeping the current entitlement");
-            return;
-        }
-
-        let checked_at = Utc::now();
-        {
-            let mut state = self.state.write().await;
-            state.entitlement = Some(entitlement);
-            state.entitlement_at = Some(checked_at);
-            state.rejection = None;
-            state.instances = instances;
-            Self::set_status(&mut state, new_status);
-        }
-
-        self.persist(Some(token), checked_at).await;
-        self.reconcile_plans().await;
-    }
-
-    /// Record that the cloud rejected the key, and drop the cached entitlement
-    /// so a restart can't bring the rejected key's tier back. `instances` is
-    /// set when the refusal was for running on more servers than the plan
-    /// covers.
-    async fn reject(&self, reason: String, instances: Option<InstanceUsage>) {
-        tracing::warn!(%reason, "Scanopy Cloud rejected the license key");
-        let checked_at = Utc::now();
-        {
-            let mut state = self.state.write().await;
-            state.entitlement = None;
-            state.entitlement_at = Some(checked_at);
-            state.rejection = Some(reason.clone());
-            state.instances = instances;
-            Self::set_status(&mut state, LicenseStatus::Invalid(reason));
-        }
-
-        self.persist(None, checked_at).await;
-    }
-
-    async fn persist(&self, entitlement: Option<String>, checked_at: DateTime<Utc>) {
-        if let Err(e) = self
-            .organization_service
-            .store_license_entitlement(entitlement, checked_at)
-            .await
-        {
-            tracing::warn!(error = %e, "Failed to persist the license entitlement");
-        }
-    }
 }
+
+#[cfg(test)]
+mod check_in_tests;
 
 #[cfg(test)]
 mod tests {
     use super::super::key::test_support::{ORG_ID, license_token, online_key};
+    use super::super::online::{ENTITLEMENT_PATH, EntitlementResponse};
     use super::super::types::{LicenseClaims, LicensePlan};
+    use super::check_in::CHECK_IN_RETRY_MIN_DELAY;
     use super::*;
     use crate::server::billing::plans::{get_self_hosted_plus_plan, get_self_hosted_standard_plan};
     use crate::server::shared::events::bus::EventBus;
     use crate::server::shared::storage::generic::GenericPostgresStorage;
-    use crate::server::shared::types::api::ApiError;
+    use crate::server::shared::types::api::{ApiError, ApiResponse};
+    use crate::server::shared::types::error_codes::ErrorCode;
     use axum::Json;
     use axum::response::{IntoResponse, Response};
+    use reqwest::StatusCode;
     use sqlx::postgres::PgPoolOptions;
 
     fn claims(iat: i64, exp: i64, intended_exp: i64) -> LicenseClaims {
@@ -495,7 +310,7 @@ mod tests {
     /// An org service whose database is unreachable. Loading and persisting
     /// the entitlement fail fast and are logged, which leaves only the
     /// in-memory behaviour under test.
-    fn unreachable_org_service() -> Arc<OrganizationService> {
+    pub(super) fn unreachable_org_service() -> Arc<OrganizationService> {
         let pool = PgPoolOptions::new()
             .acquire_timeout(Duration::from_millis(100))
             .connect_lazy("postgres://scanopy@127.0.0.1:1/unreachable")
@@ -512,7 +327,9 @@ mod tests {
 
     /// A stand-in for the cloud entitlement endpoint that answers every
     /// request with `respond()`. Returns its base URL.
-    async fn cloud(respond: impl Fn() -> Response + Clone + Send + Sync + 'static) -> String {
+    pub(super) async fn cloud(
+        respond: impl Fn() -> Response + Clone + Send + Sync + 'static,
+    ) -> String {
         let app = axum::Router::new().route(
             ENTITLEMENT_PATH,
             axum::routing::post(move || {
@@ -538,7 +355,7 @@ mod tests {
         .await
     }
 
-    async fn entitlement_cloud(plan: LicensePlan, intended_days: i64) -> String {
+    pub(super) async fn entitlement_cloud(plan: LicensePlan, intended_days: i64) -> String {
         entitlement_cloud_for(ORG_ID, plan, intended_days).await
     }
 
@@ -562,7 +379,7 @@ mod tests {
     }
 
     /// A base URL nothing listens on.
-    async fn unreachable_cloud() -> String {
+    pub(super) async fn unreachable_cloud() -> String {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
         drop(listener);

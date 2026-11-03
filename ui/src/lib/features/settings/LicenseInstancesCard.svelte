@@ -3,6 +3,7 @@
 	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
+	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
 	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
 	import {
 		useDeleteLicenseInstanceMutation,
@@ -19,6 +20,7 @@
 		common_servers,
 		settings_billing_license_lastCheckIn,
 		settings_billing_license_noServers,
+		settings_billing_license_noServersLinkText,
 		settings_billing_license_nonProductionOverLimit,
 		settings_billing_license_olderServers,
 		settings_billing_license_overLimit,
@@ -65,7 +67,11 @@
 			/>
 		{/if}
 		{#if instancesQuery.isSuccess && instances.length === 0}
-			<p class="text-sm text-secondary">{settings_billing_license_noServers()}</p>
+			<DocsHint
+				text={settings_billing_license_noServers()}
+				href="https://scanopy.net/docs/self-hosted-server/troubleshooting/?edition=commercial"
+				linkText={settings_billing_license_noServersLinkText()}
+			/>
 		{/if}
 		{#each instances as { instance, active, refused } (instance.id)}
 			<InfoCard variant="compact">

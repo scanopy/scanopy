@@ -12,7 +12,7 @@
 //! - Combinators: `Or<A, B>`, `And<A, B>` - compose requirements
 use std::marker::PhantomData;
 
-use crate::server::auth::access::{AccessSet, Action, Resource};
+use crate::server::auth::access::{AccessSet, Action, Keying, Resource};
 use crate::server::auth::middleware::auth::AuthError;
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::{
@@ -124,7 +124,11 @@ pub struct Can<T, A>(PhantomData<fn() -> (T, A)>);
 
 impl<T: HasResource, A: ActionType> PermissionRequirement for Can<T, A> {
     fn check(entity: &AuthenticatedEntity) -> Result<(), ApiError> {
-        if entity.can(T::resource(), A::ACTION) {
+        let resource = T::resource();
+        let reads_nothing = A::ACTION == Action::Read
+            && resource.keying() == Keying::Site
+            && entity.access().is_some_and(AccessSet::on_no_site);
+        if entity.can(resource, A::ACTION) || reads_nothing {
             Ok(())
         } else {
             Err(ApiError::permission_denied())

@@ -313,7 +313,7 @@ impl DiscoveryRunner {
         let required_ports: Vec<u16> = mappings
             .iter()
             .flat_map(|m| &m.ip_overrides)
-            .flat_map(|o| o.credential.required_scan_ports())
+            .flat_map(|o| o.credential.reach().scan_ports())
             .collect::<HashSet<u16>>()
             .into_iter()
             .collect();
