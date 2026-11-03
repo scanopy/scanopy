@@ -1,4 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
+import {
+	licenseSettingsOpenedFor,
+	markLicenseSettingsOpened
+} from '$lib/features/settings/license-settings-opened';
 import {
 	isShellReady,
 	shouldCloseBillingPlanLink,
@@ -69,6 +73,66 @@ describe('shouldOpenLicenseSettings', () => {
 
 	it('waits for app initialization', () => {
 		expect(shouldOpenLicenseSettings({ ...open, appInitialized: false })).toBe(false);
+	});
+});
+
+describe('license Settings across reloads', () => {
+	const orgId = 'org-1';
+	const opening = {
+		locked: true,
+		planType: 'SelfHostedStandard',
+		appInitialized: true,
+		planPickerShowing: false,
+		modalName: null
+	};
+
+	beforeEach(() => {
+		const store = new Map<string, string>();
+		vi.stubGlobal('localStorage', {
+			getItem: (key: string) => store.get(key) ?? null,
+			setItem: (key: string, value: string) => store.set(key, value),
+			removeItem: (key: string) => store.delete(key)
+		});
+	});
+	afterEach(() => vi.unstubAllGlobals());
+
+	it('stays closed on reload once opened for the plan', () => {
+		expect(
+			shouldOpenLicenseSettings({ ...opening, openedFor: licenseSettingsOpenedFor(orgId) })
+		).toBe(true);
+		markLicenseSettingsOpened(orgId, 'SelfHostedStandard');
+		expect(
+			shouldOpenLicenseSettings({ ...opening, openedFor: licenseSettingsOpenedFor(orgId) })
+		).toBe(false);
+	});
+
+	it('opens again for a new plan, or after the org left the plan', () => {
+		markLicenseSettingsOpened(orgId, 'SelfHostedStandard');
+		expect(
+			shouldOpenLicenseSettings({
+				...opening,
+				planType: 'SelfHostedPlus',
+				openedFor: licenseSettingsOpenedFor(orgId)
+			})
+		).toBe(true);
+		markLicenseSettingsOpened(orgId, null);
+		expect(
+			shouldOpenLicenseSettings({ ...opening, openedFor: licenseSettingsOpenedFor(orgId) })
+		).toBe(true);
+	});
+
+	it('keeps each org separate', () => {
+		markLicenseSettingsOpened('other-org', 'SelfHostedStandard');
+		expect(licenseSettingsOpenedFor(orgId)).toBeNull();
+	});
+
+	it('opens when storage is unavailable', () => {
+		vi.stubGlobal('localStorage', {
+			getItem: () => {
+				throw new Error('blocked');
+			}
+		});
+		expect(licenseSettingsOpenedFor(orgId)).toBeNull();
 	});
 });
 

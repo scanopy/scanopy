@@ -51,6 +51,10 @@
 	} from '$lib/features/organizations/onload-gates';
 	import { billingPlans } from '$lib/shared/stores/metadata';
 	import { licenseTabVisible } from '$lib/features/settings/license-tab';
+	import {
+		licenseSettingsOpenedFor as storedLicenseSettingsOpenedFor,
+		markLicenseSettingsOpened
+	} from '$lib/features/settings/license-settings-opened';
 	import { billingOverModal, reopenSettingsAfterBilling } from '$lib/features/billing/stores';
 	import {
 		modalState,
@@ -286,24 +290,30 @@
 
 	// An org on a licensed self-hosted plan gets Settings on the License tab once
 	// per plan it lands on (on load, or after moving onto it by any path); closing
-	// it leaves the sidebar. Cleared when the org leaves the plan.
+	// it leaves the sidebar, and a reload keeps it closed. Cleared when the org
+	// leaves the plan.
 	let licenseSettingsOpenedFor = $state<string | null>(null);
 	$effect(() => {
+		if (organization == null) return;
 		// A license org whose trial never started is the billing gate's, above.
 		const locked = isSelfHostedPlanLocked && !planUnchosen;
-		if (!locked) licenseSettingsOpenedFor = null;
-		const planType = organization?.plan?.type ?? null;
+		if (!locked) {
+			licenseSettingsOpenedFor = null;
+			markLicenseSettingsOpened(organization.id, null);
+		}
+		const planType = organization.plan?.type ?? null;
 		if (
 			shouldOpenLicenseSettings({
 				locked,
 				planType,
-				openedFor: licenseSettingsOpenedFor,
+				openedFor: licenseSettingsOpenedFor ?? storedLicenseSettingsOpenedFor(organization.id),
 				appInitialized,
 				planPickerShowing: showBillingModal,
 				modalName: $modalState.name
 			})
 		) {
 			licenseSettingsOpenedFor = planType;
+			markLicenseSettingsOpened(organization.id, planType);
 			openModal('settings', { tab: licenseLockTab });
 		}
 	});
@@ -627,6 +637,7 @@
 				daemonPromptShown = true;
 				reopenSettingsAfterBilling.set(false);
 				licenseSettingsOpenedFor = selectedPlan.type;
+				if (organization) markLicenseSettingsOpened(organization.id, selectedPlan.type);
 				openModal('settings', { tab: licenseLockTab });
 			} else if ($reopenSettingsAfterBilling) {
 				reopenSettingsAfterBilling.set(false);
