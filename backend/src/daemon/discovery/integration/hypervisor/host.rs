@@ -10,7 +10,6 @@ use crate::server::hosts::r#impl::base::Host;
 use crate::server::hosts::r#impl::virtualization::HostVirtualizationDiscriminants;
 use crate::server::interfaces::r#impl::base::InterfaceDataComplete;
 use crate::server::ip_addresses::r#impl::base::IPAddress;
-use crate::server::ports::r#impl::base::PortType;
 use crate::server::services::r#impl::base::ServiceMatchBaselineParams;
 use crate::server::services::r#impl::definitions::{ServiceDefinitionExt, VirtualizationRole};
 use crate::server::services::r#impl::patterns::ClientProbe;

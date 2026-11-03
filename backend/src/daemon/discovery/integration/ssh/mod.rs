@@ -26,8 +26,6 @@ use crate::server::credentials::r#impl::mapping::{
 use crate::server::credentials::r#impl::types::ssh_script::{
     MAX_SCRIPT_OUTPUT_BYTES, SshScriptOutcome, SshScriptOutput, SshScriptRun,
 };
-use crate::server::ports::r#impl::base::PortType;
-use crate::server::services::r#impl::patterns::ClientProbe;
 use client::SessionError;
 
 /// The longest a credential may let a script run, whatever it asks for.

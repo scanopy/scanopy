@@ -15,7 +15,6 @@ use async_trait::async_trait;
 use crate::server::credentials::r#impl::mapping::{
     CredentialQueryPayload, CredentialQueryPayloadDiscriminants,
 };
-use crate::server::ports::r#impl::base::PortType;
 
 use super::container::{self, CONTAINER_SCAN_TIMEOUT, ContainerRuntime};
 use super::{

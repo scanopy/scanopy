@@ -20,7 +20,6 @@ use crate::server::credentials::r#impl::mapping::{
     ContainerProxyQueryCredential, CredentialMapping, CredentialQueryPayload,
     CredentialQueryPayloadDiscriminants, ResolvedCredential,
 };
-use crate::server::ports::r#impl::base::PortType;
 
 use super::container::{self, CONTAINER_SCAN_TIMEOUT, ContainerRuntime};
 use super::{

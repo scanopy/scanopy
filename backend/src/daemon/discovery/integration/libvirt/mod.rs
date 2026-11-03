@@ -48,7 +48,6 @@ use crate::server::hosts::r#impl::virtualization::{
     HostVirtualization, HostVirtualizationDiscriminants, LibvirtVirtualization,
 };
 use crate::server::ip_addresses::r#impl::base::IPAddress;
-use crate::server::ports::r#impl::base::PortType;
 use crate::server::services::r#impl::patterns::ClientProbe;
 use crate::server::shared::attribution::{AttributeSource, Attributed};
 use crate::server::shared::position::renumber_positions;
