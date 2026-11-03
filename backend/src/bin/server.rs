@@ -654,7 +654,7 @@ async fn main() -> anyhow::Result<()> {
     if deployment_type != DeploymentType::Cloud {
         match &state.license_service {
             None => {
-                tracing::info!(target: LOG_TARGET, "  License:         not required (community). To apply a license, set SCANOPY_LICENSE_KEY and recreate the server");
+                tracing::info!(target: LOG_TARGET, "  License:         not required (community). To apply a license, set SCANOPY_LICENSE_KEY and restart the server. With Docker Compose, run docker compose up -d: docker compose restart keeps the old environment");
             }
             Some(license_service) => {
                 let license_status = license_service.current_status().await;
@@ -682,15 +682,15 @@ async fn main() -> anyhow::Result<()> {
                         }
                     }
                     scanopy::server::license::types::LicenseStatus::Expired(_) => {
-                        tracing::warn!(target: LOG_TARGET, "  License:         EXPIRED — server is in read-only mode");
+                        tracing::warn!(target: LOG_TARGET, "  License:         EXPIRED, server is in read-only mode");
                     }
                     scanopy::server::license::types::LicenseStatus::Invalid(reason) => {
-                        tracing::error!(target: LOG_TARGET, "  License:         INVALID ({}) — server is in read-only mode", reason);
+                        tracing::error!(target: LOG_TARGET, "  License:         INVALID, server is in read-only mode: {}", reason);
                     }
                     scanopy::server::license::types::LicenseStatus::Pending => {
                         tracing::warn!(
                             target: LOG_TARGET,
-                            "  License:         PENDING — server is in read-only mode until it reaches {} for its first entitlement",
+                            "  License:         PENDING, server is in read-only mode until it reaches {} for its first entitlement",
                             license_service.base_url(),
                         );
                     }

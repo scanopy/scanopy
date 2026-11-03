@@ -116,7 +116,7 @@ impl LicenseKey {
                 }
             }
             Err(e) => LicenseStatus::Invalid(format!(
-                "{} ({e})",
+                "{}. Decoder error: {e}",
                 LicenseProblem::KeyMalformed.log_message()
             )),
         }
