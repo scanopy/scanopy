@@ -257,8 +257,10 @@ pub async fn create_tag(
         .ok_or_else(|| ApiError::forbidden("Organization context required"))?;
     let entity = auth.entity.clone();
 
-    let name_filter =
-        StorableFilter::<Tag>::new_from_org_id(&organization_id).name(tag.base.name.clone());
+    // A deleted tag is closed, not removed, and gives up its name, as `idx_tags_org_name_live` does.
+    let name_filter = StorableFilter::<Tag>::new_from_org_id(&organization_id)
+        .name(tag.base.name.clone())
+        .live();
 
     if state.services.tag_service.exists(name_filter).await? {
         return Err(ApiError::conflict(&format!(

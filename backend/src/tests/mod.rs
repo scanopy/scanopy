@@ -95,6 +95,7 @@ pub mod stripe_webhook_retries;
 pub mod stripe_webhooks;
 pub mod subnet_placement;
 pub mod subnet_vlan_inference;
+pub mod tag_names;
 pub mod tag_scope;
 pub mod tenant_isolation;
 pub mod terms_notices;

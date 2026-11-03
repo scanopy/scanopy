@@ -205,6 +205,7 @@
 			}}
 			onRemove={(tagId) => deleteAppTag(tagId)}
 			createAsApplication={true}
+			onePerGroup={false}
 		/>
 	</div>
 

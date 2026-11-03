@@ -199,11 +199,29 @@ export function tagIcon(
  * the server does on assignment.
  */
 export function withTagAdded(selectedIds: string[], tagId: string, tags: Tag[]): string[] {
+	const displaced = tagsDisplacedBy(selectedIds, tagId, tags, true);
+	return [...selectedIds.filter((id) => id !== tagId && !displaced.includes(id)), tagId];
+}
+
+/**
+ * The held tag ids that adding `tagId` drops. With `onePerGroup` the selection is one entity's
+ * tags, which hold one tag of a group, so the other tags of its group drop. Without it (a list of
+ * a group's members, as in the application wizard) nothing drops.
+ */
+export function tagsDisplacedBy(
+	selectedIds: string[],
+	tagId: string,
+	tags: Tag[],
+	onePerGroup: boolean
+): string[] {
+	if (!onePerGroup) return [];
 	const added = tags.find((t) => t.id === tagId);
-	const kept = selectedIds.filter((id) => {
-		if (id === tagId) return false;
-		const held = tags.find((t) => t.id === id);
-		return !sameGroup(held, added);
-	});
-	return [...kept, tagId];
+	return selectedIds.filter(
+		(id) =>
+			id !== tagId &&
+			sameGroup(
+				tags.find((t) => t.id === id),
+				added
+			)
+	);
 }

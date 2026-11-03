@@ -38,8 +38,8 @@
 		compareTagsByGroup,
 		groupOf,
 		isApplicationTag,
-		sameGroup,
 		tagAllowedOn,
+		tagsDisplacedBy,
 		tagGroupLabel,
 		tagIcon,
 		tagTooltip,
@@ -74,6 +74,9 @@
 		availableTags: availableTagsProp,
 		// When true, tags created inline go in the Application group
 		createAsApplication = false,
+		// True when the selection is one entity's tags, which hold one tag of a group: adding a tag
+		// drops the held tag of its group. False for a list of a group's members.
+		onePerGroup = true,
 		// When false, hides the inline tag creation option
 		allowCreate = true,
 		// Bindable: mirrors the dropdown's open state. Set to true to open programmatically;
@@ -92,6 +95,7 @@
 		label?: string;
 		availableTags?: import('$lib/features/tags/types/base').Tag[];
 		createAsApplication?: boolean;
+		onePerGroup?: boolean;
 		allowCreate?: boolean;
 		open?: boolean;
 		hideAddButton?: boolean;
@@ -289,11 +293,8 @@
 		} else {
 			// The server replaces a held tag of the same tag group on assignment; in callback
 			// mode the caller holds the list, so drop the displaced tag here to match.
-			const added = getTag(tagId);
-			for (const heldId of shownTagIds) {
-				if (heldId !== tagId && sameGroup(getTag(heldId), added)) {
-					void settle(pendingRemoves, heldId, () => onRemove?.(heldId));
-				}
+			for (const heldId of tagsDisplacedBy(shownTagIds, tagId, tags, onePerGroup)) {
+				void settle(pendingRemoves, heldId, () => onRemove?.(heldId));
 			}
 			await settle(pendingAdds, tagId, () => onAdd?.(tagId));
 		}
