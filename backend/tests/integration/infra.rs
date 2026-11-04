@@ -764,7 +764,9 @@ pub fn clear_discovery_data() -> Result<(), String> {
     exec_sql("DELETE FROM services")?;
     exec_sql("DELETE FROM ports")?;
     exec_sql("DELETE FROM interfaces")?;
-    exec_sql("DELETE FROM hosts")?;
+    // A daemon's own host stays: discoveries name it by id, and the server refuses an id that
+    // doesn't resolve.
+    exec_sql("DELETE FROM hosts WHERE id NOT IN (SELECT host_id FROM daemons)")?;
     exec_sql("DELETE FROM subnets")?;
 
     println!("  ✅ Discovery data cleared");
