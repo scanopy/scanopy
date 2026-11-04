@@ -995,8 +995,16 @@ async fn test_user_api_key_site_access(ctx: &TestContext) -> Result<(), String> 
     // First, downgrade user to Member so they don't have auto-access to all sites
     exec_sql("UPDATE users SET permissions = 'Member';")?;
 
-    // Remove user's access to the other site (Members don't auto-get all sites)
-    // The user only has access to ctx.site_id via the site_users table
+    // Site access comes from site_assignments, not the role, so swap the user's All sites row for
+    // one on ctx.site_id alone.
+    let user_id = created.api_key.base.user_id;
+    exec_sql(&format!(
+        "DELETE FROM site_assignments WHERE user_id = '{user_id}'; \
+         INSERT INTO site_assignments (organization_id, user_id, role, site_id) \
+         VALUES ('{}', '{user_id}', 'Member', '{}');",
+        ctx.organization_id, ctx.site_id
+    ))?;
+
     let restricted_key = UserApiKey::new(UserApiKeyBase {
         key: String::new(),
         name: "Overreach Key".to_string(),
@@ -1019,7 +1027,13 @@ async fn test_user_api_key_site_access(ctx: &TestContext) -> Result<(), String> 
         )
         .await;
 
-    // Restore Owner permissions
+    // Restore Owner permissions and the All sites row
+    exec_sql(&format!(
+        "DELETE FROM site_assignments WHERE user_id = '{user_id}'; \
+         INSERT INTO site_assignments (organization_id, user_id, role, site_id) \
+         VALUES ('{}', '{user_id}', 'Admin', NULL);",
+        ctx.organization_id
+    ))?;
     exec_sql("UPDATE users SET permissions = 'Owner';")?;
 
     assert!(
