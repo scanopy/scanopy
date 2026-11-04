@@ -725,6 +725,32 @@ pub fn exec_sql(sql: &str) -> Result<String, String> {
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
 
+/// Give every user in `organization_id` the org `role` and the site rows that role comes with, as
+/// `AccessService::set_access` writes them: Owner and Admin hold All sites at Admin, Member and
+/// Viewer hold `site_id` alone. Setting `users.permissions` by itself leaves the old rows in place.
+pub fn set_user_access(
+    organization_id: Uuid,
+    role: &str,
+    site_id: Option<Uuid>,
+) -> Result<(), String> {
+    let (site_role, site) = match role {
+        "Owner" | "Admin" => ("Admin", "NULL".to_string()),
+        _ => (
+            role,
+            format!("'{}'", site_id.ok_or("a Member or Viewer needs a site")?),
+        ),
+    };
+    let users = format!("SELECT id FROM users WHERE organization_id = '{organization_id}'");
+    exec_sql(&format!(
+        "UPDATE users SET permissions = '{role}' WHERE id IN ({users}); \
+         DELETE FROM site_assignments WHERE user_id IN ({users}); \
+         INSERT INTO site_assignments (organization_id, user_id, role, site_id) \
+         SELECT organization_id, id, '{site_role}', {site} FROM users WHERE id IN ({users});"
+    ))?;
+    println!("  Set user access to: {role}");
+    Ok(())
+}
+
 pub fn set_plan_status(status: Option<&str>) -> Result<(), String> {
     let sql = match status {
         Some(s) => format!("UPDATE organizations SET plan_status = '{}';", s),

@@ -907,7 +907,7 @@ async fn test_user_api_key_expired_disabled(ctx: &TestContext) -> Result<(), Str
 
 /// Test that API keys only have access to assigned sites
 async fn test_user_api_key_site_access(ctx: &TestContext) -> Result<(), String> {
-    use crate::infra::exec_sql;
+    use crate::infra::set_user_access;
     use scanopy::server::sites::r#impl::{Site, SiteBase};
 
     println!("Testing User API Key Site Access Enforcement...");
@@ -992,18 +992,8 @@ async fn test_user_api_key_site_access(ctx: &TestContext) -> Result<(), String> 
     println!("  ✓ API key cannot access subnet on non-assigned site");
 
     // Verify attempting to create API key with access to site user doesn't own fails
-    // First, downgrade user to Member so they don't have auto-access to all sites
-    exec_sql("UPDATE users SET permissions = 'Member';")?;
-
-    // Site access comes from site_assignments, not the role, so swap the user's All sites row for
-    // one on ctx.site_id alone.
-    let user_id = created.api_key.base.user_id;
-    exec_sql(&format!(
-        "DELETE FROM site_assignments WHERE user_id = '{user_id}'; \
-         INSERT INTO site_assignments (organization_id, user_id, role, site_id) \
-         VALUES ('{}', '{user_id}', 'Member', '{}');",
-        ctx.organization_id, ctx.site_id
-    ))?;
+    // First, make the user a Member on ctx.site_id alone
+    set_user_access(ctx.organization_id, "Member", Some(ctx.site_id))?;
 
     let restricted_key = UserApiKey::new(UserApiKeyBase {
         key: String::new(),
@@ -1027,14 +1017,8 @@ async fn test_user_api_key_site_access(ctx: &TestContext) -> Result<(), String> 
         )
         .await;
 
-    // Restore Owner permissions and the All sites row
-    exec_sql(&format!(
-        "DELETE FROM site_assignments WHERE user_id = '{user_id}'; \
-         INSERT INTO site_assignments (organization_id, user_id, role, site_id) \
-         VALUES ('{}', '{user_id}', 'Admin', NULL);",
-        ctx.organization_id
-    ))?;
-    exec_sql("UPDATE users SET permissions = 'Owner';")?;
+    // Restore Owner access
+    set_user_access(ctx.organization_id, "Owner", None)?;
 
     assert!(
         result.is_ok(),
