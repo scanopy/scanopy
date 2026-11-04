@@ -18,7 +18,6 @@ use crate::server::shared::types::api::ApiJson;
 
 use axum::extract::State;
 use axum::response::Json;
-use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -113,7 +112,11 @@ async fn create_snapshot(
 
     let result = async {
         let snapshot = Snapshot {
-            base: SnapshotBase::new(req.site_id, Utc::now(), auth.user_id()),
+            base: SnapshotBase::new(
+                req.site_id,
+                crate::server::shared::clock::now(),
+                auth.user_id(),
+            ),
             ..Default::default()
         };
 

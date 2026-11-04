@@ -10,7 +10,7 @@ pub(super) fn generate_dependencies(
     sites: &[Site],
     hosts_with_services: &[HostWithServices],
 ) -> Vec<Dependency> {
-    let now = Utc::now();
+    let now = crate::server::shared::clock::now();
     let hq = sites
         .iter()
         .find(|n| n.base.name == "Headquarters")

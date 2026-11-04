@@ -4,7 +4,7 @@
 
 use std::fmt::Display;
 
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use uuid::Uuid;
 
 use super::{
@@ -109,7 +109,7 @@ async fn a_snapshot_closes_every_site_row_onto_closed_parents() {
             s.id,
             interfaces[0],
             &[(Neighbor::Interface(interfaces[1]), None)],
-            Utc::now(),
+            crate::server::shared::clock::now(),
             None,
         )
         .await
@@ -151,8 +151,7 @@ async fn a_snapshot_closes_every_site_row_onto_closed_parents() {
         .await
         .unwrap();
 
-    // Postgres stores microseconds, so a nanosecond `taken_at` would not round-trip.
-    let taken_at = chrono::SubsecRound::trunc_subsecs(Utc::now() + Duration::seconds(1), 6);
+    let taken_at = crate::server::shared::clock::now() + Duration::seconds(1);
     let snapshot = Snapshot::new(s.id, taken_at, None);
     storage.snapshots.create(&snapshot).await.unwrap();
     services

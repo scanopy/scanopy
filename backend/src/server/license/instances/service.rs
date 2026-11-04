@@ -260,7 +260,14 @@ mod tests {
         let (storage, _container) = test_storage().await;
         let org = org_id(&storage).await;
         let recorded = service(&storage)
-            .record_check_in(check_in(org, Some(Uuid::new_v4()), Utc::now()), LIMITS)
+            .record_check_in(
+                check_in(
+                    org,
+                    Some(Uuid::new_v4()),
+                    crate::server::shared::clock::now(),
+                ),
+                LIMITS,
+            )
             .await
             .unwrap();
         assert_eq!(
@@ -283,7 +290,7 @@ mod tests {
         let (storage, _container) = test_storage().await;
         let org = org_id(&storage).await;
         let service = service(&storage);
-        let start = Utc::now();
+        let start = crate::server::shared::clock::now();
         let production = Some(Uuid::new_v4());
         service
             .record_check_in(check_in(org, production, start), LIMITS)
@@ -322,7 +329,7 @@ mod tests {
         let (storage, _container) = test_storage().await;
         let org = org_id(&storage).await;
         let service = service(&storage);
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let returning = Some(Uuid::new_v4());
         let replacement = Some(Uuid::new_v4());
         service
@@ -360,7 +367,7 @@ mod tests {
         let (storage, _container) = test_storage().await;
         let org = org_id(&storage).await;
         let service = service(&storage);
-        let start = Utc::now();
+        let start = crate::server::shared::clock::now();
         let staging = Some(Uuid::new_v4());
         let production = Some(Uuid::new_v4());
         service
@@ -402,7 +409,7 @@ mod tests {
         let service = service(&storage);
         let first = Some(Uuid::new_v4());
         let second = Some(Uuid::new_v4());
-        let start = Utc::now();
+        let start = crate::server::shared::clock::now();
         service
             .record_check_in(check_in(org, first, start), LIMITS)
             .await
@@ -433,7 +440,11 @@ mod tests {
         for _ in 0..3 {
             let recorded = service
                 .record_check_in(
-                    check_in(org, Some(Uuid::new_v4()), Utc::now()),
+                    check_in(
+                        org,
+                        Some(Uuid::new_v4()),
+                        crate::server::shared::clock::now(),
+                    ),
                     InstanceLimits::default(),
                 )
                 .await
@@ -451,7 +462,7 @@ mod tests {
         let (storage, _container) = test_storage().await;
         let org = org_id(&storage).await;
         let service = service(&storage);
-        let start = Utc::now();
+        let start = crate::server::shared::clock::now();
         service
             .record_check_in(check_in(org, None, start), LIMITS)
             .await
@@ -491,7 +502,7 @@ mod tests {
         let (storage, _container) = test_storage().await;
         let org = org_id(&storage).await;
         let service = service(&storage);
-        let start = Utc::now();
+        let start = crate::server::shared::clock::now();
         service
             .record_check_in(check_in(org, Some(Uuid::new_v4()), start), LIMITS)
             .await
@@ -528,7 +539,7 @@ mod tests {
         let instance_id = Some(Uuid::new_v4());
 
         let concurrent = (0..4).map(|minor| {
-            let mut c = check_in(org, instance_id, Utc::now());
+            let mut c = check_in(org, instance_id, crate::server::shared::clock::now());
             c.server_version = Some(Version::new(0, 17, 30 + minor));
             service.record_check_in(c, LIMITS)
         });
@@ -537,7 +548,10 @@ mod tests {
         }
 
         let recorded = service
-            .record_check_in(check_in(org, instance_id, Utc::now()), LIMITS)
+            .record_check_in(
+                check_in(org, instance_id, crate::server::shared::clock::now()),
+                LIMITS,
+            )
             .await
             .unwrap();
         assert_eq!(recorded.usage.active, 1);
@@ -550,7 +564,7 @@ mod tests {
         let org = org_id(&storage).await;
         let service = service(&storage);
         for _ in 0..3 {
-            let mut old = check_in(org, None, Utc::now());
+            let mut old = check_in(org, None, crate::server::shared::clock::now());
             old.server_version = None;
             service.record_check_in(old, LIMITS).await.unwrap();
         }
@@ -567,11 +581,17 @@ mod tests {
         let retired = Some(Uuid::new_v4());
         let current = Some(Uuid::new_v4());
         service
-            .record_check_in(check_in(org, retired, Utc::now()), LIMITS)
+            .record_check_in(
+                check_in(org, retired, crate::server::shared::clock::now()),
+                LIMITS,
+            )
             .await
             .unwrap();
         service
-            .record_check_in(check_in(org, current, Utc::now()), LIMITS)
+            .record_check_in(
+                check_in(org, current, crate::server::shared::clock::now()),
+                LIMITS,
+            )
             .await
             .unwrap();
 
@@ -585,7 +605,10 @@ mod tests {
         assert!(service.delete(org, row.id).await.unwrap());
 
         let recorded = service
-            .record_check_in(check_in(org, current, Utc::now()), LIMITS)
+            .record_check_in(
+                check_in(org, current, crate::server::shared::clock::now()),
+                LIMITS,
+            )
             .await
             .unwrap();
         assert!(!recorded.refused);
@@ -596,7 +619,7 @@ mod tests {
         let (storage, _container) = test_storage().await;
         let org = org_id(&storage).await;
         let service = service(&storage);
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         service
             .record_check_in(
                 check_in(org, Some(Uuid::new_v4()), now - chrono::Duration::days(8)),
@@ -619,7 +642,14 @@ mod tests {
         let other = org_id(&storage).await;
         let service = service(&storage);
         service
-            .record_check_in(check_in(owner, Some(Uuid::new_v4()), Utc::now()), LIMITS)
+            .record_check_in(
+                check_in(
+                    owner,
+                    Some(Uuid::new_v4()),
+                    crate::server::shared::clock::now(),
+                ),
+                LIMITS,
+            )
             .await
             .unwrap();
         let row = service.list(owner).await.unwrap().remove(0);

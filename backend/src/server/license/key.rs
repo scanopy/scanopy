@@ -108,7 +108,7 @@ impl LicenseKey {
                     return LicenseStatus::Invalid("Invalid subject claim".to_string());
                 }
 
-                let now = chrono::Utc::now().timestamp();
+                let now = crate::server::shared::clock::now().timestamp();
                 if token_data.claims.exp < now {
                     LicenseStatus::Expired(token_data.claims)
                 } else {
@@ -151,7 +151,7 @@ pub(crate) mod test_support {
         OnlineKeyClaims {
             sub: ONLINE_KEY_SUBJECT.to_string(),
             iss: "scanopy".to_string(),
-            iat: chrono::Utc::now().timestamp(),
+            iat: crate::server::shared::clock::now().timestamp(),
             org_id: org_id.to_string(),
             key_version: 1,
         }
@@ -168,7 +168,7 @@ pub(crate) mod test_support {
         plan: Option<LicensePlan>,
         intended_days: i64,
     ) -> String {
-        let now = chrono::Utc::now().timestamp();
+        let now = crate::server::shared::clock::now().timestamp();
         let intended_exp = now + intended_days * DAY;
         sign(&LicenseClaims {
             sub: LICENSE_SUBJECT.to_string(),

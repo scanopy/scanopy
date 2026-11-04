@@ -231,7 +231,7 @@ impl HostService {
         // `discover_host` (see `ScanContext`) so all entities from one
         // submission share one timestamp; without ScanContext the value is
         // whatever the caller put on the entity (likely a per-entity
-        // Utc::now()).
+        // crate::server::shared::clock::now()).
         //
         // The later of the two, because a merge passes the other *stored* host here, and that
         // one can be older than the host it merges into.

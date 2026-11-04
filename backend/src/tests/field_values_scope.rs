@@ -2,7 +2,6 @@
 //! `site_ids` contributes no values, whether or not the request names it, and a list that
 //! always carries a scope (the run history's `historical`) counts only rows inside it.
 
-use chrono::Utc;
 use uuid::Uuid;
 
 use crate::daemon::discovery::types::base::DiscoveryPhase;
@@ -154,7 +153,7 @@ async fn discovery_field_values_with_historical_count_only_history_rows() {
     storage.daemons.create(&d).await.unwrap();
 
     let discovery = |name: &str, run_type: RunType| {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Discovery {
             id: Uuid::new_v4(),
             created_at: now,
@@ -199,8 +198,8 @@ async fn discovery_field_values_with_historical_count_only_history_rows() {
                     error: None,
                     warnings: Vec::new(),
                     credential_results: Vec::new(),
-                    started_at: Some(Utc::now()),
-                    finished_at: Some(Utc::now()),
+                    started_at: Some(crate::server::shared::clock::now()),
+                    finished_at: Some(crate::server::shared::clock::now()),
                     hosts_discovered: None,
                     estimated_remaining_secs: None,
                     discovery_id: None,

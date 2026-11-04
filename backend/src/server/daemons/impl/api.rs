@@ -1009,7 +1009,7 @@ mod health_tests {
         let mut base = DaemonBase {
             version: Some("0.1.0".parse().unwrap()),
             is_unreachable: true,
-            last_seen: Some(Utc::now()),
+            last_seen: Some(crate::server::shared::clock::now()),
             ..Default::default()
         };
         let status = policy.evaluate(base.version.as_ref());

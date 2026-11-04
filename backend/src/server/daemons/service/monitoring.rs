@@ -15,7 +15,7 @@ impl DaemonService {
         &self,
         email_service: Option<&EmailService>,
     ) -> Result<()> {
-        let cutoff = Utc::now() - chrono::Duration::days(30);
+        let cutoff = crate::server::shared::clock::now() - chrono::Duration::days(30);
 
         // Get all non-standby daemons created more than 30 days ago
         let active_daemons = self
@@ -26,7 +26,10 @@ impl DaemonService {
             // Skip daemons still within their post-reactivation grace window
             // so a freshly-restarted daemon has time for a scheduled
             // discovery to complete before inactivity is re-evaluated.
-            if is_within_standby_grace(daemon.base.standby_cleared_at, Utc::now()) {
+            if is_within_standby_grace(
+                daemon.base.standby_cleared_at,
+                crate::server::shared::clock::now(),
+            ) {
                 tracing::debug!(
                     daemon_id = %daemon.id,
                     cleared_at = ?daemon.base.standby_cleared_at,
@@ -259,7 +262,7 @@ impl DaemonService {
         previous: &mut std::collections::BTreeSet<String>,
     ) -> Result<()> {
         let daemons = self.get_all(StorableFilter::<Daemon>::new()).await?;
-        let counts = daemon_version_counts(&daemons, Utc::now());
+        let counts = daemon_version_counts(&daemons, crate::server::shared::clock::now());
         for (label, count) in daemon_version_gauge_values(previous, &counts) {
             metrics::gauge!("scanopy_daemons", "daemon_version" => label).set(count as f64);
         }
@@ -320,7 +323,7 @@ mod version_gauge_tests {
 
     #[test]
     fn counts_recent_daemons_by_exact_version() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let daemons = vec![
             seen(Some("0.17.4"), 1, now),
             seen(Some("0.17.4"), 2, now),

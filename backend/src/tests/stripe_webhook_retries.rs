@@ -188,7 +188,7 @@ impl LicenseResumeCase {
     /// was written off, so the licence resumes to 130 days from now.
     async fn new(state: &AppState) -> (Self, crate::server::billing::service::BillingService) {
         let plan = get_self_hosted_standard_plan();
-        let now = whole_seconds(Utc::now());
+        let now = whole_seconds(crate::server::shared::clock::now());
         let term_end = now + Duration::days(100);
         let written_off = now - Duration::days(30);
         let resumed_through = now + Duration::days(130);
@@ -359,7 +359,7 @@ async fn a_failed_deletion_is_redelivered_and_lands_the_org_on_free() {
 
     let mut canceled: Value = serde_json::from_str(&subscription_for(org_id)).unwrap();
     canceled["status"] = json!("canceled");
-    canceled["ended_at"] = json!(Utc::now().timestamp());
+    canceled["ended_at"] = json!(crate::server::shared::clock::now().timestamp());
     subscription.answer(canceled.to_string());
     subscriptions.fail_next(1);
     let deleted = SUBSCRIPTION_CREATED_CLOVER.replace(

@@ -20,7 +20,7 @@ impl Storable for Topology {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
 
         Self {
             id: Uuid::new_v4(),

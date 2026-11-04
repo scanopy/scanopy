@@ -230,7 +230,7 @@ fn sample(schemas: &Value, schema: &Value, id: Uuid, own_site: Uuid, depth: u8) 
         "null" => Value::Null,
         _ => match schema.get("format").and_then(Value::as_str) {
             Some("uuid") => json!(id),
-            Some("date-time") => json!(chrono::Utc::now()),
+            Some("date-time") => json!(crate::server::shared::clock::now()),
             _ => json!("x"),
         },
     }
@@ -298,7 +298,7 @@ async fn seed_org(state: &Arc<AppState>) -> SeededOrg {
                 permissions: UserOrgPermissions::Member,
                 url: "https://example.com/invite".to_string(),
                 created_by: owner.id,
-                expires_at: chrono::Utc::now() + chrono::Duration::days(7),
+                expires_at: crate::server::shared::clock::now() + chrono::Duration::days(7),
                 ..InviteBase::default()
             }),
             AuthenticatedEntity::System,

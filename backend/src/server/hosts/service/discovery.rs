@@ -209,7 +209,7 @@ impl HostService {
         // submission with the same `scan_time` so per-scan diff queries
         // (Added/Removed/Modified/Refreshed-unchanged buckets keyed on
         // session window) and freshness reads see one consistent timestamp.
-        // Without this, each entity's per-call `Utc::now()` drifts across
+        // Without this, each entity's per-call `crate::server::shared::clock::now()` drifts across
         // the host+children tree by microseconds-to-milliseconds, blurring
         // session boundaries.
         //

@@ -14,8 +14,6 @@
 use std::collections::{HashMap, HashSet};
 use std::net::IpAddr;
 
-use chrono::Utc;
-
 use super::*;
 use crate::server::ports::r#impl::{base::PortType, coverage::PortCoverage};
 use crate::server::shared::storage::snapshot::DiscoveryTracked;
@@ -379,7 +377,7 @@ impl HostService {
         let Some(site) = self.site_service.get_by_id(site_id).await? else {
             return Ok(());
         };
-        let cutoff = site.stale_cutoff(Utc::now());
+        let cutoff = site.stale_cutoff(crate::server::shared::clock::now());
 
         let mut releases: Vec<(Uuid, Vec<PortClaim>)> = Vec::new();
         for service in services

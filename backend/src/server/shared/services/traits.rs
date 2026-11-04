@@ -916,7 +916,7 @@ where
             .get_by_id_for_update(&Snapshotable::id_value(&new_entity))
             .await?
             .ok_or_else(|| anyhow!("close_and_clone: live row not found"))?;
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
         // Closed historical copy: synthetic id, lineage_id pointing at live id.
         let mut closed = live.make_closed_copy(now);
         closed.set_id_value(uuid::Uuid::new_v4());
@@ -1057,7 +1057,7 @@ mod ready_for_create_tests {
 
     #[test]
     fn a_real_timestamp_is_kept() {
-        let when = chrono::Utc::now() - chrono::Duration::days(3);
+        let when = crate::server::shared::clock::now() - chrono::Duration::days(3);
         let sent = Credential {
             id: Uuid::new_v4(),
             created_at: when,

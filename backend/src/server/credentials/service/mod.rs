@@ -1416,8 +1416,12 @@ mod integration_target_tests {
             let mut map: Mappings = Mappings::new();
             let mut created_at = HashMap::new();
             for (id, community, created) in [
-                (older_id, "older", Utc::now() - chrono::Duration::days(1)),
-                (newer_id, "newer", Utc::now()),
+                (
+                    older_id,
+                    "older",
+                    crate::server::shared::clock::now() - chrono::Duration::days(1),
+                ),
+                (newer_id, "newer", crate::server::shared::clock::now()),
             ] {
                 let cred = snmp_v2c(community);
                 mapping_for(&mut map, id, &cred)

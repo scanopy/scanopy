@@ -132,7 +132,7 @@ impl Share {
             return false;
         }
         if let Some(expires_at) = self.base.expires_at
-            && Utc::now() > expires_at
+            && crate::server::shared::clock::now() > expires_at
         {
             return false;
         }
@@ -236,7 +236,7 @@ impl Storable for Share {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,

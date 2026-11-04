@@ -329,7 +329,7 @@ impl OrganizationService {
                 // Whole seconds: the claim carries seconds, and Postgres keeps
                 // microseconds, so a truncating round trip would otherwise hand
                 // back a different stamp than the one just written.
-                let issued_at = whole_second(Utc::now());
+                let issued_at = whole_second(crate::server::shared::clock::now());
                 locked.org.base.license_key_issued_at = Some(issued_at);
                 let organization = locked.save_quietly().await?;
                 let issued = BillingOperation::LicenseKeyIssued {
@@ -398,7 +398,8 @@ impl OrganizationService {
             .license_key_version
             .checked_add(1)
             .ok_or_else(|| anyhow::anyhow!("License key version overflow"))?;
-        locked.org.base.license_key_issued_at = Some(whole_second(Utc::now()));
+        locked.org.base.license_key_issued_at =
+            Some(whole_second(crate::server::shared::clock::now()));
 
         // Dry-run the mint against the state about to be written. The loaded
         // copy is mutated but not yet persisted, so a refusal here leaves the
@@ -476,7 +477,8 @@ impl OrganizationService {
             .ok_or_else(|| anyhow::anyhow!("License key version overflow"))?;
         // Move the stamp too. The version alone already changes the key; this
         // keeps the stamp honest about when the current key was issued.
-        locked.org.base.license_key_issued_at = Some(whole_second(Utc::now()));
+        locked.org.base.license_key_issued_at =
+            Some(whole_second(crate::server::shared::clock::now()));
         let updated = locked
             .save(authentication, UpdateReason::OrganizationLicenseKeyChanged)
             .await?;
@@ -506,7 +508,7 @@ impl OrganizationService {
             return None;
         }
         let status = DemoPopulateStatus::Running {
-            started_at: Utc::now(),
+            started_at: crate::server::shared::clock::now(),
         };
         map.insert(org_id, status.clone());
         Some(status)

@@ -34,7 +34,7 @@ fn pro() -> BillingPlan {
 /// after discounts; `amount_paid_cents` is what was taken from the customer
 /// after account credit.
 fn renewal(plan: BillingPlan, total_cents: i64, amount_paid_cents: i64) -> BillingInvoice {
-    let now: DateTime<Utc> = Utc::now();
+    let now: DateTime<Utc> = crate::server::shared::clock::now();
     let period_end = now + chrono::Duration::days(30);
     BillingInvoice {
         stripe_invoice_id: "in_renewal".to_string(),
@@ -157,7 +157,7 @@ async fn the_trial_converted_email_goes_out_only_for_a_priced_plan() {
 #[tokio::test]
 async fn a_free_customer_still_gets_the_emails_that_change_something() {
     let free = get_free_plan();
-    let period_end = Utc::now() + chrono::Duration::days(10);
+    let period_end = crate::server::shared::clock::now() + chrono::Duration::days(10);
     let cases = [
         (
             BillingOperation::SubscriptionCancelled {
@@ -205,7 +205,7 @@ async fn a_zero_dollar_air_gapped_renewal_still_says_to_copy_the_key() {
     let dir = tempfile::tempdir().unwrap();
     let (state, _container) = test_state_with_email_dir(Some(dir.path().to_path_buf())).await;
     let plus = get_self_hosted_plus_plan();
-    let org = create_org(&state, plus, Some(Utc::now())).await;
+    let org = create_org(&state, plus, Some(crate::server::shared::clock::now())).await;
     let mut air_gapped = reload(&state, org.id).await;
     air_gapped.base.license_key_type = Some(LicenseKeyType::Offline);
     state

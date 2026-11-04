@@ -9,7 +9,6 @@ use std::time::Duration;
 use axum::Router;
 use axum::extract::Path;
 use axum::routing::get;
-use chrono::Utc;
 use email_address::EmailAddress;
 use governor::Quota;
 use std::num::NonZeroU32;
@@ -119,7 +118,11 @@ pub(super) async fn checked_out_org(state: &AppState, org_id: Uuid) -> Organizat
 
 /// Sign `payload` as Stripe would and hand it to the webhook handler.
 pub(super) async fn try_deliver(billing: &BillingService, payload: &str) -> anyhow::Result<()> {
-    let signature = header(payload, WEBHOOK_SECRET, Utc::now().timestamp());
+    let signature = header(
+        payload,
+        WEBHOOK_SECRET,
+        crate::server::shared::clock::now().timestamp(),
+    );
     billing.handle_webhook(payload, &signature).await
 }
 
@@ -248,7 +251,8 @@ async fn the_portal_cancel_pair_announces_the_cancellation_once() {
     let (state, _container) = test_state_with_email_dir(None).await;
     let mut subscription: serde_json::Value =
         serde_json::from_str(&renewed_subscription(org_id, pro)).unwrap();
-    subscription["cancel_at"] = (Utc::now().timestamp() + 30 * 86_400).into();
+    subscription["cancel_at"] =
+        (crate::server::shared::clock::now().timestamp() + 30 * 86_400).into();
     let subscription = subscription.to_string();
     let router = Router::new()
         .route(

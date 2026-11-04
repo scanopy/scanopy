@@ -28,8 +28,8 @@ pub async fn trigger_discovery(
     // Create a Unified Discovery record
     let discovery = Discovery {
         id: Uuid::nil(), // Server assigns ID
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
+        created_at: scanopy::server::shared::clock::now(),
+        updated_at: scanopy::server::shared::clock::now(),
         base: DiscoveryBase {
             discovery_type: DiscoveryType::Unified {
                 host_id,

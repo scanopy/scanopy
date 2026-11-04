@@ -307,7 +307,7 @@ async fn main() -> anyhow::Result<()> {
             loop {
                 interval.tick().await;
                 if let Err(e) = silence_organizations
-                    .report_silent_license_check_ins(chrono::Utc::now())
+                    .report_silent_license_check_ins(scanopy::server::shared::clock::now())
                     .await
                 {
                     tracing::error!(error = %e, "License check-in silence sweep failed");

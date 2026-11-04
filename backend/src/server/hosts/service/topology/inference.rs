@@ -75,7 +75,7 @@ impl HostService {
                 },
                 tags: Vec::new(),
             });
-            subnet.last_seen_at = Utc::now();
+            subnet.last_seen_at = crate::server::shared::clock::now();
 
             let created = match self
                 .subnet_service
@@ -509,7 +509,7 @@ impl HostService {
             // Left unnamed. The sysName, chassis id and address are identifiers, each already in
             // its own column, and the display ladder titles the far end by the best of them
             // without a copy in `name` (see the placement rule in `hosts::impl::name`).
-            // The scan's own timestamp, not `Utc::now()`. `create.rs` derives `created_at` from
+            // The scan's own timestamp, not `crate::server::shared::clock::now()`. `create.rs` derives `created_at` from
             // this via `originate_scan_timestamps`, and the digest's window closes at the session's
             // `finished_at` — so a host stamped with the wall clock at mint time lands just past the
             // end of the window that is supposed to contain it, and is never reported as added.

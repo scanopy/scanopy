@@ -391,8 +391,8 @@ async fn test_discovery_crud(ctx: &TestContext) -> Result<(), String> {
 
     let discovery = Discovery {
         id: Uuid::nil(), // Server assigns ID
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
+        created_at: scanopy::server::shared::clock::now(),
+        updated_at: scanopy::server::shared::clock::now(),
         base: DiscoveryBase {
             discovery_type: DiscoveryType::Unified {
                 host_id,
@@ -813,7 +813,7 @@ async fn test_user_api_key_rotation(ctx: &TestContext) -> Result<(), String> {
 
 /// Test that expired and disabled keys are rejected during authentication
 async fn test_user_api_key_expired_disabled(ctx: &TestContext) -> Result<(), String> {
-    use chrono::{Duration, Utc};
+    use chrono::Duration;
 
     println!("Testing Expired/Disabled API Key Rejection...");
 
@@ -876,7 +876,7 @@ async fn test_user_api_key_expired_disabled(ctx: &TestContext) -> Result<(), Str
 
     // Re-enable but set expiration in the past
     fetched.base.is_enabled = true;
-    fetched.base.expires_at = Some(Utc::now() - Duration::hours(1));
+    fetched.base.expires_at = Some(scanopy::server::shared::clock::now() - Duration::hours(1));
     let _updated: UserApiKey = ctx
         .client
         .put(&format!("/api/v1/user-api-keys/{}", key_id), &fetched)

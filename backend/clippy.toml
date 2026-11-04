@@ -1,4 +1,5 @@
 allow-private-module-inception = true
 disallowed-methods = [
+    { path = "chrono::Utc::now", reason = "Postgres stores microseconds and Utc::now returns nanoseconds; use server::shared::clock::now" },
     { path = "tokio::net::TcpStream::connect", reason = "application probes connect through ProbeContext::connect, so a container's relay carries them" },
 ]

@@ -387,7 +387,7 @@ mod snapshotable_tests {
         ));
         let live_id = live.id_value();
 
-        let closed_at = chrono::Utc::now();
+        let closed_at = crate::server::shared::clock::now();
         let closed = live.make_closed_copy(closed_at);
 
         assert_eq!(closed.lineage_id(), Some(live_id));
@@ -408,7 +408,7 @@ mod snapshotable_tests {
             EntityDiscriminants::Service,
             tag_id,
         ));
-        let closed = live.make_closed_copy(chrono::Utc::now());
+        let closed = live.make_closed_copy(crate::server::shared::clock::now());
         assert_eq!(closed.base.entity_id, entity_id);
         assert_eq!(closed.base.entity_type, EntityDiscriminants::Service);
         assert_eq!(closed.base.tag_id, tag_id);

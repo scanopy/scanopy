@@ -280,7 +280,7 @@ impl IPAddress {
     }
 
     pub fn new(base: IPAddressBase) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,

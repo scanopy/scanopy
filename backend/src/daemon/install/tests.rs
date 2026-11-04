@@ -440,7 +440,7 @@ fn a_replaced_daemon_forgets_the_identity_the_server_gave_it() {
     config.name = "scanopy-daemon-a".to_string();
     config.host_id = Some(Uuid::new_v4());
     config.user_id = Some(Uuid::new_v4());
-    config.last_heartbeat = Some(chrono::Utc::now());
+    config.last_heartbeat = Some(crate::server::shared::clock::now());
     config.has_self_reported = true;
     config.daemon_port = 60099;
 

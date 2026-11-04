@@ -338,7 +338,7 @@ impl Organization {
     pub fn air_gapped_key_current_until(&self) -> Option<DateTime<Utc>> {
         let paid_through = self.base.license_paid_through?;
         (self.base.license_key_type == Some(crate::server::license::types::LicenseKeyType::Offline)
-            && Utc::now() < paid_through)
+            && crate::server::shared::clock::now() < paid_through)
             .then_some(paid_through)
     }
 
@@ -546,7 +546,7 @@ mod tests {
     fn a_trial_with_a_scheduled_cancellation_is_still_a_trial() {
         use crate::server::billing::types::base::PlanStatus;
 
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let with = |status: Option<PlanStatus>, trial_end: Option<DateTime<Utc>>| {
             let mut org = Organization::default();
             org.base.plan_status = status;
@@ -569,8 +569,8 @@ mod tests {
     /// air-gapped key with time left on it counts.
     #[test]
     fn only_an_unexpired_air_gapped_key_is_current() {
-        let future = Utc::now() + chrono::Duration::days(30);
-        let past = Utc::now() - chrono::Duration::days(1);
+        let future = crate::server::shared::clock::now() + chrono::Duration::days(30);
+        let past = crate::server::shared::clock::now() - chrono::Duration::days(1);
 
         assert_eq!(
             org(Some(LicenseKeyType::Offline), Some(future)).air_gapped_key_current_until(),
@@ -606,7 +606,7 @@ mod tests {
     fn a_current_air_gapped_key_blocks_license_moves_but_not_cloud_ones() {
         use crate::server::billing::plans::{get_purchasable_plans, get_self_hosted_plus_plan};
 
-        let until = Utc::now() + chrono::Duration::days(30);
+        let until = crate::server::shared::clock::now() + chrono::Duration::days(30);
         let mut holder = org(Some(LicenseKeyType::Offline), Some(until));
         holder.base.plan = get_self_hosted_plus_plan();
 

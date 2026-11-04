@@ -794,7 +794,8 @@ async fn a_discovered_host_cannot_rewrite_an_address_on_another_site() {
     reported["site_id"] = json!(mine.site.id);
     reported["host_id"] = json!(reported_host.id);
     reported["subnet_id"] = json!(own_subnet.id);
-    reported["last_seen_at"] = json!(chrono::Utc::now() + chrono::Duration::hours(1));
+    reported["last_seen_at"] =
+        json!(crate::server::shared::clock::now() + chrono::Duration::hours(1));
     let body = json!({
         "host": reported_host,
         "ip_addresses": [reported],

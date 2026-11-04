@@ -96,7 +96,7 @@ pub(crate) async fn register(
             email: request.email.clone(),
             has_password: true,
             terms_accepted_at: if request.terms_accepted {
-                Some(Utc::now())
+                Some(crate::server::shared::clock::now())
             } else {
                 None
             },

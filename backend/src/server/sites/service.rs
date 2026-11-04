@@ -109,7 +109,7 @@ impl SiteService {
         if site_ids.is_empty() {
             return Ok(Vec::new());
         }
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
         let sites = self
             .get_all(
                 crate::server::shared::storage::filter::StorableFilter::<Site>::new_from_entity_ids(

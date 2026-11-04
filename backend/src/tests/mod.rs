@@ -35,7 +35,6 @@ use crate::server::{
     },
 };
 use axum::Router;
-use chrono::Utc;
 use cidr::IpCidr;
 use cidr::Ipv4Cidr;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
@@ -378,7 +377,7 @@ pub fn daemon(site_id: &Uuid, host_id: &Uuid) -> Daemon {
         tags: Vec::new(),
         name: "daemon".to_string(),
         url: "http://192.168.1.50:60073".to_string(),
-        last_seen: Some(Utc::now()),
+        last_seen: Some(crate::server::shared::clock::now()),
         mode: DaemonMode::ServerPoll,
         version: None,
         user_id: Uuid::nil(),

@@ -422,7 +422,7 @@ mod tests {
         DaemonBase {
             os,
             version: version.map(|v| Version::parse(v).unwrap()),
-            last_seen: connected.then(Utc::now),
+            last_seen: connected.then(crate::server::shared::clock::now),
             ..Default::default()
         }
     }
@@ -436,7 +436,7 @@ mod tests {
         let id = before.id;
 
         let mut heartbeat = before.clone();
-        heartbeat.base.last_seen = Some(Utc::now());
+        heartbeat.base.last_seen = Some(crate::server::shared::clock::now());
         assert!(
             heartbeat
                 .update_log(&before, id, &UpdateReason::DaemonHeartbeat)

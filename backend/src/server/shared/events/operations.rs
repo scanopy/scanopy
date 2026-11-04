@@ -300,7 +300,7 @@ pub(crate) mod tests {
             address: "192.0.2.1".parse().expect("address"),
             collected: 3,
         };
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
 
         vec![
             sample(

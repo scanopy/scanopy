@@ -1,7 +1,6 @@
 use std::{collections::HashMap, fmt::Display};
 
 use anyhow::Result;
-use chrono::Utc;
 use sqlx::{PgPool, Postgres};
 use uuid::Uuid;
 
@@ -226,7 +225,7 @@ impl<T: ChildStorableEntity + Snapshotable + Display> GenericChildStorage<T> {
         let wanted: std::collections::HashSet<Uuid> = member_ids.iter().copied().collect();
         let held: std::collections::HashSet<Uuid> = existing.iter().map(&member_of).collect();
 
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         for row in existing
             .iter()
             .filter(|row| !wanted.contains(&member_of(row)))
@@ -250,7 +249,7 @@ impl<T: ChildStorableEntity + Snapshotable + Display> GenericChildStorage<T> {
         if rows.is_empty() {
             return Ok(0);
         }
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         for row in rows.iter_mut() {
             row.set_valid_to(Some(now));
         }

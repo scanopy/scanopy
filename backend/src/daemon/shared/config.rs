@@ -1294,7 +1294,7 @@ impl ConfigStore {
 
     pub async fn update_heartbeat(&self) -> Result<()> {
         let mut config = self.config.write().await;
-        config.last_heartbeat = Some(chrono::Utc::now());
+        config.last_heartbeat = Some(crate::server::shared::clock::now());
         self.save(&config.clone()).await
     }
 

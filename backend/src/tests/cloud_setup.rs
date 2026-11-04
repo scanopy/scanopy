@@ -200,7 +200,7 @@ async fn self_hosted_signup_gets_no_site_until_it_moves_to_cloud() {
         org_id,
         BillingOperation::TrialStarted {
             plan: license_plan(),
-            trial_end: chrono::Utc::now(),
+            trial_end: crate::server::shared::clock::now(),
             trial_days: 14,
         },
     )
@@ -264,7 +264,7 @@ async fn cloud_signup_gets_its_requested_site() {
         org_id,
         BillingOperation::TrialStarted {
             plan: cloud_plan(),
-            trial_end: chrono::Utc::now(),
+            trial_end: crate::server::shared::clock::now(),
             trial_days: 14,
         },
     )

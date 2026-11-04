@@ -1232,7 +1232,7 @@ impl EmailService {
     /// paid-through date on its notifications ratchet, so running daily is
     /// safe and a renewal re-arms it.
     pub async fn warn_expiring_airgap_keys(&self) -> Result<()> {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let filter = StorableFilter::<Organization>::new_with_airgap_key_expiring_between(
             now,
             now + chrono::Duration::days(AIRGAP_EXPIRY_WARNING_DAYS),
@@ -1501,7 +1501,7 @@ impl EmailService {
         let daemons_count = self.daemon_service.count_for_sites(&site_ids).await?;
 
         let trial_started_at = trial_started_at.unwrap_or(org.created_at);
-        let days_into_trial = (chrono::Utc::now() - trial_started_at).num_days();
+        let days_into_trial = (crate::server::shared::clock::now() - trial_started_at).num_days();
 
         Ok(TrialRecapMetrics {
             hosts_count,

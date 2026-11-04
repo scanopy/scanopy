@@ -496,7 +496,7 @@ mod tests {
             Event::new(OrgScope { organization_id }, op, authentication.clone())
         }
         let system = AuthenticatedEntity::System;
-        let trial_end = chrono::Utc::now();
+        let trial_end = crate::server::shared::clock::now();
 
         vec![
             (

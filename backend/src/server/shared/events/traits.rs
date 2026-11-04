@@ -328,7 +328,7 @@ impl<Op: Operation> Event<Op> {
             scope,
             operation,
             flags: Op::Flags::default(),
-            timestamp: Utc::now(),
+            timestamp: crate::server::shared::clock::now(),
             authentication,
             log,
         }

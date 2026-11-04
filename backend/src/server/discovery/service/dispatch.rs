@@ -132,8 +132,11 @@ impl DiscoveryService {
         }
 
         // Update last_run on the discovery (covers all code paths: handler, scheduler, registration)
-        discovery.base.run_type.set_last_run(Utc::now());
-        discovery.updated_at = Utc::now();
+        discovery
+            .base
+            .run_type
+            .set_last_run(crate::server::shared::clock::now());
+        discovery.updated_at = crate::server::shared::clock::now();
         if let Err(e) = self.discovery_storage.update(&mut discovery).await {
             tracing::error!(
                 "Failed to update last_run for discovery {}: {}",
@@ -217,7 +220,7 @@ impl DiscoveryService {
             self.session_last_updated
                 .write()
                 .await
-                .insert(session_id, Utc::now());
+                .insert(session_id, crate::server::shared::clock::now());
         }
 
         // The session and its discovery mapping go in under one pair of guards. Inserted apart,
@@ -328,7 +331,7 @@ impl DiscoveryService {
                 .map(|credential_id| IntegrationTarget::Site { credential_id })
                 .collect();
         }
-        parent_discovery.updated_at = Utc::now();
+        parent_discovery.updated_at = crate::server::shared::clock::now();
         tx.update(&mut parent_discovery).await?;
         tx.commit().await?;
         Ok(())
@@ -405,7 +408,7 @@ impl DiscoveryService {
 
         update.phase = DiscoveryPhase::Failed;
         update.error = Some(error);
-        update.finished_at = Some(Utc::now());
+        update.finished_at = Some(crate::server::shared::clock::now());
         update.reason = Some(reason);
         self.record_update(update, state::apply_server_update).await;
     }
@@ -439,7 +442,7 @@ impl DiscoveryService {
                     pull_cancellations: &mut pull_cancellations,
                 },
                 &update,
-                Utc::now(),
+                crate::server::shared::clock::now(),
             );
 
             // A running session's update reaches the stream while the maps are still locked, so
@@ -553,8 +556,10 @@ impl DiscoveryService {
 
             let historical_discovery = Discovery {
                 id: Uuid::new_v4(),
-                created_at: session.started_at.unwrap_or(Utc::now()),
-                updated_at: Utc::now(),
+                created_at: session
+                    .started_at
+                    .unwrap_or(crate::server::shared::clock::now()),
+                updated_at: crate::server::shared::clock::now(),
                 base: DiscoveryBase {
                     daemon_id: session.daemon_id,
                     site_id: session.site_id,
@@ -799,7 +804,7 @@ impl DiscoveryService {
             warnings: Vec::new(),
             credential_results: Vec::new(),
             started_at: session.started_at,
-            finished_at: Some(Utc::now()),
+            finished_at: Some(crate::server::shared::clock::now()),
             discovery_type: session.discovery_type,
             hosts_discovered: None,
             estimated_remaining_secs: None,
@@ -835,7 +840,7 @@ impl DiscoveryService {
                             pull_cancellations: &mut pull_cancellations,
                         },
                         session_id,
-                        Utc::now(),
+                        crate::server::shared::clock::now(),
                     )
                 };
                 if let Some(promoted) = promoted {

@@ -1,7 +1,6 @@
 //! Lists paged through `list_page`, against a database: each group's count covers every page,
 //! filters narrow on the server, and no row outside the caller's sites or organization appears.
 
-use chrono::Utc;
 use uuid::Uuid;
 
 use crate::server::shared::attribution::AttributeSource;
@@ -23,7 +22,7 @@ fn counts(groups: Option<&[GroupCount]>) -> Vec<(String, u64)> {
 }
 
 fn vlan(site_id: Uuid, organization_id: Uuid, number: u16) -> Vlan {
-    let now = Utc::now();
+    let now = crate::server::shared::clock::now();
     Vlan {
         id: Uuid::new_v4(),
         created_at: now,

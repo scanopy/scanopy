@@ -260,7 +260,7 @@ impl LicenseService {
             return;
         }
 
-        let checked_at = Utc::now();
+        let checked_at = crate::server::shared::clock::now();
         {
             let mut state = self.state.write().await;
             if state.problem.take().is_some() {
@@ -304,7 +304,7 @@ impl LicenseService {
                 problem.log_message().to_string()
             }
         };
-        let checked_at = Utc::now();
+        let checked_at = crate::server::shared::clock::now();
         {
             let mut state = self.state.write().await;
             state.entitlement = None;

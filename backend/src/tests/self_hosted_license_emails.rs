@@ -15,7 +15,6 @@ use axum::body::Body;
 use axum::http::Request;
 use axum::middleware::{self, Next};
 use axum::routing::{get, post};
-use chrono::Utc;
 use email_address::EmailAddress;
 use uuid::Uuid;
 
@@ -180,7 +179,7 @@ async fn a_cloud_trial_that_runs_out_gets_the_trial_expired_email() {
         stripe_reason: None,
         internal_reason: None,
         comment: None,
-        period_end: Utc::now(),
+        period_end: crate::server::shared::clock::now(),
         was_trialing,
         mrr_amount_cents: 0,
         tenure_days: 14,
@@ -227,7 +226,7 @@ async fn a_cancelled_license_sends_the_license_ended_email_not_the_cloud_one() {
             stripe_reason: None,
             internal_reason: None,
             comment: None,
-            period_end: Utc::now(),
+            period_end: crate::server::shared::clock::now(),
             was_trialing: true,
             mrr_amount_cents: 0,
             tenure_days: 14,
@@ -482,7 +481,7 @@ async fn license_key_routes_serve_a_license_plan_owner() {
     let org = create_org(
         &state,
         get_self_hosted_standard_plan(),
-        Some(Utc::now() + chrono::Duration::days(30)),
+        Some(crate::server::shared::clock::now() + chrono::Duration::days(30)),
     )
     .await;
     let base = serve_key_routes(

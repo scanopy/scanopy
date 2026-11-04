@@ -16,7 +16,7 @@ use std::panic::PanicHookInfo;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 
-use chrono::{SecondsFormat, Utc};
+use chrono::SecondsFormat;
 
 static LOG_PATH: OnceLock<Option<PathBuf>> = OnceLock::new();
 
@@ -63,7 +63,7 @@ fn append_crash_line(detail: &str) {
     };
     let line = format!(
         "{}  ERROR daemon: Daemon crashed: {detail}\n",
-        Utc::now().to_rfc3339_opts(SecondsFormat::Micros, true)
+        crate::server::shared::clock::now().to_rfc3339_opts(SecondsFormat::Micros, true)
     );
     if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(path) {
         let _ = file.write_all(line.as_bytes());

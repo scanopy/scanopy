@@ -9,7 +9,7 @@ use axum::body::Body;
 use axum::http::Request;
 use axum::middleware::{self, Next};
 use axum::routing::{get, post};
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use uuid::Uuid;
 
 use super::self_hosted_licensing::{
@@ -157,7 +157,7 @@ async fn a_user_who_accepted_earlier_terms_is_refused_until_they_accept_again() 
         .await
         .unwrap();
     let accepted_at = accepted.base.terms_accepted_at.unwrap();
-    assert!(Utc::now() - accepted_at < Duration::minutes(1));
+    assert!(crate::server::shared::clock::now() - accepted_at < Duration::minutes(1));
     assert!(!acceptance_required(
         DeploymentType::Cloud,
         Some(&org.base.plan),

@@ -911,7 +911,7 @@ impl DiscoveryOps {
             session_id: request.session_id,
             site_id,
             daemon_id,
-            started_at: Some(Utc::now()),
+            started_at: Some(crate::server::shared::clock::now()),
             discovery_type: request.discovery_type.clone(),
             discovery_id: request.discovery_id,
         };
@@ -1063,7 +1063,7 @@ impl DiscoveryOps {
             final_progress,
             warnings,
             credential_results,
-            Utc::now(),
+            crate::server::shared::clock::now(),
         );
         match terminal_update.phase {
             DiscoveryPhase::Complete => tracing::info!(
@@ -2249,7 +2249,7 @@ mod terminal_update_tests {
                 99,
                 Vec::new(),
                 Vec::new(),
-                Utc::now(),
+                crate::server::shared::clock::now(),
             );
 
             assert_eq!(update.phase, DiscoveryPhase::Failed);
@@ -2269,7 +2269,7 @@ mod terminal_update_tests {
             40,
             Vec::new(),
             Vec::new(),
-            Utc::now(),
+            crate::server::shared::clock::now(),
         );
 
         assert_eq!(update.phase, DiscoveryPhase::Failed);

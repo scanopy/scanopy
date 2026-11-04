@@ -134,7 +134,11 @@ pub(super) async fn reload(state: &AppState, organization_id: Uuid) -> Organizat
 /// Postgres stores microseconds; keep test timestamps on whole seconds so
 /// they round-trip exactly.
 fn whole_seconds_from_now(days: i64) -> DateTime<Utc> {
-    DateTime::from_timestamp((Utc::now() + Duration::days(days)).timestamp(), 0).unwrap()
+    DateTime::from_timestamp(
+        (crate::server::shared::clock::now() + Duration::days(days)).timestamp(),
+        0,
+    )
+    .unwrap()
 }
 
 async fn request_entitlement(state: &Arc<AppState>, key: String) -> Result<String, StatusCode> {
@@ -359,7 +363,9 @@ async fn entitlement_endpoint_accepts_current_keys_and_rejects_the_rest() {
     let service = &state.services.organization_service;
     let paid_through = whole_seconds_from_now(30);
     let org = create_org(&state, get_self_hosted_standard_plan(), Some(paid_through)).await;
-    let key = issuer.mint_online_key(&org, Utc::now()).unwrap();
+    let key = issuer
+        .mint_online_key(&org, crate::server::shared::clock::now())
+        .unwrap();
 
     // 200: an entitlement for the org's plan and paid-through date, and the
     // check-in is recorded.
@@ -388,7 +394,9 @@ async fn entitlement_endpoint_accepts_current_keys_and_rejects_the_rest() {
         request_entitlement(&state, "not-a-key".to_string()).await,
         Err(StatusCode::BAD_REQUEST)
     );
-    let offline_format = issuer.mint_entitlement(&org, Utc::now()).unwrap();
+    let offline_format = issuer
+        .mint_entitlement(&org, crate::server::shared::clock::now())
+        .unwrap();
     assert_eq!(
         request_entitlement(&state, offline_format).await,
         Err(StatusCode::BAD_REQUEST)
@@ -404,7 +412,10 @@ async fn entitlement_endpoint_accepts_current_keys_and_rejects_the_rest() {
         Err(StatusCode::FORBIDDEN)
     );
     let current_key = issuer
-        .mint_online_key(&reload(&state, org.id).await, Utc::now())
+        .mint_online_key(
+            &reload(&state, org.id).await,
+            crate::server::shared::clock::now(),
+        )
         .unwrap();
     assert!(
         request_entitlement(&state, current_key.clone())
@@ -433,7 +444,9 @@ async fn a_cloud_plan_check_in_is_refused_and_not_recorded() {
         Some(whole_seconds_from_now(30)),
     )
     .await;
-    let key = issuer.mint_online_key(&org, Utc::now()).unwrap();
+    let key = issuer
+        .mint_online_key(&org, crate::server::shared::clock::now())
+        .unwrap();
     set_plan(&state, org.id, get_free_plan()).await;
 
     let error = get_entitlement(
@@ -536,7 +549,7 @@ async fn a_cloud_org_lands_on_free_when_the_subscription_ends() {
                     stripe_reason: None,
                     internal_reason: None,
                     comment: None,
-                    period_end: Utc::now(),
+                    period_end: crate::server::shared::clock::now(),
                     was_trialing: true,
                     mrr_amount_cents: 0,
                     tenure_days: 14,
@@ -1156,7 +1169,7 @@ async fn sent_invoices_license_until_due_and_give_back_on_void() {
         stripe_reason: None,
         internal_reason: None,
         comment: None,
-        period_end: Utc::now(),
+        period_end: crate::server::shared::clock::now(),
         was_trialing: false,
         mrr_amount_cents: 0,
         tenure_days: 30,

@@ -188,7 +188,7 @@ impl UserBase {
             has_password: false,
             terms_acceptance_required: false,
             email_verification_required: false,
-            oidc_linked_at: Some(Utc::now()),
+            oidc_linked_at: Some(crate::server::shared::clock::now()),
             permissions,
             organization_id,
             oidc_provider,
@@ -280,7 +280,7 @@ impl User {
     pub fn set_password(&mut self, password_hash: String) {
         self.base.password_hash = Some(password_hash);
         self.base.has_password = true;
-        self.updated_at = Utc::now();
+        self.updated_at = crate::server::shared::clock::now();
     }
 }
 
@@ -311,7 +311,7 @@ impl Storable for User {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
 
         Self {
             id: Uuid::new_v4(),
@@ -524,7 +524,7 @@ mod tests {
     /// A stored user mid-flow: logged out everywhere twice, a password reset
     /// and an email change pending, not yet verified.
     fn stored_user() -> User {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         User {
             id: Uuid::new_v4(),
             created_at: now - chrono::Duration::days(30),
@@ -562,7 +562,7 @@ mod tests {
 
         let mut body = serde_json::to_value(&existing).unwrap();
         body["id"] = serde_json::json!(Uuid::new_v4());
-        body["created_at"] = serde_json::json!(Utc::now());
+        body["created_at"] = serde_json::json!(crate::server::shared::clock::now());
         body["email"] = serde_json::json!("attacker@example.com");
         body["email_verified"] = serde_json::json!(true);
         body["has_password"] = serde_json::json!(false);

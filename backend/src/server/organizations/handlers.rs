@@ -544,7 +544,7 @@ pub async fn populate_demo_data(
         let org_service = task_state.services.organization_service.clone();
         let terminal = match run_populate_demo(task_state.clone(), id, user_id, entity, org).await {
             Ok(()) => DemoPopulateStatus::Complete {
-                finished_at: chrono::Utc::now(),
+                finished_at: crate::server::shared::clock::now(),
             },
             Err(e) => {
                 tracing::error!(
@@ -554,7 +554,7 @@ pub async fn populate_demo_data(
                 );
                 DemoPopulateStatus::Failed {
                     error: e.to_string(),
-                    finished_at: chrono::Utc::now(),
+                    finished_at: crate::server::shared::clock::now(),
                 }
             }
         };

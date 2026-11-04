@@ -1,7 +1,6 @@
 use crate::server::shared::events::types::DeletionReason;
 use std::sync::Arc;
 
-use chrono::Utc;
 use uuid::Uuid;
 
 use crate::server::shared::events::traits::{EntityEventFlags, EntityScope, Event};
@@ -149,7 +148,7 @@ impl InviteService {
 
     /// Clean up expired invites from the database
     pub async fn cleanup_expired(&self) {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let filter = StorableFilter::<Invite>::new_with_expiry_before(now);
 
         match self.storage.get_all(filter).await {

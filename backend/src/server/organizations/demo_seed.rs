@@ -720,7 +720,11 @@ pub(crate) async fn insert_demo_data(
         let entity = entity.clone();
         async move {
             let snapshot = Snapshot {
-                base: SnapshotBase::new(site.id, chrono::Utc::now(), Some(user_id)),
+                base: SnapshotBase::new(
+                    site.id,
+                    crate::server::shared::clock::now(),
+                    Some(user_id),
+                ),
                 ..Default::default()
             };
             let created = services

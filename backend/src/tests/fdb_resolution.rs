@@ -6,7 +6,6 @@
 //! function's own gating (single MAC, single host, single port) leans on `StorableFilter`
 //! conditions (`jsonb_array_length`, `NOT EXISTS` subqueries) that only a real query plan proves.
 
-use chrono::Utc;
 use uuid::Uuid;
 
 use crate::daemon::discovery::integration::snmp::sim::harness;
@@ -212,7 +211,7 @@ impl Lab {
 
     async fn resolve(&self) -> anyhow::Result<u32> {
         self.host_service
-            .resolve_fdb_links(self.site_id, Utc::now())
+            .resolve_fdb_links(self.site_id, crate::server::shared::clock::now())
             .await
     }
 
@@ -369,7 +368,7 @@ async fn an_interface_already_resolved_is_left_alone() {
         .fdb_port(switch.id, 5, "Gi0/5", "00:1a:2b:00:10:04")
         .await;
 
-    let scan_time = Utc::now();
+    let scan_time = crate::server::shared::clock::now();
     lab.interface_neighbor_service
         .reconcile_interface_neighbors(
             lab.site_id,
@@ -547,7 +546,7 @@ async fn an_address_only_device_gets_a_port_where_the_switch_learned_it() {
             lab.site_id,
             anchor.id,
             &[(Neighbor::Host(nas.id), None)],
-            Utc::now(),
+            crate::server::shared::clock::now(),
             None,
         )
         .await

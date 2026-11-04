@@ -618,7 +618,7 @@ impl AuthenticatedEntity {
                             .ok_or_else(|| AuthError(ApiError::not_authenticated()))?;
 
                         // Update last used asynchronously (don't block auth)
-                        user_api_key.set_last_used(Some(Utc::now()));
+                        user_api_key.set_last_used(Some(crate::server::shared::clock::now()));
                         tokio::spawn(async move {
                             let _ = service
                                 .update(
@@ -676,7 +676,10 @@ impl AuthenticatedEntity {
                     // rejected here, before it can poll, register, or run discovery.
                     // Dormant until the v1.0 launch date is set — the floor is 0.12.0
                     // until then, so this changes nothing for the installed base.
-                    enforce_daemon_version(daemon_version.as_deref(), Utc::now())?;
+                    enforce_daemon_version(
+                        daemon_version.as_deref(),
+                        crate::server::shared::clock::now(),
+                    )?;
 
                     let daemon_api_key_service = &app_state.services.daemon_api_key_service;
 
@@ -687,9 +690,9 @@ impl AuthenticatedEntity {
                     if let Some(resolved) =
                         daemon_api_key_service.cached_resolution(&hashed_key).await
                     {
-                        let expired = resolved
-                            .expires_at
-                            .is_some_and(|expires_at| expires_at < Utc::now());
+                        let expired = resolved.expires_at.is_some_and(|expires_at| {
+                            expires_at < crate::server::shared::clock::now()
+                        });
                         if resolved.is_enabled && !expired {
                             match resolve_daemon_identity(
                                 resolved.daemon_id,
@@ -796,7 +799,7 @@ impl AuthenticatedEntity {
                         // Update last used asynchronously (don't block auth). This goes
                         // through the generic update, which does NOT evict the resolution
                         // cache, so a hot poll loop stays cached between last-used writes.
-                        api_key.set_last_used(Some(Utc::now()));
+                        api_key.set_last_used(Some(crate::server::shared::clock::now()));
                         tokio::spawn(async move {
                             let _ = service
                                 .update(

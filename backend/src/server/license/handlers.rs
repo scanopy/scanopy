@@ -11,7 +11,6 @@ use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum_client_ip::ClientIp;
-use chrono::Utc;
 use governor::{Quota, RateLimiter, clock::DefaultClock, state::keyed::DashMapStateStore};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -205,7 +204,7 @@ pub async fn get_entitlement(
         return Err(ApiError::license_plan_has_no_key());
     }
 
-    let now = Utc::now();
+    let now = crate::server::shared::clock::now();
     // The key has passed every check, so the caller is the key's holder.
     let server_version = reported_server_version(
         headers
@@ -320,7 +319,7 @@ pub async fn create_license_key(
                 // over, so its full eligibility (plan, feature, card, paid
                 // subscription) is settled before the type is persisted.
                 LicenseKeyType::Offline => issuer
-                    .mint_offline_key(candidate, Utc::now(), None)
+                    .mint_offline_key(candidate, crate::server::shared::clock::now(), None)
                     .map(|_| ()),
             },
         )
@@ -379,7 +378,7 @@ pub async fn get_current_license_key(
     // Gated on these two refusals only, so a genuine error still surfaces.
     let stranded = key_type == LicenseKeyType::Offline
         && matches!(
-            issuer.mint_offline_key(&organization, Utc::now(), None),
+            issuer.mint_offline_key(&organization, crate::server::shared::clock::now(), None),
             Err(MintError::OfflineRequiresPayment | MintError::OfflineNotIncluded)
         );
     if stranded {
@@ -438,7 +437,11 @@ async fn mint_key(
                 Some(billing) => billing.license_unpaid_from(organization.id).await?,
                 None => None,
             };
-            issuer.mint_offline_key(organization, Utc::now(), unpaid_from)
+            issuer.mint_offline_key(
+                organization,
+                crate::server::shared::clock::now(),
+                unpaid_from,
+            )
         }
     }
     .map_err(mint_error)
@@ -520,7 +523,7 @@ pub async fn list_license_instances(
         .license_instance_service
         .list(organization_id)
         .await?;
-    let now = Utc::now();
+    let now = crate::server::shared::clock::now();
     let limits = organization.license_instance_limits();
     let usage = super::instances::usage(&instances, limits, now);
     let summaries = instances

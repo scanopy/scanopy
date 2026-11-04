@@ -203,7 +203,7 @@ impl Display for Credential {
 
 impl Credential {
     pub fn new(base: CredentialBase) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let is_default = base.credential_type.is_default();
         Self {
             id: Uuid::new_v4(),

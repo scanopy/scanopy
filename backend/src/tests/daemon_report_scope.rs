@@ -313,8 +313,8 @@ async fn a_report_cannot_name_a_discovery_on_another_site() {
     let session_id = Uuid::new_v4();
     let mut report = progress(session_id, own_daemon.id, mine.site.id, 100);
     report.phase = DiscoveryPhase::Complete;
-    report.started_at = Some(chrono::Utc::now());
-    report.finished_at = Some(chrono::Utc::now());
+    report.started_at = Some(crate::server::shared::clock::now());
+    report.finished_at = Some(crate::server::shared::clock::now());
     report.discovery_id = Some(foreign.id);
 
     let addr = serve_as_daemon(&state, mine.site.id, own_daemon.id).await;

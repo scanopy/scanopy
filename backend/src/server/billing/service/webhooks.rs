@@ -22,7 +22,7 @@ impl BillingService {
             payload,
             signature,
             &self.webhook_secret,
-            Utc::now().timestamp(),
+            crate::server::shared::clock::now().timestamp(),
         )?;
         let event = StripeEnvelope::parse(payload)?;
 
@@ -276,7 +276,7 @@ impl BillingService {
                     let authentication: AuthenticatedEntity = owner.clone().into();
                     let planned_period_end =
                         chrono::DateTime::<Utc>::from_timestamp(period_end_ts, 0)
-                            .unwrap_or_else(Utc::now);
+                            .unwrap_or_else(crate::server::shared::clock::now);
                     events.push(Event::new(
                         OrgScope {
                             organization_id: organization.id,
@@ -394,7 +394,7 @@ impl BillingService {
                     let trial_end_dt = sub
                         .trial_end
                         .and_then(|t| chrono::DateTime::<Utc>::from_timestamp(t, 0))
-                        .unwrap_or_else(Utc::now);
+                        .unwrap_or_else(crate::server::shared::clock::now);
                     events.push(Event::new(
                         OrgScope {
                             organization_id: organization.id,
@@ -495,7 +495,7 @@ impl BillingService {
             let resumes_at = pause_collection
                 .resumes_at
                 .and_then(|t| chrono::DateTime::<Utc>::from_timestamp(t, 0))
-                .unwrap_or_else(Utc::now);
+                .unwrap_or_else(crate::server::shared::clock::now);
             events.push(Event::new(
                 OrgScope {
                     organization_id: org_id,
@@ -884,7 +884,9 @@ impl BillingService {
         // producer exists.
         let internal_reason: Option<String> = None;
         let mrr_amount_cents = mrr_from_subscription(&sub);
-        let tenure_days = (Utc::now() - organization.created_at).num_days().max(0) as u32;
+        let tenure_days = (crate::server::shared::clock::now() - organization.created_at)
+            .num_days()
+            .max(0) as u32;
         let license_key_type = organization.base.license_key_type;
 
         let free_plan = get_free_plan();
@@ -907,7 +909,7 @@ impl BillingService {
             sub.ended_at
                 .or(sub.canceled_at)
                 .or(sub.cancel_at)
-                .unwrap_or_else(|| Utc::now().timestamp()),
+                .unwrap_or_else(|| crate::server::shared::clock::now().timestamp()),
             mrr_amount_cents,
             tenure_days,
             license_key_type,
@@ -994,8 +996,8 @@ impl BillingService {
             );
         }
 
-        let period_end =
-            chrono::DateTime::<Utc>::from_timestamp(period_end_ts, 0).unwrap_or_else(Utc::now);
+        let period_end = chrono::DateTime::<Utc>::from_timestamp(period_end_ts, 0)
+            .unwrap_or_else(crate::server::shared::clock::now);
 
         // Write off whatever this customer was billed for and never paid. The
         // resulting `invoice.marked_uncollectible` webhook takes back the
@@ -1247,7 +1249,7 @@ mod tests {
             has_payment_method: false,
             cancellation_scheduled: false,
         }
-        .apply(org, Utc::now());
+        .apply(org, crate::server::shared::clock::now());
         Some(source)
     }
 

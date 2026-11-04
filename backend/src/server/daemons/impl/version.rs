@@ -536,7 +536,7 @@ pub struct DaemonVersionPolicy {
 
 impl Default for DaemonVersionPolicy {
     fn default() -> Self {
-        Self::at(Utc::now())
+        Self::at(crate::server::shared::clock::now())
     }
 }
 
@@ -1132,7 +1132,7 @@ mod tests {
     /// having to remember.
     #[test]
     fn legacy_neighbor_wire_shim_still_needed() {
-        let ceiling = enforced_last_unsupported(Utc::now());
+        let ceiling = enforced_last_unsupported(crate::server::shared::clock::now());
         let last = last_without_neighbor_candidates();
         assert!(
             ceiling < last,
@@ -1148,7 +1148,7 @@ mod tests {
     /// `network_id`, the rewrite has no reader left.
     #[test]
     fn network_wire_shim_still_needed() {
-        let ceiling = enforced_last_unsupported(Utc::now());
+        let ceiling = enforced_last_unsupported(crate::server::shared::clock::now());
         let last = last_without_site_wire();
         assert!(
             ceiling < last,
@@ -1165,7 +1165,7 @@ mod tests {
     /// Unified, nothing can be created for or run by a pre-unified daemon.
     #[test]
     fn legacy_discovery_types_still_needed() {
-        let ceiling = enforced_last_unsupported(Utc::now());
+        let ceiling = enforced_last_unsupported(crate::server::shared::clock::now());
         let last = last_without_unified_discovery();
         assert!(
             ceiling < last,
@@ -1185,7 +1185,7 @@ mod tests {
     /// `target_host_id`, the rewrite has no reader left.
     #[test]
     fn single_target_rescan_shim_still_needed() {
-        let ceiling = enforced_last_unsupported(Utc::now());
+        let ceiling = enforced_last_unsupported(crate::server::shared::clock::now());
         let last = last_without_multi_target_rescan();
         assert!(
             ceiling < last,
@@ -1202,7 +1202,7 @@ mod tests {
     /// daemon requires it, it has no reader left.
     #[test]
     fn unsupported_version_field_shim_still_needed() {
-        let ceiling = enforced_last_unsupported(Utc::now());
+        let ceiling = enforced_last_unsupported(crate::server::shared::clock::now());
         let last = last_without_unsupported_version_field();
         assert!(
             ceiling < last,

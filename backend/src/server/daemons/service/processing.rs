@@ -35,7 +35,7 @@ impl DaemonService {
 
         self.check_reported_os(&mut daemon, status.os)?;
 
-        daemon.base.last_seen = Some(Utc::now());
+        daemon.base.last_seen = Some(crate::server::shared::clock::now());
         // NOTE: We intentionally do NOT update URL from status.
         // URL is only set:
         // - ServerPoll: Admin provides URL during provisioning
@@ -191,7 +191,7 @@ impl DaemonService {
         let was_pre_unified = !supports_unified_discovery(daemon.base.version.as_ref());
 
         daemon.base.version = Some(version.clone());
-        daemon.base.last_seen = Some(Utc::now());
+        daemon.base.last_seen = Some(crate::server::shared::clock::now());
 
         // A daemon that just booted and reached /startup is by definition active
         // again. Clear standby and grant a bounded grace period — the nightly
@@ -200,7 +200,7 @@ impl DaemonService {
         // inactivity is re-evaluated.
         if daemon.base.standby {
             daemon.base.standby = false;
-            daemon.base.standby_cleared_at = Some(Utc::now());
+            daemon.base.standby_cleared_at = Some(crate::server::shared::clock::now());
         }
 
         self.update(&mut daemon, auth, UpdateReason::DaemonStarted)
@@ -323,7 +323,7 @@ impl DaemonService {
             // (Interfaced subnets are not taken from registration — they flow via the
             // status heartbeat / update-capabilities channels into the junction.)
             self.check_reported_os(&mut existing_daemon, request.os)?;
-            existing_daemon.base.last_seen = Some(Utc::now());
+            existing_daemon.base.last_seen = Some(crate::server::shared::clock::now());
             // For a provisioned daemon the server-side name and mode are authoritative
             // (chosen at provision, bound to the 1:1 key). A silent install defaulting to
             // "scanopy-daemon" must not clobber the provisioned name. A provisioned record
@@ -504,7 +504,7 @@ impl DaemonService {
             // DaemonPoll mode: URL not needed (server never connects to daemon)
             // ServerPoll mode: URL is set during provisioning, not during registration
             url: String::new(),
-            last_seen: Some(Utc::now()),
+            last_seen: Some(crate::server::shared::clock::now()),
             mode: request.mode,
             name: request.name,
             tags: Vec::new(),
@@ -642,7 +642,9 @@ impl DaemonService {
             .take_touched_subnets(&update.daemon_id)
             .await;
 
-        let scan_time = update.finished_at.unwrap_or_else(Utc::now);
+        let scan_time = update
+            .finished_at
+            .unwrap_or_else(crate::server::shared::clock::now);
         let ip_address_ids = update
             .scanned
             .as_ref()
@@ -705,7 +707,9 @@ impl DaemonService {
                 &integration_targets,
                 update.site_id,
                 daemon_host_id,
-                update.started_at.unwrap_or_else(chrono::Utc::now),
+                update
+                    .started_at
+                    .unwrap_or_else(crate::server::shared::clock::now),
             )
             .await
         {
@@ -803,7 +807,9 @@ impl DaemonService {
         // The session's own clock, so a minted host carries the timestamp every other entity of
         // this scan carries. `finished_at` is what closes the digest's window; stamping mint time
         // instead would put the host just outside the window that exists to report it.
-        let scan_time = update.finished_at.unwrap_or_else(Utc::now);
+        let scan_time = update
+            .finished_at
+            .unwrap_or_else(crate::server::shared::clock::now);
         // What the daemon reported, so the pass counts only neighbours this scan re-read.
         let run = update.scanned.clone().unwrap_or_default();
 

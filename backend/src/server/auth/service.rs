@@ -45,7 +45,7 @@ use argon2::{
 };
 use axum::http::StatusCode;
 use base64ct::{Base64UrlUnpadded, Encoding};
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use email_address::EmailAddress;
 use rand::RngCore;
 use std::{collections::HashMap, net::IpAddr, sync::Arc, time::Instant};
@@ -175,7 +175,7 @@ impl AuthService {
         }
 
         let terms_accepted_at = if request.terms_accepted {
-            Some(Utc::now())
+            Some(crate::server::shared::clock::now())
         } else {
             None
         };
@@ -590,7 +590,7 @@ impl AuthService {
                 AuthOperation::PasswordChanged {
                     email: user.base.email.clone(),
                     had_password,
-                    timestamp: Utc::now(),
+                    timestamp: crate::server::shared::clock::now(),
                 },
                 authentication.clone(),
             ))
@@ -624,7 +624,8 @@ impl AuthService {
 
         // Generate token and store in database
         let token = Self::generate_secure_token();
-        let expires = Utc::now() + Duration::hours(Self::PASSWORD_RESET_TOKEN_EXPIRY_HOURS);
+        let expires = crate::server::shared::clock::now()
+            + Duration::hours(Self::PASSWORD_RESET_TOKEN_EXPIRY_HOURS);
         user.base.password_reset_token = Some(token.clone());
         user.base.password_reset_expires = Some(expires);
         self.user_service
@@ -674,7 +675,7 @@ impl AuthService {
 
         // Check if token is expired
         if let Some(expires) = user.base.password_reset_expires {
-            if Utc::now() > expires {
+            if crate::server::shared::clock::now() > expires {
                 // Clear expired token
                 user.base.password_reset_token = None;
                 user.base.password_reset_expires = None;
@@ -770,7 +771,8 @@ impl AuthService {
     ) -> Result<EmailAndToken> {
         // Generate token and expiry
         let token = Self::generate_secure_token();
-        let expiry = Utc::now() + Duration::hours(Self::VERIFICATION_TOKEN_EXPIRY_HOURS);
+        let expiry = crate::server::shared::clock::now()
+            + Duration::hours(Self::VERIFICATION_TOKEN_EXPIRY_HOURS);
 
         // Store token in user record
         user.base.email_verification_token = Some(token.clone());
@@ -943,7 +945,7 @@ impl AuthService {
         // Unknown and expired tokens get the same coded error: the page offers a new link
         // either way.
         match user.base.email_verification_expires {
-            Some(expires) if Utc::now() <= expires => {}
+            Some(expires) if crate::server::shared::clock::now() <= expires => {}
             _ => return Err(Self::verification_token_invalid()),
         }
 

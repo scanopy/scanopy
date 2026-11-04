@@ -333,13 +333,12 @@ mod tests {
             },
         },
     };
-    use chrono::Utc;
 
     fn make_host(name: &str) -> Host {
         Host {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: HostBase {
                 name: HostName::manual(name.to_string()),
                 ..Default::default()
@@ -351,8 +350,8 @@ mod tests {
     fn make_if_entry(host_id: Uuid, if_index: i32, if_type: i32) -> Interface {
         Interface {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: InterfaceBase {
                 host_id,
                 if_index: Some(if_index),

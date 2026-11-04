@@ -11,7 +11,7 @@ use axum::body::Body;
 use axum::extract::FromRequestParts;
 use axum::http::Request;
 use axum::middleware::{self, Next};
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use email_address::EmailAddress;
 use uuid::Uuid;
 
@@ -398,7 +398,8 @@ async fn an_unknown_or_expired_verification_token_gets_a_coded_400() {
     )
     .await;
     expired.base.email_verification_token = Some("expired-token".to_string());
-    expired.base.email_verification_expires = Some(Utc::now() - Duration::hours(1));
+    expired.base.email_verification_expires =
+        Some(crate::server::shared::clock::now() - Duration::hours(1));
     state
         .services
         .user_service
@@ -499,7 +500,8 @@ async fn completing_a_password_reset_verifies_the_address() {
     )
     .await;
     pending.base.password_reset_token = Some("reset-token".to_string());
-    pending.base.password_reset_expires = Some(Utc::now() + Duration::hours(1));
+    pending.base.password_reset_expires =
+        Some(crate::server::shared::clock::now() + Duration::hours(1));
     state
         .services
         .user_service

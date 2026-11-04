@@ -22,7 +22,7 @@ use crate::server::{
 use anyhow::Error;
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{NaiveDate, Utc};
+use chrono::NaiveDate;
 use email_address::EmailAddress;
 use sqlx::{Postgres, Transaction};
 use std::sync::Arc;
@@ -201,7 +201,7 @@ impl UserService {
 
     /// Record that `user` accepted the terms now.
     pub async fn accept_terms(&self, mut user: User) -> Result<User> {
-        user.base.terms_accepted_at = Some(Utc::now());
+        user.base.terms_accepted_at = Some(crate::server::shared::clock::now());
         let actor = AuthenticatedEntity::from(user.clone());
         self.update(&mut user, actor, UpdateReason::UserTermsAccepted)
             .await

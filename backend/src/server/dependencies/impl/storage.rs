@@ -34,7 +34,7 @@ impl Storable for Dependency {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
 
         Self {
             id: Uuid::new_v4(),

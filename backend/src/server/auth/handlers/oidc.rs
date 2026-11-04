@@ -321,7 +321,7 @@ pub(crate) async fn oidc_callback(
         }
         OidcFlow::Register => {
             let terms_accepted_at = if terms_accepted {
-                Some(Utc::now())
+                Some(crate::server::shared::clock::now())
             } else {
                 None
             };

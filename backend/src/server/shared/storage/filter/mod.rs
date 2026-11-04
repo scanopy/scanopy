@@ -155,7 +155,7 @@ mod tests {
 
     #[test]
     fn taken_at_lt_emits_less_than_clause() {
-        let cutoff = chrono::Utc::now();
+        let cutoff = crate::server::shared::clock::now();
         let filter = StorableFilter::<Snapshot>::new_unfiltered().taken_at_lt(cutoff);
 
         let where_clause = filter.to_where_clause();
@@ -296,7 +296,7 @@ mod tests {
 
     #[test]
     fn as_of_filter_emits_window_predicate() {
-        let t = chrono::Utc::now();
+        let t = crate::server::shared::clock::now();
         let filter = StorableFilter::<Tag>::new_unfiltered().as_of(t);
         let where_clause = filter.to_where_clause();
         assert!(
@@ -333,7 +333,7 @@ mod tests {
     #[test]
     fn live_or_as_of_some_is_as_of() {
         // `at = Some(t)` (snapshot view) must read SCD2 state as of `t`.
-        let t = chrono::Utc::now();
+        let t = crate::server::shared::clock::now();
         let filter = StorableFilter::<Tag>::new_unfiltered().live_or_as_of(Some(t));
         let where_clause = filter.to_where_clause();
         assert!(

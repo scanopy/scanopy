@@ -656,7 +656,6 @@ mod tests {
             },
         },
     };
-    use chrono::Utc;
 
     // --- Test service definitions ---
 
@@ -752,8 +751,8 @@ mod tests {
     fn make_host(name: &str) -> Host {
         Host {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: HostBase {
                 name: HostName::manual(name.to_string()),
                 ..Default::default()
@@ -765,8 +764,8 @@ mod tests {
     fn make_proxmox_vm(name: &str, proxmox_service_id: Uuid) -> Host {
         Host {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: HostBase {
                 name: HostName::manual(name.to_string()),
                 virtualization_metadata: Some(HostVirtualization::Proxmox(ProxmoxVirtualization {
@@ -785,8 +784,8 @@ mod tests {
     fn make_proxmox_service(host_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(ProxmoxDef),
@@ -800,8 +799,8 @@ mod tests {
     fn make_docker_service(host_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(DockerDef),
@@ -815,8 +814,8 @@ mod tests {
     fn make_docker_container(name: &str, host_id: Uuid, docker_service_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(RegularDef),
@@ -859,8 +858,8 @@ mod tests {
     fn make_open_ports_service(name: &str, host_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(OpenPortsDef),
@@ -874,8 +873,8 @@ mod tests {
     fn make_regular_service(name: &str, host_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(RegularDef),
@@ -889,8 +888,8 @@ mod tests {
     fn make_generic_service(name: &str, host_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(GenericDef),
@@ -1530,8 +1529,8 @@ mod tests {
         use crate::server::services::definitions::network_identities::NetworkIdentities;
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(NetworkIdentities),

@@ -791,7 +791,7 @@ async fn a_closed_snapshot_copy_does_not_contest_its_own_live_row() {
         .await;
 
     // A closed historical copy of the same port, exactly as an edit would leave behind.
-    let mut closed = live.make_closed_copy(chrono::Utc::now());
+    let mut closed = live.make_closed_copy(crate::server::shared::clock::now());
     closed.id = Uuid::new_v4();
     lab.storage.interfaces.create(&closed).await.unwrap();
 

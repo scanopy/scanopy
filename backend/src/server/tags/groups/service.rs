@@ -112,7 +112,7 @@ impl CrudService<TagGroup> for TagGroupService {
 
         let mut updated = entity.clone();
         updated.created_at = current.created_at;
-        updated.updated_at = chrono::Utc::now();
+        updated.updated_at = crate::server::shared::clock::now();
         self.storage.update(&mut updated).await?;
         if updated.base.ordered != current.base.ordered {
             self.renumber_tags(&updated).await?;

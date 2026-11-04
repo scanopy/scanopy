@@ -87,7 +87,7 @@ impl Invite {
         site_ids: Vec<Uuid>,
         send_to: Option<EmailAddress>,
     ) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,
@@ -105,7 +105,7 @@ impl Invite {
     }
 
     pub fn is_valid(&self) -> bool {
-        Utc::now() < self.base.expires_at
+        crate::server::shared::clock::now() < self.base.expires_at
     }
 }
 
@@ -126,7 +126,7 @@ impl Storable for Invite {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,
