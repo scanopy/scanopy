@@ -300,7 +300,7 @@ pub(crate) mod tests {
             address: "192.0.2.1".parse().expect("address"),
             collected: 3,
         };
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
 
         vec![
             sample(
@@ -486,7 +486,7 @@ pub(crate) mod tests {
                 user_id: Uuid::new_v4(),
                 organization_id,
                 permissions: UserOrgPermissions::Member,
-                site_ids: vec![],
+                access: Default::default(),
             },
         );
 

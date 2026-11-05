@@ -3,6 +3,7 @@ use crate::server::github::latest_release::{self, AvailableUpgrade};
 use crate::server::license::key::LicenseKey;
 use crate::server::license::mint::LicenseIssuer;
 use crate::server::license::online::InstanceUsage;
+use crate::server::license::problem::LicenseProblem;
 use crate::server::license::service::{LicenseService, self_hosted_plan};
 use crate::server::license::types::LicenseKeyType;
 use crate::server::license::types::LicenseStatusDiscriminants;
@@ -406,6 +407,9 @@ pub struct PublicConfigResponse {
     /// When Scanopy Cloud last answered this instance's license check-in.
     /// Online keys only.
     pub license_entitlement_at: Option<DateTime<Utc>>,
+    /// Why the last check-in failed, or why the configured key is unusable.
+    /// `None` when the last check-in worked or none has finished yet.
+    pub license_problem: Option<LicenseProblem>,
     /// How many server instances this instance's online key is running on,
     /// against how many it covers, as Scanopy Cloud reported at the last
     /// check-in. Online keys only.
@@ -768,7 +772,7 @@ impl ServerConfig {
         if get_deployment_type(self) == DeploymentType::Cloud {
             None
         } else {
-            self.license_key.clone().map(LicenseKey::new)
+            self.license_key.as_deref().and_then(LicenseKey::normalized)
         }
     }
 }
@@ -826,7 +830,12 @@ pub fn get_deployment_type(config: &ServerConfig) -> DeploymentType {
     if config.stripe_secret.is_some() {
         // Stripe configured => the Scanopy-operated cloud.
         DeploymentType::Cloud
-    } else if config.license_key.is_some() {
+    } else if config
+        .license_key
+        .as_deref()
+        .and_then(LicenseKey::normalized)
+        .is_some()
+    {
         // Self-hosted with a license key => commercial edition. Validity is a
         // separate concern (LicenseService); an invalid key still reads as a
         // commercial deployment and locks the server via license middleware.
@@ -868,6 +877,10 @@ pub async fn get_public_config(
     let license_key_type = license_service.map(|svc| svc.key_type());
     let license_entitlement_at = match license_service {
         Some(svc) => svc.entitlement_at().await,
+        None => None,
+    };
+    let license_problem = match license_service {
+        Some(svc) => svc.problem().await,
         None => None,
     };
     let license_instances = match license_service {
@@ -940,6 +953,7 @@ pub async fn get_public_config(
             license_status,
             license_key_type,
             license_entitlement_at,
+            license_problem,
             license_instances,
             non_production: state.config.non_production,
             license_expiry,
@@ -1112,6 +1126,16 @@ mod deployment_tests {
             ..self_hosted
         };
         assert!(cloud.effective_license_key().is_none());
+    }
+
+    #[test]
+    fn a_blank_license_key_is_a_community_server() {
+        let blank = ServerConfig {
+            license_key: Some("  \n".to_string()),
+            ..ServerConfig::default()
+        };
+        assert_eq!(get_deployment_type(&blank), DeploymentType::Community);
+        assert!(blank.effective_license_key().is_none());
     }
 
     #[test]

@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { formatDate } from '$lib/shared/utils/formatting';
-	import { useCurrentUserQuery, useLogoutMutation } from '$lib/features/auth/queries';
+	import {
+		mergeCurrentUser,
+		useCurrentUserQuery,
+		useLogoutMutation
+	} from '$lib/features/auth/queries';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import { queryKeys } from '$lib/api/query-client';
 	import { apiClient } from '$lib/api/client';
-	import type { User } from '$lib/features/users/types';
 	import { pushError, pushSuccess } from '$lib/shared/stores/feedback';
 	import { Link, Key, LogOut, Mail, Shield } from '@lucide/svelte';
 	import CookieSettingsPanel from '$lib/shared/components/feedback/CookieSettingsPanel.svelte';
@@ -105,7 +107,7 @@
 				});
 
 				if (data?.success && data.data) {
-					queryClient.setQueryData<User>(queryKeys.auth.currentUser(), data.data);
+					mergeCurrentUser(queryClient, data.data);
 					pushSuccess(settings_account_credentialsUpdated());
 					subView = 'main';
 				}
@@ -139,7 +141,7 @@
 		});
 
 		if (data?.success && data.data) {
-			queryClient.setQueryData<User>(queryKeys.auth.currentUser(), data.data);
+			mergeCurrentUser(queryClient, data.data);
 			pushSuccess(settings_account_oidcUnlinked());
 		}
 	}

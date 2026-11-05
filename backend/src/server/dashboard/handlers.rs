@@ -1,7 +1,10 @@
 use crate::daemon::discovery::types::warnings::RunWarningSummary;
 use crate::server::openapi::tags as api_tags;
 use crate::server::{
-    auth::middleware::permissions::{Authorized, Viewer},
+    auth::{
+        access::{Action, Resource},
+        middleware::permissions::{Authorized, InOrganization},
+    },
     config::AppState,
     daemons::r#impl::{api::DaemonResponse, base::Daemon, version::DaemonVersionPolicy},
     discovery::r#impl::{base::Discovery, types::RunType},
@@ -23,6 +26,7 @@ use strum::IntoDiscriminant;
 use axum::{extract::State, response::Json};
 use std::sync::Arc;
 use utoipa_axum::{router::OpenApiRouter, routes};
+use uuid::Uuid;
 
 pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
     OpenApiRouter::new().routes(routes!(get_dashboard_summary))
@@ -43,9 +47,16 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn get_dashboard_summary(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<InOrganization>,
 ) -> ApiResult<Json<ApiResponse<DashboardSummary>>> {
-    let site_ids = auth.site_ids();
+    // The summary spans resource types, so each count reads the sites its own type allows.
+    let readable = |resource| auth.entity.site_ids_for(resource, Action::Read);
+    let host_site_ids = readable(Resource::Host);
+    let service_site_ids = readable(Resource::Service);
+    let subnet_site_ids = readable(Resource::Subnet);
+    let daemon_site_ids = readable(Resource::Daemon);
+    let discovery_site_ids = readable(Resource::Discovery);
+    let site_ids = readable(Resource::Site);
     let organization_id = auth
         .organization_id()
         .ok_or_else(|| ApiError::forbidden("Organization context required"))?;
@@ -64,40 +75,46 @@ async fn get_dashboard_summary(
     // counted (daemons are non-SCD2 → plain count).
     let mut site_summaries = Vec::new();
     for site in &sites_result.items {
-        let ids = [site.id];
         let map_err = |e: anyhow::Error| ApiError::internal_error(&e.to_string());
+        let within = |allowed: &[Uuid]| {
+            allowed
+                .contains(&site.id)
+                .then_some(site.id)
+                .into_iter()
+                .collect::<Vec<Uuid>>()
+        };
         site_summaries.push(SiteSummary {
             id: site.id,
             name: site.base.name.clone(),
             host_count: state
                 .services
                 .host_service
-                .confirmed_count_for_sites(&ids)
+                .confirmed_count_for_sites(&within(&host_site_ids))
                 .await
                 .map_err(map_err)?,
             service_count: state
                 .services
                 .service_service
-                .count_for_sites(&ids)
+                .count_for_sites(&within(&service_site_ids))
                 .await
                 .map_err(map_err)?,
             subnet_count: state
                 .services
                 .subnet_service
-                .count_for_sites(&ids)
+                .count_for_sites(&within(&subnet_site_ids))
                 .await
                 .map_err(map_err)?,
             daemon_count: state
                 .services
                 .daemon_service
-                .count_for_sites(&ids)
+                .count_for_sites(&within(&daemon_site_ids))
                 .await
                 .map_err(map_err)?,
         });
     }
 
     // Fetch all daemons with version status
-    let daemons_filter = StorableFilter::<Daemon>::new_from_site_ids(&site_ids);
+    let daemons_filter = StorableFilter::<Daemon>::new_from_site_ids(&daemon_site_ids);
     let daemons_result = state
         .services
         .daemon_service
@@ -124,7 +141,7 @@ async fn get_dashboard_summary(
         .collect();
 
     // Fetch recent historical discoveries (last 5)
-    let discovery_filter = StorableFilter::<Discovery>::new_from_site_ids(&site_ids)
+    let discovery_filter = StorableFilter::<Discovery>::new_from_site_ids(&discovery_site_ids)
         .historical_discovery()
         .limit(5);
     let discovery_result = state
@@ -149,7 +166,7 @@ async fn get_dashboard_summary(
     let host_count = state
         .services
         .host_service
-        .confirmed_count_for_sites(&site_ids)
+        .confirmed_count_for_sites(&host_site_ids)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     let seat_count = state
@@ -181,7 +198,7 @@ async fn get_dashboard_summary(
     let (found, tried_at) = state
         .services
         .discovery_service
-        .latest_integrations_without_credentials(&site_ids)
+        .latest_integrations_without_credentials(&discovery_site_ids)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     let uncovered = state
@@ -210,13 +227,13 @@ async fn get_dashboard_summary(
     let unconfirmed_host_count = state
         .services
         .host_service
-        .unconfirmed_count_for_sites(&site_ids)
+        .unconfirmed_count_for_sites(&host_site_ids)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     let unconfirmed_subnet_count = state
         .services
         .subnet_service
-        .unconfirmed_count_for_sites(&site_ids)
+        .unconfirmed_count_for_sites(&subnet_site_ids)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 

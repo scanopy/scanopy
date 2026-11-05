@@ -332,6 +332,25 @@ where
         Ok(())
     }
 
+    /// Keep only the ids in `ids` that name a row on `site_id`. For ids a daemon reports about its
+    /// own site, where one bad id must not cost the rest of the report.
+    async fn retain_on_site(&self, ids: &mut Vec<Uuid>, site_id: Uuid) -> Result<(), Error> {
+        if ids.is_empty() {
+            return Ok(());
+        }
+        let filter = StorableFilter::<T>::new_from_entity_ids(ids);
+        let on_site: std::collections::HashSet<Uuid> = self
+            .storage()
+            .get_all(filter)
+            .await?
+            .iter()
+            .filter(|e| self.get_site_id(e) == Some(site_id))
+            .map(|e| e.id())
+            .collect();
+        ids.retain(|id| on_site.contains(id));
+        Ok(())
+    }
+
     /// Delete entity by ID. Override this to refuse a delete, delegating to `delete_base()` for
     /// the standard behavior.
     async fn delete(
@@ -514,6 +533,17 @@ where
             .await;
 
         Ok(updated)
+    }
+
+    /// Write `entity`'s row in the caller's transaction: no tags and no event. The caller calls
+    /// [`Self::publish_updated`] after it commits.
+    async fn update_in_tx(
+        &self,
+        entity: &T,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    ) -> Result<(), anyhow::Error> {
+        GenericPostgresStorage::<T>::update_many_in_tx(std::slice::from_ref(entity), tx).await?;
+        Ok(())
     }
 
     /// The Updated event for `before` becoming `after`, logged as the entity's [`EntityLog`](crate::server::shared::events::log::EntityLog)
@@ -886,7 +916,7 @@ where
             .get_by_id_for_update(&Snapshotable::id_value(&new_entity))
             .await?
             .ok_or_else(|| anyhow!("close_and_clone: live row not found"))?;
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
         // Closed historical copy: synthetic id, lineage_id pointing at live id.
         let mut closed = live.make_closed_copy(now);
         closed.set_id_value(uuid::Uuid::new_v4());
@@ -1027,7 +1057,7 @@ mod ready_for_create_tests {
 
     #[test]
     fn a_real_timestamp_is_kept() {
-        let when = chrono::Utc::now() - chrono::Duration::days(3);
+        let when = crate::server::shared::clock::now() - chrono::Duration::days(3);
         let sent = Credential {
             id: Uuid::new_v4(),
             created_at: when,

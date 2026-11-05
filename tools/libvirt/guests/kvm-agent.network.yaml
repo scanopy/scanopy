@@ -1,0 +1,18 @@
+version: 2
+ethernets:
+  eth0:
+    match:
+      macaddress: "52:54:00:7a:00:05"
+    set-name: eth0
+    addresses: [192.168.7.175/22]
+    gateway4: 192.168.4.1
+    nameservers:
+      addresses: [192.168.4.1]
+  # On libvirt's NAT network, addressed by its DHCP.
+  eth1:
+    match:
+      macaddress: "52:54:00:7a:00:06"
+    set-name: eth1
+    dhcp4: true
+    dhcp4-overrides:
+      use-routes: false

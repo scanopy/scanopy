@@ -12,12 +12,9 @@ import {
 	common_expires,
 	common_lastUsed,
 	common_never,
-	common_created,
 	common_name,
-	common_sites,
 	common_permissions,
-	common_tags,
-	common_updated
+	common_tags
 } from '$lib/paraglide/messages';
 
 type UserApiKeyOrderField = components['schemas']['UserApiKeyOrderField'];
@@ -106,9 +103,8 @@ export function userApiKeyColumns(ctx: UserApiKeyColumnsContext) {
 								: undefined
 				}
 			},
-			created_at: { label: common_created(), type: 'date', groupable: false },
+			created_at: { type: 'date', groupable: false },
 			updated_at: {
-				label: common_updated(),
 				type: 'date',
 				groupable: false,
 				display: { hiddenByDefault: true }
@@ -118,7 +114,6 @@ export function userApiKeyColumns(ctx: UserApiKeyColumnsContext) {
 			{
 				key: 'site_ids',
 				type: 'array',
-				label: common_sites(),
 				// Keys share sites, so this filters; as an array it neither sorts nor groups.
 				filterable: true,
 				serverFiltered: true,

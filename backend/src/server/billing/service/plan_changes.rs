@@ -261,7 +261,7 @@ impl BillingService {
         // Every cloud trial needs a card on file, including one reached by
         // switching plan mid-trial (a license trial, which needs none, moving
         // to a cloud plan keeps the trial running).
-        if organization.is_in_trial(chrono::Utc::now())
+        if organization.is_in_trial(crate::server::shared::clock::now())
             && target_plan.license_plan().is_none()
             && !self.customer_has_payment_method(organization_id).await?
         {

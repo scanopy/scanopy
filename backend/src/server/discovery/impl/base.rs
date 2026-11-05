@@ -59,7 +59,10 @@ pub struct Discovery {
     #[validate(nested)]
     pub base: DiscoveryBase,
     /// Number of completed scans (incremented by server on session completion)
-    #[serde(default)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
     #[schema(read_only)]
     pub scan_count: u32,
     /// When true, the next scan will be a full port scan regardless of interval

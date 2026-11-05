@@ -4,6 +4,7 @@ import {
 	groupNamed,
 	groupsFor,
 	tagAllowedOn,
+	tagsDisplacedBy,
 	tagTooltip,
 	withTagAdded
 } from '$lib/features/tags/groups';
@@ -72,6 +73,21 @@ describe('withTagAdded', () => {
 			'web',
 			'critical'
 		]);
+	});
+});
+
+describe('tagsDisplacedBy', () => {
+	// GH #841: the application wizard's picker lists the Application group's tags, not one entity's.
+	// Picking suggestions, going Next and Back, then creating a custom tag there must keep them all.
+	it('displaces nothing when the selection is a group member list', () => {
+		const media = tag('media', applicationGroup);
+		const custom = tag('custom', applicationGroup);
+		const wizardTags = [web, db, media, custom];
+		expect(tagsDisplacedBy(['web', 'db', 'media'], 'custom', wizardTags, false)).toEqual([]);
+	});
+
+	it("displaces the same group's tags on an entity", () => {
+		expect(tagsDisplacedBy(['web', 'planned'], 'db', tags, true)).toEqual(['web']);
 	});
 });
 

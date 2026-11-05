@@ -47,6 +47,7 @@
 
 	// Shared components
 	import PermissionSelect from '$lib/shared/components/api-keys/PermissionSelect.svelte';
+	import RoleAccessSummary from '$lib/shared/components/api-keys/RoleAccessSummary.svelte';
 	import SiteAccessSelect from '$lib/shared/components/api-keys/SiteAccessSelect.svelte';
 
 	let {
@@ -225,6 +226,8 @@
 						permissionLevel={permissionsValue}
 						helpText={users_siteAccessHelp()}
 					/>
+
+					<RoleAccessSummary role={permissionsValue} />
 
 					{#if enableEmail}
 						<form.Field name="email" validators={{ onBlur: ({ value }) => email(value) }}>

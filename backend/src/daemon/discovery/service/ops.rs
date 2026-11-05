@@ -911,7 +911,7 @@ impl DiscoveryOps {
             session_id: request.session_id,
             site_id,
             daemon_id,
-            started_at: Some(Utc::now()),
+            started_at: Some(crate::server::shared::clock::now()),
             discovery_type: request.discovery_type.clone(),
             discovery_id: request.discovery_id,
         };
@@ -1018,8 +1018,8 @@ impl DiscoveryOps {
         if let Ok(records) = session.equal_reach_integrations.lock() {
             warnings.extend(warnings::warn_equal_reach_integrations(&records));
         }
-        if let Ok(records) = session.unreached_proxmox_guests.lock() {
-            warnings.extend(warnings::warn_unreached_proxmox_guests(&records));
+        if let Ok(records) = session.unreached_guests.lock() {
+            warnings.extend(warnings::warn_unreached_guests(&records));
         }
         if let Ok(issues) = session.credential_issues.lock() {
             warnings.extend(warnings::warn_credential_issues(&issues));
@@ -1063,7 +1063,7 @@ impl DiscoveryOps {
             final_progress,
             warnings,
             credential_results,
-            Utc::now(),
+            crate::server::shared::clock::now(),
         );
         match terminal_update.phase {
             DiscoveryPhase::Complete => tracing::info!(
@@ -1417,10 +1417,10 @@ impl DiscoveryOps {
         }
     }
 
-    /// Record a Proxmox VE guest this scan reaches no ports on.
-    pub async fn record_unreached_proxmox_guest(&self, record: warnings::UnreachedProxmoxGuest) {
+    /// Record a hypervisor guest this scan reaches no ports on.
+    pub async fn record_unreached_guest(&self, record: warnings::UnreachedHypervisorGuest) {
         if let Ok(session) = self.get_session().await
-            && let Ok(mut buffer) = session.unreached_proxmox_guests.lock()
+            && let Ok(mut buffer) = session.unreached_guests.lock()
         {
             buffer.push(record);
         }
@@ -2249,7 +2249,7 @@ mod terminal_update_tests {
                 99,
                 Vec::new(),
                 Vec::new(),
-                Utc::now(),
+                crate::server::shared::clock::now(),
             );
 
             assert_eq!(update.phase, DiscoveryPhase::Failed);
@@ -2269,7 +2269,7 @@ mod terminal_update_tests {
             40,
             Vec::new(),
             Vec::new(),
-            Utc::now(),
+            crate::server::shared::clock::now(),
         );
 
         assert_eq!(update.phase, DiscoveryPhase::Failed);

@@ -381,7 +381,8 @@ impl ReleaseNotesService {
         let organizations = organization_service
             .get_all(StorableFilter::new_for_server_wide_job())
             .await?;
-        let (locked_orgs, current) = licensed_orgs(&organizations, Utc::now());
+        let (locked_orgs, current) =
+            licensed_orgs(&organizations, crate::server::shared::clock::now());
         let mut owners = HashSet::new();
         for organization_id in current {
             owners.extend(
@@ -450,8 +451,8 @@ impl ReleaseNotesService {
                 }
             }
         }
-        row.base.email_sent_at = Some(Utc::now());
-        row.updated_at = Utc::now();
+        row.base.email_sent_at = Some(crate::server::shared::clock::now());
+        row.updated_at = crate::server::shared::clock::now();
         self.storage.update(&mut row).await?;
         Ok(())
     }
@@ -472,7 +473,7 @@ mod tests {
     fn row(version: &str, emailed: bool) -> ReleaseAnnouncement {
         ReleaseAnnouncement::new(ReleaseAnnouncementBase {
             version: version.into(),
-            email_sent_at: emailed.then(Utc::now),
+            email_sent_at: emailed.then(crate::server::shared::clock::now),
         })
     }
 
@@ -615,7 +616,7 @@ mod tests {
         use crate::server::billing::types::base::{BillingPlan, PlanConfig};
         use crate::server::license::types::LicenseKeyType;
 
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let org = |plan: BillingPlan, paid_through: Option<DateTime<Utc>>, key| {
             let mut org = crate::tests::organization();
             org.base.plan = plan;
@@ -665,7 +666,11 @@ mod tests {
         let event_bus = Arc::new(crate::server::shared::events::bus::EventBus::new());
         let user_service = Arc::new(UserService::new(
             storage.users.clone(),
-            storage.user_site_access.clone(),
+            Arc::new(
+                crate::server::site_assignments::service::SiteAssignmentService::new(
+                    storage.site_assignments.clone(),
+                ),
+            ),
             event_bus.clone(),
         ));
         let organization_service = cloud.then(|| {
@@ -771,7 +776,8 @@ mod tests {
             .unwrap();
         let mut organization = crate::tests::organization();
         organization.base.plan = BillingPlan::SelfHostedStandard(PlanConfig::default());
-        organization.base.license_paid_through = Some(Utc::now() + chrono::Duration::days(30));
+        organization.base.license_paid_through =
+            Some(crate::server::shared::clock::now() + chrono::Duration::days(30));
         let organization = storage.organizations.create(&organization).await.unwrap();
         let mut owner = user_in(organization.id, true);
         owner.base.permissions = UserOrgPermissions::Owner;

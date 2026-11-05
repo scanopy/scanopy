@@ -22,6 +22,7 @@
 		integrationWithoutCredentialSentence,
 		integrationWithoutCredentialTitle
 	} from '$lib/features/discovery/utils/warnings';
+	import { useCan } from '$lib/features/auth/access';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import { hasSunsetWarning } from '$lib/features/daemons/utils';
 	import type { IconComponent } from '$lib/shared/utils/types';
@@ -82,6 +83,7 @@
 		onNavigate: (tab: string) => void;
 	} = $props();
 
+	const can = useCan();
 	const daemonsQuery = useDaemonsQuery();
 	// Surface the daemon nudge for connectivity issues AND for an upcoming/active
 	// version sunset — an aging daemon needs attention just as much as an
@@ -141,7 +143,7 @@
 				description: integrationWithoutCredentialSentence(integration, host_ids.length),
 				actionLabel: createIntegrationCredentialLabel(integration),
 				action: () => openCredentialCreate(integration, { hostIds: host_ids, siteIds: site_ids }),
-				visible: has('FirstDiscoveryCompleted'),
+				visible: has('FirstDiscoveryCompleted') && can('Credential', 'Write'),
 				icon: credentialIntegrations.getIconComponent(integration),
 				iconColor: credentialIntegrations.getColorHelper(integration).icon,
 				dismissOnAction: false
@@ -161,20 +163,24 @@
 					{
 						tab: 'hosts',
 						count: dashboard.unconfirmed_host_count,
-						label: home_nudges_unconfirmedReviewHosts()
+						label: home_nudges_unconfirmedReviewHosts(),
+						editable: can('Host', 'Write')
 					},
 					{
 						tab: 'subnets',
 						count: dashboard.unconfirmed_subnet_count,
-						label: home_nudges_unconfirmedReviewSubnets()
+						label: home_nudges_unconfirmedReviewSubnets(),
+						editable: can('Subnet', 'Write')
 					}
 				]
-					.filter(({ count }) => count > 0)
+					.filter(({ count, editable }) => count > 0 && editable)
 					.map(({ tab, label }) => ({
 						label,
 						onAction: () => openTab(tab, new URLSearchParams({ sources: 'Inferred' }))
 					})),
-				visible: dashboard.unconfirmed_host_count + dashboard.unconfirmed_subnet_count > 0,
+				visible:
+					(dashboard.unconfirmed_host_count > 0 && can('Host', 'Write')) ||
+					(dashboard.unconfirmed_subnet_count > 0 && can('Subnet', 'Write')),
 				icon: CircleDashedCheck,
 				iconColor: entitySources.getColorHelper('Inferred').icon,
 				dismissOnAction: false
@@ -188,7 +194,7 @@
 					onNavigate('credentials');
 					openModal('credential-editor', { id, tab: 'assignments' });
 				},
-				visible: true,
+				visible: can('Credential', 'Write'),
 				icon: credentialIntegrations.getIconComponent(integration),
 				iconColor: credentialIntegrations.getColorHelper(integration).icon,
 				dismissOnAction: false
@@ -215,7 +221,8 @@
 					activeView.set('Application');
 					onNavigate('topology');
 				},
-				visible: has('FirstTopologyRebuild') && !has('FirstApplicationTagCreated'),
+				visible:
+					has('FirstTopologyRebuild') && !has('FirstApplicationTagCreated') && can('Tag', 'Write'),
 				icon: entities.getIconComponent('Tag'),
 				iconColor: entities.getColorHelper('Tag').icon
 			},
@@ -229,7 +236,10 @@
 					showDependencyTutorial.set(true);
 					onNavigate('topology');
 				},
-				visible: has('FirstTopologyRebuild') && !has('FirstDependencyCreated'),
+				visible:
+					has('FirstTopologyRebuild') &&
+					!has('FirstDependencyCreated') &&
+					can('Dependency', 'Write'),
 				icon: entities.getIconComponent('Dependency'),
 				iconColor: entities.getColorHelper('Dependency').icon
 			},
@@ -244,7 +254,10 @@
 					onNavigate('credentials');
 					openModal('credential-editor');
 				},
-				visible: has('FirstDiscoveryCompleted') && !has('FirstInterfaceCredentialCreated'),
+				visible:
+					has('FirstDiscoveryCompleted') &&
+					!has('FirstInterfaceCredentialCreated') &&
+					can('Credential', 'Write'),
 				icon: entities.getIconComponent('Credential'),
 				iconColor: entities.getColorHelper('Credential').icon
 			},
@@ -257,7 +270,7 @@
 					onNavigate('tags');
 					openModal('tag-editor');
 				},
-				visible: has('FirstDiscoveryCompleted') && !has('FirstTagCreated'),
+				visible: has('FirstDiscoveryCompleted') && !has('FirstTagCreated') && can('Tag', 'Write'),
 				icon: entities.getIconComponent('Tag'),
 				iconColor: entities.getColorHelper('Tag').icon
 			},
@@ -273,7 +286,8 @@
 				visible:
 					((organization.plan?.included_seats ?? 0) > 1 ||
 						(organization.plan?.seat_cents ?? 0) > 0) &&
-					!has('InviteSent'),
+					!has('InviteSent') &&
+					can('Member', 'Write'),
 				icon: entities.getIconComponent('User'),
 				iconColor: entities.getColorHelper('User').icon
 			},
@@ -290,7 +304,8 @@
 					(organization.plan?.included_sites === null ||
 						(organization.plan?.included_sites ?? 0) > 1 ||
 						(organization.plan?.site_cents ?? 0) > 0) &&
-					dashboard.sites.length === 1,
+					dashboard.sites.length === 1 &&
+					can('NewSite', 'Write'),
 				icon: entities.getIconComponent('Site'),
 				iconColor: entities.getColorHelper('Site').icon
 			},
@@ -317,7 +332,7 @@
 					onNavigate('topology');
 					openModal('topology-share');
 				},
-				visible: features.sharing && has('FirstTopologyRebuild'),
+				visible: features.sharing && has('FirstTopologyRebuild') && can('Share', 'Write'),
 				icon: entities.getIconComponent('Share'),
 				iconColor: entities.getColorHelper('Share').icon
 			}

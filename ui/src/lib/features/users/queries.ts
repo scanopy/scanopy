@@ -6,6 +6,7 @@ import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-qu
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
 import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
+import { mergeCurrentUser } from '$lib/features/auth/queries';
 import type { User, UserOrInvite } from './types';
 import { useListPageQuery, type ListPageParams } from '$lib/api/list-page';
 
@@ -75,7 +76,7 @@ export function useUpdateSelfMutation() {
 			);
 		},
 		onSuccess: (updatedUser: User) => {
-			queryClient.setQueryData(queryKeys.auth.currentUser(), updatedUser);
+			mergeCurrentUser(queryClient, updatedUser);
 		}
 	}));
 }

@@ -23,20 +23,19 @@
 	import LicenseInstanceLimitBanner from './LicenseInstanceLimitBanner.svelte';
 	import NonProductionBanner from './NonProductionBanner.svelte';
 	import UpgradeAvailableBanner from './UpgradeAvailableBanner.svelte';
-	import { useCurrentUserQuery, useEmailVerificationPending } from '$lib/features/auth/queries';
+	import { useEmailVerificationPending } from '$lib/features/auth/queries';
+	import { useCan } from '$lib/features/auth/access';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { useConfigQuery, isLicenseApproachingExpiry } from '$lib/shared/stores/config-query';
 
 	const emailVerification = useEmailVerificationPending();
 	const organizationQuery = useOrganizationQuery();
 	const configQuery = useConfigQuery();
-	const currentUserQuery = useCurrentUserQuery();
+	const can = useCan();
 
 	let organization = $derived(organizationQuery.data);
-	// Admins and owners run the upgrade; nobody else can act on the banner.
-	let canUpgrade = $derived(
-		currentUserQuery.data?.permissions === 'Admin' || currentUserQuery.data?.permissions === 'Owner'
-	);
+	// Whoever runs the organization's users runs the upgrade; nobody else can act on the banner.
+	let canUpgrade = $derived(can('Member', 'Read'));
 	// The production or non-production count that is over its limit. A null
 	// limit is a plan with no cap.
 	let instanceOverrun = $derived.by(() => {
@@ -69,9 +68,13 @@
 <!-- One chain, mutually exclusive by construction: a licence that is locked must
      not also announce a grace period or an approaching expiry. -->
 {#if configQuery.data?.license_status === 'expired' || configQuery.data?.license_status === 'invalid'}
-	<LicenseLockedBanner status={configQuery.data.license_status} refusedFor={instanceOverrun} />
+	<LicenseLockedBanner
+		status={configQuery.data.license_status}
+		refusedFor={instanceOverrun}
+		problem={configQuery.data.license_problem}
+	/>
 {:else if configQuery.data?.license_status === 'pending'}
-	<LicensePendingBanner />
+	<LicensePendingBanner problem={configQuery.data.license_problem} />
 {:else if configQuery.data?.license_in_grace_period && configQuery.data?.license_valid_through && configQuery.data?.license_expiry}
 	<LicenseGraceBanner
 		validThrough={configQuery.data.license_valid_through}

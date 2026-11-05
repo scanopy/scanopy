@@ -1,5 +1,5 @@
 use crate::server::{
-    config::DeploymentType, organizations::r#impl::base::UseCase,
+    auth::access::Assignment, config::DeploymentType, organizations::r#impl::base::UseCase,
     users::r#impl::permissions::UserOrgPermissions,
 };
 use chrono::{DateTime, Utc};
@@ -13,7 +13,7 @@ pub struct LoginRegisterParams {
     pub permissions: Option<UserOrgPermissions>,
     pub ip: IpAddr,
     pub user_agent: Option<String>,
-    pub site_ids: Vec<Uuid>,
+    pub site_assignments: Vec<Assignment>,
     /// The address an accepted invite was emailed to. Registering with it counts as proof
     /// of the address.
     pub invited_as: Option<EmailAddress>,
@@ -42,7 +42,7 @@ pub struct ProvisionUserParams {
     pub oidc_provider: Option<String>,
     pub provision_org: ProvisionOrg,
     pub permissions: Option<UserOrgPermissions>,
-    pub site_ids: Vec<Uuid>,
+    pub site_assignments: Vec<Assignment>,
     pub terms_accepted_at: Option<DateTime<Utc>>,
     pub email_verified: bool,
     /// Where this server runs. A self-hosted server gives a new org its

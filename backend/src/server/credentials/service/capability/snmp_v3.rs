@@ -196,7 +196,7 @@ mod tests {
     fn a_non_v3_credential_never_relies_on_it() {
         let ct = CredentialTypeDiscriminants::SnmpCommunity.to_credential_type();
         let mut typed = TypedCredentialMapping::new(CredentialTypeDiscriminants::SnmpCommunity);
-        typed.mapping.default_credential = Some(ct.to_query_payload());
+        typed.mapping.default_credential = Some(ct.to_query_payload(None).unwrap());
         assert!(UsesSnmpV3SecurityOptions::gap(&(), &typed).is_none());
     }
 }

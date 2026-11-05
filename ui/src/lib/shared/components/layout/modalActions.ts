@@ -6,6 +6,7 @@
  * with no modifier. Every other action takes a letter from `assignActionKeys`, as the list
  * toolbar's actions do. Only the topmost open modal answers keys.
  */
+import { writable } from 'svelte/store';
 import type { ActionTone } from '$lib/shared/components/data/types';
 import type { IconComponent } from '$lib/shared/utils/types';
 import { assignActionKeys, DELETE_KEY } from '$lib/shared/components/data/controls/actionShortcuts';
@@ -183,14 +184,37 @@ function isChoiceButton(el: HTMLElement): boolean {
 
 /** Open modals, oldest first. Only the last one answers keys shared by every modal. */
 const openModals: symbol[] = [];
+/** The same list as a store, so a modal follows the ones beneath it opening and closing. */
+const openModalStackStore = writable<readonly symbol[]>([]);
+export const openModalStack = { subscribe: openModalStackStore.subscribe };
 
-/** Records `token`'s modal as opened on top; the returned function records it closed. */
+/**
+ * Records `token`'s modal as opened on top; the returned function records it closed.
+ *
+ * The page stops scrolling while any modal is open, and scrolls again only when the last one
+ * closes, so closing a dialog stacked over another leaves the one beneath it locked.
+ */
 export function registerOpenModal(token: symbol): () => void {
 	openModals.push(token);
+	openModalStackStore.set([...openModals]);
+	if (typeof document !== 'undefined') document.body.style.overflow = 'hidden';
 	return () => {
 		const at = openModals.indexOf(token);
 		if (at !== -1) openModals.splice(at, 1);
+		openModalStackStore.set([...openModals]);
+		if (openModals.length === 0 && typeof document !== 'undefined') {
+			document.body.style.overflow = '';
+		}
 	};
+}
+
+/**
+ * Whether `token`'s modal sits over another open modal, which then darkens the page for both.
+ * Read from the live stack: a modal that replaces the one beneath it shrouds the page once that
+ * one closes.
+ */
+export function isStackedModal(stack: readonly symbol[], token: symbol): boolean {
+	return stack.indexOf(token) > 0;
 }
 
 export function isTopmostModal(token: symbol): boolean {

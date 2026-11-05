@@ -17,6 +17,7 @@ import planStatusesJson from '$lib/data/plan-statuses.json';
 import emailCategoriesJson from '$lib/data/email-categories.json';
 import featuresJson from '$lib/data/features.json';
 import permissionsJson from '$lib/data/permissions.json';
+import resourcesJson from '$lib/data/resources.json';
 import credentialTypesJson from '$lib/data/credential-types.json';
 import credentialIntegrationsJson from '$lib/data/credential-integrations.json';
 import conceptsJson from '$lib/data/concepts.json';
@@ -100,6 +101,11 @@ export interface CredentialTypeMetadata {
 	 *  "Unofficial API" tag but stay selectable. A separate axis from `stability`: an integration
 	 *  can be fully validated and still ride an endpoint the vendor never published. */
 	upstream_support?: components['schemas']['UpstreamSupport'];
+	/** `Login` for an SSH login, which other credentials run over and which is never assigned;
+	 *  `Dispatched` for everything else. */
+	role?: components['schemas']['CredentialRole'];
+	/** Whether a credential of this type names the login it runs over (`login_credential_id`). */
+	requires_login?: boolean;
 	/** The plan feature needed to create this type, or null when every plan can. The type picker
 	 *  shows an upgrade badge when the organization's plan lacks it; existing credentials of the
 	 *  type keep working on any plan. */
@@ -129,6 +135,7 @@ export interface MetadataRegistry {
 	email_categories: TypeMetadata[];
 	features: TypeMetadata[];
 	permissions: TypeMetadata[];
+	resources: TypeMetadata[];
 	concepts: EntityMetadata[];
 	credential_types: TypeMetadata[];
 	credential_integrations: TypeMetadata[];
@@ -231,7 +238,20 @@ export interface PermissionsMetadata {
 	grantable_api_key_permissions: string[];
 	/** Permission levels this user can assign to other users (Owners can grant all, Admins can grant Member/Viewer) */
 	grantable_user_permissions: string[];
-	manage_org_entities: boolean;
+	/** A person holding this role reaches every site, whatever their site list says. */
+	reaches_all_sites: boolean;
+}
+
+export interface ResourceMetadata {
+	/** Grants on each site answer for this resource, rather than the organization role. */
+	per_site: boolean;
+	/** What each role can do here; empty for no access. A site-keyed row reads the site role the role maps to. */
+	display_actions: Record<
+		components['schemas']['UserOrgPermissions'],
+		components['schemas']['DisplayAction'][]
+	>;
+	/** A lapsed org can still write this. */
+	writable_when_lapsed: boolean;
 }
 
 export interface SubnetTypeMetadata {
@@ -349,6 +369,7 @@ export const metadata = writable<MetadataRegistry>({
 	email_categories: emailCategoriesJson,
 	features: featuresJson,
 	permissions: permissionsJson,
+	resources: resourcesJson,
 	concepts: conceptsJson,
 	credential_types: credentialTypesJson,
 	credential_integrations: credentialIntegrationsJson,
@@ -540,8 +561,6 @@ export interface EntityTypeMetadata {
 	entity_name_plural?: string;
 	/** What this entity type is described by; see `shared/entity-fields`. */
 	fields: components['schemas']['EntityField'][];
-	/** List-table columns that aren't fields, with the group the column menu files them under. */
-	table_columns: components['schemas']['TableColumn'][];
 	/** Fields that name one entity in text, tried in order. */
 	display_fields: string[];
 }
@@ -626,6 +645,8 @@ export const features = createTypeMetadataHelpers<'features', FeatureMetadata>('
 export const permissions = createTypeMetadataHelpers<'permissions', PermissionsMetadata>(
 	'permissions'
 );
+/** What a role grants access to, with each role's level, keyed by `Resource`. */
+export const resources = createTypeMetadataHelpers<'resources', ResourceMetadata>('resources');
 export const concepts = createEntityMetadataHelpers('concepts');
 export const credentialTypes = createTypeMetadataHelpers<
 	'credential_types',
@@ -754,4 +775,11 @@ export function metadataName(category: TypeMetadataKeys, id: string): string {
 		($registry?.[category] as TypeMetadata[] | undefined)?.find((item) => item.id === id)?.name ||
 		id;
 	return metaName(category, id, fallback);
+}
+
+/** The colour of `id` in any type-metadata fixture, chosen at runtime as `metadataName` is. */
+export function metadataColor(category: TypeMetadataKeys, id: string): Color {
+	const $registry = get(metadata);
+	const item = ($registry?.[category] as TypeMetadata[] | undefined)?.find((i) => i.id === id);
+	return createColorHelper(item?.color || null).color;
 }

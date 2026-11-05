@@ -20,12 +20,7 @@ import type { Discovery } from '$lib/features/discovery/types/base';
 import type { Service } from '../types/base';
 import {
 	common_containerizedBy,
-	common_firstFoundBy,
-	common_lastFoundBy,
-	common_created,
 	common_host,
-	common_lastSeen,
-	common_category,
 	common_tags,
 	common_type,
 	common_portBindings,
@@ -33,8 +28,6 @@ import {
 	common_unknown,
 	common_unknownEntity,
 	common_unknownSite,
-	common_updated,
-	services_matchConfidence,
 	services_notContainerized,
 	services_notDiscovered,
 	meta_entities_Service_field_guest_state_label
@@ -178,15 +171,14 @@ export function serviceColumns(ctx: ServiceColumnsContext) {
 					]
 				}
 			},
-			created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
-			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } },
+			created_at: { type: 'date', display: { hiddenByDefault: true } },
+			updated_at: { type: 'date', display: { hiddenByDefault: true } },
 			// Staleness rides on the date rather than a Status column of its own: a
 			// service has no status, and `getFreshnessTag` returns a tag only when
 			// the row is past its site's window — so the column was empty on
 			// every healthy service. `getItems` returning undefined falls back to
 			// the date.
 			last_seen_at: {
-				label: common_lastSeen(),
 				type: 'date',
 				staleFilter: true,
 				display: {
@@ -237,7 +229,6 @@ export function serviceColumns(ctx: ServiceColumnsContext) {
 				}
 			},
 			match_confidence: {
-				label: services_matchConfidence(),
 				type: 'string',
 				searchable: true,
 				filterable: true,
@@ -326,7 +317,6 @@ export function serviceColumns(ctx: ServiceColumnsContext) {
 			},
 			{
 				key: 'category',
-				label: common_category(),
 				type: 'string',
 				searchable: true,
 				filterable: true,
@@ -357,7 +347,6 @@ export function serviceColumns(ctx: ServiceColumnsContext) {
 			},
 			{
 				key: 'first_found_by',
-				label: common_firstFoundBy(),
 				type: 'string',
 				display: {
 					hiddenByDefault: true,
@@ -366,7 +355,6 @@ export function serviceColumns(ctx: ServiceColumnsContext) {
 			},
 			{
 				key: 'last_found_by',
-				label: common_lastFoundBy(),
 				type: 'string',
 				display: {
 					hiddenByDefault: true,

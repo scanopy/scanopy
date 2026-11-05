@@ -134,7 +134,7 @@ fn reconfigure_command_reasserts_connectivity_without_a_credential() {
 fn commands_targeting_an_existing_install_carry_a_selector_for_it() {
     let fresh = daemon(DaemonMode::DaemonPoll, "");
     let mut connected = daemon(DaemonMode::DaemonPoll, "");
-    connected.base.last_seen = Some(chrono::Utc::now());
+    connected.base.last_seen = Some(crate::server::shared::clock::now());
 
     let target = |d: &Daemon, command_type| {
         parse_unix_install(&build_install_artifacts(
@@ -215,7 +215,7 @@ fn install_daemons() -> Vec<Daemon> {
     ] {
         let fresh = daemon(mode, url);
         let mut connected = fresh.clone();
-        connected.base.last_seen = Some(chrono::Utc::now());
+        connected.base.last_seen = Some(crate::server::shared::clock::now());
         daemons.extend([fresh, connected]);
     }
     daemons

@@ -91,6 +91,13 @@ impl Content {
         ))
     }
 
+    /// A blue box with a link, the email form of the app's inline info.
+    pub fn info(self, text: &str, href: &str, label: &str) -> Self {
+        self.child(&format!(
+            r#"<div style="margin: 0 0 20px 0; padding: 12px 16px; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; font-size: 14px; line-height: 20px; color: #1e40af;"><div style="font-weight: 500;">{text}</div><a href="{href}" style="color: #2563eb; font-weight: 500;">{label}</a></div>"#
+        ))
+    }
+
     /// A command or other preformatted text in a dark monospace block, escaped.
     pub fn code(mut self, text: &str) -> Self {
         self.inner.push_str(&format!(

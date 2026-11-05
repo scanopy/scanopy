@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use uuid::Uuid;
 
 use crate::daemon::discovery::types::base::DiscoveryPhase;
@@ -57,8 +57,8 @@ async fn finished_session_stamps_scanned_host_with_its_historical_discovery() {
     );
     update.phase = DiscoveryPhase::Complete;
     update.progress = 100;
-    update.started_at = Some(Utc::now() - Duration::minutes(1));
-    update.finished_at = Some(Utc::now());
+    update.started_at = Some(crate::server::shared::clock::now() - Duration::minutes(1));
+    update.finished_at = Some(crate::server::shared::clock::now());
     update.scanned = Some(ScannedEntityIds {
         host_ids: vec![scanned_host.id],
         ..Default::default()

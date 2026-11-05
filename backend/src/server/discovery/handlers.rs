@@ -4,7 +4,8 @@ use crate::server::shared::sse::until_shutdown;
 use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::metadata::HasId;
 use crate::server::{
-    auth::middleware::permissions::{Authorized, IsDaemon, Member, Viewer},
+    auth::access::{Action, Resource},
+    auth::middleware::permissions::{Authorized, Can, Delete, IsDaemon, Read, Write},
     config::AppState,
     daemons::r#impl::{api::DiscoveryUpdatePayload, version::supports_unified_discovery},
     discovery::r#impl::{base::Discovery, types::DiscoveryType},
@@ -18,7 +19,7 @@ use crate::server::{
                 FilterQueryExtractor, OrderDirection, PaginationParams, deserialize_bool_values,
             },
             traits::ListScope,
-            traits::{create_handler, update_handler},
+            traits::{create_handler, update_handler, validate_entity_references},
         },
         services::traits::CrudService,
         storage::{
@@ -32,6 +33,7 @@ use crate::server::{
             },
             error_codes::ErrorCode,
         },
+        validation::validate_site_access,
     },
     sites::r#impl::Site,
 };
@@ -285,10 +287,10 @@ impl FilterQueryExtractor for DiscoveryFilterQuery {
 )]
 async fn get_all_discoveries(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Discovery, Read>>,
     Query(query): Query<DiscoveryFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<Discovery>>> {
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     Ok(Json(list_page::<Discovery>(&state, &scope, &query).await?))
 }
 
@@ -356,7 +358,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn delete_discovery(
     state: State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Discovery, Delete>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     if state
@@ -386,7 +388,7 @@ async fn delete_discovery(
 )]
 async fn bulk_delete_discoveries(
     state: State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Discovery, Delete>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<crate::server::shared::handlers::traits::BulkDeleteResponse>>> {
     for id in &ids {
@@ -417,7 +419,7 @@ async fn bulk_delete_discoveries(
 )]
 pub async fn create_discovery(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Discovery, Write>>,
     ApiJson(discovery): ApiJson<Discovery>,
 ) -> ApiResult<Json<ApiResponse<Discovery>>> {
     if discovery.base.run_type.is_server_managed() {
@@ -442,6 +444,16 @@ pub async fn create_discovery(
             discovery.base.discovery_type,
         )));
     }
+
+    // Ahead of the gates below, which read the daemon and credentials the body names.
+    validate_entity_references::<Discovery>(
+        &state,
+        &discovery,
+        None,
+        &auth.entity,
+        auth.require_organization_id()?,
+    )
+    .await?;
 
     // For Unified: check daemon version supports it
     if discovery.base.discovery_type.runs_network_scan() {
@@ -510,7 +522,7 @@ pub async fn create_discovery(
 )]
 pub async fn update_discovery(
     state: State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Discovery, Write>>,
     id: Path<Uuid>,
     ApiJson(discovery): ApiJson<Discovery>,
 ) -> ApiResult<Json<ApiResponse<Discovery>>> {
@@ -529,8 +541,24 @@ pub async fn update_discovery(
         ));
     }
 
+    let existing = state.services.discovery_service.get_by_id(&id).await?;
+
+    // Ahead of the gates below, which read the daemon and credentials the body names and quote
+    // them in their refusals.
+    if let Some(existing) = &existing {
+        validate_site_access(Some(existing.base.site_id), &auth.site_ids(), "update")?;
+    }
+    validate_entity_references::<Discovery>(
+        &state,
+        &discovery,
+        existing.as_ref(),
+        &auth.entity,
+        auth.require_organization_id()?,
+    )
+    .await?;
+
     // Reject changing a legacy discovery's type
-    if let Some(existing) = state.services.discovery_service.get_by_id(&id).await?
+    if let Some(existing) = &existing
         && existing.base.discovery_type.is_legacy()
         && std::mem::discriminant(&existing.base.discovery_type)
             != std::mem::discriminant(&discovery.base.discovery_type)
@@ -626,23 +654,14 @@ pub(crate) async fn receive_discovery_update(
         .daemon_id()
         .ok_or_else(|| anyhow::anyhow!("Could not get daemon ID from authentication"))?;
 
-    // Validate daemon can only send updates for their own site
-    if update.site_id != daemon_site_id {
-        return Err(ApiError::daemon_site_mismatch());
-    }
-
-    // Validate daemon can only send updates as themselves
-    if update.daemon_id != daemon_id {
-        return Err(ApiError::daemon_identity_mismatch());
-    }
-
     // Delegate to processor for shared progress update logic
-    // This ensures both DaemonPoll and ServerPoll modes use the same logic
+    // This ensures both DaemonPoll and ServerPoll modes use the same logic, the site and identity
+    // checks included
     state
         .services
         .daemon_service
-        .process_discovery_progress(update)
-        .await;
+        .process_discovery_progress(daemon_id, daemon_site_id, update)
+        .await?;
 
     Ok(Json(ApiResponse::success(())))
 }
@@ -663,7 +682,7 @@ pub(crate) async fn receive_discovery_update(
 )]
 async fn start_session(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Discovery, Write>>,
     ApiJson(discovery_id): ApiJson<Uuid>,
 ) -> ApiResult<Json<ApiResponse<DiscoveryUpdatePayload>>> {
     let site_ids = auth.site_ids();
@@ -718,17 +737,29 @@ pub(super) async fn wake_daemon(state: &Arc<AppState>, daemon_id: Uuid) -> Resul
 /// the same updates as `LiveUpdate::Discovery`. Remove in the next release.
 async fn discovery_stream(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Discovery, Read>>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let mut rx = state.services.discovery_service.subscribe();
-    let allowed_sites = auth.site_ids();
+    let caller = auth.into_entity();
+    let events_state = state.clone();
 
     let stream = async_stream::stream! {
         loop {
             match rx.recv().await {
                 Ok(update) => {
-                    // Only emit if user has access to this discovery's site
-                    if allowed_sites.contains(&update.site_id) {
+                    // Access is rechecked per event, so a revoked site stops at once.
+                    let access = match caller.current_access(&events_state.services).await {
+                        Ok(Some(access)) => access,
+                        Ok(None) => break,
+                        Err(e) => {
+                            tracing::warn!("Skipped a discovery update: {e}");
+                            continue;
+                        }
+                    };
+                    if access
+                        .site_ids(Resource::Discovery, Action::Read)
+                        .contains(&update.site_id)
+                    {
                         let json = serde_json::to_string(&update).unwrap_or_default();
                         yield Ok(Event::default().data(json));
                     }
@@ -758,7 +789,7 @@ async fn discovery_stream(
 )]
 async fn get_active_sessions(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<Discovery, Read>>,
 ) -> ApiResult<Json<ApiResponse<Vec<DiscoveryUpdatePayload>>>> {
     let site_ids = auth.site_ids();
     let sessions = state
@@ -784,7 +815,7 @@ async fn get_active_sessions(
 )]
 async fn cancel_discovery(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Discovery, Write>>,
     Path(session_id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     // Get session and validate user has access to this session's site

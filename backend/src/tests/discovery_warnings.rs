@@ -5,7 +5,7 @@ use std::net::{IpAddr, Ipv4Addr};
 
 use cidr::{IpCidr, Ipv4Cidr};
 
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use sqlx::Row;
 use uuid::Uuid;
 
@@ -130,8 +130,8 @@ async fn finish_run(
     );
     update.phase = DiscoveryPhase::Complete;
     update.progress = 100;
-    update.started_at = Some(Utc::now() - Duration::minutes(1));
-    update.finished_at = Some(Utc::now());
+    update.started_at = Some(crate::server::shared::clock::now() - Duration::minutes(1));
+    update.finished_at = Some(crate::server::shared::clock::now());
     update.warnings = warnings;
     services.discovery_service.update_session(update).await;
 

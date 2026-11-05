@@ -530,7 +530,7 @@ mod tests {
         let licensed = BillingPlan::SelfHostedStandard(PlanConfig::default());
         let trial = |plan: BillingPlan| BillingOperation::TrialStarted {
             plan,
-            trial_end: chrono::Utc::now(),
+            trial_end: crate::server::shared::clock::now(),
             trial_days: 14,
         };
 

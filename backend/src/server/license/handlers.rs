@@ -11,7 +11,6 @@ use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum_client_ip::ClientIp;
-use chrono::Utc;
 use governor::{Quota, RateLimiter, clock::DefaultClock, state::keyed::DashMapStateStore};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -27,7 +26,9 @@ use super::online::{
 };
 use super::types::LicenseKeyType;
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
-use crate::server::auth::middleware::permissions::{Authorized, Owner, RequireVerified};
+use crate::server::auth::middleware::permissions::{
+    Authorized, Can, License, Read, RequireVerified, Write,
+};
 use crate::server::config::AppState;
 use crate::server::openapi::tags as api_tags;
 use crate::server::organizations::r#impl::base::Organization;
@@ -191,12 +192,10 @@ pub async fn get_entitlement(
     let organization = service
         .get_by_id(&organization_id)
         .await?
-        .ok_or_else(|| ApiError::forbidden("This license key's organization no longer exists"))?;
+        .ok_or_else(ApiError::license_organization_missing)?;
 
     if i64::from(claims.key_version) != organization.base.license_key_version {
-        return Err(ApiError::forbidden(
-            "This license key was regenerated. Copy the current key from Scanopy Cloud.",
-        ));
+        return Err(ApiError::license_key_regenerated());
     }
     // Refused before the check-in is recorded. A 403 is final on the
     // self-hosted side, so a server still running the key of an org that moved
@@ -205,7 +204,7 @@ pub async fn get_entitlement(
         return Err(ApiError::license_plan_has_no_key());
     }
 
-    let now = Utc::now();
+    let now = crate::server::shared::clock::now();
     // The key has passed every check, so the caller is the key's holder.
     let server_version = reported_server_version(
         headers
@@ -282,7 +281,7 @@ pub async fn get_entitlement(
 )]
 pub async fn create_license_key(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Owner>>,
+    auth: Authorized<RequireVerified<Can<License, Write>>>,
     ApiJson(request): ApiJson<CreateLicenseKeyRequest>,
 ) -> ApiResult<Json<ApiResponse<LicenseKeyResponse>>> {
     let organization_id = auth.require_organization_id()?;
@@ -320,7 +319,7 @@ pub async fn create_license_key(
                 // over, so its full eligibility (plan, feature, card, paid
                 // subscription) is settled before the type is persisted.
                 LicenseKeyType::Offline => issuer
-                    .mint_offline_key(candidate, Utc::now(), None)
+                    .mint_offline_key(candidate, crate::server::shared::clock::now(), None)
                     .map(|_| ()),
             },
         )
@@ -359,7 +358,7 @@ pub async fn create_license_key(
 )]
 pub async fn get_current_license_key(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Owner>>,
+    auth: Authorized<RequireVerified<Can<License, Read>>>,
 ) -> ApiResult<Json<ApiResponse<LicenseKeyResponse>>> {
     let organization_id = auth.require_organization_id()?;
     let organization = load_licensed_organization(&state, organization_id).await?;
@@ -379,7 +378,7 @@ pub async fn get_current_license_key(
     // Gated on these two refusals only, so a genuine error still surfaces.
     let stranded = key_type == LicenseKeyType::Offline
         && matches!(
-            issuer.mint_offline_key(&organization, Utc::now(), None),
+            issuer.mint_offline_key(&organization, crate::server::shared::clock::now(), None),
             Err(MintError::OfflineRequiresPayment | MintError::OfflineNotIncluded)
         );
     if stranded {
@@ -438,7 +437,11 @@ async fn mint_key(
                 Some(billing) => billing.license_unpaid_from(organization.id).await?,
                 None => None,
             };
-            issuer.mint_offline_key(organization, Utc::now(), unpaid_from)
+            issuer.mint_offline_key(
+                organization,
+                crate::server::shared::clock::now(),
+                unpaid_from,
+            )
         }
     }
     .map_err(mint_error)
@@ -460,7 +463,7 @@ async fn mint_key(
 )]
 pub async fn rotate_license_key(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Owner>>,
+    auth: Authorized<RequireVerified<Can<License, Write>>>,
 ) -> ApiResult<Json<EmptyApiResponse>> {
     let organization_id = auth.require_organization_id()?;
     load_licensed_organization(&state, organization_id).await?;
@@ -511,7 +514,7 @@ pub struct LicenseInstanceSummary {
 )]
 pub async fn list_license_instances(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<License, Read>>,
 ) -> ApiResult<Json<ApiResponse<LicenseInstancesResponse>>> {
     let organization_id = auth.require_organization_id()?;
     let organization = load_organization(&state, organization_id).await?;
@@ -520,7 +523,7 @@ pub async fn list_license_instances(
         .license_instance_service
         .list(organization_id)
         .await?;
-    let now = Utc::now();
+    let now = crate::server::shared::clock::now();
     let limits = organization.license_instance_limits();
     let usage = super::instances::usage(&instances, limits, now);
     let summaries = instances
@@ -557,7 +560,7 @@ pub async fn list_license_instances(
 )]
 pub async fn delete_license_instance(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Owner>,
+    auth: Authorized<Can<License, Write>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<EmptyApiResponse>> {
     let organization_id = auth.require_organization_id()?;

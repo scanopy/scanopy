@@ -7,21 +7,19 @@ use std::net::IpAddr;
 
 use uuid::Uuid;
 
+use crate::daemon::discovery::integration::hypervisor::guest::{self, GuestIdentity, reachable};
+use crate::daemon::discovery::integration::hypervisor::qemu_agent;
 use crate::server::hosts::r#impl::{
-    attributes::{HostHostnameAttributed, HostOsAttributed, HostOsValue},
-    base::{Host, HostBase},
-    name::{HostName, HostNameSources},
+    attributes::HostOsValue,
+    base::Host,
     os::{HostOs, HostOsFamily},
     virtualization::{HostVirtualization, ProxmoxGuestType, ProxmoxVirtualization},
 };
-use crate::server::hosts::service::mac_identity::identity_permits_minting;
-use crate::server::interfaces::r#impl::base::{Interface, InterfaceBase};
-use crate::server::ip_addresses::r#impl::base::{IPAddress, MacEvidence, MacEvidenceValue};
+use crate::server::ip_addresses::r#impl::base::IPAddress;
 use crate::server::lldp::canonical_mac;
 use crate::server::services::r#impl::patterns::ClientProbe;
 use crate::server::shared::attribution::{AttributeSource, Attributed};
 use crate::server::shared::position::renumber_positions;
-use crate::server::shared::types::entities::EntitySource;
 use crate::server::shared::types::guest_state::GuestState;
 use crate::server::subnets::r#impl::base::Subnet;
 
@@ -30,21 +28,14 @@ use super::types::{
     LxcInterface, NodeNetworkEntry, NodeStatus,
 };
 
+pub use crate::daemon::discovery::integration::hypervisor::guest::{
+    ConfigNic, GUEST_AGENT, GUEST_CONFIG, GuestAddress, GuestReading, GuestRecord,
+    select_addresses, static_addresses,
+};
+
 /// The source of what Proxmox reports about a node or guest in its own words: everything but a
 /// guest's config and what its guest agent reads.
 pub const REPORTED: AttributeSource = AttributeSource::Probe(ClientProbe::Proxmox);
-
-/// The source of what a guest's config sets and Proxmox applies to the guest: an LXC container's
-/// hostname and distribution.
-pub const GUEST_CONFIG: AttributeSource = AttributeSource::HypervisorConfig;
-
-/// The source of what the QEMU guest agent reads inside a VM: its hostname and OS.
-pub const GUEST_AGENT: AttributeSource = AttributeSource::GuestAgent;
-
-/// The source of a guest NIC's MAC. Every MAC this integration submits is one a guest's config
-/// declares (see [`select_addresses`]), so it is the hypervisor's own assignment rather than a
-/// report about the guest — which is what lets a guest with no address still be one host.
-const NIC_MAC: AttributeSource = AttributeSource::HypervisorConfig;
 
 /// A node of the cluster, as far as the API places it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -160,18 +151,6 @@ pub fn guests(resources: &[ClusterResource]) -> Vec<GuestSummary> {
     guests
 }
 
-/// One address a guest holds, with the NIC it sits on where the source says.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GuestAddress {
-    pub ip: IpAddr,
-    /// Canonical lowercase-colon MAC.
-    pub mac: Option<String>,
-    pub interface: Option<String>,
-    /// What reported the address: the guest agent, the running container through the API, or
-    /// the guest's config.
-    pub source: AttributeSource,
-}
-
 /// The NICs a guest's config declares, with any static addresses it gives them.
 ///
 /// A QEMU NIC is `net0: virtio=BC:24:11:..,bridge=vmbr0`: the MAC is the value of the model key,
@@ -240,17 +219,6 @@ pub fn config_nics(config: &GuestConfig) -> Vec<ConfigNic> {
     nics
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ConfigNic {
-    pub key: String,
-    /// The interface name inside an LXC container (`eth0`). QEMU configs carry none.
-    pub name: Option<String>,
-    pub mac: Option<String>,
-    /// The node bridge or SDN vnet it is attached to (`vmbr0`).
-    pub bridge: Option<String>,
-    pub static_ips: Vec<IpAddr>,
-}
-
 /// Addresses the QEMU guest agent reports from inside a running VM.
 pub fn agent_addresses(agent: &AgentInterfaces) -> Vec<GuestAddress> {
     agent
@@ -303,119 +271,24 @@ pub fn lxc_addresses(interfaces: &[LxcInterface]) -> Vec<GuestAddress> {
         .collect()
 }
 
-/// The addresses that identify a guest: those on its own virtual NICs, else its config's static
-/// ones.
-///
-/// What runs inside a guest reports every interface it has, and most of those are the guest's own
-/// internals: a Docker host's `docker0` (172.17.0.1 on every Docker host there is) and its
-/// `br-*` networks, Home Assistant's `hassio`, a WireGuard `wg0`. Submitted as the guest's
-/// addresses they would merge unrelated guests on the server, which matches hosts by address. An
-/// interface counts only when its MAC is one the guest's config gives a `netN` NIC, which is the
-/// one thing that ties it to the hypervisor's view of the guest.
-pub fn select_addresses(nics: &[ConfigNic], runtime: Vec<GuestAddress>) -> Vec<GuestAddress> {
-    let on_a_nic: Vec<GuestAddress> = runtime
-        .into_iter()
-        .filter(|a| {
-            a.mac
-                .as_ref()
-                .is_some_and(|mac| nics.iter().any(|n| n.mac.as_ref() == Some(mac)))
-        })
-        .collect();
-    if on_a_nic.is_empty() {
-        static_addresses(nics)
-    } else {
-        on_a_nic
-    }
-}
-
-/// Static addresses from a guest's config (an LXC `ip=`, or a VM's cloud-init `ipconfigN`), for
-/// a guest that is stopped or whose runtime read gave nothing. Each carries its NIC's MAC.
-pub fn static_addresses(nics: &[ConfigNic]) -> Vec<GuestAddress> {
-    nics.iter()
-        .flat_map(|nic| {
-            nic.static_ips.iter().map(|ip| GuestAddress {
-                ip: *ip,
-                mac: nic.mac.clone(),
-                interface: nic.name.clone(),
-                source: GUEST_CONFIG,
-            })
-        })
-        .filter(|a| reachable(a.ip))
-        .collect()
-}
-
-/// An address something else on the network could use to reach the guest. Loopback and
-/// link-local are on every guest and identify none of them.
-fn reachable(ip: IpAddr) -> bool {
-    if ip.is_loopback() || ip.is_unspecified() || ip.is_multicast() {
-        return false;
-    }
-    match ip {
-        IpAddr::V4(v4) => !v4.is_link_local(),
-        IpAddr::V6(v6) => !v6.is_unicast_link_local(),
-    }
-}
-
-/// The OS a QEMU guest agent reads from inside the VM.
-///
-/// `id` says the family: `mswindows` for Windows, a BSD or Solaris by its own id, and anything
-/// else is an os-release distribution id (`debian`, `haos`), which is Linux. The release is
-/// `version-id`, dropped when the name already carries it. `version` repeats the release with a
-/// parenthesised suffix, which is the codename when it is one lowercase word (`12 (bookworm)`)
-/// and a variant otherwise (HAOS's `18.2 (Open Virtual Appliance)`), so only the first is kept.
+/// The OS a QEMU guest agent reads from inside the VM ([`qemu_agent::os`]).
 pub fn guest_os(info: &AgentOsInfo) -> Option<HostOs> {
-    let info = &info.result;
-    let family = match info.id.as_deref().map(str::trim)? {
-        "" => return None,
-        "mswindows" => HostOsFamily::Windows,
-        "freebsd" => HostOsFamily::FreeBsd,
-        "openbsd" => HostOsFamily::OpenBsd,
-        "netbsd" => HostOsFamily::NetBsd,
-        "solaris" => HostOsFamily::Solaris,
-        _ => HostOsFamily::Linux,
-    };
-    let name = info.name.clone();
-    let (release, suffix) = match info.version.as_deref().map(str::trim) {
-        Some(version) => match version.split_once('(') {
-            Some((release, rest)) => (
-                Some(release.trim().to_string()),
-                rest.strip_suffix(')').map(str::trim),
-            ),
-            None => (Some(version.to_string()), None),
-        },
-        None => (None, None),
-    };
-    let version = info
-        .version_id
-        .clone()
-        .filter(|v| !v.trim().is_empty())
-        .or(release)
-        .filter(|v| !name.as_deref().is_some_and(|n| n.contains(v.trim())));
-    let codename = suffix
-        .filter(|s| !s.is_empty() && s.chars().all(|c| c.is_ascii_lowercase()))
-        .filter(|s| info.version_id.as_deref() != Some(*s))
-        .map(str::to_string);
-    Some(
-        HostOs {
-            family,
-            name,
-            version,
-            edition: None,
-            codename,
-            kernel_version: info.kernel_release.clone(),
-        }
-        .without_blank_fields(),
-    )
+    qemu_agent::os(&info.result)
 }
 
 /// The hostname a QEMU guest agent reads from inside the VM.
 pub fn agent_hostname(reply: &AgentHostName) -> Option<String> {
-    present(reply.result.host_name.as_deref())
+    qemu_agent::hostname(reply.result.host_name.as_deref())
 }
 
 /// The hostname an LXC container's config sets.
 pub fn config_hostname(config: &GuestConfig) -> Option<String> {
-    present(config.get("hostname").and_then(|v| v.as_str()))
+    config
+        .get("hostname")
+        .and_then(|v| v.as_str())
+        .map(str::trim)
+        .filter(|v| !v.is_empty())
+        .map(str::to_string)
 }
 
 /// The distribution an LXC container's config names in `ostype`, without a release: Proxmox
@@ -444,13 +317,6 @@ pub fn config_os(config: &GuestConfig) -> Option<HostOs> {
         codename: None,
         kernel_version: None,
     })
-}
-
-fn present(value: Option<&str>) -> Option<String> {
-    value
-        .map(str::trim)
-        .filter(|v| !v.is_empty())
-        .map(str::to_string)
 }
 
 /// A node's OS: Proxmox VE, at the `pve-manager` release `pveversion` names
@@ -506,7 +372,7 @@ pub fn node_addresses(entries: &[NodeNetworkEntry]) -> Vec<NodeAddress> {
 pub struct NodeReading {
     pub os: Option<HostOs>,
     pub addresses: Vec<NodeAddress>,
-    pub bridges: Vec<super::reach::NodeBridge>,
+    pub bridges: Vec<crate::daemon::discovery::integration::hypervisor::reach::HypervisorBridge>,
 }
 
 /// A node's host: named by the node name, which is its hostname, and carrying its OS and every
@@ -568,39 +434,8 @@ pub fn node_host(
     (host, ip_addresses)
 }
 
-/// What a guest's node reports about it: the NICs its config declares, the addresses it holds,
-/// what its runtime reported on every interface, and, where the guest agent or the container
-/// config says, its OS and hostname.
-#[derive(Debug, Clone, Default)]
-pub struct GuestReading {
-    pub nics: Vec<ConfigNic>,
-    pub addresses: Vec<GuestAddress>,
-    /// Every reachable address the running guest reported, on any interface. The source of its
-    /// network identities ([`super::identities::network_identities`]); never its own addresses.
-    pub reported: Vec<GuestAddress>,
-    pub os: Option<HostOsAttributed>,
-    pub hostname: Option<HostHostnameAttributed>,
-    /// Whether the running guest's own interfaces were read (QEMU agent, LXC interfaces), so
-    /// `reported` is every address it presents rather than nothing known.
-    pub interfaces_read: bool,
-}
-
-/// What a guest is submitted as: its host, its addresses, and, for a guest the API reports no
-/// address for, one interface per configured NIC.
-pub struct GuestRecord {
-    pub host: Host,
-    pub ip_addresses: Vec<IPAddress>,
-    pub interfaces: Vec<Interface>,
-}
-
-/// A guest's host, linked to its node's Proxmox VE service when `owner` is known.
-///
-/// A guest is a workload whether or not anything reports an address for it (a stopped VM, one
-/// without the guest agent). Without an address its NICs' MACs identify it, carried as bare
-/// interfaces the way a PROFINET station's is, so every scan lands on the same host and a later
-/// sweep that finds the guest's address joins it by MAC. `None` only for a guest with neither an
-/// address nor a NIC whose MAC can anchor a host: nothing would keep it one host from scan to
-/// scan.
+/// A Proxmox guest's host ([`guest::guest_host`]), linked to its node's Proxmox VE service when
+/// `owner` is known and named as the guest is in Proxmox.
 pub fn guest_host(
     guest: &GuestSummary,
     reading: &GuestReading,
@@ -608,96 +443,17 @@ pub fn guest_host(
     subnets: &[Subnet],
     site_id: Uuid,
 ) -> Option<GuestRecord> {
-    let GuestReading {
-        nics,
-        addresses,
-        os,
-        hostname,
-        ..
-    } = reading;
-    let nic_macs: Vec<&ConfigNic> = nics.iter().filter(|n| n.mac.is_some()).collect();
-    if addresses.is_empty() && nic_macs.is_empty() {
-        return None;
-    }
-
-    let mut host = Host::new(HostBase {
-        site_id,
-        source: EntitySource::Discovery,
-        virtualization_metadata: Some(HostVirtualization::Proxmox(ProxmoxVirtualization {
+    let identity = GuestIdentity {
+        virtualization: HostVirtualization::Proxmox(ProxmoxVirtualization {
             vm_name: guest.name.clone(),
             vm_id: Some(guest.vmid.to_string()),
             guest_type: Some(guest.guest_type),
             state: guest.state,
-        })),
-        virtualization_service_id: owner,
-        os: os.clone(),
-        hostname: hostname.clone(),
-        ..Default::default()
-    });
-    if let Some(name) = &guest.name {
-        // A person named the guest in Proxmox.
-        host.base.apply_name(HostName::from_controller(
-            name.clone(),
-            ClientProbe::Proxmox,
-        ));
-    }
-
-    let mut seen = BTreeSet::new();
-    let mut ip_addresses: Vec<IPAddress> = addresses
-        .iter()
-        .filter(|a| seen.insert(a.ip))
-        .enumerate()
-        .filter_map(|(position, a)| {
-            IPAddress::discovered(
-                site_id,
-                subnets,
-                a.ip,
-                a.source,
-                mac_evidence(a.mac.as_deref()),
-                a.interface.clone(),
-                position as i32,
-            )
-        })
-        .collect();
-    renumber_positions(&mut ip_addresses);
-
-    let interfaces: Vec<Interface> = if ip_addresses.is_empty() {
-        nic_macs
-            .into_iter()
-            .map(|nic| {
-                Interface::new(InterfaceBase {
-                    host_id: Uuid::nil(), // Server assigns.
-                    site_id,
-                    // LXC names the NIC (`eth0`); a QEMU config does not, and no name is invented.
-                    if_name: nic.name.clone(),
-                    mac_address: mac_evidence(nic.mac.as_deref()),
-                    // The NIC the guest's config declares.
-                    interface_source: NIC_MAC,
-                    ..Default::default()
-                })
-            })
-            .collect()
-    } else {
-        vec![]
+        }),
+        name: guest.name.clone(),
+        reported_by: ClientProbe::Proxmox,
     };
-
-    // The server's own rule for a payload with no address: its MAC must be able to anchor a host.
-    // A locally administered MAC (one set by hand, like `02:…`) cannot, because the server never
-    // matches on one either, so sending it would be refused or duplicate every scan.
-    if !identity_permits_minting(&host, &ip_addresses, &interfaces) {
-        return None;
-    }
-
-    Some(GuestRecord {
-        host,
-        ip_addresses,
-        interfaces,
-    })
-}
-
-fn mac_evidence(mac: Option<&str>) -> Option<MacEvidence> {
-    mac.and_then(|m| m.parse().ok())
-        .map(|m| MacEvidence::new(MacEvidenceValue(m), NIC_MAC))
+    guest::guest_host(identity, reading, owner, subnets, site_id)
 }
 
 #[cfg(test)]
@@ -984,7 +740,7 @@ mod tests {
         assert_eq!(ips.len(), 1);
         assert_eq!(
             ips[0].base.mac_address.as_ref().map(|m| m.source()),
-            Some(NIC_MAC)
+            Some(GUEST_CONFIG)
         );
     }
 
@@ -1025,7 +781,7 @@ mod tests {
         assert_eq!(interface[0].base.if_name.as_deref(), Some("eth0"));
         assert_eq!(
             interface[0].base.mac_address.as_ref().map(|m| m.source()),
-            Some(NIC_MAC)
+            Some(GUEST_CONFIG)
         );
     }
 

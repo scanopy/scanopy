@@ -16,20 +16,14 @@ import type { components, operations } from '$lib/api/schema';
 import { fieldValueOptions, type FieldValueCount } from '$lib/shared/api/field-values';
 import {
 	common_nested,
-	common_created,
-	common_lastSeen,
 	common_site,
 	common_source,
-	common_firstFoundBy,
-	common_lastFoundBy,
 	common_tags,
 	common_unknownSite,
 	common_unknownEntity,
-	common_updated,
 	subnets_allSites,
 	subnets_managedBy,
-	subnets_subnetType,
-	common_utilization
+	subnets_subnetType
 } from '$lib/paraglide/messages';
 import { concepts, entities, entitySources, subnetTypes } from '$lib/shared/stores/metadata';
 import { entitySourceItems } from '$lib/shared/utils/entity-source';
@@ -150,19 +144,16 @@ export function subnetColumns(ctx: SubnetColumnsContext) {
 				}
 			},
 			created_at: {
-				label: common_created(),
 				type: 'date',
 				groupable: false,
 				display: { hiddenByDefault: true }
 			},
 			updated_at: {
-				label: common_updated(),
 				type: 'date',
 				groupable: false,
 				display: { hiddenByDefault: true }
 			},
 			last_seen_at: {
-				label: common_lastSeen(),
 				type: 'date',
 				// Identity-like: one header per timestamp.
 				groupable: false,
@@ -173,7 +164,6 @@ export function subnetColumns(ctx: SubnetColumnsContext) {
 				}
 			},
 			utilization: {
-				label: common_utilization(),
 				type: 'string',
 				// Ordered by the server, which derives it across the whole site; a share per row
 				// would group into a header per value.
@@ -235,7 +225,6 @@ export function subnetColumns(ctx: SubnetColumnsContext) {
 			},
 			{
 				key: 'first_found_by',
-				label: common_firstFoundBy(),
 				type: 'string',
 				display: {
 					hiddenByDefault: true,
@@ -244,7 +233,6 @@ export function subnetColumns(ctx: SubnetColumnsContext) {
 			},
 			{
 				key: 'last_found_by',
-				label: common_lastFoundBy(),
 				type: 'string',
 				display: {
 					hiddenByDefault: true,

@@ -33,6 +33,7 @@ import {
 	credentials_targetSiteTooltip,
 	credentials_targetDaemonHostTooltip,
 	credentials_targetHostTooltip,
+	credentials_targetLoginTooltip,
 	snmp_adminStatusDown,
 	snmp_adminStatusUp,
 	snmp_operStatusDormant,
@@ -55,10 +56,12 @@ export function createDefaultCredential(organization_id: string): Credential {
 			community: { mode: 'Inline' as const, value: '' }
 		},
 		daemon_os: null,
+		login_credential_id: null,
 		organization_id,
 		tags: [],
 		assigned_site_ids: [],
 		host_assignments: [],
+		used_by: [],
 		is_default: false,
 		id: uuidv4Sentinel,
 		created_at: utcTimeZoneSentinel,
@@ -165,6 +168,24 @@ export function getTargetTagProps(target: string): TagProps {
 }
 
 /**
+ * The scope chips for a credential type: one per target, or for an SSH login, which has no
+ * targets of its own, one chip saying it signs in for the credentials that use it.
+ */
+export function getScopeTagProps(typeId: string): TagProps[] {
+	const metadata = credentialTypes.getMetadata(typeId);
+	if (metadata?.role === 'Login') {
+		return [
+			{
+				color: 'Gray',
+				icon: credentialTypes.getIconComponent(typeId),
+				title: credentials_targetLoginTooltip()
+			}
+		];
+	}
+	return (metadata?.targets ?? []).map((target: string) => getTargetTagProps(target));
+}
+
+/**
  * Tag marking a credential type that talks to an API its vendor does not publish, or `null` for
  * vendor-supported ones.
  *
@@ -207,6 +228,16 @@ export function credentialTypeUpgradeFeature(
  */
 export function isDaemonHostOnly(targets: string[] | undefined): boolean {
 	return targets?.length === 1 && targets[0] === 'DaemonHost';
+}
+
+/** An SSH login: other credentials run over it, and it is never assigned to sites or hosts. */
+export function isLoginType(typeId: string): boolean {
+	return credentialTypes.getMetadata(typeId)?.role === 'Login';
+}
+
+/** A type whose credentials name the SSH login they run over. */
+export function requiresLogin(typeId: string): boolean {
+	return credentialTypes.getMetadata(typeId)?.requires_login === true;
 }
 
 /**

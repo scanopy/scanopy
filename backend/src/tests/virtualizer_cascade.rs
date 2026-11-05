@@ -3,14 +3,14 @@
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::bindings::r#impl::base::Binding;
 use crate::server::hosts::r#impl::base::{Host, HostBase};
-use crate::server::hosts::r#impl::virtualization::{HostVirtualization, ProxmoxVirtualization};
+use crate::server::hosts::r#impl::virtualization::HostVirtualizationDiscriminants;
 use crate::server::shared::attribution::AttributeSource;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::traits::Storable;
 use crate::server::shared::types::entities::EntitySource;
-use crate::server::shared::types::guest_state::GuestState;
 use crate::server::subnets::r#impl::base::{Subnet, SubnetBase, SubnetCidr, SubnetCidrValue};
 use crate::server::subnets::r#impl::types::SubnetType;
+use uuid::Uuid;
 
 use super::discovery_stale_port_guards::{LAN_IP, Lab};
 use super::discovery_stale_port_holders::covering;
@@ -68,44 +68,27 @@ async fn deleting_a_runtime_deletes_its_containers_and_bridge_subnets() {
     );
 }
 
-/// Deleting a Proxmox VE node's host deletes the VMs its Proxmox VE service runs.
+/// Deleting a hypervisor's host deletes the VMs its hypervisor service runs, under every
+/// hypervisor.
 #[tokio::test]
-async fn deleting_a_node_host_deletes_its_guests() {
+async fn deleting_a_hypervisor_host_deletes_its_guests() {
     let (storage, services, _container) = test_services().await;
-    let lab = Lab::new(&services, &storage).await;
-    let lan = lab.lan_ip();
-    let mut pve = lab.service("Proxmox VE", vec![]);
-    pve.base.bindings = vec![Binding::new_ip_address_serviceless(lan.id)];
-    lab.scan(vec![lan], vec![], vec![pve]).await;
-    let pve_id = lab.named("Proxmox VE").await.unwrap().id;
-    let guest = lab
-        .submit_host(
-            Host::new(HostBase {
-                source: EntitySource::Discovery,
-                virtualization_metadata: Some(HostVirtualization::Proxmox(ProxmoxVirtualization {
-                    vm_name: Some("vm".to_string()),
-                    vm_id: Some("100".to_string()),
-                    guest_type: None,
-                    state: GuestState::Running,
-                })),
-                virtualization_service_id: Some(pve_id),
-                ..Default::default()
-            }),
-            vec![lab.lan_ip_at("192.168.4.70", "02:00:00:00:00:70")],
-        )
-        .await;
+    for kind in HostVirtualizationDiscriminants::hypervisor_guests() {
+        let lab = Lab::new(&services, &storage).await;
+        let guest = hypervisor_with_guest(&lab, kind).await;
 
-    services
-        .host_service
-        .delete_host(
-            &lab.host_id,
-            AuthenticatedEntity::System,
-            crate::server::shared::events::types::DeletionReason::EntityRequested,
-        )
-        .await
-        .unwrap();
+        services
+            .host_service
+            .delete_host(
+                &lab.host_id,
+                AuthenticatedEntity::System,
+                crate::server::shared::events::types::DeletionReason::EntityRequested,
+            )
+            .await
+            .unwrap();
 
-    assert!(!lab.host_exists(&guest).await);
+        assert!(!lab.host_exists(&guest).await, "{kind:?}");
+    }
 }
 
 /// A runtime whose last port is handed over keeps running its containers: port turnover never
@@ -265,76 +248,67 @@ async fn bulk_deleting_a_runtime_deletes_its_containers() {
     assert!(lab.named("kuma").await.is_none());
 }
 
-/// The host delete the API reaches through the CRUD trait deletes the node's guests.
+/// The host delete the API reaches through the CRUD trait deletes the hypervisor's guests.
 #[tokio::test]
-async fn deleting_a_node_host_through_the_api_deletes_its_guests() {
+async fn deleting_a_hypervisor_host_through_the_api_deletes_its_guests() {
     let (storage, services, _container) = test_services().await;
-    let lab = Lab::new(&services, &storage).await;
-    let lan = lab.lan_ip();
-    let mut pve = lab.service("Proxmox VE", vec![]);
-    pve.base.bindings = vec![Binding::new_ip_address_serviceless(lan.id)];
-    lab.scan(vec![lan], vec![], vec![pve]).await;
-    let pve_id = lab.named("Proxmox VE").await.unwrap().id;
-    let guest = lab
-        .submit_host(
-            guest_of(pve_id, "vm"),
-            vec![lab.lan_ip_at("192.168.4.70", "02:00:00:00:00:70")],
+    for kind in HostVirtualizationDiscriminants::hypervisor_guests() {
+        let lab = Lab::new(&services, &storage).await;
+        let guest = hypervisor_with_guest(&lab, kind).await;
+
+        CrudService::<Host>::delete(
+            &*services.host_service,
+            &lab.host_id,
+            AuthenticatedEntity::System,
+            crate::server::shared::events::types::DeletionReason::EntityRequested,
         )
-        .await;
+        .await
+        .unwrap();
 
-    CrudService::<Host>::delete(
-        &*services.host_service,
-        &lab.host_id,
-        AuthenticatedEntity::System,
-        crate::server::shared::events::types::DeletionReason::EntityRequested,
-    )
-    .await
-    .unwrap();
-
-    assert!(!lab.host_exists(&guest).await);
+        assert!(!lab.host_exists(&guest).await, "{kind:?}");
+    }
 }
 
-/// Bulk-deleting a node and its guest together: the guest is already gone when its turn comes,
-/// and that is not an error.
+/// Bulk-deleting a hypervisor and its guest together: the guest is already gone when its turn
+/// comes, and that is not an error.
 #[tokio::test]
-async fn bulk_deleting_a_node_with_its_guest_deletes_both() {
+async fn bulk_deleting_a_hypervisor_with_its_guest_deletes_both() {
     let (storage, services, _container) = test_services().await;
-    let lab = Lab::new(&services, &storage).await;
-    let lan = lab.lan_ip();
-    let mut pve = lab.service("Proxmox VE", vec![]);
-    pve.base.bindings = vec![Binding::new_ip_address_serviceless(lan.id)];
-    lab.scan(vec![lan], vec![], vec![pve]).await;
-    let pve_id = lab.named("Proxmox VE").await.unwrap().id;
-    let guest = lab
-        .submit_host(
-            guest_of(pve_id, "vm"),
-            vec![lab.lan_ip_at("192.168.4.70", "02:00:00:00:00:70")],
+    for kind in HostVirtualizationDiscriminants::hypervisor_guests() {
+        let lab = Lab::new(&services, &storage).await;
+        let guest = hypervisor_with_guest(&lab, kind).await;
+
+        CrudService::<Host>::delete_many(
+            &*services.host_service,
+            &[lab.host_id, guest],
+            AuthenticatedEntity::System,
+            crate::server::shared::events::types::DeletionReason::EntityRequested,
         )
-        .await;
+        .await
+        .expect("both go without an error");
 
-    CrudService::<Host>::delete_many(
-        &*services.host_service,
-        &[lab.host_id, guest],
-        AuthenticatedEntity::System,
-        crate::server::shared::events::types::DeletionReason::EntityRequested,
-    )
-    .await
-    .expect("both go without an error");
-
-    assert!(!lab.host_exists(&lab.host_id).await);
-    assert!(!lab.host_exists(&guest).await);
+        assert!(!lab.host_exists(&lab.host_id).await, "{kind:?}");
+        assert!(!lab.host_exists(&guest).await, "{kind:?}");
+    }
 }
 
-fn guest_of(pve_id: uuid::Uuid, name: &str) -> Host {
-    Host::new(HostBase {
-        source: EntitySource::Discovery,
-        virtualization_metadata: Some(HostVirtualization::Proxmox(ProxmoxVirtualization {
-            vm_name: Some(name.to_string()),
-            vm_id: Some("100".to_string()),
-            guest_type: None,
-            state: GuestState::Running,
-        })),
-        virtualization_service_id: Some(pve_id),
-        ..Default::default()
-    })
+/// A host on `lab`'s LAN running the hypervisor service for `kind`, with one guest under it.
+/// Returns the guest's host id.
+async fn hypervisor_with_guest(lab: &Lab<'_>, kind: HostVirtualizationDiscriminants) -> Uuid {
+    let lan = lab.lan_ip();
+    let definition = kind.manager_definition();
+    let mut manager = lab.service(definition, vec![]);
+    manager.base.bindings = vec![Binding::new_ip_address_serviceless(lan.id)];
+    lab.scan(vec![lan], vec![], vec![manager]).await;
+    let manager_id = lab.named(definition).await.unwrap().id;
+    lab.submit_host(
+        Host::new(HostBase {
+            source: EntitySource::Discovery,
+            virtualization_metadata: Some(kind.guest("vm", "100")),
+            virtualization_service_id: Some(manager_id),
+            ..Default::default()
+        }),
+        vec![lab.lan_ip_at("192.168.4.70", "02:00:00:00:00:70")],
+    )
+    .await
 }

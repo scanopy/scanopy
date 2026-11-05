@@ -525,6 +525,16 @@ impl ApiError {
         Self::coded(StatusCode::FORBIDDEN, ErrorCode::LicensePlanHasNoKey)
     }
 
+    /// The presented online key was rotated or changed type.
+    pub fn license_key_regenerated() -> Self {
+        Self::coded(StatusCode::FORBIDDEN, ErrorCode::LicenseKeyRegenerated)
+    }
+
+    /// The organization the presented online key names no longer exists.
+    pub fn license_organization_missing() -> Self {
+        Self::coded(StatusCode::FORBIDDEN, ErrorCode::LicenseOrganizationMissing)
+    }
+
     /// Conflict (409) - cannot leave an air-gapped key while it is still valid.
     /// The request is well formed and the caller is entitled to make it; the
     /// organization is in a state that forbids the transition.
@@ -735,6 +745,16 @@ impl ApiError {
         Self::coded(
             StatusCode::BAD_REQUEST,
             ErrorCode::DiscoveryHistoricalReadOnly,
+        )
+    }
+
+    /// Bad request (400) - an id in the request names something the caller can't use here
+    pub fn entity_reference_refused(field: &str) -> Self {
+        Self::coded(
+            StatusCode::BAD_REQUEST,
+            ErrorCode::EntityReferenceRefused {
+                field: field.to_string(),
+            },
         )
     }
 
@@ -1011,6 +1031,18 @@ where
 {
     let value = Option::<serde_json::Value>::deserialize(deserializer)?;
     Ok(value.and_then(|v| serde_json::from_value(v).ok()))
+}
+
+/// Reads past a server-owned field, so no request can set it. Pairs with `#[serde(default)]`.
+/// Used in place of `skip_deserializing`, which utoipa treats as `skip`: that would drop the field
+/// from the schema and the generated types, though responses still carry it.
+pub fn ignored<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Default,
+{
+    serde::de::IgnoredAny::deserialize(deserializer)?;
+    Ok(T::default())
 }
 
 #[cfg(test)]

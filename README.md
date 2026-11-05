@@ -66,7 +66,7 @@ Scanopy replaces manual network diagrams with a continuously maintained model of
 
 **Discovery**
 - **No agent per device**: A daemon on Linux, macOS, Windows, or Docker scans the networks it can reach. Deploy as many as your segments need, each on its own schedule, at the rate and subnet scope you set.
-- **[Integrations](https://scanopy.net/integrations?utm_source=github&utm_medium=readme&utm_campaign=features)**: <!-- generated:integrations -->Docker, Aruba Instant On, Podman, Proxmox VE, UniFi Controller, Wake-on-LAN, SNMP, SSH, and gNMI<!-- /generated -->.
+- **[Integrations](https://scanopy.net/integrations?utm_source=github&utm_medium=readme&utm_campaign=features)**: <!-- generated:integrations -->Docker, Aruba Instant On, Podman, Proxmox VE, UniFi Controller, Wake-on-LAN, libvirt (KVM), SNMP, SSH, and gNMI<!-- /generated -->.
 - **Multi-user + RBAC**: Admin, member, and viewer roles, scoped per site.
 
 ## 🎯 Built for teams that manage infrastructure

@@ -9,6 +9,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { liveUpdatesSSEManager } from '$lib/shared/live-updates';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	import { useCan } from '$lib/features/auth/access';
 
 	import { attachUrlState, setActiveTab } from '$lib/shared/stores/url-state';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
@@ -44,8 +45,17 @@
 		isPlanUnchosen,
 		isSelfHostedPlanLocked as isSelfHostedPlanLockedFor
 	} from '$lib/features/organizations/types';
+	import {
+		isShellReady,
+		shouldCloseBillingPlanLink,
+		shouldOpenLicenseSettings
+	} from '$lib/features/organizations/onload-gates';
 	import { billingPlans } from '$lib/shared/stores/metadata';
 	import { licenseTabVisible } from '$lib/features/settings/license-tab';
+	import {
+		licenseSettingsOpenedFor as storedLicenseSettingsOpenedFor,
+		markLicenseSettingsOpened
+	} from '$lib/features/settings/license-settings-opened';
 	import { billingOverModal, reopenSettingsAfterBilling } from '$lib/features/billing/stores';
 	import {
 		modalState,
@@ -63,6 +73,7 @@
 
 	// TanStack Query for current user
 	const currentUserQuery = useCurrentUserQuery();
+	const can = useCan();
 	let isAuthenticated = $derived(currentUserQuery.data != null);
 	let isCheckingAuth = $derived(currentUserQuery.isPending);
 	// The server refuses this user's main-app requests until they accept the
@@ -80,6 +91,8 @@
 		configQuery.data != null && isLicenseSigningAvailable(configQuery.data)
 	);
 	let organization = $derived(organizationQuery.data);
+	// The shell paints with the modal these two decide, rather than a request before it.
+	let shellReady = $derived(isShellReady(organizationQuery, configQuery));
 	// A licensed self-hosted plan on Scanopy Cloud locks the main app:
 	// the backend rejects main-app routes, and the org only gets Settings (its keys
 	// live on the License tab). Switching to a cloud plan unlocks it on the next
@@ -155,10 +168,10 @@
 	// Daemon prompt: driven by modal registry
 	let showDaemonPrompt = $derived($modalState.name === 'daemon-prompt');
 	const daemonPromptResponseMutation = useDaemonPromptResponseMutation();
-	// Don't nag Viewers (they can't install daemons) and never re-show the prompt once
+	// Don't nag anyone who can't install a daemon, and never re-show the prompt once
 	// the user has responded to it (either CTA persists an onboarding milestone).
-	let isViewer = $derived(currentUserQuery.data?.permissions === 'Viewer');
-	let isOwner = $derived(currentUserQuery.data?.permissions === 'Owner');
+	let canInstallDaemon = $derived(can('Daemon', 'Write'));
+	let isOwner = $derived(can('Billing', 'Write'));
 	let daemonPromptResponded = $derived(
 		(organization?.onboarding?.includes('DaemonPromptDismissed') ?? false) ||
 			(organization?.onboarding?.includes('DaemonPromptAccepted') ?? false)
@@ -233,7 +246,6 @@
 			id: string;
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			component: any;
-			isReadOnly: boolean;
 			subTabIds?: string[];
 			subTabDefs?: SubTab[];
 			subTabNotifications?: Record<string, string>;
@@ -279,20 +291,32 @@
 
 	// An org on a licensed self-hosted plan gets Settings on the License tab once
 	// per plan it lands on (on load, or after moving onto it by any path); closing
-	// it leaves the sidebar. Cleared when the org leaves the plan.
+	// it leaves the sidebar, and a reload keeps it closed. Cleared when the org
+	// leaves the plan.
 	let licenseSettingsOpenedFor = $state<string | null>(null);
 	$effect(() => {
+		if (organization == null) return;
 		// A license org whose trial never started is the billing gate's, above.
-		if (!isSelfHostedPlanLocked || planUnchosen) {
+		const locked = isSelfHostedPlanLocked && !planUnchosen;
+		if (!locked) {
 			licenseSettingsOpenedFor = null;
-			return;
+			markLicenseSettingsOpened(organization.id, null);
 		}
-		const planType = organization?.plan?.type ?? null;
-		if (planType == null || licenseSettingsOpenedFor === planType) return;
-		if (!appInitialized || showBillingModal) return;
-		if ($modalState.name !== null && $modalState.name !== 'settings') return;
-		licenseSettingsOpenedFor = planType;
-		openModal('settings', { tab: licenseLockTab });
+		const planType = organization.plan?.type ?? null;
+		if (
+			shouldOpenLicenseSettings({
+				locked,
+				planType,
+				openedFor: licenseSettingsOpenedFor ?? storedLicenseSettingsOpenedFor(organization.id),
+				appInitialized,
+				planPickerShowing: showBillingModal,
+				modalName: $modalState.name
+			})
+		) {
+			licenseSettingsOpenedFor = planType;
+			markLicenseSettingsOpened(organization.id, planType);
+			openModal('settings', { tab: licenseLockTab });
+		}
 	});
 
 	// A URL deep link (initModalFromUrl) can name a main-app modal, and the org may
@@ -341,7 +365,7 @@
 	// no daemon that hasn't answered the prompt.
 	let daemonPromptWanted = $derived(
 		!isMainAppLocked &&
-			!isViewer &&
+			canInstallDaemon &&
 			(organization?.onboarding?.includes('OrgCreated') ?? false) &&
 			!organization?.onboarding?.includes('FirstDaemonRegistered') &&
 			!daemonPromptResponded &&
@@ -428,12 +452,21 @@
 		appInitialized = true;
 		initModalFromUrl();
 		deepLinkOpened = $modalState.name !== null;
+	}
 
-		// Block billing modal deep-link in non-cloud environments
-		if (!isCloudDeployment && $modalState.name === 'billing-plan') {
+	// Block billing modal deep-link in non-cloud environments. Config can land after
+	// initializeApp, so this waits for it rather than closing a Cloud link.
+	$effect(() => {
+		if (
+			shouldCloseBillingPlanLink({
+				modalName: $modalState.name,
+				configLoaded: configQuery.data != null,
+				isCloudDeployment
+			})
+		) {
 			closeModal();
 		}
-	}
+	});
 
 	// Reactive effect: initialize app when authenticated
 	// The layout handles auth check via TanStack Query, so we just wait for it to complete
@@ -467,7 +500,7 @@
 		<AuthBackground />
 		<EmailVerificationGate isOpen={true} />
 	</div>
-{:else if appInitialized}
+{:else if appInitialized && shellReady}
 	<div class="flex h-dvh flex-col">
 		<!-- Banners span the full width, sidebar included.
 		     Only while the main app is reachable. When it is gated, or the org is on
@@ -548,7 +581,6 @@
 									<ContentSubTabs
 										tabs={tab.subTabDefs}
 										bind:activeTab
-										isReadOnly={tab.isReadOnly}
 										notifications={tab.subTabNotifications}
 									/>
 								</div>
@@ -556,7 +588,7 @@
 								<div
 									class={activeTab !== tab.id ? 'relative h-0 overflow-hidden contain-[paint]' : ''}
 								>
-									<tab.component isReadOnly={tab.isReadOnly} isActive={activeTab === tab.id} />
+									<tab.component isActive={activeTab === tab.id} />
 								</div>
 							{/if}
 						{/each}
@@ -605,13 +637,14 @@
 				daemonPromptShown = true;
 				reopenSettingsAfterBilling.set(false);
 				licenseSettingsOpenedFor = selectedPlan.type;
+				if (organization) markLicenseSettingsOpened(organization.id, selectedPlan.type);
 				openModal('settings', { tab: licenseLockTab });
 			} else if ($reopenSettingsAfterBilling) {
 				reopenSettingsAfterBilling.set(false);
 				openModal('settings', { tab: 'billing' });
 			} else if (
 				!overModal &&
-				!isViewer &&
+				canInstallDaemon &&
 				!daemonPromptResponded &&
 				hasSite &&
 				daemonsQuery.data?.length === 0

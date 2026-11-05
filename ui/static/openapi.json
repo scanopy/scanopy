@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scanopy API",
-    "description": "\nSite topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.4\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.4\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.19.4)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **site(s)**:\n\n- You can only access entities within your organization\n- Site-level entities (hosts, services, etc.) are filtered to sites you have access to\n- Use `?site_id=<UUID>` to filter list endpoints to a specific site\n- API keys can be scoped to a subset of your accessible sites\n",
+    "description": "\nSite topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.6\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.6\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.19.6)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **site(s)**:\n\n- You can only access entities within your organization\n- Site-level entities (hosts, services, etc.) are filtered to sites you have access to\n- Use `?site_id=<UUID>` to filter list endpoints to a specific site\n- API keys can be scoped to a subset of your accessible sites\n",
     "license": {
       "name": "Dual (AGPL3.0, Commercial License Available)"
     },
@@ -216,11 +216,11 @@
         "operationId": "get_current_user",
         "responses": {
           "200": {
-            "description": "Current user",
+            "description": "Current user and what they can do",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponse_User"
+                  "$ref": "#/components/schemas/ApiResponse_CurrentUser"
                 }
               }
             }
@@ -23295,6 +23295,47 @@
   },
   "components": {
     "schemas": {
+      "AccessGrants": {
+        "type": "object",
+        "description": "What a principal can do: organization grants for org-keyed resources, and per-site grants for\nsite-keyed ones.",
+        "required": [
+          "organization",
+          "sites",
+          "all_sites"
+        ],
+        "properties": {
+          "all_sites": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Grant"
+            },
+            "description": "Grants held on every site, including sites created since this was read."
+          },
+          "organization": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Grant"
+            },
+            "description": "Grants that answer for org-keyed resources."
+          },
+          "sites": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SiteGrants"
+            },
+            "description": "Grants on each site the principal reaches. Empty for a principal on no site."
+          }
+        }
+      },
+      "Action": {
+        "type": "string",
+        "description": "What a role may do to a resource. `Write` is create and update, plus operations such as\nstarting a scan or merging hosts.",
+        "enum": [
+          "Read",
+          "Write",
+          "Delete"
+        ]
+      },
       "ApiErrorResponse": {
         "type": "object",
         "description": "Error response type for API errors (no data field)",
@@ -23355,12 +23396,12 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.19.4"
+            "example": "0.19.6"
           }
         },
         "example": {
           "api_version": 1,
-          "server_version": "0.19.4"
+          "server_version": "0.19.6"
         }
       },
       "ApiResponse": {
@@ -23492,19 +23533,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-30T13:27:50.781197Z",
+              "created_at": "2026-11-03T22:25:05.869448Z",
               "first_discovery_id": null,
-              "id": "1197e35a-b113-4b09-af4b-58ac52b5a228",
+              "id": "ef1d6909-1d53-43d4-9115-26baefb56328",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-30T13:27:50.781197Z",
+              "last_seen_at": "2026-11-03T22:25:05.869448Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-30T13:27:50.781197Z",
-              "valid_from": "2026-10-30T13:27:50.781197Z",
+              "updated_at": "2026-11-03T22:25:05.869448Z",
+              "valid_from": "2026-11-03T22:25:05.869448Z",
               "valid_to": null
             }
           },
@@ -23789,6 +23830,51 @@
               }
             ],
             "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_CurrentUser": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/User"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "access"
+                ],
+                "properties": {
+                  "access": {
+                    "$ref": "#/components/schemas/AccessGrants",
+                    "description": "The user's organization and per-site grants."
+                  }
+                }
+              }
+            ],
+            "description": "The signed-in user, with what they can do."
           },
           "error": {
             "type": [
@@ -24533,7 +24619,7 @@
                   "null"
                 ],
                 "format": "uuid",
-                "description": "The discovery configuration this session belongs to.\nAlways enriched server-side; daemons do not send this field."
+                "description": "The discovery configuration this session belongs to.\nAlways set server-side. A value a daemon sends is discarded."
               },
               "discovery_type": {
                 "$ref": "#/components/schemas/DiscoveryType",
@@ -25339,19 +25425,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-30T13:27:50.744219Z",
+                      "created_at": "2026-11-03T22:25:05.836217Z",
                       "first_discovery_id": null,
-                      "id": "2830c253-68ae-4585-a7f4-855fd3e68996",
+                      "id": "3910cb97-304d-4868-b210-9825f7b62ef3",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-30T13:27:50.744219Z",
+                      "last_seen_at": "2026-11-03T22:25:05.836217Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-10-30T13:27:50.744219Z",
-                      "valid_from": "2026-10-30T13:27:50.744219Z",
+                      "updated_at": "2026-11-03T22:25:05.836217Z",
+                      "valid_from": "2026-11-03T22:25:05.836217Z",
                       "valid_to": null
                     }
                   ],
@@ -25364,7 +25450,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Gogs",
+                  "service_definition": "Grafana",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -26547,6 +26633,17 @@
                   }
                 ]
               },
+              "license_problem": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/LicenseProblem",
+                    "description": "Why the last check-in failed, or why the configured key is unusable.\n`None` when the last check-in worked or none has finished yet."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "license_signing_available": {
                 "type": "boolean",
                 "description": "Whether this deployment can sign license keys. False on any server\nwithout a signing key, where the Settings License tab and the\nself-hosted plans would otherwise offer something the mint path\nrefuses. Reads the built issuer rather than the config value, since a\nkey can be present but unparseable."
@@ -26862,19 +26959,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-30T13:27:50.775587Z",
+                  "created_at": "2026-11-03T22:25:05.864139Z",
                   "first_discovery_id": null,
-                  "id": "db7344bf-c182-47c0-b9ac-9df2e7cc7f49",
+                  "id": "a8dcdd0d-b644-4925-aadc-d6a1e35a40f7",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-30T13:27:50.775587Z",
+                  "last_seen_at": "2026-11-03T22:25:05.864139Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-30T13:27:50.775587Z",
-                  "valid_from": "2026-10-30T13:27:50.775587Z",
+                  "updated_at": "2026-11-03T22:25:05.864139Z",
+                  "valid_from": "2026-11-03T22:25:05.864139Z",
                   "valid_to": null
                 }
               ],
@@ -26887,7 +26984,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Gogs",
+              "service_definition": "Grafana",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -28915,7 +29012,7 @@
                     "null"
                   ],
                   "format": "uuid",
-                  "description": "The discovery configuration this session belongs to.\nAlways enriched server-side; daemons do not send this field."
+                  "description": "The discovery configuration this session belongs to.\nAlways set server-side. A value a daemon sends is discarded."
                 },
                 "discovery_type": {
                   "$ref": "#/components/schemas/DiscoveryType",
@@ -30162,19 +30259,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-30T13:27:50.744872Z",
+          "created_at": "2026-11-03T22:25:05.836891Z",
           "first_discovery_id": null,
-          "id": "3603dc76-ffb6-47f1-ba9d-a903cb048663",
+          "id": "a094d60b-ecfc-4ce9-ac54-1f13542d5a30",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-30T13:27:50.744872Z",
+          "last_seen_at": "2026-11-03T22:25:05.836891Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-10-30T13:27:50.744872Z",
-          "valid_from": "2026-10-30T13:27:50.744872Z",
+          "updated_at": "2026-11-03T22:25:05.836891Z",
+          "valid_from": "2026-11-03T22:25:05.836891Z",
           "valid_to": null
         }
       },
@@ -30635,6 +30732,7 @@
           "UnifiController",
           "InstantOn",
           "Proxmox",
+          "Libvirt",
           "ModbusTcp",
           "OpcUa",
           "EtherNetIp",
@@ -30676,6 +30774,9 @@
           "PodmanPing",
           "Ipp",
           "Lpd",
+          "Smux",
+          "Rpcbind",
+          "Llmnr",
           "SpotifyConnect",
           "Vnc",
           "AppleLockdown",
@@ -31083,7 +31184,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Gogs",
+              "service_definition": "Grafana",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -31342,9 +31443,11 @@
           "name",
           "description",
           "credential_type",
+          "login_credential_id",
           "tags",
           "assigned_site_ids",
-          "host_assignments"
+          "host_assignments",
+          "used_by"
         ],
         "properties": {
           "assigned_site_ids": {
@@ -31384,6 +31487,14 @@
             },
             "description": "Hosts this credential is assigned to (PerHost scope), with optional IP scoping.\nHydrated from the `host_credentials` junction table."
           },
+          "login_credential_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The SSH login this credential runs over, for a type that needs one (`SshScript`): another\ncredential of the organization whose role is `Login`. `None` for every other type."
+          },
           "name": {
             "type": "string",
             "description": "Human-facing name for this credential."
@@ -31400,6 +31511,15 @@
               "format": "uuid"
             },
             "description": "Tags assigned to this entity."
+          },
+          "used_by": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "readOnly": true
+            },
+            "description": "For a login: the credentials that run over it. Hydrated from their `login_credential_id`;\nempty for any other type. A value sent in a request is ignored."
           }
         }
       },
@@ -31441,7 +31561,8 @@
           "InstantOn",
           "Ssh",
           "WakeOnLan",
-          "Proxmox"
+          "Proxmox",
+          "Libvirt"
         ]
       },
       "CredentialOrderField": {
@@ -31452,6 +31573,7 @@
           "updated_at",
           "credential_type",
           "integration",
+          "category",
           "beta",
           "unofficial_api",
           "daemon_os"
@@ -31487,7 +31609,16 @@
           "Ssh",
           "WakeOnLan",
           "Proxmox",
+          "Libvirt",
           "Unknown"
+        ]
+      },
+      "CredentialRole": {
+        "type": "string",
+        "description": "What a credential is for: run against hosts by an integration, or a login other credentials\nuse to reach a host.",
+        "enum": [
+          "Dispatched",
+          "Login"
         ]
       },
       "CredentialRunOutcome": {
@@ -31995,11 +32126,10 @@
           {
             "type": "object",
             "title": "SshPassword",
-            "description": "SSH with a password. The daemon runs `script` on the host; the script's stdout is one JSON\nobject whose keys (`SshScriptField`) fill existing host and interface fields.",
+            "description": "An SSH login with a password: who the daemon logs in as, and the host key it expects. A\nlogin does nothing on its own. A credential that runs over SSH (`SshScript`) names it as its\n`login_credential_id`.",
             "required": [
               "username",
               "password",
-              "script",
               "type"
             ],
             "properties": {
@@ -32019,19 +32149,6 @@
                 "description": "Port `sshd` listens on (default 22).",
                 "minimum": 0
               },
-              "script": {
-                "$ref": "#/components/schemas/ScriptSource"
-              },
-              "target_os": {
-                "$ref": "#/components/schemas/OsFamily",
-                "description": "The scanned host's OS: decides how a host-file path is validated and the shell the\nscript runs in."
-              },
-              "timeout_seconds": {
-                "type": "integer",
-                "format": "int32",
-                "description": "How long the script may run before the daemon closes the channel, in seconds (default 60).",
-                "minimum": 0
-              },
               "type": {
                 "type": "string",
                 "enum": [
@@ -32047,11 +32164,10 @@
           {
             "type": "object",
             "title": "SshKey",
-            "description": "SSH with a private key (optionally passphrase-protected). Same script contract as\n[`CredentialType::SshPassword`].",
+            "description": "An SSH login with a private key (optionally passphrase-protected). A login like\n[`CredentialType::SshPassword`].",
             "required": [
               "username",
               "private_key",
-              "script",
               "type"
             ],
             "properties": {
@@ -32081,6 +32197,27 @@
               "private_key": {
                 "$ref": "#/components/schemas/SecretValue"
               },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "SshKey"
+                ]
+              },
+              "username": {
+                "type": "string",
+                "description": "User the daemon logs in as."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "SshScript",
+            "description": "A script the daemon runs on the host over SSH, logged in with the credential's SSH login\n(`login_credential_id`). The script's stdout is one JSON object whose keys\n(`SshScriptField`) fill existing host and interface fields.",
+            "required": [
+              "script",
+              "type"
+            ],
+            "properties": {
               "script": {
                 "$ref": "#/components/schemas/ScriptSource"
               },
@@ -32097,12 +32234,28 @@
               "type": {
                 "type": "string",
                 "enum": [
-                  "SshKey"
+                  "SshScript"
                 ]
-              },
-              "username": {
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Libvirt",
+            "description": "A libvirt/KVM host's domains, read with `virsh` over SSH, logged in with the credential's\nSSH login (`login_credential_id`). Each domain becomes a host under the hypervisor.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "connection_uri": {
                 "type": "string",
-                "description": "User the daemon logs in as."
+                "description": "The connection URI `virsh` opens on the host (default `qemu:///system`)."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Libvirt"
+                ]
               }
             }
           },
@@ -32203,9 +32356,31 @@
           "InstantOnAccount",
           "SshPassword",
           "SshKey",
+          "SshScript",
+          "Libvirt",
           "WakeOnLan",
           "ProxmoxApiToken"
         ]
+      },
+      "CurrentUser": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/User"
+          },
+          {
+            "type": "object",
+            "required": [
+              "access"
+            ],
+            "properties": {
+              "access": {
+                "$ref": "#/components/schemas/AccessGrants",
+                "description": "The user's organization and per-site grants."
+              }
+            }
+          }
+        ],
+        "description": "The signed-in user, with what they can do."
       },
       "Daemon": {
         "allOf": [
@@ -32392,7 +32567,8 @@
               "null"
             ],
             "format": "uuid",
-            "description": "Foreign key to API key used for ServerPoll authentication.\nNULL for DaemonPoll daemons or those not yet linked to a key."
+            "description": "Foreign key to API key used for ServerPoll authentication.\nNULL for DaemonPoll daemons or those not yet linked to a key.",
+            "readOnly": true
           },
           "host_id": {
             "type": "string",
@@ -33834,7 +34010,7 @@
               "null"
             ],
             "format": "uuid",
-            "description": "The discovery configuration this session belongs to.\nAlways enriched server-side; daemons do not send this field."
+            "description": "The discovery configuration this session belongs to.\nAlways set server-side. A value a daemon sends is discarded."
           },
           "discovery_type": {
             "$ref": "#/components/schemas/DiscoveryType",
@@ -35227,6 +35403,35 @@
           },
           {
             "type": "object",
+            "title": "CredentialLoginUnavailable",
+            "description": "A credential that runs over an SSH login whose login is gone or no longer usable, so it\nwas not sent. Raised by the server when it builds the scan's credentials, never a daemon.",
+            "required": [
+              "integration",
+              "credential_id",
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "CredentialLoginUnavailable"
+                ]
+              },
+              "credential_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The stored credential. `None` once it is deleted."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialQueryPayloadDiscriminants"
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "CredentialGateClosed",
             "description": "The port the credential needs was not open, so it was never tried.",
             "required": [
@@ -35485,11 +35690,12 @@
           },
           {
             "type": "object",
-            "title": "ProxmoxGuestOutsideScan",
-            "description": "A running guest at addresses no subnet this scan covers, on a shared network or one the\nnode's config doesn't list, so it was recorded without ports or services.",
+            "title": "GuestOutsideScan",
+            "description": "A running guest at addresses no subnet this scan covers, on a shared network or one the\nhypervisor's config doesn't list, so it was recorded without ports or services.",
             "required": [
               "address",
               "guest",
+              "integration",
               "code"
             ],
             "properties": {
@@ -35500,23 +35706,28 @@
               "code": {
                 "type": "string",
                 "enum": [
-                  "ProxmoxGuestOutsideScan"
+                  "GuestOutsideScan"
                 ]
               },
               "guest": {
                 "type": "string",
-                "description": "Its Proxmox VE name, else its VMID."
+                "description": "Its name in its hypervisor, else the hypervisor's id for it."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialQueryPayloadDiscriminants",
+                "description": "The hypervisor integration that reported it."
               }
             }
           },
           {
             "type": "object",
-            "title": "ProxmoxGuestBehindNode",
-            "description": "A running guest on a bridge with no uplink that only its node holds an address on (a NAT'd\n`vmbr1`), so only a daemon on that node reaches it.",
+            "title": "GuestBehindHypervisor",
+            "description": "A running guest on a bridge with no uplink that only its hypervisor holds an address on (a\nNAT'd `vmbr1`, libvirt's `virbr0`), so only a daemon on that hypervisor reaches it.",
             "required": [
               "address",
               "guest",
-              "node",
+              "integration",
+              "hypervisor",
               "bridge",
               "code"
             ],
@@ -35532,26 +35743,31 @@
               "code": {
                 "type": "string",
                 "enum": [
-                  "ProxmoxGuestBehindNode"
+                  "GuestBehindHypervisor"
                 ]
               },
               "guest": {
                 "type": "string",
-                "description": "Its Proxmox VE name, else its VMID."
+                "description": "Its name in its hypervisor, else the hypervisor's id for it."
               },
-              "node": {
+              "hypervisor": {
                 "type": "string",
-                "description": "The node it runs on."
+                "description": "The hypervisor host it runs on: a Proxmox VE node, a libvirt host."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialQueryPayloadDiscriminants",
+                "description": "The hypervisor integration that reported it."
               }
             }
           },
           {
             "type": "object",
-            "title": "ProxmoxGuestIsolated",
-            "description": "A running guest on a bridge with no uplink and no node address, so only a daemon on a guest\nattached to that bridge reaches it.",
+            "title": "GuestIsolated",
+            "description": "A running guest on a bridge with no uplink and no hypervisor address, so only a daemon on a\nguest attached to that bridge reaches it.",
             "required": [
               "address",
               "guest",
+              "integration",
               "bridge",
               "code"
             ],
@@ -35567,12 +35783,16 @@
               "code": {
                 "type": "string",
                 "enum": [
-                  "ProxmoxGuestIsolated"
+                  "GuestIsolated"
                 ]
               },
               "guest": {
                 "type": "string",
-                "description": "Its Proxmox VE name, else its VMID."
+                "description": "Its name in its hypervisor, else the hypervisor's id for it."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialQueryPayloadDiscriminants",
+                "description": "The hypervisor integration that reported it."
               }
             }
           },
@@ -36042,6 +36262,16 @@
           }
         ],
         "description": "A single non-fatal finding from one discovery run, about one device, neighbour, or the scan\nitself.\n\nSerialized with the code as the tag, so the generated TypeScript is a discriminated union the\nUI can switch on exhaustively. The derived `Deserialize` reads that shape; the leniency that\nkeeps historical records and pre-coded daemons working lives in [`deserialize_warnings`],\nwhich is applied at the one field that holds these."
+      },
+      "DisplayAction": {
+        "type": "string",
+        "description": "An action as the role comparison shows it. `Write` is one [`Action`] and reads as Edit, plus\nCreate on a resource where it adds rows.",
+        "enum": [
+          "View",
+          "Create",
+          "Edit",
+          "Delete"
+        ]
       },
       "DisplaySettings": {
         "type": "object",
@@ -36903,7 +37133,7 @@
       },
       "EntityField": {
         "type": "object",
-        "description": "One fact that describes an entity, possibly read from a related entity.",
+        "description": "One fact that describes an entity, possibly read from a related entity. Every serialized key an\nentity carries has one: the flags say which surfaces show it, and `write` says who sets it.",
         "required": [
           "id",
           "label",
@@ -36911,8 +37141,11 @@
           "path",
           "format",
           "summary",
+          "tooltip",
           "many",
-          "searchable"
+          "searchable",
+          "table",
+          "inspector"
         ],
         "properties": {
           "field": {
@@ -36931,6 +37164,10 @@
           "id": {
             "type": "string",
             "description": "Stable key: the CSV header, the list-table column id and the diagram Shape Data name."
+          },
+          "inspector": {
+            "type": "boolean",
+            "description": "Shown by the topology inspector and diagram Shape Data, and read by the topology search."
           },
           "label": {
             "type": "string",
@@ -36960,7 +37197,15 @@
           },
           "summary": {
             "type": "boolean",
-            "description": "Shown by default in tables and in the inspector's details. Every field is exported."
+            "description": "Shown by default in tables and in the inspector's details."
+          },
+          "table": {
+            "type": "boolean",
+            "description": "Offered as a list-table column."
+          },
+          "tooltip": {
+            "type": "boolean",
+            "description": "Shown on the entity's hover tooltip, for a fact that isn't a `summary` default column."
           }
         }
       },
@@ -37700,6 +37945,24 @@
               "$ref": "#/components/schemas/GlobalSearchGroup"
             },
             "description": "One group per entity type with at least one match."
+          }
+        }
+      },
+      "Grant": {
+        "type": "object",
+        "description": "One action held on one resource.",
+        "required": [
+          "resource",
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/Action",
+            "description": "The action held on it."
+          },
+          "resource": {
+            "$ref": "#/components/schemas/Resource",
+            "description": "The resource the action applies to."
           }
         }
       },
@@ -39247,19 +39510,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-30T13:27:50.743430Z",
+                  "created_at": "2026-11-03T22:25:05.835427Z",
                   "first_discovery_id": null,
-                  "id": "eab774be-1fd3-433a-97d4-2c3a4e9513f5",
+                  "id": "d48e86c8-a0e6-4249-83f4-7c25a00d6a7b",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-30T13:27:50.743430Z",
+                  "last_seen_at": "2026-11-03T22:25:05.835427Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-10-30T13:27:50.743430Z",
-                  "valid_from": "2026-10-30T13:27:50.743430Z",
+                  "updated_at": "2026-11-03T22:25:05.835427Z",
+                  "valid_from": "2026-11-03T22:25:05.835427Z",
                   "valid_to": null
                 }
               ],
@@ -39272,7 +39535,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Gogs",
+              "service_definition": "Grafana",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -41359,6 +41622,26 @@
           "Offline"
         ]
       },
+      "LicenseProblem": {
+        "type": "string",
+        "description": "Why this server has no working entitlement, as the public config endpoint\nreports it. `/api/config` needs no login, so it carries this type alone:\naddresses, URLs and raw error text stay in the server log.",
+        "enum": [
+          "dns",
+          "connect",
+          "timeout",
+          "untrusted_certificate",
+          "certificate_dates",
+          "proxy",
+          "server_error",
+          "rate_limited",
+          "key_malformed",
+          "key_regenerated",
+          "organization_missing",
+          "plan_has_no_key",
+          "instance_limit",
+          "key_refused"
+        ]
+      },
       "LicenseStatusDiscriminants": {
         "type": "string",
         "description": "Runtime license state as reported by the public config endpoint.",
@@ -42728,7 +43011,7 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.19.4"
+            "example": "0.19.6"
           }
         },
         "example": {
@@ -42739,7 +43022,7 @@
             "offset": 0,
             "total_count": 142
           },
-          "server_version": "0.19.4"
+          "server_version": "0.19.6"
         }
       },
       "PaginatedApiResponse_Credential": {
@@ -43691,19 +43974,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-30T13:27:50.724148Z",
+                        "created_at": "2026-11-03T22:25:05.818417Z",
                         "first_discovery_id": null,
-                        "id": "8dffd881-97eb-4166-8dd9-e404c695f36e",
+                        "id": "01b5a9e2-d5b2-4d1e-91da-29951852e43c",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-30T13:27:50.724148Z",
+                        "last_seen_at": "2026-11-03T22:25:05.818417Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-10-30T13:27:50.724148Z",
-                        "valid_from": "2026-10-30T13:27:50.724148Z",
+                        "updated_at": "2026-11-03T22:25:05.818417Z",
+                        "valid_from": "2026-11-03T22:25:05.818417Z",
                         "valid_to": null
                       }
                     ],
@@ -43716,7 +43999,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Gogs",
+                    "service_definition": "Grafana",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -43963,19 +44246,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-30T13:27:50.774695Z",
+                    "created_at": "2026-11-03T22:25:05.863330Z",
                     "first_discovery_id": null,
-                    "id": "4fa31c64-0226-439e-8e2f-eee38b5ccdc6",
+                    "id": "3ff5f737-68b5-48da-bc97-ab28e60672fa",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-30T13:27:50.774695Z",
+                    "last_seen_at": "2026-11-03T22:25:05.863330Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-10-30T13:27:50.774695Z",
-                    "valid_from": "2026-10-30T13:27:50.774695Z",
+                    "updated_at": "2026-11-03T22:25:05.863330Z",
+                    "valid_from": "2026-11-03T22:25:05.863330Z",
                     "valid_to": null
                   }
                 ],
@@ -43988,7 +44271,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Gogs",
+                "service_definition": "Grafana",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -45455,6 +45738,17 @@
               }
             ]
           },
+          "license_problem": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LicenseProblem",
+                "description": "Why the last check-in failed, or why the configured key is unusable.\n`None` when the last check-in worked or none has finished yet."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "license_signing_available": {
             "type": "boolean",
             "description": "Whether this deployment can sign license keys. False on any server\nwithout a signing key, where the Settings License tab and the\nself-hosted plans would otherwise offer something the mint path\nrefuses. Reads the built issuer rather than the config value, since a\nkey can be present but unparseable."
@@ -45717,9 +46011,14 @@
           "date",
           "title",
           "html",
-          "url"
+          "url",
+          "daemon_upgrade_notice"
         ],
         "properties": {
+          "daemon_upgrade_notice": {
+            "type": "boolean",
+            "description": "Whether the modal tells the user to upgrade their daemons to this release."
+          },
           "date": {
             "type": "string",
             "format": "date",
@@ -45863,6 +46162,31 @@
             "writeOnly": true
           }
         }
+      },
+      "Resource": {
+        "type": "string",
+        "description": "What a role grants access to. Child entities share their parent's resource.",
+        "enum": [
+          "Site",
+          "Host",
+          "Service",
+          "Subnet",
+          "Vlan",
+          "Dependency",
+          "Topology",
+          "Share",
+          "Discovery",
+          "Daemon",
+          "DaemonApiKey",
+          "Credential",
+          "Tag",
+          "Member",
+          "UserApiKey",
+          "Organization",
+          "Billing",
+          "License",
+          "NewSite"
+        ]
       },
       "RunType": {
         "oneOf": [
@@ -46691,19 +47015,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-30T13:27:50.744652Z",
+              "created_at": "2026-11-03T22:25:05.836669Z",
               "first_discovery_id": null,
-              "id": "588dd7f3-3564-4a9d-9647-5d568b3cda9a",
+              "id": "0617146d-9c3f-4b4c-a6c6-1a339469f4c2",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-30T13:27:50.744652Z",
+              "last_seen_at": "2026-11-03T22:25:05.836669Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-10-30T13:27:50.744652Z",
-              "valid_from": "2026-10-30T13:27:50.744652Z",
+              "updated_at": "2026-11-03T22:25:05.836669Z",
+              "valid_from": "2026-11-03T22:25:05.836669Z",
               "valid_to": null
             }
           ],
@@ -46716,7 +47040,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Gogs",
+          "service_definition": "Grafana",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -47138,7 +47462,8 @@
           "created_by": {
             "type": "string",
             "format": "uuid",
-            "description": "User who created the share."
+            "description": "User who created the share.",
+            "readOnly": true
           },
           "enabled_views": {
             "type": [
@@ -47361,6 +47686,28 @@
               "format": "uuid"
             },
             "description": "Tags assigned to this entity."
+          }
+        }
+      },
+      "SiteGrants": {
+        "type": "object",
+        "description": "The grants held on one site.",
+        "required": [
+          "site_id",
+          "grants"
+        ],
+        "properties": {
+          "grants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Grant"
+            },
+            "description": "What the principal can do on that site."
+          },
+          "site_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The site these grants hold on."
           }
         }
       },
@@ -48218,23 +48565,6 @@
           },
           "subnet_type_source": {
             "$ref": "#/components/schemas/AttributeSource"
-          }
-        }
-      },
-      "TableColumn": {
-        "type": "object",
-        "description": "A list-table column that is not a registry field: a value the table computes, reads from\nanother endpoint, or keeps out of CSV export (`created_at`, `last_seen_at`). Declared here so\nthe column menu files it under a group the backend chose. CSV, diagram Shape Data and the\ninspector read only fields, never these.",
-        "required": [
-          "id",
-          "group"
-        ],
-        "properties": {
-          "group": {
-            "$ref": "#/components/schemas/FieldGroup"
-          },
-          "id": {
-            "type": "string",
-            "description": "The column's key in the list table, and so in saved column preferences."
           }
         }
       },
@@ -49151,7 +49481,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "8359cdc9-f787-4e3a-be29-36c093779516",
+                  "id": "136d3236-c4f3-4e49-9e4e-10c2aafab68e",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -49161,23 +49491,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "8589acf6-db61-4360-a96f-1a5de1a70312",
+                  "id": "924d0f90-3320-40c2-9ed3-d48076d03529",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "043869dd-efe5-40a6-a4db-2c504bc08dd2",
+                  "id": "2b513178-6637-47fa-b4f5-03d862977ebc",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "10d6e863-9d9a-43b8-8720-d3adb900d8e6",
+                  "id": "c23cb9f5-53ba-4a4f-a6fb-46f8287ea085",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "8589acf6-db61-4360-a96f-1a5de1a70312",
+                  "id": "924d0f90-3320-40c2-9ed3-d48076d03529",
                   "rule": "ByHost"
                 }
               ]
@@ -49207,19 +49537,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "e687f3af-643e-4166-9372-480c613b2c59",
+                "id": "23eb1ae9-70e6-4def-83ba-e12499d3c57b",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "59bae1af-48ae-4a9d-8901-742a5962237e",
+                "id": "c8b47712-17a7-48eb-bd27-e3c9c0796154",
                 "rule": "ByVLAN"
               },
               {
-                "id": "7d098cb5-a1f3-4b44-b2ad-eb84c9f3abce",
+                "id": "fa2c260f-7b0f-4389-b92b-c615695ddb76",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "fa92d20c-4c99-4385-b7e5-554e2f705091",
+                "id": "c322d6c4-7f90-4b65-905a-45d393e488ba",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -49240,7 +49570,7 @@
                 }
               },
               {
-                "id": "dd6508db-c3f5-47a8-b22d-96a381b5cf75",
+                "id": "4c9d1ce2-cec5-4daf-8425-24c56a31b52a",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -49249,19 +49579,19 @@
                 }
               },
               {
-                "id": "8768cc4d-f427-41ea-9276-2bd74162d7e0",
+                "id": "a8267243-dd8e-4a36-8bc8-2b1d4bd26c43",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "599c0eca-c956-4de2-b72a-6c1208350cbe",
+                "id": "0ff04269-e118-4ebf-ada7-5dc0dcf34c32",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "ab9ef755-540c-41f2-80ee-b0b30bcb57be",
+                "id": "f1fd7958-599d-467e-a259-b0a16bdb39c1",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "81c086c7-f636-4ef8-bc20-cba88bf034f1",
+                "id": "f9ee288a-bb4e-47ce-b350-58c561df38e7",
                 "rule": "ByStack"
               }
             ]
@@ -50142,7 +50472,8 @@
           "organization_id": {
             "type": "string",
             "format": "uuid",
-            "description": "The organization that owns this record."
+            "description": "The organization that owns this record.",
+            "readOnly": true
           },
           "permissions": {
             "$ref": "#/components/schemas/UserOrgPermissions",
@@ -50167,7 +50498,8 @@
           "user_id": {
             "type": "string",
             "format": "uuid",
-            "description": "User the key acts on behalf of."
+            "description": "User the key acts on behalf of.",
+            "readOnly": true
           }
         }
       },
@@ -50233,7 +50565,8 @@
           },
           "email_verified": {
             "type": "boolean",
-            "description": "Whether the user has verified their email address"
+            "description": "Whether the user has verified their email address",
+            "readOnly": true
           },
           "has_password": {
             "type": "boolean",
@@ -50246,14 +50579,16 @@
               "null"
             ],
             "format": "date-time",
-            "description": "When the account was linked to the identity provider."
+            "description": "When the account was linked to the identity provider.",
+            "readOnly": true
           },
           "oidc_provider": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Slug of the identity provider this account signs in through, when linked."
+            "description": "Slug of the identity provider this account signs in through, when linked.",
+            "readOnly": true
           },
           "organization_id": {
             "type": "string",

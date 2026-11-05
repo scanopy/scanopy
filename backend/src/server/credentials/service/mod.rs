@@ -11,7 +11,7 @@ use crate::server::{
             SnmpCredentialMapping, SnmpQueryCredential,
         },
         types::{
-            CredentialAssignment, CredentialHostAssignment, CredentialType,
+            CredentialAssignment, CredentialHostAssignment, CredentialRole, CredentialType,
             CredentialTypeDiscriminants, SnmpVersion, Target,
         },
     },
@@ -49,6 +49,7 @@ mod capability;
 mod coverage;
 mod defaults;
 mod junctions;
+pub(crate) mod logins;
 mod plan_gate;
 pub(crate) use plan_gate::check_type_in_plan;
 mod targetless;
@@ -181,6 +182,7 @@ impl CrudService<Credential> for CredentialService {
         entity.refresh_is_default();
         self.refuse_second_default(&entity).await?;
         self.refuse_type_outside_plan(None, &entity).await?;
+        self.refuse_invalid_login(&entity).await?;
 
         let created = self.create_base(entity, authentication.clone()).await?;
 
@@ -206,13 +208,11 @@ impl CrudService<Credential> for CredentialService {
         }
 
         // Clears the interface prompts on home and the L2 view; a container or Wake-on-LAN
-        // credential adds no interfaces, so it does not count.
-        if created
-            .base
-            .credential_type
-            .discriminant()
-            .integration()
-            .reports_interfaces()
+        // credential adds no interfaces, so it does not count, and neither does a login, which
+        // runs nothing.
+        let discriminant = created.base.credential_type.discriminant();
+        if discriminant.role() == CredentialRole::Dispatched
+            && discriminant.integration().reports_interfaces()
             && self
                 .organization_service
                 .record_milestone(
@@ -256,6 +256,7 @@ impl CrudService<Credential> for CredentialService {
         self.refuse_second_default(entity).await?;
         self.refuse_type_outside_plan(Some(current.base.credential_type.discriminant()), entity)
             .await?;
+        self.refuse_invalid_login(entity).await?;
         self.update_base(entity, authentication, reason).await
     }
 
@@ -268,6 +269,8 @@ impl CrudService<Credential> for CredentialService {
     ) -> Result<(), Error> {
         if let Some(credential) = self.get_by_id(id).await? {
             defaults::refuse_default_delete(std::slice::from_ref(&credential))?;
+            self.refuse_login_in_use(std::slice::from_ref(&credential))
+                .await?;
         }
         self.delete_base(id, authentication, reason).await
     }
@@ -283,6 +286,7 @@ impl CrudService<Credential> for CredentialService {
             .get_all(StorableFilter::<Credential>::new_from_entity_ids(ids))
             .await?;
         defaults::refuse_default_delete(&credentials)?;
+        self.refuse_login_in_use(&credentials).await?;
         self.delete_many_base(ids, authentication, reason).await
     }
 }
@@ -443,6 +447,14 @@ impl CredentialService {
     // Discovery credential building
     // ========================================================================
 
+    async fn site_organization_id(&self, site_id: Uuid) -> Result<Option<Uuid>, Error> {
+        Ok(self
+            .site_service
+            .get_by_id(&site_id)
+            .await?
+            .map(|site| site.base.organization_id))
+    }
+
     // === Legacy Daemon Support (pre-v0.15.0) ===
 
     /// Legacy: Supports daemons < v0.15.0 using SnmpCredentialMapping in DiscoveryType::Network.
@@ -464,14 +476,17 @@ impl CredentialService {
 
         // Get site's SNMP credentials (from junction table)
         let site_cred_ids = self.get_credential_ids_for_site(&site_id).await?;
+        let site_org_id = self.site_organization_id(site_id).await?;
+        let owned_by_site_org = |cred: &Credential| owned_by_organization(cred, site_org_id);
         // Legacy mapping only carries SNMPv2c — pre-v0.15.0 daemons can't speak
         // v1 or v3. v1/v3 credentials reach modern daemons via
         // build_all_credential_mappings.
         let mut site_snmp_credential: Option<SnmpQueryCredential> = None;
         for cred_id in &site_cred_ids {
             if let Some(cred) = self.get_by_id(cred_id).await?
-                && let CredentialQueryPayload::Snmp(snmp) =
-                    cred.base.credential_type.to_query_payload()
+                && owned_by_site_org(&cred)
+                && let Some(CredentialQueryPayload::Snmp(snmp)) =
+                    cred.base.credential_type.to_query_payload(None)
                 && snmp.version == SnmpVersion::V2c
             {
                 site_snmp_credential = Some(snmp);
@@ -488,8 +503,9 @@ impl CredentialService {
             if let Some(assignments) = host_cred_map.get(&host.id) {
                 for assignment in assignments {
                     if let Some(cred) = self.get_by_id(&assignment.credential_id).await?
-                        && let CredentialQueryPayload::Snmp(query_cred) =
-                            cred.base.credential_type.to_query_payload()
+                        && owned_by_site_org(&cred)
+                        && let Some(CredentialQueryPayload::Snmp(query_cred)) =
+                            cred.base.credential_type.to_query_payload(None)
                         && query_cred.version == SnmpVersion::V2c
                     {
                         // If ip_address_ids is set, only create overrides for those ip_addresses
@@ -572,16 +588,8 @@ impl CredentialService {
         // otherwise-inconsistent junction row must never serialize a foreign
         // tenant's secret onto the wire. If the site's org can't be resolved
         // we fall back to the write-time guard rather than break a live scan.
-        let site_org_id = self
-            .site_service
-            .get_by_id(&site_id)
-            .await?
-            .map(|n| n.base.organization_id);
-        let owned_by_site_org = |cred: &Credential| -> bool {
-            site_org_id
-                .map(|org| cred.base.organization_id == org)
-                .unwrap_or(true)
-        };
+        let site_org_id = self.site_organization_id(site_id).await?;
+        let owned_by_site_org = |cred: &Credential| owned_by_organization(cred, site_org_id);
 
         // Fetch site-level credentials
         let site_cred_ids = self.get_credential_ids_for_site(&site_id).await?;
@@ -601,15 +609,32 @@ impl CredentialService {
         // applies between credentials of one integration.
         let mut created_at: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
 
+        // Each credential with the login it runs over folded in. A login is sent only inside the
+        // credentials that use it, and one that has gone, or was never usable, keeps its
+        // credential back with a warning saying so.
+        let mut logins: HashMap<Uuid, Option<Credential>> = HashMap::new();
+        let mut login_warnings: BTreeMap<Uuid, DiscoveryWarning> = BTreeMap::new();
+
         for cred_id in &site_cred_ids {
             if let Some(cred) = self.get_by_id(cred_id).await?
                 && owned_by_site_org(&cred)
+                && let Some(dispatch) = self
+                    .dispatchable_or_warn(
+                        &cred,
+                        &owned_by_site_org,
+                        &mut logins,
+                        &mut login_warnings,
+                    )
+                    .await?
             {
                 created_at.insert(cred.id, cred.created_at);
-                let cred_type = &cred.base.credential_type;
-                let mapping = mapping_for(&mut mappings_by_credential, cred.id, cred_type);
-                mapping.default_credential = Some(cred_type.to_query_payload());
-                mapping.daemon_os = cred.base.daemon_os;
+                let mapping = mapping_for(
+                    &mut mappings_by_credential,
+                    cred.id,
+                    &cred.base.credential_type,
+                );
+                mapping.default_credential = Some(dispatch.payload);
+                mapping.daemon_os = dispatch.daemon_os;
             }
         }
 
@@ -622,6 +647,14 @@ impl CredentialService {
                 for assignment in assignments {
                     if let Some(cred) = self.get_by_id(&assignment.credential_id).await?
                         && owned_by_site_org(&cred)
+                        && let Some(dispatch) = self
+                            .dispatchable_or_warn(
+                                &cred,
+                                &owned_by_site_org,
+                                &mut logins,
+                                &mut login_warnings,
+                            )
+                            .await?
                     {
                         created_at.insert(cred.id, cred.created_at);
                         apply_host_assignment(
@@ -629,6 +662,7 @@ impl CredentialService {
                             host.id,
                             assignment,
                             &cred,
+                            &dispatch,
                             &ip_addresses,
                         );
                     }
@@ -654,11 +688,21 @@ impl CredentialService {
         // target_ips bootstrap and the modal's pending_credential_ids. Resolving the credential is
         // the only I/O; override-building is delegated to the pure `apply_integration_target`.
         for target in integration_targets {
-            let Some(cred) = self.get_by_id(&target.credential_id()).await? else {
+            let Some(cred) = self
+                .get_by_id(&target.credential_id())
+                .await?
+                .filter(owned_by_site_org)
+            else {
                 tracing::warn!(
                     credential_id = %target.credential_id(),
                     "Integration target references unknown credential; skipping"
                 );
+                continue;
+            };
+            let Some(dispatch) = self
+                .dispatchable_or_warn(&cred, &owned_by_site_org, &mut logins, &mut login_warnings)
+                .await?
+            else {
                 continue;
             };
             created_at.insert(cred.id, cred.created_at);
@@ -666,9 +710,10 @@ impl CredentialService {
                 &mut mappings_by_credential,
                 target,
                 &cred.base.credential_type,
+                &dispatch.payload,
             );
             if let Some(typed) = mappings_by_credential.get_mut(&cred.id) {
-                typed.mapping.daemon_os = cred.base.daemon_os;
+                typed.mapping.daemon_os = dispatch.daemon_os;
             }
         }
 
@@ -677,10 +722,13 @@ impl CredentialService {
         // site credentials and host assignments, which cannot be validated against one daemon
         // when they are saved because a site may hold several daemons on different versions, so
         // reaching here means a mixed-version fleet or a downgrade.
-        let mut withheld = capability::retain_capable::<capability::ParsesCredentialType>(
-            &(),
-            &mut mappings_by_credential,
-            daemon_version,
+        let mut withheld: Vec<DiscoveryWarning> = login_warnings.into_values().collect();
+        withheld.extend(
+            capability::retain_capable::<capability::ParsesCredentialType>(
+                &(),
+                &mut mappings_by_credential,
+                daemon_version,
+            ),
         );
         withheld.extend(capability::retain_capable::<
             capability::UsesSnmpV3SecurityOptions,
@@ -751,6 +799,12 @@ pub(crate) fn mapping_for<'a>(
 /// Within each tier the oldest credential goes last, so of two equally specific credentials that
 /// both work, the one created first is used. A credential missing from `created_at` counts as the
 /// newest, and the credential id breaks an exact tie, so the order is the same on every scan.
+/// Whether a credential may go to a daemon on a site in `organization_id`. With no organization to
+/// compare, the write-time checks stand alone.
+fn owned_by_organization(credential: &Credential, organization_id: Option<Uuid>) -> bool {
+    organization_id.is_none_or(|org| credential.base.organization_id == org)
+}
+
 fn order_mappings_for_dispatch(
     mappings: BTreeMap<Uuid, TypedCredentialMapping>,
     created_at: &HashMap<Uuid, DateTime<Utc>>,
@@ -800,6 +854,7 @@ pub(crate) fn apply_integration_target(
     mappings_by_credential: &mut BTreeMap<Uuid, TypedCredentialMapping>,
     target: &IntegrationTarget,
     credential_type: &CredentialType,
+    payload: &CredentialQueryPayload,
 ) {
     let scope = Target::from(target);
     if !credential_type.targets().contains(&scope) {
@@ -823,7 +878,6 @@ pub(crate) fn apply_integration_target(
         return;
     }
 
-    let payload = credential_type.to_query_payload();
     let credential_id = target.credential_id();
     // Keyed by credential, so a second `Site` target of the same type no longer displaces the
     // first — the same collapse that dropped site-assigned credentials applied here too.
@@ -831,7 +885,7 @@ pub(crate) fn apply_integration_target(
 
     match target {
         IntegrationTarget::Site { .. } => {
-            mapping.default_credential = Some(payload);
+            mapping.default_credential = Some(payload.clone());
         }
         IntegrationTarget::Hosts { .. } | IntegrationTarget::DaemonHost { .. } => {
             for ip in target_ips {
@@ -857,12 +911,16 @@ pub(crate) fn apply_host_assignment(
     host_id: Uuid,
     assignment: &CredentialAssignment,
     credential: &Credential,
+    dispatch: &logins::Dispatchable,
     ip_addresses: &[IPAddress],
 ) {
-    let cred_type = &credential.base.credential_type;
-    let payload = cred_type.to_query_payload();
-    let mapping = mapping_for(mappings_by_credential, credential.id, cred_type);
-    mapping.daemon_os = credential.base.daemon_os;
+    let payload = &dispatch.payload;
+    let mapping = mapping_for(
+        mappings_by_credential,
+        credential.id,
+        &credential.base.credential_type,
+    );
+    mapping.daemon_os = dispatch.daemon_os;
 
     let relevant_interfaces = ip_addresses.iter().filter(|i| {
         if i.base.host_id != host_id {
@@ -1045,6 +1103,54 @@ mod single_endpoint_tests {
 /// Characterization tests for #637 (per-daemon credential↔IP targeting via `IntegrationTarget`).
 /// These exercise the pure `apply_integration_target` transformation — the heart of the fix —
 /// without a database.
+/// [`apply_integration_target`] for a type that runs over no login, building its payload.
+#[cfg(test)]
+pub(crate) fn apply_integration_target_standalone(
+    mappings_by_credential: &mut BTreeMap<Uuid, TypedCredentialMapping>,
+    target: &IntegrationTarget,
+    credential_type: &CredentialType,
+) {
+    let payload = credential_type
+        .to_query_payload(None)
+        .expect("a type that runs over no login");
+    apply_integration_target(mappings_by_credential, target, credential_type, &payload);
+}
+
+/// [`apply_host_assignment`] for a test credential, over a default login of its organization
+/// when its type runs over one.
+#[cfg(test)]
+pub(crate) fn apply_host_assignment_standalone(
+    mappings_by_credential: &mut BTreeMap<Uuid, TypedCredentialMapping>,
+    host_id: Uuid,
+    assignment: &CredentialAssignment,
+    credential: &Credential,
+    ip_addresses: &[IPAddress],
+) {
+    let login = credential
+        .base
+        .credential_type
+        .discriminant()
+        .requires_login()
+        .then(|| {
+            Credential::new(crate::server::credentials::r#impl::base::CredentialBase {
+                organization_id: credential.base.organization_id,
+                credential_type: CredentialTypeDiscriminants::SshPassword.to_credential_type(),
+                ..Default::default()
+            })
+        });
+    let dispatch = logins::dispatchable(credential, login.as_ref())
+        .ok()
+        .expect("a dispatchable test credential");
+    apply_host_assignment(
+        mappings_by_credential,
+        host_id,
+        assignment,
+        credential,
+        &dispatch,
+        ip_addresses,
+    );
+}
+
 #[cfg(test)]
 mod integration_target_tests {
     use super::*;
@@ -1096,7 +1202,7 @@ mod integration_target_tests {
             CredentialTypeDiscriminants::DockerSocket,
         ] {
             let mut map: Mappings = Mappings::new();
-            apply_integration_target(&mut map, &target, &disc.to_credential_type());
+            apply_integration_target_standalone(&mut map, &target, &disc.to_credential_type());
             let mapping = only(&map);
             assert_eq!(mapping.ip_overrides.len(), 1);
             assert_eq!(mapping.ip_overrides[0].ip, localhost());
@@ -1118,7 +1224,7 @@ mod integration_target_tests {
             ips: vec![localhost(), remote],
         };
         let mut map: Mappings = Mappings::new();
-        apply_integration_target(&mut map, &target, &cred_type);
+        apply_integration_target_standalone(&mut map, &target, &cred_type);
         let mapping = only(&map);
         assert_eq!(
             mapping
@@ -1142,8 +1248,8 @@ mod integration_target_tests {
             ips: vec!["10.0.0.5".parse::<IpAddr>().unwrap()],
         };
         let mut map: Mappings = Mappings::new();
-        apply_integration_target(&mut map, &target, &cred_type);
-        apply_integration_target(&mut map, &target, &cred_type);
+        apply_integration_target_standalone(&mut map, &target, &cred_type);
+        apply_integration_target_standalone(&mut map, &target, &cred_type);
         let mapping = only(&map);
         assert_eq!(
             mapping.ip_overrides.len(),
@@ -1161,7 +1267,7 @@ mod integration_target_tests {
             credential_id: Uuid::new_v4(),
         };
         let mut map: Mappings = Mappings::new();
-        apply_integration_target(&mut map, &target, &cred_type);
+        apply_integration_target_standalone(&mut map, &target, &cred_type);
         assert!(map.is_empty(), "invalid scope must not produce a mapping");
     }
 
@@ -1181,7 +1287,7 @@ mod integration_target_tests {
         for (id, community) in [(first, "netdefault"), (second, "secret42")] {
             let cred_type = snmp_v2c(community);
             mapping_for(&mut map, id, &cred_type).default_credential =
-                Some(cred_type.to_query_payload());
+                Some(cred_type.to_query_payload(None).unwrap());
         }
 
         assert_eq!(map.len(), 2, "both credentials must survive");
@@ -1210,7 +1316,7 @@ mod integration_target_tests {
         for (id, community) in [(first, "netdefault"), (second, "secret42")] {
             let cred_type = snmp_v2c(community);
             mapping_for(&mut map, id, &cred_type).default_credential =
-                Some(cred_type.to_query_payload());
+                Some(cred_type.to_query_payload(None).unwrap());
         }
 
         let dispatched = order_mappings_for_dispatch(map, &HashMap::new());
@@ -1247,7 +1353,7 @@ mod integration_target_tests {
             .ip_overrides
             .push(IpOverride {
                 ip: "10.0.0.5".parse().unwrap(),
-                credential: specific.to_query_payload(),
+                credential: specific.to_query_payload(None).unwrap(),
                 credential_id: host_id,
                 host_id: None,
                 mac_address: None,
@@ -1275,13 +1381,13 @@ mod integration_target_tests {
 
         let broadcast = snmp_v2c("site-wide");
         mapping_for(&mut map, broadcast_id, &broadcast).default_credential =
-            Some(broadcast.to_query_payload());
+            Some(broadcast.to_query_payload(None).unwrap());
 
         let specific = snmp_v2c("host-specific");
         let specific_mapping = mapping_for(&mut map, host_id, &specific);
         specific_mapping.ip_overrides.push(IpOverride {
             ip: "10.0.0.5".parse().unwrap(),
-            credential: specific.to_query_payload(),
+            credential: specific.to_query_payload(None).unwrap(),
             credential_id: host_id,
             host_id: None,
             mac_address: None,
@@ -1310,15 +1416,19 @@ mod integration_target_tests {
             let mut map: Mappings = Mappings::new();
             let mut created_at = HashMap::new();
             for (id, community, created) in [
-                (older_id, "older", Utc::now() - chrono::Duration::days(1)),
-                (newer_id, "newer", Utc::now()),
+                (
+                    older_id,
+                    "older",
+                    crate::server::shared::clock::now() - chrono::Duration::days(1),
+                ),
+                (newer_id, "newer", crate::server::shared::clock::now()),
             ] {
                 let cred = snmp_v2c(community);
                 mapping_for(&mut map, id, &cred)
                     .ip_overrides
                     .push(IpOverride {
                         ip: "10.0.0.5".parse().unwrap(),
-                        credential: cred.to_query_payload(),
+                        credential: cred.to_query_payload(None).unwrap(),
                         credential_id: id,
                         host_id: None,
                         mac_address: None,
@@ -1384,7 +1494,13 @@ mod integration_target_tests {
         ];
 
         let mut map: Mappings = Mappings::new();
-        apply_host_assignment(&mut map, daemon_host_id, &assignment, &cred, &ip_addresses);
+        apply_host_assignment_standalone(
+            &mut map,
+            daemon_host_id,
+            &assignment,
+            &cred,
+            &ip_addresses,
+        );
 
         let mapping = only(&map);
         assert_eq!(mapping.ip_overrides.len(), 1);
@@ -1417,7 +1533,7 @@ mod integration_target_tests {
         ];
 
         let mut map: Mappings = Mappings::new();
-        apply_host_assignment(&mut map, host_id, &assignment, &cred, &ip_addresses);
+        apply_host_assignment_standalone(&mut map, host_id, &assignment, &cred, &ip_addresses);
 
         let mut ips: Vec<IpAddr> = only(&map).ip_overrides.iter().map(|o| o.ip).collect();
         ips.sort();
@@ -1453,7 +1569,7 @@ mod integration_target_tests {
         ];
 
         let mut map: Mappings = Mappings::new();
-        apply_host_assignment(&mut map, host_id, &assignment, &cred, &ip_addresses);
+        apply_host_assignment_standalone(&mut map, host_id, &assignment, &cred, &ip_addresses);
 
         let overrides = &only(&map).ip_overrides;
         assert_eq!(
@@ -1492,7 +1608,7 @@ mod integration_target_tests {
         let without_mac = ip_address(Uuid::new_v4(), host_id, "10.0.0.5".parse().unwrap());
 
         let mut map: Mappings = Mappings::new();
-        apply_host_assignment(
+        apply_host_assignment_standalone(
             &mut map,
             host_id,
             &assignment,
@@ -1523,7 +1639,7 @@ mod integration_target_tests {
         let cred_type = CredentialTypeDiscriminants::SnmpCommunity.to_credential_type();
 
         for id in [Uuid::from_u128(1), Uuid::from_u128(2)] {
-            apply_integration_target(
+            apply_integration_target_standalone(
                 &mut map,
                 &IntegrationTarget::Site { credential_id: id },
                 &cred_type,
@@ -1545,7 +1661,7 @@ mod integration_target_tests {
             credential_id: Uuid::new_v4(),
         };
         let mut map: Mappings = Mappings::new();
-        apply_integration_target(&mut map, &target, &cred_type);
+        apply_integration_target_standalone(&mut map, &target, &cred_type);
         let mapping = only(&map);
         assert!(mapping.ip_overrides.is_empty());
         assert!(mapping.default_credential.is_some());
@@ -1565,7 +1681,7 @@ mod integration_target_tests {
             ips: ips.clone(),
         };
         let mut map: Mappings = Mappings::new();
-        apply_integration_target(&mut map, &target, &cred_type);
+        apply_integration_target_standalone(&mut map, &target, &cred_type);
         let mapping = only(&map);
         assert_eq!(mapping.ip_overrides.len(), 2);
         assert_eq!(

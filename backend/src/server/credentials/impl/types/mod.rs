@@ -15,6 +15,7 @@ use utoipa::ToSchema;
 
 pub mod container_proxy;
 pub mod instant_on;
+pub mod libvirt;
 pub mod paths;
 pub mod proxmox;
 pub mod snmp;
@@ -33,7 +34,8 @@ pub use defaults::SeededDefault;
 pub use fields::{CredentialOsFields, DAEMON_OS_FIELD, TARGET_OS_FIELD};
 pub use integration::{CredentialIntegration, InterfaceViewScope};
 pub use metadata::{
-    CredentialAssignment, CredentialCategory, CredentialHostAssignment, UpstreamSupport,
+    CredentialAssignment, CredentialCategory, CredentialHostAssignment, CredentialRole,
+    ReachDeclaration, UpstreamSupport,
 };
 pub use paths::{CredentialPath, DaemonPath, DaemonSocket, HostPath, OsFamily};
 // `Target` is the strum-discriminant of `IntegrationTarget` (single source of truth for the
@@ -52,7 +54,8 @@ pub use snmp::{
 pub use instant_on::InstantOnQueryCredential;
 pub use proxmox::{ProxmoxQueryCredential, default_proxmox_port};
 pub use ssh::{
-    ScriptSource, SshAuth, SshQueryCredential, default_ssh_port, default_ssh_timeout_seconds,
+    ScriptSource, SshAuth, SshLogin, SshQueryCredential, default_ssh_port,
+    default_ssh_timeout_seconds,
 };
 pub use unifi::{UnifiAuth, UnifiQueryCredential, default_unifi_port, default_unifi_site};
 pub use wake_on_lan::{
@@ -261,8 +264,9 @@ pub enum CredentialType {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         site: Option<String>,
     },
-    /// SSH with a password. The daemon runs `script` on the host; the script's stdout is one JSON
-    /// object whose keys (`SshScriptField`) fill existing host and interface fields.
+    /// An SSH login with a password: who the daemon logs in as, and the host key it expects. A
+    /// login does nothing on its own. A credential that runs over SSH (`SshScript`) names it as its
+    /// `login_credential_id`.
     #[schema(title = "SshPassword")]
     SshPassword {
         /// Port `sshd` listens on (default 22).
@@ -271,20 +275,12 @@ pub enum CredentialType {
         /// User the daemon logs in as.
         username: String,
         password: SecretValue,
-        /// The scanned host's OS: decides how a host-file path is validated and the shell the
-        /// script runs in.
-        #[serde(default)]
-        target_os: OsFamily,
-        script: ScriptSource,
-        /// How long the script may run before the daemon closes the channel, in seconds (default 60).
-        #[serde(default = "default_ssh_timeout_seconds")]
-        timeout_seconds: u32,
         /// Require this host key (OpenSSH `SHA256:…` fingerprint). Blank ⇒ the daemon pins the
         /// first key it sees per address and port, and refuses a changed one.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         host_key_fingerprint: Option<String>,
     },
-    /// SSH with a private key (optionally passphrase-protected). Same script contract as
+    /// An SSH login with a private key (optionally passphrase-protected). A login like
     /// [`CredentialType::SshPassword`].
     #[schema(title = "SshKey")]
     SshKey {
@@ -300,6 +296,15 @@ pub enum CredentialType {
             deserialize_with = "deserialize_optional_secret_value"
         )]
         passphrase: Option<SecretValue>,
+        /// Require this host key (OpenSSH `SHA256:…` fingerprint). Blank ⇒ trust on first use.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        host_key_fingerprint: Option<String>,
+    },
+    /// A script the daemon runs on the host over SSH, logged in with the credential's SSH login
+    /// (`login_credential_id`). The script's stdout is one JSON object whose keys
+    /// (`SshScriptField`) fill existing host and interface fields.
+    #[schema(title = "SshScript")]
+    SshScript {
         /// The scanned host's OS: decides how a host-file path is validated and the shell the
         /// script runs in.
         #[serde(default)]
@@ -308,9 +313,14 @@ pub enum CredentialType {
         /// How long the script may run before the daemon closes the channel, in seconds (default 60).
         #[serde(default = "default_ssh_timeout_seconds")]
         timeout_seconds: u32,
-        /// Require this host key (OpenSSH `SHA256:…` fingerprint). Blank ⇒ trust on first use.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        host_key_fingerprint: Option<String>,
+    },
+    /// A libvirt/KVM host's domains, read with `virsh` over SSH, logged in with the credential's
+    /// SSH login (`login_credential_id`). Each domain becomes a host under the hypervisor.
+    #[schema(title = "Libvirt")]
+    Libvirt {
+        /// The connection URI `virsh` opens on the host (default `qemu:///system`).
+        #[serde(default = "libvirt::default_libvirt_uri")]
+        connection_uri: String,
     },
     /// Wake-on-LAN: the daemon wakes the assigned hosts by MAC before the sweep, so a host that
     /// sleeps between scans is awake to be discovered.
@@ -544,6 +554,8 @@ impl CredentialType {
             | (Self::InstantOnAccount { .. }, _)
             | (Self::SshPassword { .. }, _)
             | (Self::SshKey { .. }, _)
+            | (Self::SshScript { .. }, _)
+            | (Self::Libvirt { .. }, _)
             | (Self::WakeOnLan { .. }, _)
             | (Self::ProxmoxApiToken { .. }, _) => {}
         }
@@ -585,11 +597,13 @@ impl CredentialType {
             // `DaemonHost` is wrong here even though it is right for a self-hosted controller.
             // Not `Site` either, for the same reason as UniFi.
             Self::InstantOnAccount { .. } => vec![Target::Hosts],
-            // A login, like SNMP: the same account and script can serve a fleet, so a site
-            // assignment is a reasonable way to apply it.
-            Self::SshPassword { .. } | Self::SshKey { .. } => {
-                vec![Target::Hosts, Target::Site]
-            }
+            // Like SNMP: the same account and script can serve a fleet, so a site assignment is a
+            // reasonable way to apply it.
+            Self::SshScript { .. } => vec![Target::Hosts, Target::Site],
+            // Named KVM hosts only. A site assignment would try the login on every SSH host there.
+            Self::Libvirt { .. } => vec![Target::Hosts],
+            // A login runs nothing, so it is assigned nowhere: the credentials that use it are.
+            Self::SshPassword { .. } | Self::SshKey { .. } => vec![],
             // Named hosts only. A site assignment would wake every device on the subnet the
             // server holds a MAC for, which nobody asking to wake a NAS intends.
             Self::WakeOnLan { .. } => vec![Target::Hosts],
@@ -636,6 +650,10 @@ impl CredentialType {
             Self::Gnmi { .. } => false,
             // Try-many: two SSH credentials (different accounts, different scripts) on one host
             // are both meaningful, and site-wide SSH must stay broadcastable.
+            Self::SshScript { .. } => false,
+            // Try-many like SSH: each URI is its own reading of the host.
+            Self::Libvirt { .. } => false,
+            // A login is never dispatched, so it meets no other credential on a host.
             Self::SshPassword { .. } | Self::SshKey { .. } => false,
             // Two WoL credentials on one host only send two packets; nothing to forbid.
             Self::WakeOnLan { .. } => false,
@@ -720,7 +738,10 @@ impl CredentialType {
                 "token_secret" => inline_secret(token_secret),
                 _ => None,
             },
-            Self::DockerSocket { .. } | Self::PodmanSocket { .. } => None,
+            Self::DockerSocket { .. }
+            | Self::PodmanSocket { .. }
+            | Self::SshScript { .. }
+            | Self::Libvirt { .. } => None,
         }
     }
 
@@ -795,23 +816,21 @@ impl CredentialType {
                         .map(|s| ("socket_path", CredentialPath::Socket(s))),
                 ]
             }
-            Self::SshPassword {
-                password,
-                script: source,
-                target_os,
-                ..
-            } => vec![secret("password", password), script(source, *target_os)],
+            Self::SshPassword { password, .. } => vec![secret("password", password)],
             Self::SshKey {
                 private_key,
                 passphrase,
-                script: source,
-                target_os,
                 ..
             } => vec![
                 secret("private_key", private_key),
                 passphrase.as_ref().and_then(|s| secret("passphrase", s)),
-                script(source, *target_os),
             ],
+            Self::SshScript {
+                script: source,
+                target_os,
+                ..
+            } => vec![script(source, *target_os)],
+            Self::Libvirt { .. } => vec![],
             Self::WakeOnLan {
                 secure_on_password, ..
             } => vec![
@@ -892,13 +911,19 @@ impl CredentialType {
             .service()
     }
 
-    /// Convert to wire format payload for daemon transmission.
-    /// No wildcard match — compiler forces update when new variants added.
-    pub fn to_query_payload(&self) -> CredentialQueryPayload {
+    /// Convert to wire format payload for daemon transmission. `login` is the credential its
+    /// `login_credential_id` names, for a type that runs over a login (`SshScript`).
+    ///
+    /// `None` for a login itself, which is never dispatched, and for a credential whose login is
+    /// missing or is not one. No wildcard match — compiler forces update when new variants added.
+    pub fn to_query_payload(
+        &self,
+        login: Option<&CredentialType>,
+    ) -> Option<CredentialQueryPayload> {
         use crate::server::credentials::r#impl::mapping::{
             GnmiQueryCredential, SnmpQueryCredential, SnmpV3Params,
         };
-        match self {
+        Some(match self {
             // V2c on the wire for every daemon. From 0.19.1 the daemon also tries v1 on each port;
             // an older one tries v2c only.
             CredentialType::SnmpCommunity { community } => {
@@ -1001,46 +1026,24 @@ impl CredentialType {
                 // sending an empty string the client would then have to treat as a wildcard.
                 site: site.as_ref().filter(|s| !s.trim().is_empty()).cloned(),
             }),
-            CredentialType::SshPassword {
-                port,
-                username,
-                password,
+            // A login runs nothing; the credentials that name it carry it.
+            CredentialType::SshPassword { .. } | CredentialType::SshKey { .. } => return None,
+            CredentialType::SshScript {
                 target_os,
                 script,
                 timeout_seconds,
-                host_key_fingerprint,
             } => CredentialQueryPayload::Ssh(SshQueryCredential {
-                port: *port,
-                username: username.clone(),
-                auth: SshAuth::Password {
-                    password: secret_to_resolvable(password),
-                },
+                login: login?.ssh_login()?,
                 script: script.clone(),
                 target_os: *target_os,
                 timeout_seconds: *timeout_seconds,
-                host_key_fingerprint: non_blank(host_key_fingerprint),
             }),
-            CredentialType::SshKey {
-                port,
-                username,
-                private_key,
-                passphrase,
-                target_os,
-                script,
-                timeout_seconds,
-                host_key_fingerprint,
-            } => CredentialQueryPayload::Ssh(SshQueryCredential {
-                port: *port,
-                username: username.clone(),
-                auth: SshAuth::PrivateKey {
-                    private_key: secret_to_resolvable(private_key),
-                    passphrase: passphrase.as_ref().map(secret_to_resolvable),
-                },
-                script: script.clone(),
-                target_os: *target_os,
-                timeout_seconds: *timeout_seconds,
-                host_key_fingerprint: non_blank(host_key_fingerprint),
-            }),
+            CredentialType::Libvirt { connection_uri } => {
+                CredentialQueryPayload::Libvirt(libvirt::LibvirtQueryCredential {
+                    login: login?.ssh_login()?,
+                    connection_uri: connection_uri.trim().to_string(),
+                })
+            }
             CredentialType::WakeOnLan {
                 port,
                 wait_seconds,
@@ -1061,6 +1064,42 @@ impl CredentialType {
                 token_id: token_id.trim().to_string(),
                 token_secret: secret_to_resolvable(token_secret),
             }),
+        })
+    }
+
+    /// What an SSH login hands the credentials that run over it, in wire form. `None` for any
+    /// other type.
+    pub fn ssh_login(&self) -> Option<SshLogin> {
+        match self {
+            CredentialType::SshPassword {
+                port,
+                username,
+                password,
+                host_key_fingerprint,
+            } => Some(SshLogin {
+                port: *port,
+                username: username.clone(),
+                auth: SshAuth::Password {
+                    password: secret_to_resolvable(password),
+                },
+                host_key_fingerprint: non_blank(host_key_fingerprint),
+            }),
+            CredentialType::SshKey {
+                port,
+                username,
+                private_key,
+                passphrase,
+                host_key_fingerprint,
+            } => Some(SshLogin {
+                port: *port,
+                username: username.clone(),
+                auth: SshAuth::PrivateKey {
+                    private_key: secret_to_resolvable(private_key),
+                    passphrase: passphrase.as_ref().map(secret_to_resolvable),
+                },
+                host_key_fingerprint: non_blank(host_key_fingerprint),
+            }),
+            _ => None,
         }
     }
 }
@@ -1210,25 +1249,35 @@ mod tests {
     fn paths_are_validated_for_the_machine_that_holds_them() {
         use crate::server::credentials::r#impl::base::CredentialBase;
         let file = |p: &str| SecretValue::FilePath { path: p.into() };
-        let ssh = |key: &str, script: &str, target_os| CredentialType::SshKey {
-            port: 22,
-            username: "scanopy".into(),
-            private_key: file(key),
-            passphrase: None,
-            script: ScriptSource::HostFile {
-                path: script.into(),
-            },
-            target_os,
-            timeout_seconds: 60,
-            host_key_fingerprint: None,
+        // The key is the login's, read on the daemon; the script is its SSH script's, run on the
+        // host. Both are saved with the same daemon OS.
+        let ssh = |key: &str, script: &str, target_os| {
+            (
+                CredentialType::SshKey {
+                    port: 22,
+                    username: "scanopy".into(),
+                    private_key: file(key),
+                    passphrase: None,
+                    host_key_fingerprint: None,
+                },
+                CredentialType::SshScript {
+                    script: ScriptSource::HostFile {
+                        path: script.into(),
+                    },
+                    target_os,
+                    timeout_seconds: 60,
+                },
+            )
         };
-        let check = |credential_type, daemon_os: OsFamily| {
-            CredentialBase {
+        let check = |(login, script): (CredentialType, CredentialType), daemon_os: OsFamily| {
+            let base = |credential_type| CredentialBase {
                 credential_type,
                 daemon_os: Some(daemon_os),
                 ..Default::default()
-            }
-            .validate_settings()
+            };
+            base(login)
+                .validate_settings()
+                .and(base(script).validate_settings())
         };
 
         // A Linux daemon reading a key, running a script on a Windows host.
@@ -1273,17 +1322,19 @@ mod tests {
             .is_err()
         );
         assert!(
-            check(
-                CredentialType::DockerSocket {
+            CredentialBase {
+                credential_type: CredentialType::DockerSocket {
                     socket_path: Some(r"\\.\pipe\docker_engine".into()),
                 },
-                OsFamily::Unix
-            )
+                daemon_os: Some(OsFamily::Unix),
+                ..Default::default()
+            }
+            .validate_settings()
             .is_err()
         );
     }
 
-    /// An SSH key credential carries two secrets, one optional. Editing the script must not
+    /// An SSH key login carries two secrets, one optional. Editing its other fields must not
     /// destroy either, and an edit that sets the passphrase must keep the new value.
     #[test]
     fn merge_redacted_secrets_restores_ssh_key_and_passphrase_independently() {
@@ -1291,15 +1342,10 @@ mod tests {
             value: secrecy::SecretString::from(v.to_string()),
         };
         let ssh_key = |key: &str, passphrase: Option<&str>| CredentialType::SshKey {
-            target_os: OsFamily::Unix,
             port: 22,
             username: "scanopy".into(),
             private_key: inline(key),
             passphrase: passphrase.map(inline),
-            script: ScriptSource::Inline {
-                value: "true".into(),
-            },
-            timeout_seconds: 60,
             host_key_fingerprint: None,
         };
         let secrets = |ct: &CredentialType| match ct {
@@ -1477,7 +1523,7 @@ mod tests {
 
     #[test]
     fn to_query_payload_community_sets_version_and_community() {
-        match snmp_cred("comm").to_query_payload() {
+        match snmp_cred("comm").to_query_payload(None).unwrap() {
             CredentialQueryPayload::Snmp(s) => {
                 assert_eq!(s.version, SnmpVersion::V2c);
                 assert!(s.v3.is_none());
@@ -1494,7 +1540,10 @@ mod tests {
 
     #[test]
     fn to_query_payload_snmpv3_populates_usm_params() {
-        match snmpv3_cred("auth-pw", "priv-pw").to_query_payload() {
+        match snmpv3_cred("auth-pw", "priv-pw")
+            .to_query_payload(None)
+            .unwrap()
+        {
             CredentialQueryPayload::Snmp(s) => {
                 assert_eq!(s.version, SnmpVersion::V3);
                 let v3 = s.v3.expect("v3 params present");
@@ -1555,7 +1604,9 @@ mod tests {
 
     #[test]
     fn snmpv3_query_payload_debug_redacts_passwords() {
-        let payload = snmpv3_cred("auth-dbg", "priv-dbg").to_query_payload();
+        let payload = snmpv3_cred("auth-dbg", "priv-dbg")
+            .to_query_payload(None)
+            .unwrap();
         let dbg = format!("{:?}", payload);
         assert!(!dbg.contains("auth-dbg"));
         assert!(!dbg.contains("priv-dbg"));
@@ -1575,7 +1626,10 @@ mod tests {
 
     #[test]
     fn podman_proxy_to_query_payload_round_trips() {
-        match podman_cred(Some("podman-key")).to_query_payload() {
+        match podman_cred(Some("podman-key"))
+            .to_query_payload(None)
+            .unwrap()
+        {
             CredentialQueryPayload::PodmanProxy(p) => {
                 assert_eq!(p.port, 2376);
                 assert!(matches!(
@@ -1590,21 +1644,11 @@ mod tests {
     #[test]
     fn podman_socket_to_query_payload() {
         assert!(matches!(
-            CredentialType::PodmanSocket { socket_path: None }.to_query_payload(),
+            CredentialType::PodmanSocket { socket_path: None }
+                .to_query_payload(None)
+                .unwrap(),
             CredentialQueryPayload::PodmanSocket(_)
         ));
-    }
-
-    #[test]
-    fn podman_credentials_are_container_virtualization() {
-        assert_eq!(
-            podman_cred(None).credential_category(),
-            CredentialCategory::ContainerVirtualization
-        );
-        assert_eq!(
-            CredentialType::PodmanSocket { socket_path: None }.credential_category(),
-            CredentialCategory::ContainerVirtualization
-        );
     }
 
     #[test]
@@ -1761,7 +1805,7 @@ mod tests {
             password: inline("portal-pw"),
             site: Some("   ".to_string()),
         };
-        match cred.to_query_payload() {
+        match cred.to_query_payload(None).unwrap() {
             CredentialQueryPayload::InstantOn(i) => {
                 assert_eq!(i.username, "scanopy@example.com");
                 assert_eq!(
@@ -1783,7 +1827,7 @@ mod tests {
         let json = serde_json::to_string(&cred).expect("serialize");
         assert!(!json.contains("portal-pw"));
         assert!(json.contains(REDACTED_SECRET_SENTINEL));
-        assert!(!format!("{:?}", cred.to_query_payload()).contains("portal-pw"));
+        assert!(!format!("{:?}", cred.to_query_payload(None).unwrap()).contains("portal-pw"));
     }
 
     /// The token secret carries the same redacted round-trip risk as every other secret.
@@ -1888,6 +1932,94 @@ mod tests {
                     field.id,
                     field.field_type,
                 );
+            }
+        }
+    }
+
+    /// A credential type's reach is declared once (`CredentialTypeDiscriminants::reach`). Its form
+    /// fields and the payload it dispatches each state the same facts again, so they are checked
+    /// against the declaration here: a port field the declaration names exists and is a port, a
+    /// type that signs in through a login has no port of its own, and the payload's reach is the
+    /// declared one carrying the credential's (or its login's) actual port.
+    #[test]
+    fn every_credential_type_dispatches_the_reach_it_declares() {
+        use crate::server::credentials::r#impl::mapping::CredentialReach;
+        use crate::server::ports::r#impl::base::PortType;
+
+        // A port field's value, read off the stored credential's own serialisation.
+        let port_value = |credential: &CredentialType, field: &str| -> u16 {
+            let json = serde_json::to_value(credential).unwrap();
+            u16::try_from(
+                json[field]
+                    .as_u64()
+                    .unwrap_or_else(|| panic!("{credential:?} has no numeric '{field}'")),
+            )
+            .unwrap()
+        };
+        let has_port_field = |disc: CredentialTypeDiscriminants, field: &str| {
+            disc.to_credential_type()
+                .field_definitions()
+                .iter()
+                .any(|f| f.id == field && matches!(f.field_type, FieldType::Port))
+        };
+        let login = CredentialTypeDiscriminants::SshKey;
+        let ReachDeclaration::LoginTransport { field: login_field } = login.reach() else {
+            panic!("an SSH login is a login transport");
+        };
+
+        for disc in CredentialTypeDiscriminants::iter() {
+            let declared = disc.reach();
+            match declared {
+                ReachDeclaration::OwnPortField { field }
+                | ReachDeclaration::LoginTransport { field } => assert!(
+                    has_port_field(disc, field),
+                    "{disc:?} declares its port in '{field}', which is not a port field"
+                ),
+                ReachDeclaration::ThroughLogin => assert!(
+                    !has_port_field(disc, "port"),
+                    "{disc:?} signs in through a login, so its port is the login's, not a field of \
+                     its own"
+                ),
+                ReachDeclaration::FixedUdpPorts(_) | ReachDeclaration::NoPort => {}
+            }
+
+            if disc.role() == CredentialRole::Login {
+                continue;
+            }
+            let credential = disc.to_credential_type();
+            let login_credential = login.to_credential_type();
+            let payload = credential
+                .to_query_payload(disc.requires_login().then_some(&login_credential))
+                .unwrap_or_else(|| panic!("{disc:?} dispatches a payload"));
+            match (declared, payload.reach()) {
+                (ReachDeclaration::OwnPortField { field }, CredentialReach::OwnPorts(ports)) => {
+                    assert_eq!(
+                        ports,
+                        vec![PortType::new_tcp(port_value(&credential, field))],
+                        "{disc:?}"
+                    )
+                }
+                (ReachDeclaration::FixedUdpPorts(numbers), CredentialReach::OwnPorts(ports)) => {
+                    assert_eq!(
+                        ports,
+                        numbers
+                            .iter()
+                            .map(|n| PortType::new_udp(*n))
+                            .collect::<Vec<_>>(),
+                        "{disc:?}"
+                    )
+                }
+                (ReachDeclaration::ThroughLogin, CredentialReach::ThroughLogin { port, .. }) => {
+                    assert_eq!(
+                        port,
+                        PortType::new_tcp(port_value(&login_credential, login_field)),
+                        "{disc:?}"
+                    )
+                }
+                (ReachDeclaration::NoPort, CredentialReach::NoPort) => {}
+                (declared, dispatched) => panic!(
+                    "{disc:?} declares {declared:?} but dispatches a payload reaching {dispatched:?}"
+                ),
             }
         }
     }

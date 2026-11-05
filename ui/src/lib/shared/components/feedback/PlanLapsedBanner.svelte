@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Lock } from '@lucide/svelte';
 	import AppBanner from './AppBanner.svelte';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	import { useCan } from '$lib/features/auth/access';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { hasLicensedPlan, isPlanLapsed } from '$lib/features/organizations/types';
 	import { useWrittenOffInvoice } from '$lib/features/billing/queries';
@@ -25,14 +25,14 @@
 	// It is the one place the lapse is explained. A licensed org reaches only
 	// Settings, where this renders in the frame above the License tab, so the
 	// licensed wording is about the key.
-	const currentUserQuery = useCurrentUserQuery();
+	const can = useCan();
 	const organizationQuery = useOrganizationQuery();
 	const configQuery = useConfigQuery();
 	const writtenOffInvoice = useWrittenOffInvoice();
 
 	let org = $derived(organizationQuery.data);
 	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
-	let isOwner = $derived(currentUserQuery.data?.permissions === 'Owner');
+	let isOwner = $derived(can('Billing', 'Write'));
 	let shouldShow = $derived(isCloudDeployment && org != null && isPlanLapsed(org));
 	let plan = $derived(billingPlans.getName(org?.plan?.type ?? null));
 	// A write-off takes the paid-through date back to the start of the period

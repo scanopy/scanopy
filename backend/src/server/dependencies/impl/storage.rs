@@ -34,7 +34,7 @@ impl Storable for Dependency {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
 
         Self {
             id: Uuid::new_v4(),
@@ -224,12 +224,6 @@ impl Entity for Dependency {
 
     fn set_source(&mut self, source: EntitySource) {
         self.base.source = source;
-    }
-
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        self.base.source = existing.base.source.clone();
-        self.created_at = existing.created_at;
-        self.updated_at = existing.updated_at;
     }
 }
 

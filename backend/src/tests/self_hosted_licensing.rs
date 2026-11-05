@@ -16,10 +16,9 @@ use axum::{Json, Router};
 use axum_client_ip::ClientIp;
 use chrono::{DateTime, Duration, Utc};
 use email_address::EmailAddress;
-use testcontainers::{ContainerAsync, GenericImage};
 use uuid::Uuid;
 
-use super::{organization, setup_test_db, user};
+use super::{TestDb, organization, setup_migrated_test_db, user};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::middleware::billing::require_billing_for_users;
 use crate::server::billing::plans::{
@@ -48,7 +47,7 @@ use crate::server::shared::types::error_codes::ErrorCode;
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
 
 /// App state on a fresh database, billing enforced, signing with the test key.
-async fn test_state() -> (Arc<AppState>, ContainerAsync<GenericImage>) {
+async fn test_state() -> (Arc<AppState>, TestDb) {
     test_state_with_email_dir(None).await
 }
 
@@ -56,7 +55,7 @@ async fn test_state() -> (Arc<AppState>, ContainerAsync<GenericImage>) {
 /// given, so a test can read what a subscriber actually rendered.
 pub(super) async fn test_state_with_email_dir(
     email_log_dir: Option<PathBuf>,
-) -> (Arc<AppState>, ContainerAsync<GenericImage>) {
+) -> (Arc<AppState>, TestDb) {
     test_state_from(ServerConfig {
         enforce_plan_limits_for_testing: true,
         email_log_dir,
@@ -68,7 +67,7 @@ pub(super) async fn test_state_with_email_dir(
 /// App state for Scanopy Cloud on a fresh database. A Stripe secret alone makes
 /// the deployment cloud; with no webhook secret no billing service is built, so
 /// nothing reaches Stripe.
-pub(super) async fn cloud_test_state() -> (Arc<AppState>, ContainerAsync<GenericImage>) {
+pub(super) async fn cloud_test_state() -> (Arc<AppState>, TestDb) {
     test_state_from(ServerConfig {
         stripe_secret: Some("sk_test_unused".to_string()),
         ..ServerConfig::default()
@@ -77,10 +76,8 @@ pub(super) async fn cloud_test_state() -> (Arc<AppState>, ContainerAsync<Generic
 }
 
 /// App state on a fresh database from `config`, signing with the test key.
-pub(super) async fn test_state_from(
-    config: ServerConfig,
-) -> (Arc<AppState>, ContainerAsync<GenericImage>) {
-    let (pool, database_url, container) = setup_test_db().await;
+pub(super) async fn test_state_from(config: ServerConfig) -> (Arc<AppState>, TestDb) {
+    let (pool, database_url, container) = setup_migrated_test_db().await;
     pool.close().await;
     let config = ServerConfig {
         database_url,
@@ -137,7 +134,11 @@ pub(super) async fn reload(state: &AppState, organization_id: Uuid) -> Organizat
 /// Postgres stores microseconds; keep test timestamps on whole seconds so
 /// they round-trip exactly.
 fn whole_seconds_from_now(days: i64) -> DateTime<Utc> {
-    DateTime::from_timestamp((Utc::now() + Duration::days(days)).timestamp(), 0).unwrap()
+    DateTime::from_timestamp(
+        (crate::server::shared::clock::now() + Duration::days(days)).timestamp(),
+        0,
+    )
+    .unwrap()
 }
 
 async fn request_entitlement(state: &Arc<AppState>, key: String) -> Result<String, StatusCode> {
@@ -362,7 +363,9 @@ async fn entitlement_endpoint_accepts_current_keys_and_rejects_the_rest() {
     let service = &state.services.organization_service;
     let paid_through = whole_seconds_from_now(30);
     let org = create_org(&state, get_self_hosted_standard_plan(), Some(paid_through)).await;
-    let key = issuer.mint_online_key(&org, Utc::now()).unwrap();
+    let key = issuer
+        .mint_online_key(&org, crate::server::shared::clock::now())
+        .unwrap();
 
     // 200: an entitlement for the org's plan and paid-through date, and the
     // check-in is recorded.
@@ -391,7 +394,9 @@ async fn entitlement_endpoint_accepts_current_keys_and_rejects_the_rest() {
         request_entitlement(&state, "not-a-key".to_string()).await,
         Err(StatusCode::BAD_REQUEST)
     );
-    let offline_format = issuer.mint_entitlement(&org, Utc::now()).unwrap();
+    let offline_format = issuer
+        .mint_entitlement(&org, crate::server::shared::clock::now())
+        .unwrap();
     assert_eq!(
         request_entitlement(&state, offline_format).await,
         Err(StatusCode::BAD_REQUEST)
@@ -407,7 +412,10 @@ async fn entitlement_endpoint_accepts_current_keys_and_rejects_the_rest() {
         Err(StatusCode::FORBIDDEN)
     );
     let current_key = issuer
-        .mint_online_key(&reload(&state, org.id).await, Utc::now())
+        .mint_online_key(
+            &reload(&state, org.id).await,
+            crate::server::shared::clock::now(),
+        )
         .unwrap();
     assert!(
         request_entitlement(&state, current_key.clone())
@@ -436,7 +444,9 @@ async fn a_cloud_plan_check_in_is_refused_and_not_recorded() {
         Some(whole_seconds_from_now(30)),
     )
     .await;
-    let key = issuer.mint_online_key(&org, Utc::now()).unwrap();
+    let key = issuer
+        .mint_online_key(&org, crate::server::shared::clock::now())
+        .unwrap();
     set_plan(&state, org.id, get_free_plan()).await;
 
     let error = get_entitlement(
@@ -539,7 +549,7 @@ async fn a_cloud_org_lands_on_free_when_the_subscription_ends() {
                     stripe_reason: None,
                     internal_reason: None,
                     comment: None,
-                    period_end: Utc::now(),
+                    period_end: crate::server::shared::clock::now(),
                     was_trialing: true,
                     mrr_amount_cents: 0,
                     tenure_days: 14,
@@ -571,7 +581,7 @@ async fn billing_middleware_locks_main_app_routes_for_self_hosted_plans() {
         user_id: Uuid::new_v4(),
         organization_id: org.id,
         permissions: UserOrgPermissions::Owner,
-        site_ids: vec![],
+        access: crate::tests::access_on(UserOrgPermissions::Owner, &[]),
         email: EmailAddress::new_unchecked("owner@example.com"),
         email_verified: true,
         terms_accepted_at: None,
@@ -627,7 +637,7 @@ async fn billing_middleware_keeps_free_out_of_the_topology_view() {
         user_id: Uuid::new_v4(),
         organization_id: org.id,
         permissions: UserOrgPermissions::Owner,
-        site_ids: vec![],
+        access: crate::tests::access_on(UserOrgPermissions::Owner, &[]),
         email: EmailAddress::new_unchecked("owner@example.com"),
         email_verified: true,
         terms_accepted_at: None,
@@ -903,7 +913,7 @@ async fn a_stranded_air_gapped_organization_heals_on_read() {
         user_id: Uuid::new_v4(),
         organization_id: org.id,
         permissions: UserOrgPermissions::Owner,
-        site_ids: vec![],
+        access: crate::tests::access_on(UserOrgPermissions::Owner, &[]),
         email: EmailAddress::new_unchecked("owner@example.com"),
         email_verified: true,
         terms_accepted_at: None,
@@ -1159,7 +1169,7 @@ async fn sent_invoices_license_until_due_and_give_back_on_void() {
         stripe_reason: None,
         internal_reason: None,
         comment: None,
-        period_end: Utc::now(),
+        period_end: crate::server::shared::clock::now(),
         was_trialing: false,
         mrr_amount_cents: 0,
         tenure_days: 30,

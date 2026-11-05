@@ -118,7 +118,7 @@ impl DiscoveryService {
                     self.session_last_updated
                         .write()
                         .await
-                        .insert(session_id, Utc::now());
+                        .insert(session_id, crate::server::shared::clock::now());
                     Some(session.clone())
                 }
                 _ => None,
@@ -253,7 +253,7 @@ impl DiscoveryService {
                     session.phase = DiscoveryPhase::Queued;
                 } else {
                     session.phase = DiscoveryPhase::Pending;
-                    last_updated.insert(session_id, Utc::now());
+                    last_updated.insert(session_id, crate::server::shared::clock::now());
                     to_publish.push(session.clone());
                 }
                 let _ = self.update_tx.send(session.clone());

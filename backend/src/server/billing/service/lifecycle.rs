@@ -23,7 +23,7 @@ impl BillingService {
 
         if let Some(last) = organization.base.last_paused_at {
             let cooldown_end = last + chrono::Duration::days(180);
-            if cooldown_end > Utc::now() {
+            if cooldown_end > crate::server::shared::clock::now() {
                 return Err(anyhow!(
                     "You last paused on {}. You can pause again on {}.",
                     last.format("%B %-d, %Y"),
@@ -74,7 +74,7 @@ impl BillingService {
 
         let sub = self.find_current_subscription(&organization).await?;
 
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let resumes_at = now + chrono::Duration::days(duration.days() as i64);
 
         // No yearly span-renewal guard. If the pause spans the renewal,
@@ -186,7 +186,7 @@ impl BillingService {
     ///
     /// `resumed_at` is the webhook event's `created` time, which stays the same
     /// across redeliveries. Stripe rejects an idempotency key reused with
-    /// different parameters, so timing the credit from `Utc::now()` would turn
+    /// different parameters, so timing the credit from `crate::server::shared::clock::now()` would turn
     /// a redelivery after a lost response into a permanent failure instead of
     /// a replay of the first credit.
     pub(crate) async fn apply_pause_credit_if_due(
@@ -535,8 +535,8 @@ impl BillingService {
         // and the offer is functionally a no-op. Hide it in that case so we
         // don't promise the user something we can't deliver.
         // See: https://docs.stripe.com/billing/subscriptions/coupons
-        let coupon_window_end =
-            Utc::now() + chrono::Months::new(u32::try_from(duration_in_months).unwrap_or(12));
+        let coupon_window_end = crate::server::shared::clock::now()
+            + chrono::Months::new(u32::try_from(duration_in_months).unwrap_or(12));
         if next_renewal_at > coupon_window_end {
             tracing::debug!(
                 organization_id = %organization_id,
@@ -645,7 +645,8 @@ impl BillingService {
             })?;
         let percent_off = coupon.percent_off.unwrap_or(0.0).round() as i64;
         let duration_in_months = coupon.duration_in_months.unwrap_or(12);
-        let expires_at = Utc::now() + chrono::Duration::days(duration_in_months * 30);
+        let expires_at =
+            crate::server::shared::clock::now() + chrono::Duration::days(duration_in_months * 30);
 
         self.organization_service
             .apply_billing(

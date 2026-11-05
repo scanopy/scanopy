@@ -65,6 +65,8 @@ export function useCreateSiteMutation() {
 			);
 			// credential_ids changes are reflected on credentials' assigned_site_ids
 			queryClient.invalidateQueries({ queryKey: queryKeys.credentials.all });
+			// The creator holds Admin on the new site.
+			queryClient.invalidateQueries({ queryKey: queryKeys.auth.currentUser() });
 		}
 	}));
 }

@@ -109,6 +109,10 @@ pub enum ErrorCode {
     LicenseInstanceLimitReached { active: u32, limit: u32 },
     /// The organization's plan is not a self-hosted license plan, so it has no key
     LicensePlanHasNoKey,
+    /// The presented key was rotated or changed type, so it is retired
+    LicenseKeyRegenerated,
+    /// The organization the presented key names no longer exists
+    LicenseOrganizationMissing,
 
     // === Generic Entity Operations ===
     /// Entity was not found
@@ -180,6 +184,23 @@ pub enum ErrorCode {
     CredentialDefaultDeleteForbidden { name: String },
     /// The settings of an organization's default credential cannot change
     CredentialDefaultSettingsLocked { name: String },
+    /// A credential that runs over an SSH login was saved without one
+    CredentialLoginRequired,
+    /// The login a credential names is missing, in another organization, or not a login
+    CredentialLoginInvalid,
+    /// A credential that runs over no login named one
+    CredentialLoginNotUsed,
+    /// A credential and its login name different daemon OSes
+    CredentialLoginDaemonOsMismatch { login: String },
+    /// A login is still used by other credentials, so it cannot be deleted
+    CredentialLoginInUse { name: String, users: String },
+    /// A login cannot be assigned to sites or hosts: the credentials that use it are
+    CredentialLoginNotAssignable { name: String },
+
+    // === Entity references ===
+    /// An id in the request names something the caller can't use here. The same for a missing id
+    /// and another tenant's, so it says nothing about whether the id exists.
+    EntityReferenceRefused { field: String },
 
     // === Discovery ===
     /// Historical discovery cannot be modified via API
@@ -324,6 +345,10 @@ impl ErrorCode {
             Self::LicensePlanHasNoKey => {
                 "This organization's plan has no license key. License keys come with the Self-Hosted Standard and Plus plans."
             }
+            Self::LicenseKeyRegenerated => {
+                "This license key was regenerated. Copy the current key from Scanopy Cloud."
+            }
+            Self::LicenseOrganizationMissing => "This license key's organization no longer exists",
             Self::LicenseInstanceLimitReached { .. } => {
                 "This license key is in use on {active} servers and your plan covers {limit}, so this server is in read-only mode. Delete a server you no longer run under License in Scanopy Cloud, then restart this one."
             }
@@ -394,6 +419,25 @@ impl ErrorCode {
             Self::CredentialDefaultSettingsLocked { .. } => {
                 "'{name}' is a default credential. Its name, description and tags can change, but its settings can't."
             }
+            Self::CredentialLoginRequired => "Choose the SSH login this credential runs over.",
+            Self::CredentialLoginInvalid => {
+                "The chosen login is not an SSH login of this organization. Choose another."
+            }
+            Self::CredentialLoginNotUsed => {
+                "This type of credential runs over no login. Clear the login and save again."
+            }
+            Self::CredentialLoginDaemonOsMismatch { .. } => {
+                "This credential and its login '{login}' read files on daemons of different OSes. Set both to the same Daemon OS."
+            }
+            Self::CredentialLoginInUse { .. } => {
+                "'{name}' is the login for {users}. Choose another login for them before deleting it."
+            }
+            Self::CredentialLoginNotAssignable { .. } => {
+                "'{name}' is a login and is not assigned to sites or hosts. Assign a credential that uses it instead."
+            }
+
+            // Entity references
+            Self::EntityReferenceRefused { .. } => "'{field}' isn't available here",
 
             // Discovery
             Self::DiscoveryHistoricalReadOnly => "Historical discovery cannot be modified via API",
@@ -501,6 +545,8 @@ impl ErrorCode {
             | Self::AuthDemoMode
             | Self::LicenseLocked
             | Self::LicensePlanHasNoKey
+            | Self::LicenseKeyRegenerated
+            | Self::LicenseOrganizationMissing
             | Self::AuthPasswordLoginDisabled
             | Self::AuthRegistrationDisabled
             | Self::AuthOrgLimitReached
@@ -531,6 +577,9 @@ impl ErrorCode {
             | Self::BillingPlanRequired
             | Self::BillingAirGappedKeyStillCurrent
             | Self::RateLimitExceeded
+            | Self::CredentialLoginRequired
+            | Self::CredentialLoginInvalid
+            | Self::CredentialLoginNotUsed
             | Self::DatabaseError => None,
 
             // Billing with params
@@ -581,7 +630,14 @@ impl ErrorCode {
             Self::SitesAccessDenied { site } => Some(json_map! { "site" => site }),
             Self::CredentialDefaultExists { name }
             | Self::CredentialDefaultDeleteForbidden { name }
-            | Self::CredentialDefaultSettingsLocked { name } => Some(json_map! { "name" => name }),
+            | Self::CredentialDefaultSettingsLocked { name }
+            | Self::CredentialLoginNotAssignable { name } => Some(json_map! { "name" => name }),
+            Self::CredentialLoginDaemonOsMismatch { login } => Some(json_map! { "login" => login }),
+            Self::CredentialLoginInUse { name, users } => {
+                Some(json_map! { "name" => name, "users" => users })
+            }
+
+            Self::EntityReferenceRefused { field } => Some(json_map! { "field" => field }),
             Self::DiscoverySubnetSiteMismatch { subnet } => Some(json_map! { "subnet" => subnet }),
             Self::DiscoverySessionNotFound { id } => Some(json_map! {"id" => id}),
             Self::IpAddressOutOfRange { ip, subnet } => {

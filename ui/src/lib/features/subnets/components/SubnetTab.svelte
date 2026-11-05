@@ -65,7 +65,10 @@
 	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 	type SubnetOrderField = components['schemas']['SubnetOrderField'];
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { refusedUnless, useCan } from '$lib/features/auth/access';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
 	// Organization query for onboarding state
 	const organizationQuery = useOrganizationQuery();
@@ -211,8 +214,9 @@
 
 	/** Row actions. */
 	function subnetActions(subnet: SubnetResponse): CardAction[] {
-		if (isReadOnly) return [];
+		if (!can('Subnet', 'Write')) return [];
 
+		const writeRefusal = refusedUnless(can('Subnet', 'Write', subnet.site_id));
 		// The Internet and Remote rows stand for a copy on every site, and editing one would change
 		// only one site's copy.
 		const shared = disabledWhen(
@@ -237,14 +241,14 @@
 				label: subnets_resolveRange(),
 				icon: CircleDashedCheck,
 				onClick: () => handleResolveRange(subnet),
-				unavailable: hiddenWhen(!isProvisionalCidr(subnet), subnets_rangeSettled())
+				unavailable: hiddenWhen(!isProvisionalCidr(subnet), subnets_rangeSettled()) ?? writeRefusal
 			},
 			{
 				label: common_edit(),
 				icon: Edit,
 				isOpen: true,
 				onClick: () => handleEditSubnet(subnet),
-				unavailable: shared ?? unresolved
+				unavailable: writeRefusal ?? shared ?? unresolved
 			},
 			{
 				label: common_delete(),
@@ -253,7 +257,7 @@
 				isDelete: true,
 				onBulk: handleBulkDelete,
 				onClick: () => handleDeleteSubnet(subnet),
-				unavailable: shared ?? unresolved
+				unavailable: refusedUnless(can('Subnet', 'Delete', subnet.site_id)) ?? shared ?? unresolved
 			}
 		];
 	}
@@ -417,7 +421,7 @@
 
 <!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
 {#snippet toolbarActions()}
-	{#if hasDaemon(onboarding) && !isReadOnly}
+	{#if hasDaemon(onboarding) && can('Subnet', 'Write')}
 		<CreateButton onclick={handleCreateSubnet} />
 	{/if}
 {/snippet}
@@ -426,7 +430,7 @@
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
 	{:else if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptSubnets()} {isReadOnly} />
+		<PreDaemonEmptyState title={daemons_installPromptSubnets()} />
 	{:else if isLoading}
 		<!-- Loading state -->
 		<Loading />
@@ -434,8 +438,8 @@
 		<EmptyState
 			title={common_noEntityYet({ entity: common_subnets() })}
 			subtitle=""
-			onClick={handleCreateSubnet}
-			cta={common_create()}
+			onClick={can('Subnet', 'Write') ? handleCreateSubnet : undefined}
+			cta={can('Subnet', 'Write') ? common_create() : ''}
 		/>
 	{:else}
 		<DataControls
@@ -446,7 +450,7 @@
 			storageKey="scanopy-subnets-table-state"
 			defaults={tableDefaults}
 			entityType="Subnet"
-			canEditTags={!isReadOnly}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={getSubnetTags}
 			getItemId={(item) => item.id}
 			serverPagination={subnetsPagination}

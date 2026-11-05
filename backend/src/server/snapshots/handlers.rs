@@ -18,7 +18,6 @@ use crate::server::shared::types::api::ApiJson;
 
 use axum::extract::State;
 use axum::response::Json;
-use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -27,7 +26,7 @@ use uuid::Uuid;
 use crate::server::{
     auth::middleware::{
         features::{RequireFeature, TakeSnapshotFeature},
-        permissions::{Authorized, Member},
+        permissions::{Authorized, Can, Write},
     },
     config::AppState,
     shared::events::{
@@ -84,7 +83,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn create_snapshot(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<Snapshot, Write>>,
     RequireFeature { .. }: RequireFeature<TakeSnapshotFeature>,
     ApiJson(req): ApiJson<CreateSnapshotRequest>,
 ) -> ApiResult<Json<ApiResponse<Snapshot>>> {
@@ -113,7 +112,11 @@ async fn create_snapshot(
 
     let result = async {
         let snapshot = Snapshot {
-            base: SnapshotBase::new(req.site_id, Utc::now(), auth.user_id()),
+            base: SnapshotBase::new(
+                req.site_id,
+                crate::server::shared::clock::now(),
+                auth.user_id(),
+            ),
             ..Default::default()
         };
 

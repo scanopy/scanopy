@@ -409,7 +409,7 @@ impl IPAddressInput {
     /// Convert to IPAddress entity with the given host_id and site_id.
     /// Position must be resolved before calling this (via `resolve_and_validate_input_positions`).
     pub fn into_ip_address(self, host_id: Uuid, site_id: Uuid) -> IPAddress {
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
         IPAddress {
             id: self.id,
             created_at: now,
@@ -468,7 +468,7 @@ pub struct PortInput {
 impl PortInput {
     /// Convert to Port entity with the given host_id and site_id.
     pub fn into_port(self, host_id: Uuid, site_id: Uuid) -> Port {
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
         Port {
             id: self.id,
             created_at: now,
@@ -528,7 +528,7 @@ impl ServiceInput {
     /// Convert to Service entity with the given host_id, site_id, and source.
     /// Position must be resolved before calling this (via `resolve_and_validate_input_positions`).
     pub fn into_service(self, host_id: Uuid, site_id: Uuid, source: EntitySource) -> Service {
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
         let service_id = self.id;
 
         // Convert binding inputs to full bindings
@@ -633,7 +633,7 @@ impl BindingInput {
             ),
         };
 
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
         Binding {
             id,
             created_at: now,
@@ -692,7 +692,7 @@ pub struct InterfaceInput {
 impl InterfaceInput {
     /// Convert to Interface entity with the given host_id and site_id.
     pub fn into_interface(self, host_id: Uuid, site_id: Uuid) -> Interface {
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
         Interface {
             id: self.id,
             created_at: now,

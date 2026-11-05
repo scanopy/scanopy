@@ -8,7 +8,8 @@ import type { Tag } from '$lib/features/tags/types/base';
 import { credentialIntegrations, credentialTypes, entities } from '$lib/shared/stores/metadata';
 import {
 	getCredentialTypeId,
-	getTargetTagProps,
+	getScopeTagProps,
+	isLoginType,
 	getUpstreamSupportTagProps
 } from '$lib/features/credentials/types/base';
 import { getStabilityTagProps } from '$lib/shared/utils/stability';
@@ -16,23 +17,22 @@ import type { Host } from '$lib/features/hosts/types/base';
 import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 import osFamilies from '$lib/data/os-families.json';
 import {
-	common_beta,
+	common_assignments,
+	common_category,
 	credentials_betaTooltip,
-	common_created,
-	common_integration,
 	common_type,
-	common_updated,
-	credentials_unofficialApi,
-	common_hosts,
-	common_sites,
-	common_tags,
-	common_targets
+	common_tags
 } from '$lib/paraglide/messages';
 import { tagNames } from '$lib/features/tags/columns';
 
 /** The integration a credential's type belongs to, as its `credentialIntegrations` id. */
 function integrationId(item: Credential): string {
 	return credentialTypes.getMetadata(getCredentialTypeId(item))?.integration ?? '';
+}
+
+/** The category a credential's type is listed under, as its metadata names it. */
+function categoryOf(item: Credential): string {
+	return credentialTypes.getCategory(getCredentialTypeId(item)) ?? '';
 }
 
 /** Whether a credential's type is in beta. */
@@ -60,6 +60,8 @@ export interface CredentialColumnsContext {
 	targetsFor: (credential: Credential) => string[];
 	daemonHostOnly: (credential: Credential) => boolean;
 	assignmentItems: (applicable: boolean, items: CardFieldItem[]) => CardFieldItem[];
+	/** For an SSH login, which is assigned nowhere: the credentials that sign in with it. */
+	usersOfLogin: (credential: Credential) => Credential[];
 }
 
 /**
@@ -78,8 +80,8 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 				groupable: false,
 				display: { primary: true, width: 220 }
 			},
-			created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
-			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } },
+			created_at: { type: 'date', display: { hiddenByDefault: true } },
+			updated_at: { type: 'date', display: { hiddenByDefault: true } },
 			// Set only on credentials that read files or sockets on the daemon; empty otherwise.
 			daemon_os: {
 				filterable: true,
@@ -99,7 +101,6 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 			// The integration a credential's type is a transport of (e.g. Docker for both the
 			// socket and the proxy). The axis credentials are organized by.
 			integration: {
-				label: common_integration(),
 				type: 'string',
 				filterable: true,
 				serverFiltered: true,
@@ -112,6 +113,7 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 				getGroupValue: (item: Credential) => integrationId(item),
 				getValue: (item: Credential) => credentialIntegrations.getName(integrationId(item)),
 				display: {
+					hiddenByDefault: true,
 					getItems: (item: Credential) => {
 						const id = integrationId(item);
 						return [
@@ -123,6 +125,17 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 						];
 					}
 				}
+			},
+			// The category the type picker lists the type under (Logins, Containers,
+			// Virtualization...). What the table groups by, so logins sit apart from the
+			// credentials that use them.
+			category: {
+				label: common_category(),
+				type: 'string',
+				groupable: true,
+				// The server groups on the category's label.
+				getGroupValue: (item: Credential) => categoryOf(item),
+				getValue: (item: Credential) => categoryOf(item)
 			},
 			credential_type: {
 				label: common_type(),
@@ -154,7 +167,6 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 			// either can be grouped and filtered on its own. A cell shows the tag the wizard and
 			// the type dropdown use, and stays empty for a stable or vendor-supported type.
 			beta: {
-				label: common_beta(),
 				type: 'boolean',
 				filterable: true,
 				serverFiltered: true,
@@ -173,7 +185,6 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 				}
 			},
 			unofficial_api: {
-				label: credentials_unofficialApi(),
 				type: 'boolean',
 				filterable: true,
 				serverFiltered: true,
@@ -194,59 +205,65 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 		[
 			{ key: 'description', searchable: true },
 			{
-				key: 'assigned_sites',
-				label: common_sites(),
+				// Where a credential applies: its sites, then its hosts. A login applies nowhere
+				// itself, so it lists the credentials that sign in with it.
+				key: 'assignments',
+				label: common_assignments(),
 				type: 'array',
-				// Credentials share sites, so this filters. Hosts are near-unique per credential,
+				// Credentials share sites, so sites filter. Hosts are near-unique per credential,
 				// so search covers those.
+				searchable: true,
 				filterable: true,
 				serverFiltered: true,
 				queryParam: 'site_ids',
 				filterOptions: ctx.sites().map((site) => site.id),
-				getValue: (item: Credential) => ctx.sitesForCredential(item).map((n) => n.name),
+				getValue: (item: Credential) => [
+					...ctx.sitesForCredential(item).map((site) => site.name),
+					...ctx.hostsForCredential(item).map(hostDisplayName),
+					...ctx.usersOfLogin(item).map((user) => user.name)
+				],
 				getFilterValue: (item: Credential) => ctx.sitesForCredential(item).map((n) => n.id),
 				filterLabel: (id) => ctx.sites().find((n) => n.id === id)?.name ?? id,
 				display: {
-					getItems: (item: Credential) =>
-						ctx.assignmentItems(
-							ctx.targetsFor(item).includes('Site'),
-							ctx.sitesForCredential(item).map((site) => ({
-								id: site.id,
-								label: site.name,
-								color: entities.getColorHelper('Site').color,
-								entityRef: entityRef('Site', site.id, site)
-							}))
-						)
-				}
-			},
-			{
-				key: 'assigned_hosts',
-				label: common_hosts(),
-				type: 'array',
-				searchable: true,
-				getValue: (item: Credential) => ctx.hostsForCredential(item).map(hostDisplayName),
-				display: {
-					getItems: (item: Credential) =>
-						ctx.assignmentItems(
-							// DaemonHost-only credentials (Docker/Podman sockets) are
-							// assigned to their daemon's host through the same junction.
-							ctx.targetsFor(item).some((t) => t === 'Hosts' || t === 'DaemonHost'),
-							ctx.hostsForCredential(item).map((host) => ({
-								id: host.id,
-								label: hostDisplayName(host),
-								// A daemon-host credential reaches that host *through* its
-								// daemon, so it reads as a daemon relationship rather than a
-								// host one. Only credentials that target hosts generally get
-								// the host colour.
-								color: entities.getColorHelper(ctx.daemonHostOnly(item) ? 'Daemon' : 'Host').color,
-								entityRef: entityRef('Host', host.id, host)
-							}))
-						)
+					getItems: (item: Credential) => {
+						if (isLoginType(getCredentialTypeId(item))) {
+							return ctx.usersOfLogin(item).map((user) => ({
+								id: user.id,
+								label: user.name,
+								color: entities.getColorHelper('Credential').color,
+								entityRef: entityRef('Credential', user.id, user)
+							}));
+						}
+						const targets = ctx.targetsFor(item);
+						return ctx.assignmentItems(
+							// DaemonHost-only credentials (Docker/Podman sockets) are assigned to
+							// their daemon's host through the same junction.
+							targets.some((t) => t === 'Site' || t === 'Hosts' || t === 'DaemonHost'),
+							[
+								...ctx.sitesForCredential(item).map((site) => ({
+									id: site.id,
+									label: site.name,
+									color: entities.getColorHelper('Site').color,
+									entityRef: entityRef('Site', site.id, site)
+								})),
+								...ctx.hostsForCredential(item).map((host) => ({
+									id: host.id,
+									label: hostDisplayName(host),
+									// A daemon-host credential reaches that host *through* its
+									// daemon, so it reads as a daemon relationship rather than a
+									// host one. Only credentials that target hosts generally get
+									// the host colour.
+									color: entities.getColorHelper(ctx.daemonHostOnly(item) ? 'Daemon' : 'Host')
+										.color,
+									entityRef: entityRef('Host', host.id, host)
+								}))
+							]
+						);
+					}
 				}
 			},
 			{
 				key: 'target',
-				label: common_targets(),
 				type: 'array',
 				filterable: true,
 				serverFiltered: true,
@@ -272,13 +289,11 @@ export function credentialColumns(ctx: CredentialColumnsContext) {
 					// it neither sorts nor groups.
 					hiddenByDefault: true,
 					// Coloured chips per target rather than undifferentiated grey.
-					getItems: (item: Credential) => {
-						const meta = credentialTypes.getMetadata(getCredentialTypeId(item));
-						return (meta?.targets ?? []).map((target: string) => ({
-							id: target,
-							...getTargetTagProps(target)
-						}));
-					}
+					getItems: (item: Credential) =>
+						getScopeTagProps(getCredentialTypeId(item)).map((scope, i) => ({
+							id: String(i),
+							...scope
+						}))
 				}
 			},
 			{

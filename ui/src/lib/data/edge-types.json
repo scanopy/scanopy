@@ -16,6 +16,7 @@
           },
           "group": "relationships",
           "id": "host_id",
+          "inspector": true,
           "label": "Host",
           "many": false,
           "path": [
@@ -27,7 +28,9 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "table": true,
+          "tooltip": false
         }
       ],
       "has_end_marker": false,
@@ -57,6 +60,7 @@
           },
           "group": "virtualization",
           "id": "hypervisor_service_id",
+          "inspector": true,
           "label": "Hypervisor",
           "many": false,
           "path": [
@@ -68,7 +72,9 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "table": true,
+          "tooltip": false
         }
       ],
       "has_end_marker": false,
@@ -98,6 +104,7 @@
           },
           "group": "relationships",
           "id": "identities_service_id",
+          "inspector": true,
           "label": "Identity Service",
           "many": false,
           "path": [
@@ -109,7 +116,9 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "table": true,
+          "tooltip": false
         }
       ],
       "has_end_marker": false,
@@ -139,6 +148,7 @@
           },
           "group": "relationships",
           "id": "host_id",
+          "inspector": true,
           "label": "Host",
           "many": false,
           "path": [
@@ -150,7 +160,9 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": false
+          "summary": false,
+          "table": true,
+          "tooltip": false
         },
         {
           "field": null,
@@ -159,6 +171,7 @@
           },
           "group": "virtualization",
           "id": "service_id",
+          "inspector": true,
           "label": "Runtime",
           "many": false,
           "path": [
@@ -170,7 +183,9 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "table": true,
+          "tooltip": false
         },
         {
           "field": null,
@@ -179,6 +194,7 @@
           },
           "group": "virtualization",
           "id": "containerized_service_ids",
+          "inspector": true,
           "label": "Containers",
           "many": true,
           "path": [
@@ -190,7 +206,9 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": false
+          "summary": false,
+          "table": true,
+          "tooltip": false
         },
         {
           "field": null,
@@ -199,6 +217,7 @@
           },
           "group": "network",
           "id": "subnet_ids",
+          "inspector": true,
           "label": "Bridge Subnets",
           "many": true,
           "path": [
@@ -210,7 +229,9 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": false
+          "summary": false,
+          "table": true,
+          "tooltip": false
         }
       ],
       "has_end_marker": false,
@@ -240,6 +261,7 @@
           },
           "group": "relationships",
           "id": "service_id",
+          "inspector": true,
           "label": "Service",
           "many": false,
           "path": [
@@ -251,7 +273,9 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "table": true,
+          "tooltip": false
         }
       ],
       "has_end_marker": false,
@@ -281,6 +305,7 @@
           },
           "group": "relationships",
           "id": "dependency_id",
+          "inspector": true,
           "label": "Dependency",
           "many": false,
           "path": [
@@ -292,7 +317,9 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "table": true,
+          "tooltip": false
         }
       ],
       "has_end_marker": true,
@@ -322,6 +349,7 @@
           },
           "group": "relationships",
           "id": "dependency_id",
+          "inspector": true,
           "label": "Dependency",
           "many": false,
           "path": [
@@ -333,7 +361,9 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "table": true,
+          "tooltip": false
         }
       ],
       "has_end_marker": true,
@@ -363,6 +393,7 @@
           },
           "group": "network",
           "id": "source_entity_id",
+          "inspector": true,
           "label": "From Interface",
           "many": false,
           "path": [
@@ -374,7 +405,9 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "table": true,
+          "tooltip": false
         },
         {
           "field": null,
@@ -383,6 +416,7 @@
           },
           "group": "network",
           "id": "target_entity_id",
+          "inspector": true,
           "label": "To Interface",
           "many": false,
           "path": [
@@ -394,7 +428,9 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "table": true,
+          "tooltip": false
         },
         {
           "field": "protocol",
@@ -404,12 +440,15 @@
           },
           "group": "network",
           "id": "protocol",
+          "inspector": true,
           "label": "Protocol",
           "many": false,
           "path": [],
           "searchable": false,
           "source_field": null,
-          "summary": false
+          "summary": false,
+          "table": true,
+          "tooltip": false
         }
       ],
       "has_end_marker": false,
@@ -439,6 +478,7 @@
           },
           "group": "relationships",
           "id": "source_host_id",
+          "inspector": true,
           "label": "From Host",
           "many": false,
           "path": [
@@ -450,7 +490,9 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "table": true,
+          "tooltip": false
         },
         {
           "field": null,
@@ -459,6 +501,7 @@
           },
           "group": "relationships",
           "id": "target_host_id",
+          "inspector": true,
           "label": "To Host",
           "many": false,
           "path": [
@@ -470,7 +513,9 @@
           ],
           "searchable": false,
           "source_field": null,
-          "summary": true
+          "summary": true,
+          "table": true,
+          "tooltip": false
         },
         {
           "field": "protocol",
@@ -480,12 +525,15 @@
           },
           "group": "network",
           "id": "protocol",
+          "inspector": true,
           "label": "Protocol",
           "many": false,
           "path": [],
           "searchable": false,
           "source_field": null,
-          "summary": false
+          "summary": false,
+          "table": true,
+          "tooltip": false
         }
       ],
       "has_end_marker": false,

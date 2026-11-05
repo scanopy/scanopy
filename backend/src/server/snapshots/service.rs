@@ -394,7 +394,7 @@ impl SnapshotService {
         // deleted. (TakeSnapshotFeature treats 0 the same way: snapshots aren't
         // a feature on this plan, new ones are blocked, and the sweep is what
         // clears any inherited from a higher tier.)
-        let cutoff = Utc::now() - Duration::days(retention_days as i64);
+        let cutoff = crate::server::shared::clock::now() - Duration::days(retention_days as i64);
         let filter = StorableFilter::<Snapshot>::new_from_site_ids(&site_ids).taken_at_lt(cutoff);
         self.storage.delete_by_filter(filter).await?;
 

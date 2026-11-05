@@ -48,6 +48,7 @@ services:
       SCANOPY_WEB_EXTERNAL_PATH: /app/static
       SCANOPY_PUBLIC_URL: ${SCANOPY_PUBLIC_URL:-http://localhost:60072}
       SCANOPY_INTEGRATED_DAEMON_URL: http://host.docker.internal:60073
+      SCANOPY_LICENSE_KEY: ${SCANOPY_LICENSE_KEY:-}
     volumes:
       - server-data:/data
     extra_hosts:

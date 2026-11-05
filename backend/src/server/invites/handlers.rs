@@ -1,15 +1,18 @@
+use crate::server::auth::access::{AccessSet, Action, Assignment, Resource};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::middleware::features::{InviteUsersFeature, RequireFeature};
-use crate::server::auth::middleware::permissions::{Admin, Authorized, RequireVerified};
+use crate::server::auth::middleware::permissions::{
+    Authorized, Can, Delete, Read, RequireVerified, Write,
+};
 use crate::server::billing::types::base::{LimitSource, LimitType};
 use crate::server::config::AppState;
 use crate::server::invites::r#impl::base::Invite;
 use crate::server::organizations::r#impl::api::CreateInviteRequest;
 use crate::server::shared::events::traits::{Event, OrgScope};
+use crate::server::shared::events::types::DeletionReason;
 use crate::server::shared::events::types::{
     BillingOperation, OnboardingOperation, OnboardingOperationDiscriminants,
 };
-use crate::server::shared::events::types::{DeletionReason, UpdateReason};
 use crate::server::shared::services::traits::{CrudService, EventBusService};
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::Entity;
@@ -18,6 +21,7 @@ use crate::server::shared::types::api::ApiResponse;
 use crate::server::shared::types::api::ApiResult;
 use crate::server::shared::types::api::{ApiError, ApiErrorResponse, EmptyApiResponse};
 use crate::server::shared::validation::validate_site_ids_access;
+use crate::server::site_assignments::r#impl::base::Principal;
 use crate::server::users::r#impl::base::User;
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
 use anyhow::Error;
@@ -56,24 +60,19 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn create_invite(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Admin>>,
+    auth: Authorized<RequireVerified<Can<Invite, Write>>>,
     RequireFeature { plan, .. }: RequireFeature<InviteUsersFeature>,
     ApiJson(request): ApiJson<CreateInviteRequest>,
 ) -> ApiResult<Json<ApiResponse<Invite>>> {
-    let site_ids = auth.site_ids();
+    // The sites the caller can hand out: an invite is org-keyed, the sites in it aren't.
+    let site_ids = auth.entity.site_ids_for(Resource::Site, Action::Read);
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
     let user_id = auth.user_id().ok_or_else(ApiError::user_required)?;
 
-    // Get user permissions and email from entity
-    let (permissions, from_email) = match &auth.entity {
-        AuthenticatedEntity::User {
-            permissions, email, ..
-        } => (*permissions, Some(email.clone())),
-        AuthenticatedEntity::ApiKey { permissions, .. } => (*permissions, None),
-        _ => return Err(ApiError::forbidden("User or API key required")),
-    };
+    // Get the sender's email from the entity
+    let from_email = auth.entity.email().cloned();
 
     // A link-only invite needs no sender, but an API key has no address to send *from* — and the
     // send below is guarded on `from_email`, so naming a recipient would create the invite, return
@@ -84,13 +83,22 @@ async fn create_invite(
         ));
     }
 
-    if request.permissions > permissions {
+    validate_site_ids_access(&request.site_ids, &site_ids)?;
+    let granted = state
+        .services
+        .access_service
+        .resolve(
+            organization_id,
+            request.permissions,
+            &Assignment::for_person(request.permissions, &request.site_ids),
+        )
+        .await?;
+    if !auth.require_access()?.may_grant_to_person(&granted) {
         return Err(ApiError::forbidden(
-            "Cannot create invite with higher permissions than your own",
+            "Cannot create invite beyond what you could grant",
         ));
     }
 
-    validate_site_ids_access(&request.site_ids, &site_ids)?;
     // Seat limit check
     if let Some(max_seats) = plan.config().included_seats
         && plan.config().seat_cents.is_none()
@@ -171,8 +179,8 @@ async fn create_invite(
 
     let invite = state
         .services
-        .invite_service
-        .create(invite, entity.clone())
+        .access_service
+        .create_invite(invite, entity.clone())
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
@@ -229,7 +237,7 @@ async fn create_invite(
 )]
 async fn get_invite(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Invite, Read>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<Invite>>> {
     let organization_id = auth
@@ -264,28 +272,22 @@ async fn get_invite(
 )]
 async fn get_invites(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<Invite, Read>>,
 ) -> ApiResult<Json<ApiResponse<Vec<Invite>>>> {
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
     let user_id = auth.user_id().ok_or_else(ApiError::user_required)?;
+    let viewer_grants = auth.require_access()?.organization();
 
-    // Get user permissions from entity
-    let permissions = match &auth.entity {
-        AuthenticatedEntity::User { permissions, .. }
-        | AuthenticatedEntity::ApiKey { permissions, .. } => *permissions,
-        _ => return Err(ApiError::forbidden("User or API key required")),
-    };
-
-    // Show user invites that they created or created for users with permissions lower than them
+    // Show user invites that they created, or for a role they could grant
     let invites = state
         .services
         .invite_service
         .list_active_invites(&organization_id)
         .await
         .into_iter()
-        .filter(|i| i.is_listed_for(permissions, user_id))
+        .filter(|i| i.is_listed_for(viewer_grants, user_id))
         .collect();
 
     Ok(Json(ApiResponse::success(invites)))
@@ -309,7 +311,7 @@ async fn get_invites(
 )]
 async fn revoke_invite(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Admin>>,
+    auth: Authorized<RequireVerified<Can<Invite, Delete>>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let organization_id = auth
@@ -317,9 +319,8 @@ async fn revoke_invite(
         .ok_or_else(ApiError::organization_required)?;
     let user_id = auth.user_id().ok_or_else(ApiError::user_required)?;
 
-    let permissions = caller_permissions(&auth.entity)?;
-
-    let invite = revocable_invite(&state, id, organization_id, user_id, permissions).await?;
+    let caller_access = auth.require_access()?;
+    let invite = revocable_invite(&state, id, organization_id, user_id, caller_access).await?;
 
     state
         .services
@@ -354,7 +355,7 @@ async fn revoke_invite(
 )]
 async fn bulk_revoke_invites(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<RequireVerified<Admin>>,
+    auth: Authorized<RequireVerified<Can<Invite, Delete>>>,
     ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     if ids.is_empty() {
@@ -364,10 +365,10 @@ async fn bulk_revoke_invites(
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
     let user_id = auth.user_id().ok_or_else(ApiError::user_required)?;
-    let permissions = caller_permissions(&auth.entity)?;
+    let caller_access = auth.require_access()?;
 
     for id in &ids {
-        revocable_invite(&state, *id, organization_id, user_id, permissions).await?;
+        revocable_invite(&state, *id, organization_id, user_id, caller_access).await?;
     }
 
     state
@@ -380,22 +381,13 @@ async fn bulk_revoke_invites(
     Ok(Json(ApiResponse::success(())))
 }
 
-/// The role of the user or API key making the request.
-fn caller_permissions(entity: &AuthenticatedEntity) -> Result<UserOrgPermissions, ApiError> {
-    match entity {
-        AuthenticatedEntity::User { permissions, .. }
-        | AuthenticatedEntity::ApiKey { permissions, .. } => Ok(*permissions),
-        _ => Err(ApiError::forbidden("User or API key required")),
-    }
-}
-
 /// The invite, if it is valid, in the caller's organization, and one they may revoke.
 async fn revocable_invite(
     state: &Arc<AppState>,
     id: Uuid,
     organization_id: Uuid,
     caller_id: Uuid,
-    caller_permissions: UserOrgPermissions,
+    caller_access: &AccessSet,
 ) -> Result<Invite, ApiError> {
     let invite = state
         .services
@@ -407,28 +399,22 @@ async fn revocable_invite(
     if invite.base.organization_id != organization_id {
         return Err(ApiError::entity_access_denied::<Invite>(id));
     }
-    if !may_revoke(
-        caller_id,
-        caller_permissions,
-        invite.base.created_by,
-        invite.base.permissions,
-    ) {
+    let invited = state.services.access_service.invite_access(&invite).await?;
+    if !may_revoke(caller_id, caller_access, invite.base.created_by, &invited) {
         return Err(ApiError::permission_denied());
     }
     Ok(invite)
 }
 
-/// Whether the caller may revoke this invite: one they created, or one for a role below theirs,
-/// or any as an Owner. The users list offers Revoke on the same terms.
+/// Whether the caller may revoke this invite: one they created, or one they could have sent. The
+/// users list offers Revoke on the same terms.
 fn may_revoke(
     caller_id: Uuid,
-    caller_permissions: UserOrgPermissions,
+    caller_access: &AccessSet,
     created_by: Uuid,
-    invite_permissions: UserOrgPermissions,
+    invited: &AccessSet,
 ) -> bool {
-    caller_id == created_by
-        || invite_permissions < caller_permissions
-        || caller_permissions == UserOrgPermissions::Owner
+    caller_id == created_by || caller_access.may_grant_to_person(invited)
 }
 
 /// Accept an invite link - redirects to registration/login with pending org invite in session
@@ -497,17 +483,6 @@ async fn accept_invite_link(
         )));
     };
 
-    if let Err(e) = session
-        .insert("pending_site_ids", invite.base.site_ids.clone())
-        .await
-    {
-        tracing::error!("Failed to save invite site_ids to session: {}", e);
-        return Err(Redirect::to(&format!(
-            "/?error={}",
-            urlencoding::encode("Failed to process invite. Please try again.")
-        )));
-    };
-
     // Check if user is already logged in
     if let Ok(Some(user_id)) = session.get::<uuid::Uuid>("user_id").await {
         // Check if user is already in an organization - they must leave first
@@ -537,7 +512,7 @@ async fn accept_invite_link(
         if let Some(AcceptedInvite {
             organization_id: org_id,
             permissions,
-            site_ids,
+            site_assignments,
             ..
         }) = process_pending_invite(&state, &session)
             .await
@@ -546,41 +521,15 @@ async fn accept_invite_link(
                 Redirect::to(&format!("/?error={}", urlencoding::encode(&e.to_string())))
             })?
         {
-            let mut user = state
-                .services
-                .user_service
-                .get_by_id(&user_id)
-                .await
-                .map_err(|_| {
-                    Redirect::to(&format!(
-                        "/?error={}",
-                        urlencoding::encode(&format!(
-                            "Failed get user to update organization {}",
-                            user_id
-                        ))
-                    ))
-                })?
-                .ok_or_else(|| {
-                    Redirect::to(&format!(
-                        "/?error={}",
-                        urlencoding::encode(&format!(
-                            "Failed to update organization for user {}",
-                            user_id
-                        ))
-                    ))
-                })?;
-
-            user.base.organization_id = org_id;
-            user.base.permissions = permissions;
-            user.base.site_ids = site_ids;
-            // Update user's organization
             state
                 .services
-                .user_service
-                .update(
-                    &mut user,
+                .access_service
+                .join_organization(
+                    user_id,
+                    org_id,
+                    permissions,
+                    &site_assignments,
                     AuthenticatedEntity::System,
-                    UpdateReason::UserJoinedOrganization,
                 )
                 .await
                 .map_err(|_| {
@@ -609,7 +558,7 @@ async fn accept_invite_link(
 pub struct AcceptedInvite {
     pub organization_id: Uuid,
     pub permissions: UserOrgPermissions,
-    pub site_ids: Vec<Uuid>,
+    pub site_assignments: Vec<Assignment>,
     /// The address the invite was emailed to. `None` for a link-only invite, or when the
     /// invite record could not be read back. Registering with this address proves it.
     pub send_to: Option<EmailAddress>,
@@ -638,14 +587,12 @@ pub async fn process_pending_invite(
         _ => return Ok(None), // No permissions stored
     };
 
-    // Sessions opened before the site rename hold the ids under `pending_network_ids`.
-    let site_ids = match session.get::<Vec<Uuid>>("pending_site_ids").await {
-        Ok(Some(site_ids)) => site_ids,
-        _ => match session.get::<Vec<Uuid>>("pending_network_ids").await {
-            Ok(Some(site_ids)) => site_ids,
-            _ => return Ok(None), // No site ids
-        },
-    };
+    // The invite's own assignments, read while it exists: consuming it deletes them.
+    let site_assignments = state
+        .services
+        .site_assignment_service
+        .get_for(Principal::Invite(invite_id))
+        .await?;
 
     // Mark invite as used. A deleted or expired invite grants nothing, so its failure is
     // the caller's failure: no account or membership is created from it.
@@ -691,7 +638,7 @@ pub async fn process_pending_invite(
     Ok(Some(AcceptedInvite {
         organization_id: pending_org_id,
         permissions,
-        site_ids,
+        site_assignments,
         send_to,
     }))
 }
@@ -704,12 +651,13 @@ mod tests {
     #[test]
     fn revoking_follows_who_created_the_invite_and_the_role_it_grants() {
         let (me, someone) = (Uuid::new_v4(), Uuid::new_v4());
+        let role = |role| AccessSet::new(role, &[], &[]);
         assert!(
-            may_revoke(me, Admin, me, Owner),
+            may_revoke(me, &role(Admin), me, &role(Owner)),
             "the creator can always revoke"
         );
-        assert!(!may_revoke(me, Admin, someone, Admin));
-        assert!(may_revoke(me, Admin, someone, Member));
-        assert!(may_revoke(me, Owner, someone, Owner));
+        assert!(!may_revoke(me, &role(Admin), someone, &role(Admin)));
+        assert!(may_revoke(me, &role(Admin), someone, &role(Member)));
+        assert!(may_revoke(me, &role(Owner), someone, &role(Owner)));
     }
 }

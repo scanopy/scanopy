@@ -194,7 +194,7 @@ impl DaemonRuntimeService {
             "The daemon was already running session {running} (for {}s) and refused this one",
             age.as_secs()
         ));
-        payload.finished_at = Some(chrono::Utc::now());
+        payload.finished_at = Some(crate::server::shared::clock::now());
         payload.reason = Some(DiscoveryTerminalReason::DaemonBusy);
 
         let path = format!("/api/v1/discoveries/{}/update", request.session_id);

@@ -15,7 +15,9 @@ pub mod docker;
 pub mod failure;
 pub mod flex;
 pub mod gnmi;
+pub mod hypervisor;
 pub mod instant_on;
+pub mod libvirt;
 pub mod podman;
 pub mod proxmox;
 pub mod snmp;
@@ -231,10 +233,11 @@ pub trait DiscoveryIntegration: Send + Sync {
         Duration::from_secs(120)
     }
 
-    /// TCP ports that must be detected open before `probe()` is attempted.
-    /// Returns empty to always attempt (e.g., SNMP does its own UDP probing).
-    fn probe_gate_ports(&self, _credential: &CredentialQueryPayload) -> Vec<PortType> {
-        vec![]
+    /// TCP ports that must be detected open before `probe()` is attempted: the ports the
+    /// credential reaches the host through ([`CredentialReach`](crate::server::credentials::r#impl::mapping::CredentialReach)).
+    /// Empty when it reaches the host without a port, or only over UDP, which SNMP probes itself.
+    fn probe_gate_ports(&self, credential: &CredentialQueryPayload) -> Vec<PortType> {
+        credential.reach().gate_ports()
     }
 
     /// Probe the target host: check if this integration's service responds
@@ -481,6 +484,7 @@ impl IntegrationRegistry {
                 Box::new(wake_on_lan::WakeOnLanIntegration)
             }
             CredentialQueryPayloadDiscriminants::Proxmox => Box::new(proxmox::ProxmoxIntegration),
+            CredentialQueryPayloadDiscriminants::Libvirt => Box::new(libvirt::LibvirtIntegration),
             CredentialQueryPayloadDiscriminants::Unknown => return None,
         })
     }

@@ -239,7 +239,11 @@ impl BillingService {
         // already trialing and announces nothing twice. If this fails, the
         // webhook still lands the plan.
         if let Err(e) = self
-            .handle_subscription_update(subscription, false, Utc::now().timestamp())
+            .handle_subscription_update(
+                subscription,
+                false,
+                crate::server::shared::clock::now().timestamp(),
+            )
             .await
         {
             tracing::warn!(

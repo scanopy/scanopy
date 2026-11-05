@@ -307,7 +307,7 @@ async fn main() -> anyhow::Result<()> {
             loop {
                 interval.tick().await;
                 if let Err(e) = silence_organizations
-                    .report_silent_license_check_ins(chrono::Utc::now())
+                    .report_silent_license_check_ins(scanopy::server::shared::clock::now())
                     .await
                 {
                     tracing::error!(error = %e, "License check-in silence sweep failed");
@@ -654,7 +654,7 @@ async fn main() -> anyhow::Result<()> {
     if deployment_type != DeploymentType::Cloud {
         match &state.license_service {
             None => {
-                tracing::info!(target: LOG_TARGET, "  License:         not required (community)");
+                tracing::info!(target: LOG_TARGET, "  License:         not required (community). To apply a license, set SCANOPY_LICENSE_KEY. Steps: https://scanopy.net/docs/self-hosted-server/installation/?edition=commercial");
             }
             Some(license_service) => {
                 let license_status = license_service.current_status().await;
@@ -682,16 +682,16 @@ async fn main() -> anyhow::Result<()> {
                         }
                     }
                     scanopy::server::license::types::LicenseStatus::Expired(_) => {
-                        tracing::warn!(target: LOG_TARGET, "  License:         EXPIRED — server is in read-only mode");
+                        tracing::warn!(target: LOG_TARGET, "  License:         EXPIRED, server is in read-only mode");
                     }
                     scanopy::server::license::types::LicenseStatus::Invalid(reason) => {
-                        tracing::error!(target: LOG_TARGET, "  License:         INVALID ({}) — server is in read-only mode", reason);
+                        tracing::error!(target: LOG_TARGET, "  License:         INVALID, server is in read-only mode: {}", reason);
                     }
                     scanopy::server::license::types::LicenseStatus::Pending => {
                         tracing::warn!(
                             target: LOG_TARGET,
-                            "  License:         PENDING — server is in read-only mode until it reaches {} for its first entitlement",
-                            scanopy::server::license::service::CLOUD_BASE_URL,
+                            "  License:         PENDING, server is in read-only mode until it reaches {} for its first entitlement",
+                            license_service.base_url(),
                         );
                     }
                 }

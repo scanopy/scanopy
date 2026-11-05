@@ -81,7 +81,7 @@ fn stale_demo_hosts_are_stale_together_with_their_children() {
     use crate::server::shared::types::entities::EntityFreshness;
 
     let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4(), UseCase::default());
-    let now = Utc::now();
+    let now = crate::server::shared::clock::now();
     let cutoffs: HashMap<Uuid, DateTime<Utc>> = demo
         .sites
         .iter()

@@ -10,7 +10,7 @@
 	import { createEmptySiteFormData } from '../queries';
 	import { pushError } from '$lib/shared/stores/feedback';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	import { useCan } from '$lib/features/auth/access';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
 	import DurationInput from '$lib/shared/components/forms/input/DurationInput.svelte';
@@ -68,8 +68,7 @@
 	const organizationQuery = useOrganizationQuery();
 	let organization = $derived(organizationQuery.data);
 
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
+	const can = useCan();
 
 	const configQuery = useConfigQuery();
 
@@ -77,7 +76,7 @@
 	let isDemoOrg = $derived(
 		billingPlans.getMetadata(organization?.plan?.type ?? null).is_demo === true
 	);
-	let isNonOwnerInDemo = $derived(isDemoOrg && currentUser?.permissions !== 'Owner');
+	let isNonOwnerInDemo = $derived(isDemoOrg && !can('Organization', 'Delete'));
 
 	// TanStack Query for credentials. Only Site-targetable types are offered for
 	// assignment, but the *selected* list resolves against every credential (as the host

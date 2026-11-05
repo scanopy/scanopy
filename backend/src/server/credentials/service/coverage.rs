@@ -274,7 +274,7 @@ mod tests {
     #[test]
     fn an_untried_site_credential_covers_every_host_on_its_site() {
         let (site, other_site) = (Uuid::new_v4(), Uuid::new_v4());
-        let scanned = Utc::now();
+        let scanned = crate::server::shared::clock::now();
         let mut coverage = IntegrationCoverage::default();
         coverage.add_site(
             site,
@@ -297,7 +297,7 @@ mod tests {
     fn a_tried_site_credential_covers_only_where_it_was_pinned() {
         let site = Uuid::new_v4();
         let (answered, silent) = (Uuid::new_v4(), Uuid::new_v4());
-        let scanned = Utc::now();
+        let scanned = crate::server::shared::clock::now();
         let mut coverage = IntegrationCoverage::default();
         coverage.add_site(
             site,

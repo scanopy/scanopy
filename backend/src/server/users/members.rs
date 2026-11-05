@@ -14,7 +14,10 @@ use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::server::{
-    auth::middleware::permissions::{Admin, Authorized},
+    auth::{
+        access::Grants,
+        middleware::permissions::{Authorized, Can, Read},
+    },
     config::AppState,
     invites::r#impl::base::Invite,
     shared::{
@@ -248,7 +251,10 @@ impl MemberFilterQuery {
         let Some(user) = member.user_data() else {
             return false;
         };
-        if user.base.permissions >= UserOrgPermissions::Admin {
+        if matches!(
+            user.base.permissions,
+            UserOrgPermissions::Owner | UserOrgPermissions::Admin
+        ) {
             return every;
         }
         user.base.site_ids.iter().any(|id| requested.contains(id))
@@ -321,42 +327,38 @@ fn computed(field: &MemberOrderField, member: &Member) -> Option<Computed> {
 )]
 pub async fn list_members(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<User, Read>>,
     Query(query): Query<MemberFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<Member>>> {
     let organization_id = auth
         .organization_id()
         .ok_or_else(ApiError::organization_required)?;
     let viewer_id = auth.user_id().ok_or_else(ApiError::user_required)?;
-    let viewer_permissions = auth
+    let viewer_grants = auth
         .entity
-        .permissions()
+        .organization_grants()
         .ok_or_else(ApiError::user_required)?;
     Ok(Json(
-        members_page(
-            &state,
-            organization_id,
-            viewer_id,
-            viewer_permissions,
-            &query,
-        )
-        .await?,
+        members_page(&state, organization_id, viewer_id, &viewer_grants, &query).await?,
     ))
 }
 
-/// One page of the members list for a viewer with `viewer_permissions`.
+/// One page of the members list for a viewer with these organization grants.
 pub async fn members_page(
     state: &AppState,
     organization_id: Uuid,
     viewer_id: Uuid,
-    viewer_permissions: UserOrgPermissions,
+    viewer_grants: &Grants,
     query: &MemberFilterQuery,
 ) -> ApiResult<PaginatedApiResponse<Member>> {
-    let users = User::get_service(state)
+    let service = User::get_service(state);
+    let mut users = service
         .get_all(StorableFilter::<User>::new_from_org_id(&organization_id))
-        .await?
+        .await?;
+    service.hydrate_site_ids_batch(&mut users).await?;
+    let users = users
         .into_iter()
-        .filter(|u| u.is_listed_for(viewer_permissions, viewer_id))
+        .filter(|u| u.is_listed_for(viewer_grants, viewer_id))
         .map(|u| Member::user(u, viewer_id));
     let invites = state
         .services
@@ -364,7 +366,7 @@ pub async fn members_page(
         .list_active_invites(&organization_id)
         .await
         .into_iter()
-        .filter(|i| i.is_listed_for(viewer_permissions, viewer_id))
+        .filter(|i| i.is_listed_for(viewer_grants, viewer_id))
         .map(Member::invite);
 
     let rows: Vec<(Option<String>, Member)> = users

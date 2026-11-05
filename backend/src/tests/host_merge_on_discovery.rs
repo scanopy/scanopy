@@ -8,7 +8,6 @@
 
 use std::net::IpAddr;
 
-use chrono::Utc;
 use mac_address::MacAddress;
 use uuid::Uuid;
 
@@ -340,7 +339,7 @@ async fn a_payload_naming_both_halves_of_a_split_vm_merges_them_and_keeps_everyt
             lab.site_id,
             switch_port,
             &[(Neighbor::Host(h2.id), None)],
-            Utc::now(),
+            crate::server::shared::clock::now(),
             None,
         )
         .await
@@ -351,7 +350,7 @@ async fn a_payload_naming_both_halves_of_a_split_vm_merges_them_and_keeps_everyt
             lab.site_id,
             h2_interface,
             &[(Neighbor::Host(switch.id), None)],
-            Utc::now(),
+            crate::server::shared::clock::now(),
             None,
         )
         .await
@@ -870,7 +869,7 @@ async fn a_manual_merge_keeps_interfaces_adjacencies_and_tags() {
             lab.site_id,
             b_interface,
             &[(Neighbor::Host(a.id), None)],
-            Utc::now(),
+            crate::server::shared::clock::now(),
             None,
         )
         .await

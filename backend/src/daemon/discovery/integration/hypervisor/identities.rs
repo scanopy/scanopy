@@ -7,7 +7,7 @@
 //! lives inside the guest, and nothing about what it is. So each is recorded as its own host,
 //! unnamed and unclassified, linked to a Network Identities service on the guest.
 //!
-//! Pure: no I/O, like [`super::mapping`].
+//! Pure: no I/O, like [`super::guest`].
 
 use std::collections::BTreeMap;
 use std::net::IpAddr;
@@ -31,7 +31,8 @@ use crate::server::shared::types::entities::EntitySource;
 use crate::server::subnets::r#impl::base::Subnet;
 use crate::server::subnets::r#impl::inference::placeable_subnet;
 
-use super::mapping::{ConfigNic, GuestAddress, REPORTED};
+use super::guest::{ConfigNic, GuestAddress};
+use crate::server::shared::attribution::AttributeSource;
 
 /// One interface inside a guest that presents an address and MAC of its own on the network.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -42,12 +43,21 @@ pub struct NetworkIdentity {
     pub mac: String,
     /// Its addresses on subnets the site holds, in the order the guest reported them.
     pub addresses: Vec<IpAddr>,
+    /// What reported it: the hypervisor's integration, which relayed what the guest presents.
+    pub source: AttributeSource,
 }
 
-/// The interfaces a running guest reports that are identities of their own.
+/// Whether `ip` sits on a subnet the site holds that is neither a container bridge nor loopback:
+/// an address the rest of the network can reach, rather than one every Docker host also has.
+pub fn on_lan(subnets: &[Subnet], ip: IpAddr) -> bool {
+    placeable_subnet(subnets, ip)
+        .is_some_and(|s| !s.is_container_bridge_subnet() && !s.base.subnet_type().is_loopback())
+}
+
+/// The interfaces a running guest reports that are identities of their own, filed under `source`.
 ///
-/// An interface counts when it has a MAC, that MAC is not one the guest's config gives a `netN`
-/// NIC (those are the guest's own addresses, see [`super::mapping::select_addresses`]), and at
+/// An interface counts when it has a MAC, that MAC is not one the guest's config gives a NIC
+/// (those are the guest's own addresses, see [`super::guest::select_addresses`]), and at
 /// least one of its addresses sits on a subnet the site holds that is not a container bridge
 /// or loopback. That leaves out a Docker host's `docker0` and `br-*` (container bridge subnets, or
 /// none at all), a `wg0` tunnel (no MAC), and loopback. Only the addresses on such subnets are
@@ -56,11 +66,9 @@ pub fn network_identities(
     nics: &[ConfigNic],
     reported: &[GuestAddress],
     subnets: &[Subnet],
+    source: AttributeSource,
 ) -> Vec<NetworkIdentity> {
-    let on_lan = |ip: IpAddr| {
-        placeable_subnet(subnets, ip)
-            .is_some_and(|s| !s.is_container_bridge_subnet() && !s.base.subnet_type().is_loopback())
-    };
+    let on_lan = |ip: IpAddr| on_lan(subnets, ip);
     let is_nic = |mac: &str| nics.iter().any(|n| n.mac.as_deref() == Some(mac));
     let is_unset = |mac: &str| {
         mac.parse::<mac_address::MacAddress>()
@@ -83,6 +91,7 @@ pub fn network_identities(
                 interface: address.interface.clone(),
                 mac: mac.to_string(),
                 addresses: vec![],
+                source,
             });
             identities.len() - 1
         });
@@ -111,7 +120,7 @@ pub fn guest_services(guest: &Host, identities: &[NetworkIdentity]) -> Vec<Servi
         virtualization_service_id: None,
         source: EntitySource::DiscoveryWithMatch {
             details: MatchDetails::new_certain(
-                "the guest agent reports interfaces beyond the guest's configured NICs",
+                "the guest reports interfaces beyond its configured NICs",
             ),
         },
         tags: vec![],
@@ -122,13 +131,14 @@ pub fn guest_services(guest: &Host, identities: &[NetworkIdentity]) -> Vec<Servi
 /// The identity's MAC as the guest OS reports it.
 ///
 /// Not the hypervisor's assignment, and a kernel macvlan MAC is random and locally administered.
-/// So it is filed as [`REPORTED`], which leaves it weak: it never anchors a host on its own.
+/// So it is filed under the hypervisor's report ([`NetworkIdentity::source`]), never
+/// `HypervisorConfig`, which leaves it weak: it never anchors a host on its own.
 fn identity_mac(identity: &NetworkIdentity) -> Option<MacEvidence> {
     identity
         .mac
         .parse()
         .ok()
-        .map(|m| MacEvidence::new(MacEvidenceValue(m), REPORTED))
+        .map(|m| MacEvidence::new(MacEvidenceValue(m), identity.source))
 }
 
 /// The guest's own interface an identity sits on, carried in the guest's submission so the
@@ -140,7 +150,7 @@ pub fn identity_interface(identity: &NetworkIdentity, site_id: Uuid) -> Interfac
         site_id,
         if_name: identity.interface.clone(),
         mac_address: identity_mac(identity),
-        interface_source: REPORTED,
+        interface_source: identity.source,
         ..Default::default()
     })
 }
@@ -186,7 +196,7 @@ pub fn identity_host(
                 site_id,
                 subnets,
                 *ip,
-                REPORTED,
+                identity.source,
                 mac.clone(),
                 identity.interface.clone(),
                 position as i32,
@@ -199,8 +209,10 @@ pub fn identity_host(
 #[cfg(test)]
 mod tests {
     use super::*;
+    // Recorded from the Proxmox lab, so the Proxmox adapter reads them in.
     use crate::daemon::discovery::integration::proxmox::mapping::{
-        GuestReading, GuestSummary, agent_addresses, config_nics, guest_host, select_addresses,
+        GuestReading, GuestSummary, REPORTED, agent_addresses, config_nics, guest_host,
+        select_addresses,
     };
     use crate::daemon::discovery::integration::proxmox::types::{
         AgentInterfaces, GuestConfig, PveEnvelope,
@@ -285,7 +297,7 @@ mod tests {
     fn the_lab_vms_macvlan_links_are_its_identities() {
         let nics = config_nics(&data::<GuestConfig>(QEMU_107_CONFIG));
         let reported = agent_addresses(&data::<AgentInterfaces>(QEMU_107_AGENT));
-        let identities = network_identities(&nics, &reported, &subnets());
+        let identities = network_identities(&nics, &reported, &subnets(), REPORTED);
 
         let names: Vec<&str> = identities
             .iter()
@@ -317,7 +329,7 @@ mod tests {
                 .any(|a| a.interface.as_deref() == Some("docker0")),
             "the capture carries docker0"
         );
-        assert!(network_identities(&nics, &reported, &subnets()).is_empty());
+        assert!(network_identities(&nics, &reported, &subnets(), REPORTED).is_empty());
     }
 
     /// A macvlan with a LAN address is an identity, with that address; the tunnel without a MAC
@@ -326,11 +338,12 @@ mod tests {
     fn a_macvlan_with_a_lan_address_is_an_identity() {
         let (nics, reported) = docker_host_with_macvlan();
         assert_eq!(
-            network_identities(&nics, &reported, &subnets()),
+            network_identities(&nics, &reported, &subnets(), REPORTED),
             vec![NetworkIdentity {
                 interface: Some("mv-snmp4".to_string()),
                 mac: "3a:5e:01:aa:bb:cc".to_string(),
                 addresses: vec!["192.168.7.200".parse().unwrap()],
+                source: REPORTED,
             }]
         );
     }
@@ -342,7 +355,7 @@ mod tests {
         let (nics, reported) = docker_host_with_macvlan();
         let guest = Host::new(HostBase::default());
 
-        let identities = network_identities(&nics, &reported, &subnets());
+        let identities = network_identities(&nics, &reported, &subnets(), REPORTED);
         let services = guest_services(&guest, &identities);
         assert_eq!(services.len(), 1);
         assert_eq!(services[0].base.host_id, guest.id);
@@ -363,7 +376,7 @@ mod tests {
         let (nics, reported) = docker_host_with_macvlan();
         let subnets = subnets();
         let site_id = Uuid::new_v4();
-        let identity = &network_identities(&nics, &reported, &subnets)[0];
+        let identity = &network_identities(&nics, &reported, &subnets, REPORTED)[0];
         let owner = Uuid::new_v4();
 
         let submitted = identity_interface(identity, site_id);
@@ -412,7 +425,7 @@ mod tests {
     fn no_identity_address_is_on_the_guest() {
         let (nics, reported) = docker_host_with_macvlan();
         let subnets = subnets();
-        let identities = network_identities(&nics, &reported, &subnets);
+        let identities = network_identities(&nics, &reported, &subnets, REPORTED);
         let guest = GuestSummary {
             node: "pve".to_string(),
             vmid: 103,

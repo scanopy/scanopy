@@ -41,7 +41,7 @@ impl Storable for Vlan {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
 
         Self {
             id: Uuid::new_v4(),
@@ -285,18 +285,13 @@ impl Entity for Vlan {
         }
         self.base.source = source;
     }
+}
 
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        // A VLAN is identified by (site_id, vlan_number). Create enforces that pair is unique
-        // per site; an update has no such check, so neither half may move on update.
-        self.base.vlan_number = existing.base.vlan_number;
-        self.base.site_id = existing.base.site_id;
-        self.base.organization_id = existing.base.organization_id;
-        self.base.source = existing.base.source.clone();
-
-        // Only users reach the update handler, so a changed name is one a person typed. An
-        // unchanged one keeps the stored source: echoing back a discovered name is not renaming
-        // it, and must not lift it above the next reading.
+impl Vlan {
+    /// Only users reach the update handler, so a changed name is one a person typed. An
+    /// unchanged one keeps the stored source: echoing back a discovered name is not renaming
+    /// it, and must not lift it above the next reading.
+    pub(crate) fn merge_name(&mut self, existing: &Self) {
         self.base.name = if self.base.name.value() == existing.base.name.value() {
             existing.base.name.clone()
         } else {

@@ -4,7 +4,18 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 use validator::Validate;
 
+use crate::server::auth::access::AccessGrants;
 use crate::server::organizations::r#impl::base::UseCase;
+use crate::server::users::r#impl::base::User;
+
+/// The signed-in user, with what they can do.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct CurrentUser {
+    #[serde(flatten)]
+    pub user: User,
+    /// The user's organization and per-site grants.
+    pub access: AccessGrants,
+}
 
 /// Login request from client
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]

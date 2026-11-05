@@ -3,6 +3,8 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+use crate::server::release_notes::catalog::Catalog;
+
 // ===========================================================================
 // Version lifecycle registry
 //
@@ -56,6 +58,15 @@ pub fn legacy_minimum_daemon_version_field() -> Version {
 /// converges to a ceiling it can actually reason about and stops.
 pub(crate) fn own_version() -> Version {
     Version::parse(env!("CARGO_PKG_VERSION")).expect("CARGO_PKG_VERSION is valid semver")
+}
+
+/// The release daemons are asked to reach: the newest one at or below `own` whose release notes
+/// set `daemon_upgrade`, or `own` when no release in this binary does.
+fn daemon_upgrade_target(own: &Version) -> Version {
+    Catalog::embedded()
+        .daemon_upgrade_target(own)
+        .unwrap_or(own)
+        .clone()
 }
 
 /// Helper: a UTC timestamp at midnight for the given calendar date. Unused while no cutover is
@@ -509,8 +520,10 @@ fn capability_gates() -> Vec<(String, Version)> {
 /// Version policy for daemons.
 ///
 /// `last_unsupported` is the derived enforced ceiling (see [`enforced_last_unsupported`]);
-/// `recommended`/`latest` are this server's own version. `now` is captured at construction so
-/// lifecycle evaluation and sunset dates are deterministic within one request (tests pin it).
+/// `recommended` is the upgrade target a daemon below it is outdated against (see
+/// [`daemon_upgrade_target`]); `latest` is this server's own version, which sunset and rejection
+/// messages name. `now` is captured at construction so lifecycle evaluation and sunset dates are
+/// deterministic within one request (tests pin it).
 pub struct DaemonVersionPolicy {
     pub last_unsupported: Version,
     pub recommended: Version,
@@ -523,7 +536,7 @@ pub struct DaemonVersionPolicy {
 
 impl Default for DaemonVersionPolicy {
     fn default() -> Self {
-        Self::at(Utc::now())
+        Self::at(crate::server::shared::clock::now())
     }
 }
 
@@ -533,7 +546,7 @@ impl DaemonVersionPolicy {
         let current = own_version();
         Self {
             last_unsupported: enforced_last_unsupported(now),
-            recommended: current.clone(),
+            recommended: daemon_upgrade_target(&current),
             latest: current,
             now,
             scheduled_sunsets: scheduled_sunsets(),
@@ -547,7 +560,7 @@ impl DaemonVersionPolicy {
         let current = own_version();
         Self {
             last_unsupported: last_unsupported_from(&sunsets, now),
-            recommended: current.clone(),
+            recommended: daemon_upgrade_target(&current),
             latest: current,
             now,
             scheduled_sunsets: sunsets,
@@ -601,7 +614,7 @@ impl DaemonVersionPolicy {
                     format!(
                         "{label} is no longer supported (support ended {sunset_str}). \
                          Update to {} or later to reconnect.",
-                        self.recommended
+                        self.latest
                     ),
                 )
             } else {
@@ -611,7 +624,7 @@ impl DaemonVersionPolicy {
                     format!(
                         "{label} is deprecated and support ends {sunset_str}. \
                          Update to {} or later before then to avoid interruption.",
-                        self.recommended
+                        self.latest
                     ),
                 )
             };
@@ -652,7 +665,7 @@ impl DaemonVersionPolicy {
                 vec![DeprecationWarning {
                     message: format!(
                         "Daemon {v} is no longer supported. Update to {} or later to reconnect.",
-                        self.recommended
+                        self.latest
                     ),
                     sunset_date: None,
                     severity: DeprecationSeverity::Critical,
@@ -664,7 +677,7 @@ impl DaemonVersionPolicy {
                 VersionHealthStatus::Outdated,
                 vec![DeprecationWarning {
                     message: format!(
-                        "Daemon {v} is outdated. Update to {} for the latest features.",
+                        "Daemon {v} is outdated. Update to {} or later.",
                         self.recommended
                     ),
                     sunset_date: None,
@@ -873,6 +886,58 @@ mod tests {
         );
     }
 
+    // --- Upgrade target -------------------------------------------------------
+
+    /// A policy whose target sits below this server, as after releases without `daemon_upgrade`.
+    fn policy_targeting(target: Version, sunsets: Vec<ScheduledSunset>) -> DaemonVersionPolicy {
+        let mut policy = DaemonVersionPolicy::at_with_sunsets(dt(2026, 7, 27), sunsets);
+        policy.recommended = target;
+        policy.latest = v(99, 0, 0);
+        policy
+    }
+
+    #[test]
+    fn the_target_comes_from_this_binarys_releases() {
+        let policy = policy_at(dt(2026, 7, 27));
+        assert!(policy.recommended <= own_version());
+        assert_eq!(policy.latest, own_version());
+    }
+
+    #[test]
+    fn a_daemon_at_or_above_the_target_is_current() {
+        let policy = policy_targeting(v(0, 19, 2), vec![]);
+        for daemon in [v(0, 19, 2), v(0, 19, 3)] {
+            let status = policy.evaluate(Some(&daemon));
+            assert_eq!(status.status, VersionHealthStatus::Current, "{daemon}");
+            assert!(status.warnings.is_empty(), "{daemon}");
+        }
+    }
+
+    #[test]
+    fn a_daemon_below_the_target_is_outdated_against_it() {
+        let policy = policy_targeting(v(0, 19, 2), vec![]);
+        let status = policy.evaluate(Some(&v(0, 19, 1)));
+        assert_eq!(status.status, VersionHealthStatus::Outdated);
+        assert!(status.warnings[0].message.contains("0.19.2"));
+    }
+
+    /// A target at or below a cutover is a version that cutover rejects, so sunset messages name
+    /// this server's version instead.
+    #[test]
+    fn a_sunset_message_never_names_a_rejected_target() {
+        let policy = policy_targeting(
+            v(0, 17, 4),
+            vec![ScheduledSunset {
+                last_unsupported: v(0, 17, 4),
+                effective_on: dt(2026, 10, 1),
+            }],
+        );
+        let status = policy.evaluate(Some(&v(0, 17, 0)));
+        assert_eq!(status.status, VersionHealthStatus::Deprecated);
+        assert!(status.warnings[0].message.contains("99.0.0"));
+        assert!(!status.warnings[0].message.contains("0.17.4"));
+    }
+
     // --- Multiple announced cutovers -----------------------------------------
 
     /// Two announcements live at once: 0.17.4 already in force, 1.1.4 upcoming.
@@ -1067,7 +1132,7 @@ mod tests {
     /// having to remember.
     #[test]
     fn legacy_neighbor_wire_shim_still_needed() {
-        let ceiling = enforced_last_unsupported(Utc::now());
+        let ceiling = enforced_last_unsupported(crate::server::shared::clock::now());
         let last = last_without_neighbor_candidates();
         assert!(
             ceiling < last,
@@ -1083,7 +1148,7 @@ mod tests {
     /// `network_id`, the rewrite has no reader left.
     #[test]
     fn network_wire_shim_still_needed() {
-        let ceiling = enforced_last_unsupported(Utc::now());
+        let ceiling = enforced_last_unsupported(crate::server::shared::clock::now());
         let last = last_without_site_wire();
         assert!(
             ceiling < last,
@@ -1100,7 +1165,7 @@ mod tests {
     /// Unified, nothing can be created for or run by a pre-unified daemon.
     #[test]
     fn legacy_discovery_types_still_needed() {
-        let ceiling = enforced_last_unsupported(Utc::now());
+        let ceiling = enforced_last_unsupported(crate::server::shared::clock::now());
         let last = last_without_unified_discovery();
         assert!(
             ceiling < last,
@@ -1120,7 +1185,7 @@ mod tests {
     /// `target_host_id`, the rewrite has no reader left.
     #[test]
     fn single_target_rescan_shim_still_needed() {
-        let ceiling = enforced_last_unsupported(Utc::now());
+        let ceiling = enforced_last_unsupported(crate::server::shared::clock::now());
         let last = last_without_multi_target_rescan();
         assert!(
             ceiling < last,
@@ -1137,7 +1202,7 @@ mod tests {
     /// daemon requires it, it has no reader left.
     #[test]
     fn unsupported_version_field_shim_still_needed() {
-        let ceiling = enforced_last_unsupported(Utc::now());
+        let ceiling = enforced_last_unsupported(crate::server::shared::clock::now());
         let last = last_without_unsupported_version_field();
         assert!(
             ceiling < last,

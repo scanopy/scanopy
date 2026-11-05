@@ -3,7 +3,7 @@ use crate::server::license::instances::service::LicenseInstanceService;
 use crate::server::license::service::LicenseService;
 use crate::server::release_notes::service::ReleaseNotesService;
 use crate::server::{
-    auth::{oidc::OidcService, service::AuthService},
+    auth::{access_service::AccessService, oidc::OidcService, service::AuthService},
     billing::service::{BillingService, BillingServiceParams},
     bindings::service::BindingService,
     config::ServerConfig,
@@ -42,6 +42,7 @@ use crate::server::{
         trusted_ca::TrustedCaBundle,
     },
     shares::service::ShareService,
+    site_assignments::service::SiteAssignmentService,
     sites::service::SiteService,
     snapshots::service::SnapshotService,
     subnets::service::SubnetService,
@@ -61,6 +62,8 @@ static PROMETHEUS_HANDLE: OnceLock<PrometheusHandle> = OnceLock::new();
 pub struct ServiceFactory {
     pub user_service: Arc<UserService>,
     pub auth_service: Arc<AuthService>,
+    pub access_service: Arc<AccessService>,
+    pub site_assignment_service: Arc<SiteAssignmentService>,
     pub site_service: Arc<SiteService>,
     pub host_service: Arc<HostService>,
     pub ip_address_service: Arc<IPAddressService>,
@@ -168,9 +171,12 @@ impl ServiceFactory {
             entity_tag_service.clone(),
         ));
 
+        let site_assignment_service =
+            Arc::new(SiteAssignmentService::new(storage.site_assignments.clone()));
+
         let user_api_key_service = Arc::new(UserApiKeyService::new(
             storage.user_api_keys.clone(),
-            storage.user_api_key_site_access.clone(),
+            site_assignment_service.clone(),
             event_bus.clone(),
             entity_tag_service.clone(),
         ));
@@ -207,6 +213,7 @@ impl ServiceFactory {
 
         let invite_service = Arc::new(InviteService::new(
             storage.invites.clone(),
+            site_assignment_service.clone(),
             event_bus.clone(),
         ));
 
@@ -284,8 +291,16 @@ impl ServiceFactory {
 
         let user_service = Arc::new(UserService::new(
             storage.users.clone(),
-            storage.user_site_access.clone(),
+            site_assignment_service.clone(),
             event_bus.clone(),
+        ));
+
+        let access_service = Arc::new(AccessService::new(
+            site_assignment_service.clone(),
+            user_service.clone(),
+            user_api_key_service.clone(),
+            invite_service.clone(),
+            site_service.clone(),
         ));
 
         let service_service = Arc::new(ServiceService::new(
@@ -563,6 +578,7 @@ impl ServiceFactory {
 
         let auth_service = Arc::new(AuthService::new(
             user_service.clone(),
+            access_service.clone(),
             organization_service.clone(),
             has_email_service,
             event_bus.clone(),
@@ -607,6 +623,8 @@ impl ServiceFactory {
         let factory = Self {
             user_service,
             auth_service,
+            access_service,
+            site_assignment_service,
             site_service,
             host_service,
             ip_address_service,
@@ -669,6 +687,8 @@ impl ServiceFactory {
         let Self {
             user_service,
             auth_service,
+            access_service: _, // not a Subscriber: called by handlers and auth
+            site_assignment_service: _, // not a Subscriber: read by the services above
             site_service,
             host_service,
             ip_address_service,

@@ -529,7 +529,7 @@ mod tests {
     /// A short deadline on the read: an agent that will not answer a request leaves the client
     /// waiting out its own timeout, and the test only needs to know nothing came back.
     async fn sys_name(agent: &UdpAgent, credential: &CredentialType) -> anyhow::Result<String> {
-        let CredentialQueryPayload::Snmp(snmp) = credential.to_query_payload() else {
+        let CredentialQueryPayload::Snmp(snmp) = credential.to_query_payload(None).unwrap() else {
             panic!("not an SNMP credential");
         };
         let silence = |_| anyhow::anyhow!("the agent did not answer");
@@ -693,7 +693,7 @@ mod tests {
             priv_protocol: SnmpV3PrivProtocol::Aes128,
             priv_password: secret("sha1privpass"),
         });
-        let CredentialQueryPayload::Snmp(snmp) = credential.to_query_payload() else {
+        let CredentialQueryPayload::Snmp(snmp) = credential.to_query_payload(None).unwrap() else {
             panic!("not an SNMP credential");
         };
         let device = switch_with(credential.clone());

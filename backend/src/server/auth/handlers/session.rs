@@ -1,5 +1,6 @@
 //! Login, logout, and current-user session handlers.
 use super::*;
+use crate::server::auth::r#impl::api::CurrentUser;
 use crate::server::auth::{terms_gate, verification_gate};
 use crate::server::billing::types::base::BillingPlan;
 use crate::server::openapi::tags as api_tags;
@@ -124,17 +125,21 @@ pub(crate) async fn logout(
     path = "/me",
     tags = [api_tags::INTERNAL],
     responses(
-        (status = 200, description = "Current user", body = ApiResponse<User>),
+        (status = 200, description = "Current user and what they can do", body = ApiResponse<CurrentUser>),
         (status = 401, description = "Not authenticated", body = ApiErrorResponse),
     )
 )]
 pub(crate) async fn get_current_user(
     State(state): State<Arc<AppState>>,
     session: Session,
-) -> ApiResult<Json<ApiResponse<User>>> {
+) -> ApiResult<Json<ApiResponse<CurrentUser>>> {
     let user = session_user(&state, &session).await?;
     let user = with_org_session_gates(&state, user).await?;
-    Ok(Json(ApiResponse::success(user)))
+    let access = state.services.access_service.user_access(&user).await?;
+    Ok(Json(ApiResponse::success(CurrentUser {
+        user,
+        access: access.to_grants(),
+    })))
 }
 
 /// Accept terms of service

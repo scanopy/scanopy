@@ -113,8 +113,12 @@ pub struct LegacyIPAddress {
 impl LegacyIPAddress {
     /// Convert to new IPAddress format, filling in missing fields.
     pub fn into_ip_address(self, site_id: Uuid, host_id: Uuid) -> IPAddress {
-        let created = self.created_at.unwrap_or_else(Utc::now);
-        let updated = self.updated_at.unwrap_or_else(Utc::now);
+        let created = self
+            .created_at
+            .unwrap_or_else(crate::server::shared::clock::now);
+        let updated = self
+            .updated_at
+            .unwrap_or_else(crate::server::shared::clock::now);
         IPAddress {
             id: self.id,
             created_at: created,
@@ -167,8 +171,12 @@ impl LegacyPort {
             PortType::new_tcp(self.number)
         };
 
-        let created = self.created_at.unwrap_or_else(Utc::now);
-        let updated = self.updated_at.unwrap_or_else(Utc::now);
+        let created = self
+            .created_at
+            .unwrap_or_else(crate::server::shared::clock::now);
+        let updated = self
+            .updated_at
+            .unwrap_or_else(crate::server::shared::clock::now);
         Port {
             id: self.id,
             created_at: created,
@@ -235,8 +243,12 @@ pub struct LegacyBinding {
 impl LegacyBinding {
     /// Convert to new Binding format, filling in service_id and site_id.
     pub fn into_binding(self, service_id: Uuid, site_id: Uuid) -> Binding {
-        let created = self.created_at.unwrap_or_else(Utc::now);
-        let updated = self.updated_at.unwrap_or_else(Utc::now);
+        let created = self
+            .created_at
+            .unwrap_or_else(crate::server::shared::clock::now);
+        let updated = self
+            .updated_at
+            .unwrap_or_else(crate::server::shared::clock::now);
         Binding {
             id: self.id,
             created_at: created,
@@ -296,8 +308,12 @@ impl LegacyService {
         let service_definition = ServiceDefinitionRegistry::find_by_id(&self.service_definition)
             .unwrap_or_else(|| Box::new(DefaultServiceDefinition));
 
-        let created = self.created_at.unwrap_or_else(Utc::now);
-        let updated = self.updated_at.unwrap_or_else(Utc::now);
+        let created = self
+            .created_at
+            .unwrap_or_else(crate::server::shared::clock::now);
+        let updated = self
+            .updated_at
+            .unwrap_or_else(crate::server::shared::clock::now);
         Service {
             id: self.id,
             created_at: created,
@@ -325,7 +341,7 @@ impl LegacyService {
 }
 
 fn default_timestamp() -> DateTime<Utc> {
-    Utc::now()
+    crate::server::shared::clock::now()
 }
 
 impl LegacyHostWithServicesRequest {

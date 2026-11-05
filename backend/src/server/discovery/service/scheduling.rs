@@ -250,7 +250,10 @@ impl DiscoveryService {
                             // Reload fresh discovery from DB to avoid overwriting fields
                             match storage.get_by_id(&discovery_id).await {
                                 Ok(Some(mut fresh)) => {
-                                    fresh.base.run_type.set_last_run(Utc::now());
+                                    fresh
+                                        .base
+                                        .run_type
+                                        .set_last_run(crate::server::shared::clock::now());
                                     if let Err(e) = storage.update(&mut fresh).await {
                                         tracing::error!("Failed to update schedule times: {}", e);
                                     }

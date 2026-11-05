@@ -23,18 +23,13 @@ import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 import type { components, operations } from '$lib/api/schema';
 import { fieldValueOptions, type FieldValueCount } from '$lib/shared/api/field-values';
 import {
-	common_operatingSystem,
-	common_created,
 	common_host,
 	common_maintainer,
 	common_site,
-	common_status,
 	common_tags,
 	common_unknownEntity,
 	common_unknownSite,
-	common_updated,
 	daemons_config_mode,
-	daemons_interfacesWith,
 	daemons_lastSeen,
 	daemons_mode_daemonPoll,
 	daemons_mode_daemonPollDescription,
@@ -98,12 +93,11 @@ export function daemonColumns(ctx: DaemonColumnsContext) {
 				groupable: false,
 				display: { order: 2, recency: true }
 			},
-			created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
-			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } },
+			created_at: { type: 'date', display: { hiddenByDefault: true } },
+			updated_at: { type: 'date', display: { hiddenByDefault: true } },
 			// The status the server derives, which also carries version lifecycle (deprecated,
 			// unsupported). The home page shows the same tag.
 			status: {
-				label: common_status(),
 				type: 'string',
 				filterable: true,
 				serverFiltered: true,
@@ -133,7 +127,6 @@ export function daemonColumns(ctx: DaemonColumnsContext) {
 				}
 			},
 			os: {
-				label: common_operatingSystem(),
 				type: 'string',
 				filterable: true,
 				serverFiltered: true,
@@ -255,7 +248,6 @@ export function daemonColumns(ctx: DaemonColumnsContext) {
 			},
 			{
 				key: 'interfaced_subnet_ids',
-				label: daemons_interfacesWith(),
 				type: 'array',
 				// Daemons share subnets, so this filters; as an array it neither sorts nor groups.
 				filterable: true,

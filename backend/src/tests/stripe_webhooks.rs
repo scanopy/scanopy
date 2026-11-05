@@ -9,16 +9,14 @@ use std::time::Duration;
 use axum::Router;
 use axum::extract::Path;
 use axum::routing::get;
-use chrono::Utc;
 use email_address::EmailAddress;
 use governor::Quota;
 use std::num::NonZeroU32;
-use testcontainers::{ContainerAsync, GenericImage};
 use tokio::sync::broadcast::Receiver;
 use uuid::Uuid;
 
 use super::self_hosted_licensing::{reload, test_state_with_email_dir};
-use super::{organization, user};
+use super::{TestDb, organization, user};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::billing::plans::{get_free_plan, get_purchasable_plans};
 use crate::server::billing::service::stripe_client::tests::{client_for, fake_stripe};
@@ -79,9 +77,7 @@ pub(super) async fn billing_with(state: &AppState, router: Router) -> BillingSer
 
 /// A fresh database, plus a billing service whose Stripe serves the recorded
 /// subscription for `org_id` and lists no others.
-async fn billing_against_fake_stripe(
-    org_id: Uuid,
-) -> (Arc<AppState>, BillingService, ContainerAsync<GenericImage>) {
+async fn billing_against_fake_stripe(org_id: Uuid) -> (Arc<AppState>, BillingService, TestDb) {
     let (state, container) = test_state_with_email_dir(None).await;
     let subscription = subscription_for(org_id);
     let router = Router::new()
@@ -122,7 +118,11 @@ pub(super) async fn checked_out_org(state: &AppState, org_id: Uuid) -> Organizat
 
 /// Sign `payload` as Stripe would and hand it to the webhook handler.
 pub(super) async fn try_deliver(billing: &BillingService, payload: &str) -> anyhow::Result<()> {
-    let signature = header(payload, WEBHOOK_SECRET, Utc::now().timestamp());
+    let signature = header(
+        payload,
+        WEBHOOK_SECRET,
+        crate::server::shared::clock::now().timestamp(),
+    );
     billing.handle_webhook(payload, &signature).await
 }
 
@@ -251,7 +251,8 @@ async fn the_portal_cancel_pair_announces_the_cancellation_once() {
     let (state, _container) = test_state_with_email_dir(None).await;
     let mut subscription: serde_json::Value =
         serde_json::from_str(&renewed_subscription(org_id, pro)).unwrap();
-    subscription["cancel_at"] = (Utc::now().timestamp() + 30 * 86_400).into();
+    subscription["cancel_at"] =
+        (crate::server::shared::clock::now().timestamp() + 30 * 86_400).into();
     let subscription = subscription.to_string();
     let router = Router::new()
         .route(

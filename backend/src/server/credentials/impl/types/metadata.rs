@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use crate::server::{
     billing::types::{base::BillingPlan, features::Feature},
+    credentials::r#impl::mapping::CredentialQueryPayloadDiscriminants,
     daemons::r#impl::version::last_without_credential_wire,
     services::r#impl::definitions::ServiceDefinition,
     shared::types::{
@@ -29,9 +30,12 @@ pub enum CredentialCategory {
     /// Network monitoring protocols (SNMP, NetFlow, sFlow)
     #[strum(serialize = "Network Monitoring")]
     NetworkMonitoring,
-    /// Container and virtualization platforms (Docker, vSphere, ESXi)
-    #[strum(serialize = "Container & Virtualization")]
-    ContainerVirtualization,
+    /// Container runtimes (Docker, Podman)
+    #[strum(serialize = "Containers")]
+    Containers,
+    /// Hypervisors (Proxmox VE, libvirt)
+    #[strum(serialize = "Virtualization")]
+    Virtualization,
     /// Management controllers that hold an inventory of the devices they have adopted
     /// (UniFi, Omada, Meraki, Aruba Central). Distinct from `NetworkMonitoring`, which is
     /// for polling protocols — a controller is an API that reports someone else's devices.
@@ -41,6 +45,9 @@ pub enum CredentialCategory {
     /// (Wake-on-LAN).
     #[strum(serialize = "Host Management")]
     HostManagement,
+    /// Accounts other credentials sign in with (SSH logins), assigned nowhere themselves.
+    #[strum(serialize = "Logins")]
+    Logins,
 }
 
 /// Whether the vendor publishes and supports the API a credential type talks to.
@@ -59,6 +66,38 @@ pub enum UpstreamSupport {
     /// Reverse-engineered from the vendor's own client. There is no published contract, so it can
     /// change or stop working without notice.
     Undocumented,
+}
+
+/// How a credential type reaches its host, and which service owns the port it goes through
+/// ([`CredentialTypeDiscriminants::reach`]). The dispatched payload states the same with its port
+/// values ([`CredentialReach`](crate::server::credentials::r#impl::mapping::CredentialReach)).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReachDeclaration {
+    /// Its own service listens on the TCP port held in its `field`: gNMI, UniFi, Proxmox VE, the
+    /// Docker/Podman API proxy.
+    OwnPortField { field: &'static str },
+    /// Its own service listens on these fixed UDP ports: SNMP.
+    FixedUdpPorts(&'static [u16]),
+    /// Signs in through a login it names, whose service owns the port. Its own service owns none:
+    /// SSH Script, libvirt.
+    ThroughLogin,
+    /// A login: the port in its `field` is the transport the credentials that name it sign in
+    /// through. SSH login (password or key).
+    LoginTransport { field: &'static str },
+    /// Reaches the host without a port on it: a local socket, a cloud portal, a broadcast.
+    NoPort,
+}
+
+/// What a credential is for: run against hosts by an integration, or a login other credentials
+/// use to reach a host.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, IntoStaticStr, ToSchema, PartialEq, Eq)]
+pub enum CredentialRole {
+    /// Assigned to hosts or sites and sent to daemons, which run its integration.
+    Dispatched,
+    /// Who the daemon is on a host (an SSH account and its secret). Never assigned or sent on its
+    /// own: a dispatched credential names it as its login, and the daemon receives it inside that
+    /// credential.
+    Login,
 }
 
 /// A credential assigned to a host, optionally limited to specific ip_addresses.
@@ -162,12 +201,6 @@ impl CredentialTypeDiscriminants {
                 password: SecretValue::Inline {
                     value: SecretString::from(String::new()),
                 },
-                // The form opens on the default mode: a file already on the scanned host.
-                script: ScriptSource::HostFile {
-                    path: String::new().into(),
-                },
-                target_os: OsFamily::Unix,
-                timeout_seconds: default_ssh_timeout_seconds(),
                 host_key_fingerprint: None,
             },
             Self::SshKey => CredentialType::SshKey {
@@ -177,13 +210,18 @@ impl CredentialTypeDiscriminants {
                     value: SecretString::from(String::new()),
                 },
                 passphrase: None,
+                host_key_fingerprint: None,
+            },
+            Self::SshScript => CredentialType::SshScript {
                 // The form opens on the default mode: a file already on the scanned host.
                 script: ScriptSource::HostFile {
                     path: String::new().into(),
                 },
                 target_os: OsFamily::Unix,
                 timeout_seconds: default_ssh_timeout_seconds(),
-                host_key_fingerprint: None,
+            },
+            Self::Libvirt => CredentialType::Libvirt {
+                connection_uri: super::libvirt::default_libvirt_uri(),
             },
             Self::WakeOnLan => CredentialType::WakeOnLan {
                 port: default_wake_on_lan_port(),
@@ -216,6 +254,9 @@ impl CredentialTypeDiscriminants {
             // Standard protocols: SSH (RFC 4253) and the AMD Magic Packet format.
             | Self::SshPassword
             | Self::SshKey
+            | Self::SshScript
+            // libvirt's `virsh` and its output formats are documented (libvirt.org/manpages).
+            | Self::Libvirt
             | Self::WakeOnLan
             // The Proxmox VE API is documented (pve.proxmox.com/pve-docs/api-viewer).
             | Self::ProxmoxApiToken => UpstreamSupport::Vendor,
@@ -241,7 +282,10 @@ impl EntityMetadataProvider for CredentialTypeDiscriminants {
         self.integration().color()
     }
     fn icon(&self) -> Icon {
-        self.integration().icon()
+        match self.role() {
+            CredentialRole::Login => Icon::UserKey,
+            CredentialRole::Dispatched => self.integration().icon(),
+        }
     }
 }
 
@@ -259,8 +303,10 @@ impl CredentialTypeDiscriminants {
             Self::UnifiApiKey => "UniFi API Key",
             Self::UnifiLocalAdmin => "UniFi Local Admin",
             Self::InstantOnAccount => "Instant On Portal Account",
-            Self::SshPassword => "SSH Password",
-            Self::SshKey => "SSH Key",
+            Self::SshPassword => "SSH Login (Password)",
+            Self::SshKey => "SSH Login (Key)",
+            Self::SshScript => "SSH Script",
+            Self::Libvirt => "libvirt",
             Self::WakeOnLan => "Wake-on-LAN",
             Self::ProxmoxApiToken => "Proxmox VE API Token",
         }
@@ -292,8 +338,10 @@ impl CredentialTypeDiscriminants {
             Self::InstantOnAccount => {
                 "Connects to the Instant On cloud portal with a site account."
             }
-            Self::SshPassword => "Connects over SSH with a username and password.",
-            Self::SshKey => "Connects over SSH with a private key.",
+            Self::SshPassword => "A username and password other credentials log in with.",
+            Self::SshKey => "A private key other credentials log in with.",
+            Self::SshScript => "Connects over SSH with an SSH login.",
+            Self::Libvirt => "Runs virsh over SSH, logged in with an SSH login.",
             Self::WakeOnLan => {
                 "Sends a magic packet over UDP. The daemon must be on the host's network segment, or the router must forward directed broadcasts or relay the packet."
             }
@@ -312,8 +360,10 @@ impl CredentialTypeDiscriminants {
             Self::UnifiApiKey => "API Key",
             Self::UnifiLocalAdmin => "Local Admin",
             Self::InstantOnAccount => "Portal Account",
-            Self::SshPassword => "Password",
-            Self::SshKey => "Key",
+            Self::SshPassword => "Login (Password)",
+            Self::SshKey => "Login (Key)",
+            Self::SshScript => "Script",
+            Self::Libvirt => "virsh over SSH",
             Self::WakeOnLan => "Magic Packet",
             Self::ProxmoxApiToken => "API Token",
         }
@@ -323,15 +373,22 @@ impl CredentialTypeDiscriminants {
     /// the canonical discovery text plus the transport note. Derived, never
     /// hand-written per transport, so the two cannot drift.
     pub(crate) fn full_description(&self) -> String {
-        format!(
-            "{} {}",
-            self.integration().discovers(),
-            self.transport_note()
-        )
+        match self.role() {
+            // A login discovers nothing itself: the credentials that run over it do.
+            CredentialRole::Login => self.transport_note().to_string(),
+            CredentialRole::Dispatched => format!(
+                "{} {}",
+                self.integration().discovers(),
+                self.transport_note()
+            ),
+        }
     }
 
-    fn category_str(&self) -> &'static str {
-        self.integration().credential_category().into()
+    pub(crate) fn category_str(&self) -> &'static str {
+        match self.role() {
+            CredentialRole::Login => CredentialCategory::Logins.into(),
+            CredentialRole::Dispatched => self.integration().credential_category().into(),
+        }
     }
 
     /// The last daemon release that cannot parse credential mappings of this type over the
@@ -369,10 +426,14 @@ impl CredentialTypeDiscriminants {
             Self::InstantOnAccount => semver::Version::new(0, 17, 10),
             // SSH and Wake-on-LAN shipped in 0.17.19. Daemons from 0.17.3 would parse them to
             // `Unknown` and skip them; the gate keeps them off older daemons entirely.
-            Self::SshPassword | Self::SshKey | Self::WakeOnLan => semver::Version::new(0, 17, 18),
+            Self::SshPassword | Self::SshKey | Self::SshScript | Self::WakeOnLan => {
+                semver::Version::new(0, 17, 18)
+            }
             // Proxmox shipped in 0.17.21. That daemon is also the first whose ServerPoll
             // `create_host` returns the server's child ids, which guest linking depends on.
             Self::ProxmoxApiToken => semver::Version::new(0, 17, 20),
+            // libvirt ships after 0.19.5.
+            Self::Libvirt => semver::Version::new(0, 19, 5),
         }
     }
 
@@ -389,7 +450,11 @@ impl CredentialTypeDiscriminants {
             | Self::PodmanProxy
             | Self::PodmanSocket
             | Self::UnifiApiKey
-            | Self::UnifiLocalAdmin => Stability::Stable,
+            | Self::UnifiLocalAdmin
+            | Self::SshPassword
+            | Self::SshKey
+            | Self::SshScript
+            | Self::WakeOnLan => Stability::Stable,
             // New; validated against ArcOS and DNOS over plaintext only. TLS is wired but not
             // yet exercised against a TLS-enabled device, and `skip_verify` is not yet
             // supported, so the field shape may still move.
@@ -397,11 +462,10 @@ impl CredentialTypeDiscriminants {
             // New and validated against one operator's 1960s only; the field shape may still move
             // once other Instant On models' payloads are seen.
             Self::InstantOnAccount => Stability::Beta,
-            // New; the script contract and host-key handling may still move.
-            Self::SshPassword | Self::SshKey | Self::WakeOnLan => Stability::Beta,
             // New; validated against one single-node PVE 8.4 lab. Multi-node clusters and PVE 9
             // are covered by the API's documented shape, not yet by a live cluster.
             Self::ProxmoxApiToken => Stability::Beta,
+            Self::Libvirt => Stability::Beta,
         }
     }
 
@@ -423,10 +487,74 @@ impl CredentialTypeDiscriminants {
             | Self::UnifiLocalAdmin
             | Self::SshPassword
             | Self::SshKey
+            | Self::SshScript
+            | Self::Libvirt
             | Self::WakeOnLan
             | Self::ProxmoxApiToken => None,
             Self::InstantOnAccount => Some(Feature::InstantOnIntegration),
         }
+    }
+
+    /// How a credential of this type reaches its host, and which service owns the port it goes
+    /// through. The one declaration of whether a type signs in through a login, is a login, or owns
+    /// ports of its own: [`Self::role`] and [`Self::requires_login`] read it, and
+    /// `every_credential_type_dispatches_the_reach_it_declares` checks each type's fields and
+    /// dispatched payload against it. Exhaustive, so a new type has to answer.
+    pub fn reach(&self) -> ReachDeclaration {
+        match self {
+            Self::SnmpCommunity | Self::SnmpV3 => ReachDeclaration::FixedUdpPorts(&[161, 1161]),
+            Self::Gnmi
+            | Self::DockerProxy
+            | Self::PodmanProxy
+            | Self::UnifiApiKey
+            | Self::UnifiLocalAdmin
+            | Self::ProxmoxApiToken => ReachDeclaration::OwnPortField { field: "port" },
+            Self::SshPassword | Self::SshKey => ReachDeclaration::LoginTransport { field: "port" },
+            Self::SshScript | Self::Libvirt => ReachDeclaration::ThroughLogin,
+            // A local socket, HPE's cloud portal, a broadcast packet. Wake-on-LAN's UDP port field
+            // is the packet's destination, not a port it owns on the host.
+            Self::DockerSocket | Self::PodmanSocket | Self::InstantOnAccount | Self::WakeOnLan => {
+                ReachDeclaration::NoPort
+            }
+        }
+    }
+
+    /// What this type is for: a login is the type whose port is a transport others sign in
+    /// through ([`Self::reach`]).
+    pub fn role(&self) -> CredentialRole {
+        match self.reach() {
+            ReachDeclaration::LoginTransport { .. } => CredentialRole::Login,
+            ReachDeclaration::OwnPortField { .. }
+            | ReachDeclaration::FixedUdpPorts(_)
+            | ReachDeclaration::ThroughLogin
+            | ReachDeclaration::NoPort => CredentialRole::Dispatched,
+        }
+    }
+
+    /// The wire tag a credential of this type goes out under, for what must name it without
+    /// building the payload (a warning about a credential that was not sent).
+    pub fn wire_discriminant(&self) -> CredentialQueryPayloadDiscriminants {
+        use CredentialQueryPayloadDiscriminants as W;
+        match self {
+            Self::SnmpCommunity | Self::SnmpV3 => W::Snmp,
+            Self::Gnmi => W::Gnmi,
+            Self::DockerProxy => W::DockerProxy,
+            Self::DockerSocket => W::DockerSocket,
+            Self::PodmanProxy => W::PodmanProxy,
+            Self::PodmanSocket => W::PodmanSocket,
+            Self::UnifiApiKey | Self::UnifiLocalAdmin => W::UnifiController,
+            Self::InstantOnAccount => W::InstantOn,
+            Self::SshPassword | Self::SshKey | Self::SshScript => W::Ssh,
+            Self::WakeOnLan => W::WakeOnLan,
+            Self::Libvirt => W::Libvirt,
+            Self::ProxmoxApiToken => W::Proxmox,
+        }
+    }
+
+    /// Whether a credential of this type signs in through a login it names
+    /// (`login_credential_id`), as its [`Self::reach`] declares.
+    pub fn requires_login(&self) -> bool {
+        matches!(self.reach(), ReachDeclaration::ThroughLogin)
     }
 
     /// Whether an organization on `plan` can create a credential of this type.
@@ -453,6 +581,10 @@ impl CredentialTypeDiscriminants {
             "last_unsupported_daemon_version": self.last_unsupported_daemon_version().to_string(),
             // Release maturity. The frontend renders a "Beta" tag; it is not a gate.
             "stability": self.stability(),
+            // A login is never assigned: the form skips assignments and other pickers leave it
+            // out. A type that requires one shows a login picker.
+            "role": self.role(),
+            "requires_login": self.requires_login(),
             // Whether the vendor publishes this API. Orthogonal to `stability` — an integration
             // can be fully validated and still be riding an undocumented endpoint.
             "upstream_support": self.upstream_support(),

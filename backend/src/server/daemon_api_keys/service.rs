@@ -7,7 +7,10 @@ use std::time::Duration;
 use uuid::Uuid;
 
 use crate::server::{
-    auth::middleware::auth::AuthenticatedEntity,
+    auth::{
+        access::{Action, Resource},
+        middleware::auth::AuthenticatedEntity,
+    },
     daemon_api_keys::r#impl::base::DaemonApiKey,
     shared::{
         api_key_common::ApiKeyService,
@@ -114,7 +117,8 @@ impl ApiKeyService for DaemonApiKeyService {
 
     fn validate_access(&self, key: &DaemonApiKey, entity: &AuthenticatedEntity) -> Result<()> {
         // User must have access to the site this key belongs to
-        if !entity.site_ids().contains(&key.base.site_id) {
+        let site_ids = entity.site_ids_for(Resource::DaemonApiKey, Action::Write);
+        if !site_ids.contains(&key.base.site_id) {
             return Err(anyhow!(
                 "You don't have access to the site for this daemon API key"
             ));

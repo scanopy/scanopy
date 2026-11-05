@@ -26,9 +26,8 @@
 	import { collectionLookup } from '$lib/shared/entity-fields';
 	import type { Site } from '$lib/features/sites/types';
 	import { Trash2, Edit } from '@lucide/svelte';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { permissions, credentialTypes, billingPlans } from '$lib/shared/stores/metadata';
+	import { credentialTypes } from '$lib/shared/stores/metadata';
 	import { getCredentialTypeId } from '$lib/features/credentials/types/base';
 	import {
 		modalState,
@@ -57,6 +56,8 @@
 		common_notApplicable,
 		common_noEntityYet,
 		credentials_defaultCantDelete,
+		credentials_loginInUse,
+		credentials_loginInUseBulk,
 		gettingStarted_stepDaemonLabel
 	} from '$lib/paraglide/messages';
 	import { useTagsQuery } from '$lib/features/tags/queries';
@@ -65,7 +66,10 @@
 
 	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 
-	let { isReadOnly = false, isActive = false }: TabProps = $props();
+	import { useCan } from '$lib/features/auth/access';
+
+	let { isActive = false }: TabProps = $props();
+	const can = useCan();
 
 	let showCredentialEditor = $state(false);
 	let editingCredential: Credential | null = $state(null);
@@ -89,9 +93,6 @@
 	});
 
 	// Queries and mutations
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
-
 	const organizationQuery = useOrganizationQuery();
 	let organization = $derived(organizationQuery.data);
 	let onboarding = $derived((organization?.onboarding ?? []) as OnboardingOperation[]);
@@ -174,20 +175,16 @@
 		if (applicable) return items;
 		return [{ id: 'not-applicable', label: common_notApplicable(), color: 'Gray' }];
 	}
+
+	/** A login is assigned nowhere; what it has is the credentials that sign in with it. */
+	function usersOfLogin(credential: Credential): Credential[] {
+		const ids = new Set(credential.used_by);
+		return (credentialsQuery.data ?? []).filter((c) => ids.has(c.id));
+	}
 	let isLoading = $derived(credentialsPageQuery.isPending && !credentialsPageQuery.data);
 	let pageLoad = $derived(loadFailure(organizationQuery, credentialsPageQuery));
 
-	// Demo mode check
-	let isDemoOrg = $derived(
-		billingPlans.getMetadata(organization?.plan?.type ?? null).is_demo === true
-	);
-	let isNonOwnerInDemo = $derived(isDemoOrg && currentUser?.permissions !== 'Owner');
-
-	let canManage = $derived(
-		!isReadOnly && !isNonOwnerInDemo && currentUser
-			? permissions.getMetadata(currentUser.permissions).manage_org_entities
-			: false
-	);
+	let canManage = $derived(can('Credential', 'Write'));
 
 	function handleCreateCredential() {
 		prefill = undefined;
@@ -213,7 +210,13 @@
 				isDelete: true,
 				onBulk: handleBulkDelete,
 				onClick: () => handleDeleteCredential(credential),
-				unavailable: disabledWhen(credential.is_default, credentials_defaultCantDelete())
+				unavailable:
+					disabledWhen(credential.is_default, credentials_defaultCantDelete()) ??
+					disabledWhen(
+						credential.used_by.length > 0,
+						credentials_loginInUse({ count: credential.used_by.length }),
+						credentials_loginInUseBulk()
+					)
 			}
 		];
 	}
@@ -294,7 +297,7 @@
 	}
 
 	const tableDefaults: TableDefaults<CredentialOrderField> = {
-		group: 'integration',
+		group: 'category',
 		sort: { field: 'name', direction: 'asc' }
 	};
 
@@ -309,7 +312,8 @@
 		hostsForCredential,
 		targetsFor,
 		daemonHostOnly,
-		assignmentItems
+		assignmentItems,
+		usersOfLogin
 	});
 </script>
 
@@ -350,7 +354,7 @@
 			storageKey="scanopy-credentials-table-state"
 			defaults={tableDefaults}
 			entityType="Credential"
-			canEditTags={canManage}
+			canEditTags={can('Tag', 'Write')}
 			getItemTags={getCredentialTags}
 			getItemId={(item) => item.id}
 			serverPagination={credentialsPagination}

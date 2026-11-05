@@ -109,7 +109,7 @@ impl CreateServiceRequest {
 
         // Create the service first to get an ID
         let service_id = Uuid::new_v4();
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
 
         // Convert binding inputs to full bindings with the service's ID
         let bindings: Vec<Binding> = binding_inputs

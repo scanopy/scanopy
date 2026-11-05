@@ -10,18 +10,11 @@ import { credentialItems } from '$lib/features/credentials/columns';
 import { deviceTypes, entities, entitySources, concepts } from '$lib/shared/stores/metadata';
 import { deviceTypeSourceTag } from '$lib/features/hosts/device-type-source';
 import {
-	hosts_deviceType,
-	common_created,
 	common_description,
 	common_hostname,
-	common_credentials,
 	common_interfaces,
 	common_ports,
-	common_firstFoundBy,
-	common_lastFoundBy,
 	common_ipAddresses,
-	common_lastSeen,
-	common_macAddress,
 	common_manufacturer,
 	common_model,
 	common_name,
@@ -38,7 +31,6 @@ import {
 	common_tags,
 	common_unknownEntity,
 	common_unknownSite,
-	common_updated,
 	common_contact,
 	common_location,
 	hosts_fields_presentedBy,
@@ -246,12 +238,11 @@ export function hostColumns(ctx: HostColumnsContext) {
 								id: i.id,
 								label: formatIPAddress(i, isContainerSubnetFn),
 								color: entities.getColorHelper('IPAddress').color,
-								entityRef: entityRef('IPAddress', i.id, i, { subnets: ctx.subnets() })
+								entityRef: entityRef('IPAddress', i.id, i)
 							}))
 				}
 			},
 			mac_address: {
-				label: common_macAddress(),
 				type: 'string',
 				searchable: true,
 				groupable: false,
@@ -285,10 +276,9 @@ export function hostColumns(ctx: HostColumnsContext) {
 			},
 			// Audit dates stay available but off by default: 12 columns at once
 			// is unreadable, and these are rarely what someone is scanning for.
-			created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
-			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } },
+			created_at: { type: 'date', display: { hiddenByDefault: true } },
+			updated_at: { type: 'date', display: { hiddenByDefault: true } },
 			last_seen_at: {
-				label: common_lastSeen(),
 				type: 'date',
 				staleFilter: true,
 				display: { recency: true, order: 1 }
@@ -356,7 +346,6 @@ export function hostColumns(ctx: HostColumnsContext) {
 			// Computed by the server, so it can be shown but not sorted or filtered.
 			{
 				key: 'device_type',
-				label: hosts_deviceType(),
 				type: 'string',
 				getValue: (host: Host) => deviceTypes.getName(host.device_type ?? 'Unidentified'),
 				// A tag, as the subnets table shows a subnet's type. Its hover text says where the type
@@ -424,7 +413,6 @@ export function hostColumns(ctx: HostColumnsContext) {
 			},
 			{
 				key: 'first_found_by',
-				label: common_firstFoundBy(),
 				type: 'string',
 				display: {
 					hiddenByDefault: true,
@@ -433,7 +421,6 @@ export function hostColumns(ctx: HostColumnsContext) {
 			},
 			{
 				key: 'last_found_by',
-				label: common_lastFoundBy(),
 				type: 'string',
 				display: {
 					hiddenByDefault: true,
@@ -452,7 +439,6 @@ export function hostColumns(ctx: HostColumnsContext) {
 			},
 			{
 				key: 'credentials',
-				label: common_credentials(),
 				type: 'array',
 				searchable: true,
 				filterable: true,
@@ -494,11 +480,7 @@ export function hostColumns(ctx: HostColumnsContext) {
 							label: formatPort(port),
 							color: entities.getColorHelper('Port').color,
 							// What the popover needs to name the service on the port and its addresses.
-							entityRef: entityRef('Port', port.id, port, {
-								currentServices: ctx.allServices().filter((s) => s.host_id === host.id),
-								ip_addresses: ctx.hostIPAddresses(host),
-								isContainerSubnet: isContainerSubnetFn
-							})
+							entityRef: entityRef('Port', port.id, port)
 						}))
 				}
 			},

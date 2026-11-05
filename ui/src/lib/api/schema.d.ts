@@ -4168,6 +4168,24 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description What a principal can do: organization grants for org-keyed resources, and per-site grants for
+         *     site-keyed ones.
+         */
+        AccessGrants: {
+            /** @description Grants held on every site, including sites created since this was read. */
+            all_sites: components["schemas"]["Grant"][];
+            /** @description Grants that answer for org-keyed resources. */
+            organization: components["schemas"]["Grant"][];
+            /** @description Grants on each site the principal reaches. Empty for a principal on no site. */
+            sites: components["schemas"]["SiteGrants"][];
+        };
+        /**
+         * @description What a role may do to a resource. `Write` is create and update, plus operations such as
+         *     starting a scan or merging hosts.
+         * @enum {string}
+         */
+        Action: "Read" | "Write" | "Delete";
         /** @description Error response type for API errors (no data field) */
         ApiErrorResponse: {
             /** @description Machine-readable error code for i18n translation */
@@ -4187,7 +4205,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.19.4"
+         *       "server_version": "0.19.6"
          *     }
          */
         ApiMeta: {
@@ -4198,7 +4216,7 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.19.4
+             * @example 0.19.6
              */
             server_version: string;
         };
@@ -4227,19 +4245,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-30T13:27:50.781197Z",
+             *       "created_at": "2026-11-03T22:25:05.869448Z",
              *       "first_discovery_id": null,
-             *       "id": "1197e35a-b113-4b09-af4b-58ac52b5a228",
+             *       "id": "ef1d6909-1d53-43d4-9115-26baefb56328",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-30T13:27:50.781197Z",
+             *       "last_seen_at": "2026-11-03T22:25:05.869448Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-10-30T13:27:50.781197Z",
-             *       "valid_from": "2026-10-30T13:27:50.781197Z",
+             *       "updated_at": "2026-11-03T22:25:05.869448Z",
+             *       "valid_from": "2026-11-03T22:25:05.869448Z",
              *       "valid_to": null
              *     }
              */
@@ -4453,6 +4471,26 @@ export interface components {
                  * @description When this record was last modified.
                  */
                 readonly updated_at: string;
+            };
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_CurrentUser: {
+            /** @description The signed-in user, with what they can do. */
+            data?: components["schemas"]["User"] & {
+                /** @description The user's organization and per-site grants. */
+                access: components["schemas"]["AccessGrants"];
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -4870,7 +4908,7 @@ export interface components {
                 /**
                  * Format: uuid
                  * @description The discovery configuration this session belongs to.
-                 *     Always enriched server-side; daemons do not send this field.
+                 *     Always set server-side. A value a daemon sends is discarded.
                  */
                 discovery_id?: string | null;
                 /** @description What type of discovery is running. */
@@ -5136,19 +5174,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-30T13:27:50.744219Z",
+             *               "created_at": "2026-11-03T22:25:05.836217Z",
              *               "first_discovery_id": null,
-             *               "id": "2830c253-68ae-4585-a7f4-855fd3e68996",
+             *               "id": "3910cb97-304d-4868-b210-9825f7b62ef3",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-30T13:27:50.744219Z",
+             *               "last_seen_at": "2026-11-03T22:25:05.836217Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-10-30T13:27:50.744219Z",
-             *               "valid_from": "2026-10-30T13:27:50.744219Z",
+             *               "updated_at": "2026-11-03T22:25:05.836217Z",
+             *               "valid_from": "2026-11-03T22:25:05.836217Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5161,7 +5199,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Gogs",
+             *           "service_definition": "Grafana",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6044,6 +6082,7 @@ export interface components {
                  */
                 license_key_grace_days: number;
                 license_key_type?: components["schemas"]["LicenseKeyType"] | null;
+                license_problem?: components["schemas"]["LicenseProblem"] | null;
                 /**
                  * @description Whether this deployment can sign license keys. False on any server
                  *     without a signing key, where the Settings License tab and the
@@ -6193,19 +6232,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-30T13:27:50.775587Z",
+             *           "created_at": "2026-11-03T22:25:05.864139Z",
              *           "first_discovery_id": null,
-             *           "id": "db7344bf-c182-47c0-b9ac-9df2e7cc7f49",
+             *           "id": "a8dcdd0d-b644-4925-aadc-d6a1e35a40f7",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-30T13:27:50.775587Z",
+             *           "last_seen_at": "2026-11-03T22:25:05.864139Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-10-30T13:27:50.775587Z",
-             *           "valid_from": "2026-10-30T13:27:50.775587Z",
+             *           "updated_at": "2026-11-03T22:25:05.864139Z",
+             *           "valid_from": "2026-11-03T22:25:05.864139Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6218,7 +6257,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Gogs",
+             *       "service_definition": "Grafana",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7290,7 +7329,7 @@ export interface components {
                 /**
                  * Format: uuid
                  * @description The discovery configuration this session belongs to.
-                 *     Always enriched server-side; daemons do not send this field.
+                 *     Always set server-side. A value a daemon sends is discarded.
                  */
                 discovery_id?: string | null;
                 /** @description What type of discovery is running. */
@@ -7682,19 +7721,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-30T13:27:50.744872Z",
+         *       "created_at": "2026-11-03T22:25:05.836891Z",
          *       "first_discovery_id": null,
-         *       "id": "3603dc76-ffb6-47f1-ba9d-a903cb048663",
+         *       "id": "a094d60b-ecfc-4ce9-ac54-1f13542d5a30",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-30T13:27:50.744872Z",
+         *       "last_seen_at": "2026-11-03T22:25:05.836891Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-10-30T13:27:50.744872Z",
-         *       "valid_from": "2026-10-30T13:27:50.744872Z",
+         *       "updated_at": "2026-11-03T22:25:05.836891Z",
+         *       "valid_from": "2026-11-03T22:25:05.836891Z",
          *       "valid_to": null
          *     }
          */
@@ -7965,7 +8004,7 @@ export interface components {
          *     `every_client_probe_variant_has_a_producer` is what now says so.
          * @enum {string}
          */
-        ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "Proxmox" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "EpicsCa" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula" | "BeszelAgent" | "H323" | "SnmpEngine" | "DockerPing" | "PodmanPing" | "Ipp" | "Lpd" | "SpotifyConnect" | "Vnc" | "AppleLockdown" | "DnsUdp" | "Ntp" | "Dhcp" | "Bacnet" | "Tftp" | "Mgcp" | "GoogleWifi";
+        ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "Proxmox" | "Libvirt" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "EpicsCa" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula" | "BeszelAgent" | "H323" | "SnmpEngine" | "DockerPing" | "PodmanPing" | "Ipp" | "Lpd" | "Smux" | "Rpcbind" | "Llmnr" | "SpotifyConnect" | "Vnc" | "AppleLockdown" | "DnsUdp" | "Ntp" | "Dhcp" | "Bacnet" | "Tftp" | "Mgcp" | "GoogleWifi";
         /** @enum {string} */
         ClockFormat: "browser_default" | "twelve_hour" | "twenty_four_hour";
         /** @enum {string} */
@@ -8084,7 +8123,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Gogs",
+         *           "service_definition": "Grafana",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8280,6 +8319,12 @@ export interface components {
              *     Hydrated from the `host_credentials` junction table.
              */
             host_assignments: components["schemas"]["CredentialHostAssignment"][];
+            /**
+             * Format: uuid
+             * @description The SSH login this credential runs over, for a type that needs one (`SshScript`): another
+             *     credential of the organization whose role is `Login`. `None` for every other type.
+             */
+            login_credential_id: string | null;
             /** @description Human-facing name for this credential. */
             name: string;
             /**
@@ -8289,6 +8334,11 @@ export interface components {
             organization_id: string;
             /** @description Tags assigned to this entity. */
             tags: string[];
+            /**
+             * @description For a login: the credentials that run over it. Hydrated from their `login_credential_id`;
+             *     empty for any other type. A value sent in a request is ignored.
+             */
+            used_by: string[];
         };
         /**
          * @description Host-keyed mirror of [`CredentialAssignment`]: a host this credential is
@@ -8316,9 +8366,9 @@ export interface components {
          *     messages.
          * @enum {string}
          */
-        CredentialIntegration: "Snmp" | "Gnmi" | "Docker" | "Podman" | "UnifiController" | "InstantOn" | "Ssh" | "WakeOnLan" | "Proxmox";
+        CredentialIntegration: "Snmp" | "Gnmi" | "Docker" | "Podman" | "UnifiController" | "InstantOn" | "Ssh" | "WakeOnLan" | "Proxmox" | "Libvirt";
         /** @enum {string} */
-        CredentialOrderField: "created_at" | "name" | "updated_at" | "credential_type" | "integration" | "beta" | "unofficial_api" | "daemon_os";
+        CredentialOrderField: "created_at" | "name" | "updated_at" | "credential_type" | "integration" | "category" | "beta" | "unofficial_api" | "daemon_os";
         /**
          * @description Which fields depend on the credential's Daemon OS. Computed from the field definitions, so the
          *     form places the Daemon OS picker without its own rule: with the one field that depends on it, or
@@ -8334,7 +8384,13 @@ export interface components {
             daemon: string[];
         };
         /** @enum {string} */
-        CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Ssh" | "WakeOnLan" | "Proxmox" | "Unknown";
+        CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Ssh" | "WakeOnLan" | "Proxmox" | "Libvirt" | "Unknown";
+        /**
+         * @description What a credential is for: run against hosts by an integration, or a login other credentials
+         *     use to reach a host.
+         * @enum {string}
+         */
+        CredentialRole: "Dispatched" | "Login";
         CredentialRunOutcome: {
             /**
              * Format: int32
@@ -8492,17 +8548,6 @@ export interface components {
              * @description Port `sshd` listens on (default 22).
              */
             port?: number;
-            script: components["schemas"]["ScriptSource"];
-            /**
-             * @description The scanned host's OS: decides how a host-file path is validated and the shell the
-             *     script runs in.
-             */
-            target_os?: components["schemas"]["OsFamily"];
-            /**
-             * Format: int32
-             * @description How long the script may run before the daemon closes the channel, in seconds (default 60).
-             */
-            timeout_seconds?: number;
             /** @enum {string} */
             type: "SshPassword";
             /** @description User the daemon logs in as. */
@@ -8517,6 +8562,11 @@ export interface components {
              */
             port?: number;
             private_key: components["schemas"]["SecretValue"];
+            /** @enum {string} */
+            type: "SshKey";
+            /** @description User the daemon logs in as. */
+            username: string;
+        } | {
             script: components["schemas"]["ScriptSource"];
             /**
              * @description The scanned host's OS: decides how a host-file path is validated and the shell the
@@ -8529,9 +8579,12 @@ export interface components {
              */
             timeout_seconds?: number;
             /** @enum {string} */
-            type: "SshKey";
-            /** @description User the daemon logs in as. */
-            username: string;
+            type: "SshScript";
+        } | {
+            /** @description The connection URI `virsh` opens on the host (default `qemu:///system`). */
+            connection_uri?: string;
+            /** @enum {string} */
+            type: "Libvirt";
         } | {
             /**
              * @description Send here instead of the target subnet's directed broadcast (router relay address, WoL
@@ -8566,7 +8619,12 @@ export interface components {
             type: "ProxmoxApiToken";
         };
         /** @enum {string} */
-        CredentialTypeDiscriminants: "SnmpCommunity" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount" | "SshPassword" | "SshKey" | "WakeOnLan" | "ProxmoxApiToken";
+        CredentialTypeDiscriminants: "SnmpCommunity" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount" | "SshPassword" | "SshKey" | "SshScript" | "Libvirt" | "WakeOnLan" | "ProxmoxApiToken";
+        /** @description The signed-in user, with what they can do. */
+        CurrentUser: components["schemas"]["User"] & {
+            /** @description The user's organization and per-site grants. */
+            access: components["schemas"]["AccessGrants"];
+        };
         Daemon: components["schemas"]["DaemonBase"] & {
             /**
              * Format: date-time
@@ -8653,7 +8711,7 @@ export interface components {
              * @description Foreign key to API key used for ServerPoll authentication.
              *     NULL for DaemonPoll daemons or those not yet linked to a key.
              */
-            api_key_id?: string | null;
+            readonly api_key_id?: string | null;
             /**
              * Format: uuid
              * @description The host this entity belongs to.
@@ -9362,7 +9420,7 @@ export interface components {
             /**
              * Format: uuid
              * @description The discovery configuration this session belongs to.
-             *     Always enriched server-side; daemons do not send this field.
+             *     Always set server-side. A value a daemon sends is discarded.
              */
             discovery_id?: string | null;
             /** @description What type of discovery is running. */
@@ -9810,6 +9868,15 @@ export interface components {
             credential_id: string | null;
             integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
         } | {
+            /** @enum {string} */
+            code: "CredentialLoginUnavailable";
+            /**
+             * Format: uuid
+             * @description The stored credential. `None` once it is deleted.
+             */
+            credential_id: string | null;
+            integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
+        } | {
             /** @description The address the credential is bound to. */
             address: string;
             /** @enum {string} */
@@ -9860,29 +9927,35 @@ export interface components {
             /** @description The guest's first address. */
             address: string;
             /** @enum {string} */
-            code: "ProxmoxGuestOutsideScan";
-            /** @description Its Proxmox VE name, else its VMID. */
+            code: "GuestOutsideScan";
+            /** @description Its name in its hypervisor, else the hypervisor's id for it. */
             guest: string;
+            /** @description The hypervisor integration that reported it. */
+            integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
         } | {
             /** @description The guest's first address. */
             address: string;
             /** @description The bridge its NIC is on. */
             bridge: string;
             /** @enum {string} */
-            code: "ProxmoxGuestBehindNode";
-            /** @description Its Proxmox VE name, else its VMID. */
+            code: "GuestBehindHypervisor";
+            /** @description Its name in its hypervisor, else the hypervisor's id for it. */
             guest: string;
-            /** @description The node it runs on. */
-            node: string;
+            /** @description The hypervisor host it runs on: a Proxmox VE node, a libvirt host. */
+            hypervisor: string;
+            /** @description The hypervisor integration that reported it. */
+            integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
         } | {
             /** @description The guest's first address. */
             address: string;
             /** @description The bridge its NIC is on. */
             bridge: string;
             /** @enum {string} */
-            code: "ProxmoxGuestIsolated";
-            /** @description Its Proxmox VE name, else its VMID. */
+            code: "GuestIsolated";
+            /** @description Its name in its hypervisor, else the hypervisor's id for it. */
             guest: string;
+            /** @description The hypervisor integration that reported it. */
+            integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
         } | {
             /** @description The subnet the addresses are in. */
             cidr: string;
@@ -10021,6 +10094,12 @@ export interface components {
             /** @description The original warning text, rendered as-is. */
             detail: string;
         };
+        /**
+         * @description An action as the role comparison shows it. `Write` is one [`Action`] and reads as Edit, plus
+         *     Create on a resource where it adds rows.
+         * @enum {string}
+         */
+        DisplayAction: "View" | "Create" | "Edit" | "Delete";
         /**
          * @description Per-user display preferences for dates and times in the UI.
          *
@@ -10434,7 +10513,10 @@ export interface components {
         };
         /** @enum {string} */
         EntityDiscriminants: "Topology" | "Snapshot" | "Share" | "Dependency" | "Site" | "Vlan" | "Subnet" | "Host" | "Service" | "IPAddress" | "Interface" | "Port" | "Binding" | "Discovery" | "Daemon" | "DaemonApiKey" | "Credential" | "Tag" | "TagGroup" | "User" | "UserApiKey" | "Organization" | "Invite";
-        /** @description One fact that describes an entity, possibly read from a related entity. */
+        /**
+         * @description One fact that describes an entity, possibly read from a related entity. Every serialized key an
+         *     entity carries has one: the flags say which surfaces show it, and `write` says who sets it.
+         */
         EntityField: {
             /**
              * @description Dotted path to the value on the last object, or `None` for the object itself (an
@@ -10445,6 +10527,8 @@ export interface components {
             group: components["schemas"]["FieldGroup"];
             /** @description Stable key: the CSV header, the list-table column id and the diagram Shape Data name. */
             id: string;
+            /** @description Shown by the topology inspector and diagram Shape Data, and read by the topology search. */
+            inspector: boolean;
             /** @description English label; the UI translates it through a generated `meta_*` key. */
             label: string;
             /**
@@ -10461,8 +10545,12 @@ export interface components {
             searchable: boolean;
             /** @description Sibling field holding the value's attribution, for attributed host facts. */
             source_field?: string | null;
-            /** @description Shown by default in tables and in the inspector's details. Every field is exported. */
+            /** @description Shown by default in tables and in the inspector's details. */
             summary: boolean;
+            /** @description Offered as a list-table column. */
+            table: boolean;
+            /** @description Shown on the entity's hover tooltip, for a fact that isn't a `summary` default column. */
+            tooltip: boolean;
         };
         /**
          * @description How recently discovery last observed an entity.
@@ -10727,6 +10815,13 @@ export interface components {
         GlobalSearchResponse: {
             /** @description One group per entity type with at least one match. */
             groups: components["schemas"]["GlobalSearchGroup"][];
+        };
+        /** @description One action held on one resource. */
+        Grant: {
+            /** @description The action held on it. */
+            action: components["schemas"]["Action"];
+            /** @description The resource the action applies to. */
+            resource: components["schemas"]["Resource"];
         };
         /** @description Size of one group in a grouped list, across every page. */
         GroupCount: {
@@ -11208,19 +11303,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-30T13:27:50.743430Z",
+         *               "created_at": "2026-11-03T22:25:05.835427Z",
          *               "first_discovery_id": null,
-         *               "id": "eab774be-1fd3-433a-97d4-2c3a4e9513f5",
+         *               "id": "d48e86c8-a0e6-4249-83f4-7c25a00d6a7b",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-30T13:27:50.743430Z",
+         *               "last_seen_at": "2026-11-03T22:25:05.835427Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-10-30T13:27:50.743430Z",
-         *               "valid_from": "2026-10-30T13:27:50.743430Z",
+         *               "updated_at": "2026-11-03T22:25:05.835427Z",
+         *               "valid_from": "2026-11-03T22:25:05.835427Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11233,7 +11328,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Gogs",
+         *           "service_definition": "Grafana",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -12524,6 +12619,13 @@ export interface components {
          */
         LicenseKeyType: "Online" | "Offline";
         /**
+         * @description Why this server has no working entitlement, as the public config endpoint
+         *     reports it. `/api/config` needs no login, so it carries this type alone:
+         *     addresses, URLs and raw error text stay in the server log.
+         * @enum {string}
+         */
+        LicenseProblem: "dns" | "connect" | "timeout" | "untrusted_certificate" | "certificate_dates" | "proxy" | "server_error" | "rate_limited" | "key_malformed" | "key_regenerated" | "organization_missing" | "plan_has_no_key" | "instance_limit" | "key_refused";
+        /**
          * @description Runtime license state as reported by the public config endpoint.
          * @enum {string}
          */
@@ -13099,7 +13201,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.19.4"
+         *       "server_version": "0.19.6"
          *     }
          */
         PaginatedApiMeta: {
@@ -13112,7 +13214,7 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.19.4
+             * @example 0.19.6
              */
             server_version: string;
         };
@@ -14337,6 +14439,7 @@ export interface components {
              */
             license_key_grace_days: number;
             license_key_type?: components["schemas"]["LicenseKeyType"] | null;
+            license_problem?: components["schemas"]["LicenseProblem"] | null;
             /**
              * @description Whether this deployment can sign license keys. False on any server
              *     without a signing key, where the Settings License tab and the
@@ -14479,6 +14582,8 @@ export interface components {
         };
         /** @description One release's notes. */
         ReleaseNoteResponse: {
+            /** @description Whether the modal tells the user to upgrade their daemons to this release. */
+            daemon_upgrade_notice: boolean;
             /**
              * Format: date
              * @description The day the release was prepared.
@@ -14574,6 +14679,11 @@ export interface components {
             /** @description Single-use token from the password-reset email. */
             token: string;
         };
+        /**
+         * @description What a role grants access to. Child entities share their parent's resource.
+         * @enum {string}
+         */
+        Resource: "Site" | "Host" | "Service" | "Subnet" | "Vlan" | "Dependency" | "Topology" | "Share" | "Discovery" | "Daemon" | "DaemonApiKey" | "Credential" | "Tag" | "Member" | "UserApiKey" | "Organization" | "Billing" | "License" | "NewSite";
         RunType: {
             /** @description Cron expression deciding when the scan runs. */
             cron_schedule: string;
@@ -14886,19 +14996,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-30T13:27:50.744652Z",
+         *           "created_at": "2026-11-03T22:25:05.836669Z",
          *           "first_discovery_id": null,
-         *           "id": "588dd7f3-3564-4a9d-9647-5d568b3cda9a",
+         *           "id": "0617146d-9c3f-4b4c-a6c6-1a339469f4c2",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-30T13:27:50.744652Z",
+         *           "last_seen_at": "2026-11-03T22:25:05.836669Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-10-30T13:27:50.744652Z",
-         *           "valid_from": "2026-10-30T13:27:50.744652Z",
+         *           "updated_at": "2026-11-03T22:25:05.836669Z",
+         *           "valid_from": "2026-11-03T22:25:05.836669Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -14911,7 +15021,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Gogs",
+         *       "service_definition": "Grafana",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -15129,7 +15239,7 @@ export interface components {
              * Format: uuid
              * @description User who created the share.
              */
-            created_by: string;
+            readonly created_by: string;
             /**
              * @description Which topology views are enabled for this share.
              *     None = all views (subject to data availability). Some(list) = only these views in order.
@@ -15268,6 +15378,16 @@ export interface components {
             stale_after_hours: number | null;
             /** @description Tags assigned to this entity. */
             tags: string[];
+        };
+        /** @description The grants held on one site. */
+        SiteGrants: {
+            /** @description What the principal can do on that site. */
+            grants: components["schemas"]["Grant"][];
+            /**
+             * Format: uuid
+             * @description The site these grants hold on.
+             */
+            site_id: string;
         };
         /**
          * @description Fields the sites list can be ordered and grouped by.
@@ -15662,17 +15782,6 @@ export interface components {
         SubnetTypeAttributed: {
             subnet_type: components["schemas"]["SubnetType"];
             subnet_type_source?: components["schemas"]["AttributeSource"];
-        };
-        /**
-         * @description A list-table column that is not a registry field: a value the table computes, reads from
-         *     another endpoint, or keeps out of CSV export (`created_at`, `last_seen_at`). Declared here so
-         *     the column menu files it under a group the backend chose. CSV, diagram Shape Data and the
-         *     inspector read only fields, never these.
-         */
-        TableColumn: {
-            group: components["schemas"]["FieldGroup"];
-            /** @description The column's key in the list table, and so in saved column preferences. */
-            id: string;
         };
         /** @enum {string} */
         TableDensity: "comfortable" | "compact";
@@ -16124,7 +16233,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "8359cdc9-f787-4e3a-be29-36c093779516",
+             *           "id": "136d3236-c4f3-4e49-9e4e-10c2aafab68e",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16134,23 +16243,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "8589acf6-db61-4360-a96f-1a5de1a70312",
+             *           "id": "924d0f90-3320-40c2-9ed3-d48076d03529",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "043869dd-efe5-40a6-a4db-2c504bc08dd2",
+             *           "id": "2b513178-6637-47fa-b4f5-03d862977ebc",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "10d6e863-9d9a-43b8-8720-d3adb900d8e6",
+             *           "id": "c23cb9f5-53ba-4a4f-a6fb-46f8287ea085",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "8589acf6-db61-4360-a96f-1a5de1a70312",
+             *           "id": "924d0f90-3320-40c2-9ed3-d48076d03529",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16164,19 +16273,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "e687f3af-643e-4166-9372-480c613b2c59",
+             *         "id": "23eb1ae9-70e6-4def-83ba-e12499d3c57b",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "59bae1af-48ae-4a9d-8901-742a5962237e",
+             *         "id": "c8b47712-17a7-48eb-bd27-e3c9c0796154",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "7d098cb5-a1f3-4b44-b2ad-eb84c9f3abce",
+             *         "id": "fa2c260f-7b0f-4389-b92b-c615695ddb76",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "fa92d20c-4c99-4385-b7e5-554e2f705091",
+             *         "id": "c322d6c4-7f90-4b65-905a-45d393e488ba",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16197,7 +16306,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "dd6508db-c3f5-47a8-b22d-96a381b5cf75",
+             *         "id": "4c9d1ce2-cec5-4daf-8425-24c56a31b52a",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16206,19 +16315,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "8768cc4d-f427-41ea-9276-2bd74162d7e0",
+             *         "id": "a8267243-dd8e-4a36-8bc8-2b1d4bd26c43",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "599c0eca-c956-4de2-b72a-6c1208350cbe",
+             *         "id": "0ff04269-e118-4ebf-ada7-5dc0dcf34c32",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "ab9ef755-540c-41f2-80ee-b0b30bcb57be",
+             *         "id": "f1fd7958-599d-467e-a259-b0a16bdb39c1",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "81c086c7-f636-4ef8-bc20-cba88bf034f1",
+             *         "id": "f9ee288a-bb4e-47ce-b350-58c561df38e7",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -16620,7 +16729,7 @@ export interface components {
              * Format: uuid
              * @description The organization that owns this record.
              */
-            organization_id: string;
+            readonly organization_id: string;
             /** @description Role the key is limited to, which cannot exceed the user's own. */
             permissions?: components["schemas"]["UserOrgPermissions"];
             /** @description Site IDs this key has access to (hydrated from junction table) */
@@ -16631,7 +16740,7 @@ export interface components {
              * Format: uuid
              * @description User the key acts on behalf of.
              */
-            user_id: string;
+            readonly user_id: string;
         };
         /**
          * @description Fields the user API key list can be ordered and grouped by.
@@ -16668,16 +16777,16 @@ export interface components {
              */
             readonly email_verification_required?: boolean;
             /** @description Whether the user has verified their email address */
-            email_verified?: boolean;
+            readonly email_verified?: boolean;
             /** @description Whether the user has a password set — computed from password_hash, never stored in DB */
             readonly has_password?: boolean;
             /**
              * Format: date-time
              * @description When the account was linked to the identity provider.
              */
-            oidc_linked_at?: string | null;
+            readonly oidc_linked_at?: string | null;
             /** @description Slug of the identity provider this account signs in through, when linked. */
-            oidc_provider?: string | null;
+            readonly oidc_provider?: string | null;
             /**
              * Format: uuid
              * @description The organization that owns this record.
@@ -17187,13 +17296,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Current user */
+            /** @description Current user and what they can do */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_User"];
+                    "application/json": components["schemas"]["ApiResponse_CurrentUser"];
                 };
             };
             /** @description Not authenticated */

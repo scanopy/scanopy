@@ -1,9 +1,11 @@
 <script lang="ts">
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	import { useCan } from '$lib/features/auth/access';
 	import { pushError, pushSuccess } from '$lib/shared/stores/feedback';
 	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import InfoRow from '$lib/shared/components/data/InfoRow.svelte';
+	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
+	import { licenseProblemMessage } from './license-problem';
 	import {
 		useOrganizationQuery,
 		useUpdateOrganizationMutation,
@@ -50,9 +52,12 @@
 		settings_org_deleteSuccess,
 		settings_org_deleteTypeName,
 		settings_org_info,
+		settings_billing_license_installLinkText,
 		settings_billing_license_lastCheckIn,
 		settings_billing_license_validThrough,
+		settings_org_communityLicenseHint,
 		settings_org_licenseKeyType,
+		settings_org_licenseStatus,
 		settings_org_namePlaceholder,
 		settings_org_populateConfirm,
 		settings_org_populateDemo,
@@ -75,8 +80,6 @@
 	} = $props();
 
 	// TanStack Query for current user
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
 
 	// TanStack Query for organization
 	const organizationQuery = useOrganizationQuery();
@@ -95,9 +98,10 @@
 	let showDeleteConfirm = $state(false);
 
 	const configQuery = useConfigQuery();
+	const can = useCan();
 
 	let org = $derived(organizationQuery.data);
-	let isOwner = $derived(currentUser?.permissions === 'Owner');
+	let isOwner = $derived(can('Organization', 'Write'));
 	let isDemoOrg = $derived(billingPlans.getMetadata(org?.plan?.type ?? null).is_demo === true);
 	// Reset and populate-demo hit main-app routes, which stay locked on a licensed
 	// plan.
@@ -256,6 +260,19 @@
 									? common_online()
 									: common_offline()}
 							</InfoRow>
+						{/if}
+						{#if configQuery.data?.license_problem}
+							<InfoRow label={settings_org_licenseStatus()}>
+								{licenseProblemMessage(configQuery.data.license_problem)}
+							</InfoRow>
+						{/if}
+						{#if configQuery.data?.deployment_type === 'community'}
+							<DocsHint
+								class="mt-2"
+								text={settings_org_communityLicenseHint()}
+								href="https://scanopy.net/docs/self-hosted-server/installation/?edition=commercial"
+								linkText={settings_billing_license_installLinkText()}
+							/>
 						{/if}
 						{#if configQuery.data?.license_key_type === 'Online'}
 							<InfoRow label={settings_billing_license_lastCheckIn()}>

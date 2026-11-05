@@ -18,9 +18,9 @@ use crate::server::{
 };
 use async_trait::async_trait;
 
-/// The sites each user API key may reach.
+/// The sites each user API key may reach. A key's All sites row names no site, so it matches none.
 const KEY_SITES: Junction = Junction {
-    table: "user_api_key_site_access",
+    table: "site_assignments",
     own_column: "api_key_id",
     other_column: "site_id",
     has_history: false,

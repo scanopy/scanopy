@@ -9,6 +9,7 @@ use crate::server::shared::types::api::ApiError;
 use crate::server::shared::types::error_codes::ErrorCode;
 use crate::server::{
     auth::{
+        access_service::AccessService,
         r#impl::{
             api::{LoginRequest, RegisterRequest},
             base::{LoginRegisterParams, PendingSetup, ProvisionUserParams},
@@ -28,6 +29,7 @@ use crate::server::{
         services::traits::CrudService,
         storage::{filter::StorableFilter, traits::Storable},
     },
+    site_assignments::r#impl::base::Principal,
     users::{
         r#impl::{
             base::{User, UserBase},
@@ -43,7 +45,7 @@ use argon2::{
 };
 use axum::http::StatusCode;
 use base64ct::{Base64UrlUnpadded, Encoding};
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use email_address::EmailAddress;
 use rand::RngCore;
 use std::{collections::HashMap, net::IpAddr, sync::Arc, time::Instant};
@@ -53,6 +55,7 @@ use validator::Validate;
 
 pub struct AuthService {
     pub user_service: Arc<UserService>,
+    access_service: Arc<AccessService>,
     organization_service: Arc<OrganizationService>,
     has_email_service: bool,
     login_attempts: Arc<RwLock<HashMap<EmailAddress, (u32, Instant)>>>,
@@ -83,6 +86,7 @@ impl AuthService {
 
     pub fn new(
         user_service: Arc<UserService>,
+        access_service: Arc<AccessService>,
         organization_service: Arc<OrganizationService>,
         has_email_service: bool,
         event_bus: Arc<EventBus>,
@@ -90,6 +94,7 @@ impl AuthService {
     ) -> Self {
         Self {
             user_service,
+            access_service,
             organization_service,
             has_email_service,
             login_attempts: Arc::new(RwLock::new(HashMap::new())),
@@ -151,7 +156,7 @@ impl AuthService {
             permissions,
             ip,
             user_agent,
-            site_ids,
+            site_assignments,
             invited_as,
         } = params;
 
@@ -170,7 +175,7 @@ impl AuthService {
         }
 
         let terms_accepted_at = if request.terms_accepted {
-            Some(Utc::now())
+            Some(crate::server::shared::clock::now())
         } else {
             None
         };
@@ -189,7 +194,7 @@ impl AuthService {
                 email_verified: auto_verify,
                 provision_org,
                 permissions,
-                site_ids,
+                site_assignments,
                 terms_accepted_at,
                 deployment_type,
             })
@@ -244,7 +249,7 @@ impl AuthService {
             provision_org,
             email_verified,
             permissions,
-            site_ids,
+            site_assignments,
             terms_accepted_at,
             deployment_type,
         } = params;
@@ -357,7 +362,7 @@ impl AuthService {
                         hash,
                         organization_id,
                         permissions,
-                        site_ids,
+                        Vec::new(),
                         terms_accepted_at,
                     )),
                     AuthenticatedEntity::System,
@@ -374,7 +379,7 @@ impl AuthService {
                         oidc_provider,
                         organization_id,
                         permissions,
-                        site_ids,
+                        Vec::new(),
                         terms_accepted_at,
                     )),
                     AuthenticatedEntity::System,
@@ -383,6 +388,15 @@ impl AuthService {
         } else {
             Err(anyhow!("Must provide either password or OIDC credentials"))
         }?;
+
+        self.access_service
+            .set_access(
+                Principal::User(user.id),
+                permissions,
+                &site_assignments,
+                AuthenticatedEntity::System,
+            )
+            .await?;
 
         if let ProvisionOrg::New(PendingSetup {
             org_name,
@@ -576,7 +590,7 @@ impl AuthService {
                 AuthOperation::PasswordChanged {
                     email: user.base.email.clone(),
                     had_password,
-                    timestamp: Utc::now(),
+                    timestamp: crate::server::shared::clock::now(),
                 },
                 authentication.clone(),
             ))
@@ -610,7 +624,8 @@ impl AuthService {
 
         // Generate token and store in database
         let token = Self::generate_secure_token();
-        let expires = Utc::now() + Duration::hours(Self::PASSWORD_RESET_TOKEN_EXPIRY_HOURS);
+        let expires = crate::server::shared::clock::now()
+            + Duration::hours(Self::PASSWORD_RESET_TOKEN_EXPIRY_HOURS);
         user.base.password_reset_token = Some(token.clone());
         user.base.password_reset_expires = Some(expires);
         self.user_service
@@ -660,7 +675,7 @@ impl AuthService {
 
         // Check if token is expired
         if let Some(expires) = user.base.password_reset_expires {
-            if Utc::now() > expires {
+            if crate::server::shared::clock::now() > expires {
                 // Clear expired token
                 user.base.password_reset_token = None;
                 user.base.password_reset_expires = None;
@@ -756,7 +771,8 @@ impl AuthService {
     ) -> Result<EmailAndToken> {
         // Generate token and expiry
         let token = Self::generate_secure_token();
-        let expiry = Utc::now() + Duration::hours(Self::VERIFICATION_TOKEN_EXPIRY_HOURS);
+        let expiry = crate::server::shared::clock::now()
+            + Duration::hours(Self::VERIFICATION_TOKEN_EXPIRY_HOURS);
 
         // Store token in user record
         user.base.email_verification_token = Some(token.clone());
@@ -929,7 +945,7 @@ impl AuthService {
         // Unknown and expired tokens get the same coded error: the page offers a new link
         // either way.
         match user.base.email_verification_expires {
-            Some(expires) if Utc::now() <= expires => {}
+            Some(expires) if crate::server::shared::clock::now() <= expires => {}
             _ => return Err(Self::verification_token_invalid()),
         }
 

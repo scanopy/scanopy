@@ -172,7 +172,7 @@ impl Display for Port {
 
 impl Port {
     pub fn new(base: PortBase) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,

@@ -62,7 +62,7 @@ pub struct DependencyMemberRecord {
 
 impl DependencyMemberRecord {
     pub fn new(base: DependencyMemberRecordBase) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,

@@ -159,10 +159,10 @@ impl BillingInvoice {
     }
 }
 
-// Stripe ships unix-epoch i64 timestamps; fall back to `Utc::now()` on a
+// Stripe ships unix-epoch i64 timestamps; fall back to `crate::server::shared::clock::now()` on a
 // malformed value rather than failing the event publish.
 pub(crate) fn ts_to_chrono(ts: i64) -> DateTime<Utc> {
-    DateTime::<Utc>::from_timestamp(ts, 0).unwrap_or_else(Utc::now)
+    DateTime::<Utc>::from_timestamp(ts, 0).unwrap_or_else(crate::server::shared::clock::now)
 }
 
 impl From<&stripe_billing::Invoice> for BillingInvoice {
@@ -241,7 +241,7 @@ mod tests {
     }
 
     fn invoice(line_items: Vec<BillingInvoiceLineItem>) -> BillingInvoice {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         BillingInvoice {
             stripe_invoice_id: "in_test".to_string(),
             amount_paid_cents: 0,
@@ -263,7 +263,7 @@ mod tests {
 
     #[test]
     fn license_paid_through_takes_latest_self_hosted_line() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let self_hosted = Some(get_self_hosted_standard_plan().stripe_product_id());
         let cloud = Some(get_enterprise_plan().stripe_product_id());
 
@@ -281,7 +281,7 @@ mod tests {
 
     #[test]
     fn license_paid_through_ignores_cloud_and_priceless_lines() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let paid = invoice(vec![
             line(Some(get_enterprise_plan().stripe_product_id()), now),
             line(None, now),
@@ -291,7 +291,7 @@ mod tests {
 
     #[test]
     fn provisional_paid_through_needs_a_sent_self_hosted_invoice_with_a_due_date() {
-        let due = Utc::now() + chrono::Duration::days(30);
+        let due = crate::server::shared::clock::now() + chrono::Duration::days(30);
         let self_hosted = Some(get_self_hosted_standard_plan().stripe_product_id());
         let sent = |line_items, due_date| BillingInvoice {
             collection: InvoiceCollection::SendInvoice,

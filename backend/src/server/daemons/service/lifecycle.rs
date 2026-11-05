@@ -227,7 +227,7 @@ impl DaemonService {
             return Ok(());
         }
         daemon.base.standby = false;
-        daemon.base.standby_cleared_at = Some(Utc::now());
+        daemon.base.standby_cleared_at = Some(crate::server::shared::clock::now());
         self.update(
             daemon,
             AuthenticatedEntity::System,

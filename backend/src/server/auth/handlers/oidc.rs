@@ -321,7 +321,7 @@ pub(crate) async fn oidc_callback(
         }
         OidcFlow::Register => {
             let terms_accepted_at = if terms_accepted {
-                Some(Utc::now())
+                Some(crate::server::shared::clock::now())
             } else {
                 None
             };
@@ -543,12 +543,12 @@ async fn handle_register_flow(
     }
 
     // Process pending invite if present
-    let (org_id, permissions, site_ids, invited_as) =
+    let (org_id, permissions, site_assignments, invited_as) =
         match process_pending_invite(&state, &session).await {
             Ok(Some(invite)) => (
                 Some(invite.organization_id),
                 Some(invite.permissions),
-                invite.site_ids,
+                invite.site_assignments,
                 invite.send_to,
             ),
             Ok(_) => (None, None, vec![], None),
@@ -592,7 +592,7 @@ async fn handle_register_flow(
                 permissions,
                 ip,
                 user_agent: user_agent.clone(),
-                site_ids,
+                site_assignments,
                 invited_as,
             },
             OidcRegisterParams {

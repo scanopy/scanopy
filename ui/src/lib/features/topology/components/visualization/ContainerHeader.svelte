@@ -23,7 +23,11 @@
 		topology_ungroupedCount,
 		topology_searchContainerMatches
 	} from '$lib/paraglide/messages';
-	import { tooltip as tooltipAction, type TooltipContent } from '$lib/shared/actions/tooltip';
+	import {
+		tooltip as tooltipAction,
+		type TooltipContent,
+		type TooltipOptions
+	} from '$lib/shared/actions/tooltip';
 
 	/** A group container's pill: a category or tag the group collects, with its tooltip. */
 	export type GroupPill = { label: string; color: Color; title?: string | TooltipContent };
@@ -96,7 +100,7 @@
 		/** Staleness pill for the entity this container stands for, from `getFreshnessTag`. */
 		staleTag?: TagProps | null;
 		/** Hover text for the container's name: the entity it stands for, or what the group holds. */
-		tooltip?: TooltipContent | null;
+		tooltip?: TooltipOptions['content'];
 		/** The colour of the entity a subcontainer stands for, which draws its title as that entity's pill. Null for a grouping. */
 		entityColor?: Color | null;
 		/** The chip icon of the entity the container stands for, as `EntityTag` draws it. */
@@ -227,7 +231,7 @@
      its title, outside the title's pill. The tooltip says which and why. -->
 {#snippet statusBadge()}
 	{#if staleTag}
-		<span data-fixed class="flex shrink-0"><Tag {...staleTag} label={undefined} pill /></span>
+		<span data-fixed class="flex shrink-0"><Tag {...staleTag} label={undefined} /></span>
 	{/if}
 {/snippet}
 

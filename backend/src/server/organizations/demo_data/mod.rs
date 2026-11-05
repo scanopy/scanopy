@@ -157,7 +157,7 @@ impl DemoData {
     /// Generate all demo data for the given organization. `use_case` picks the topology's
     /// default grouping rules, as it does for any new topology in that organization.
     pub fn generate(organization_id: Uuid, user_id: Uuid, use_case: UseCase) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
 
         // The Docker daemons' service IDs, shared by the hosts that run them and the Docker
         // Bridge subnets they virtualize.

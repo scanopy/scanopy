@@ -28,8 +28,8 @@ impl EventBusService<Site> for SiteService {
         &self.event_bus
     }
 
-    fn get_site_id(&self, _entity: &Site) -> Option<Uuid> {
-        None
+    fn get_site_id(&self, entity: &Site) -> Option<Uuid> {
+        Some(entity.id)
     }
     fn get_organization_id(&self, entity: &Site) -> Option<Uuid> {
         Some(entity.base.organization_id)
@@ -109,7 +109,7 @@ impl SiteService {
         if site_ids.is_empty() {
             return Ok(Vec::new());
         }
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
         let sites = self
             .get_all(
                 crate::server::shared::storage::filter::StorableFilter::<Site>::new_from_entity_ids(

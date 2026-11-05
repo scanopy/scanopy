@@ -508,6 +508,16 @@ pub enum DiscoveryWarning {
         #[schema(required)]
         credential_id: Option<Uuid>,
     },
+    /// A credential that runs over an SSH login whose login is gone or no longer usable, so it
+    /// was not sent. Raised by the server when it builds the scan's credentials, never a daemon.
+    #[schema(title = "CredentialLoginUnavailable")]
+    CredentialLoginUnavailable {
+        integration: CredentialQueryPayloadDiscriminants,
+        /// The stored credential. `None` once it is deleted.
+        #[serde(default)]
+        #[schema(required)]
+        credential_id: Option<Uuid>,
+    },
     /// The port the credential needs was not open, so it was never tried.
     #[schema(title = "CredentialGateClosed")]
     CredentialGateClosed {
@@ -552,40 +562,58 @@ pub enum DiscoveryWarning {
         integration: CredentialIntegration,
     },
 
-    // ---- Proxmox VE guests -----------------------------------------------
+    // ---- Hypervisor guests -----------------------------------------------
+    // Shipped as `ProxmoxGuest*` with no `integration`, so the old codes are aliases and a stored
+    // record without one is Proxmox's.
     /// A running guest at addresses no subnet this scan covers, on a shared network or one the
-    /// node's config doesn't list, so it was recorded without ports or services.
-    #[schema(title = "ProxmoxGuestOutsideScan")]
-    ProxmoxGuestOutsideScan {
+    /// hypervisor's config doesn't list, so it was recorded without ports or services.
+    #[schema(title = "GuestOutsideScan")]
+    #[serde(alias = "ProxmoxGuestOutsideScan")]
+    GuestOutsideScan {
         /// The guest's first address.
         #[schema(value_type = String)]
         address: IpAddr,
-        /// Its Proxmox VE name, else its VMID.
+        /// Its name in its hypervisor, else the hypervisor's id for it.
         guest: String,
+        /// The hypervisor integration that reported it.
+        #[serde(default = "proxmox_integration")]
+        #[schema(required)]
+        integration: CredentialQueryPayloadDiscriminants,
     },
-    /// A running guest on a bridge with no uplink that only its node holds an address on (a NAT'd
-    /// `vmbr1`), so only a daemon on that node reaches it.
-    #[schema(title = "ProxmoxGuestBehindNode")]
-    ProxmoxGuestBehindNode {
+    /// A running guest on a bridge with no uplink that only its hypervisor holds an address on (a
+    /// NAT'd `vmbr1`, libvirt's `virbr0`), so only a daemon on that hypervisor reaches it.
+    #[schema(title = "GuestBehindHypervisor")]
+    #[serde(alias = "ProxmoxGuestBehindNode")]
+    GuestBehindHypervisor {
         /// The guest's first address.
         #[schema(value_type = String)]
         address: IpAddr,
-        /// Its Proxmox VE name, else its VMID.
+        /// Its name in its hypervisor, else the hypervisor's id for it.
         guest: String,
-        /// The node it runs on.
-        node: String,
+        /// The hypervisor integration that reported it.
+        #[serde(default = "proxmox_integration")]
+        #[schema(required)]
+        integration: CredentialQueryPayloadDiscriminants,
+        /// The hypervisor host it runs on: a Proxmox VE node, a libvirt host.
+        #[serde(alias = "node")]
+        hypervisor: String,
         /// The bridge its NIC is on.
         bridge: String,
     },
-    /// A running guest on a bridge with no uplink and no node address, so only a daemon on a guest
-    /// attached to that bridge reaches it.
-    #[schema(title = "ProxmoxGuestIsolated")]
-    ProxmoxGuestIsolated {
+    /// A running guest on a bridge with no uplink and no hypervisor address, so only a daemon on a
+    /// guest attached to that bridge reaches it.
+    #[schema(title = "GuestIsolated")]
+    #[serde(alias = "ProxmoxGuestIsolated")]
+    GuestIsolated {
         /// The guest's first address.
         #[schema(value_type = String)]
         address: IpAddr,
-        /// Its Proxmox VE name, else its VMID.
+        /// Its name in its hypervisor, else the hypervisor's id for it.
         guest: String,
+        /// The hypervisor integration that reported it.
+        #[serde(default = "proxmox_integration")]
+        #[schema(required)]
+        integration: CredentialQueryPayloadDiscriminants,
         /// The bridge its NIC is on.
         bridge: String,
     },
@@ -944,6 +972,7 @@ pub enum DiscoveryWarningCode {
     CredentialDaemonOsMismatch,
     CredentialNeedsNewerDaemon,
     CredentialWithoutTarget,
+    CredentialLoginUnavailable,
     CredentialGateClosed,
     CredentialRejected,
     CredentialMalformed,
@@ -954,9 +983,12 @@ pub enum DiscoveryWarningCode {
     CredentialUnreachable,
     CredentialTimedOut,
     IntegrationWithoutCredential,
-    ProxmoxGuestOutsideScan,
-    ProxmoxGuestBehindNode,
-    ProxmoxGuestIsolated,
+    #[serde(alias = "ProxmoxGuestOutsideScan")]
+    GuestOutsideScan,
+    #[serde(alias = "ProxmoxGuestBehindNode")]
+    GuestBehindHypervisor,
+    #[serde(alias = "ProxmoxGuestIsolated")]
+    GuestIsolated,
     ConnectionsWithoutProtocolResponse,
     ScanTimeLimitWithEstimate,
     ScanTimeLimit,
@@ -1039,6 +1071,9 @@ impl DiscoveryWarning {
                 DiscoveryWarningCode::CredentialNeedsNewerDaemon
             }
             Self::CredentialWithoutTarget { .. } => DiscoveryWarningCode::CredentialWithoutTarget,
+            Self::CredentialLoginUnavailable { .. } => {
+                DiscoveryWarningCode::CredentialLoginUnavailable
+            }
             Self::CredentialGateClosed { .. } => DiscoveryWarningCode::CredentialGateClosed,
             Self::CredentialRejected(_) => DiscoveryWarningCode::CredentialRejected,
             Self::CredentialMalformed(_) => DiscoveryWarningCode::CredentialMalformed,
@@ -1053,9 +1088,9 @@ impl DiscoveryWarning {
             Self::IntegrationWithoutCredential { .. } => {
                 DiscoveryWarningCode::IntegrationWithoutCredential
             }
-            Self::ProxmoxGuestOutsideScan { .. } => DiscoveryWarningCode::ProxmoxGuestOutsideScan,
-            Self::ProxmoxGuestBehindNode { .. } => DiscoveryWarningCode::ProxmoxGuestBehindNode,
-            Self::ProxmoxGuestIsolated { .. } => DiscoveryWarningCode::ProxmoxGuestIsolated,
+            Self::GuestOutsideScan { .. } => DiscoveryWarningCode::GuestOutsideScan,
+            Self::GuestBehindHypervisor { .. } => DiscoveryWarningCode::GuestBehindHypervisor,
+            Self::GuestIsolated { .. } => DiscoveryWarningCode::GuestIsolated,
             Self::ConnectionsWithoutProtocolResponse { .. } => {
                 DiscoveryWarningCode::ConnectionsWithoutProtocolResponse
             }
@@ -1131,9 +1166,9 @@ impl DiscoveryWarning {
             | Self::CredentialUnreachable(a)
             | Self::CredentialTimedOut(a) => Some(a.integration),
 
-            Self::ProxmoxGuestOutsideScan { .. }
-            | Self::ProxmoxGuestBehindNode { .. }
-            | Self::ProxmoxGuestIsolated { .. } => Some(CredentialQueryPayloadDiscriminants::Proxmox),
+            Self::GuestOutsideScan { integration, .. }
+            | Self::GuestBehindHypervisor { integration, .. }
+            | Self::GuestIsolated { integration, .. } => Some(*integration),
 
             // Two integrations, and neither one produced it: the merge in the daemon pipeline did.
             // Naming either would count it against an integration that did nothing wrong.
@@ -1142,6 +1177,7 @@ impl DiscoveryWarning {
             // is a wire payload type, which an integration with two transports has no single one of.
             | Self::IntegrationWithoutCredential { .. }
             // No integration ran either: the daemon never received the credential.
+            | Self::CredentialLoginUnavailable { .. }
             | Self::CredentialWithoutTarget { .. }
             | Self::ConnectionsWithoutProtocolResponse { .. }
             | Self::ScanTimeLimitWithEstimate { .. }
@@ -1173,6 +1209,7 @@ impl DiscoveryWarning {
             | Self::CredentialGateClosed { credential_id, .. }
             | Self::CredentialDaemonOsMismatch { credential_id, .. }
             | Self::CredentialNeedsNewerDaemon { credential_id, .. }
+            | Self::CredentialLoginUnavailable { credential_id, .. }
             | Self::CredentialWithoutTarget { credential_id, .. } => *credential_id,
 
             Self::CredentialRejected(a)
@@ -1212,9 +1249,9 @@ impl DiscoveryWarning {
             Self::VlanRecordingFailed { .. }
             | Self::EqualReachIntegrationsMerged { .. }
             | Self::IntegrationWithoutCredential { .. }
-            | Self::ProxmoxGuestOutsideScan { .. }
-            | Self::ProxmoxGuestBehindNode { .. }
-            | Self::ProxmoxGuestIsolated { .. }
+            | Self::GuestOutsideScan { .. }
+            | Self::GuestBehindHypervisor { .. }
+            | Self::GuestIsolated { .. }
             | Self::ConnectionsWithoutProtocolResponse { .. }
             | Self::ScanTimeLimitWithEstimate { .. }
             | Self::ScanTimeLimit { .. }
@@ -1257,6 +1294,12 @@ where
 {
     let raw: Vec<serde_json::Value> = Vec::deserialize(deserializer)?;
     Ok(raw.into_iter().map(warning_from_value).collect())
+}
+
+/// The integration a hypervisor-guest warning stored before it carried one came from: they were
+/// Proxmox's alone.
+fn proxmox_integration() -> CredentialQueryPayloadDiscriminants {
+    CredentialQueryPayloadDiscriminants::Proxmox
 }
 
 pub fn warning_from_value(value: serde_json::Value) -> DiscoveryWarning {

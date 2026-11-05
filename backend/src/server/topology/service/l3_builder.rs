@@ -110,7 +110,7 @@ mod tests {
     use crate::server::topology::types::base::TopologyOptions;
     use crate::server::topology::types::grouping::{ElementRule, IdentifiedRule};
     use crate::server::topology::types::nodes::{ContainerType, NodeType};
-    use chrono::Utc;
+
     use cidr::{IpCidr, Ipv4Cidr};
     use std::net::Ipv4Addr;
 
@@ -147,8 +147,8 @@ mod tests {
 
         let host = Host {
             id: host_id,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: HostBase {
                 name: HostName::manual("test-host".to_string()),
                 site_id,
@@ -160,8 +160,8 @@ mod tests {
 
         let subnet = Subnet {
             id: subnet_id,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: SubnetBase {
                 cidr: SubnetCidr::new(
                     SubnetCidrValue(IpCidr::V4(
@@ -178,8 +178,8 @@ mod tests {
 
         let ip_address = IPAddress {
             id: ip_address_id,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: IPAddressBase {
                 site_id,
                 host_id,
@@ -192,8 +192,8 @@ mod tests {
 
         let service = Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 site_id,
@@ -206,8 +206,8 @@ mod tests {
 
         let tag = Tag {
             id: tag_id,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: TagBase {
                 name: "ServiceTag".to_string(),
                 description: None,
@@ -412,8 +412,8 @@ mod tests {
 
         let make_host = |name: &str| Host {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: HostBase {
                 name: HostName::manual(name.to_string()),
                 site_id,
@@ -423,8 +423,8 @@ mod tests {
         };
         let make_subnet = |id: Uuid, third: u8, subnet_type: SubnetType| Subnet {
             id,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: SubnetBase {
                 cidr: SubnetCidr::new(
                     SubnetCidrValue(IpCidr::V4(
@@ -441,8 +441,8 @@ mod tests {
         };
         let make_ip = |host_id: Uuid, subnet_id: Uuid, third: u8, last: u8| IPAddress {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: IPAddressBase {
                 site_id,
                 host_id,
@@ -454,8 +454,8 @@ mod tests {
         };
         let make_if = |host_id: Uuid, if_index: i32, ip_address_id: Uuid| Interface {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: InterfaceBase {
                 host_id,
                 site_id,

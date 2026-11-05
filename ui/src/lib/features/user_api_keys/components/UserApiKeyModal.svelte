@@ -15,6 +15,7 @@
 	// Shared components
 	import ApiKeyGenerator from '$lib/shared/components/api-keys/ApiKeyGenerator.svelte';
 	import PermissionSelect from '$lib/shared/components/api-keys/PermissionSelect.svelte';
+	import RoleAccessSummary from '$lib/shared/components/api-keys/RoleAccessSummary.svelte';
 	import SiteAccessSelect from '$lib/shared/components/api-keys/SiteAccessSelect.svelte';
 
 	import type { UserApiKey } from '../queries';
@@ -282,12 +283,16 @@
 								selectedSiteIds={field.state.value ?? []}
 								onChange={handleSiteChange}
 								permissionLevel={permissionsValue}
-								helpText="Leave empty for org-scoped resources only (tags, users)"
+								helpText=""
 								alwaysShowSelection={true}
 								required={false}
 							/>
 						{/snippet}
 					</form.Field>
+
+					{#if permissionsValue}
+						<RoleAccessSummary role={permissionsValue} />
+					{/if}
 
 					<form.Field name="tags">
 						{#snippet children(field)}

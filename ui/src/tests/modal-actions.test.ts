@@ -1,8 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
+import { get } from 'svelte/store';
 import {
 	assignModalKeys,
 	closesModalOnEscape,
+	isStackedModal,
 	isTopmostModal,
+	openModalStack,
 	keyPausedAt,
 	registerOpenModal,
 	resolveModalKeydown,
@@ -218,6 +221,18 @@ describe('stacked modals', () => {
 		expect(isTopmostModal(editor)).toBe(true);
 		closeEditor();
 		expect(isTopmostModal(editor)).toBe(false);
+	});
+
+	it('shrouds a modal over another only once the one beneath closes', () => {
+		const settings = Symbol('settings');
+		const payment = Symbol('payment');
+		const closeSettings = registerOpenModal(settings);
+		const closePayment = registerOpenModal(payment);
+		expect(isStackedModal(get(openModalStack), payment)).toBe(true);
+		expect(isStackedModal(get(openModalStack), settings)).toBe(false);
+		closeSettings();
+		expect(isStackedModal(get(openModalStack), payment)).toBe(false);
+		closePayment();
 	});
 });
 

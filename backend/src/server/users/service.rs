@@ -2,38 +2,35 @@ use crate::server::shared::events::traits::{EntityEventFlags, EntityScope, Event
 use crate::server::{
     auth::middleware::auth::AuthenticatedEntity,
     shared::{
-        entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants},
+        entities::ChangeTriggersTopologyStaleness,
         events::{
             bus::EventBus,
             types::{EntityOperation, UpdateReason},
         },
         services::traits::{CrudService, EventBusService},
         storage::{
-            child::{GenericChildStorage, ParentRef},
             filter::StorableFilter,
             generic::GenericPostgresStorage,
+            lock::{DEFAULT_LOCK_TIMEOUT, LockKey, SessionLockGuard, xact_lock},
             traits::{Entity, Storable, Storage},
         },
     },
+    site_assignments::{r#impl::base::Principal, service::SiteAssignmentService},
     tags::entity_tags::EntityTagService,
-    users::r#impl::{
-        base::User,
-        email_settings::EmailSettings,
-        permissions::UserOrgPermissions,
-        site_access::{UserSiteAccess, UserSiteAccessBase},
-    },
+    users::r#impl::{base::User, email_settings::EmailSettings, permissions::UserOrgPermissions},
 };
 use anyhow::Error;
 use anyhow::Result;
 use async_trait::async_trait;
-use chrono::{NaiveDate, Utc};
+use chrono::NaiveDate;
 use email_address::EmailAddress;
+use sqlx::{Postgres, Transaction};
 use std::sync::Arc;
 use uuid::Uuid;
 
 pub struct UserService {
     user_storage: Arc<GenericPostgresStorage<User>>,
-    site_access_storage: Arc<GenericChildStorage<UserSiteAccess>>,
+    site_assignments: Arc<SiteAssignmentService>,
     event_bus: Arc<EventBus>,
 }
 
@@ -60,7 +57,7 @@ impl CrudService<User> for UserService {
         None // Users are not taggable entities
     }
 
-    /// Create a new user
+    /// Create a new user. `AccessService::set_access` gives them their sites.
     async fn create(&self, user: User, authentication: AuthenticatedEntity) -> Result<User, Error> {
         let email_taken = self
             .user_storage
@@ -73,20 +70,12 @@ impl CrudService<User> for UserService {
             ));
         }
 
-        // Capture site_ids before creating the user (since they're stored in junction table)
-        let site_ids = user.base.site_ids.clone();
-
         let user = if user.id() == Uuid::nil() {
             User::new(user.base)
         } else {
             user
         };
         let created = self.user_storage.create(&user).await?;
-
-        // Persist site_ids to the junction table
-        if !site_ids.is_empty() {
-            self.set_site_ids(&created.id, &site_ids).await?;
-        }
 
         let trigger_stale = created.triggers_staleness(None);
 
@@ -115,12 +104,12 @@ impl CrudService<User> for UserService {
 impl UserService {
     pub fn new(
         user_storage: Arc<GenericPostgresStorage<User>>,
-        site_access_storage: Arc<GenericChildStorage<UserSiteAccess>>,
+        site_assignments: Arc<SiteAssignmentService>,
         event_bus: Arc<EventBus>,
     ) -> Self {
         Self {
             user_storage,
-            site_access_storage,
+            site_assignments,
             event_bus,
         }
     }
@@ -212,7 +201,7 @@ impl UserService {
 
     /// Record that `user` accepted the terms now.
     pub async fn accept_terms(&self, mut user: User) -> Result<User> {
-        user.base.terms_accepted_at = Some(Utc::now());
+        user.base.terms_accepted_at = Some(crate::server::shared::clock::now());
         let actor = AuthenticatedEntity::from(user.clone());
         self.update(&mut user, actor, UpdateReason::UserTermsAccepted)
             .await
@@ -245,91 +234,84 @@ impl UserService {
         self.user_storage.get_all(filter).await
     }
 
+    /// [`Self::get_organization_owners`] inside `tx`, for a read under the owners lock.
+    pub async fn get_organization_owners_in_tx(
+        &self,
+        organization_id: &Uuid,
+        tx: &mut Transaction<'_, Postgres>,
+    ) -> Result<Vec<User>> {
+        let filter = StorableFilter::<User>::new_from_org_id(organization_id)
+            .user_permissions(&UserOrgPermissions::Owner);
+        GenericPostgresStorage::<User>::get_all_in_tx(filter, tx).await
+    }
+
+    /// Read a user inside `tx`.
+    pub async fn get_in_tx(
+        &self,
+        id: &Uuid,
+        tx: &mut Transaction<'_, Postgres>,
+    ) -> Result<Option<User>> {
+        let filter = StorableFilter::<User>::new_from_entity_id(id);
+        let users = GenericPostgresStorage::<User>::get_all_in_tx(filter, tx).await?;
+        Ok(users.into_iter().next())
+    }
+
+    /// Hold `organization_id`'s owners lock until the guard is released. For a handler with no
+    /// transaction; it reads the owners and its targets after this returns.
+    pub async fn lock_organization_owners(
+        &self,
+        organization_id: Uuid,
+    ) -> Result<SessionLockGuard> {
+        Ok(self
+            .user_storage
+            .session_lock(
+                LockKey::OrganizationOwners { organization_id },
+                DEFAULT_LOCK_TIMEOUT,
+            )
+            .await?)
+    }
+
+    /// Hold `organization_id`'s owners lock until `tx` commits or rolls back. It contends with
+    /// [`Self::lock_organization_owners`] on the same key.
+    pub async fn lock_organization_owners_in_tx(
+        &self,
+        organization_id: Uuid,
+        tx: &mut Transaction<'_, Postgres>,
+    ) -> Result<()> {
+        xact_lock(
+            tx,
+            LockKey::OrganizationOwners { organization_id },
+            DEFAULT_LOCK_TIMEOUT,
+        )
+        .await?;
+        Ok(())
+    }
+
     /// Returns all users with access to `site_id` within `organization_id`.
     ///
-    /// Access is the union of:
-    /// - Users with an explicit row in the `user_site_access` junction.
-    /// - Org Owners and Admins, who have implicit access to every site in
-    ///   their organization regardless of the junction table.
-    ///
-    /// Deduplicates users that fall into both sets. The org-id parameter is
-    /// required so the implicit set is scoped — junction rows alone don't
-    /// carry the org context the way `User.organization_id` does.
+    /// That is every user assigned the site, directly or through All sites.
     pub async fn get_users_with_site_access(
         &self,
         site_id: &Uuid,
         organization_id: &Uuid,
     ) -> Result<Vec<User>> {
-        let explicit_user_ids: Vec<Uuid> = self
-            .site_access_storage
-            .inner()
-            .get_all(StorableFilter::<UserSiteAccess>::new_from_site_ids(&[
-                *site_id,
-            ]))
-            .await?
-            .iter()
-            .map(|a| a.user_id())
-            .collect();
-
-        let explicit = if explicit_user_ids.is_empty() {
-            Vec::new()
-        } else {
-            // The users table's PK is `id`; the `user_id` column lives on the
-            // user_site_access junction. Filter on entity ids.
-            let filter = StorableFilter::<User>::new_from_entity_ids(&explicit_user_ids);
-            self.user_storage.get_all(filter).await?
-        };
-
-        let implicit_filter = StorableFilter::<User>::new_from_org_id(organization_id)
-            .user_permissions_in(&[UserOrgPermissions::Owner, UserOrgPermissions::Admin]);
-        let implicit = self.user_storage.get_all(implicit_filter).await?;
-
-        let mut seen: std::collections::HashSet<Uuid> =
-            std::collections::HashSet::with_capacity(explicit.len() + implicit.len());
-        let mut out: Vec<User> = Vec::with_capacity(explicit.len() + implicit.len());
-        for user in explicit.into_iter().chain(implicit.into_iter()) {
-            if seen.insert(user.id) {
-                out.push(user);
-            }
+        let user_ids = self
+            .site_assignments
+            .user_ids_on_site(*site_id, *organization_id)
+            .await?;
+        if user_ids.is_empty() {
+            return Ok(Vec::new());
         }
-        Ok(out)
+        self.user_storage
+            .get_all(StorableFilter::<User>::new_from_entity_ids(&user_ids))
+            .await
     }
 
-    /// Get site_ids for a user from the user_site_access junction table
+    /// The sites listed for a user. All sites lists none.
     pub async fn get_site_ids(&self, user_id: &Uuid) -> Result<Vec<Uuid>> {
-        let access = self.site_access_storage.get_for_parent(user_id).await?;
-        Ok(access.iter().map(|a| a.site_id()).collect())
-    }
-
-    /// Set site_ids for a user - replaces all existing entries in user_site_access
-    pub async fn set_site_ids(&self, user_id: &Uuid, site_ids: &[Uuid]) -> Result<()> {
-        let rows: Vec<UserSiteAccess> = site_ids
-            .iter()
-            .map(|site_id| UserSiteAccess::new(UserSiteAccessBase::new(*user_id, *site_id)))
-            .collect();
-        self.site_access_storage
-            .save_for_parent(&ParentRef::new(EntityDiscriminants::User, *user_id), &rows)
-            .await?;
-        Ok(())
-    }
-
-    /// Add a site_id to a user's access
-    pub async fn add_site_access(&self, user_id: &Uuid, site_id: &Uuid) -> Result<()> {
-        let access = UserSiteAccess::new(UserSiteAccessBase::new(*user_id, *site_id));
-        // The storage will handle the unique constraint violation gracefully
-        let _ = self.site_access_storage.inner().create(&access).await;
-        Ok(())
-    }
-
-    /// Remove a site_id from a user's access
-    pub async fn remove_site_access(&self, user_id: &Uuid, site_id: &Uuid) -> Result<()> {
-        let filter = StorableFilter::<UserSiteAccess>::new_from_user_id(user_id)
-            .uuid_column("site_id", site_id);
-        self.site_access_storage
-            .inner()
-            .delete_by_filter(filter)
-            .await?;
-        Ok(())
+        self.site_assignments
+            .listed_site_ids(Principal::User(*user_id))
+            .await
     }
 
     /// Hydrate site_ids for a single user
@@ -340,20 +322,17 @@ impl UserService {
 
     /// Hydrate site_ids for multiple users (batch operation)
     pub async fn hydrate_site_ids_batch(&self, users: &mut [User]) -> Result<()> {
-        if users.is_empty() {
-            return Ok(());
-        }
-
         let user_ids: Vec<Uuid> = users.iter().map(|u| u.id).collect();
-        let mut access_map = self.site_access_storage.get_for_parents(&user_ids).await?;
+        let listed = self
+            .site_assignments
+            .listed_site_ids_by("user_id", &user_ids, |principal| match principal {
+                Principal::User(id) => Some(*id),
+                _ => None,
+            })
+            .await?;
 
         for user in users.iter_mut() {
-            user.base.site_ids = access_map
-                .remove(&user.id)
-                .unwrap_or_default()
-                .iter()
-                .map(|a| a.site_id())
-                .collect();
+            user.base.site_ids = listed.get(&user.id).cloned().unwrap_or_default();
         }
 
         Ok(())

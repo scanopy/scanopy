@@ -1,0 +1,3 @@
+#cloud-config
+hostname: kvm-noagent
+# The agent channel is defined, but no qemu-guest-agent runs: libvirt says it is not connected.

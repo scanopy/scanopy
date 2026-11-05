@@ -66,6 +66,7 @@ export function getConfirmationTag(entity: ConfirmationSubject): TagProps | null
 		label: common_unconfirmed(),
 		color: toColor('violet'),
 		icon: CircleDashedCheck,
+		pill: true,
 		title: unconfirmedReason(via)
 	};
 }

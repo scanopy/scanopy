@@ -16,23 +16,15 @@ import type { Daemon } from '$lib/features/daemons/types/base';
 import type { Site } from '$lib/features/sites/types';
 import type { Tag, TagGroup } from '$lib/features/tags/types/base';
 import {
-	common_created,
 	common_daemon,
-	common_duration,
 	common_full,
 	common_light,
-	common_status,
 	common_tags,
-	common_warnings,
 	common_site,
 	common_type,
 	common_unknown,
 	common_unknownEntity,
-	common_unknownSite,
-	common_updated,
-	discovery_finishedAt,
-	discovery_scanMode,
-	discovery_startedAt
+	common_unknownSite
 } from '$lib/paraglide/messages';
 
 import type { DiscoveryRunOrderField } from '../../queries';
@@ -120,13 +112,12 @@ export function discoveryHistoryColumns(ctx: DiscoveryHistoryColumnsContext) {
 				getValue: (item) => discoveryTypes.getName(item.discovery_type.type),
 				display: { hiddenByDefault: true }
 			},
-			created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
-			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } },
+			created_at: { type: 'date', display: { hiddenByDefault: true } },
+			updated_at: { type: 'date', display: { hiddenByDefault: true } },
 			// The run's outcome. Sorted, grouped and
 			// filtered by the terminal phase; the cell shows the outcome tag, whose hover carries
 			// the reason the run ended.
 			phase: {
-				label: common_status(),
 				type: 'string',
 				searchable: true,
 				filterable: true,
@@ -154,7 +145,6 @@ export function discoveryHistoryColumns(ctx: DiscoveryHistoryColumnsContext) {
 			// Read out of the run's results. Near-unique timestamps and continuous values, so
 			// they sort but do not group.
 			started_at: {
-				label: discovery_startedAt(),
 				type: 'date',
 				getValue: (item) => {
 					const startedAt = ctx.resultsOf(item)?.started_at;
@@ -163,7 +153,6 @@ export function discoveryHistoryColumns(ctx: DiscoveryHistoryColumnsContext) {
 				display: { order: 3, cell: ctx.startedAtCell() }
 			},
 			finished_at: {
-				label: discovery_finishedAt(),
 				type: 'date',
 				getValue: (item) => {
 					const finishedAt = ctx.resultsOf(item)?.finished_at;
@@ -172,7 +161,6 @@ export function discoveryHistoryColumns(ctx: DiscoveryHistoryColumnsContext) {
 				display: { order: 4, cell: ctx.finishedAtCell() }
 			},
 			duration: {
-				label: common_duration(),
 				type: 'string',
 				groupable: false,
 				getValue: (item) => {
@@ -190,7 +178,6 @@ export function discoveryHistoryColumns(ctx: DiscoveryHistoryColumnsContext) {
 			// 0 rather than wearing a chip that means nothing. A count, so it sorts but does
 			// not group.
 			warnings: {
-				label: common_warnings(),
 				type: 'string',
 				groupable: false,
 				getValue: (item) => String(ctx.warningsOf(item).length),
@@ -209,7 +196,6 @@ export function discoveryHistoryColumns(ctx: DiscoveryHistoryColumnsContext) {
 				// Light or full, next to Duration: a full scan is why a run took much longer. Read
 				// from the run's own scan settings, so it neither sorts nor groups on the server.
 				key: 'scan_mode',
-				label: discovery_scanMode(),
 				type: 'string',
 				getValue: (item) =>
 					item.discovery_type.type === 'Unified'

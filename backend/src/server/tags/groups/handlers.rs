@@ -1,4 +1,4 @@
-use crate::server::auth::middleware::permissions::{Admin, Authorized, Member, Viewer};
+use crate::server::auth::middleware::permissions::{Authorized, Can, Read, Write};
 use crate::server::openapi::tags as api_tags;
 use crate::server::shared::entities::EntityDiscriminants;
 use crate::server::shared::extractors::Query;
@@ -267,11 +267,11 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 )]
 async fn get_all_tag_groups(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Viewer>,
+    auth: Authorized<Can<TagGroup, Read>>,
     Query(query): Query<TagGroupFilterQuery>,
 ) -> ApiResult<Json<PaginatedApiResponse<TagGroup>>> {
     // Tag groups are the organization's: `StorableFilter::new_for_access` scopes them to it.
-    let scope = ListScope::of(&auth.entity)?;
+    let scope = ListScope::of(&auth)?;
     Ok(Json(list_page::<TagGroup>(&state, &scope, &query).await?))
 }
 
@@ -292,15 +292,10 @@ async fn get_all_tag_groups(
 )]
 async fn create_tag_group(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Admin>,
+    auth: Authorized<Can<TagGroup, Write>>,
     ApiJson(group): ApiJson<TagGroup>,
 ) -> ApiResult<Json<ApiResponse<TagGroup>>> {
-    create_handler::<TagGroup>(
-        State(state),
-        auth.into_permission::<Member>(),
-        ApiJson(group),
-    )
-    .await
+    create_handler::<TagGroup>(State(state), auth, ApiJson(group)).await
 }
 
 /// Request body for setting a tag group's tag order
@@ -328,7 +323,7 @@ pub struct TagOrderRequest {
 )]
 async fn set_tag_order(
     State(state): State<Arc<AppState>>,
-    auth: Authorized<Member>,
+    auth: Authorized<Can<TagGroup, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(request): ApiJson<TagOrderRequest>,
 ) -> ApiResult<Json<ApiResponse<Vec<Tag>>>> {

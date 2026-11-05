@@ -13,11 +13,9 @@ import {
 	common_expires,
 	common_lastUsed,
 	common_never,
-	common_created,
 	common_name,
 	common_site,
 	common_tags,
-	common_updated,
 	common_unknownSite
 } from '$lib/paraglide/messages';
 
@@ -97,9 +95,8 @@ export function apiKeyColumns(ctx: ApiKeyColumnsContext) {
 								: undefined
 				}
 			},
-			created_at: { label: common_created(), type: 'date', groupable: false },
+			created_at: { type: 'date', groupable: false },
 			updated_at: {
-				label: common_updated(),
 				type: 'date',
 				groupable: false,
 				display: { hiddenByDefault: true }

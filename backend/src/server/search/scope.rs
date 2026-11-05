@@ -4,17 +4,17 @@
 use uuid::Uuid;
 
 use crate::server::{
-    auth::middleware::auth::AuthenticatedEntity,
+    auth::{access::Grants, middleware::auth::AuthenticatedEntity},
     shared::storage::{filter::StorableFilter, traits::Entity},
-    users::r#impl::permissions::UserOrgPermissions,
 };
 
 /// Whose search this is: the rows a list endpoint would show this caller.
 #[derive(Debug, Clone)]
 pub struct SearchScope {
-    pub site_ids: Vec<Uuid>,
+    /// Who is searching. Each entity type asks what they may read of it.
+    pub reader: AuthenticatedEntity,
     pub organization_id: Uuid,
-    pub permissions: UserOrgPermissions,
+    pub organization_grants: Grants,
     /// The signed-in user, for entities only their owner lists (user API keys). `None` for an API
     /// key, which those lists refuse.
     pub session_user_id: Option<Uuid>,
@@ -26,12 +26,17 @@ impl SearchScope {
     /// The scope of a user or API key. `None` for a caller with no organization (a daemon).
     pub fn for_entity(entity: &AuthenticatedEntity) -> Option<Self> {
         Some(Self {
-            site_ids: entity.site_ids(),
+            reader: entity.clone(),
             organization_id: entity.organization_id()?,
-            permissions: entity.permissions()?,
+            organization_grants: entity.organization_grants()?,
             session_user_id: entity.is_user().then(|| entity.user_id()).flatten(),
             user_id: entity.user_id()?,
         })
+    }
+
+    /// The sites whose `T` rows this search may read, or `None` when it may not read `T`.
+    pub fn site_ids<T: Entity>(&self) -> Option<Vec<Uuid>> {
+        self.reader.readable_site_ids(T::entity_type().resource())
     }
 }
 

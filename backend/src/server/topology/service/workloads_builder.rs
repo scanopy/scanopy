@@ -656,7 +656,6 @@ mod tests {
             },
         },
     };
-    use chrono::Utc;
 
     // --- Test service definitions ---
 
@@ -752,8 +751,8 @@ mod tests {
     fn make_host(name: &str) -> Host {
         Host {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: HostBase {
                 name: HostName::manual(name.to_string()),
                 ..Default::default()
@@ -765,8 +764,8 @@ mod tests {
     fn make_proxmox_vm(name: &str, proxmox_service_id: Uuid) -> Host {
         Host {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: HostBase {
                 name: HostName::manual(name.to_string()),
                 virtualization_metadata: Some(HostVirtualization::Proxmox(ProxmoxVirtualization {
@@ -785,8 +784,8 @@ mod tests {
     fn make_proxmox_service(host_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(ProxmoxDef),
@@ -800,8 +799,8 @@ mod tests {
     fn make_docker_service(host_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(DockerDef),
@@ -815,8 +814,8 @@ mod tests {
     fn make_docker_container(name: &str, host_id: Uuid, docker_service_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(RegularDef),
@@ -859,8 +858,8 @@ mod tests {
     fn make_open_ports_service(name: &str, host_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(OpenPortsDef),
@@ -874,8 +873,8 @@ mod tests {
     fn make_regular_service(name: &str, host_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(RegularDef),
@@ -889,8 +888,8 @@ mod tests {
     fn make_generic_service(name: &str, host_id: Uuid) -> Service {
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(GenericDef),
@@ -1494,12 +1493,44 @@ mod tests {
         assert_eq!(container_of(&nodes, lxc_id), Some(hypervisor_boxes[0].id));
     }
 
+    /// Every hypervisor's guests group under its service in a hypervisor box, never a runtime's.
+    #[test]
+    fn every_hypervisors_guests_group_under_its_service() {
+        use crate::server::hosts::r#impl::virtualization::HostVirtualizationDiscriminants;
+        use crate::server::services::definitions::ServiceDefinitionRegistry;
+        for kind in HostVirtualizationDiscriminants::hypervisor_guests() {
+            let node = make_host("hv-01");
+            let mut manager = make_proxmox_service(node.id);
+            manager.base.service_definition =
+                ServiceDefinitionRegistry::find_by_id(kind.manager_definition())
+                    .expect("registered");
+            let mut vm = make_host("vm-web");
+            vm.base.virtualization_metadata = Some(kind.guest("vm-web", "100"));
+            vm.base.virtualization_service_id = Some(manager.id);
+            let vm_id = vm.id;
+
+            let (nodes, _edges) = build(&[node, vm], &[manager]);
+
+            assert!(
+                containers_of_type(&nodes, ContainerType::ContainerRuntime).is_empty(),
+                "{kind:?}"
+            );
+            let hypervisor_boxes = containers_of_type(&nodes, ContainerType::Hypervisor);
+            assert_eq!(hypervisor_boxes.len(), 1, "{kind:?}");
+            assert_eq!(
+                container_of(&nodes, vm_id),
+                Some(hypervisor_boxes[0].id),
+                "{kind:?}"
+            );
+        }
+    }
+
     fn make_identities_service(host_id: Uuid) -> Service {
         use crate::server::services::definitions::network_identities::NetworkIdentities;
         Service {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
+            updated_at: crate::server::shared::clock::now(),
             base: ServiceBase {
                 host_id,
                 service_definition: Box::new(NetworkIdentities),

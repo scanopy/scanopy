@@ -12,6 +12,7 @@ use crate::server::shared::types::{
     metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider},
 };
 use serde::Serialize;
+use std::any::Any;
 use strum_macros::{EnumIter, IntoStaticStr};
 use utoipa::ToSchema;
 
@@ -200,24 +201,75 @@ pub enum FieldFormat {
     Entity,
 }
 
-/// A list-table column that is not a registry field: a value the table computes, reads from
-/// another endpoint, or keeps out of CSV export (`created_at`, `last_seen_at`). Declared here so
-/// the column menu files it under a group the backend chose. CSV, diagram Shape Data and the
-/// inspector read only fields, never these.
-#[derive(Serialize, Debug, Clone, Copy, PartialEq, Eq, ToSchema)]
-pub struct TableColumn {
-    /// The column's key in the list table, and so in saved column preferences.
-    pub id: &'static str,
-    pub group: FieldGroup,
-}
+/// Copies a value from the stored entity onto the incoming one. Both arguments are the entity type
+/// the registry entry belongs to. Written by the `pin!`, `keep!` and `merge!` macros in
+/// `shared/entity_fields.rs`, which name the field with a checked path. Serialized values can't do
+/// this: an entity's JSON leaves out `#[serde(skip)]` fields and redacts its secrets.
+#[derive(Clone, Copy)]
+pub struct FieldRule(pub fn(&mut dyn Any, &dyn Any));
 
-impl TableColumn {
-    pub const fn new(id: &'static str, group: FieldGroup) -> Self {
-        TableColumn { id, group }
+impl FieldRule {
+    pub fn apply(&self, incoming: &mut dyn Any, stored: &dyn Any) {
+        (self.0)(incoming, stored)
     }
 }
 
-/// One fact that describes an entity, possibly read from a related entity.
+impl std::fmt::Debug for FieldRule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("FieldRule")
+    }
+}
+
+impl PartialEq for FieldRule {
+    fn eq(&self, other: &Self) -> bool {
+        std::ptr::fn_addr_eq(self.0, other.0)
+    }
+}
+
+impl Eq for FieldRule {}
+
+/// Who writes a field, and what an update does with an incoming value. Applied by
+/// `Entity::preserve_immutable_fields`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum FieldWrite {
+    /// The caller sets it, on create and on update.
+    #[default]
+    Writable,
+    /// The caller sets it on create. Every update keeps the stored value.
+    Immutable(FieldRule),
+    /// Only the server sets it, so it never deserializes from a request. Every update keeps the
+    /// stored value.
+    ServerOwned(FieldRule),
+    /// `None` on an update means the source had nothing to say, so the stored value stays.
+    KeepWhenNone(FieldRule),
+    /// An update reconciles the stored and incoming values by a rule named on the entity. Runs
+    /// after every other policy, in registry order, so a rule can read the fields settled before
+    /// it.
+    Merged(FieldRule),
+}
+
+impl FieldWrite {
+    /// The rule to run in the first pass of an update.
+    pub fn settled_rule(&self) -> Option<FieldRule> {
+        match *self {
+            Self::Immutable(rule) | Self::ServerOwned(rule) | Self::KeepWhenNone(rule) => {
+                Some(rule)
+            }
+            Self::Writable | Self::Merged(_) => None,
+        }
+    }
+
+    /// The rule to run in the second pass of an update.
+    pub fn merged_rule(&self) -> Option<FieldRule> {
+        match *self {
+            Self::Merged(rule) => Some(rule),
+            _ => None,
+        }
+    }
+}
+
+/// One fact that describes an entity, possibly read from a related entity. Every serialized key an
+/// entity carries has one: the flags say which surfaces show it, and `write` says who sets it.
 #[derive(Serialize, Debug, Clone, Copy, PartialEq, Eq, ToSchema)]
 pub struct EntityField {
     /// Stable key: the CSV header, the list-table column id and the diagram Shape Data name.
@@ -233,14 +285,32 @@ pub struct EntityField {
     pub format: FieldFormat,
     /// Sibling field holding the value's attribution, for attributed host facts.
     pub source_field: Option<&'static str>,
-    /// Shown by default in tables and in the inspector's details. Every field is exported.
+    /// Shown by default in tables and in the inspector's details.
     pub summary: bool,
+    /// Shown on the entity's hover tooltip, for a fact that isn't a `summary` default column.
+    pub tooltip: bool,
     /// Whether one entity can hold several values: set by any `Children` or `Embedded` hop, and
     /// declared with [`EntityField::many`] for a key holding an array of ids or values.
     pub many: bool,
     /// Matched by the topology search: a value that names or identifies the entity on the map
     /// (a name, an address, a MAC, a port name, a vendor). The search reads only these.
     pub searchable: bool,
+    /// Offered as a list-table column.
+    pub table: bool,
+    /// Shown by the topology inspector and diagram Shape Data, and read by the topology search.
+    pub inspector: bool,
+    /// Written to CSV export.
+    #[serde(skip)]
+    pub csv: bool,
+    /// Worked out by the table or a response type rather than held on the stored entity.
+    #[serde(skip)]
+    pub computed: bool,
+    /// Never serialized, so the entity's JSON and schema don't carry it.
+    #[serde(skip)]
+    pub unserialized: bool,
+    /// Who sets it, and what an update does with an incoming value.
+    #[serde(skip)]
+    pub write: FieldWrite,
 }
 
 /// Whether a path can reach several objects from one.
@@ -267,8 +337,101 @@ impl EntityField {
             format: FieldFormat::Text,
             source_field: None,
             summary: false,
+            tooltip: false,
             many: false,
             searchable: false,
+            table: true,
+            inspector: true,
+            csv: true,
+            computed: false,
+            unserialized: false,
+            write: FieldWrite::Writable,
+        }
+    }
+
+    /// A list-table column and nothing else: shown only in tables, never exported.
+    pub const fn column(id: &'static str, label: &'static str, group: FieldGroup) -> Self {
+        EntityField {
+            inspector: false,
+            csv: false,
+            ..Self::new(id, label, group)
+        }
+    }
+
+    /// A field no surface shows, declared for its references or its write policy.
+    pub const fn internal(id: &'static str) -> Self {
+        EntityField {
+            table: false,
+            inspector: false,
+            csv: false,
+            ..Self::new(id, "", FieldGroup::Configuration)
+        }
+    }
+
+    /// Whether any surface shows this field.
+    pub const fn is_internal(&self) -> bool {
+        !self.table && !self.inspector && !self.csv
+    }
+
+    /// This field as CSV reads it. A field read through `Hop::Children` writes the ids of the rows
+    /// its path ends on, which join to those rows' own export. Every other surface reads the field
+    /// as declared.
+    pub const fn for_csv(self) -> Self {
+        let mut i = 0;
+        while i < self.path.len() {
+            if matches!(self.path[i], Hop::Children { .. }) {
+                return EntityField {
+                    field: None,
+                    format: FieldFormat::Entity,
+                    ..self
+                };
+            }
+            i += 1;
+        }
+        self
+    }
+
+    /// The table works this value out, or reads it from another endpoint or a response type.
+    pub const fn computed(self) -> Self {
+        EntityField {
+            computed: true,
+            ..self
+        }
+    }
+
+    /// The field is `#[serde(skip)]` or `skip_serializing`.
+    pub const fn unserialized(self) -> Self {
+        EntityField {
+            unserialized: true,
+            ..self
+        }
+    }
+
+    pub const fn immutable(self, rule: FieldRule) -> Self {
+        EntityField {
+            write: FieldWrite::Immutable(rule),
+            ..self
+        }
+    }
+
+    pub const fn server_owned(self, rule: FieldRule) -> Self {
+        EntityField {
+            write: FieldWrite::ServerOwned(rule),
+            ..self
+        }
+    }
+
+    pub const fn keep_when_none(self, rule: FieldRule) -> Self {
+        EntityField {
+            write: FieldWrite::KeepWhenNone(rule),
+            ..self
+        }
+    }
+
+    pub const fn merged(self, rule: FieldRule) -> Self {
+        EntityField {
+            write: FieldWrite::Merged(rule),
+            ..self
         }
     }
 
@@ -323,6 +486,13 @@ impl EntityField {
     pub const fn summary(self) -> Self {
         EntityField {
             summary: true,
+            ..self
+        }
+    }
+
+    pub const fn tooltip(self) -> Self {
+        EntityField {
+            tooltip: true,
             ..self
         }
     }

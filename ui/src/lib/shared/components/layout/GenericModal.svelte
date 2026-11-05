@@ -45,7 +45,9 @@
 		assignModalKeys,
 		closesModalOnEscape,
 		ENTER_KEY,
+		isStackedModal,
 		isTopmostModal,
+		openModalStack,
 		keyPausedAt,
 		registerOpenModal,
 		resolveModalKeydown,
@@ -248,7 +250,10 @@
 	let wasOpen = $state(false);
 
 	// Stacking order: a dialog opened over this one takes Escape and the arrow keys, not both.
+	// A modal opened over another leaves the darkening to the one beneath, so stacking doesn't
+	// shroud the page twice.
 	const stackToken = Symbol();
+	let stacked = $derived(isStackedModal($openModalStack, stackToken));
 	$effect(() => {
 		if (!isOpen) return;
 		return registerOpenModal(stackToken);
@@ -361,16 +366,6 @@
 		}
 		onTabChange?.(tabId);
 	}
-
-	// Lock body scroll when modal is open
-	$effect(() => {
-		if (typeof window !== 'undefined' && isOpen) {
-			document.body.style.overflow = 'hidden';
-			return () => {
-				document.body.style.overflow = '';
-			};
-		}
-	});
 
 	// Sync modal state with URL on open/close transitions
 	$effect(() => {
@@ -540,11 +535,13 @@
 {#if isOpen || keepMounted}
 	<!-- Modal backdrop -->
 	<div
-		class="{showBackdrop ? 'modal-page modal-background' : 'modal-page'} {anchor === 'container'
-			? 'modal-page-anchored'
-			: ''} {compactPadding ? 'px-2! py-1! sm:px-4! sm:py-4!' : ''} {listOrder
-			? 'sm:px-16!'
-			: ''} {showBackButton ? 'max-sm:pt-16!' : ''} {isOpen ? '' : 'invisible'}"
+		class="{showBackdrop && !stacked ? 'modal-page modal-background' : 'modal-page'} {stacked
+			? 'p-4'
+			: ''} {anchor === 'container' ? 'modal-page-anchored' : ''} {compactPadding
+			? 'px-2! py-1! sm:px-4! sm:py-4!'
+			: ''} {listOrder ? 'sm:px-16!' : ''} {showBackButton ? 'max-sm:pt-16!' : ''} {isOpen
+			? ''
+			: 'invisible'}"
 		inert={!isOpen}
 		aria-hidden={!isOpen}
 		onclick={handleBackdropClick}

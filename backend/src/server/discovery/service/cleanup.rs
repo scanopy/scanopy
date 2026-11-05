@@ -5,7 +5,7 @@ use crate::server::daemons::subscriber::CancelDelivery;
 
 impl DiscoveryService {
     pub async fn cleanup_old_sessions(&self, max_age_hours: i64) {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let cutoff = now - chrono::Duration::hours(max_age_hours);
 
         let promotions = {
@@ -43,7 +43,8 @@ impl DiscoveryService {
     /// `older_than_hours` must exceed the longest a session can legitimately
     /// live (a queued rescan waits on `max_discovery_duration`, 6h by default).
     pub async fn sweep_orphaned_rescans(&self, older_than_hours: i64) {
-        let cutoff = Utc::now() - chrono::Duration::hours(older_than_hours);
+        let cutoff =
+            crate::server::shared::clock::now() - chrono::Duration::hours(older_than_hours);
         let filter = StorableFilter::<Discovery>::new()
             .rescan_discovery()
             .updated_before(cutoff);
@@ -78,7 +79,7 @@ impl DiscoveryService {
 
     /// Cleanup stalled sessions (called periodically from background task)
     pub async fn cleanup_stalled_sessions(&self) {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let stall_threshold = chrono::Duration::minutes(5);
 
         // First pass: identify stalled sessions (read locks only)

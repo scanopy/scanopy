@@ -225,6 +225,7 @@ mod monitoring;
 mod polling;
 mod processing;
 mod provisioning;
+mod report_scope;
 
 #[cfg(test)]
 mod tests {
@@ -232,20 +233,20 @@ mod tests {
 
     #[test]
     fn grace_window_none_is_not_within_grace() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         assert!(!is_within_standby_grace(None, now));
     }
 
     #[test]
     fn grace_window_recent_clear_is_within_grace() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let one_hour_ago = now - chrono::Duration::hours(1);
         assert!(is_within_standby_grace(Some(one_hour_ago), now));
     }
 
     #[test]
     fn grace_window_just_inside_boundary_is_within_grace() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let just_inside =
             now - chrono::Duration::days(STANDBY_GRACE_PERIOD_DAYS) + chrono::Duration::hours(1);
         assert!(is_within_standby_grace(Some(just_inside), now));
@@ -253,7 +254,7 @@ mod tests {
 
     #[test]
     fn grace_window_at_exact_boundary_is_expired() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let exactly_at_boundary = now - chrono::Duration::days(STANDBY_GRACE_PERIOD_DAYS);
         // strict `>`, not `>=`
         assert!(!is_within_standby_grace(Some(exactly_at_boundary), now));
@@ -261,7 +262,7 @@ mod tests {
 
     #[test]
     fn grace_window_past_boundary_is_expired() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let past_boundary = now - chrono::Duration::days(STANDBY_GRACE_PERIOD_DAYS + 1);
         assert!(!is_within_standby_grace(Some(past_boundary), now));
     }

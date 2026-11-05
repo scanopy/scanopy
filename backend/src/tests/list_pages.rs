@@ -1,7 +1,6 @@
 //! Lists paged through `list_page`, against a database: each group's count covers every page,
 //! filters narrow on the server, and no row outside the caller's sites or organization appears.
 
-use chrono::Utc;
 use uuid::Uuid;
 
 use crate::server::shared::attribution::AttributeSource;
@@ -23,7 +22,7 @@ fn counts(groups: Option<&[GroupCount]>) -> Vec<(String, u64)> {
 }
 
 fn vlan(site_id: Uuid, organization_id: Uuid, number: u16) -> Vlan {
-    let now = Utc::now();
+    let now = crate::server::shared::clock::now();
     Vlan {
         id: Uuid::new_v4(),
         created_at: now,
@@ -179,7 +178,7 @@ async fn user_api_keys_list_only_the_callers_own() {
 
     let scope = ListScope {
         user_id: Some(me.id),
-        permissions: Some(UserOrgPermissions::Admin),
+        organization_grants: Some(UserOrgPermissions::Admin.grants()),
         ..list_scope(&[net.id], org.id)
     };
     let query = UserApiKeyFilterQuery::default();
@@ -748,6 +747,67 @@ async fn every_documented_tag_filter_narrows_the_rows() {
     .await;
 }
 
+/// The site filter reads each user's stored assignments, and the page carries them for the Sites
+/// column.
+#[tokio::test]
+async fn members_filter_by_the_sites_assigned_to_them() {
+    use crate::server::auth::access::Assignment;
+    use crate::server::auth::middleware::auth::AuthenticatedEntity;
+    use crate::server::site_assignments::r#impl::base::Principal;
+    use crate::server::users::r#impl::permissions::UserOrgPermissions;
+    use crate::server::users::members::{Member, MemberFilterQuery, members_page};
+
+    let (storage, state, _container) = test_state().await;
+    let org = organization();
+    storage.organizations.create(&org).await.unwrap();
+    let (office, lab) = (site(&org.id), site(&org.id));
+    storage.sites.create(&office).await.unwrap();
+    storage.sites.create(&lab).await.unwrap();
+
+    let role = UserOrgPermissions::Member;
+    let mut assigned = Vec::new();
+    for (email, site_id) in [
+        ("office@porto.example", office.id),
+        ("lab@porto.example", lab.id),
+    ] {
+        let mut u = user(&org.id);
+        u.base.email = email_address::EmailAddress::new_unchecked(email);
+        u.base.permissions = role;
+        storage.users.create(&u).await.unwrap();
+        state
+            .services
+            .access_service
+            .set_access(
+                Principal::User(u.id),
+                role,
+                &Assignment::for_person(role, &[site_id]),
+                AuthenticatedEntity::System,
+            )
+            .await
+            .unwrap();
+        assigned.push(u);
+    }
+
+    let page = members_page(
+        &state,
+        org.id,
+        Uuid::new_v4(),
+        &UserOrgPermissions::Owner.grants(),
+        &MemberFilterQuery {
+            site_ids: Some(vec![office.id]),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+
+    let [Member::User { id, data, .. }] = page.data.as_slice() else {
+        panic!("one member is on the office site, got {}", page.data.len());
+    };
+    assert_eq!(*id, assigned[0].id);
+    assert_eq!(data.base.site_ids, vec![office.id]);
+}
+
 /// The members list holds the users and invites the caller may see, filters and groups on what
 /// the server derives, and the user CSV export holds no more of the organization than it does.
 #[tokio::test]
@@ -801,7 +861,7 @@ async fn members_list_users_and_invites_the_caller_may_see() {
         &state,
         org.id,
         admin.id,
-        UserOrgPermissions::Admin,
+        &UserOrgPermissions::Admin.grants(),
         &MemberFilterQuery::default(),
     )
     .await
@@ -814,7 +874,7 @@ async fn members_list_users_and_invites_the_caller_may_see() {
         &state,
         org.id,
         admin.id,
-        UserOrgPermissions::Admin,
+        &UserOrgPermissions::Admin.grants(),
         &MemberFilterQuery {
             statuses: Some(vec![MemberStatus::Pending]),
             group_by: Some(MemberOrderField::InviteStatus),
@@ -832,7 +892,7 @@ async fn members_list_users_and_invites_the_caller_may_see() {
     // The export reads through `User::access_filter`, the same rule.
     let scope = ListScope {
         user_id: Some(admin.id),
-        permissions: Some(UserOrgPermissions::Admin),
+        organization_grants: Some(UserOrgPermissions::Admin.grants()),
         ..list_scope(&[], org.id)
     };
     let mut exported: Vec<Uuid> = state

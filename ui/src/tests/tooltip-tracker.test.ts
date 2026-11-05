@@ -76,3 +76,19 @@ describe('TooltipTracker', () => {
 		expect(tracker.current).toBeNull();
 	});
 });
+
+describe('dismissing the tooltip', () => {
+	it('closes it now, and shows again on the next element the pointer reaches', () => {
+		const page = new FakeTarget('page');
+		const chip = new FakeTarget('chip', page, true);
+		const other = new FakeTarget('other', page, true);
+		const { tracker, events } = track();
+		tracker.moveTo(chip);
+		tracker.dismiss();
+		expect(events).toEqual(['show chip', 'hide']);
+		expect(tracker.current).toBeNull();
+
+		tracker.moveTo(other);
+		expect(events).toEqual(['show chip', 'hide', 'show other']);
+	});
+});

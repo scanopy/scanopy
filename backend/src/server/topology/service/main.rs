@@ -310,6 +310,12 @@ impl TopologyService {
         self.live_update_tx.subscribe()
     }
 
+    /// Announce a live-topology change, as the event subscriber does.
+    #[cfg(test)]
+    pub fn broadcast_live_update(&self, site_id: Uuid) {
+        let _ = self.live_update_tx.send(site_id);
+    }
+
     /// Unified entity-set loader for live + snapshot topology reads.
     ///
     /// `snapshot_id = None` reads live entity rows (`valid_to IS NULL`).

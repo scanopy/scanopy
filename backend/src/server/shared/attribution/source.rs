@@ -883,6 +883,7 @@ impl TypeMetadataProvider for ClientProbe {
             Self::UnifiController => "UniFi controller",
             Self::InstantOn => "HPE Instant On",
             Self::Proxmox => "Proxmox VE",
+            Self::Libvirt => "libvirt",
             Self::ModbusTcp => "Modbus TCP",
             Self::OpcUa => "OPC UA",
             Self::EtherNetIp => "EtherNet/IP",

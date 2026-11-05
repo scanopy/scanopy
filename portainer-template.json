@@ -25,6 +25,11 @@
       "default": "http://localhost:60072"
     },
     {
+      "name": "SCANOPY_LICENSE_KEY",
+      "label": "License key (optional)",
+      "description": "From Settings > License in Scanopy Cloud. Leave empty for the Community Edition."
+    },
+    {
       "name": "SCANOPY_LOG_LEVEL",
       "label": "Log level",
       "select": [

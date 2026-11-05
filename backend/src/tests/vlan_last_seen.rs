@@ -4,7 +4,7 @@
 //! stays at the scan that created it and the digest reports it stale while every scan still sees
 //! it.
 
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use uuid::Uuid;
 
 use crate::server::services::r#impl::patterns::ClientProbe;
@@ -47,7 +47,7 @@ async fn a_vlan_reported_again_unchanged_reads_as_seen_by_that_scan() {
 
     // As if the first scan had run a day ago.
     let mut stored = storage.vlans.get_by_id(&id).await.unwrap().unwrap();
-    stored.last_seen_at = Utc::now() - Duration::days(1);
+    stored.last_seen_at = crate::server::shared::clock::now() - Duration::days(1);
     storage.vlans.update(&mut stored).await.unwrap();
 
     let rescan = ScanContext::new(Uuid::new_v4());
@@ -63,9 +63,5 @@ async fn a_vlan_reported_again_unchanged_reads_as_seen_by_that_scan() {
         .await
         .unwrap();
     assert_eq!(live.len(), 1, "one live row for the number");
-    // Postgres keeps microseconds; the scan time carries nanoseconds.
-    assert_eq!(
-        live[0].last_seen_at.timestamp_micros(),
-        rescan.scan_time.timestamp_micros()
-    );
+    assert_eq!(live[0].last_seen_at, rescan.scan_time);
 }

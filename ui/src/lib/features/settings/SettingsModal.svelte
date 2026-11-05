@@ -11,7 +11,7 @@
 		Monitor,
 		LifeBuoy
 	} from '@lucide/svelte';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	import { useCan } from '$lib/features/auth/access';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import {
 		hasLicensedPlan,
@@ -71,15 +71,14 @@
 		licensedPlanPending?: boolean;
 	} = $props();
 
-	// TanStack Query for current user and organization
-	const currentUserQuery = useCurrentUserQuery();
+	// TanStack Query for organization
 	const organizationQuery = useOrganizationQuery();
 
-	let currentUser = $derived(currentUserQuery.data);
 	let org = $derived(organizationQuery.data);
 
 	const configQuery = useConfigQuery();
-	let isOwner = $derived(currentUser?.permissions === 'Owner');
+	const can = useCan();
+	let canManageBilling = $derived(can('Billing', 'Write'));
 	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
 	let isDemoOrg = $derived(billingPlans.getMetadata(org?.plan?.type ?? null).is_demo === true);
 	// No signing key means the mint endpoints fail, so the tab would only produce
@@ -137,11 +136,11 @@
 	// Filter tabs based on permissions
 	let visibleTabs = $derived(
 		baseTabs.filter((tab) => {
-			if (tab.id === 'organization') return isOwner;
-			if (tab.id === 'billing') return isOwner && isCloudDeployment;
+			if (tab.id === 'organization') return can('Organization', 'Write');
+			if (tab.id === 'billing') return can('Billing', 'Read') && isCloudDeployment;
 			if (tab.id === 'license')
 				return licenseTabVisible({
-					isOwner,
+					isOwner: can('License', 'Read'),
 					isDemoOrg,
 					isCloudDeployment,
 					signingAvailable: isLicenseSigningOn
@@ -220,7 +219,7 @@
 	<!-- flex-1 min-h-0, not a fixed height: the panel is a flex column, and a
 	     hardcoded height would not absorb the banners above the title. -->
 	<div class="flex min-h-0 flex-1 flex-col">
-		{#if (!dismissible || licenseLocked) && !isOwner && !(org != null && isPlanLapsed(org))}
+		{#if (!dismissible || licenseLocked) && !canManageBilling && !(org != null && isPlanLapsed(org))}
 			<!-- Billing-blocked org (past_due / paused), or one on a self-hosted plan: only
 			     an owner can see the Billing and License tabs, so tell everyone else why.
 			     A lapsed org's banner already says so and asks for an owner. -->

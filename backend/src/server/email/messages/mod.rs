@@ -338,7 +338,7 @@ pub trait Email: Send + Sync {
     /// while self-hosted sends are relayed by the operator's own mail server,
     /// so that disclosure is replaced by a plain copyright line.
     fn render_html(&self, base_url: &str, self_hosted: bool) -> String {
-        let year = chrono::Utc::now().format("%Y").to_string();
+        let year = crate::server::shared::clock::now().format("%Y").to_string();
         let footer_legal = if self_hosted {
             FOOTER_LEGAL_SELF_HOSTED
         } else {
@@ -1004,8 +1004,8 @@ mod tests {
             session_id: Uuid::nil(),
             site_id: Uuid::nil(),
             site_name: "Home".to_string(),
-            started_at: chrono::Utc::now(),
-            finished_at: chrono::Utc::now(),
+            started_at: crate::server::shared::clock::now(),
+            finished_at: crate::server::shared::clock::now(),
             stale_after_hours: DEFAULT_STALE_AFTER_HOURS,
             subnets_scanned: vec![],
             hosts_added: vec![],

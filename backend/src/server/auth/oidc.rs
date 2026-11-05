@@ -145,7 +145,7 @@ impl OidcService {
             permissions,
             ip,
             user_agent,
-            site_ids,
+            site_assignments,
             invited_as,
         } = params;
 
@@ -210,7 +210,7 @@ impl OidcService {
                 provision_org,
                 email_verified,
                 permissions,
-                site_ids,
+                site_assignments,
                 terms_accepted_at,
                 deployment_type,
             })
@@ -446,7 +446,7 @@ impl OidcService {
 
         user.base.oidc_provider = Some(provider.slug.clone());
         user.base.oidc_subject = Some(user_info.subject);
-        user.base.oidc_linked_at = Some(chrono::Utc::now());
+        user.base.oidc_linked_at = Some(crate::server::shared::clock::now());
 
         let authentication: AuthenticatedEntity = user.clone().into();
 
@@ -508,7 +508,7 @@ impl OidcService {
         user.base.oidc_provider = None;
         user.base.oidc_subject = None;
         user.base.oidc_linked_at = None;
-        user.updated_at = chrono::Utc::now();
+        user.updated_at = crate::server::shared::clock::now();
 
         let authentication: AuthenticatedEntity = user.clone().into();
 

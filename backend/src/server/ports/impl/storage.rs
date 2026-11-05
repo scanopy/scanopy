@@ -29,7 +29,7 @@ impl Storable for Port {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,
@@ -249,18 +249,18 @@ impl Entity for Port {
     fn set_updated_at(&mut self, time: DateTime<Utc>) {
         self.updated_at = time;
     }
+}
 
+impl Port {
     /// A port keeps the first source that found it, so saving a host in the editor does not
     /// relabel its discovered ports as entered by a person.
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
+    pub(crate) fn merge_port_source(&mut self, existing: &Self) {
         self.base.port_source = existing
             .base
             .port_source
             .keep_or_heal(self.base.port_source);
     }
-}
 
-impl Port {
     fn protocol_string(protocol: TransportProtocol) -> &'static str {
         match protocol {
             TransportProtocol::Tcp => "Tcp",

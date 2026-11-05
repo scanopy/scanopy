@@ -135,7 +135,7 @@ impl CrudService<Tag> for TagService {
             return Ok(());
         }
 
-        entity.valid_to = Some(chrono::Utc::now());
+        entity.valid_to = Some(crate::server::shared::clock::now());
         let _ = self.storage().update(&mut entity).await?;
 
         let trigger_stale = entity.triggers_staleness(None);

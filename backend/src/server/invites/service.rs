@@ -1,7 +1,6 @@
 use crate::server::shared::events::types::DeletionReason;
 use std::sync::Arc;
 
-use chrono::Utc;
 use uuid::Uuid;
 
 use crate::server::shared::events::traits::{EntityEventFlags, EntityScope, Event};
@@ -14,11 +13,13 @@ use crate::server::{
         services::traits::{CrudService, EventBusService},
         storage::{filter::StorableFilter, generic::GenericPostgresStorage, traits::Storage},
     },
+    site_assignments::{r#impl::base::Principal, service::SiteAssignmentService},
     tags::entity_tags::EntityTagService,
 };
 
 pub struct InviteService {
     storage: Arc<GenericPostgresStorage<Invite>>,
+    site_assignments: Arc<SiteAssignmentService>,
     event_bus: Arc<EventBus>,
 }
 
@@ -47,13 +48,45 @@ impl CrudService<Invite> for InviteService {
 }
 
 impl InviteService {
-    pub fn new(storage: Arc<GenericPostgresStorage<Invite>>, event_bus: Arc<EventBus>) -> Self {
-        Self { storage, event_bus }
+    pub fn new(
+        storage: Arc<GenericPostgresStorage<Invite>>,
+        site_assignments: Arc<SiteAssignmentService>,
+        event_bus: Arc<EventBus>,
+    ) -> Self {
+        Self {
+            storage,
+            site_assignments,
+            event_bus,
+        }
+    }
+
+    /// Fill `site_ids` from the invite's site assignments.
+    pub async fn hydrate_site_ids(&self, invite: &mut Invite) -> Result<(), anyhow::Error> {
+        invite.base.site_ids = self
+            .site_assignments
+            .listed_site_ids(Principal::Invite(invite.id))
+            .await?;
+        Ok(())
+    }
+
+    async fn hydrate_all(&self, mut invites: Vec<Invite>) -> Result<Vec<Invite>, anyhow::Error> {
+        let ids: Vec<Uuid> = invites.iter().map(|invite| invite.id).collect();
+        let listed = self
+            .site_assignments
+            .listed_site_ids_by("invite_id", &ids, |principal| match principal {
+                Principal::Invite(id) => Some(*id),
+                _ => None,
+            })
+            .await?;
+        for invite in &mut invites {
+            invite.base.site_ids = listed.get(&invite.id).cloned().unwrap_or_default();
+        }
+        Ok(invites)
     }
 
     /// Get an invite by ID, validating it hasn't expired
     pub async fn get_valid_invite(&self, id: Uuid) -> Result<Invite, anyhow::Error> {
-        let invite = self
+        let mut invite = self
             .storage
             .get_by_id(&id)
             .await?
@@ -65,12 +98,13 @@ impl InviteService {
             ));
         }
 
+        self.hydrate_site_ids(&mut invite).await?;
         Ok(invite)
     }
 
     /// Use (consume) an invite - validates and deletes it
     pub async fn use_invite(&self, id: Uuid) -> Result<Invite, anyhow::Error> {
-        let invite = self
+        let mut invite = self
             .storage
             .get_by_id(&id)
             .await?
@@ -80,6 +114,8 @@ impl InviteService {
             return Err(anyhow::anyhow!("Invite link has expired"));
         }
 
+        // Read before the delete, which takes the invite's assignments with it.
+        self.hydrate_site_ids(&mut invite).await?;
         self.storage.delete(&id).await?;
 
         let trigger_stale = invite.triggers_staleness(None);
@@ -112,7 +148,7 @@ impl InviteService {
 
     /// Clean up expired invites from the database
     pub async fn cleanup_expired(&self) {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let filter = StorableFilter::<Invite>::new_with_expiry_before(now);
 
         match self.storage.get_all(filter).await {
@@ -158,14 +194,13 @@ impl InviteService {
         organization_id: &Uuid,
     ) -> Result<Vec<Invite>, anyhow::Error> {
         let filter = StorableFilter::<Invite>::new_from_org_id(organization_id);
-        self.storage.get_all(filter).await
+        let invites = self.storage.get_all(filter).await?;
+        self.hydrate_all(invites).await
     }
 
     /// List all active (non-expired) invites for an organization
     pub async fn list_active_invites(&self, organization_id: &Uuid) -> Vec<Invite> {
-        let filter = StorableFilter::<Invite>::new_from_org_id(organization_id);
-
-        match self.storage.get_all(filter).await {
+        match self.get_org_invites(organization_id).await {
             Ok(invites) => invites
                 .into_iter()
                 .filter(|invite| invite.is_valid())

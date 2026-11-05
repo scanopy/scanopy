@@ -35,7 +35,7 @@ impl Storable for Interface {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
 
         Self {
             id: Uuid::new_v4(),
@@ -267,18 +267,22 @@ impl Entity for Interface {
     fn set_updated_at(&mut self, time: DateTime<Utc>) {
         self.updated_at = time;
     }
+}
 
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        self.created_at = existing.created_at;
-        // The MAC merges by rung rather than being pinned to whatever wrote it first. Pinning meant
-        // a MAC a router's ARP cache reported could never be corrected by the device answering for
-        // itself — first-write-wins under another name, and the same failure the host attributes
-        // had. `MacEvidenceValue` is not refreshable, so an equal-rung re-read still cannot move it.
+impl Interface {
+    /// The MAC merges by rung rather than being pinned to whatever wrote it first. Pinning meant
+    /// a MAC a router's ARP cache reported could never be corrected by the device answering for
+    /// itself — first-write-wins under another name, and the same failure the host attributes
+    /// had. `MacEvidenceValue` is not refreshable, so an equal-rung re-read still cannot move it.
+    pub(crate) fn merge_mac_address(&mut self, existing: &Self) {
         let mut merged = existing.base.mac_address.clone();
         if let Some(incoming) = self.base.mac_address.clone() {
             Attributed::apply(&mut merged, incoming);
         }
         self.base.mac_address = merged;
+    }
+
+    pub(crate) fn merge_interface_source(&mut self, existing: &Self) {
         // A port the forwarding-table pass recorded becomes the device's own once a scan of the
         // device reports it, so the walk's source replaces the inferred one rather than yielding.
         self.base.interface_source =
@@ -290,40 +294,6 @@ impl Entity for Interface {
                 }
                 (existing, incoming) => existing.keep_or_heal(incoming),
             };
-        // Keep a previously-captured if_name if the current scan happens to lack it
-        // (partial SNMP response, or device that stopped reporting ifXTable). Losing
-        // if_name silently breaks tier-1 matching on the next scan.
-        if existing.base.if_name.is_some() && self.base.if_name.is_none() {
-            self.base.if_name = existing.base.if_name.clone();
-        }
-        // The rest of the ifTable-shaped fields, guarded the same way and for the same reason:
-        // `None` on an *incoming* row means "this source has nothing to say about it", never "the
-        // device stopped reporting it" — the two are indistinguishable at this layer, and only the
-        // first is safe to assume. Without this, a match resolved on Tier 3 (MAC) by a source that
-        // carries only a MAC — the PROFINET DCP case, which reports none of these — replaces the
-        // whole row with its own near-empty one, silently erasing an SNMP walk's if_index/if_type/
-        // statuses/if_descr the moment DCP and SNMP see the same device. A real SNMP re-walk still
-        // overwrites its own prior reading, exactly as it always has — the guard only stops a
-        // narrower source from clobbering fields it never claimed to know.
-        if existing.base.if_index.is_some() && self.base.if_index.is_none() {
-            self.base.if_index = existing.base.if_index;
-        }
-        if existing.base.if_type.is_some() && self.base.if_type.is_none() {
-            self.base.if_type = existing.base.if_type;
-        }
-        if existing.base.admin_status.is_some() && self.base.admin_status.is_none() {
-            self.base.admin_status = existing.base.admin_status;
-        }
-        if existing.base.oper_status.is_some() && self.base.oper_status.is_none() {
-            self.base.oper_status = existing.base.oper_status;
-        }
-        if existing.base.if_descr.is_some() && self.base.if_descr.is_none() {
-            self.base.if_descr = existing.base.if_descr.clone();
-        }
-        // GH #649's neighbor-preservation guard no longer applies: neighbours moved off
-        // `Interface` entirely in GH #701, into `interface_neighbor_interfaces`/
-        // `interface_neighbor_hosts`, which the resolution ladder writes directly and which no
-        // discovery submission (old or new) can touch through this struct at all.
     }
 }
 

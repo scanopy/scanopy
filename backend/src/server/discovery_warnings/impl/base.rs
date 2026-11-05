@@ -48,7 +48,7 @@ impl DiscoveryWarningRecord {
     pub fn new(base: DiscoveryWarningRecordBase) -> Self {
         Self {
             id: Uuid::new_v4(),
-            created_at: Utc::now(),
+            created_at: crate::server::shared::clock::now(),
             base,
         }
     }

@@ -619,7 +619,7 @@ impl Host {
     }
 
     pub fn new(base: HostBase) -> Self {
-        let now = chrono::Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: uuid::Uuid::new_v4(),
             created_at: now,

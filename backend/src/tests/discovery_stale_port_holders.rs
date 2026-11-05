@@ -4,7 +4,7 @@
 //! port has gone unseen past the site's stale window. A holder left with no bindings is deleted.
 //! What must stay put lives in `discovery_stale_port_guards`, which shares this file's `Lab`.
 
-use chrono::{Duration, Utc};
+use chrono::Duration;
 
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::bindings::r#impl::base::Binding;
@@ -71,7 +71,7 @@ impl Lab<'_> {
     /// Mark the stored port as last answering well past the site's stale window.
     pub(super) async fn age_port(&self, number: u16) {
         let mut port = self.stored_tcp(number).await;
-        port.last_seen_at = Utc::now() - Duration::days(30);
+        port.last_seen_at = crate::server::shared::clock::now() - Duration::days(30);
         self.services
             .port_service
             .storage()

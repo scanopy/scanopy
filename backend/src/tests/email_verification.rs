@@ -11,19 +11,19 @@ use axum::body::Body;
 use axum::extract::FromRequestParts;
 use axum::http::Request;
 use axum::middleware::{self, Next};
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use email_address::EmailAddress;
-use testcontainers::{ContainerAsync, GenericImage};
 use uuid::Uuid;
 
-use super::{organization, setup_test_db, site, user};
+use super::{TestDb, access_on, organization, setup_migrated_test_db, site, user};
 use crate::server::auth::r#impl::api::RegisterRequest;
 use crate::server::auth::r#impl::base::{LoginRegisterParams, ProvisionOrg};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
-use crate::server::auth::middleware::permissions::{Authorized, Member, RequireVerified};
+use crate::server::auth::middleware::permissions::{Authorized, Can, RequireVerified, Write};
 use crate::server::config::{AppState, DeploymentType, ServerConfig};
 use crate::server::daemons::r#impl::api::ProvisionDaemonRequest;
 use crate::server::daemons::r#impl::base::{DaemonMode, DaemonOs};
+use crate::server::hosts::r#impl::base::Host;
 use crate::server::organizations::r#impl::base::Organization;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::types::api::ApiError;
@@ -36,10 +36,8 @@ const IP: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 
 /// App state on a fresh database. `email_log_dir` set means the server has an email
 /// transport; `None` means it has none.
-async fn test_state(
-    email_log_dir: Option<PathBuf>,
-) -> (Arc<AppState>, ContainerAsync<GenericImage>) {
-    let (pool, database_url, container) = setup_test_db().await;
+async fn test_state(email_log_dir: Option<PathBuf>) -> (Arc<AppState>, TestDb) {
+    let (pool, database_url, container) = setup_migrated_test_db().await;
     pool.close().await;
     let config = ServerConfig {
         database_url,
@@ -50,11 +48,7 @@ async fn test_state(
 }
 
 /// State with an email transport writing into a temp dir the caller keeps alive.
-async fn state_with_email() -> (
-    Arc<AppState>,
-    ContainerAsync<GenericImage>,
-    tempfile::TempDir,
-) {
+async fn state_with_email() -> (Arc<AppState>, TestDb, tempfile::TempDir) {
     let dir = tempfile::tempdir().unwrap();
     let (state, container) = test_state(Some(dir.path().to_path_buf())).await;
     (state, container, dir)
@@ -122,7 +116,7 @@ fn session_entity(user: &User, site_ids: Vec<Uuid>) -> AuthenticatedEntity {
         user_id: user.id,
         organization_id: user.base.organization_id,
         permissions: user.base.permissions,
-        site_ids,
+        access: access_on(user.base.permissions, &site_ids),
         email: user.base.email.clone(),
         email_verified: user.base.email_verified,
         terms_accepted_at: user.base.terms_accepted_at,
@@ -134,7 +128,7 @@ fn wire_code(err: &ApiError) -> Option<&'static str> {
     err.error_code.as_ref().map(ErrorCode::code)
 }
 
-/// Run the `RequireVerified<Member>` extractor against a request carrying `entity`.
+/// Run a `RequireVerified` extractor against a request carrying `entity`.
 async fn require_verified(
     state: &Arc<AppState>,
     entity: AuthenticatedEntity,
@@ -142,7 +136,7 @@ async fn require_verified(
     let mut request = Request::new(Body::empty());
     request.extensions_mut().insert(entity);
     let (mut parts, _) = request.into_parts();
-    Authorized::<RequireVerified<Member>>::from_request_parts(&mut parts, state)
+    Authorized::<RequireVerified<Can<Host, Write>>>::from_request_parts(&mut parts, state)
         .await
         .map(|_| ())
         .map_err(|e| e.0)
@@ -174,12 +168,12 @@ async fn require_verified_refuses_unverified_and_allows_verified() {
     .await;
 
     assert!(
-        require_verified(&state, session_entity(&verified, vec![]))
+        require_verified(&state, session_entity(&verified, vec![Uuid::new_v4()]))
             .await
             .is_ok()
     );
 
-    let refused = require_verified(&state, session_entity(&unverified, vec![]))
+    let refused = require_verified(&state, session_entity(&unverified, vec![Uuid::new_v4()]))
         .await
         .unwrap_err();
     assert_eq!(refused.status, axum::http::StatusCode::FORBIDDEN);
@@ -203,7 +197,7 @@ async fn require_verified_is_lifted_without_an_email_transport() {
     .await;
 
     assert!(
-        require_verified(&state, session_entity(&unverified, vec![]))
+        require_verified(&state, session_entity(&unverified, vec![Uuid::new_v4()]))
             .await
             .is_ok()
     );
@@ -319,7 +313,7 @@ async fn register_invited(
                 permissions: Some(UserOrgPermissions::Member),
                 ip: IP,
                 user_agent: None,
-                site_ids: vec![],
+                site_assignments: vec![],
                 invited_as: invited_as.map(EmailAddress::new_unchecked),
             },
             DeploymentType::Community,
@@ -404,7 +398,8 @@ async fn an_unknown_or_expired_verification_token_gets_a_coded_400() {
     )
     .await;
     expired.base.email_verification_token = Some("expired-token".to_string());
-    expired.base.email_verification_expires = Some(Utc::now() - Duration::hours(1));
+    expired.base.email_verification_expires =
+        Some(crate::server::shared::clock::now() - Duration::hours(1));
     state
         .services
         .user_service
@@ -505,7 +500,8 @@ async fn completing_a_password_reset_verifies_the_address() {
     )
     .await;
     pending.base.password_reset_token = Some("reset-token".to_string());
-    pending.base.password_reset_expires = Some(Utc::now() + Duration::hours(1));
+    pending.base.password_reset_expires =
+        Some(crate::server::shared::clock::now() + Duration::hours(1));
     state
         .services
         .user_service
@@ -546,7 +542,7 @@ async fn email_change_requests_are_limited_per_new_address() {
                 permissions: Some(UserOrgPermissions::Owner),
                 ip: IP,
                 user_agent: None,
-                site_ids: vec![],
+                site_assignments: vec![],
                 invited_as: None,
             },
             DeploymentType::Community,
@@ -599,7 +595,7 @@ async fn user_with_pending_email_change(state: &AppState) -> User {
                 permissions: Some(UserOrgPermissions::Owner),
                 ip: IP,
                 user_agent: None,
-                site_ids: vec![],
+                site_assignments: vec![],
                 invited_as: None,
             },
             DeploymentType::Community,

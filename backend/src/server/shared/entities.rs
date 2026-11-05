@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use strum_macros::{AsRefStr, Display, EnumDiscriminants, EnumIter, IntoStaticStr, VariantNames};
 use utoipa::ToSchema;
 
+use crate::server::auth::access::Resource;
 use crate::server::shared::product_area::ProductArea;
 use crate::server::{
     daemon_api_keys::r#impl::base::DaemonApiKey,
@@ -245,6 +246,32 @@ impl EntityDiscriminants {
     /// The part of the product this entity type belongs to.
     pub fn area(&self) -> ProductArea {
         Entity::from(*self).area()
+    }
+
+    /// What a role grants access to for this entity type. Child entities share their parent's.
+    /// Exhaustive match: adding a new variant forces a decision.
+    pub fn resource(&self) -> Resource {
+        match self {
+            EntityDiscriminants::Site => Resource::Site,
+            EntityDiscriminants::Host
+            | EntityDiscriminants::IPAddress
+            | EntityDiscriminants::Interface
+            | EntityDiscriminants::Port => Resource::Host,
+            EntityDiscriminants::Service | EntityDiscriminants::Binding => Resource::Service,
+            EntityDiscriminants::Subnet => Resource::Subnet,
+            EntityDiscriminants::Vlan => Resource::Vlan,
+            EntityDiscriminants::Dependency => Resource::Dependency,
+            EntityDiscriminants::Topology | EntityDiscriminants::Snapshot => Resource::Topology,
+            EntityDiscriminants::Share => Resource::Share,
+            EntityDiscriminants::Discovery => Resource::Discovery,
+            EntityDiscriminants::Daemon => Resource::Daemon,
+            EntityDiscriminants::DaemonApiKey => Resource::DaemonApiKey,
+            EntityDiscriminants::Credential => Resource::Credential,
+            EntityDiscriminants::Tag | EntityDiscriminants::TagGroup => Resource::Tag,
+            EntityDiscriminants::User | EntityDiscriminants::Invite => Resource::Member,
+            EntityDiscriminants::UserApiKey => Resource::UserApiKey,
+            EntityDiscriminants::Organization => Resource::Organization,
+        }
     }
 
     /// Title-case singular name, e.g. "Host", "IP Address". Delegates to
@@ -513,11 +540,8 @@ impl TypeMetadataProvider for EntityDiscriminants {
             "entity_name_plural".to_string(),
             serde_json::json!(self.entity_name_plural()),
         );
-        m.insert("fields".to_string(), serde_json::json!(self.fields()));
-        m.insert(
-            "table_columns".to_string(),
-            serde_json::json!(self.table_columns()),
-        );
+        let shown: Vec<_> = self.fields().iter().filter(|f| !f.is_internal()).collect();
+        m.insert("fields".to_string(), serde_json::json!(shown));
         m.insert(
             "display_fields".to_string(),
             serde_json::json!(self.display_fields()),

@@ -33,7 +33,6 @@ use crate::server::{
 };
 use anyhow::{Error, Result};
 use async_trait::async_trait;
-use chrono::Utc;
 use cidr::IpCidr;
 use std::collections::HashMap;
 use std::net::IpAddr;
@@ -741,7 +740,7 @@ impl SubnetService {
             },
             tags: Vec::new(),
         });
-        subnet.last_seen_at = Utc::now();
+        subnet.last_seen_at = crate::server::shared::clock::now();
 
         let created = self.create(subnet, AuthenticatedEntity::System).await?;
         Ok(Placement::Inferred(created.id))

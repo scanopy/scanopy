@@ -20,7 +20,7 @@ impl Storable for Topology {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
 
         Self {
             id: Uuid::new_v4(),
@@ -115,12 +115,6 @@ impl Entity for Topology {
 
     fn set_updated_at(&mut self, time: DateTime<Utc>) {
         self.updated_at = time;
-    }
-
-    fn preserve_immutable_fields(&mut self, existing: &Self) {
-        self.id = existing.id;
-        self.created_at = existing.created_at;
-        self.updated_at = existing.updated_at;
     }
 
     fn get_tags(&self) -> Option<&Vec<Uuid>> {

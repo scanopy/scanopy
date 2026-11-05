@@ -496,9 +496,11 @@ mod tests {
         update.progress = 100;
         update.hosts_discovered = Some(12);
 
-        let UpdateOutcome::Terminal(effects) =
-            apply_update(&mut maps.borrow(), &update, Utc::now())
-        else {
+        let UpdateOutcome::Terminal(effects) = apply_update(
+            &mut maps.borrow(),
+            &update,
+            crate::server::shared::clock::now(),
+        ) else {
             panic!("a Complete update is terminal");
         };
 
@@ -514,7 +516,7 @@ mod tests {
         let daemon = Uuid::new_v4();
         let running = maps.start(daemon, DiscoveryPhase::Scanning);
         let queued = maps.start(daemon, DiscoveryPhase::Queued);
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
 
         let UpdateOutcome::Terminal(effects) = apply_update(
             &mut maps.borrow(),
@@ -541,9 +543,17 @@ mod tests {
         let mut maps = Maps::default();
         let running = maps.start(Uuid::new_v4(), DiscoveryPhase::Scanning);
         let complete = with_phase(&running, DiscoveryPhase::Complete);
-        apply_update(&mut maps.borrow(), &complete, Utc::now());
+        apply_update(
+            &mut maps.borrow(),
+            &complete,
+            crate::server::shared::clock::now(),
+        );
 
-        let outcome = apply_update(&mut maps.borrow(), &complete, Utc::now());
+        let outcome = apply_update(
+            &mut maps.borrow(),
+            &complete,
+            crate::server::shared::clock::now(),
+        );
 
         assert!(matches!(outcome, UpdateOutcome::Ignored));
         assert!(!maps.sessions.contains_key(&running.session_id));
@@ -562,7 +572,11 @@ mod tests {
         );
         update.phase = DiscoveryPhase::Scanning;
 
-        let outcome = apply_update(&mut maps.borrow(), &update, Utc::now());
+        let outcome = apply_update(
+            &mut maps.borrow(),
+            &update,
+            crate::server::shared::clock::now(),
+        );
 
         assert!(matches!(outcome, UpdateOutcome::Progress));
         assert!(maps.sessions.contains_key(&update.session_id));
@@ -583,16 +597,20 @@ mod tests {
         let queued = maps.start(daemon, DiscoveryPhase::Queued);
         let awaiting = maps.start(Uuid::new_v4(), DiscoveryPhase::AwaitingSnapshot);
         let silent = maps.start(Uuid::new_v4(), DiscoveryPhase::Scanning);
-        let long_ago = Utc::now() - Duration::hours(3);
+        let long_ago = crate::server::shared::clock::now() - Duration::hours(3);
         for id in [queued.session_id, awaiting.session_id, silent.session_id] {
             maps.last_updated.insert(id, long_ago);
         }
 
-        let stalled: Vec<Uuid> =
-            select_stalled(&maps.sessions, &maps.last_updated, Utc::now(), threshold())
-                .into_iter()
-                .map(|s| s.session_id)
-                .collect();
+        let stalled: Vec<Uuid> = select_stalled(
+            &maps.sessions,
+            &maps.last_updated,
+            crate::server::shared::clock::now(),
+            threshold(),
+        )
+        .into_iter()
+        .map(|s| s.session_id)
+        .collect();
 
         assert_eq!(stalled, vec![silent.session_id]);
     }
@@ -603,7 +621,7 @@ mod tests {
         let daemon = Uuid::new_v4();
         let stalled = maps.start(daemon, DiscoveryPhase::Scanning);
         let queued = maps.start(daemon, DiscoveryPhase::Queued);
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
 
         let reaped = reap(&mut maps.borrow(), &[stalled_as(&stalled)], now);
 
@@ -629,7 +647,11 @@ mod tests {
     ) -> Option<DiscoveryTerminalReason> {
         let mut update = with_phase(running, phase);
         update.reason = sent;
-        match apply_update(&mut maps.borrow(), &update, Utc::now()) {
+        match apply_update(
+            &mut maps.borrow(),
+            &update,
+            crate::server::shared::clock::now(),
+        ) {
             UpdateOutcome::Terminal(effects) => effects.session.reason,
             _ => panic!("{phase:?} is terminal"),
         }
@@ -689,14 +711,20 @@ mod tests {
     fn a_daemon_still_running_a_reaped_session_cannot_bring_it_back() {
         let mut maps = Maps::default();
         let stalled = maps.start(Uuid::new_v4(), DiscoveryPhase::Scanning);
-        maps.last_updated
-            .insert(stalled.session_id, Utc::now() - Duration::minutes(10));
-        reap(&mut maps.borrow(), &[stalled_as(&stalled)], Utc::now());
+        maps.last_updated.insert(
+            stalled.session_id,
+            crate::server::shared::clock::now() - Duration::minutes(10),
+        );
+        reap(
+            &mut maps.borrow(),
+            &[stalled_as(&stalled)],
+            crate::server::shared::clock::now(),
+        );
 
         let late = apply_update(
             &mut maps.borrow(),
             &with_phase(&stalled, DiscoveryPhase::Scanning),
-            Utc::now(),
+            crate::server::shared::clock::now(),
         );
 
         assert!(matches!(late, UpdateOutcome::Ignored));
@@ -710,12 +738,12 @@ mod tests {
         let old = maps.start(daemon, DiscoveryPhase::Scanning);
         let queued = maps.start(daemon, DiscoveryPhase::Queued);
         maps.sessions.get_mut(&old.session_id).unwrap().finished_at =
-            Some(Utc::now() - Duration::hours(30));
+            Some(crate::server::shared::clock::now() - Duration::hours(30));
 
         let promotions = sweep_old(
             &mut maps.borrow(),
-            Utc::now() - Duration::hours(24),
-            Utc::now(),
+            crate::server::shared::clock::now() - Duration::hours(24),
+            crate::server::shared::clock::now(),
         );
 
         assert!(!maps.sessions.contains_key(&old.session_id));
@@ -740,12 +768,13 @@ mod tests {
         // Left the maps a moment ago; its post-lock work still needs the mapping.
         maps.discovery_sessions
             .insert(finishing_discovery, finishing_session);
-        maps.last_updated.insert(finishing_session, Utc::now());
+        maps.last_updated
+            .insert(finishing_session, crate::server::shared::clock::now());
 
         sweep_old(
             &mut maps.borrow(),
-            Utc::now() - Duration::hours(24),
-            Utc::now(),
+            crate::server::shared::clock::now() - Duration::hours(24),
+            crate::server::shared::clock::now(),
         );
 
         assert!(!maps.discovery_sessions.contains_key(&orphaned_discovery));
@@ -756,14 +785,16 @@ mod tests {
     fn a_failure_the_server_decides_keeps_its_reason_and_when_the_daemon_was_last_heard() {
         let mut maps = Maps::default();
         let running = maps.start(Uuid::new_v4(), DiscoveryPhase::Scanning);
-        let last_heard = Utc::now() - Duration::seconds(40);
+        let last_heard = crate::server::shared::clock::now() - Duration::seconds(40);
         maps.last_updated.insert(running.session_id, last_heard);
         let mut failure = with_phase(&running, DiscoveryPhase::Failed);
         failure.reason = Some(DiscoveryTerminalReason::DaemonRestarted);
 
-        let UpdateOutcome::Terminal(effects) =
-            apply_server_update(&mut maps.borrow(), &failure, Utc::now())
-        else {
+        let UpdateOutcome::Terminal(effects) = apply_server_update(
+            &mut maps.borrow(),
+            &failure,
+            crate::server::shared::clock::now(),
+        ) else {
             panic!("a Failed update is terminal");
         };
 
@@ -786,7 +817,11 @@ mod tests {
         );
         failure.phase = DiscoveryPhase::Failed;
 
-        let outcome = apply_server_update(&mut maps.borrow(), &failure, Utc::now());
+        let outcome = apply_server_update(
+            &mut maps.borrow(),
+            &failure,
+            crate::server::shared::clock::now(),
+        );
 
         assert!(matches!(outcome, UpdateOutcome::Ignored));
         assert!(maps.sessions.is_empty());
@@ -802,7 +837,11 @@ mod tests {
         maps.pull_cancellations
             .insert(daemon, (true, stalled.session_id));
 
-        reap(&mut maps.borrow(), &[stalled_as(&stalled)], Utc::now());
+        reap(
+            &mut maps.borrow(),
+            &[stalled_as(&stalled)],
+            crate::server::shared::clock::now(),
+        );
 
         assert_eq!(
             maps.pull_cancellations.get(&daemon),
@@ -814,13 +853,13 @@ mod tests {
     fn a_reaped_session_records_why_and_when_it_was_last_heard_from() {
         let mut maps = Maps::default();
         let stalled = maps.start(Uuid::new_v4(), DiscoveryPhase::Scanning);
-        let last_heard = Utc::now() - Duration::minutes(7);
+        let last_heard = crate::server::shared::clock::now() - Duration::minutes(7);
         maps.last_updated.insert(stalled.session_id, last_heard);
 
         let reaped = reap(
             &mut maps.borrow(),
             &[(stalled.session_id, DiscoveryTerminalReason::SessionSilent)],
-            Utc::now(),
+            crate::server::shared::clock::now(),
         );
 
         assert_eq!(
@@ -832,7 +871,7 @@ mod tests {
 
     #[test]
     fn a_stall_names_its_cause_from_when_the_daemon_last_checked_in() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         let seen = |ago: i64| Some(now - Duration::seconds(ago));
 
         assert_eq!(
@@ -858,9 +897,11 @@ mod tests {
         let mut failure = with_phase(&dropped, DiscoveryPhase::Failed);
         failure.reason = Some(DiscoveryTerminalReason::DaemonDroppedSession);
 
-        let UpdateOutcome::Terminal(effects) =
-            apply_server_update(&mut maps.borrow(), &failure, Utc::now())
-        else {
+        let UpdateOutcome::Terminal(effects) = apply_server_update(
+            &mut maps.borrow(),
+            &failure,
+            crate::server::shared::clock::now(),
+        ) else {
             panic!("a server-decided failure is terminal");
         };
 
@@ -884,7 +925,7 @@ mod tests {
         let UpdateOutcome::Terminal(effects) = apply_update(
             &mut maps.borrow(),
             &with_phase(&running, DiscoveryPhase::Complete),
-            Utc::now(),
+            crate::server::shared::clock::now(),
         ) else {
             panic!("a Complete update is terminal");
         };
@@ -898,7 +939,7 @@ mod tests {
 
     #[test]
     fn cancelling_a_pending_session_promotes_a_queued_one_but_not_one_awaiting_a_snapshot() {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         for (behind, promoted) in [
             (DiscoveryPhase::Queued, true),
             (DiscoveryPhase::AwaitingSnapshot, false),

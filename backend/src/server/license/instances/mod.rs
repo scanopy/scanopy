@@ -48,7 +48,7 @@ impl Storable for ServerInstance {
     }
 
     fn new(_base: Self::BaseData) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,
@@ -235,7 +235,7 @@ impl Storable for LicenseInstance {
     }
 
     fn new(base: Self::BaseData) -> Self {
-        let now = Utc::now();
+        let now = crate::server::shared::clock::now();
         Self {
             id: Uuid::new_v4(),
             created_at: now,

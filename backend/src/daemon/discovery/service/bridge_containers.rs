@@ -313,7 +313,7 @@ impl DiscoveryRunner {
         let required_ports: Vec<u16> = mappings
             .iter()
             .flat_map(|m| &m.ip_overrides)
-            .flat_map(|o| o.credential.required_scan_ports())
+            .flat_map(|o| o.credential.reach().scan_ports())
             .collect::<HashSet<u16>>()
             .into_iter()
             .collect();
@@ -464,9 +464,11 @@ mod tests {
     }
 
     fn ssh_override(ip: &str) -> CredentialMapping<CredentialQueryPayload> {
-        let payload = CredentialTypeDiscriminants::SshPassword
+        let login = CredentialTypeDiscriminants::SshPassword.to_credential_type();
+        let payload = CredentialTypeDiscriminants::SshScript
             .to_credential_type()
-            .to_query_payload();
+            .to_query_payload(Some(&login))
+            .unwrap();
         CredentialMapping {
             default_credential: Some(payload.clone()),
             default_credential_id: None,

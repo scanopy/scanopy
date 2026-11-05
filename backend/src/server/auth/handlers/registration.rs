@@ -96,7 +96,7 @@ pub(crate) async fn register(
             email: request.email.clone(),
             has_password: true,
             terms_accepted_at: if request.terms_accepted {
-                Some(Utc::now())
+                Some(crate::server::shared::clock::now())
             } else {
                 None
             },
@@ -154,12 +154,12 @@ pub(crate) async fn register(
     let user_agent = user_agent.map(|u| u.to_string());
 
     // Check for pending invite
-    let (org_id, permissions, site_ids, invited_as) =
+    let (org_id, permissions, site_assignments, invited_as) =
         match process_pending_invite(&state, &session).await {
             Ok(Some(invite)) => (
                 Some(invite.organization_id),
                 Some(invite.permissions),
-                invite.site_ids,
+                invite.site_assignments,
                 invite.send_to,
             ),
             Ok(_) => (None, None, vec![], None),
@@ -201,7 +201,7 @@ pub(crate) async fn register(
                 permissions,
                 ip,
                 user_agent,
-                site_ids,
+                site_assignments,
                 invited_as,
             },
             deployment_type,

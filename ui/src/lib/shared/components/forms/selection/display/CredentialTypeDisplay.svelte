@@ -7,7 +7,7 @@
 	} from '$lib/shared/stores/metadata';
 	import { getStabilityTagProps } from '$lib/shared/utils/stability';
 	import {
-		getTargetTagProps,
+		getScopeTagProps,
 		getUpstreamSupportTagProps
 	} from '$lib/features/credentials/types/base';
 	import { upgradeTagProps } from '$lib/features/billing/upgrade-tag';
@@ -42,8 +42,8 @@
 			const upgrade = context?.upgradeFeature ? upgradeTagProps() : null;
 			const stability = getStabilityTagProps(item.metadata?.stability, credentials_betaTooltip());
 			const upstream = getUpstreamSupportTagProps(item.metadata?.upstream_support);
-			const targets = (item.metadata?.targets ?? []).map((t: string) => getTargetTagProps(t));
-			return [upgrade, stability, upstream, ...targets].filter((tag) => tag !== null);
+			const scopes = getScopeTagProps(item.id);
+			return [upgrade, stability, upstream, ...scopes].filter((tag) => tag !== null);
 		},
 		getDisabled: (_item, context) => !!context?.disabledReason || !!context?.upgradeFeature,
 		getDisabledReason: (_item, context) =>
