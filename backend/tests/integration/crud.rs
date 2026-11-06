@@ -524,7 +524,7 @@ async fn test_user_api_key_crud(ctx: &TestContext) -> Result<(), String> {
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id],
+        site_ids: Some(vec![ctx.site_id]),
     });
 
     // User API keys are at /api/v1/user-api-keys
@@ -580,7 +580,7 @@ async fn test_user_api_key_authentication(ctx: &TestContext) -> Result<(), Strin
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id],
+        site_ids: Some(vec![ctx.site_id]),
     });
 
     let created: UserApiKeyResponse = ctx.client.post("/api/v1/user-api-keys", &api_key).await?;
@@ -684,7 +684,7 @@ async fn test_user_api_key_permission_escalation(ctx: &TestContext) -> Result<()
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id],
+        site_ids: Some(vec![ctx.site_id]),
     });
 
     let result = ctx
@@ -713,7 +713,7 @@ async fn test_user_api_key_permission_escalation(ctx: &TestContext) -> Result<()
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id],
+        site_ids: Some(vec![ctx.site_id]),
     });
 
     let created: UserApiKeyResponse = ctx
@@ -747,7 +747,7 @@ async fn test_user_api_key_rotation(ctx: &TestContext) -> Result<(), String> {
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id],
+        site_ids: Some(vec![ctx.site_id]),
     });
 
     let created: UserApiKeyResponse = ctx.client.post("/api/v1/user-api-keys", &api_key).await?;
@@ -828,7 +828,7 @@ async fn test_user_api_key_expired_disabled(ctx: &TestContext) -> Result<(), Str
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id],
+        site_ids: Some(vec![ctx.site_id]),
     });
 
     let created: UserApiKeyResponse = ctx.client.post("/api/v1/user-api-keys", &api_key).await?;
@@ -952,7 +952,7 @@ async fn test_user_api_key_site_access(ctx: &TestContext) -> Result<(), String> 
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id], // Only first site
+        site_ids: Some(vec![ctx.site_id]), // Only first site
     });
 
     let created: UserApiKeyResponse = ctx.client.post("/api/v1/user-api-keys", &api_key).await?;
@@ -1005,7 +1005,7 @@ async fn test_user_api_key_site_access(ctx: &TestContext) -> Result<(), String> 
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id, other_site.id], // Includes site user shouldn't access
+        site_ids: Some(vec![ctx.site_id, other_site.id]), // Includes site user shouldn't access
     });
 
     let result = ctx
@@ -1055,7 +1055,7 @@ async fn test_user_api_key_owner_isolation(ctx: &TestContext) -> Result<(), Stri
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id],
+        site_ids: Some(vec![ctx.site_id]),
     });
 
     let created: UserApiKeyResponse = ctx.client.post("/api/v1/user-api-keys", &api_key).await?;
@@ -1076,7 +1076,7 @@ async fn test_user_api_key_owner_isolation(ctx: &TestContext) -> Result<(), Stri
         expires_at: None,
         is_enabled: true,
         tags: Vec::new(),
-        site_ids: vec![ctx.site_id],
+        site_ids: Some(vec![ctx.site_id]),
     });
     let other_key = ctx.insert_entity(&other_key).await?;
     println!(

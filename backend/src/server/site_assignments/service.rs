@@ -64,6 +64,34 @@ impl SiteAssignmentService {
         Ok(listed)
     }
 
+    /// What an API key's rows come to as its `site_ids`, for several principals of one type by the
+    /// id in `column`: `None` for one holding an All sites row, otherwise its listed sites. A
+    /// principal with no rows is missing from the map.
+    pub async fn site_scopes_by(
+        &self,
+        column: &str,
+        ids: &[Uuid],
+        id_of: impl Fn(&Principal) -> Option<Uuid>,
+    ) -> Result<HashMap<Uuid, Option<Vec<Uuid>>>> {
+        if ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+        let filter = StorableFilter::<SiteAssignment>::new().uuids_column(column, ids);
+        let mut scopes: HashMap<Uuid, Option<Vec<Uuid>>> = HashMap::new();
+        for row in self.storage.inner().get_all(filter).await? {
+            let Some(id) = id_of(&row.base.principal) else {
+                continue;
+            };
+            let scope = scopes.entry(id).or_insert_with(|| Some(Vec::new()));
+            match (row.site_id(), scope.as_mut()) {
+                (None, _) => *scope = None,
+                (Some(site_id), Some(listed)) => listed.push(site_id),
+                (Some(_), None) => {}
+            }
+        }
+        Ok(scopes)
+    }
+
     /// The users assigned `site_id`, directly or through All sites.
     pub async fn user_ids_on_site(
         &self,

@@ -290,9 +290,11 @@ async fn demo_seed_writes_daemon_subnets_and_the_demo_logins_api_keys() {
         "the demo login should own both seeded user API keys"
     );
     assert!(
-        demo_login_keys
-            .iter()
-            .all(|key| !key.base.site_ids.is_empty())
+        demo_login_keys.iter().all(|key| key
+            .base
+            .site_ids
+            .as_ref()
+            .is_none_or(|ids| !ids.is_empty()))
     );
 }
 

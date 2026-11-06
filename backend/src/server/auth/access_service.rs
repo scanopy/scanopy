@@ -294,12 +294,12 @@ impl AccessService {
         Ok(())
     }
 
-    /// Store a key and give it its role on `site_ids`. Announced once its access is saved, so a
-    /// failed save leaves no "created" event behind.
+    /// Store a key and give it its role on `site_ids`, or on All sites when `None`. Announced once
+    /// its access is saved, so a failed save leaves no "created" event behind.
     pub async fn create_api_key(
         &self,
         api_key: UserApiKey,
-        site_ids: Vec<Uuid>,
+        site_ids: Option<Vec<Uuid>>,
         actor: AuthenticatedEntity,
     ) -> Result<UserApiKey> {
         let role = api_key.base.permissions;
@@ -308,7 +308,7 @@ impl AccessService {
         self.set_access(
             Principal::ApiKey(created.id),
             role,
-            &Assignment::for_api_key(role, &site_ids),
+            &Assignment::for_api_key(role, site_ids.as_deref()),
             actor.clone(),
         )
         .await?;
@@ -356,6 +356,19 @@ impl AccessService {
             role: SiteRole::Admin,
             scope: AssignmentScope::Site(site_id),
         };
+        // An All sites assignment at Admin already covers the new site, so it adds no row.
+        let admin = SiteRole::Admin.grants();
+        let covered = self
+            .site_assignments
+            .get_for(principal)
+            .await?
+            .iter()
+            .any(|held| {
+                held.scope == AssignmentScope::AllSites && admin.is_subset_of(&held.role.grants())
+            });
+        if covered {
+            return Ok(());
+        }
         self.site_assignments
             .add(organization_id, principal, assignment)
             .await

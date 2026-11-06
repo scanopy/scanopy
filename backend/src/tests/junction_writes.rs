@@ -160,11 +160,15 @@ async fn user_api_key_site_access_is_replaced_per_key() {
         })
     };
     let first = access
-        .create_api_key(key("ci"), vec![s[0], s[1]], AuthenticatedEntity::System)
+        .create_api_key(
+            key("ci"),
+            Some(vec![s[0], s[1]]),
+            AuthenticatedEntity::System,
+        )
         .await
         .unwrap();
     let second = access
-        .create_api_key(key("backup"), vec![s[2]], AuthenticatedEntity::System)
+        .create_api_key(key("backup"), Some(vec![s[2]]), AuthenticatedEntity::System)
         .await
         .unwrap();
     let role = first.base.permissions;
@@ -172,23 +176,23 @@ async fn user_api_key_site_access_is_replaced_per_key() {
         .set_access(
             Principal::ApiKey(first.id),
             role,
-            &Assignment::for_api_key(role, &[s[1], s[2]]),
+            &Assignment::for_api_key(role, Some(&[s[1], s[2]])),
             AuthenticatedEntity::System,
         )
         .await
         .unwrap();
 
     assert_eq!(
-        sorted(keys.get_site_ids(&first.id).await.unwrap()),
+        sorted(keys.get_site_ids(&first.id).await.unwrap().unwrap()),
         sorted(vec![s[1], s[2]])
     );
     let mut both = vec![first.clone(), second.clone()];
     keys.hydrate_site_ids(&mut both).await.unwrap();
     assert_eq!(
-        sorted(both[0].base.site_ids.clone()),
+        sorted(both[0].base.site_ids.clone().unwrap()),
         sorted(vec![s[1], s[2]])
     );
-    assert_eq!(both[1].base.site_ids, vec![s[2]]);
+    assert_eq!(both[1].base.site_ids, Some(vec![s[2]]));
 }
 
 fn scoped(role: SiteRole, scope: AssignmentScope) -> Assignment {
@@ -221,7 +225,7 @@ async fn set_access_round_trips_for_users_keys_and_invites() {
                 is_enabled: true,
                 ..Default::default()
             }),
-            vec![],
+            Some(vec![]),
             AuthenticatedEntity::System,
         )
         .await

@@ -318,6 +318,15 @@ impl AuthenticatedEntity {
             .unwrap_or_default()
     }
 
+    /// Whether this principal may take `action` on `resource` on every site, including sites
+    /// created later.
+    pub fn all_sites_allow(&self, resource: Resource, action: Action) -> bool {
+        #[cfg(test)]
+        record_check(resource, action);
+        self.access()
+            .is_some_and(|access| access.all_sites_allow(resource, action))
+    }
+
     /// The sites whose `resource` rows this principal may read, or `None` when it may not read
     /// that resource at all. A daemon reads what its own site holds, to resolve what it reports.
     pub fn readable_site_ids(&self, resource: Resource) -> Option<Vec<Uuid>> {

@@ -1,12 +1,15 @@
 import { defineRegistryFields } from '$lib/shared/entity-fields/table';
 import type { EntityLookup } from '$lib/shared/entity-fields';
 import { siteItems } from '$lib/features/sites/columns';
-import { permissions } from '$lib/shared/stores/metadata';
+import { entities, permissions } from '$lib/shared/stores/metadata';
+import type { LabelledCardFieldItem } from '$lib/shared/components/data/types';
+import { NO_VALUE } from '$lib/shared/components/data/controls/listQuery';
 import type { components, operations } from '$lib/api/schema';
 import type { Site } from '$lib/features/sites/types';
 import type { Tag } from '$lib/features/tags/types/base';
 import type { UserApiKey } from '../queries';
 import {
+	common_allSites,
 	common_enabled,
 	common_expired,
 	common_expires,
@@ -29,6 +32,19 @@ export interface UserApiKeyColumnsContext {
 	lookup: () => EntityLookup;
 	sites: () => Site[];
 	tags: () => Tag[];
+}
+
+/**
+ * The sites a key reaches. An All sites key (`site_ids` null) reads as one chip rather than a list
+ * of today's sites, since it also reaches sites created later.
+ */
+function keySiteItems(ctx: UserApiKeyColumnsContext, key: UserApiKey): LabelledCardFieldItem[] {
+	if (key.site_ids === null) {
+		return [
+			{ id: NO_VALUE, label: common_allSites(), color: entities.getColorHelper('Site').color }
+		];
+	}
+	return siteItems(key.site_ids, ctx.sites());
 }
 
 /** Every UserApiKeyOrderField value is listed; the server sorts, groups and filters each. */
@@ -118,15 +134,16 @@ export function userApiKeyColumns(ctx: UserApiKeyColumnsContext) {
 				filterable: true,
 				serverFiltered: true,
 				filterOptions: ctx.sites().map((site) => site.id),
-				getFilterValue: (item) => item.site_ids ?? [],
+				// An All sites key reaches every site, and the server matches it on any of them.
+				getFilterValue: (item) => item.site_ids ?? ctx.sites().map((site) => site.id),
 				filterLabel: (id) => ctx.sites().find((n) => n.id === id)?.name ?? id,
 				getValue(item) {
-					const ids = item.site_ids ?? [];
-					return ids
+					if (item.site_ids === null) return [common_allSites()];
+					return item.site_ids
 						.map((id) => ctx.sites().find((n) => n.id === id)?.name)
 						.filter((name): name is string => !!name);
 				},
-				display: { getItems: (item) => siteItems(item.site_ids, ctx.sites()) }
+				display: { getItems: (item) => keySiteItems(ctx, item) }
 			},
 			{
 				key: 'tags',

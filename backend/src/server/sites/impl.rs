@@ -36,7 +36,12 @@ pub struct SiteBase {
     /// Human-facing name for this site.
     #[validate(length(min = 0, max = 100))]
     pub name: String,
-    /// The organization that owns this record.
+    /// The organization that owns this record. Set from the caller on create.
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::ignored"
+    )]
+    #[schema(read_only, required)]
     pub organization_id: Uuid,
     /// Tags assigned to this entity.
     #[serde(default)]

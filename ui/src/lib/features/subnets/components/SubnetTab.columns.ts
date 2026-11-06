@@ -21,7 +21,7 @@ import {
 	common_tags,
 	common_unknownSite,
 	common_unknownEntity,
-	subnets_allSites,
+	common_allSites,
 	subnets_managedBy,
 	subnets_subnetType
 } from '$lib/paraglide/messages';
@@ -128,7 +128,7 @@ export function subnetColumns(ctx: SubnetColumnsContext) {
 				getValue: (item) =>
 					isUserManagedSubnet(item)
 						? ctx.sites().find((n) => n.id == item.site_id)?.name || common_unknownSite()
-						: subnets_allSites(),
+						: common_allSites(),
 				display: {
 					order: 2,
 					getItems: (item) =>
@@ -137,7 +137,7 @@ export function subnetColumns(ctx: SubnetColumnsContext) {
 							: [
 									{
 										id: item.site_id,
-										label: subnets_allSites(),
+										label: common_allSites(),
 										color: entities.getColorHelper('Site').color
 									}
 								]

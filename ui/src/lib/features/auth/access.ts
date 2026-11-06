@@ -34,6 +34,15 @@ function holds(grants: Grant[], resource: Resource, action: Action): boolean {
 	return grants.some((grant) => grant.resource === resource && grant.action === action);
 }
 
+/** Whether the grants hold this on All sites, so on sites created later too. */
+export function holdsOnAllSites(
+	access: AccessGrants | null | undefined,
+	resource: Resource,
+	action: Action
+): boolean {
+	return !!access && holds(access.all_sites, resource, action);
+}
+
 /**
  * Whether the grants allow this, as the server's `Can` requirement answers. A site-keyed resource
  * asks that site, or any site when none is named. `all_sites` answers for sites created since the
