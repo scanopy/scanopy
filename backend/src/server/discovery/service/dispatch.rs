@@ -496,8 +496,11 @@ impl DiscoveryService {
             // A running session's update reaches the stream while the maps are still locked, so
             // two updates for one session arrive in the order they were applied. A finished
             // session's goes out from `finish_terminal`, after the onboarding milestone it follows.
-            if matches!(outcome, UpdateOutcome::Progress) {
-                self.send_session_update(&update);
+            // The session as recorded, which carries what the update left out (its last activity).
+            if matches!(outcome, UpdateOutcome::Progress)
+                && let Some(recorded) = sessions.get(&update.session_id)
+            {
+                self.send_session_update(recorded);
             }
             (outcome, previous)
         };
@@ -517,13 +520,15 @@ impl DiscoveryService {
             }
             UpdateOutcome::Terminal(effects) => *effects,
         };
+        self.finish_terminal_detached(effects).await;
+    }
 
-        // Nothing below holds a session lock. The terminal work writes storage and publishes
-        // events whose subscribers can reach the network (digest emails), and it runs on its own
-        // task so a daemon request that times out and drops this future cannot cut it short: the
-        // session has already left the maps and its tombstone ignores the re-delivery, so an
-        // interrupted tail would lose the run's record. The request still waits for the task, so
-        // callers see the same ordering as before.
+    /// Run [`Self::finish_terminal`] with no session lock held, on its own task. The terminal
+    /// work writes storage and publishes events whose subscribers can reach the network (digest
+    /// emails), and a request that times out and drops this future must not cut it short: the
+    /// session has already left the maps and its tombstone ignores the re-delivery, so an
+    /// interrupted tail would lose the run's record. The caller still waits for the task.
+    pub(super) async fn finish_terminal_detached(&self, effects: TerminalEffects) {
         match self.self_ref.upgrade() {
             Some(this) => {
                 if let Err(e) =
@@ -960,11 +965,14 @@ impl DiscoveryService {
                     .publish(request.into_discovery_event_with_auth(authentication))
                     .await;
 
-                // Set cancellation flag for DaemonPoll mode (checked on next poll)
-                self.daemon_pull_cancellations
-                    .write()
-                    .await
-                    .insert(daemon_id, (true, session_id));
+                // Sent on every DaemonPoll work request until the session ends, and timed in both
+                // modes against `state::CANCEL_DEADLINE` by the stall sweep.
+                state::request_cancel(
+                    &mut *self.daemon_pull_cancellations.write().await,
+                    daemon_id,
+                    session_id,
+                    Utc::now(),
+                );
 
                 Ok(())
             }

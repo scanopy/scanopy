@@ -1,4 +1,5 @@
 //! Live session access, snapshot-coordination acquire/release, state transitions, and cancellation pull.
+use super::state;
 use super::*;
 
 use crate::daemon::discovery::types::warnings::DiscoveryWarning;
@@ -50,21 +51,9 @@ impl DiscoveryService {
     pub async fn get_sessions_for_daemon(&self, daemon_id: &Uuid) -> Vec<DiscoveryUpdatePayload> {
         // `sessions` before `daemon_sessions`: see the lock order on `DiscoveryService`.
         let all_sessions = self.sessions.read().await;
-        let session_ids = self
-            .daemon_sessions
-            .read()
-            .await
-            .get(daemon_id)
-            .cloned()
-            .unwrap_or_default();
-
-        // Preserve order from daemon_sessions Vec (not HashMap iteration order)
-        // Only return Pending sessions - once dispatched, they transition to Starting
-        session_ids
-            .iter()
-            .filter_map(|session_id| all_sessions.get(session_id).cloned())
-            .filter(|session| session.phase == DiscoveryPhase::Pending)
-            .collect()
+        let daemon_sessions = self.daemon_sessions.read().await;
+        // Only Pending: once dispatched, a session moves to Starting.
+        state::pending_sessions_for_daemon(&all_sessions, &daemon_sessions, *daemon_id)
     }
 
     /// Every session the server is tracking on a daemon, in any phase.
@@ -103,24 +92,8 @@ impl DiscoveryService {
     pub async fn has_active_session_for_daemon(&self, daemon_id: &Uuid) -> bool {
         // `sessions` before `daemon_sessions`: see the lock order on `DiscoveryService`.
         let all_sessions = self.sessions.read().await;
-        let session_ids = self
-            .daemon_sessions
-            .read()
-            .await
-            .get(daemon_id)
-            .cloned()
-            .unwrap_or_default();
-
-        session_ids.iter().any(|session_id| {
-            all_sessions
-                .get(session_id)
-                .map(|s| {
-                    !s.phase.is_terminal()
-                        && s.phase != DiscoveryPhase::Queued
-                        && s.phase != DiscoveryPhase::Pending
-                })
-                .unwrap_or(false)
-        })
+        let daemon_sessions = self.daemon_sessions.read().await;
+        state::daemon_has_dispatched_session(&all_sessions, &daemon_sessions, *daemon_id)
     }
 
     /// Check if a discovery has an active session (any non-terminal phase).
@@ -382,11 +355,12 @@ impl DiscoveryService {
             .unwrap_or_default()
     }
 
-    pub async fn pull_cancellation_for_daemon(&self, daemon_id: &Uuid) -> (bool, Uuid) {
-        let mut daemon_cancellation_ids = self.daemon_pull_cancellations.write().await;
-        daemon_cancellation_ids
-            .remove(daemon_id)
-            .unwrap_or((false, Uuid::nil()))
+    /// The session a polling daemon is told to cancel; see [`state::cancellation_to_deliver`].
+    pub async fn pull_cancellation_for_daemon(&self, daemon_id: &Uuid) -> Option<Uuid> {
+        // `sessions` before `daemon_pull_cancellations`: see the lock order on `DiscoveryService`.
+        let sessions = self.sessions.read().await;
+        let mut pull_cancellations = self.daemon_pull_cancellations.write().await;
+        state::cancellation_to_deliver(&sessions, &mut pull_cancellations, *daemon_id)
     }
 }
 

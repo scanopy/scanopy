@@ -1305,17 +1305,11 @@ impl DaemonService {
         }
     }
 
-    /// Get pending cancellation request for a daemon
+    /// The session this daemon is told to cancel in its work response, if any.
     pub async fn get_pending_cancellation(&self, daemon_id: Uuid) -> Option<Uuid> {
-        let (has_cancellation, session_id) = self
-            .discovery_service
+        self.discovery_service
             .pull_cancellation_for_daemon(&daemon_id)
-            .await;
-        if has_cancellation {
-            Some(session_id)
-        } else {
-            None
-        }
+            .await
     }
 
     /// Create default discovery jobs for a newly contacted daemon

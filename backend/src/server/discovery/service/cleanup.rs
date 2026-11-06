@@ -76,10 +76,45 @@ impl DiscoveryService {
         }
     }
 
+    /// End every session whose daemon has not stopped it by [`state::CANCEL_DEADLINE`] after a
+    /// cancel, in either daemon mode: a ServerPoll daemon can accept the cancel and keep running,
+    /// and a DaemonPoll one can keep reporting progress, so neither goes quiet for the stall rule.
+    async fn end_overdue_cancellations(&self, now: chrono::DateTime<Utc>) {
+        let ended = {
+            // The lock order documented on `DiscoveryService`.
+            let mut sessions = self.sessions.write().await;
+            let mut last_updated = self.session_last_updated.write().await;
+            let mut daemon_sessions = self.daemon_sessions.write().await;
+            let mut daemon_pull_cancellations = self.daemon_pull_cancellations.write().await;
+            let mut discovery_sessions = self.discovery_sessions.write().await;
+            state::end_overdue_cancels(
+                &mut SessionMaps {
+                    sessions: &mut sessions,
+                    last_updated: &mut last_updated,
+                    daemon_sessions: &mut daemon_sessions,
+                    discovery_sessions: &mut discovery_sessions,
+                    pull_cancellations: &mut daemon_pull_cancellations,
+                },
+                now,
+                state::CANCEL_DEADLINE,
+            )
+        };
+
+        for effects in ended {
+            tracing::warn!(
+                session_id = %effects.session.session_id,
+                daemon_id = %effects.session.daemon_id,
+                "The daemon did not stop a cancelled session; the server ended it"
+            );
+            self.finish_terminal_detached(effects).await;
+        }
+    }
+
     /// Cleanup stalled sessions (called periodically from background task)
     pub async fn cleanup_stalled_sessions(&self) {
         let now = Utc::now();
         let stall_threshold = chrono::Duration::minutes(5);
+        self.end_overdue_cancellations(now).await;
 
         // First pass: identify stalled sessions (read locks only)
         let stalled_sessions: Vec<DiscoveryUpdatePayload> = {
@@ -110,7 +145,12 @@ impl DiscoveryService {
             let mut pull_cancellations = self.daemon_pull_cancellations.write().await;
             for session in &stalled_sessions {
                 if pulled_by_daemon.contains(&session.session_id) {
-                    pull_cancellations.insert(session.daemon_id, (true, session.session_id));
+                    state::request_cancel(
+                        &mut pull_cancellations,
+                        session.daemon_id,
+                        session.session_id,
+                        now,
+                    );
                 }
             }
         }
