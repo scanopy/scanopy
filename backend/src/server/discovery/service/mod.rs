@@ -279,6 +279,7 @@ impl CrudService<Discovery> for DiscoveryService {
 }
 
 mod bulk;
+mod cancel;
 mod cleanup;
 mod discovery_crud;
 mod dispatch;
