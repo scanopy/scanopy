@@ -89,7 +89,7 @@ mod tests {
 
         for name in DiscoveryType::VARIANTS {
             let expected_excluded = match *name {
-                "Rescan" => true,
+                "Rescan" | "InterfaceRefresh" => true,
                 "SelfReport" | "Network" | "Docker" | "Unified" => false,
                 other => panic!(
                     "DiscoveryType::{other} is not classified by live_configs. Decide whether a \

@@ -1,7 +1,10 @@
 use crate::daemon::discovery::integration::container::ContainerRuntime;
 use crate::daemon::discovery::service::base::DiscoveryRunner;
 use crate::daemon::discovery::service::ops::DiscoveryOps;
-use crate::daemon::utils::base::{DaemonUtils, merge_host_and_docker_subnets};
+use crate::daemon::utils::base::{
+    DaemonUtils, filtered_own_nics, interfaces_fingerprint, own_addresses_from_nics,
+    session_subnets,
+};
 use crate::server::daemons::r#impl::api::DaemonDiscoveryRequest;
 use crate::server::discovery::r#impl::types::DiscoveryType;
 use crate::server::hosts::r#impl::base::Host;
@@ -108,6 +111,10 @@ impl DiscoveryRunner {
 
         let discovery_result = with_heartbeat(&ops, async {
             let created_subnets = self.create_initial_subnets(&ops, &cancel).await?;
+            // An interface refresh exists only to classify and report the interfaced subnets.
+            if matches!(self.discovery_type, DiscoveryType::InterfaceRefresh { .. }) {
+                return Ok(());
+            }
             self.run_unified_phases(&ops, &created_subnets, is_first_run, &cancel)
                 .await
         })
@@ -132,60 +139,15 @@ impl DiscoveryRunner {
             .await?
             .ok_or_else(|| anyhow::anyhow!("Site ID not set"))?;
 
-        let utils = &self.service.utils;
-
         let interface_filter = self.service.config_store.get_interfaces().await?;
-        let (_, subnets, _) = utils.get_own_interfaces(site_id, &interface_filter).await?;
+        let nics = filtered_own_nics(&interface_filter);
+        let fingerprint = interfaces_fingerprint(&nics);
+        let (_, host_subnets, _) = own_addresses_from_nics(nics, site_id);
 
-        // Get docker subnets for merging
-        let (docker_proxy, docker_proxy_ssl_info, _ssl_temp_handles, _, _) =
-            crate::daemon::discovery::integration::docker::resolve_docker_proxy(
-                &self.credential_mappings,
-                &self.service.config_store,
-            )
-            .await
-            .unwrap_or_else(|e| {
-                tracing::debug!(error = %e, "Failed to resolve Docker proxy for subnet discovery");
-                (Ok(None), Ok(None), Vec::new(), None, None)
-            });
-
-        let docker_subnets = if let Ok(docker_client) = self
-            .service
-            .utils
-            .new_docker_client(docker_proxy, docker_proxy_ssl_info)
-            .await
-        {
-            self.service
-                .utils
-                .get_subnets_from_docker_networks(
-                    site_id,
-                    &docker_client,
-                    ContainerRuntime::Docker,
-                    Uuid::nil(),
-                )
-                .await
-                .unwrap_or_else(|e| {
-                    // Scanning goes on without Docker's networks, so the bridge subnets and the
-                    // hosts on them are missing. Said here because nothing downstream will.
-                    tracing::warn!(
-                        error = %e,
-                        "Failed to list Docker networks; scanning without their subnets"
-                    );
-                    Vec::new()
-                })
-        } else {
-            Vec::new()
-        };
-
-        // Merge host and Docker subnets — host subnets always win on CIDR overlap
-        let merged = merge_host_and_docker_subnets(subnets, docker_subnets);
-
-        // Filter out container-runtime bridge subnets (Docker/Podman) — those
-        // are handled by the container integration phase.
-        let subnets_to_create: Vec<Subnet> = merged
-            .into_iter()
-            .filter(|s| !s.is_container_bridge_subnet())
-            .collect();
+        // The runtimes' bridges are handled by the container integration phase, so the session
+        // neither creates nor scans them.
+        let runtime_subnets = self.runtime_subnets(site_id).await;
+        let subnets_to_create = session_subnets(host_subnets, runtime_subnets);
 
         tracing::info!(
             subnet_count = subnets_to_create.len(),
@@ -212,7 +174,113 @@ impl DiscoveryRunner {
             .flatten()
             .collect();
 
+        // The daemon's interfaced subnets, reported once on its next status.
+        self.service
+            .set_interfaced_report(subnets_to_create, fingerprint);
+
         Ok(created_subnets)
+    }
+
+    /// The networks this host's container runtimes report, read with the session's localhost
+    /// Docker and Podman credentials (socket or proxy). Empty with none: the session then has
+    /// nothing that types a bridge, and scans each one as an ordinary subnet.
+    async fn runtime_subnets(&self, site_id: Uuid) -> Vec<Subnet> {
+        use crate::daemon::discovery::integration::container::{
+            build_container_proxy_url, resolve_container_ssl,
+        };
+        use crate::server::credentials::r#impl::mapping::CredentialQueryPayload;
+
+        let utils = &self.service.utils;
+        let mut subnets = Vec::new();
+        let overrides = self
+            .credential_mappings
+            .iter()
+            .flat_map(|m| m.ip_overrides.iter())
+            .filter(|o| o.is_localhost());
+        for o in overrides {
+            // Temp files holding a proxy's TLS material, kept until its networks are listed.
+            let mut _ssl_temp_handles = Vec::new();
+            let (runtime, client) = match &o.credential {
+                CredentialQueryPayload::DockerSocket(c)
+                | CredentialQueryPayload::PodmanSocket(c) => {
+                    let runtime = if matches!(o.credential, CredentialQueryPayload::DockerSocket(_))
+                    {
+                        ContainerRuntime::Docker
+                    } else {
+                        ContainerRuntime::Podman
+                    };
+                    // The same path resolution the socket integrations probe with.
+                    let mut path = c
+                        .socket_path
+                        .as_ref()
+                        .filter(|s| !s.is_blank())
+                        .map(|s| s.as_str().to_string());
+                    if runtime == ContainerRuntime::Podman && path.is_none() {
+                        path = crate::daemon::discovery::integration::podman::resolve_podman_socket_path();
+                    }
+                    (
+                        runtime,
+                        utils.new_container_socket_client(runtime, path).await,
+                    )
+                }
+                CredentialQueryPayload::DockerProxy(c) | CredentialQueryPayload::PodmanProxy(c) => {
+                    let runtime = if matches!(o.credential, CredentialQueryPayload::DockerProxy(_))
+                    {
+                        ContainerRuntime::Docker
+                    } else {
+                        ContainerRuntime::Podman
+                    };
+                    let client = match resolve_container_ssl(c, runtime.label()) {
+                        Ok((ssl, handles)) => {
+                            _ssl_temp_handles = handles;
+                            utils
+                                .new_docker_client(
+                                    Ok(Some(build_container_proxy_url(o.ip, c))),
+                                    Ok(ssl),
+                                )
+                                .await
+                        }
+                        Err(e) => Err(e),
+                    };
+                    (runtime, client)
+                }
+                _ => continue,
+            };
+            match client {
+                Ok(client) => {
+                    subnets.extend(self.list_runtime_networks(site_id, &client, runtime).await)
+                }
+                Err(e) => tracing::warn!(
+                    runtime = runtime.label(),
+                    error = %e,
+                    "Could not reach the container runtime to type its networks; its bridges \
+                     are scanned as ordinary subnets"
+                ),
+            }
+        }
+        subnets
+    }
+
+    async fn list_runtime_networks(
+        &self,
+        site_id: Uuid,
+        client: &bollard::Docker,
+        runtime: ContainerRuntime,
+    ) -> Vec<Subnet> {
+        self.service
+            .utils
+            .get_subnets_from_docker_networks(site_id, client, runtime, Uuid::nil())
+            .await
+            .unwrap_or_else(|e| {
+                // Said here because nothing downstream will.
+                tracing::warn!(
+                    runtime = runtime.label(),
+                    error = %e,
+                    "Failed to list container networks; their bridges are scanned as ordinary \
+                     subnets"
+                );
+                Vec::new()
+            })
     }
 
     /// Run all unified discovery phases.
@@ -538,9 +606,7 @@ impl DiscoveryRunner {
         let ops = super::ops::DiscoveryOps::new(&self.service, DiscoveryType::from(self));
         let utils = &self.service.utils;
 
-        let resolved = network_discovery
-            .resolve_scan_subnets(&ops, utils, cancel)
-            .await?;
+        let resolved = network_discovery.resolve_scan_subnets(&ops, utils).await?;
 
         tracing::info!(
             cidrs = ?resolved.subnets.iter().map(|s| s.base.cidr.to_string()).collect::<Vec<_>>(),

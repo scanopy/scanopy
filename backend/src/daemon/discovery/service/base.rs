@@ -16,7 +16,9 @@ use crate::daemon::discovery::types::warnings::DiscoveryWarning;
 use crate::daemon::{
     discovery::{buffer::EntityBuffer, manager::DaemonDiscoverySessionManager},
     shared::{api_client::DaemonApiClient, config::ConfigStore},
-    utils::base::{PlatformDaemonUtils, create_system_utils},
+    utils::base::{
+        PlatformDaemonUtils, create_system_utils, filtered_own_nics, interfaces_fingerprint,
+    },
 };
 use crate::server::credentials::r#impl::mapping::{CredentialMapping, CredentialQueryPayload};
 use crate::server::discovery::r#impl::scan_settings::ScanSettings;
@@ -93,6 +95,15 @@ impl DiscoveryRunner {
                         .collect(),
                     HostNamingFallback::default(),
                     ScanSettings::from(settings),
+                ),
+                // Classifies the interfaced subnets and stops: nothing is scanned.
+                DiscoveryType::InterfaceRefresh { host_id } => (
+                    *host_id,
+                    None,
+                    None,
+                    Vec::new(),
+                    HostNamingFallback::default(),
+                    ScanSettings::default(),
                 ),
                 DiscoveryType::SelfReport { .. }
                 | DiscoveryType::Network { .. }
@@ -250,6 +261,8 @@ pub struct DaemonDiscoveryService {
     /// per-site `HostDedup` advisory lock). Holds the earliest instant the
     /// next host submission may start; each submission reserves and advances it.
     pub host_submit_gate: Arc<tokio::sync::Mutex<tokio::time::Instant>>,
+    /// The last session's interfaced subnets until a status report takes them.
+    interfaced_report: std::sync::Mutex<Option<InterfacedSubnetsReport>>,
 }
 
 impl DaemonDiscoveryService {
@@ -266,6 +279,7 @@ impl DaemonDiscoveryService {
             entity_buffer,
             terminal_payload: Arc::new(RwLock::new(None)),
             host_submit_gate: Arc::new(tokio::sync::Mutex::new(tokio::time::Instant::now())),
+            interfaced_report: std::sync::Mutex::new(None),
         }
     }
 
@@ -277,4 +291,43 @@ impl DaemonDiscoveryService {
             .cloned()
             .ok_or_else(|| anyhow::anyhow!("No active discovery session"))
     }
+
+    /// Hold a session's classified interfaced subnets for the next status report.
+    pub fn set_interfaced_report(&self, subnets: Vec<Subnet>, fingerprint: String) {
+        if let Ok(mut report) = self.interfaced_report.lock() {
+            *report = Some(InterfacedSubnetsReport {
+                subnets,
+                fingerprint,
+            });
+        }
+    }
+
+    /// What a status report says about this daemon's interfaces: the interfaced subnets a session
+    /// classified since the last report with the fingerprint they were classified from, or no
+    /// subnets and the fingerprint of the NICs as they are now. `None` for the fingerprint only
+    /// when the interface filter cannot be read.
+    pub async fn status_interfaces(&self) -> (Option<Vec<Subnet>>, Option<String>) {
+        if let Some(report) = self
+            .interfaced_report
+            .lock()
+            .ok()
+            .and_then(|mut r| r.take())
+        {
+            return (Some(report.subnets), Some(report.fingerprint));
+        }
+        let fingerprint = self
+            .config_store
+            .get_interfaces()
+            .await
+            .ok()
+            .map(|filter| interfaces_fingerprint(&filtered_own_nics(&filter)));
+        (None, fingerprint)
+    }
+}
+
+/// The interfaced subnets a session classified, waiting for the next status report.
+pub struct InterfacedSubnetsReport {
+    pub subnets: Vec<Subnet>,
+    /// [`interfaces_fingerprint`] of the NICs they were classified from.
+    pub fingerprint: String,
 }

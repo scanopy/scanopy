@@ -1121,7 +1121,7 @@ async fn receive_work_request(
     // Unified: build credential_mappings via discovery_service and use with_exposed_credentials()
     // Legacy: use with_exposed_snmp() (SNMP inline in DiscoveryType::Network)
     let next_session_value = match next_session {
-        Some(payload) if payload.discovery_type.runs_network_scan() => {
+        Some(payload) if payload.discovery_type.carries_credential_mappings() => {
             let integration_targets = state
                 .services
                 .discovery_service
@@ -1205,7 +1205,8 @@ async fn receive_heartbeat(
         mode: request.mode,
         version: None, // Old daemons don't send version in heartbeat
         capabilities: LegacyCapabilities::default(),
-        interfaced_subnets: Vec::new(),
+        interfaced_subnets: None,
+        interfaces_fingerprint: None,
         ready_for_work: true,
         os: None, // Old daemons don't report their OS
     };

@@ -2198,6 +2198,8 @@
 	"meta_discovery_terminal_reasons_WatchdogTimeout_name": "Timed out",
 	"meta_discovery_types_Docker_description": "Discover Docker containers and their configurations on the daemon's host",
 	"meta_discovery_types_Docker_name": "Docker",
+	"meta_discovery_types_InterfaceRefresh_description": "Re-read which subnets the daemon's host is attached to",
+	"meta_discovery_types_InterfaceRefresh_name": "InterfaceRefresh",
 	"meta_discovery_types_Network_description": "Scan network subnets to discover hosts, open ports, and running services",
 	"meta_discovery_types_Network_name": "Network",
 	"meta_discovery_types_Rescan_description": "Re-check known hosts' addresses and ports",

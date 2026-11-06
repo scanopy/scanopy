@@ -8885,11 +8885,18 @@ export interface components {
             /** @description Backwards compat: pre-v0.15.0 daemons send capabilities instead of interfaced_subnets. */
             capabilities?: components["schemas"]["LegacyCapabilities"];
             /**
-             * @description Subnets detected from daemon's network ip_addresses. Server resolves these
-             *     via SubnetService::create (create-or-match by CIDR) to get real IDs.
-             *     v0.15.0+ daemons populate this; pre-v0.15.0 daemons leave it empty.
+             * @description The subnets the daemon's host is attached to, as its last session classified them. The
+             *     server resolves these via SubnetService::create (create-or-match by CIDR) and replaces
+             *     the daemon's interfaced subnets with them. Absent: leave them as they are. A daemon sends
+             *     them once after each session; older daemons send them on every report.
              */
-            interfaced_subnets?: components["schemas"]["Subnet"][];
+            interfaced_subnets?: components["schemas"]["Subnet"][] | null;
+            /**
+             * @description A digest of the daemon's interfaces. With `interfaced_subnets`, the interfaces those were
+             *     classified from; without, the interfaces as they are now. The server starts an interface
+             *     refresh when it differs from the last classified one. Absent from older daemons.
+             */
+            interfaces_fingerprint?: string | null;
             /** @description How the daemon connects: it polls the server, or the server polls it. */
             mode: components["schemas"]["DaemonMode"];
             /** @description Name the daemon reports for itself. */
@@ -9353,6 +9360,14 @@ export interface components {
             subnet_ids: string[] | null;
             /** @enum {string} */
             type: "Unified";
+        } | {
+            /**
+             * Format: uuid
+             * @description ID of the host that the daemon is running on
+             */
+            host_id: string;
+            /** @enum {string} */
+            type: "InterfaceRefresh";
         };
         /** @description Progress update from daemon to server during discovery */
         DiscoveryUpdatePayload: {

@@ -43,6 +43,7 @@ impl DaemonService {
             poll_semaphore: Arc::new(Semaphore::new(MAX_CONCURRENT_POLLS)),
             deployment_type,
             has_email_service,
+            classified_interfaces: Default::default(),
         }
     }
 

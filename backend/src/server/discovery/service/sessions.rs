@@ -20,9 +20,31 @@ impl DiscoveryService {
         let all_sessions = self.sessions.read().await;
         all_sessions
             .values()
-            .filter(|v| site_ids.contains(&v.site_id) && !v.phase.is_terminal())
+            .filter(|v| {
+                site_ids.contains(&v.site_id)
+                    && !v.phase.is_terminal()
+                    && v.discovery_type.records_history()
+            })
             .cloned()
             .collect()
+    }
+
+    /// Send a session's state to the live stream, unless its type is kept out of view.
+    pub(super) fn send_session_update(&self, session: &DiscoveryUpdatePayload) {
+        if session.discovery_type.records_history() {
+            let _ = self.update_tx.send(session.clone());
+        }
+    }
+
+    /// Publish a session's phase event, unless its type is kept out of view. Metrics, analytics
+    /// and failure emails all read these, and an interface refresh is none of their business.
+    pub(super) async fn publish_session_event(
+        &self,
+        event: crate::server::shared::events::traits::Event<DiscoveryPhase>,
+    ) {
+        if event.scope.discovery_type.records_history() {
+            self.event_bus().publish(event).await;
+        }
     }
 
     pub async fn get_sessions_for_daemon(&self, daemon_id: &Uuid) -> Vec<DiscoveryUpdatePayload> {
@@ -129,7 +151,7 @@ impl DiscoveryService {
         if let Some(session) = starting {
             let mut event = session.into_discovery_event();
             event.scope.previous_phase = Some(DiscoveryPhase::Pending);
-            self.event_bus().publish(event).await;
+            self.publish_session_event(event).await;
         }
     }
 
@@ -256,7 +278,7 @@ impl DiscoveryService {
                     last_updated.insert(session_id, Utc::now());
                     to_publish.push(session.clone());
                 }
-                let _ = self.update_tx.send(session.clone());
+                self.send_session_update(session);
             }
         }
 
@@ -265,8 +287,7 @@ impl DiscoveryService {
         drop(sessions);
 
         for payload in to_publish {
-            self.event_bus()
-                .publish(payload.into_discovery_event())
+            self.publish_session_event(payload.into_discovery_event())
                 .await;
         }
     }

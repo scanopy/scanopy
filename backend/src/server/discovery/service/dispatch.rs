@@ -82,13 +82,17 @@ impl DiscoveryService {
         subnets: Vec<Subnet>,
         subnets_scanned_elsewhere: HashSet<Uuid>,
     ) -> DaemonDiscoveryRequest {
-        let (credential_mappings, withheld) = if session.discovery_type.runs_network_scan() {
+        let (credential_mappings, withheld) = if session
+            .discovery_type
+            .carries_credential_mappings()
+        {
             let placement = DaemonPlacement::new(
                 session.discovery_type.daemon_host_id(),
                 &subnets,
                 subnets_scanned_elsewhere,
             );
-            self.credential_service
+            let (mut mappings, withheld) = self
+                .credential_service
                 .build_all_credential_mappings(
                     site_id,
                     integration_targets,
@@ -96,7 +100,20 @@ impl DiscoveryService {
                     &placement,
                 )
                 .await
-                .unwrap_or_default()
+                .unwrap_or_default();
+            mappings.retain(|mapping| {
+                mapping
+                    .default_credential
+                    .iter()
+                    .chain(mapping.ip_overrides.iter().map(|o| &o.credential))
+                    .any(|credential| session.discovery_type.keeps_credential(credential.into()))
+            });
+            // A refresh reports no run, so there is nowhere to say what was withheld from it.
+            if session.discovery_type.records_history() {
+                (mappings, withheld)
+            } else {
+                (mappings, Vec::new())
+            }
         } else {
             (vec![], vec![])
         };
@@ -183,6 +200,41 @@ impl DiscoveryService {
             scan_settings.is_full_scan = is_full_scan;
         }
 
+        self.enqueue_session(session_payload, Some(discovery.id), authentication)
+            .await
+    }
+
+    /// Start a daemon's interface refresh: a session with no discovery configuration behind it,
+    /// queued like any other.
+    pub async fn start_interface_refresh(
+        &self,
+        daemon_id: Uuid,
+        site_id: Uuid,
+        host_id: Uuid,
+    ) -> Result<DiscoveryUpdatePayload, ApiError> {
+        let session_payload = DiscoveryUpdatePayload::new(
+            Uuid::new_v4(),
+            daemon_id,
+            site_id,
+            DiscoveryType::InterfaceRefresh { host_id },
+            None,
+        );
+        self.enqueue_session(session_payload, None, AuthenticatedEntity::System)
+            .await
+    }
+
+    /// Put a new session on its daemon's queue, at the front when the daemon is idle.
+    /// `discovery_id` is the configuration it runs, which may run one session at a time.
+    async fn enqueue_session(
+        &self,
+        mut session_payload: DiscoveryUpdatePayload,
+        discovery_id: Option<Uuid>,
+        authentication: AuthenticatedEntity,
+    ) -> Result<DiscoveryUpdatePayload, ApiError> {
+        let session_id = session_payload.session_id;
+        let site_id = session_payload.site_id;
+        let daemon_id = session_payload.daemon_id;
+
         // Hold running_snapshots.read across the session insertion. This
         // serializes against try_acquire_site_for_snapshot (which takes
         // running_snapshots.write before reading sessions): the snapshot
@@ -190,19 +242,15 @@ impl DiscoveryService {
         // the running_snapshots entry and starts in AwaitingSnapshot. Lock
         // order: running_snapshots → sessions → daemon_sessions.
         let snapshot_lock = self.running_snapshots.read().await;
-        let snapshot_blocked = snapshot_lock.contains(&discovery.base.site_id);
+        let snapshot_blocked = snapshot_lock.contains(&site_id);
 
         // Check if daemon has any sessions running
-        let daemon_is_running_discovery = if let Some(daemon_sessions) = self
-            .daemon_sessions
-            .read()
-            .await
-            .get(&discovery.base.daemon_id)
-        {
-            !daemon_sessions.is_empty()
-        } else {
-            false
-        };
+        let daemon_is_running_discovery =
+            if let Some(daemon_sessions) = self.daemon_sessions.read().await.get(&daemon_id) {
+                !daemon_sessions.is_empty()
+            } else {
+                false
+            };
 
         // Phase decision:
         //   - snapshot in progress on this site → AwaitingSnapshot.
@@ -227,20 +275,22 @@ impl DiscoveryService {
         {
             let mut sessions = self.sessions.write().await;
             let mut discovery_sessions = self.discovery_sessions.write().await;
-            if discovery_sessions.contains_key(&discovery.id) {
-                return Err(ApiError::conflict(
-                    "A session is already running for this discovery",
-                ));
+            if let Some(discovery_id) = discovery_id {
+                if discovery_sessions.contains_key(&discovery_id) {
+                    return Err(ApiError::conflict(
+                        "A session is already running for this discovery",
+                    ));
+                }
+                discovery_sessions.insert(discovery_id, session_id);
             }
             sessions.insert(session_id, session_payload.clone());
-            discovery_sessions.insert(discovery.id, session_id);
         }
 
         // Add session to queue
         self.daemon_sessions
             .write()
             .await
-            .entry(discovery.base.daemon_id)
+            .entry(daemon_id)
             .or_default()
             .push(session_id);
 
@@ -254,12 +304,13 @@ impl DiscoveryService {
         // and Queued sessions are published later by release_site_for_snapshot
         // or the existing terminal-completion promotion path.
         if !snapshot_blocked && !daemon_is_running_discovery {
-            self.event_bus()
-                .publish(session_payload.into_discovery_event_with_auth(authentication))
-                .await;
+            self.publish_session_event(
+                session_payload.into_discovery_event_with_auth(authentication),
+            )
+            .await;
         }
 
-        let _ = self.update_tx.send(session_payload.clone());
+        self.send_session_update(&session_payload);
 
         Ok(session_payload)
     }
@@ -446,7 +497,7 @@ impl DiscoveryService {
             // two updates for one session arrive in the order they were applied. A finished
             // session's goes out from `finish_terminal`, after the onboarding milestone it follows.
             if matches!(outcome, UpdateOutcome::Progress) {
-                let _ = self.update_tx.send(update.clone());
+                self.send_session_update(&update);
             }
             (outcome, previous)
         };
@@ -460,7 +511,7 @@ impl DiscoveryService {
                 if previous != Some(update.phase) {
                     let mut event = update.into_discovery_event();
                     event.scope.previous_phase = previous;
-                    self.event_bus().publish(event).await;
+                    self.publish_session_event(event).await;
                 }
                 return;
             }
@@ -497,6 +548,26 @@ impl DiscoveryService {
         let daemon_id = session.daemon_id;
         let site_id = session.site_id;
         record_session_duration(&session);
+
+        // An interface refresh leaves no record: its only output is the interfaced subnets the
+        // daemon reports on its next status. A failure is logged here, and the next change to
+        // the daemon's interfaces starts another.
+        if !session.discovery_type.records_history() {
+            if session.phase != DiscoveryPhase::Complete {
+                tracing::warn!(
+                    session_id = %session_id,
+                    daemon_id = %daemon_id,
+                    phase = ?session.phase,
+                    error = ?session.error,
+                    "Interface refresh did not complete; the daemon's interfaced subnets stay as \
+                     last reported"
+                );
+            }
+            if let Some(promoted) = promoted {
+                self.publish_promoted(daemon_id, site_id, promoted).await;
+            }
+            return;
+        }
 
         {
             let is_rescan = session.discovery_type.rescan_target_host_ids().is_some();
@@ -757,8 +828,7 @@ impl DiscoveryService {
         );
         started_payload.phase = DiscoveryPhase::Pending;
 
-        self.event_bus()
-            .publish(started_payload.into_discovery_event())
+        self.publish_session_event(started_payload.into_discovery_event())
             .await;
     }
 
@@ -845,10 +915,11 @@ impl DiscoveryService {
                 // Broadcast cancellation update so frontend knows, and publish the terminal
                 // event: it carries `UserCancelled`, which the metrics subscriber counts and the
                 // daemon subscriber leaves alone, since the daemon never had this session.
-                let _ = self.update_tx.send(cancelled_update.clone());
-                self.event_bus()
-                    .publish(cancelled_update.into_discovery_event_with_auth(authentication))
-                    .await;
+                self.send_session_update(&cancelled_update);
+                self.publish_session_event(
+                    cancelled_update.into_discovery_event_with_auth(authentication),
+                )
+                .await;
 
                 // A rescan cancelled before dispatch never reaches the
                 // daemon-reported terminal finalization that deletes its transient

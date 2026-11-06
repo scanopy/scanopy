@@ -189,34 +189,6 @@ impl ContainerRuntime {
         }))
     }
 
-    /// Whether `interface_name` is one a container runtime reserves for its own
-    /// bridges on the host it runs on.
-    ///
-    /// This is a **filter, never a label** — it keeps the daemon from creating
-    /// and scanning its own host's container bridges, which matters most when
-    /// the runtime API is unreachable and no authoritative record will arrive.
-    /// Classification is not allowed to consult it: a false negative here just
-    /// means a bridge shows up as an ordinary subnet, whereas a false positive
-    /// in classification labels an unrelated network "Docker" (#663).
-    pub fn reserves_host_interface_name(interface_name: &str) -> bool {
-        let name = interface_name.to_lowercase();
-
-        // Docker's per-network bridges are `br-` + the first 12 hex chars of the
-        // network id. Anything else after `br-` is someone else's bridge.
-        if let Some(suffix) = name.strip_prefix("br-") {
-            return suffix.len() == 12 && suffix.chars().all(|c| c.is_ascii_hexdigit());
-        }
-
-        // Swarm's ingress bridge, plus the default bridges: docker0, podman0,
-        // cni-podman0.
-        name == "docker_gwbridge"
-            || ["docker", "podman", "cni-podman"].iter().any(|prefix| {
-                name.strip_prefix(prefix).is_some_and(|rest| {
-                    !rest.is_empty() && rest.chars().all(|c| c.is_ascii_digit())
-                })
-            })
-    }
-
     /// Build the container identity stamped onto a discovered container service.
     ///
     /// The owning runtime is carried separately, as `Service::virtualization_service_id`.
@@ -773,43 +745,6 @@ mod tests {
         // Drivers with no routable L3 network of their own.
         assert!(build(ContainerRuntime::Docker, "host").is_none());
         assert!(build(ContainerRuntime::Docker, "none").is_none());
-    }
-
-    /// The filter must catch the bridges a runtime actually creates without
-    /// claiming bridges it doesn't. `br-<12 hex>` is Docker's naming convention;
-    /// a router's `br-guest`/`br-lan` is someone else's bridge, and treating it
-    /// as Docker's is what produced #663.
-    #[test]
-    fn reserved_interface_names_exclude_foreign_bridges() {
-        for reserved in [
-            "docker0",
-            "podman0",
-            "cni-podman0",
-            "docker_gwbridge",
-            "br-1a2b3c4d5e6f",
-            "BR-1A2B3C4D5E6F",
-        ] {
-            assert!(
-                ContainerRuntime::reserves_host_interface_name(reserved),
-                "{reserved} should be recognised as a container bridge"
-            );
-        }
-
-        for foreign in [
-            "br-guest",
-            "br-lan",
-            "br-iot",
-            "br0",
-            "eth0",
-            "wlan0",
-            "lo",
-            "dockerhub",
-        ] {
-            assert!(
-                !ContainerRuntime::reserves_host_interface_name(foreign),
-                "{foreign} must not be claimed as a container bridge"
-            );
-        }
     }
 
     #[test]

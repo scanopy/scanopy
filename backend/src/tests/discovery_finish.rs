@@ -154,3 +154,75 @@ async fn daemon_updates_publish_one_event_per_phase_change() {
         ]
     );
 }
+
+/// An interface refresh runs through the queue like any session and leaves nothing behind: no
+/// entry in the live session list, no historical row, no phase event.
+#[tokio::test]
+async fn an_interface_refresh_leaves_no_history_and_stays_out_of_view() {
+    let (storage, services, _container) = test_services().await;
+    let recorder = Arc::new(PhaseRecorder::default());
+    services
+        .event_bus
+        .register::<DiscoveryPhase>(recorder.clone(), "phase_recorder:interface_refresh")
+        .await;
+
+    let org = organization();
+    storage.organizations.create(&org).await.unwrap();
+    let site_row = services
+        .site_service
+        .create(site(&org.id), AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    let daemon_host = services
+        .host_service
+        .create(host(&site_row.id), AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    let owner = user(&org.id);
+    storage.users.create(&owner).await.unwrap();
+    let mut d = daemon(&site_row.id, &daemon_host.id);
+    d.base.user_id = owner.id;
+    storage.daemons.create(&d).await.unwrap();
+
+    let mut update = services
+        .discovery_service
+        .start_interface_refresh(d.id, site_row.id, daemon_host.id)
+        .await
+        .unwrap();
+    assert_eq!(update.phase, DiscoveryPhase::Pending);
+    assert!(
+        services
+            .discovery_service
+            .get_all_sessions(&[site_row.id])
+            .await
+            .is_empty()
+    );
+
+    update.phase = DiscoveryPhase::Complete;
+    update.progress = 100;
+    update.started_at = Some(Utc::now() - Duration::seconds(5));
+    update.finished_at = Some(Utc::now());
+    services.discovery_service.update_session(update).await;
+    services.event_bus.flush().await;
+
+    let history = services
+        .discovery_service
+        .get_all(
+            crate::server::shared::storage::filter::StorableFilter::new_from_site_ids(&[
+                site_row.id
+            ])
+            .historical_discovery(),
+        )
+        .await
+        .unwrap();
+    assert!(history.is_empty());
+    assert!(recorder.seen.lock().unwrap().is_empty());
+    assert!(
+        services
+            .discovery_service
+            .sessions_on_daemon(&d.id)
+            .await
+            .iter()
+            .all(|s| s.phase.is_terminal())
+    );
+}

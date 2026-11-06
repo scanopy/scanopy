@@ -145,6 +145,10 @@ pub struct DaemonService {
 
     // Whether the server can send email; lifts the unverified-org daemon limit when it can't.
     has_email_service: bool,
+
+    /// Per daemon, the interface fingerprint its interfaced subnets were last classified from.
+    /// See `interface_refresh`.
+    classified_interfaces: tokio::sync::RwLock<std::collections::HashMap<Uuid, String>>,
 }
 
 impl EventBusService<Daemon> for DaemonService {
@@ -219,6 +223,7 @@ impl CrudService<Daemon> for DaemonService {
 }
 
 mod http;
+mod interface_refresh;
 pub(crate) use http::DaemonHttpError;
 mod lifecycle;
 mod monitoring;

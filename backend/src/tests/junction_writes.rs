@@ -513,6 +513,50 @@ async fn daemon_interfaced_subnets_are_replaced_per_daemon() {
     assert_eq!(batch.get(&d2.id), Some(&vec![subnets[2]]));
 }
 
+/// A status report that carries no interfaced subnets leaves the junction as the last session
+/// classified it. Only a report that carries a list rewrites it, an empty one included.
+#[tokio::test]
+async fn a_status_without_interfaced_subnets_leaves_the_junction_alone() {
+    let (storage, services, _container) = test_services().await;
+    let daemons = &services.daemon_service;
+    let (org_id, s) = org_with_sites(&storage, 1).await;
+    let owner = member(&storage, &org_id).await;
+    let h = host(&s[0]);
+    storage.hosts.create(&h).await.unwrap();
+    let mut d = super::daemon(&s[0], &h.id);
+    d.base.user_id = owner.id;
+    storage.daemons.create(&d).await.unwrap();
+    let sn = subnet(&s[0]);
+    storage.subnets.create(&sn).await.unwrap();
+    daemons
+        .set_interfaced_subnet_ids(&d.id, &[sn.id])
+        .await
+        .unwrap();
+    let status = |interfaced_subnets| crate::daemon::runtime::state::DaemonStatus {
+        url: None,
+        name: "daemon".to_string(),
+        mode: d.base.mode,
+        version: Some(semver::Version::parse(env!("CARGO_PKG_VERSION")).unwrap()),
+        capabilities: Default::default(),
+        interfaced_subnets,
+        interfaces_fingerprint: None,
+        ready_for_work: true,
+        os: None,
+    };
+
+    daemons
+        .process_status(d.id, status(None), AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    assert_eq!(daemons.get_interfaced_subnet_ids(&d.id).await, vec![sn.id]);
+
+    daemons
+        .process_status(d.id, status(Some(Vec::new())), AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    assert!(daemons.get_interfaced_subnet_ids(&d.id).await.is_empty());
+}
+
 /// A site with one host holding two services, each bound to its own IP address.
 struct Bound {
     site_id: Uuid,

@@ -273,7 +273,7 @@ impl DaemonService {
 
         // Unified: serialize with credential_mappings via with_exposed_credentials().
         // Legacy: serialize with SNMP inline via with_exposed_snmp().
-        let payload = if request.discovery_type.runs_network_scan() {
+        let payload = if request.discovery_type.carries_credential_mappings() {
             request.with_exposed_credentials()
         } else {
             request.with_exposed_snmp()

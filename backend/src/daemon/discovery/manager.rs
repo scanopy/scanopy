@@ -52,6 +52,10 @@ impl DaemonDiscoverySessionManager {
         }
     }
 
+    pub fn discovery_service(&self) -> &Arc<DaemonDiscoveryService> {
+        &self.discovery_service
+    }
+
     /// Start a session unless another is already running.
     pub async fn try_initiate_session(
         self: &Arc<Self>,
@@ -116,7 +120,9 @@ impl DaemonDiscoverySessionManager {
                 );
                 self.clone().spawn_legacy_stub(request, cancel_token)
             }
-            DiscoveryType::Unified { .. } | DiscoveryType::Rescan { .. } => {
+            DiscoveryType::Unified { .. }
+            | DiscoveryType::Rescan { .. }
+            | DiscoveryType::InterfaceRefresh { .. } => {
                 // `new` returns None only for the legacy types handled above.
                 let Some(runner) = DiscoveryRunner::new(
                     self.discovery_service.clone(),
@@ -375,7 +381,8 @@ fn scan_settings_of(discovery_type: &DiscoveryType) -> Option<ScanSettings> {
     match discovery_type {
         DiscoveryType::Unified { scan_settings, .. } => Some(scan_settings.clone()),
         DiscoveryType::Rescan { settings, .. } => Some(ScanSettings::from(settings)),
-        DiscoveryType::SelfReport { .. }
+        DiscoveryType::InterfaceRefresh { .. }
+        | DiscoveryType::SelfReport { .. }
         | DiscoveryType::Network { .. }
         | DiscoveryType::Docker { .. } => None,
     }

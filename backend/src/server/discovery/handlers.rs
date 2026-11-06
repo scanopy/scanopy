@@ -436,6 +436,12 @@ pub async fn create_discovery(
              via the API.",
         ));
     }
+    if !discovery.base.discovery_type.records_history() {
+        return Err(ApiError::bad_request(
+            "Interface refreshes are started by the server and cannot be \
+             submitted via the API.",
+        ));
+    }
 
     // Reject legacy discovery types — only Unified can be created
     if discovery.base.discovery_type.is_legacy() {
@@ -538,6 +544,12 @@ pub async fn update_discovery(
         return Err(ApiError::bad_request(
             "Rescans are created by the server and cannot be submitted \
              via the API.",
+        ));
+    }
+    if !discovery.base.discovery_type.records_history() {
+        return Err(ApiError::bad_request(
+            "Interface refreshes are started by the server and cannot be \
+             submitted via the API.",
         ));
     }
 

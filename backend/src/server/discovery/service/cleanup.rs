@@ -135,7 +135,7 @@ impl DiscoveryService {
                 now,
             );
             for reaped_session in &reaped {
-                let _ = self.update_tx.send(reaped_session.session.clone());
+                self.send_session_update(&reaped_session.session);
             }
             state::evict_tombstones(&sessions, &mut last_updated, now, stall_threshold);
             reaped
@@ -257,8 +257,17 @@ impl DiscoveryService {
             // is, so a subscriber reading the discovery's run history finds this run in it.
             let mut event = session.into_discovery_event();
             event.scope.previous_phase = Some(previous_phase);
-            self.record_stalled_session(session, now).await;
-            self.event_bus().publish(event).await;
+            if session.discovery_type.records_history() {
+                self.record_stalled_session(session, now).await;
+            } else {
+                tracing::warn!(
+                    session_id = %session.session_id,
+                    daemon_id = %daemon_id,
+                    "Interface refresh stalled; the daemon's interfaced subnets stay as last \
+                     reported"
+                );
+            }
+            self.publish_session_event(event).await;
             if let Some(promoted) = promoted {
                 self.publish_promoted(daemon_id, site_id, promoted).await;
             }

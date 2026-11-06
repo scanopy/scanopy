@@ -25186,11 +25186,21 @@
             "description": "Backwards compat: pre-v0.15.0 daemons send capabilities instead of interfaced_subnets."
           },
           "interfaced_subnets": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/Subnet"
             },
-            "description": "Subnets detected from daemon's network ip_addresses. Server resolves these\nvia SubnetService::create (create-or-match by CIDR) to get real IDs.\nv0.15.0+ daemons populate this; pre-v0.15.0 daemons leave it empty."
+            "description": "The subnets the daemon's host is attached to, as its last session classified them. The\nserver resolves these via SubnetService::create (create-or-match by CIDR) and replaces\nthe daemon's interfaced subnets with them. Absent: leave them as they are. A daemon sends\nthem once after each session; older daemons send them on every report."
+          },
+          "interfaces_fingerprint": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A digest of the daemon's interfaces. With `interfaced_subnets`, the interfaces those were\nclassified from; without, the interfaces as they are now. The server starts an interface\nrefresh when it differs from the last classified one. Absent from older daemons."
           },
           "mode": {
             "$ref": "#/components/schemas/DaemonMode",
@@ -26207,6 +26217,28 @@
                 "type": "string",
                 "enum": [
                   "Unified"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "InterfaceRefresh",
+            "description": "Classify the daemon's interfaced subnets again and report them, scanning nothing. The\nserver starts one when the daemon's interfaces change.\n\nCreated by the server only, with no discovery configuration behind it, and kept out of\nthe run history, the digest and the active sessions.",
+            "required": [
+              "host_id",
+              "type"
+            ],
+            "properties": {
+              "host_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "ID of the host that the daemon is running on"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "InterfaceRefresh"
                 ]
               }
             }

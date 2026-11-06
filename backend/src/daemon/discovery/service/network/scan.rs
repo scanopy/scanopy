@@ -263,10 +263,10 @@ impl NetworkScan {
         // own threads, for the low-fd reason DCP gives above, and stopped when the last deep scan
         // holding it finishes.
         let tcp_stack = Arc::new(super::tcp_stack::TcpStackCapture::start(
-            filtered_own_nics(&interface_filter)
-                .into_iter()
-                .filter(|nic| !nic.is_loopback())
-                .collect(),
+            super::tcp_stack::capture_interfaces(
+                filtered_own_nics(&interface_filter),
+                &scanned_subnets,
+            ),
         ));
         let dcp_capable_interfaces: Vec<_> = filtered_own_nics(&interface_filter)
             .into_iter()

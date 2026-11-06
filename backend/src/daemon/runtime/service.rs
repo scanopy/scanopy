@@ -255,8 +255,11 @@ impl DaemonRuntimeService {
             tracing::debug!(target: LOG_TARGET, daemon_id = %daemon_id, "Polling server for work");
 
             let path = format!("/api/daemons/{}/request-work", daemon_id);
-            // Detect ip_addresses fresh — cheap NIC enumeration
-            let interfaced_subnets = self.detect_interfaced_subnets().await.unwrap_or_default();
+            let (interfaced_subnets, interfaces_fingerprint) = self
+                .discovery_manager
+                .discovery_service()
+                .status_interfaces()
+                .await;
 
             let status_payload = DaemonStatus {
                 // URL not sent - server manages this via provisioning
@@ -266,6 +269,7 @@ impl DaemonRuntimeService {
                 version: Some(semver::Version::parse(env!("CARGO_PKG_VERSION")).unwrap()),
                 capabilities: LegacyCapabilities::default(),
                 interfaced_subnets,
+                interfaces_fingerprint,
                 ready_for_work: !self.discovery_manager.is_discovery_running().await,
                 os: Some(DaemonOs::current()),
             };
@@ -401,24 +405,6 @@ impl DaemonRuntimeService {
                 );
             }
         }
-    }
-
-    /// Detect subnets from daemon's network ip_addresses.
-    async fn detect_interfaced_subnets(
-        &self,
-    ) -> Result<Vec<crate::server::subnets::r#impl::base::Subnet>> {
-        let site_id = match self.config.get_site_id().await? {
-            Some(id) => id,
-            None => return Ok(Vec::new()),
-        };
-        let interface_filter = self.config.get_interfaces().await?;
-
-        let (_, subnets, _) = self
-            .utils
-            .get_own_interfaces(site_id, &interface_filter)
-            .await?;
-
-        Ok(subnets)
     }
 
     pub async fn initialize_services(
