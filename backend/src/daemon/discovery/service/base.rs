@@ -2,7 +2,7 @@ use std::{
     net::IpAddr,
     sync::{
         Arc,
-        atomic::{AtomicU8, AtomicU32, AtomicU64},
+        atomic::{AtomicI64, AtomicU8, AtomicU32, AtomicU64},
     },
 };
 
@@ -148,6 +148,13 @@ pub struct DiscoverySession {
     /// When the network phase began. Its `max_discovery_duration` counts from here, so the
     /// session watchdog does too once it is set.
     pub network_phase_started: Arc<std::sync::OnceLock<std::time::Instant>>,
+    /// When the scan last advanced, in Unix milliseconds: a progress rise, a host created, a deep
+    /// scan or an integration probe or execute finished. The heartbeat does not stamp it, so it
+    /// tells a scan that is moving from a task that is alive and stuck. The watchdog ends a
+    /// session that has gone too long without one.
+    pub last_activity_ms: Arc<AtomicI64>,
+    /// Addresses being deep-scanned now, named in the error when the session stops advancing.
+    pub in_flight_deep_scans: Arc<std::sync::Mutex<std::collections::BTreeSet<IpAddr>>>,
     /// Non-fatal warnings accumulated during the run (e.g. the discovery hit its
     /// time limit and left hosts un-scanned). Surfaced in the terminal session
     /// update so the user sees them without the run being marked as failed.
@@ -221,6 +228,8 @@ impl DiscoverySession {
             progress_range_end: Arc::new(AtomicU8::new(100)),
             consecutive_report_failures: Arc::new(AtomicU32::new(0)),
             network_phase_started: Arc::new(std::sync::OnceLock::new()),
+            last_activity_ms: Arc::new(AtomicI64::new(chrono::Utc::now().timestamp_millis())),
+            in_flight_deep_scans: Arc::new(std::sync::Mutex::new(Default::default())),
             warnings: Arc::new(std::sync::Mutex::new(Vec::new())),
             incomplete_snmp_walks: Arc::new(std::sync::Mutex::new(Vec::new())),
             contradicted_claims: Arc::new(std::sync::Mutex::new(Vec::new())),
@@ -240,6 +249,58 @@ impl DiscoverySession {
         use std::sync::atomic::Ordering;
         self.progress_range_start.store(start, Ordering::Relaxed);
         self.progress_range_end.store(end, Ordering::Relaxed);
+    }
+
+    /// Record that the scan advanced just now.
+    pub fn stamp_activity(&self) {
+        self.last_activity_ms.store(
+            chrono::Utc::now().timestamp_millis(),
+            std::sync::atomic::Ordering::Relaxed,
+        );
+    }
+
+    /// When the scan last advanced.
+    pub fn last_activity_at(&self) -> chrono::DateTime<chrono::Utc> {
+        let ms = self
+            .last_activity_ms
+            .load(std::sync::atomic::Ordering::Relaxed);
+        chrono::DateTime::from_timestamp_millis(ms).unwrap_or_default()
+    }
+
+    /// The addresses being deep-scanned now, in address order.
+    pub fn in_flight_deep_scans(&self) -> Vec<IpAddr> {
+        self.in_flight_deep_scans
+            .lock()
+            .map(|ips| ips.iter().copied().collect())
+            .unwrap_or_default()
+    }
+
+    /// Track `ip` as being deep-scanned until the returned guard drops, which also counts as the
+    /// scan advancing.
+    pub fn track_deep_scan(&self, ip: IpAddr) -> DeepScanInFlight {
+        if let Ok(mut ips) = self.in_flight_deep_scans.lock() {
+            ips.insert(ip);
+        }
+        DeepScanInFlight {
+            ip,
+            session: self.clone(),
+        }
+    }
+}
+
+/// A deep scan in progress. Dropping it, whether the scan finished or its future was dropped,
+/// removes the address from the session's in-flight set and stamps activity.
+pub struct DeepScanInFlight {
+    ip: IpAddr,
+    session: DiscoverySession,
+}
+
+impl Drop for DeepScanInFlight {
+    fn drop(&mut self) {
+        if let Ok(mut ips) = self.session.in_flight_deep_scans.lock() {
+            ips.remove(&self.ip);
+        }
+        self.session.stamp_activity();
     }
 }
 
@@ -322,6 +383,29 @@ impl DaemonDiscoveryService {
             .ok()
             .map(|filter| interfaces_fingerprint(&filtered_own_nics(&filter)));
         (None, fingerprint)
+    }
+}
+
+#[cfg(test)]
+impl DaemonDiscoveryService {
+    /// A ServerPoll service, which reaches no server, already running session `session_id`.
+    pub async fn running_for_test(session_id: Uuid) -> Arc<Self> {
+        use crate::daemon::shared::config::AppConfig;
+        let config = Arc::new(ConfigStore::new(
+            std::env::temp_dir().join(format!("scanopy-test-{session_id}.json")),
+            AppConfig::default(),
+        ));
+        let service = Arc::new(Self::new(config, None, Arc::new(EntityBuffer::new())));
+        let info = DiscoverySessionInfo {
+            session_id,
+            site_id: Uuid::new_v4(),
+            daemon_id: Uuid::new_v4(),
+            started_at: Some(chrono::Utc::now()),
+            discovery_type: DiscoveryType::default(),
+            discovery_id: Uuid::new_v4(),
+        };
+        *service.current_session.write().await = Some(DiscoverySession::new(info, Vec::new()));
+        service
     }
 }
 

@@ -33,7 +33,7 @@ use uuid::Uuid;
 
 use crate::server::credentials::r#impl::mapping::CredentialQueryPayload;
 use crate::server::daemons::r#impl::api::{
-    DaemonDiscoveryRequest, DaemonRegistrationResponse, ServerCapabilities,
+    DaemonDiscoveryRequest, DaemonRegistrationResponse, DaemonWorkResponse, ServerCapabilities,
 };
 use crate::server::daemons::r#impl::version::{DeprecationSeverity, DeprecationWarning};
 use crate::server::discovery::r#impl::types::DiscoveryType;
@@ -74,7 +74,7 @@ fn with_unknown_field(mut v: Value) -> Value {
 
 // ---------------------------------------------------------------------------
 // Composing impls — these let the real call-site types (e.g. `Vec<Subnet>`,
-// `(Option<DaemonDiscoveryRequest>, bool)`, `ApiResponse<VlanDiscoveryResponse>`)
+// `DaemonWorkResponse<DaemonDiscoveryRequest>`, `ApiResponse<VlanDiscoveryResponse>`)
 // resolve `DaemonResponse` from their element types.
 // ---------------------------------------------------------------------------
 
@@ -99,6 +99,12 @@ impl<T: DaemonResponse> DaemonResponse for Option<T> {
 impl<A: DaemonResponse, B: DaemonResponse> DaemonResponse for (A, B) {
     fn skewed() -> Value {
         json!([A::skewed(), B::skewed()])
+    }
+}
+
+impl<T: DaemonResponse> DaemonResponse for DaemonWorkResponse<T> {
+    fn skewed() -> Value {
+        json!([T::skewed(), true, Uuid::nil()])
     }
 }
 
@@ -433,10 +439,9 @@ inventory::submit!(DaemonResponseCheck::new::<HostResponse>());
 inventory::submit!(DaemonResponseCheck::new::<DaemonRegistrationResponse>());
 inventory::submit!(DaemonResponseCheck::new::<ServerCapabilities>());
 inventory::submit!(DaemonResponseCheck::new::<CredentialQueryPayload>());
-inventory::submit!(DaemonResponseCheck::new::<(
-    Option<DaemonDiscoveryRequest>,
-    bool
-)>());
+inventory::submit!(DaemonResponseCheck::new::<
+    DaemonWorkResponse<DaemonDiscoveryRequest>,
+>());
 inventory::submit!(DaemonResponseCheck::new::<VlanDiscoveryResponse>());
 
 #[cfg(test)]

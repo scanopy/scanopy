@@ -99,6 +99,73 @@ pub struct DaemonRegistrationResponse {
     pub server_capabilities: Option<ServerCapabilities>,
 }
 
+/// What a DaemonPoll work request returns, on the wire a JSON array:
+/// `[next_session, cancel]`, or `[next_session, cancel, cancel_session_id]` for a daemon that
+/// reads the session id. A daemon from before the id reads exactly two elements and fails on a
+/// third, so the server sends the id only to daemons past
+/// [`crate::server::daemons::r#impl::version::last_without_cancel_session_id`]. A daemon reads
+/// either shape.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DaemonWorkResponse<T> {
+    pub next_session: Option<T>,
+    /// Whether the daemon should cancel a session.
+    pub cancel: bool,
+    /// The session to cancel. `None` from a server that predates it.
+    pub cancel_session_id: Option<Uuid>,
+    /// Whether the third element goes on the wire. Not itself sent.
+    pub sends_cancel_session_id: bool,
+}
+
+impl<T: Serialize> Serialize for DaemonWorkResponse<T> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeTuple;
+        let len = if self.sends_cancel_session_id { 3 } else { 2 };
+        let mut tuple = serializer.serialize_tuple(len)?;
+        tuple.serialize_element(&self.next_session)?;
+        tuple.serialize_element(&self.cancel)?;
+        if self.sends_cancel_session_id {
+            tuple.serialize_element(&self.cancel_session_id)?;
+        }
+        tuple.end()
+    }
+}
+
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for DaemonWorkResponse<T> {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct WorkVisitor<T>(std::marker::PhantomData<T>);
+
+        impl<'de, T: Deserialize<'de>> serde::de::Visitor<'de> for WorkVisitor<T> {
+            type Value = DaemonWorkResponse<T>;
+
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("an array of the next session, the cancel flag and optionally the session to cancel")
+            }
+
+            fn visit_seq<A: serde::de::SeqAccess<'de>>(
+                self,
+                mut seq: A,
+            ) -> Result<Self::Value, A::Error> {
+                use serde::de::Error;
+                let next_session = seq
+                    .next_element()?
+                    .ok_or_else(|| A::Error::invalid_length(0, &self))?;
+                let cancel = seq
+                    .next_element()?
+                    .ok_or_else(|| A::Error::invalid_length(1, &self))?;
+                let third: Option<Option<Uuid>> = seq.next_element()?;
+                Ok(DaemonWorkResponse {
+                    next_session,
+                    cancel,
+                    cancel_session_id: third.flatten(),
+                    sends_cancel_session_id: third.is_some(),
+                })
+            }
+        }
+
+        deserializer.deserialize_seq(WorkVisitor(std::marker::PhantomData))
+    }
+}
+
 /// Daemon discovery request from server to daemon
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DaemonDiscoveryRequest {
@@ -331,6 +398,10 @@ pub struct DiscoveryUpdatePayload {
     /// survives the daemon being deleted or upgraded.
     #[serde(default)]
     pub daemon_version: Option<String>,
+    /// When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or
+    /// an integration finished. Heartbeats leave it alone. `null` from daemons that predate it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_activity_at: Option<DateTime<Utc>>,
 }
 
 impl DiscoveryUpdatePayload {
@@ -385,6 +456,7 @@ impl DiscoveryUpdatePayload {
             reason: None,
             last_update_at: None,
             daemon_version: None,
+            last_activity_at: None,
         }
     }
 
@@ -414,6 +486,7 @@ impl DiscoveryUpdatePayload {
             reason: update.reason,
             last_update_at: None,
             daemon_version: None,
+            last_activity_at: None,
         }
     }
 
@@ -1024,5 +1097,49 @@ mod health_tests {
             DaemonHealth::of(&base, &status),
             DaemonHealth::AwaitingConnection
         );
+    }
+}
+
+#[cfg(test)]
+mod work_response_tests {
+    use super::*;
+
+    fn response(sends_cancel_session_id: bool) -> DaemonWorkResponse<u8> {
+        DaemonWorkResponse {
+            next_session: Some(7),
+            cancel: true,
+            cancel_session_id: Some(Uuid::new_v4()),
+            sends_cancel_session_id,
+        }
+    }
+
+    /// A daemon from before the session id reads the response as a two-element tuple and fails
+    /// on a third element, so what it is sent must still read that way.
+    #[test]
+    fn a_daemon_that_predates_the_session_id_still_reads_its_response() {
+        let wire = serde_json::to_string(&response(false)).unwrap();
+
+        let old: (Option<u8>, bool) = serde_json::from_str(&wire).unwrap();
+        assert_eq!(old, (Some(7), true));
+        assert!(
+            serde_json::from_str::<(Option<u8>, bool)>(
+                &serde_json::to_string(&response(true)).unwrap()
+            )
+            .is_err()
+        );
+    }
+
+    /// A current daemon reads the session id when it is sent and none from an older server.
+    #[test]
+    fn a_current_daemon_reads_either_shape() {
+        let sent = response(true);
+        let read: DaemonWorkResponse<u8> =
+            serde_json::from_str(&serde_json::to_string(&sent).unwrap()).unwrap();
+        assert_eq!(read.cancel_session_id, sent.cancel_session_id);
+
+        let legacy: DaemonWorkResponse<u8> = serde_json::from_str("[null, true]").unwrap();
+        assert_eq!(legacy.next_session, None);
+        assert!(legacy.cancel);
+        assert_eq!(legacy.cancel_session_id, None);
     }
 }

@@ -969,6 +969,8 @@ impl NetworkScan {
                                 let tcp_stack_ref = tcp_stack.clone();
                                 let early_host_handle = early_reported_hosts.remove(&ip);
                                 pending_scans.push(Box::pin(async move {
+                                    // Named in the error if the session stops advancing; its drop stamps activity.
+                                    let _in_flight = ops.track_deep_scan(ip).await;
                                     let early_host_id = match early_host_handle {
                                         Some(handle) => match handle.await {
                                             Ok(Ok(id)) => id,
@@ -1089,6 +1091,8 @@ impl NetworkScan {
                         let early_host_handle = early_reported_hosts.remove(&ip);
 
                         pending_scans.push(Box::pin(async move {
+                            // Named in the error if the session stops advancing; its drop stamps activity.
+                            let _in_flight = ops.track_deep_scan(ip).await;
                             let early_host_id = match early_host_handle {
                                 Some(handle) => match handle.await {
                                     Ok(Ok(id)) => id,
@@ -1730,6 +1734,7 @@ impl NetworkScan {
         )
         .await?;
         open_ports.extend(probe_results.additional_ports.iter());
+        ops.stamp_activity().await;
         // Hand any IP-targeted credential that produced nothing to the session, which renders
         // them as one line at the end. `probe_integrations` has no session handle of its own.
         ops.record_credential_issues(&probe_results.credential_issues)
@@ -1982,6 +1987,8 @@ impl NetworkScan {
                 scanned_subnets: &scanned_subnets,
                 scanning_subnet: Some(subnet),
                 ip_address_id: Some(ip_address.id),
+                // The deep scan's cost accounting owns the bar.
+                owns_progress: false,
             };
             dispatch::execute_integrations(
                 credential_mappings,

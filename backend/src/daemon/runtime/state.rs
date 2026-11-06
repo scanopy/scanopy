@@ -244,6 +244,7 @@ impl DaemonState {
                 reason: None,
                 last_update_at: None,
                 daemon_version: None,
+                last_activity_at: Some(s.last_activity_at()),
             });
         }
         drop(session);

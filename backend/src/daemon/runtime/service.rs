@@ -9,7 +9,8 @@ use crate::daemon::utils::base::DaemonUtils;
 use crate::daemon::utils::base::{PlatformDaemonUtils, create_system_utils};
 use crate::server::daemons::r#impl::api::{
     DaemonDiscoveryRequest, DaemonRegistrationRequest, DaemonRegistrationResponse,
-    DaemonStartupRequest, DiscoveryUpdatePayload, LegacyCapabilities, ServerCapabilities,
+    DaemonStartupRequest, DaemonWorkResponse, DiscoveryUpdatePayload, LegacyCapabilities,
+    ServerCapabilities,
 };
 use crate::server::daemons::r#impl::base::{Daemon, DaemonOs};
 use crate::server::shared::types::api::{ApiError, ApiErrorResponse};
@@ -277,7 +278,7 @@ impl DaemonRuntimeService {
             // Use backon for retry with exponential backoff
             let result = (|| async {
                 api_client
-                    .post::<_, (Option<DaemonDiscoveryRequest>, bool)>(
+                    .post::<_, DaemonWorkResponse<DaemonDiscoveryRequest>>(
                         &path,
                         &status_payload,
                         "Failed to request work",
@@ -307,14 +308,22 @@ impl DaemonRuntimeService {
             .await;
 
             match result {
-                Ok((request, cancel_current_session)) => {
-                    if cancel_current_session {
-                        // The server's pull cancellation names no session, so it targets
-                        // whatever is running.
-                        let cancelled = self.discovery_manager.cancel(CancelTarget::Current).await;
+                Ok(work) => {
+                    let request = work.next_session;
+                    if work.cancel {
+                        let target = CancelTarget::from_work_response(
+                            self.discovery_manager.running_session_id().await,
+                            work.cancel,
+                            work.cancel_session_id,
+                        );
+                        let cancelled = match target {
+                            Some(target) => self.discovery_manager.cancel(target).await,
+                            None => false,
+                        };
                         tracing::info!(
                             target: LOG_TARGET,
                             cancelled,
+                            cancel_session_id = ?work.cancel_session_id,
                             "Received cancellation request from server"
                         );
                     }

@@ -127,7 +127,7 @@ impl DiscoveryIntegration for ProxmoxIntegration {
             .ok_or_else(|| Error::msg("Proxmox execute ran without a probe handle"))?;
         let client = &handle.client;
 
-        ctx.ops.report_progress(5).await.ok();
+        ctx.report_progress(5).await;
 
         let resources: Vec<ClusterResource> =
             client.get("/cluster/resources").await?.ok_or_else(|| {
@@ -148,7 +148,7 @@ impl DiscoveryIntegration for ProxmoxIntegration {
             guests = guests.len(),
             "Fetched Proxmox VE cluster inventory"
         );
-        ctx.ops.report_progress(15).await.ok();
+        ctx.report_progress(15).await;
 
         let subnets = merge_subnets(ctx.known_subnets, ctx.scanning_subnet, &host_data.subnets);
 
@@ -187,7 +187,7 @@ impl DiscoveryIntegration for ProxmoxIntegration {
                 }
             }
         }
-        ctx.ops.report_progress(30).await.ok();
+        ctx.report_progress(30).await;
 
         let site_id = ctx.ops.site_id().await?;
         let total = guests.len();
@@ -281,10 +281,7 @@ async fn sync_and_report(
         sync_guest(ctx, client, guest, owners, bridges, subnets, site_id).await
     };
     let synced = done.fetch_add(1, Ordering::Relaxed) + 1;
-    ctx.ops
-        .report_progress(30 + (60 * synced / total) as u8)
-        .await
-        .ok();
+    ctx.report_progress(30 + (60 * synced / total) as u8).await;
     outcome
 }
 

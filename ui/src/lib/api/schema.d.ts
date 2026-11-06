@@ -772,7 +772,8 @@ export interface paths {
          * Request work from server
          * @description Internal endpoint for daemons to poll for pending discovery sessions.
          *     Also updates heartbeat and returns any pending cancellation requests.
-         *     Returns tuple of (next_session, should_cancel).
+         *     Returns `[next_session, should_cancel]`, plus the session to cancel for daemons that read it
+         *     (see [`DaemonWorkResponse`]).
          */
         post: operations["receive_work_request"];
         delete?: never;
@@ -4894,6 +4895,12 @@ export interface components {
                 hosts_discovered?: number | null;
                 /**
                  * Format: date-time
+                 * @description When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or
+                 *     an integration finished. Heartbeats leave it alone. `null` from daemons that predate it.
+                 */
+                last_activity_at?: string | null;
+                /**
+                 * Format: date-time
                  * @description When the server last heard about this run. Stamped by the server at terminal.
                  */
                 last_update_at?: string | null;
@@ -7315,6 +7322,12 @@ export interface components {
                 hosts_discovered?: number | null;
                 /**
                  * Format: date-time
+                 * @description When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or
+                 *     an integration finished. Heartbeats leave it alone. `null` from daemons that predate it.
+                 */
+                last_activity_at?: string | null;
+                /**
+                 * Format: date-time
                  * @description When the server last heard about this run. Stamped by the server at terminal.
                  */
                 last_update_at?: string | null;
@@ -9291,7 +9304,7 @@ export interface components {
          *     [`Self::daemon_assigned`]. Absent on runs recorded before this field existed.
          * @enum {string}
          */
-        DiscoveryTerminalReason: "Completed" | "UserCancelled" | "DaemonReportedFailure" | "StalledNoUpdates" | "DaemonRestarted" | "DaemonUnreachable" | "DaemonBusy" | "WatchdogTimeout" | "DaemonOffline" | "SessionSilent" | "DaemonDroppedSession";
+        DiscoveryTerminalReason: "Completed" | "UserCancelled" | "DaemonReportedFailure" | "StalledNoUpdates" | "DaemonRestarted" | "DaemonUnreachable" | "DaemonBusy" | "WatchdogTimeout" | "DaemonOffline" | "SessionSilent" | "DaemonDroppedSession" | "SessionStoppedAdvancing";
         DiscoveryType: {
             /**
              * Format: uuid
@@ -9414,6 +9427,12 @@ export interface components {
              * @description Hosts found so far.
              */
             hosts_discovered?: number | null;
+            /**
+             * Format: date-time
+             * @description When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or
+             *     an integration finished. Heartbeats leave it alone. `null` from daemons that predate it.
+             */
+            last_activity_at?: string | null;
             /**
              * Format: date-time
              * @description When the server last heard about this run. Stamped by the server at terminal.
@@ -18395,7 +18414,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Work request processed - returns (Option<Value>, bool) */
+            /** @description Work request processed - returns [Option<Value>, bool, Option<Uuid>] */
             200: {
                 headers: {
                     [name: string]: unknown;

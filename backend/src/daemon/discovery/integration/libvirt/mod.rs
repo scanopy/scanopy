@@ -167,7 +167,7 @@ impl DiscoveryIntegration for LibvirtIntegration {
                 IntegrationFailure::collection_failed("libvirt session already used")
             })?;
 
-        ctx.ops.report_progress(5).await.ok();
+        ctx.report_progress(5).await;
         let result = session
             .exec(
                 &commands::inventory(&cred.connection_uri, handle.read_only),
@@ -195,7 +195,7 @@ impl DiscoveryIntegration for LibvirtIntegration {
             read_only = handle.read_only,
             "Fetched libvirt domains"
         );
-        ctx.ops.report_progress(20).await.ok();
+        ctx.report_progress(20).await;
 
         let subnets = merge_subnets(ctx.known_subnets, ctx.scanning_subnet, &host_data.subnets);
         let site_id = ctx.ops.site_id().await?;
@@ -224,7 +224,7 @@ impl DiscoveryIntegration for LibvirtIntegration {
             Some((host_id, service_id)) => (Some(host_id), Some(service_id)),
             None => (None, None),
         };
-        ctx.ops.report_progress(30).await.ok();
+        ctx.report_progress(30).await;
 
         let bridges = parse::bridges(&inventory);
         let total = inventory.domains.len();
@@ -426,10 +426,8 @@ async fn sync_and_report(
         .await
     };
     let synced = done.fetch_add(1, Ordering::Relaxed) + 1;
-    ctx.ops
-        .report_progress(30 + (60 * synced / total.max(1)) as u8)
-        .await
-        .ok();
+    ctx.report_progress(30 + (60 * synced / total.max(1)) as u8)
+        .await;
     outcome
 }
 

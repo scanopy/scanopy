@@ -880,6 +880,7 @@ impl DiscoveryService {
             reason: Some(DiscoveryTerminalReason::UserCancelled),
             last_update_at: None,
             daemon_version: None,
+            last_activity_at: None,
         };
 
         // Handle based on current phase

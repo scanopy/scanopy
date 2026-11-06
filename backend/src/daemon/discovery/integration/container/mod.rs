@@ -478,7 +478,7 @@ pub async fn execute(
         .await?
         .into_iter()
         .partition(Subnet::is_container_bridge_subnet);
-    ctx.ops.report_progress(10).await.ok();
+    ctx.report_progress(10).await;
 
     // The engine reports the machine it runs on. Read before the scan so a slow container pass
     // cannot time it out; a failed read only means no OS from this source.
@@ -492,7 +492,7 @@ pub async fn execute(
 
     let containers = scanner.get_containers_and_summaries().await?;
     let container_count = containers.len();
-    ctx.ops.report_progress(20).await.ok();
+    ctx.report_progress(20).await;
 
     // A container with a macvlan/ipvlan endpoint is a host of its own under the runtime. Every
     // other container stays a service on the runtime's host, except the members of a LAN
@@ -528,7 +528,7 @@ pub async fn execute(
             deadline,
         )
         .await?;
-    ctx.ops.report_progress(70).await.ok();
+    ctx.report_progress(70).await;
 
     let container_hosts = if lan_containers.is_empty() {
         hosts::ContainerHostsOutcome::default()
@@ -570,7 +570,7 @@ pub async fn execute(
             }
         }
     };
-    ctx.ops.report_progress(90).await.ok();
+    ctx.report_progress(90).await;
 
     tracing::info!(
         discovered = %scan.results.len(),

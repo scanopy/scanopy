@@ -116,7 +116,7 @@ impl DiscoveryIntegration for InstantOnIntegration {
             .and_then(|h| h.downcast_ref::<InstantOnProbeHandle>())
             .ok_or_else(|| Error::msg("Instant On execute ran without a probe handle"))?;
 
-        ctx.ops.report_progress(5).await.ok();
+        ctx.report_progress(5).await;
 
         let sites = self.sites_to_read(handle).await?;
         if sites.is_empty() {
@@ -192,7 +192,7 @@ impl DiscoveryIntegration for InstantOnIntegration {
             }
 
             let percent = 10 + ((index + 1) * 80 / site_count) as u8;
-            ctx.ops.report_progress(percent.min(90)).await.ok();
+            ctx.report_progress(percent.min(90)).await;
         }
 
         // Anchoring on a host the account does not manage is a configuration mistake that would

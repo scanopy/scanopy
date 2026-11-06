@@ -1163,6 +1163,7 @@ impl DiscoveryOps {
             update,
         );
         payload.scanned = scanned;
+        payload.last_activity_at = Some(session.last_activity_at());
 
         // Populate estimation fields from session atomics
         let hosts = session.hosts_discovered.load(Ordering::Relaxed);
@@ -1469,6 +1470,21 @@ impl DiscoveryOps {
             .await
     }
 
+    /// Record that the scan advanced: see [`super::base::DiscoverySession::last_activity_ms`].
+    pub async fn stamp_activity(&self) {
+        if let Ok(session) = self.get_session().await {
+            session.stamp_activity();
+        }
+    }
+
+    /// Track a deep scan of `ip` until the guard drops. `None` without a session.
+    pub async fn track_deep_scan(&self, ip: IpAddr) -> Option<super::base::DeepScanInFlight> {
+        self.get_session()
+            .await
+            .ok()
+            .map(|session| session.track_deep_scan(ip))
+    }
+
     /// Report progress already mapped to the whole session.
     async fn report_overall_progress(&self, percent: u8) -> Result<(), Error> {
         use crate::daemon::discovery::types::base::DiscoverySessionUpdate;
@@ -1483,6 +1499,11 @@ impl DiscoveryOps {
             .unwrap_or_default()
             .as_secs();
         let last_time = last_report_time.load(Ordering::Relaxed);
+
+        // A rise is the scan advancing whether or not this one is sent.
+        if percent > last_progress.load(Ordering::Relaxed) {
+            session.stamp_activity();
+        }
 
         let Some(percent) = progress_decision(
             percent,
@@ -1510,6 +1531,7 @@ impl DiscoveryOps {
                 session.info.clone(),
                 update,
             );
+            payload.last_activity_at = Some(session.last_activity_at());
 
             let hosts = session.hosts_discovered.load(Ordering::Relaxed);
             if hosts > 0 {
@@ -1685,6 +1707,8 @@ impl DiscoveryOps {
         cancel: &CancellationToken,
     ) -> Result<HostResponse, Error> {
         let pending_id = host.id;
+        // A host to submit is the scan advancing, however long the submission takes.
+        self.stamp_activity().await;
         let (mut ip_addresses, mut interfaces) = (ip_addresses, interfaces);
         retain_submittable_addresses(&mut ip_addresses, &mut interfaces);
         port_coverage.merge(container_port_coverage(&ip_addresses, &ports, &services));
@@ -2156,6 +2180,26 @@ pub enum DiscoveryAbort {
          Part of the scan stopped responding."
     )]
     Watchdog { elapsed_secs: u64, cap_secs: u64 },
+    /// The session kept running and stopped advancing: nothing raised its progress, created a
+    /// host or finished a deep scan or integration for `quiet_secs`.
+    #[error(
+        "The scan made no progress for {} minutes and was stopped. {}",
+        quiet_secs / 60,
+        in_flight_sentence(in_flight)
+    )]
+    StoppedAdvancing {
+        quiet_secs: u64,
+        /// The addresses being deep-scanned when it was stopped.
+        in_flight: Vec<IpAddr>,
+    },
+}
+
+fn in_flight_sentence(in_flight: &[IpAddr]) -> String {
+    if in_flight.is_empty() {
+        return "No host was being deep-scanned.".to_string();
+    }
+    let ips: Vec<String> = in_flight.iter().map(|ip| ip.to_string()).collect();
+    format!("Still deep-scanning: {}.", ips.join(", "))
 }
 
 /// The terminal update a run reports, from how it ended.
@@ -2179,6 +2223,12 @@ fn terminal_update(
                 progress,
                 Some(abort.to_string()),
                 Some(DiscoveryTerminalReason::WatchdogTimeout),
+            ),
+            Some(abort @ DiscoveryAbort::StoppedAdvancing { .. }) => (
+                DiscoveryPhase::Failed,
+                progress,
+                Some(abort.to_string()),
+                Some(DiscoveryTerminalReason::SessionStoppedAdvancing),
             ),
             None if cancelled => (DiscoveryPhase::Cancelled, progress, None, None),
             None => {

@@ -416,6 +416,7 @@ impl DiscoveryRunner {
             &ops.config_store,
         )
         .await?;
+        ops.stamp_activity().await;
 
         // Deliver before the early return below. These were built correctly and then dropped,
         // so a wrong Docker or Podman socket credential on the daemon host reported nothing at
@@ -531,6 +532,8 @@ impl DiscoveryRunner {
             scanned_subnets: created_subnets,
             scanning_subnet: None,
             ip_address_id: Some(ip_address.id),
+            // The daemon-host phase is these integrations' work, so they move its bar.
+            owns_progress: true,
         };
 
         dispatch::execute_integrations(

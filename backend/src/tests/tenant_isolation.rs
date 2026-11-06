@@ -607,6 +607,7 @@ pub(super) fn progress(
         reason: None,
         last_update_at: None,
         daemon_version: None,
+        last_activity_at: None,
     }
 }
 

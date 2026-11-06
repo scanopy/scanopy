@@ -2190,6 +2190,8 @@
 	"meta_discovery_terminal_reasons_DaemonUnreachable_name": "Daemon unreachable",
 	"meta_discovery_terminal_reasons_SessionSilent_description": "The daemon kept checking in with the server but sent nothing about this scan for 5 minutes. The daemon's logs show where the scan stopped.",
 	"meta_discovery_terminal_reasons_SessionSilent_name": "Scan went silent",
+	"meta_discovery_terminal_reasons_SessionStoppedAdvancing_description": "The scan kept running for 20 minutes without finding a host or finishing a step, so the daemon stopped it. The error names the hosts the scan was still working on.",
+	"meta_discovery_terminal_reasons_SessionStoppedAdvancing_name": "Scan stopped advancing",
 	"meta_discovery_terminal_reasons_StalledNoUpdates_description": "The server heard nothing from the daemon for 5 minutes and stopped waiting. Check that the daemon is running and can reach the server.",
 	"meta_discovery_terminal_reasons_StalledNoUpdates_name": "Stalled",
 	"meta_discovery_terminal_reasons_UserCancelled_description": "Someone stopped this scan before it finished.",

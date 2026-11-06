@@ -1776,7 +1776,7 @@
           "internal"
         ],
         "summary": "Request work from server",
-        "description": "Internal endpoint for daemons to poll for pending discovery sessions.\nAlso updates heartbeat and returns any pending cancellation requests.\nReturns tuple of (next_session, should_cancel).",
+        "description": "Internal endpoint for daemons to poll for pending discovery sessions.\nAlso updates heartbeat and returns any pending cancellation requests.\nReturns `[next_session, should_cancel]`, plus the session to cancel for daemons that read it\n(see [`DaemonWorkResponse`]).",
         "operationId": "receive_work_request",
         "parameters": [
           {
@@ -1802,7 +1802,7 @@
         },
         "responses": {
           "200": {
-            "description": "Work request processed - returns (Option<Value>, bool)"
+            "description": "Work request processed - returns [Option<Value>, bool, Option<Uuid>]"
           },
           "404": {
             "description": "Daemon not found",
@@ -24572,6 +24572,14 @@
                 "description": "Hosts found so far.",
                 "minimum": 0
               },
+              "last_activity_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time",
+                "description": "When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or\nan integration finished. Heartbeats leave it alone. `null` from daemons that predate it."
+              },
               "last_update_at": {
                 "type": [
                   "string",
@@ -28964,6 +28972,14 @@
                   "format": "int32",
                   "description": "Hosts found so far.",
                   "minimum": 0
+                },
+                "last_activity_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "description": "When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or\nan integration finished. Heartbeats leave it alone. `null` from daemons that predate it."
                 },
                 "last_update_at": {
                   "type": [
@@ -33695,7 +33711,8 @@
           "WatchdogTimeout",
           "DaemonOffline",
           "SessionSilent",
-          "DaemonDroppedSession"
+          "DaemonDroppedSession",
+          "SessionStoppedAdvancing"
         ]
       },
       "DiscoveryType": {
@@ -33973,6 +33990,14 @@
             "format": "int32",
             "description": "Hosts found so far.",
             "minimum": 0
+          },
+          "last_activity_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or\nan integration finished. Heartbeats leave it alone. `null` from daemons that predate it."
           },
           "last_update_at": {
             "type": [

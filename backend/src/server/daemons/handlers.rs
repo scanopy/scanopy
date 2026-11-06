@@ -6,8 +6,9 @@ use crate::server::auth::middleware::permissions::{
 use crate::server::credentials::r#impl::mapping::IntegrationTarget;
 use crate::server::daemon_api_keys::r#impl::base::DaemonApiKey;
 use crate::server::daemons::r#impl::api::{
-    DaemonHealth, DaemonHeartbeatPayload, ProvisionDaemonRequest, ProvisionDaemonResponse,
-    ProvisionEligibility, TestReachabilityRequest, TestReachabilityResponse,
+    DaemonHealth, DaemonHeartbeatPayload, DaemonWorkResponse, ProvisionDaemonRequest,
+    ProvisionDaemonResponse, ProvisionEligibility, TestReachabilityRequest,
+    TestReachabilityResponse,
 };
 use crate::server::daemons::r#impl::base::DaemonOs;
 use crate::server::daemons::service::DaemonLimit;
@@ -1009,7 +1010,8 @@ async fn update_capabilities(
 ///
 /// Internal endpoint for daemons to poll for pending discovery sessions.
 /// Also updates heartbeat and returns any pending cancellation requests.
-/// Returns tuple of (next_session, should_cancel).
+/// Returns `[next_session, should_cancel]`, plus the session to cancel for daemons that read it
+/// (see [`DaemonWorkResponse`]).
 #[utoipa::path(
     post,
     path = "/{id}/request-work",
@@ -1017,7 +1019,7 @@ async fn update_capabilities(
     params(("id" = Uuid, Path, description = "Daemon ID")),
     request_body = DaemonStatus,
     responses(
-        (status = 200, description = "Work request processed - returns (Option<Value>, bool)"),
+        (status = 200, description = "Work request processed - returns [Option<Value>, bool, Option<Uuid>]"),
         (status = 404, description = "Daemon not found", body = ApiErrorResponse),
     ),
     security(("daemon_api_key" = []))
@@ -1027,7 +1029,7 @@ async fn receive_work_request(
     auth: Authorized<IsDaemon>,
     Path(daemon_id): Path<Uuid>,
     ApiJson(status): ApiJson<DaemonStatus>,
-) -> ApiResult<Json<ApiResponse<(Option<serde_json::Value>, bool)>>> {
+) -> ApiResult<Json<ApiResponse<DaemonWorkResponse<serde_json::Value>>>> {
     let daemon_site_id = auth.site_ids()[0];
 
     // Validate daemon exists and belongs to the authenticated daemon's site
@@ -1153,10 +1155,14 @@ async fn receive_work_request(
         None => None,
     };
 
-    Ok(Json(ApiResponse::success((
-        next_session_value,
-        has_cancellation,
-    ))))
+    Ok(Json(ApiResponse::success(DaemonWorkResponse {
+        next_session: next_session_value,
+        cancel: has_cancellation,
+        cancel_session_id: cancellation,
+        sends_cancel_session_id: crate::server::daemons::r#impl::version::reads_cancel_session_id(
+            status.version.as_ref(),
+        ),
+    })))
 }
 
 /// Receive daemon heartbeat (deprecated)

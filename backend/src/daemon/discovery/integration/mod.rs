@@ -446,6 +446,23 @@ pub struct IntegrationContext<'a> {
     pub trusted_ca: Option<&'a TrustedCaBundle>,
     /// The subnet currently being scanned (needed by SNMP for remote subnet discovery).
     pub scanning_subnet: Option<&'a Subnet>,
+    /// Whether this integration's progress is the session's progress: true in the daemon-host
+    /// phase, which runs the integrations as its whole work. In a deep scan the scan's own cost
+    /// accounting moves the bar, and an integration's percentage of its own work says nothing
+    /// about the session's. See [`IntegrationContext::report_progress`].
+    pub owns_progress: bool,
+}
+
+impl IntegrationContext<'_> {
+    /// Report progress within this integration's work, 0-100. Forwarded to the session only
+    /// where the integration owns the phase's progress ([`Self::owns_progress`]). Inside a deep
+    /// scan it is dropped: the session reports overall progress that never falls, so an
+    /// integration's 90 there became 90% for the whole scan and held the bar until it ended.
+    pub async fn report_progress(&self, percent: u8) {
+        if self.owns_progress {
+            let _ = self.ops.report_progress(percent).await;
+        }
+    }
 }
 
 // ============================================================================
@@ -497,10 +514,9 @@ impl IntegrationRegistry {
 /// Wraps `execute()` with periodic progress re-reporting to prevent the server's
 /// 5-minute stall detector from killing the session.
 ///
-/// Before calling this, the pipeline sets `session.set_progress_range(start, end)`
-/// to the integration's share of overall progress. The integration calls
-/// `ctx.ops.report_progress(percent)` (0-100 within its scope) which maps to
-/// the correct overall percentage.
+/// The integration calls [`IntegrationContext::report_progress`] (0-100 within its own work).
+/// In the daemon-host phase that maps into the phase's range; inside a deep scan it is dropped,
+/// because no range is set per integration there.
 ///
 /// The `progress_fn` re-reports the current progress as a heartbeat every 30 seconds
 /// if the integration hasn't reported recently.
@@ -920,5 +936,80 @@ mod classification_tests {
             IntegrationFailure::with_outcome(AttemptOutcome::TimedOut, "slow").outcome(),
             AttemptOutcome::TimedOut
         );
+    }
+}
+
+#[cfg(test)]
+mod progress_tests {
+    use super::*;
+    use crate::daemon::discovery::service::base::DaemonDiscoveryService;
+    use crate::daemon::utils::base::create_system_utils;
+    use crate::server::credentials::r#impl::mapping::{
+        CredentialQueryPayload, CredentialQueryPayloadDiscriminants,
+    };
+    use crate::server::credentials::r#impl::types::wake_on_lan::WakeOnLanQueryCredential;
+    use crate::server::discovery::r#impl::types::{DiscoveryType, HostNamingFallback};
+    use std::sync::atomic::Ordering;
+
+    /// The progress an integration reports at 90% of its own work, from a context that owns the
+    /// session's progress or not, in the given phase range. Returns the session's progress after.
+    async fn progress_after_integration_reports_90(owns_progress: bool, range: (u8, u8)) -> u8 {
+        let service = DaemonDiscoveryService::running_for_test(Uuid::new_v4()).await;
+        let ops = DiscoveryOps::new(&service, DiscoveryType::default());
+        let session = ops.get_session().await.unwrap();
+        session.set_progress_range(range.0, range.1);
+
+        let credential = CredentialQueryPayload::WakeOnLan(WakeOnLanQueryCredential {
+            port: 9,
+            wait_seconds: 0,
+            broadcast_address: None,
+            secure_on_password: None,
+        });
+        let utils = create_system_utils();
+        let cancel = CancellationToken::new();
+        let ctx = IntegrationContext {
+            ip: IpAddr::from([10, 0, 0, 5]),
+            credential: &credential,
+            credential_id: None,
+            interface_source: InterfaceSource {
+                credential: CredentialQueryPayloadDiscriminants::WakeOnLan,
+                scope: CredentialIntegration::WakeOnLan.interface_view_scope(),
+            },
+            integration: CredentialIntegration::WakeOnLan,
+            cancel: &cancel,
+            ops: &ops,
+            utils: &utils,
+            probe_handle: None,
+            matched_services: &[],
+            open_ports: &[],
+            endpoint_responses: &[],
+            host_id: Uuid::new_v4(),
+            host_naming_fallback: HostNamingFallback::default(),
+            known_subnets: &[],
+            scanned_subnets: &[],
+            accept_invalid_certs: false,
+            trusted_ca: None,
+            scanning_subnet: None,
+            owns_progress,
+        };
+
+        ctx.report_progress(90).await;
+        session.last_progress.load(Ordering::Relaxed)
+    }
+
+    /// Inside a deep scan the network phase spans 5-100%, and an integration's 90 used to map to
+    /// 90% overall. The session's progress never falls, so the bar sat there until the scan ended.
+    #[tokio::test]
+    async fn an_integration_inside_a_deep_scan_leaves_the_sessions_progress_alone() {
+        assert_eq!(
+            progress_after_integration_reports_90(false, (5, 100)).await,
+            0
+        );
+    }
+
+    /// The daemon-host phase is its integrations' work, so their progress moves its share.
+    #[tokio::test]
+    async fn an_integration_in_the_daemon_host_phase_moves_the_phases_share() {
+        assert_eq!(progress_after_integration_reports_90(true, (0, 5)).await, 4);
     }
 }

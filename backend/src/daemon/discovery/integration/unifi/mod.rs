@@ -128,11 +128,11 @@ impl DiscoveryIntegration for UnifiIntegration {
             .and_then(|h| h.downcast_ref::<UnifiProbeHandle>())
             .ok_or_else(|| Error::msg("UniFi execute ran without a probe handle"))?;
 
-        ctx.ops.report_progress(10).await.ok();
+        ctx.report_progress(10).await;
 
         let devices: Vec<UnifiDevice> = handle.client.get_site("stat/device").await?.data;
         tracing::info!(ip = %ctx.ip, devices = devices.len(), "Fetched UniFi device inventory");
-        ctx.ops.report_progress(30).await.ok();
+        ctx.report_progress(30).await;
 
         // The controller's networks become the site's VLANs and subnets before any device is
         // placed, so a device on a VLAN the daemon has no interface on still lands on a subnet.
@@ -142,7 +142,7 @@ impl DiscoveryIntegration for UnifiIntegration {
             Some(config) => record_networks(ctx, site_id, &config.networks).await,
             None => Vec::new(),
         };
-        ctx.ops.report_progress(40).await.ok();
+        ctx.report_progress(40).await;
 
         let subnets = collect_subnets(ctx, host_data, &recorded);
         let mut mapped = mapping::map_devices(&devices, site_id, &subnets);
@@ -213,7 +213,7 @@ impl DiscoveryIntegration for UnifiIntegration {
             .await;
 
         tracing::info!(created, "UniFi device sync complete");
-        ctx.ops.report_progress(70).await.ok();
+        ctx.report_progress(70).await;
 
         // Clients: the devices the controller sees but has not adopted. Their names live nowhere
         // else — a phone or a server has no LLDP, and its DHCP hostname is frequently all there
@@ -244,7 +244,7 @@ impl DiscoveryIntegration for UnifiIntegration {
         };
 
         tracing::info!(created = created_clients, "UniFi client sync complete");
-        ctx.ops.report_progress(90).await.ok();
+        ctx.report_progress(90).await;
         // No checkpoint: each device is committed server-side by `create_device_host` as it is
         // reached, so UniFi's progress never depended on `host_data` surviving a drop. The only
         // thing in the scratch buffer is the controller's own enrichment, which is all-or-nothing
