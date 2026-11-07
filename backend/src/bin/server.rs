@@ -8,6 +8,7 @@ use axum::{
 use axum_client_ip::ClientIpSource;
 use clap::Parser;
 use reqwest::header::{self, HeaderName};
+use scanopy::server::metrics::db::DbTimingLayer;
 use scanopy::server::{
     auth::middleware::{
         demo_mode::demo_mode_middleware, logging::request_logging_middleware,
@@ -33,7 +34,7 @@ use tower_http::{
     set_header::SetResponseHeaderLayer,
     trace::TraceLayer,
 };
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::{Layer, layer::SubscriberExt, util::SubscriberInitExt};
 
 /// Log target for consistent server logging output
 pub const LOG_TARGET: &str = "server";
@@ -52,17 +53,20 @@ async fn main() -> anyhow::Result<()> {
     let public_url = config.public_url.clone();
     let log_level = config.log_level.clone();
 
-    // Initialize tracing
+    // Initialize tracing. Each layer has its own filter: the log level governs what is
+    // printed, and the DB timing layer reads sqlx's statement and acquire events whatever the
+    // log level.
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new(format!(
-            "scanopy={lvl},server={lvl},request_log={lvl},events={lvl}",
-            lvl = config.log_level
-        )))
         .with(
             tracing_subscriber::fmt::layer()
                 .fmt_fields(scanopy::server::logging::format::LabelFields)
-                .with_ansi(scanopy::server::logging::format::supports_ansi()),
+                .with_ansi(scanopy::server::logging::format::supports_ansi())
+                .with_filter(tracing_subscriber::EnvFilter::new(format!(
+                    "scanopy={lvl},server={lvl},request_log={lvl},events={lvl}",
+                    lvl = config.log_level
+                ))),
         )
+        .with(DbTimingLayer.with_filter(DbTimingLayer::filter()))
         .init();
 
     let (web_ui, web_ui_warning) = web_assets::resolve(

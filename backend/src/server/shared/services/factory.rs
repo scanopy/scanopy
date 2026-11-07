@@ -147,7 +147,8 @@ impl ServiceFactory {
                 handle
             })
             .clone();
-        let metrics_service = Arc::new(MetricsService::new(prometheus_handle));
+        let metrics_service =
+            Arc::new(MetricsService::new(prometheus_handle, storage.pool_stats()));
 
         let tag_group_service = Arc::new(TagGroupService::new(
             storage.tag_groups.clone(),
