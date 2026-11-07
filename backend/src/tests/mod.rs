@@ -84,6 +84,7 @@ pub mod onboarding_milestones;
 pub mod org_provisioning;
 pub mod org_reset;
 pub mod organization_writes;
+pub mod provision_eligibility;
 pub mod self_hosted_license_emails;
 pub mod self_hosted_licensing;
 pub mod session_gate;

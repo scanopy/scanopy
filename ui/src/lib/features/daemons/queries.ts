@@ -2,7 +2,12 @@
  * TanStack Query hooks for Daemons
  */
 
-import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
+import {
+	createQuery,
+	createMutation,
+	useQueryClient,
+	type QueryClient
+} from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
 import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
@@ -146,14 +151,21 @@ export function useDeleteDaemonMutation() {
 			);
 			return id;
 		},
-		onSuccess: (id: string) => {
-			queryClient.setQueryData<Daemon[]>(
-				queryKeys.daemons.all,
-				(old) => old?.filter((d) => d.id !== id) ?? []
-			);
-			invalidateListPages(queryClient, queryKeys.daemons.all);
-		}
+		onSuccess: (id: string) => afterDaemonDeleted(queryClient, id)
 	}));
+}
+
+/**
+ * Drop a deleted daemon from the cached lists and re-read whether a new daemon can be
+ * provisioned: deleting the org's only daemon lifts the limit, and the create wizard listens.
+ */
+export function afterDaemonDeleted(queryClient: QueryClient, id: string) {
+	queryClient.setQueryData<Daemon[]>(
+		queryKeys.daemons.all,
+		(old) => old?.filter((d) => d.id !== id) ?? []
+	);
+	invalidateListPages(queryClient, queryKeys.daemons.all);
+	return queryClient.invalidateQueries({ queryKey: queryKeys.daemons.provisionEligibility() });
 }
 
 /**
@@ -270,7 +282,7 @@ export function useEmailInstallCommandMutation() {
  */
 export function useProvisionEligibilityQuery(options: { enabled: () => boolean }) {
 	return createQuery(() => ({
-		queryKey: [...queryKeys.daemons.all, 'provision-eligibility'],
+		queryKey: queryKeys.daemons.provisionEligibility(),
 		queryFn: async () =>
 			unwrapData(await apiClient.GET('/api/v1/daemons/provision-eligibility', {})),
 		enabled: options.enabled(),

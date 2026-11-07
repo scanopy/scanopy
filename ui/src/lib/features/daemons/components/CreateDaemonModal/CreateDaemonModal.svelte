@@ -43,6 +43,7 @@
 		buildInstallConfig,
 		constructDaemonUrl,
 		detectOS,
+		provisionGate,
 		slugifySiteName,
 		type DaemonOS
 	} from '../../utils';
@@ -51,6 +52,7 @@
 	import ConfigureStep from './steps/ConfigureStep.svelte';
 	import InstallStep from './steps/InstallStep.svelte';
 	import AdvancedStep from './steps/AdvancedStep.svelte';
+	import UnconnectedDaemonsNotice from './UnconnectedDaemonsNotice.svelte';
 	import CredentialsStep, {
 		type PendingCredential
 	} from '$lib/features/credentials/components/CredentialsStep.svelte';
@@ -230,10 +232,8 @@
 	const provisionEligibilityQuery = useProvisionEligibilityQuery({
 		enabled: () => isOpen && !provisionedDaemonId
 	});
-	let provisionNeedsPlan = $derived(provisionEligibilityQuery.data?.plan_required ?? false);
-	let provisionNeedsVerification = $derived(
-		provisionEligibilityQuery.data?.email_verification_required ?? false
-	);
+	let provisionGateState = $derived(provisionGate(provisionEligibilityQuery.data));
+	let provisionRefused = $derived(provisionGateState !== null);
 
 	// Daemon identity (name + site) is frozen once Configure is left, so credentials — which
 	// are created against the selected site — can't be orphaned by a later site change.
@@ -527,7 +527,7 @@
 	async function handleNext() {
 		if (activeTab === 'configure') {
 			// Provisioning would be refused; the notice above the form says why.
-			if (provisionNeedsPlan || provisionNeedsVerification) return;
+			if (provisionRefused) return;
 			const fields = getVisibleFieldIds(formValues);
 			const isValid = await validateForm(form, fields);
 
@@ -822,7 +822,7 @@
 							})
 						: common_next(),
 					onClick: handleNext,
-					disabled: isTestingReachability || provisionNeedsPlan || provisionNeedsVerification,
+					disabled: isTestingReachability || provisionRefused,
 					large: true,
 					busy: isTestingReachability
 				}
@@ -903,7 +903,14 @@
 			<div class="flex-1 overflow-auto p-4 sm:p-6">
 				{#key activeTab}
 					{#if activeTab === 'configure'}
-						{#if provisionNeedsPlan}
+						{#if provisionGateState === 'unconnected' && provisionEligibilityQuery.data}
+							<div class="mb-4">
+								<UnconnectedDaemonsNotice
+									eligibility={provisionEligibilityQuery.data}
+									onClose={() => onClose()}
+								/>
+							</div>
+						{:else if provisionGateState === 'plan'}
 							<div class="mb-4">
 								<InlineWarning title="" body={daemons_planRequiredForMoreDaemons()}>
 									<button
@@ -921,7 +928,7 @@
 									</button>
 								</InlineWarning>
 							</div>
-						{:else if provisionNeedsVerification}
+						{:else if provisionGateState === 'verification'}
 							<div class="mb-4">
 								<EmailVerificationNotice body={daemons_verifyEmailForMoreDaemons()} />
 							</div>

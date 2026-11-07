@@ -5992,7 +5992,11 @@ export interface components {
          *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_ProvisionEligibility: {
-            /** @description Whether provisioning another daemon would be refused for the caller's organization. */
+            /**
+             * @description Whether provisioning another daemon would be refused for the caller's organization. Both
+             *     flags can be set at once, so the wizard can name every step that stands between the user and
+             *     a second daemon.
+             */
             data?: {
                 /**
                  * @description The organization already has a daemon and no owner has verified their email, so a new
@@ -6004,6 +6008,11 @@ export interface components {
                  *     is refused until it chooses a plan.
                  */
                 plan_required: boolean;
+                /**
+                 * @description The daemons on the caller's sites that have never connected. Filled only while a new
+                 *     daemon is refused: deleting the one holding the org's only slot lets a new one be set up.
+                 */
+                unconnected_daemons: components["schemas"]["UnconnectedDaemon"][];
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -14320,7 +14329,11 @@ export interface components {
              */
             readonly daemon_api_key: string;
         };
-        /** @description Whether provisioning another daemon would be refused for the caller's organization. */
+        /**
+         * @description Whether provisioning another daemon would be refused for the caller's organization. Both
+         *     flags can be set at once, so the wizard can name every step that stands between the user and
+         *     a second daemon.
+         */
         ProvisionEligibility: {
             /**
              * @description The organization already has a daemon and no owner has verified their email, so a new
@@ -14332,6 +14345,11 @@ export interface components {
              *     is refused until it chooses a plan.
              */
             plan_required: boolean;
+            /**
+             * @description The daemons on the caller's sites that have never connected. Filled only while a new
+             *     daemon is refused: deleting the one holding the org's only slot lets a new one be set up.
+             */
+            unconnected_daemons: components["schemas"]["UnconnectedDaemon"][];
         };
         /**
          * @description A range inferred from where unplaceable far ends say they live.
@@ -16449,6 +16467,16 @@ export interface components {
             sys_name: string | null;
             /** @description What reported it. */
             via: components["schemas"]["InferredVia"];
+        };
+        /** @description A daemon that has never checked in, as the create wizard lists it. */
+        UnconnectedDaemon: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: uuid */
+            site_id: string;
         };
         /** @description An integration the latest scans found on hosts with no credential of it, still uncovered now. */
         UncoveredIntegration: {

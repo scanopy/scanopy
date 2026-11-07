@@ -317,3 +317,20 @@ export function runLogCommand(os: DaemonOS, sessionId: string): string | null {
 	if (!metadata) return null;
 	return metadata.log_command.replaceAll(metadata.log_command_session_placeholder, sessionId);
 }
+
+type ProvisionEligibility = components['schemas']['ProvisionEligibility'];
+
+/**
+ * What the create wizard shows in place of its Configure step's go-ahead. A refused org with a
+ * daemon that never connected gets that daemon first: deleting or fixing it is usually the step
+ * the user needs. Otherwise the plan banner wins over verification, as the server's refusal does.
+ */
+export function provisionGate(
+	eligibility: ProvisionEligibility | undefined
+): 'unconnected' | 'plan' | 'verification' | null {
+	if (!eligibility) return null;
+	const refused = eligibility.plan_required || eligibility.email_verification_required;
+	if (!refused) return null;
+	if (eligibility.unconnected_daemons.length > 0) return 'unconnected';
+	return eligibility.plan_required ? 'plan' : 'verification';
+}

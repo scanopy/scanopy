@@ -122,41 +122,88 @@ impl DaemonService {
             })
     }
 
-    /// Which limit, if any, stops this org adding another daemon. An org gets one daemon
-    /// while it is on Free, and one while no owner has verified their email. The first daemon
-    /// is always allowed so users can experience core product value. Free comes first, because
-    /// verifying an email would not lift it. The email limit is never reached on a server with
-    /// no email transport, where no owner could receive a verification link.
+    /// Which limit, if any, stops this org adding another daemon. Free comes first, because
+    /// verifying an email would not lift it. See [`Self::daemon_limits`].
     pub async fn daemon_limit_reached(
         &self,
         org_id: Uuid,
     ) -> Result<Option<DaemonLimit>, ApiError> {
+        let limits = self.daemon_limits(org_id).await?;
+        Ok(if limits.plan_required {
+            Some(DaemonLimit::PlanRequired)
+        } else if limits.email_verification_required {
+            Some(DaemonLimit::EmailVerification)
+        } else {
+            None
+        })
+    }
+
+    /// Every limit that stops this org adding another daemon. An org gets one daemon while it
+    /// is on Free, and one while no owner has verified their email. The first daemon is always
+    /// allowed so users can experience core product value. The email limit is never reached on
+    /// a server with no email transport, where no owner could receive a verification link.
+    ///
+    /// Both are reported, not only the first, so a Free org with no verified owner learns
+    /// about verification before it upgrades rather than after.
+    pub async fn daemon_limits(&self, org_id: Uuid) -> Result<DaemonLimits, ApiError> {
         if !self.org_has_daemon(org_id).await {
-            return Ok(None);
+            return Ok(DaemonLimits::default());
         }
 
-        let on_free = self
+        let plan_required = self
             .organization_service
             .get_by_id(&org_id)
             .await
             .map_err(|e| ApiError::internal_error(&e.to_string()))?
             .is_some_and(|org| org.base.plan.is_free());
-        if on_free {
-            return Ok(Some(DaemonLimit::PlanRequired));
-        }
 
-        if !self.has_email_service {
-            return Ok(None);
-        }
-        let owners = self
-            .user_service
-            .get_organization_owners(&org_id)
+        let email_verification_required = self.has_email_service
+            && !self
+                .user_service
+                .get_organization_owners(&org_id)
+                .await
+                .map_err(|e| ApiError::internal_error(&e.to_string()))?
+                .iter()
+                .any(|u| u.base.email_verified);
+
+        Ok(DaemonLimits {
+            plan_required,
+            email_verification_required,
+        })
+    }
+
+    /// What the create wizard reads before its first step: every limit on a new daemon and,
+    /// while one applies, the daemons on `site_ids` that have never connected. Deleting one of
+    /// those is often the step the user needs, rather than an upgrade or a verification.
+    pub async fn provision_eligibility(
+        &self,
+        org_id: Uuid,
+        site_ids: &[Uuid],
+    ) -> Result<ProvisionEligibility, ApiError> {
+        let limits = self.daemon_limits(org_id).await?;
+        let unconnected_daemons = if limits.refused() && !site_ids.is_empty() {
+            self.get_all(
+                StorableFilter::<Daemon>::new_from_site_ids(site_ids)
+                    .column_is_null("last_seen", true),
+            )
             .await
-            .map_err(|e| ApiError::internal_error(&e.to_string()))?;
-        if owners.iter().any(|u| u.base.email_verified) {
-            return Ok(None);
-        }
-        Ok(Some(DaemonLimit::EmailVerification))
+            .map_err(|e| ApiError::internal_error(&e.to_string()))?
+            .into_iter()
+            .map(|d| UnconnectedDaemon {
+                id: d.id,
+                name: d.base.name,
+                site_id: d.base.site_id,
+                created_at: d.created_at,
+            })
+            .collect()
+        } else {
+            Vec::new()
+        };
+        Ok(ProvisionEligibility {
+            email_verification_required: limits.email_verification_required,
+            plan_required: limits.plan_required,
+            unconnected_daemons,
+        })
     }
 
     async fn org_has_daemon(&self, org_id: Uuid) -> bool {

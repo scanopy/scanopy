@@ -36,7 +36,7 @@ const IP: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 
 /// App state on a fresh database. `email_log_dir` set means the server has an email
 /// transport; `None` means it has none.
-async fn test_state(email_log_dir: Option<PathBuf>) -> (Arc<AppState>, TestDb) {
+pub(super) async fn test_state(email_log_dir: Option<PathBuf>) -> (Arc<AppState>, TestDb) {
     let (pool, database_url, container) = setup_migrated_test_db().await;
     pool.close().await;
     let config = ServerConfig {
@@ -48,7 +48,7 @@ async fn test_state(email_log_dir: Option<PathBuf>) -> (Arc<AppState>, TestDb) {
 }
 
 /// State with an email transport writing into a temp dir the caller keeps alive.
-async fn state_with_email() -> (Arc<AppState>, TestDb, tempfile::TempDir) {
+pub(super) async fn state_with_email() -> (Arc<AppState>, TestDb, tempfile::TempDir) {
     let dir = tempfile::tempdir().unwrap();
     let (state, container) = test_state(Some(dir.path().to_path_buf())).await;
     (state, container, dir)
@@ -59,7 +59,7 @@ async fn create_org(state: &AppState) -> Organization {
     create_org_on(state, crate::server::billing::plans::get_enterprise_plan()).await
 }
 
-async fn create_org_on(
+pub(super) async fn create_org_on(
     state: &AppState,
     plan: crate::server::billing::types::base::BillingPlan,
 ) -> Organization {
@@ -73,7 +73,7 @@ async fn create_org_on(
         .unwrap()
 }
 
-async fn create_user(
+pub(super) async fn create_user(
     state: &AppState,
     organization_id: Uuid,
     email: &str,
@@ -92,7 +92,7 @@ async fn create_user(
         .unwrap()
 }
 
-async fn create_site(state: &AppState, organization_id: Uuid) -> Site {
+pub(super) async fn create_site(state: &AppState, organization_id: Uuid) -> Site {
     state
         .services
         .site_service
@@ -111,7 +111,7 @@ async fn reload_user(state: &AppState, id: Uuid) -> User {
         .unwrap()
 }
 
-fn session_entity(user: &User, site_ids: Vec<Uuid>) -> AuthenticatedEntity {
+pub(super) fn session_entity(user: &User, site_ids: Vec<Uuid>) -> AuthenticatedEntity {
     AuthenticatedEntity::User {
         user_id: user.id,
         organization_id: user.base.organization_id,
@@ -207,7 +207,7 @@ async fn require_verified_is_lifted_without_an_email_transport() {
 // Daemon limit for orgs with no verified owner
 // ============================================================================
 
-fn provision_request(site_id: Uuid, name: &str) -> ProvisionDaemonRequest {
+pub(super) fn provision_request(site_id: Uuid, name: &str) -> ProvisionDaemonRequest {
     ProvisionDaemonRequest {
         name: Some(name.to_string()),
         site_id: Some(site_id),
