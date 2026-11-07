@@ -110,7 +110,14 @@ pub async fn create_session_store(
 impl StorageFactory {
     pub async fn new(database_url: &str, use_secure_session_cookies: bool) -> Result<Self> {
         let connect_options = PgConnectOptions::from_str(database_url)?.statement_cache_capacity(0);
-        let pool = PgPoolOptions::new().connect_with(connect_options).await?;
+        // `acquire_time_level` only makes sqlx emit an event per acquire, which
+        // `metrics::db::DbTimingLayer` turns into the acquire-time metrics. Pool size and
+        // timeouts stay at sqlx's defaults. It takes sqlx's `log::LevelFilter`, which the
+        // parse names without adding `log` as a dependency.
+        let pool = PgPoolOptions::new()
+            .acquire_time_level("trace".parse().expect("trace is a log level"))
+            .connect_with(connect_options)
+            .await?;
 
         crate::server::shared::storage::migration_runner::apply_embedded_migrations(&pool).await?;
 
@@ -160,7 +167,31 @@ impl StorageFactory {
     }
 }
 
+/// Connection counts of the main pool, for the pool gauges. Holds the pool but exposes only its
+/// counts, so it can't run a query.
+#[derive(Clone)]
+pub struct PoolStats(PgPool);
+
+impl PoolStats {
+    /// Open connections, idle or in use.
+    pub fn open(&self) -> u32 {
+        self.0.size()
+    }
+
+    pub fn idle(&self) -> u32 {
+        u32::try_from(self.0.num_idle()).unwrap_or(u32::MAX)
+    }
+
+    pub fn max(&self) -> u32 {
+        self.0.options().get_max_connections()
+    }
+}
+
 impl StorageFactory {
+    pub fn pool_stats(&self) -> PoolStats {
+        PoolStats(self.pool.clone())
+    }
+
     /// The pool and session layer, for the app state once the services are built. Taking
     /// `self` keeps the pool out of reach of `ServiceFactory::new`, which only borrows.
     pub fn into_parts(self) -> (PgPool, SessionManagerLayer<PostgresStore>) {

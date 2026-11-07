@@ -6,13 +6,16 @@
 //! without an `ErrorCode` (the OIDC callback redirects either way). This counter records every
 //! outbound call at the client boundary instead:
 //!
-//! `scanopy_dependency_requests_total{dependency, outcome}`
+//! `scanopy_dependency_requests_total{dependency, outcome}`, and for calls made through
+//! [`observe`] or [`observe_http`] their duration in
+//! `scanopy_dependency_request_duration_seconds{dependency}`
 //!
 //! An integration gets it by sending through [`observe`] or [`observe_http`]. Each client
 //! library's error type maps onto [`DependencyOutcome`] through [`ClassifyFailure`], so both
 //! labels are fixed at compile time: no URL, id or provider message reaches a label.
 
 use std::future::Future;
+use std::time::Instant;
 
 use openidconnect::core::CoreErrorResponseType;
 use openidconnect::{DiscoveryError, HttpClientError, RequestTokenError, StandardErrorResponse};
@@ -91,32 +94,48 @@ pub fn record(dependency: Dependency, outcome: DependencyOutcome) {
     .increment(1);
 }
 
-/// Await `call`, count its outcome, and return its result unchanged.
+/// Count one call and record how long it took, in
+/// `scanopy_dependency_request_duration_seconds{dependency}`. The outcome stays on the counter
+/// only: on the histogram it would multiply every bucket.
+fn record_timed(dependency: Dependency, outcome: DependencyOutcome, started: Instant) {
+    record(dependency, outcome);
+    let dependency: &'static str = dependency.into();
+    metrics::histogram!(
+        "scanopy_dependency_request_duration_seconds",
+        "dependency" => dependency,
+    )
+    .record(started.elapsed().as_secs_f64());
+}
+
+/// Await `call`, count and time its outcome, and return its result unchanged.
 pub async fn observe<T, E: ClassifyFailure>(
     dependency: Dependency,
     call: impl Future<Output = Result<T, E>>,
 ) -> Result<T, E> {
+    let started = Instant::now();
     let result = call.await;
     let outcome = match &result {
         Ok(_) => DependencyOutcome::Ok,
         Err(e) => e.outcome(),
     };
-    record(dependency, outcome);
+    record_timed(dependency, outcome, started);
     result
 }
 
 /// [`observe`] for a raw reqwest send. A response counts by its status, and is returned
-/// untouched so the caller keeps its own status handling.
+/// untouched so the caller keeps its own status handling. The time runs to the response
+/// headers; reading the body is the caller's.
 pub async fn observe_http(
     dependency: Dependency,
     call: impl Future<Output = reqwest::Result<reqwest::Response>>,
 ) -> reqwest::Result<reqwest::Response> {
+    let started = Instant::now();
     let result = call.await;
     let outcome = match &result {
         Ok(response) => DependencyOutcome::from_status(response.status()),
         Err(e) => e.outcome(),
     };
-    record(dependency, outcome);
+    record_timed(dependency, outcome, started);
     result
 }
 
@@ -299,6 +318,13 @@ pub(crate) mod tests {
         assert_eq!(response.text().await.unwrap(), "down for maintenance");
         assert!(
             recorder.count("github", "server_error"),
+            "{}",
+            recorder.render()
+        );
+        assert!(
+            recorder.render().contains(
+                r#"scanopy_dependency_request_duration_seconds_count{dependency="github"} 1"#
+            ),
             "{}",
             recorder.render()
         );

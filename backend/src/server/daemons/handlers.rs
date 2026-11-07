@@ -1393,6 +1393,19 @@ async fn test_reachability(
     State(state): State<Arc<AppState>>,
     _auth: Authorized<Can<Daemon, Write>>,
     ApiJson(request): ApiJson<TestReachabilityRequest>,
+) -> axum::response::Response {
+    // Resolving, connecting to and health-checking a user-chosen address takes up to its
+    // timeouts by design, so it stays out of the server's latency histogram.
+    let mut response = check_reachability(&state, request).await.into_response();
+    response
+        .extensions_mut()
+        .insert(crate::server::shared::types::api::LatencyExempt);
+    response
+}
+
+async fn check_reachability(
+    state: &AppState,
+    request: TestReachabilityRequest,
 ) -> ApiResult<Json<ApiResponse<TestReachabilityResponse>>> {
     // Parse the URL
     let parsed =
