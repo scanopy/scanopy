@@ -15880,19 +15880,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-11-03T22:25:05.957196Z",
+              "created_at": "2026-11-08T18:14:45.340680Z",
               "first_discovery_id": null,
-              "id": "a9674482-9b61-4298-ac3d-8690b2b4fe2b",
+              "id": "1ef8a020-1f92-4b1e-b49b-f98b6b5c1bd9",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-03T22:25:05.957196Z",
+              "last_seen_at": "2026-11-08T18:14:45.340680Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-03T22:25:05.957196Z",
-              "valid_from": "2026-11-03T22:25:05.957196Z",
+              "updated_at": "2026-11-08T18:14:45.340680Z",
+              "valid_from": "2026-11-08T18:14:45.340680Z",
               "valid_to": null
             }
           },
@@ -17772,19 +17772,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-11-03T22:25:05.928198Z",
+                      "created_at": "2026-11-08T18:14:45.279829Z",
                       "first_discovery_id": null,
-                      "id": "0919bf2a-3a9e-4e1c-b39d-1b554b80b63b",
+                      "id": "e731b794-c05a-476b-93ed-aceeb0e1796d",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-11-03T22:25:05.928198Z",
+                      "last_seen_at": "2026-11-08T18:14:45.279829Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-11-03T22:25:05.928198Z",
-                      "valid_from": "2026-11-03T22:25:05.928198Z",
+                      "updated_at": "2026-11-08T18:14:45.279829Z",
+                      "valid_from": "2026-11-08T18:14:45.279829Z",
                       "valid_to": null
                     }
                   ],
@@ -17797,7 +17797,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Grafana",
+                  "service_definition": "Wazuh",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -19306,19 +19306,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-11-03T22:25:05.952454Z",
+                  "created_at": "2026-11-08T18:14:45.330442Z",
                   "first_discovery_id": null,
-                  "id": "b63edd33-174e-4252-8e2e-dbde5cf6aecb",
+                  "id": "a7c11a96-e623-4052-b8f1-82c4a38f22c2",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-03T22:25:05.952454Z",
+                  "last_seen_at": "2026-11-08T18:14:45.330442Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-03T22:25:05.952454Z",
-                  "valid_from": "2026-11-03T22:25:05.952454Z",
+                  "updated_at": "2026-11-08T18:14:45.330442Z",
+                  "valid_from": "2026-11-08T18:14:45.330442Z",
                   "valid_to": null
                 }
               ],
@@ -19331,7 +19331,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Grafana",
+              "service_definition": "Wazuh",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -22606,19 +22606,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-11-03T22:25:05.928827Z",
+          "created_at": "2026-11-08T18:14:45.281094Z",
           "first_discovery_id": null,
-          "id": "dcbf8706-a3ca-429f-b5aa-8e16463993f8",
+          "id": "e0b92b59-7c2f-4af0-a507-796d7b787e1e",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-11-03T22:25:05.928827Z",
+          "last_seen_at": "2026-11-08T18:14:45.281094Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-11-03T22:25:05.928827Z",
-          "valid_from": "2026-11-03T22:25:05.928827Z",
+          "updated_at": "2026-11-08T18:14:45.281094Z",
+          "valid_from": "2026-11-08T18:14:45.281094Z",
           "valid_to": null
         }
       },
@@ -23531,7 +23531,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Grafana",
+              "service_definition": "Wazuh",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -25823,6 +25823,15 @@
             "description": "Date after which this daemon version stops being supported."
           }
         }
+      },
+      "DesktopVm": {
+        "type": "string",
+        "description": "The desktop container VM a daemon was found running inside.\n\nEach one runs containers in a Linux VM whose network is NAT'd behind the machine it runs on, so\nARP, mDNS and LLDP from a daemon in it reach the VM's virtual network and not the LAN.",
+        "enum": [
+          "DockerDesktop",
+          "OrbStack",
+          "Colima"
+        ]
       },
       "DeviceType": {
         "type": "string",
@@ -28560,6 +28569,27 @@
                 "description": "The submitting daemon's version, so the reader knows which one to upgrade. `None` for\na daemon too old to report one at all.",
                 "example": "0.17.14",
                 "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "DaemonInDesktopVm",
+            "description": "The daemon runs inside a desktop container VM, whose virtual network keeps ARP, mDNS and LLDP\noff the LAN. Raised by the daemon at the start of every network discovery run.\n\nThe daemon is the session's own, so the UI names it from the payload like\n[`DiscoveryWarning::OutdatedDaemonFormat`].",
+            "required": [
+              "vm",
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "DaemonInDesktopVm"
+                ]
+              },
+              "vm": {
+                "$ref": "#/components/schemas/DesktopVm",
+                "description": "The VM the daemon runs in."
               }
             }
           },
@@ -31857,19 +31887,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-11-03T22:25:05.927456Z",
+                  "created_at": "2026-11-08T18:14:45.278332Z",
                   "first_discovery_id": null,
-                  "id": "44e0e757-61f1-4749-a421-34f0e0c15624",
+                  "id": "6ffeec99-6ee3-4eb5-a920-9483e8ceac08",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-03T22:25:05.927456Z",
+                  "last_seen_at": "2026-11-08T18:14:45.278332Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-03T22:25:05.927456Z",
-                  "valid_from": "2026-11-03T22:25:05.927456Z",
+                  "updated_at": "2026-11-08T18:14:45.278332Z",
+                  "valid_from": "2026-11-08T18:14:45.278332Z",
                   "valid_to": null
                 }
               ],
@@ -31882,7 +31912,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Grafana",
+              "service_definition": "Wazuh",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -33999,6 +34029,26 @@
           "pending"
         ]
       },
+      "LiveDaemonUpdate": {
+        "type": "object",
+        "description": "A daemon whose version or health changed when it checked in.",
+        "required": [
+          "id",
+          "site_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The daemon that checked in."
+          },
+          "site_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The daemon's site, which decides who receives the update."
+          }
+        }
+      },
       "LiveTopologyUpdate": {
         "type": "object",
         "description": "A site whose live topology changed.",
@@ -34053,6 +34103,27 @@
                 "type": "string",
                 "enum": [
                   "Topology"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Daemon",
+            "description": "A daemon checked in with a new version or health, so the daemons list and Home need refetching.",
+            "required": [
+              "data",
+              "type"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/LiveDaemonUpdate",
+                "description": "A daemon checked in with a new version or health, so the daemons list and Home need refetching."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Daemon"
                 ]
               }
             }
@@ -36321,19 +36392,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-11-03T22:25:05.912991Z",
+                        "created_at": "2026-11-08T18:14:45.246999Z",
                         "first_discovery_id": null,
-                        "id": "25344362-2ebc-4463-ad3c-fca05e01dec1",
+                        "id": "bd48e22f-7c4b-4e79-a250-7f079ebb18c7",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-11-03T22:25:05.912991Z",
+                        "last_seen_at": "2026-11-08T18:14:45.246999Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-11-03T22:25:05.912991Z",
-                        "valid_from": "2026-11-03T22:25:05.912991Z",
+                        "updated_at": "2026-11-08T18:14:45.246999Z",
+                        "valid_from": "2026-11-08T18:14:45.246999Z",
                         "valid_to": null
                       }
                     ],
@@ -36346,7 +36417,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Grafana",
+                    "service_definition": "Wazuh",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -36593,19 +36664,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-11-03T22:25:05.951710Z",
+                    "created_at": "2026-11-08T18:14:45.328939Z",
                     "first_discovery_id": null,
-                    "id": "398acd11-ccfb-46f3-bd1c-a48904de1237",
+                    "id": "d595e236-36e0-4aed-b977-984ff4846b0f",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-11-03T22:25:05.951710Z",
+                    "last_seen_at": "2026-11-08T18:14:45.328939Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-11-03T22:25:05.951710Z",
-                    "valid_from": "2026-11-03T22:25:05.951710Z",
+                    "updated_at": "2026-11-08T18:14:45.328939Z",
+                    "valid_from": "2026-11-08T18:14:45.328939Z",
                     "valid_to": null
                   }
                 ],
@@ -36618,7 +36689,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Grafana",
+                "service_definition": "Wazuh",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -39362,19 +39433,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-11-03T22:25:05.928613Z",
+              "created_at": "2026-11-08T18:14:45.280669Z",
               "first_discovery_id": null,
-              "id": "c7e03dc0-f2b7-4c19-9d10-26399a0ff00b",
+              "id": "8a3cd549-d9c0-4d4a-8c37-9804df69f31b",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-03T22:25:05.928613Z",
+              "last_seen_at": "2026-11-08T18:14:45.280669Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-03T22:25:05.928613Z",
-              "valid_from": "2026-11-03T22:25:05.928613Z",
+              "updated_at": "2026-11-08T18:14:45.280669Z",
+              "valid_from": "2026-11-08T18:14:45.280669Z",
               "valid_to": null
             }
           ],
@@ -39387,7 +39458,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Grafana",
+          "service_definition": "Wazuh",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -41828,7 +41899,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "261d0db8-9efb-4230-b1e6-2a50322b0277",
+                  "id": "64fa6340-cda6-4cfa-9409-6b34f56733fb",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -41838,23 +41909,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "b7b01e79-0303-4cec-861d-5c546a7dfe03",
+                  "id": "9679cc52-9e97-4be6-b4e5-0218c781cfdb",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "9d0c2a8b-a7b8-45d8-9ecf-36cdf9f19e1a",
+                  "id": "ddc4b281-863f-4904-8866-d4fe1d6e8e8a",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "328d6faa-b270-423a-af53-e5cf7b7f9b4d",
+                  "id": "1288d018-b937-44b2-a72f-bba61a34e256",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "b7b01e79-0303-4cec-861d-5c546a7dfe03",
+                  "id": "9679cc52-9e97-4be6-b4e5-0218c781cfdb",
                   "rule": "ByHost"
                 }
               ]
@@ -41884,19 +41955,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "3742a35d-a36b-466c-b57f-8b4cfe467c7b",
+                "id": "3f6aa7f8-d895-4bb8-bffd-874f1db5a174",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "ae43859b-1fbe-44ef-a333-f4ecfa84930c",
+                "id": "3666c553-f5d7-4cae-b329-684358481e46",
                 "rule": "ByVLAN"
               },
               {
-                "id": "5c3cf11c-d132-46a8-a149-c8435f8cccbe",
+                "id": "41088ddf-0018-478a-956f-1bfe2eb93fc3",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "156bf1bd-8614-4494-bd57-33afeade2b6d",
+                "id": "d26c9721-bab2-4378-b0b5-a4a11423226a",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -41917,7 +41988,7 @@
                 }
               },
               {
-                "id": "11320747-c3ba-4b87-8587-41d24a3fe81e",
+                "id": "c74d9e7e-b9c0-49e8-a166-45e34840f5ea",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -41926,19 +41997,19 @@
                 }
               },
               {
-                "id": "c961dc14-234e-4cdd-910a-b3bc526b8ccb",
+                "id": "4cd4db2d-eb7a-4059-9036-c7665cffa2f1",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "123fd545-efd1-4a51-87df-562060a41438",
+                "id": "19e6cfba-6684-42a0-bb80-ac051329b5d5",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "bb199106-2ef5-47c3-b46e-ae7f8e1bc62b",
+                "id": "13d34b23-8a0c-4135-9443-f25760e1e41b",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "f65f7e67-85ea-4e41-bc38-344b1971bf03",
+                "id": "8b992b5f-dff5-488a-87bd-2e988ed4dcf7",
                 "rule": "ByStack"
               }
             ]

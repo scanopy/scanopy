@@ -145,6 +145,10 @@ pub struct DaemonService {
 
     // Whether the server can send email; lifts the unverified-org daemon limit when it can't.
     has_email_service: bool,
+
+    // Check-ins that changed a daemon's version or health, for the live-update stream.
+    live_update_tx:
+        tokio::sync::broadcast::Sender<crate::server::live_updates::types::LiveDaemonUpdate>,
 }
 
 impl EventBusService<Daemon> for DaemonService {

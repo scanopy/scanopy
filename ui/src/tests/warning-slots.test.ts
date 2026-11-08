@@ -75,7 +75,8 @@ describe('discovery warning rendering', () => {
 			last_unsupported_daemon_version: '0.18.2',
 			guest: 'gitlab',
 			node: 'pve',
-			bridge: 'vmbr1'
+			bridge: 'vmbr1',
+			vm: 'DockerDesktop'
 		}) as unknown as DiscoveryWarning;
 
 	/**
@@ -141,6 +142,12 @@ describe('discovery warning rendering', () => {
 					'src/lib/features/discovery/utils/warnings.ts.'
 			);
 		}
+	});
+
+	it('names the desktop VM a daemon runs in by its product name', () => {
+		const [sentence] = sentences([sample('DaemonInDesktopVm')]);
+		expect(sentence).toContain('Docker Desktop');
+		expect(sentence).not.toContain('{vm}');
 	});
 
 	it('groups warnings sharing a code into one sentence, naming every address', () => {

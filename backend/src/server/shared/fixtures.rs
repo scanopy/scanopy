@@ -3,8 +3,8 @@
 
 use crate::daemon::discovery::types::base::{DiscoveryPhase, DiscoveryTerminalReason};
 use crate::daemon::discovery::types::warnings::{
-    ClaimSource, DiscoveryWarningCode, MalformedNeighbourConsequence, SnmpWalkCause, SnmpWalkGroup,
-    WarningRemedy,
+    ClaimSource, DesktopVm, DiscoveryWarningCode, MalformedNeighbourConsequence, SnmpWalkCause,
+    SnmpWalkGroup, WarningRemedy,
 };
 use crate::server::auth::access::Resource;
 use crate::server::auth::r#impl::oidc::IdentityProviderLogo;
@@ -225,6 +225,10 @@ pub fn generate_ui_data_fixtures(output_dir: &Path, force_logos: bool) {
 
     let claim_sources: Vec<TypeMetadata> = ClaimSource::iter().map(|c| c.to_metadata()).collect();
     write_fixture(&claim_sources, output_dir, "claim-sources.json");
+
+    // The VM a daemon was found running in, named in the DaemonInDesktopVm warning.
+    let desktop_vms: Vec<TypeMetadata> = DesktopVm::iter().map(|v| v.to_metadata()).collect();
+    write_fixture(&desktop_vms, output_dir, "desktop-vms.json");
 
     // The SNMPv3 protocols, with the names net-snmp takes for them, so a scan warning can hand an
     // operator the command that checks it with the stored credential's options.

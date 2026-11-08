@@ -27,8 +27,8 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
     OpenApiRouter::new().route("/stream", get(live_updates_stream))
 }
 
-/// SSE stream of `LiveUpdate` events for the caller's sites: discovery progress, and topology
-/// changes when the plan includes the topology view. The plan is read at connect, so the app
+/// SSE stream of `LiveUpdate` events for the caller's sites: discovery progress, daemon check-ins
+/// that change a version or health, and topology changes when the plan includes the topology view. The plan is read at connect, so the app
 /// reconnects when the org's topology access changes. The caller's own access is read per event,
 /// so a revoked site stops at once, and the stream ends when the caller is gone.
 async fn live_updates_stream(
@@ -52,6 +52,10 @@ async fn live_updates_stream(
         .services
         .topology_service
         .subscribe_live_topology_updates();
+    let mut daemon_rx = state
+        .services
+        .daemon_service
+        .subscribe_live_daemon_updates();
     let caller = auth.into_entity();
     let events_state = state.clone();
 
@@ -70,6 +74,14 @@ async fn live_updates_stream(
                     Ok(site_id) => LiveUpdate::Topology(LiveTopologyUpdate { site_id }),
                     Err(RecvError::Lagged(n)) => {
                         tracing::warn!("Live-update stream lagged by {} topology messages", n);
+                        continue;
+                    }
+                    Err(RecvError::Closed) => break,
+                },
+                received = daemon_rx.recv() => match received {
+                    Ok(update) => LiveUpdate::Daemon(update),
+                    Err(RecvError::Lagged(n)) => {
+                        tracing::warn!("Live-update stream lagged by {} daemon messages", n);
                         continue;
                     }
                     Err(RecvError::Closed) => break,

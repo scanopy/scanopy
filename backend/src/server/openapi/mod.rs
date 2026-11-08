@@ -37,7 +37,7 @@ use crate::server::hosts::r#impl::virtualization::HostVirtualizationState;
 use crate::server::interfaces::r#impl::base::Interface;
 use crate::server::invites::r#impl::base::Invite;
 use crate::server::ip_addresses::r#impl::base::IPAddress;
-use crate::server::live_updates::types::{LiveTopologyUpdate, LiveUpdate};
+use crate::server::live_updates::types::{LiveDaemonUpdate, LiveTopologyUpdate, LiveUpdate};
 use crate::server::organizations::r#impl::base::Organization;
 use crate::server::ports::r#impl::base::Port;
 use crate::server::services::handlers::ServiceOrderField;
@@ -134,6 +134,7 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
         // pulls them in; the app types the stream from here.
         LiveUpdate,
         LiveTopologyUpdate,
+        LiveDaemonUpdate,
         // A view's inspector sections and dependency creation mode, from the same fixture; the
         // inspector types its section registry from here rather than keeping its own union.
         ViewInspectorConfig,

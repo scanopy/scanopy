@@ -7,7 +7,7 @@ import { BaseSSEManager, type SSEConfig } from '$lib/shared/utils/sse';
 type LiveUpdate = components['schemas']['LiveUpdate'];
 
 /**
- * The app's one live-update stream: discovery progress and topology changes. The server sends
+ * The app's one live-update stream: discovery progress, daemon check-ins and topology changes. The server sends
  * topology events only when the plan includes the topology view, reading the plan at connect.
  */
 class LiveUpdatesSSEManager extends BaseSSEManager<LiveUpdate> {
@@ -21,6 +21,11 @@ class LiveUpdatesSSEManager extends BaseSSEManager<LiveUpdate> {
 						break;
 					case 'Topology':
 						topologyStream.handleUpdate(update.data);
+						break;
+					// A daemon checked in on a new version or health: its row, its upgrade modal and Home.
+					case 'Daemon':
+						queryClient.invalidateQueries({ queryKey: queryKeys.daemons.all });
+						queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.summary() });
 						break;
 				}
 			},

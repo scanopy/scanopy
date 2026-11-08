@@ -4245,19 +4245,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-03T22:25:05.869448Z",
+             *       "created_at": "2026-11-08T18:14:45.147933Z",
              *       "first_discovery_id": null,
-             *       "id": "ef1d6909-1d53-43d4-9115-26baefb56328",
+             *       "id": "e2bdf581-515f-40fc-b30f-8add8ac9a605",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-03T22:25:05.869448Z",
+             *       "last_seen_at": "2026-11-08T18:14:45.147933Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-03T22:25:05.869448Z",
-             *       "valid_from": "2026-11-03T22:25:05.869448Z",
+             *       "updated_at": "2026-11-08T18:14:45.147933Z",
+             *       "valid_from": "2026-11-08T18:14:45.147933Z",
              *       "valid_to": null
              *     }
              */
@@ -5174,19 +5174,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-03T22:25:05.836217Z",
+             *               "created_at": "2026-11-08T18:14:45.074981Z",
              *               "first_discovery_id": null,
-             *               "id": "3910cb97-304d-4868-b210-9825f7b62ef3",
+             *               "id": "61e0cecf-0963-4d37-b8f8-6adfc4dc5c79",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-03T22:25:05.836217Z",
+             *               "last_seen_at": "2026-11-08T18:14:45.074981Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-03T22:25:05.836217Z",
-             *               "valid_from": "2026-11-03T22:25:05.836217Z",
+             *               "updated_at": "2026-11-08T18:14:45.074981Z",
+             *               "valid_from": "2026-11-08T18:14:45.074981Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5199,7 +5199,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Grafana",
+             *           "service_definition": "Wazuh",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6232,19 +6232,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-03T22:25:05.864139Z",
+             *           "created_at": "2026-11-08T18:14:45.136296Z",
              *           "first_discovery_id": null,
-             *           "id": "a8dcdd0d-b644-4925-aadc-d6a1e35a40f7",
+             *           "id": "4409dfa9-82f7-4a7a-873d-4646c125ecfa",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-03T22:25:05.864139Z",
+             *           "last_seen_at": "2026-11-08T18:14:45.136296Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-03T22:25:05.864139Z",
-             *           "valid_from": "2026-11-03T22:25:05.864139Z",
+             *           "updated_at": "2026-11-08T18:14:45.136296Z",
+             *           "valid_from": "2026-11-08T18:14:45.136296Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6257,7 +6257,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Grafana",
+             *       "service_definition": "Wazuh",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7721,19 +7721,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-03T22:25:05.836891Z",
+         *       "created_at": "2026-11-08T18:14:45.076642Z",
          *       "first_discovery_id": null,
-         *       "id": "a094d60b-ecfc-4ce9-ac54-1f13542d5a30",
+         *       "id": "e795b252-d066-474a-a89e-39a510761d5f",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-03T22:25:05.836891Z",
+         *       "last_seen_at": "2026-11-08T18:14:45.076642Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-03T22:25:05.836891Z",
-         *       "valid_from": "2026-11-03T22:25:05.836891Z",
+         *       "updated_at": "2026-11-08T18:14:45.076642Z",
+         *       "valid_from": "2026-11-08T18:14:45.076642Z",
          *       "valid_to": null
          *     }
          */
@@ -8123,7 +8123,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Grafana",
+         *           "service_definition": "Wazuh",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9179,6 +9179,14 @@ export interface components {
             sunset_date?: string | null;
         };
         /**
+         * @description The desktop container VM a daemon was found running inside.
+         *
+         *     Each one runs containers in a Linux VM whose network is NAT'd behind the machine it runs on, so
+         *     ARP, mDNS and LLDP from a daemon in it reach the VM's virtual network and not the LAN.
+         * @enum {string}
+         */
+        DesktopVm: "DockerDesktop" | "OrbStack" | "Colima";
+        /**
          * @description What a host is, as a device: the class its icon stands for on the map.
          *
          *     Declaration order is precedence, highest first. A host whose services claim several device types takes
@@ -10080,6 +10088,11 @@ export interface components {
              * @example 0.17.14
              */
             daemon_version?: string | null;
+        } | {
+            /** @enum {string} */
+            code: "DaemonInDesktopVm";
+            /** @description The VM the daemon runs in. */
+            vm: components["schemas"]["DesktopVm"];
         } | {
             /** @enum {string} */
             code: "WarningsTruncated";
@@ -11303,19 +11316,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-03T22:25:05.835427Z",
+         *               "created_at": "2026-11-08T18:14:45.073443Z",
          *               "first_discovery_id": null,
-         *               "id": "d48e86c8-a0e6-4249-83f4-7c25a00d6a7b",
+         *               "id": "a5b72c25-f4e5-45e9-a823-8d4dc0b93a55",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-03T22:25:05.835427Z",
+         *               "last_seen_at": "2026-11-08T18:14:45.073443Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-03T22:25:05.835427Z",
-         *               "valid_from": "2026-11-03T22:25:05.835427Z",
+         *               "updated_at": "2026-11-08T18:14:45.073443Z",
+         *               "valid_from": "2026-11-08T18:14:45.073443Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11328,7 +11341,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Grafana",
+         *           "service_definition": "Wazuh",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -12630,6 +12643,19 @@ export interface components {
          * @enum {string}
          */
         LicenseStatusDiscriminants: "valid" | "expired" | "invalid" | "pending";
+        /** @description A daemon whose version or health changed when it checked in. */
+        LiveDaemonUpdate: {
+            /**
+             * Format: uuid
+             * @description The daemon that checked in.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The daemon's site, which decides who receives the update.
+             */
+            site_id: string;
+        };
         /** @description A site whose live topology changed. */
         LiveTopologyUpdate: {
             /**
@@ -12649,6 +12675,11 @@ export interface components {
             data: components["schemas"]["LiveTopologyUpdate"];
             /** @enum {string} */
             type: "Topology";
+        } | {
+            /** @description A daemon checked in with a new version or health, so the daemons list and Home need refetching. */
+            data: components["schemas"]["LiveDaemonUpdate"];
+            /** @enum {string} */
+            type: "Daemon";
         };
         /**
          * @description LLDP Chassis ID subtypes per IEEE 802.1AB.
@@ -14996,19 +15027,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-03T22:25:05.836669Z",
+         *           "created_at": "2026-11-08T18:14:45.075958Z",
          *           "first_discovery_id": null,
-         *           "id": "0617146d-9c3f-4b4c-a6c6-1a339469f4c2",
+         *           "id": "c607078c-abeb-472c-9d4f-7b0d73648332",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-03T22:25:05.836669Z",
+         *           "last_seen_at": "2026-11-08T18:14:45.075958Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-03T22:25:05.836669Z",
-         *           "valid_from": "2026-11-03T22:25:05.836669Z",
+         *           "updated_at": "2026-11-08T18:14:45.075958Z",
+         *           "valid_from": "2026-11-08T18:14:45.075958Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -15021,7 +15052,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Grafana",
+         *       "service_definition": "Wazuh",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -16233,7 +16264,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "136d3236-c4f3-4e49-9e4e-10c2aafab68e",
+             *           "id": "2df5fba0-8e60-4137-ba35-891ff8f47e25",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16243,23 +16274,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "924d0f90-3320-40c2-9ed3-d48076d03529",
+             *           "id": "0a7ada72-65fe-4734-9c2e-b64a8171f1bc",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "2b513178-6637-47fa-b4f5-03d862977ebc",
+             *           "id": "d2075c38-cb8b-4500-ad24-e0cfe5c8ba95",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "c23cb9f5-53ba-4a4f-a6fb-46f8287ea085",
+             *           "id": "9ad363d0-3e58-4229-9892-1b5db0ffcae4",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "924d0f90-3320-40c2-9ed3-d48076d03529",
+             *           "id": "0a7ada72-65fe-4734-9c2e-b64a8171f1bc",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16273,19 +16304,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "23eb1ae9-70e6-4def-83ba-e12499d3c57b",
+             *         "id": "43e4a790-6b74-4b54-9ed2-70293abe4a77",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "c8b47712-17a7-48eb-bd27-e3c9c0796154",
+             *         "id": "865ba24b-7938-45fc-b44d-03da384a2beb",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "fa2c260f-7b0f-4389-b92b-c615695ddb76",
+             *         "id": "0f41c20c-ce61-423c-9924-660f4f1354de",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "c322d6c4-7f90-4b65-905a-45d393e488ba",
+             *         "id": "11a2a19f-56b6-4f98-a83c-10c07fcc1792",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16306,7 +16337,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "4c9d1ce2-cec5-4daf-8425-24c56a31b52a",
+             *         "id": "c789b140-5204-4c16-bfb9-d029aba9e710",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16315,19 +16346,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "a8267243-dd8e-4a36-8bc8-2b1d4bd26c43",
+             *         "id": "077e14c5-14c3-4567-8664-fc144c682246",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "0ff04269-e118-4ebf-ada7-5dc0dcf34c32",
+             *         "id": "0551725c-587b-46b6-822b-97367272eeab",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "f1fd7958-599d-467e-a259-b0a16bdb39c1",
+             *         "id": "b7d20edd-f69e-4ead-87ed-0d6095b7c054",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "f9ee288a-bb4e-47ce-b350-58c561df38e7",
+             *         "id": "d44c3cc8-3ccf-483d-ac14-5794ef48b489",
              *         "rule": "ByStack"
              *       }
              *     ]

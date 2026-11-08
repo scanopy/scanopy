@@ -251,10 +251,14 @@
 		['GuestOutsideScan', 'targets']
 	]);
 
-	/** Guests only a daemon beside them can reach: on the hypervisor, or on their bridge. */
+	/**
+	 * Codes whose fix is a new daemon: guests only a daemon beside them can reach, on the hypervisor
+	 * or on their bridge, and a daemon whose VM keeps it off the LAN.
+	 */
 	const NEEDS_A_DAEMON_CODES = new Set<WarningEntry['code']>([
 		'GuestBehindHypervisor',
-		'GuestIsolated'
+		'GuestIsolated',
+		'DaemonInDesktopVm'
 	]);
 
 	/**

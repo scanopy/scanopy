@@ -43,7 +43,16 @@ impl DaemonService {
             poll_semaphore: Arc::new(Semaphore::new(MAX_CONCURRENT_POLLS)),
             deployment_type,
             has_email_service,
+            live_update_tx: tokio::sync::broadcast::channel(100).0,
         }
+    }
+
+    /// Subscribe to daemon check-ins that changed a version or health.
+    pub fn subscribe_live_daemon_updates(
+        &self,
+    ) -> tokio::sync::broadcast::Receiver<crate::server::live_updates::types::LiveDaemonUpdate>
+    {
+        self.live_update_tx.subscribe()
     }
 
     /// Subnet ids this daemon has interfaces on, from the

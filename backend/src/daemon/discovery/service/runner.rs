@@ -119,7 +119,8 @@ impl DiscoveryRunner {
 
     /// Subnet setup at the start of a session. Merges daemon interface subnets with Docker
     /// network subnets (host CIDR wins on overlap). Runs before the self-report and localhost
-    /// integration phases, which take the subnets it returns.
+    /// integration phases, which take the subnets it returns. Reports a desktop container VM from the
+    /// same Docker connection.
     async fn create_initial_subnets(
         &self,
         ops: &DiscoveryOps,
@@ -149,17 +150,20 @@ impl DiscoveryRunner {
                 (Ok(None), Ok(None), Vec::new(), None, None)
             });
 
-        let docker_subnets = if let Ok(docker_client) = self
+        let docker_client = self
             .service
             .utils
             .new_docker_client(docker_proxy, docker_proxy_ssl_info)
             .await
-        {
+            .ok();
+        report_desktop_vm(ops, docker_client.as_ref()).await;
+
+        let docker_subnets = if let Some(docker_client) = &docker_client {
             self.service
                 .utils
                 .get_subnets_from_docker_networks(
                     site_id,
-                    &docker_client,
+                    docker_client,
                     ContainerRuntime::Docker,
                     Uuid::nil(),
                 )
@@ -706,5 +710,33 @@ mod tests {
                 ("10.0.0.3".to_string(), vpn.id)
             ]
         );
+    }
+}
+
+/// Warn when this daemon runs inside Docker Desktop, OrbStack or Colima, whose VM network keeps
+/// ARP, mDNS and LLDP off the LAN. `docker` is the engine the daemon reached, if any: Colima is
+/// named only by the engine's `info`.
+async fn report_desktop_vm(ops: &DiscoveryOps, docker: Option<&bollard::Docker>) {
+    use crate::daemon::discovery::types::warnings::DiscoveryWarning;
+    use crate::daemon::utils::host_os::{desktop_vm, kernel_release};
+
+    let Some(kernel) = kernel_release() else {
+        return;
+    };
+    let engine_info = match docker {
+        Some(client) => client.info().await.ok(),
+        None => None,
+    };
+    let Some(vm) = desktop_vm(&kernel, engine_info.as_ref()) else {
+        return;
+    };
+    tracing::warn!(
+        ?vm,
+        "The daemon runs inside a desktop container VM, so ARP, mDNS and LLDP do not reach the LAN"
+    );
+    if let Ok(session) = ops.get_session().await
+        && let Ok(mut warnings) = session.warnings.lock()
+    {
+        warnings.push(DiscoveryWarning::DaemonInDesktopVm { vm });
     }
 }

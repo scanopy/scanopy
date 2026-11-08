@@ -3,7 +3,8 @@ use super::*;
 use crate::daemon::discovery::types::base::DiscoveryPhase;
 use crate::daemon::discovery::types::warnings::DiscoveryWarning;
 use crate::server::credentials::r#impl::base::Credential;
-use crate::server::daemons::r#impl::api::ScannedEntityIds;
+use crate::server::daemons::r#impl::api::{DaemonHealth, ScannedEntityIds};
+use crate::server::live_updates::types::LiveDaemonUpdate;
 use crate::server::shared::events::types::DeletionReason;
 
 /// How long the completion request will wait for neighbour resolution before cutting it short.
@@ -14,6 +15,14 @@ use crate::server::shared::events::types::DeletionReason;
 /// measured -- but a pathological one must degrade to a reported gap, not to a lost scan record.
 const RESOLUTION_BUDGET: std::time::Duration = std::time::Duration::from_secs(10);
 use crate::server::interfaces::r#impl::base::InterfaceDataComplete;
+
+/// Whether a check-in changed a daemon's version or its health, the two things its row and its
+/// upgrade modal show. `last_seen` moves on every check-in and changes neither on its own.
+fn check_in_changed(before: &DaemonBase, after: &DaemonBase, policy: &DaemonVersionPolicy) -> bool {
+    let health =
+        |base: &DaemonBase| DaemonHealth::of(base, &policy.evaluate(base.version.as_ref()));
+    before.version != after.version || health(before) != health(after)
+}
 
 impl DaemonService {
     // ========================================================================
@@ -32,6 +41,7 @@ impl DaemonService {
             .get_by_id(&daemon_id)
             .await?
             .ok_or_else(|| ApiError::entity_not_found::<Daemon>(daemon_id))?;
+        let before = daemon.base.clone();
 
         self.check_reported_os(&mut daemon, status.os)?;
 
@@ -85,7 +95,20 @@ impl DaemonService {
 
         self.update(&mut daemon, auth, UpdateReason::DaemonStatusReported)
             .await?;
+        self.announce_check_in(&before, &daemon);
         Ok(())
+    }
+
+    /// Tell the live-update stream when a check-in changed what the daemons list shows for this
+    /// daemon, so an open upgrade modal and Home see the new version without a reload.
+    fn announce_check_in(&self, before: &DaemonBase, after: &Daemon) {
+        if check_in_changed(before, &after.base, &DaemonVersionPolicy::default()) {
+            // No subscriber is not an error: nobody has the app open.
+            let _ = self.live_update_tx.send(LiveDaemonUpdate {
+                id: after.id,
+                site_id: after.base.site_id,
+            });
+        }
     }
 
     /// Hold a handshake to the OS this daemon was created for; see
@@ -185,6 +208,7 @@ impl DaemonService {
             .get_by_id(&daemon_id)
             .await?
             .ok_or_else(|| ApiError::entity_not_found::<Daemon>(daemon_id))?;
+        let before = daemon.base.clone();
 
         self.check_reported_os(&mut daemon, reported_os)?;
 
@@ -205,6 +229,7 @@ impl DaemonService {
 
         self.update(&mut daemon, auth, UpdateReason::DaemonStarted)
             .await?;
+        self.announce_check_in(&before, &daemon);
 
         // Migrate legacy discoveries if daemon just upgraded to unified-capable version
         if was_pre_unified
