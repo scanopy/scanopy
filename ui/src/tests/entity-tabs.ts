@@ -155,7 +155,7 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				url: 'url',
 				version: 'version',
 				user_id: 'maintainer',
-				// Status renders one state per daemon, from `getDaemonStatusTag`: Unsupported, then
+				// Status renders one state per daemon, its server-derived `health`: Unsupported, then
 				// Unreachable, then Standby, then the version lifecycle.
 				is_unreachable: 'status',
 				standby: 'status',

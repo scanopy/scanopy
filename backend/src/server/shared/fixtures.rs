@@ -316,6 +316,13 @@ pub fn generate_ui_data_fixtures(output_dir: &Path, force_logos: bool) {
             .collect();
     write_fixture(&guest_states, output_dir, "guest-states.json");
 
+    // A daemon's health, the most severe status that applies, keyed by `DaemonHealth`.
+    let daemon_healths: Vec<TypeMetadata> =
+        crate::server::daemons::r#impl::api::DaemonHealth::iter()
+            .map(|h| h.to_metadata())
+            .collect();
+    write_fixture(&daemon_healths, output_dir, "daemon-healths.json");
+
     // A port's ifOperStatus, keyed by `IfOperStatus`: the inspector's status tag colour.
     let if_oper_statuses: Vec<TypeMetadata> =
         crate::server::interfaces::r#impl::base::IfOperStatus::iter()

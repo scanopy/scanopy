@@ -103,6 +103,8 @@ export const COVERED_FIXTURES = [
 	{ file: 'container-network-types.json', key: 'container_network_types', kind: 'typeMetadata' },
 	// A container's or VM's run state at the last scan, keyed by `GuestState`.
 	{ file: 'guest-states.json', key: 'guest_states', kind: 'typeMetadata' },
+	// A daemon's health, the most severe status that applies, keyed by `DaemonHealth`.
+	{ file: 'daemon-healths.json', key: 'daemon_healths', kind: 'typeMetadata' },
 	{ file: 'device-types.json', key: 'device_types', kind: 'typeMetadata' },
 	// Scan warnings. Descriptions here are templates with `{named}` slots, unlike every other
 	// entry above: the values are copied through verbatim, paraglide compiles them into functions

@@ -7,7 +7,6 @@
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import type { Daemon } from '$lib/features/daemons/types/base';
-	import { hasSunsetWarning } from '$lib/features/daemons/utils';
 	import OsTag from '$lib/features/hosts/components/OsTag.svelte';
 	import { hostOsOfDaemonOs } from '$lib/features/hosts/host-os';
 	import CreateDaemonModal from './CreateDaemonModal/CreateDaemonModal.svelte';
@@ -153,12 +152,14 @@
 
 	// Any daemon with a scheduled/active sunset. Drives a non-dismissable banner
 	// so the warning re-arms as long as an affected daemon exists.
-	let hasSunsetDaemons = $derived(daemonsData.some(hasSunsetWarning));
+	const hasSunset = (daemon: Daemon) =>
+		daemon.health === 'deprecated' || daemon.health === 'unsupported';
+	let hasSunsetDaemons = $derived(daemonsData.some(hasSunset));
 	// The shared sunset date across affected daemons (server-published, same value
 	// the email uses), formatted for display. All below-floor daemons share the
 	// one announced date.
 	let sunsetDateDisplay = $derived.by(() => {
-		const iso = daemonsData.find(hasSunsetWarning)?.version_status.sunset_date;
+		const iso = daemonsData.find(hasSunset)?.version_status.sunset_date;
 		if (!iso) return null;
 		return formatLongDate(iso, 'UTC');
 	});
@@ -214,12 +215,12 @@
 	 * sunset is a warning/danger action, a plain newer release is neutral-info.
 	 */
 	function upgradeTone(daemon: Daemon): ActionTone | undefined {
-		switch (daemon.version_status.status) {
-			case 'Unsupported':
+		switch (daemon.health) {
+			case 'unsupported':
 				return 'danger';
-			case 'Deprecated':
+			case 'deprecated':
 				return 'warning';
-			case 'Outdated':
+			case 'outdated':
 				return 'info';
 			default:
 				return undefined;
@@ -246,9 +247,9 @@
 
 		const writeRefusal = refusedUnless(can('Daemon', 'Write', daemon.site_id));
 		const hasUpdateAvailable =
-			daemon.version_status.status === 'Outdated' ||
-			daemon.version_status.status === 'Deprecated' ||
-			daemon.version_status.status === 'Unsupported';
+			daemon.health === 'outdated' ||
+			daemon.health === 'deprecated' ||
+			daemon.health === 'unsupported';
 		// The scheduled sunset date is server-published — the UI never computes it.
 		const sunsetDate = daemon.version_status.sunset_date ?? null;
 		const serverPolled = daemon.mode === 'server_poll';

@@ -11,12 +11,7 @@
 	} = $props();
 
 	function hasIssue(daemon: Daemon): boolean {
-		return (
-			daemon.standby === true ||
-			daemon.is_unreachable ||
-			daemon.version_status.status === 'Deprecated' ||
-			daemon.version_status.status === 'Outdated'
-		);
+		return daemon.health !== 'healthy';
 	}
 
 	let healthyCount = $derived(daemons.filter((d) => !hasIssue(d)).length);

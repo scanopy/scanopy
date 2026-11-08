@@ -1,8 +1,7 @@
 <script lang="ts" context="module">
-	import { entities } from '$lib/shared/stores/metadata';
+	import { daemonHealths, entities } from '$lib/shared/stores/metadata';
 	import { formatRelativeTime } from '$lib/shared/utils/formatting';
 	import { common_lastSeenAgo } from '$lib/paraglide/messages';
-	import { getDaemonStatusTag } from '$lib/features/daemons/utils';
 	import type { Daemon } from '$lib/features/daemons/types/base';
 
 	export const HomeDaemonDisplay: EntityDisplayComponent<Daemon, Record<string, never>> = {
@@ -12,7 +11,7 @@
 		getIconColor: () => entities.getColorHelper('Daemon').icon,
 		getDescription: (daemon) =>
 			daemon.last_seen ? common_lastSeenAgo({ time: formatRelativeTime(daemon.last_seen) }) : '',
-		getTags: (daemon) => [getDaemonStatusTag(daemon)]
+		getTags: (daemon) => [daemonHealths.getTag(daemon.health)]
 	};
 </script>
 

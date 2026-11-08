@@ -35,6 +35,7 @@ import proxmoxGuestTypesJson from '$lib/data/proxmox-guest-types.json';
 import containerNetworkTypesJson from '$lib/data/container-network-types.json';
 import ifOperStatusesJson from '$lib/data/if-oper-statuses.json';
 import guestStatesJson from '$lib/data/guest-states.json';
+import daemonHealthsJson from '$lib/data/daemon-healths.json';
 import deviceTypesJson from '$lib/data/device-types.json';
 import {
 	createColorHelper,
@@ -153,6 +154,7 @@ export interface MetadataRegistry {
 	container_network_types: TypeMetadata[];
 	if_oper_statuses: TypeMetadata[];
 	guest_states: TypeMetadata[];
+	daemon_healths: TypeMetadata[];
 	device_types: TypeMetadata[];
 }
 
@@ -387,6 +389,7 @@ export const metadata = writable<MetadataRegistry>({
 	container_network_types: containerNetworkTypesJson,
 	if_oper_statuses: ifOperStatusesJson,
 	guest_states: guestStatesJson,
+	daemon_healths: daemonHealthsJson,
 	device_types: deviceTypesJson
 } as unknown as MetadataRegistry);
 
@@ -622,6 +625,9 @@ export const ifOperStatuses = createTypeMetadataHelpers<'if_oper_statuses', obje
 );
 /** A container's or VM's run state at the last scan (label, colour, icon), keyed by `GuestState`. */
 export const guestStates = createTypeMetadataHelpers<'guest_states', object>('guest_states');
+/** A daemon's health, the most severe status that applies, keyed by `DaemonHealth`. Fixture order
+ *  is severity order, most severe first. */
+export const daemonHealths = createTypeMetadataHelpers<'daemon_healths', object>('daemon_healths');
 export const deviceTypes = createTypeMetadataHelpers<'device_types', object>('device_types');
 export const discoveryTypes = createTypeMetadataHelpers<'discovery_types', DiscoveryTypeMetadata>(
 	'discovery_types'

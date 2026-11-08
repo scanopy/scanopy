@@ -753,7 +753,7 @@ pub struct DaemonVersionStatus {
 ///
 /// Lifecycle order: `Current` → `Outdated` → `Deprecated` → `Unsupported`, with
 /// `Unknown` for daemons whose version the server has no record of.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema, PartialEq, Eq, strum::EnumIter)]
 pub enum VersionHealthStatus {
     Current,
     Outdated,

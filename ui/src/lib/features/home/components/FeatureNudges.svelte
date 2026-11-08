@@ -24,7 +24,6 @@
 	} from '$lib/features/discovery/utils/warnings';
 	import { useCan } from '$lib/features/auth/access';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { hasSunsetWarning } from '$lib/features/daemons/utils';
 	import type { IconComponent } from '$lib/shared/utils/types';
 	import { onMount } from 'svelte';
 	import { CircleDashedCheck } from '@lucide/svelte';
@@ -85,13 +84,9 @@
 
 	const can = useCan();
 	const daemonsQuery = useDaemonsQuery();
-	// Surface the daemon nudge for connectivity issues AND for an upcoming/active
-	// version sunset — an aging daemon needs attention just as much as an
-	// unreachable one, and this is the population most likely to have one.
+	// Surface the daemon nudge for any daemon that isn't Healthy.
 	let hasDaemonsNeedingAttention = $derived(
-		(daemonsQuery.data ?? []).some(
-			(d) => d.standby === true || d.is_unreachable === true || hasSunsetWarning(d)
-		)
+		(daemonsQuery.data ?? []).some((d) => d.health !== 'healthy')
 	);
 
 	let mounted = $state(false);

@@ -143,7 +143,7 @@ export function neighborEvidenceTag(
 /**
  * Status tag for an entity card, or `null` when there is nothing to say.
  *
- * Amber rather than red, matching `getDaemonStatusTag`'s split: red means
+ * Amber rather than red, matching the daemon health colours: red means
  * broken (unreachable), amber means behind (outdated). A stale host may be
  * perfectly healthy and simply unobserved — so the badge must not read as an
  * error. The label carries the meaning without relying on colour.

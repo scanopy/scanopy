@@ -4,12 +4,10 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { isBillingPlanActive } from '$lib/features/organizations/types';
 	import SettingsModal from '$lib/features/settings/SettingsModal.svelte';
-	import { billingPlans, entities, productAreas } from '$lib/shared/stores/metadata';
+	import { billingPlans, daemonHealths, entities, productAreas } from '$lib/shared/stores/metadata';
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
 	import { useApiKeysQuery } from '$lib/features/daemon_api_keys/queries';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { hasSunsetWarning } from '$lib/features/daemons/utils';
-	import { createColorHelper } from '$lib/shared/utils/styling';
 	import { modalState } from '$lib/shared/stores/modal-registry';
 	import { entityUIConfig, TAB_LABELS } from '$lib/shared/entity-ui-config';
 	import type { EntityDiscriminants } from '$lib/api/entities';
@@ -179,10 +177,17 @@
 	const activeSessionsQuery = useActiveSessionsQuery(() => mainAppAvailable);
 	let hasActiveSessions = $derived((activeSessionsQuery.data?.length ?? 0) > 0);
 
-	// Daemons needing a version update (Deprecated/Unsupported) — drives the
-	// Daemons nav dot, same mechanism as the Scans active-sessions dot.
+	// The most severe health among daemons that aren't Healthy — drives the Daemons nav dot,
+	// same mechanism as the Scans active-sessions dot. Fixture order is severity order.
 	const daemonsQuery = useDaemonsQuery({ enabled: () => mainAppAvailable });
-	let hasDaemonUpdatesNeeded = $derived((daemonsQuery.data ?? []).some(hasSunsetWarning));
+	let worstDaemonHealth = $derived.by(() => {
+		const daemons = daemonsQuery.data ?? [];
+		return (
+			daemonHealths
+				.getItems()
+				.find((h) => h.id !== 'healthy' && daemons.some((d) => d.health === h.id))?.id ?? null
+		);
+	});
 
 	// Legacy (unbound) daemon API keys. When none exist, the Daemon API Keys sub-tab is
 	// hidden and the Daemons group collapses to a single-entity page (no tab strip).
@@ -658,13 +663,13 @@
 
 	// Notification-dot color for a nav item, or null for none. One place that maps
 	// an item to its dot so the same rendering covers every item that has one
-	// (Scans → active sessions; Daemons → updates needed).
+	// (Scans → active sessions; Daemons → a daemon that isn't Healthy).
 	function itemNotificationColor(item: NavItem): string | null {
 		if (item.id === 'discovery' && hasActiveSessions) {
 			return entities.getColorHelper('Discovery').rgb;
 		}
-		if (item.id === 'daemons-group' && hasDaemonUpdatesNeeded) {
-			return createColorHelper('Yellow').rgb;
+		if (item.id === 'daemons-group' && worstDaemonHealth) {
+			return daemonHealths.getColorHelper(worstDaemonHealth).rgb;
 		}
 		return null;
 	}

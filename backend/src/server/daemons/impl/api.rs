@@ -17,7 +17,13 @@ use crate::{
             },
         },
         discovery::r#impl::types::DiscoveryType,
-        shared::events::traits::{DiscoveryScope, Event},
+        shared::{
+            events::traits::{DiscoveryScope, Event},
+            types::{
+                Color, Icon,
+                metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider},
+            },
+        },
         subnets::r#impl::base::Subnet,
     },
 };
@@ -639,6 +645,75 @@ impl DaemonHealth {
     }
 }
 
+impl HasId for DaemonHealth {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for DaemonHealth {
+    fn color(&self) -> Color {
+        match self {
+            Self::Unsupported | Self::Unreachable => Color::Red,
+            Self::Standby => Color::Purple,
+            Self::AwaitingConnection => Color::Blue,
+            Self::Deprecated => Color::Orange,
+            Self::Outdated => Color::Yellow,
+            Self::Unknown => Color::Gray,
+            Self::Healthy => Color::Green,
+        }
+    }
+
+    fn icon(&self) -> Icon {
+        match self {
+            Self::Unsupported => Icon::Ban,
+            Self::Unreachable => Icon::WifiOff,
+            Self::Standby => Icon::Moon,
+            Self::AwaitingConnection => Icon::Hourglass,
+            Self::Deprecated => Icon::TriangleAlert,
+            Self::Outdated => Icon::CircleArrowUp,
+            Self::Unknown => Icon::CircleHelp,
+            Self::Healthy => Icon::CircleCheck,
+        }
+    }
+}
+
+impl TypeMetadataProvider for DaemonHealth {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::Unsupported => "Unsupported",
+            Self::Unreachable => "Unreachable",
+            Self::Standby => "Standby",
+            Self::AwaitingConnection => "Awaiting connection",
+            Self::Deprecated => "Deprecated",
+            Self::Outdated => "Outdated",
+            Self::Unknown => "Unknown",
+            Self::Healthy => "Healthy",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        match self {
+            Self::Unsupported => {
+                "The daemon's version is past its sunset date, so the server rejects it. Upgrade the daemon."
+            }
+            Self::Unreachable => {
+                "The server stopped polling the daemon after repeated failed connections."
+            }
+            Self::Standby => {
+                "The daemon has run no discovery in 30 days, so the server sends it no work."
+            }
+            Self::AwaitingConnection => "The daemon has not connected to the server yet.",
+            Self::Deprecated => {
+                "The daemon's version has a sunset date. Upgrade before then to keep it running."
+            }
+            Self::Outdated => "A newer daemon version is available.",
+            Self::Unknown => "The server has no record of the daemon's version.",
+            Self::Healthy => "The daemon is connected and on the current version.",
+        }
+    }
+}
+
 /// Request to pre-provision a daemon (either mode) before it is installed.
 /// This creates the daemon record + its 1:1 API key on the server so the install
 /// command shrinks to two flags.
@@ -1024,5 +1099,41 @@ mod health_tests {
             DaemonHealth::of(&base, &status),
             DaemonHealth::AwaitingConnection
         );
+    }
+
+    /// Every combination of daemon state and version status lands on one health value, and only a
+    /// daemon that has connected, is reachable, is not on standby and runs a Current version is
+    /// Healthy.
+    #[test]
+    fn only_a_connected_current_daemon_is_healthy() {
+        use strum::IntoEnumIterator;
+
+        let mut status = DaemonVersionPolicy::default().evaluate(None);
+        let mut reached = std::collections::HashSet::new();
+        for version in VersionHealthStatus::iter() {
+            status.status = version;
+            for (is_unreachable, standby, connected) in
+                itertools::iproduct!([false, true], [false, true], [false, true])
+            {
+                let base = DaemonBase {
+                    is_unreachable,
+                    standby,
+                    last_seen: connected.then(crate::server::shared::clock::now),
+                    ..Default::default()
+                };
+                let health = DaemonHealth::of(&base, &status);
+                reached.insert(<&str>::from(health));
+                let expect_healthy = version == VersionHealthStatus::Current
+                    && connected
+                    && !is_unreachable
+                    && !standby;
+                assert_eq!(
+                    health == DaemonHealth::Healthy,
+                    expect_healthy,
+                    "{version:?}, unreachable={is_unreachable}, standby={standby}, connected={connected} gave {health:?}"
+                );
+            }
+        }
+        assert_eq!(reached.len(), DaemonHealth::iter().count());
     }
 }
