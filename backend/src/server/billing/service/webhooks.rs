@@ -390,7 +390,7 @@ impl BillingService {
                 // Trial started (if subscription is in trialing state).
                 // Applied after `CheckoutCompleted`, so the org ends Trialing.
                 if is_trialing {
-                    let trial_days = plan.config().trial_days;
+                    let trial_days = plan.current_trial_days();
                     let trial_end_dt = sub
                         .trial_end
                         .and_then(|t| chrono::DateTime::<Utc>::from_timestamp(t, 0))
@@ -695,6 +695,7 @@ impl BillingService {
                         trial_started_at: current
                             .trial_start
                             .and_then(|t| chrono::DateTime::<Utc>::from_timestamp(t, 0)),
+                        can_extend: !organization.base.trial_extended_used,
                         // Either way to pay keeps the subscription alive, so a
                         // buyer paying by invoice is not asked for a card.
                         //
@@ -1115,6 +1116,9 @@ fn resubscribed(
 /// made it: the subscription is still trialing and its trial end is later than
 /// the one on the org row. `None` when the org has no trial end to compare.
 ///
+/// A mid-trial plan change writes the end it moved the trial to as
+/// `scanopy_trial_switch_end`, so a new end equal to it is that switch.
+///
 /// The self-serve extend is the only writer of `scanopy_trial_extended_days`,
 /// and Stripe keeps the key on the subscription afterwards. So the key means a
 /// user extension only until that extension is recorded; one seen after that
@@ -1139,12 +1143,13 @@ fn trial_extension(
     // Whole days, at least one: Stripe takes any timestamp, so a dashboard
     // edit need not be a whole number of days.
     let days_added = (((new_end - stored_end).num_hours() as f64 / 24.0).round() as u32).max(1);
-    let source =
-        if meta.scanopy_trial_extended_days.is_some() && !organization.base.trial_extended_used {
-            TrialExtensionSource::User
-        } else {
-            TrialExtensionSource::Staff
-        };
+    let source = if meta.scanopy_trial_switch_end == Some(new_end.timestamp()) {
+        TrialExtensionSource::PlanSwitch
+    } else if meta.scanopy_trial_extended_days.is_some() && !organization.base.trial_extended_used {
+        TrialExtensionSource::User
+    } else {
+        TrialExtensionSource::Staff
+    };
     Some((days_added, new_end, source))
 }
 
@@ -1305,6 +1310,50 @@ mod tests {
         assert_eq!(
             trial_extension(&org, &SubscriptionStatus::Trialing, Some(day(31)), &meta),
             Some((10, day(31), TrialExtensionSource::Staff))
+        );
+    }
+
+    /// A switch to a plan with a longer trial moves the end without using up
+    /// the self-serve extension, even after the user extension key is on the
+    /// subscription.
+    #[test]
+    fn a_plan_switch_moves_the_end_and_leaves_the_self_serve_extension_available() {
+        let mut org = trialing_until(day(14));
+        let switch = StripeSubscriptionMetadata {
+            scanopy_trial_switch_end: Some(day(30).timestamp()),
+            ..Default::default()
+        };
+
+        assert_eq!(
+            receive_update(&mut org, day(30), &switch),
+            Some(TrialExtensionSource::PlanSwitch)
+        );
+        assert!(!org.base.trial_extended_used);
+        assert_eq!(org.base.trial_end_date, Some(day(30)));
+
+        // The self-serve extend afterwards: Stripe keeps the switch key, but
+        // the new end no longer matches it.
+        let extend = StripeSubscriptionMetadata {
+            scanopy_trial_extended_days: Some(7),
+            ..switch.clone()
+        };
+        assert_eq!(
+            receive_update(&mut org, day(37), &extend),
+            Some(TrialExtensionSource::User)
+        );
+        assert!(org.base.trial_extended_used);
+
+        // A switch after the self-serve extension carries both keys.
+        let mut extended = trialing_until(day(21));
+        extended.base.trial_extended_used = true;
+        let both = StripeSubscriptionMetadata {
+            scanopy_trial_extended_days: Some(7),
+            scanopy_trial_switch_end: Some(day(30).timestamp()),
+            ..Default::default()
+        };
+        assert_eq!(
+            receive_update(&mut extended, day(30), &both),
+            Some(TrialExtensionSource::PlanSwitch)
         );
     }
 

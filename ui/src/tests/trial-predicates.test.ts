@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isTrialingWithoutPayment } from '$lib/shared/utils/trial';
+import { canExtendTrial, isTrialingWithoutPayment } from '$lib/shared/utils/trial';
 import type { Organization } from '$lib/features/organizations/types';
 
 function org(overrides: Partial<Organization> = {}): Organization {
@@ -28,5 +28,19 @@ describe('trial nags follow the deployment, not the org row', () => {
 
 	it('still fires when the deployment bills', () => {
 		expect(isTrialingWithoutPayment(trialingWithoutCard, true)).toBe(true);
+	});
+});
+
+describe('the self-serve trial extension is offered once', () => {
+	const trialing = org({ plan_status: 'trialing', trial_extended_used: false });
+
+	it('is offered in the last days of an unextended trial', () => {
+		expect(canExtendTrial(trialing, 2)).toBe(true);
+	});
+
+	it('is not offered once used, early in the trial, or outside a trial', () => {
+		expect(canExtendTrial({ ...trialing, trial_extended_used: true }, 2)).toBe(false);
+		expect(canExtendTrial(trialing, 10)).toBe(false);
+		expect(canExtendTrial({ ...trialing, plan_status: 'active' }, 2)).toBe(false);
 	});
 });

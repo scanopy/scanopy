@@ -24,6 +24,7 @@ const KEY_PLAN: &str = "plan";
 const KEY_PAUSE_DURATION_DAYS: &str = "scanopy_pause_duration_days";
 const KEY_PAUSED_AT: &str = "scanopy_paused_at";
 const KEY_TRIAL_EXTENDED_DAYS: &str = "scanopy_trial_extended_days";
+const KEY_TRIAL_SWITCH_END: &str = "scanopy_trial_switch_end";
 const KEY_CANCEL_REASON: &str = "scanopy_cancel_reason";
 const KEY_CANCEL_SAVE_OFFER_SHOWN: &str = "scanopy_cancel_save_offer_shown";
 const KEY_CANCEL_SAVE_OFFER_REDEEMED: &str = "scanopy_cancel_save_offer_redeemed";
@@ -41,6 +42,10 @@ pub struct StripeSubscriptionMetadata {
     /// shouldn't push the renewal by the full requested duration).
     pub scanopy_paused_at: Option<i64>,
     pub scanopy_trial_extended_days: Option<u32>,
+    /// UTC unix timestamp (seconds) of the trial end a mid-trial plan switch
+    /// moved the trial to. The webhook reads a matching trial end as the
+    /// switch, not as an extension.
+    pub scanopy_trial_switch_end: Option<i64>,
     pub scanopy_cancel_reason: Option<CancelReason>,
     pub scanopy_cancel_save_offer_shown: Option<Vec<SaveOffer>>,
     pub scanopy_cancel_save_offer_redeemed: Option<SaveOffer>,
@@ -81,6 +86,9 @@ impl StripeSubscriptionMetadata {
         if let Some(days) = self.scanopy_trial_extended_days {
             out.insert(KEY_TRIAL_EXTENDED_DAYS.into(), days.to_string());
         }
+        if let Some(ts) = self.scanopy_trial_switch_end {
+            out.insert(KEY_TRIAL_SWITCH_END.into(), ts.to_string());
+        }
         if let Some(reason) = self.scanopy_cancel_reason {
             out.insert(KEY_CANCEL_REASON.into(), reason.to_string());
         }
@@ -112,6 +120,7 @@ impl StripeSubscriptionMetadata {
             scanopy_trial_extended_days: m
                 .get(KEY_TRIAL_EXTENDED_DAYS)
                 .and_then(|s| s.parse().ok()),
+            scanopy_trial_switch_end: m.get(KEY_TRIAL_SWITCH_END).and_then(|s| s.parse().ok()),
             scanopy_cancel_reason: m.get(KEY_CANCEL_REASON).and_then(|s| parse_simple_enum(s)),
             scanopy_cancel_save_offer_shown: m
                 .get(KEY_CANCEL_SAVE_OFFER_SHOWN)
@@ -129,6 +138,7 @@ impl StripeSubscriptionMetadata {
         self.scanopy_pause_duration_days.is_some()
             || self.scanopy_paused_at.is_some()
             || self.scanopy_trial_extended_days.is_some()
+            || self.scanopy_trial_switch_end.is_some()
             || self.scanopy_cancel_reason.is_some()
             || self.scanopy_cancel_save_offer_shown.is_some()
             || self.scanopy_cancel_save_offer_redeemed.is_some()
@@ -195,6 +205,7 @@ mod tests {
             scanopy_pause_duration_days: Some(60),
             scanopy_paused_at: Some(1_700_000_000),
             scanopy_trial_extended_days: Some(7),
+            scanopy_trial_switch_end: Some(1_800_000_000),
             scanopy_cancel_reason: Some(CancelReason::TooExpensive),
             scanopy_cancel_save_offer_shown: Some(vec![SaveOffer::Pause, SaveOffer::Discount]),
             scanopy_cancel_save_offer_redeemed: Some(SaveOffer::Pause),

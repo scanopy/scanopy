@@ -399,6 +399,7 @@ impl EmailService {
         has_payment: bool,
         billing_period: &str,
         trial_started_at: Option<DateTime<Utc>>,
+        can_extend: bool,
     ) -> Result<()> {
         let metrics = self
             .compute_trial_recap_metrics(org_id, trial_started_at)
@@ -414,6 +415,7 @@ impl EmailService {
                 daemons_count: metrics.daemons_count,
                 services_count: metrics.services_count,
                 days_into_trial: metrics.days_into_trial,
+                can_extend,
             },
         )
         .await
@@ -429,6 +431,7 @@ impl EmailService {
         has_payment: bool,
         billing_period: &str,
         key_expires: &str,
+        can_extend: bool,
     ) -> Result<()> {
         self.dispatch(
             to,
@@ -437,6 +440,7 @@ impl EmailService {
                 billing_period,
                 has_payment,
                 key_expires,
+                can_extend,
             },
         )
         .await

@@ -31,7 +31,7 @@ use crate::server::{
             types::{
                 AuthOperation, AuthOperationDiscriminants, BillingOperation,
                 BillingOperationDiscriminants, EntityOperation, EntityOperationDiscriminants,
-                OnboardingOperation, OnboardingOperationDiscriminants,
+                OnboardingOperation, OnboardingOperationDiscriminants, TrialExtensionSource,
             },
         },
         services::traits::CrudService,
@@ -195,6 +195,7 @@ impl Subscriber<BillingOperation> for EmailService {
                     plan,
                     has_payment_method,
                     trial_started_at,
+                    can_extend,
                 } => {
                     // The cloud email recaps hosts, sites, daemons and
                     // services found during the trial. A self-hosted trial's
@@ -210,6 +211,7 @@ impl Subscriber<BillingOperation> for EmailService {
                             has_payment_method,
                             plan.billing_period(),
                             &key_expires,
+                            can_extend,
                         )
                         .await?;
                     } else {
@@ -220,10 +222,16 @@ impl Subscriber<BillingOperation> for EmailService {
                             has_payment_method,
                             plan.billing_period(),
                             trial_started_at,
+                            can_extend,
                         )
                         .await?;
                     }
                 }
+                // The plan change's success message states the new end.
+                BillingOperation::TrialExtended {
+                    source: TrialExtensionSource::PlanSwitch,
+                    ..
+                } => {}
                 BillingOperation::TrialExtended {
                     plan,
                     days_added,
@@ -510,7 +518,7 @@ impl Subscriber<BillingOperation> for EmailService {
                         self.send_self_hosted_welcome_email(
                             org_owner,
                             plan.name(),
-                            is_trialing.then(|| plan.config().trial_days),
+                            is_trialing.then(|| plan.current_trial_days()),
                             plan.features().onboarding_call,
                         )
                         .await?;

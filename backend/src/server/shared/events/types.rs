@@ -547,6 +547,9 @@ pub enum TrialExtensionSource {
     User,
     /// Scanopy staff, by moving the trial end in the Stripe dashboard.
     Staff,
+    /// A mid-trial plan change to a plan with a longer trial. Leaves the
+    /// self-serve extension available.
+    PlanSwitch,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, strum::Display, EnumDiscriminants)]
@@ -597,6 +600,9 @@ pub enum BillingOperation {
         /// Stripe's `trial_start`. The org row keeps only the end, and a
         /// staff extension moves that by an amount the row doesn't record.
         trial_started_at: Option<DateTime<Utc>>,
+        /// The org has not used its one self-serve trial extension.
+        #[serde(default)]
+        can_extend: bool,
     },
     /// A trial converted to a paid subscription. A trial that ends without
     /// converting cancels the subscription, so it arrives as

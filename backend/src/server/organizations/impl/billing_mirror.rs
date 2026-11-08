@@ -158,7 +158,8 @@ impl BillingOperation {
                 ..
             } => {
                 // The flag is the org's one self-serve extension. Staff
-                // extending the trial leaves it available.
+                // extending the trial, or a plan switch lengthening it, leaves
+                // it available.
                 if *source == TrialExtensionSource::User && !organization.base.trial_extended_used {
                     organization.base.trial_extended_used = true;
                     changed = true;

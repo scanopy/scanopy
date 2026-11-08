@@ -27,6 +27,16 @@
 /// each one ends with this single consistent pointer to the Billing page.
 pub const BILLING_DETAILS_TAGLINE: &str = "Visit your Billing page for full details.";
 
+/// The trial-ending emails' offer of the org's one self-serve extension,
+/// linking to the Billing tab that holds the extend action.
+pub fn trial_extension_offer() -> String {
+    format!(
+        r#"Need more time? <a href="{}" style="color: #2563eb; text-decoration: none;">Extend your trial by {} days</a>, once."#,
+        super::links::SETTINGS_BILLING,
+        crate::server::billing::plans::TRIAL_EXTENSION_DAYS
+    )
+}
+
 /// Escape text for an HTML element body or a quoted attribute.
 pub(super) fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")

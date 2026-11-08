@@ -72,7 +72,7 @@ pub use airgap_expiring::AirgapExpiring;
 pub use airgap_renewal::AirgapRenewal;
 pub use cancellation_initiated::CancellationInitiated;
 pub use checkout_completed::CheckoutCompleted;
-pub use compose::{BILLING_DETAILS_TAGLINE, Body, Content};
+pub use compose::{BILLING_DETAILS_TAGLINE, Body, Content, trial_extension_offer};
 pub use daemon_scans_failing::DaemonScansFailing;
 pub use daemon_standby::DaemonStandby;
 pub use daemon_sunset::DaemonSunset;
@@ -617,6 +617,7 @@ mod tests {
                 daemons_count: 2,
                 services_count: 20,
                 days_into_trial: 11,
+                can_extend: true,
             },
         );
         f(
@@ -630,6 +631,7 @@ mod tests {
                 daemons_count: 2,
                 services_count: 20,
                 days_into_trial: 11,
+                can_extend: true,
             },
         );
         f(
@@ -841,6 +843,7 @@ mod tests {
                 billing_period: "Yearly",
                 has_payment: true,
                 key_expires: "October 8, 2026",
+                can_extend: true,
             },
         );
         f(
@@ -850,6 +853,7 @@ mod tests {
                 billing_period: "Yearly",
                 has_payment: false,
                 key_expires: "October 8, 2026",
+                can_extend: true,
             },
         );
         f(
@@ -1066,6 +1070,36 @@ mod tests {
         for html in [&cloud, &self_hosted] {
             assert!(html.contains("Manage email preferences"));
             assert!(html.contains("/?modal=settings&tab=email&utm_source=email"));
+        }
+    }
+
+    /// Both trial-ending emails offer the self-serve extension only while the
+    /// org has it to use.
+    #[test]
+    fn trial_ending_emails_offer_the_extension_only_when_unused() {
+        let offer = trial_extension_offer();
+        for can_extend in [true, false] {
+            let cloud = TrialEnding {
+                has_payment: false,
+                plan_name: "Pro",
+                billing_period: "Monthly",
+                hosts_count: 0,
+                sites_count: 0,
+                daemons_count: 0,
+                services_count: 0,
+                days_into_trial: 11,
+                can_extend,
+            };
+            let self_hosted = SelfHostedTrialEnding {
+                plan_name: "Self-Hosted Standard",
+                billing_period: "Yearly",
+                has_payment: true,
+                key_expires: "October 8, 2026",
+                can_extend,
+            };
+            for email in [&cloud as &dyn Email, &self_hosted] {
+                assert_eq!(email.body_html().contains(&offer), can_extend);
+            }
         }
     }
 }

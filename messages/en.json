@@ -143,6 +143,7 @@
 	"billing_trialBannerBodyLicenseToday": "Your trial ends today. Add a payment method now to keep your license key working.",
 	"billing_trialBannerBodyOneDay": "Your trial ends tomorrow. Add a payment method to avoid interruption.",
 	"billing_trialBannerBodyToday": "Your trial ends today. Add a payment method now to avoid interruption.",
+	"billing_trialBannerExtend": "Extend by 7 days",
 	"billing_trialContinues": "Your trial continues",
 	"billing_trialExtended": "Trial extended.",
 	"billing_trialModalBody": "Add a payment method now to keep your plan. Without one, your organization moves to Free when the trial ends.",

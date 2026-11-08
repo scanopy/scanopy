@@ -14,7 +14,8 @@ pub enum ExtendedTrialEnd {
 
 /// Sent when a trial's end moves later, by the org's own extension or by
 /// Scanopy staff. States the new end date and what happens on it, worded as
-/// `TrialEnding` and `SelfHostedTrialEnding` word it.
+/// `TrialEnding` and `SelfHostedTrialEnding` word it. The subscriber sends
+/// none for a `PlanSwitch`, which the wording below treats as staff.
 pub struct TrialExtended<'a> {
     pub source: TrialExtensionSource,
     pub plan_name: &'a str,
@@ -32,7 +33,7 @@ impl Email for TrialExtended<'_> {
     fn subject(&self) -> String {
         match self.source {
             TrialExtensionSource::User => format!("Your trial now ends on {}", self.new_trial_end),
-            TrialExtensionSource::Staff => {
+            TrialExtensionSource::Staff | TrialExtensionSource::PlanSwitch => {
                 format!("We've extended your trial to {}", self.new_trial_end)
             }
         }
@@ -47,7 +48,9 @@ impl Email for TrialExtended<'_> {
     fn campaign(&self) -> &'static str {
         match self.source {
             TrialExtensionSource::User => "trial_extended_user",
-            TrialExtensionSource::Staff => "trial_extended_staff",
+            TrialExtensionSource::Staff | TrialExtensionSource::PlanSwitch => {
+                "trial_extended_staff"
+            }
         }
     }
 
@@ -59,7 +62,9 @@ impl Email for TrialExtended<'_> {
         };
         let (heading, who) = match self.source {
             TrialExtensionSource::User => ("Your trial is extended", "You"),
-            TrialExtensionSource::Staff => ("We've extended your trial", "We"),
+            TrialExtensionSource::Staff | TrialExtensionSource::PlanSwitch => {
+                ("We've extended your trial", "We")
+            }
         };
 
         let content = Content::new()

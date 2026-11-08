@@ -675,6 +675,15 @@ impl BillingPlan {
         }
     }
 
+    /// Trial length from the plan's current definition. A stored or
+    /// client-sent plan carries the length in force when it was written, so a
+    /// trial started after the length changes reads it here. Falls back to
+    /// this instance's own length for plans no longer sold.
+    pub fn current_trial_days(&self) -> u32 {
+        Self::default_for_discriminant(BillingPlanDiscriminants::from(self))
+            .map_or(self.config().trial_days, |plan| plan.config().trial_days)
+    }
+
     pub fn custom_price(&self) -> Option<&str> {
         match self {
             BillingPlan::Enterprise(_) => Some("Custom"),
