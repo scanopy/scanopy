@@ -21,7 +21,7 @@
 	import HostExportModal from './HostExportModal.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
 	import type { TableDefaults } from '$lib/shared/components/data/types';
-	import { disabledWhen, hiddenWhen, type CardAction } from '$lib/shared/components/data/types';
+	import { disabledWhen, hiddenWhen, type RowAction } from '$lib/shared/components/data/types';
 	import { hostColumns } from './HostTab.columns';
 	import { collectionLookup } from '$lib/shared/entity-fields';
 	import { Trash2, RefreshCw, Replace, Edit, CircleDashedCheck } from '@lucide/svelte';
@@ -376,7 +376,7 @@
 	}
 
 	/** Row actions. */
-	function hostActions(host: Host): CardAction[] {
+	function hostActions(host: Host): RowAction[] {
 		if (!can('Host', 'Write')) return [];
 
 		const writeRefusal = refusedUnless(can('Host', 'Write', host.site_id));

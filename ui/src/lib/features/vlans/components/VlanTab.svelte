@@ -22,7 +22,7 @@
 	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
 	import VlanEditModal from './VlanEditModal.svelte';
 	import { Edit, Trash2 } from '@lucide/svelte';
-	import type { CardAction } from '$lib/shared/components/data/types';
+	import type { RowAction } from '$lib/shared/components/data/types';
 	import type { TabProps } from '$lib/shared/types';
 	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
@@ -124,7 +124,7 @@
 	const bulkDeleteVlansMutation = useBulkDeleteVlansMutation();
 
 	/** Row actions. */
-	function vlanActions(vlan: Vlan): CardAction[] {
+	function vlanActions(vlan: Vlan): RowAction[] {
 		if (!can('Vlan', 'Write')) return [];
 		return [
 			{

@@ -16,7 +16,7 @@
 	import { discoveryScheduledColumns } from './DiscoveryScheduledTab.columns';
 	import { collectionLookup } from '$lib/shared/entity-fields';
 	import { Play, Power, Edit, Trash2, Ban } from '@lucide/svelte';
-	import { disabledWhen, hiddenWhen, type CardAction } from '$lib/shared/components/data/types';
+	import { disabledWhen, hiddenWhen, type RowAction } from '$lib/shared/components/data/types';
 	import { useTagsQuery } from '$lib/features/tags/queries';
 	import {
 		useScheduledDiscoveriesQuery,
@@ -282,7 +282,7 @@
 	 * A run in flight blocks the destructive and scheduling actions, and the
 	 * tooltip carries the reason.
 	 */
-	function discoveryActions(discovery: Discovery): CardAction[] {
+	function discoveryActions(discovery: Discovery): RowAction[] {
 		if (!can('Discovery', 'Write')) return [];
 
 		const writeRefusal = refusedUnless(can('Discovery', 'Write', discovery.site_id));

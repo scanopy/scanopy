@@ -14,7 +14,7 @@
 		disabledWhen,
 		hiddenWhen,
 		type ActionTone,
-		type CardAction
+		type RowAction
 	} from '$lib/shared/components/data/types';
 	import { daemonColumns } from './DaemonTab.columns';
 	import { collectionLookup } from '$lib/shared/entity-fields';
@@ -241,7 +241,7 @@
 	 * Row actions: Retry Connection and Upgrade (each only when the daemon's state calls for it,
 	 * the rarer leftmost), then Edit and Delete on every row.
 	 */
-	function daemonActions(daemon: Daemon): CardAction[] {
+	function daemonActions(daemon: Daemon): RowAction[] {
 		// A Member sees the upgrade command and changes nothing. A Viewer has no key access, so no row.
 		if (!can('Daemon', 'Write') && !can('DaemonApiKey', 'Read')) return [];
 

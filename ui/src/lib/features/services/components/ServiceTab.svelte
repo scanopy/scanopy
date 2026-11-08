@@ -9,7 +9,7 @@
 	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import {
 		entityRef,
-		type CardAction,
+		type RowAction,
 		type LabelledCardFieldItem
 	} from '$lib/shared/components/data/types';
 	import { usePortsQuery } from '$lib/features/ports/queries';
@@ -306,7 +306,7 @@
 	});
 
 	/** Row actions. */
-	function serviceActions(service: Service): CardAction[] {
+	function serviceActions(service: Service): RowAction[] {
 		if (!can('Service', 'Write')) return [];
 
 		return [

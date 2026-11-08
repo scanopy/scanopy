@@ -56,7 +56,7 @@ export interface TagProps {
 /** An action's colour. Omitted, it renders neutral. The row and the toolbar both render from it. */
 export type ActionTone = 'danger' | 'warning' | 'success' | 'info';
 
-export interface CardAction {
+export interface RowAction {
 	label: string;
 	icon: IconComponent; // Svelte component
 	tone?: ActionTone;
@@ -100,7 +100,7 @@ export interface Unavailable {
 	bulkReason?: string;
 }
 
-/** `CardAction.unavailable` for an action most rows support: shown, greyed out, while `when`. */
+/** `RowAction.unavailable` for an action most rows support: shown, greyed out, while `when`. */
 export function disabledWhen(
 	when: boolean,
 	reason: string,
@@ -109,7 +109,7 @@ export function disabledWhen(
 	return when ? { state: 'disabled', reason, bulkReason } : undefined;
 }
 
-/** `CardAction.unavailable` for an action of a special state: left off the row while `when`. */
+/** `RowAction.unavailable` for an action of a special state: left off the row while `when`. */
 export function hiddenWhen(
 	when: boolean,
 	reason: string,

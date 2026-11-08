@@ -16,7 +16,7 @@
 	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
 	import { fieldValueOptions, useFieldValuesQuery } from '$lib/shared/api/field-values';
 	import type { TableDefaults } from '$lib/shared/components/data/types';
-	import { disabledWhen, hiddenWhen, type CardAction } from '$lib/shared/components/data/types';
+	import { disabledWhen, hiddenWhen, type RowAction } from '$lib/shared/components/data/types';
 	import { subnetColumns } from './SubnetTab.columns';
 	import { collectionLookup } from '$lib/shared/entity-fields';
 	import { Trash2, Edit, CircleDashedCheck } from '@lucide/svelte';
@@ -213,7 +213,7 @@
 	}
 
 	/** Row actions. */
-	function subnetActions(subnet: SubnetResponse): CardAction[] {
+	function subnetActions(subnet: SubnetResponse): RowAction[] {
 		if (!can('Subnet', 'Write')) return [];
 
 		const writeRefusal = refusedUnless(can('Subnet', 'Write', subnet.site_id));

@@ -19,7 +19,7 @@
 	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import {
 		disabledWhen,
-		type CardAction,
+		type RowAction,
 		type CardFieldItem
 	} from '$lib/shared/components/data/types';
 	import { credentialColumns } from './CredentialsTab.columns';
@@ -193,7 +193,7 @@
 	}
 
 	/** Row actions. */
-	function credentialActions(credential: Credential): CardAction[] {
+	function credentialActions(credential: Credential): RowAction[] {
 		if (!canManage) return [];
 
 		return [

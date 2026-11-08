@@ -37,7 +37,7 @@
 	} from '$lib/shared/stores/modal-registry';
 	import { Info, Trash2 } from '@lucide/svelte';
 	import { useTagGroupsQuery, useTagsQuery } from '$lib/features/tags/queries';
-	import type { CardAction } from '$lib/shared/components/data/types';
+	import type { RowAction } from '$lib/shared/components/data/types';
 	import { runOutcomeTag, type OutcomeTag } from '../../utils/outcome';
 	import {
 		common_confirmDeleteName,
@@ -241,8 +241,8 @@
 	}
 
 	/** Row actions. */
-	function discoveryActions(discovery: Discovery): CardAction[] {
-		const details: CardAction = {
+	function discoveryActions(discovery: Discovery): RowAction[] {
+		const details: RowAction = {
 			label: common_details(),
 			icon: Info,
 			isOpen: true,
