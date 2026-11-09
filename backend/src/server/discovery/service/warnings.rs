@@ -104,6 +104,7 @@ impl DiscoveryService {
                 (!warnings.is_empty()).then_some(DaemonRunWarnings {
                     daemon_id: *daemon_id,
                     discovery_id: run.id,
+                    scan_id: results.discovery_id,
                     warnings,
                 })
             }));

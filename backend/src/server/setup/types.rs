@@ -95,6 +95,9 @@ pub enum SetupItem {
         site_id: Uuid,
         /// The newest run that raised the code.
         discovery_id: Uuid,
+        /// The scan that run belongs to, whose settings answer some codes. `None` for a run
+        /// recorded before runs carried it.
+        scan_id: Option<Uuid>,
         /// The warning code.
         code: DiscoveryWarningCode,
         /// Every warning of the code from the daemon's latest runs.
@@ -338,6 +341,35 @@ impl SetupItemDiscriminants {
             | Self::MultiSite
             | Self::ApiKeys
             | Self::Share => true,
+        }
+    }
+
+    /// Whether `entity` may dismiss this type for the org: a Suggestion, dismissed by a user who
+    /// may act on it, which is the same write its arm requires before showing it. Issues clear
+    /// when fixed and Next steps when done, so neither is dismissed.
+    pub fn dismissable_by(self, entity: &AuthenticatedEntity) -> bool {
+        let can_write = |resource| entity.can(resource, Action::Write);
+        match self {
+            Self::DaemonHealth
+            | Self::UncoveredIntegration
+            | Self::TargetlessCredential
+            | Self::SiteWithoutDaemon
+            | Self::RunWarnings
+            | Self::InstallDaemon
+            | Self::RunFirstScan
+            | Self::OpenTopology => false,
+            // Every user is shown these.
+            Self::AnswerReferralSource
+            | Self::AnswerProfile
+            | Self::ExplorePerspectives
+            | Self::ApiKeys => entity.user_id().is_some(),
+            Self::ReviewUnconfirmed => can_write(Resource::Host) || can_write(Resource::Subnet),
+            Self::ApplicationTags | Self::Tags => can_write(Resource::Tag),
+            Self::Dependencies => can_write(Resource::Dependency),
+            Self::InterfaceCredential => can_write(Resource::Credential),
+            Self::InviteTeam => can_write(Resource::Member),
+            Self::MultiSite => can_write(Resource::NewSite),
+            Self::Share => can_write(Resource::Share),
         }
     }
 
@@ -625,6 +657,46 @@ mod tests {
         assert_eq!(
             SetupItemDiscriminants::parse_recorded(stored),
             vec![SetupItemDiscriminants::InstallDaemon]
+        );
+    }
+
+    fn user(
+        role: crate::server::users::r#impl::permissions::UserOrgPermissions,
+    ) -> AuthenticatedEntity {
+        let site_id = Uuid::new_v4();
+        AuthenticatedEntity::User {
+            user_id: Uuid::new_v4(),
+            organization_id: Uuid::new_v4(),
+            permissions: role,
+            access: crate::tests::access_on(role, &[site_id]),
+            email: email_address::EmailAddress::new_unchecked("user@example.test"),
+            email_verified: true,
+            terms_accepted_at: None,
+        }
+    }
+
+    /// Only Suggestions are dismissed, and only by a user the Suggestion's own write would let
+    /// act on it.
+    #[test]
+    fn only_suggestions_are_dismissed_by_a_user_who_may_act_on_them() {
+        use crate::server::users::r#impl::permissions::UserOrgPermissions as Role;
+        use strum::IntoEnumIterator;
+        let owner = user(Role::Owner);
+        for item_type in SetupItemDiscriminants::iter() {
+            assert_eq!(
+                item_type.dismissable_by(&owner),
+                item_type.tier() == SetupItemTier::Suggestion,
+                "{item_type:?}"
+            );
+        }
+        let (viewer, member) = (user(Role::Viewer), user(Role::Member));
+        assert!(SetupItemDiscriminants::ExplorePerspectives.dismissable_by(&viewer));
+        assert!(!SetupItemDiscriminants::Tags.dismissable_by(&viewer));
+        assert!(SetupItemDiscriminants::Tags.dismissable_by(&member));
+        assert!(!SetupItemDiscriminants::InviteTeam.dismissable_by(&member));
+        assert!(
+            !SetupItemDiscriminants::ExplorePerspectives
+                .dismissable_by(&AuthenticatedEntity::System)
         );
     }
 

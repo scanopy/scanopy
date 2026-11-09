@@ -55,6 +55,8 @@ pub struct UncoveredIntegration {
 pub struct DaemonRunWarnings {
     pub daemon_id: Uuid,
     pub discovery_id: Uuid,
+    /// The scan the run belongs to, whose settings answer some warnings.
+    pub scan_id: Option<Uuid>,
     pub warnings: Vec<DiscoveryWarning>,
 }
 
@@ -88,6 +90,8 @@ pub struct SetupContext {
     pub has_manual_application_tag: bool,
     pub has_manual_interface_credential: bool,
     pub plan: BillingPlan,
+    /// Whether this is Scanopy Cloud. The two questions are asked only there.
+    pub cloud: bool,
     /// The resources the user may write. `None` in the sweep, which has no user and lists no
     /// Suggestions.
     pub can_write: Option<BTreeSet<Resource>>,
@@ -175,10 +179,15 @@ impl SetupItemDiscriminants {
                 ctx.has(T::RunFirstScan) && features.includes_topology(),
                 SetupItem::OpenTopology,
             ),
-            T::AnswerReferralSource => {
-                one(ctx.has(T::InstallDaemon), SetupItem::AnswerReferralSource)
-            }
-            T::AnswerProfile => one(ctx.has(T::RunFirstScan), SetupItem::AnswerProfile),
+            // Cloud only, one question at a time: the referral source first, then the profile.
+            T::AnswerReferralSource => one(
+                ctx.cloud && ctx.has(T::InstallDaemon),
+                SetupItem::AnswerReferralSource,
+            ),
+            T::AnswerProfile => one(
+                ctx.cloud && ctx.has(T::RunFirstScan) && ctx.has(T::AnswerReferralSource),
+                SetupItem::AnswerProfile,
+            ),
             T::ReviewUnconfirmed => {
                 let hosts = if ctx.can_write(Resource::Host) {
                     ctx.unconfirmed_hosts
@@ -293,6 +302,7 @@ fn run_warning_items(ctx: &SetupContext) -> Vec<SetupItem> {
                     daemon_name: daemon.name.clone(),
                     site_id: daemon.site_id,
                     discovery_id: run.discovery_id,
+                    scan_id: run.scan_id,
                     code,
                     warnings: vec![warning.clone()],
                 }),
@@ -359,6 +369,7 @@ mod tests {
             has_manual_application_tag: false,
             has_manual_interface_credential: false,
             plan: get_enterprise_plan(),
+            cloud: true,
             can_write: Some(Resource::iter().collect()),
         }
     }
@@ -461,16 +472,19 @@ mod tests {
             DaemonRunWarnings {
                 daemon_id: d.id,
                 discovery_id: newer,
+                scan_id: None,
                 warnings: vec![time_limit()],
             },
             DaemonRunWarnings {
                 daemon_id: d.id,
                 discovery_id: older,
+                scan_id: None,
                 warnings: vec![time_limit()],
             },
             DaemonRunWarnings {
                 daemon_id: Uuid::new_v4(),
                 discovery_id: Uuid::new_v4(),
+                scan_id: None,
                 warnings: vec![time_limit()],
             },
         ];
@@ -491,6 +505,7 @@ mod tests {
         ctx.run_warnings = vec![DaemonRunWarnings {
             daemon_id: d.id,
             discovery_id: Uuid::new_v4(),
+            scan_id: None,
             warnings: vec![needs_newer_daemon(Version::new(0, 18, 0))],
         }];
         assert_eq!(count(T::RunWarnings, &ctx), 1);
@@ -550,15 +565,31 @@ mod tests {
         assert_eq!(count(T::OpenTopology, &free), 0);
     }
 
+    /// The referral question follows the first daemon, and the profile question follows both the
+    /// first scan and the referral answer, so one shows at a time.
     #[test]
-    fn the_questions_follow_the_daemon_and_the_first_scan() {
+    fn the_questions_follow_the_daemon_the_first_scan_and_each_other() {
         assert_eq!(count(T::AnswerReferralSource, &ctx()), 0);
         assert_eq!(count(T::AnswerProfile, &ctx()), 0);
         let after_daemon = recorded(ctx(), &[T::InstallDaemon]);
         assert_eq!(count(T::AnswerReferralSource, &after_daemon), 1);
         assert_eq!(count(T::AnswerProfile, &after_daemon), 0);
         let after_scan = recorded(after_daemon, &[T::RunFirstScan]);
-        assert_eq!(count(T::AnswerProfile, &after_scan), 1);
+        assert_eq!(count(T::AnswerProfile, &after_scan), 0);
+        let answered = recorded(after_scan, &[T::AnswerReferralSource]);
+        assert_eq!(count(T::AnswerProfile, &answered), 1);
+    }
+
+    #[test]
+    fn a_self_hosted_server_asks_neither_question() {
+        let mut self_hosted = recorded(
+            ctx(),
+            &[T::InstallDaemon, T::RunFirstScan, T::AnswerReferralSource],
+        );
+        self_hosted.cloud = false;
+        assert_eq!(count(T::AnswerProfile, &self_hosted), 0);
+        self_hosted.recorded.remove(&T::AnswerReferralSource);
+        assert_eq!(count(T::AnswerReferralSource, &self_hosted), 0);
     }
 
     /// Counts only what the user may review.

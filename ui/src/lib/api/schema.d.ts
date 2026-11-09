@@ -2631,6 +2631,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/setup/dismiss-suggestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dismiss a Setup suggestion
+         * @description Hides the Suggestion for the whole organization. Issues and Next steps can't be dismissed.
+         */
+        post: operations["dismiss_setup_suggestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/{id}": {
         parameters: {
             query?: never;
@@ -4221,19 +4241,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-08T18:14:45.147933Z",
+             *       "created_at": "2026-11-09T12:29:09.817272Z",
              *       "first_discovery_id": null,
-             *       "id": "e2bdf581-515f-40fc-b30f-8add8ac9a605",
+             *       "id": "5761f0a9-06b9-4f95-adc8-365cd3e7248c",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-08T18:14:45.147933Z",
+             *       "last_seen_at": "2026-11-09T12:29:09.817272Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-08T18:14:45.147933Z",
-             *       "valid_from": "2026-11-08T18:14:45.147933Z",
+             *       "updated_at": "2026-11-09T12:29:09.817272Z",
+             *       "valid_from": "2026-11-09T12:29:09.817272Z",
              *       "valid_to": null
              *     }
              */
@@ -5136,19 +5156,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-08T18:14:45.074981Z",
+             *               "created_at": "2026-11-09T12:29:09.784730Z",
              *               "first_discovery_id": null,
-             *               "id": "61e0cecf-0963-4d37-b8f8-6adfc4dc5c79",
+             *               "id": "182b6ba3-6dd8-460e-8baf-f44e5ae6c025",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-08T18:14:45.074981Z",
+             *               "last_seen_at": "2026-11-09T12:29:09.784730Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-08T18:14:45.074981Z",
-             *               "valid_from": "2026-11-08T18:14:45.074981Z",
+             *               "updated_at": "2026-11-09T12:29:09.784730Z",
+             *               "valid_from": "2026-11-09T12:29:09.784730Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5161,7 +5181,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Wazuh",
+             *           "service_definition": "GoAnywhere MFT",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6184,19 +6204,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-08T18:14:45.136296Z",
+             *           "created_at": "2026-11-09T12:29:09.811804Z",
              *           "first_discovery_id": null,
-             *           "id": "4409dfa9-82f7-4a7a-873d-4646c125ecfa",
+             *           "id": "92e8180f-94da-45fa-adf8-f0adc542dc2c",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-08T18:14:45.136296Z",
+             *           "last_seen_at": "2026-11-09T12:29:09.811804Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-08T18:14:45.136296Z",
-             *           "valid_from": "2026-11-08T18:14:45.136296Z",
+             *           "updated_at": "2026-11-09T12:29:09.811804Z",
+             *           "valid_from": "2026-11-09T12:29:09.811804Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6209,7 +6229,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Wazuh",
+             *       "service_definition": "GoAnywhere MFT",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7681,19 +7701,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-08T18:14:45.076642Z",
+         *       "created_at": "2026-11-09T12:29:09.785375Z",
          *       "first_discovery_id": null,
-         *       "id": "e795b252-d066-474a-a89e-39a510761d5f",
+         *       "id": "53e12239-c688-4068-85b1-fa79a5d1c9b1",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-08T18:14:45.076642Z",
+         *       "last_seen_at": "2026-11-09T12:29:09.785375Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-08T18:14:45.076642Z",
-         *       "valid_from": "2026-11-08T18:14:45.076642Z",
+         *       "updated_at": "2026-11-09T12:29:09.785375Z",
+         *       "valid_from": "2026-11-09T12:29:09.785375Z",
          *       "valid_to": null
          *     }
          */
@@ -8083,7 +8103,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Wazuh",
+         *           "service_definition": "GoAnywhere MFT",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -10058,6 +10078,11 @@ export interface components {
          * @enum {string}
          */
         DiscoveryWarningCode: "InterfaceSetCutShort" | "InterfaceDetailsCutShort" | "SnmpWalkEntryCap" | "SnmpWalkUnsupported" | "SnmpWalkDesynchronised" | "SnmpWalkPartialDiscarded" | "SnmpWalkPartialRecorded" | "SnmpWalkBridgeMibAbsent" | "SnmpWalkNoAnswer" | "SnmpWalkFailed" | "ClaimedCountReadCutShort" | "ClaimedCountUnderRead" | "ClaimedCapabilityReadCutShort" | "ClaimedCapabilityEmpty" | "LldpLocalPortDropped" | "LldpLocalPortDroppedReadCutShort" | "LldpLocalPortMisplaced" | "MalformedNeighboursWalkCutShort" | "MalformedNeighboursGhostRows" | "MalformedNeighboursIncompleteRecords" | "MalformedNeighboursUnexpectedType" | "MalformedNeighboursUnreadableIndex" | "SnmpCollectedNothing" | "VlanRecordingFailed" | "EqualReachIntegrationsMerged" | "CredentialTargetNotScanned" | "CredentialTargetNotResponding" | "CredentialDaemonOsMismatch" | "CredentialNeedsNewerDaemon" | "CredentialWithoutTarget" | "CredentialLoginUnavailable" | "CredentialGateClosed" | "CredentialRejected" | "CredentialMalformed" | "CredentialTlsFailed" | "CredentialNotThisService" | "CredentialCollectionFailed" | "CredentialCollectionTimedOut" | "CredentialUnreachable" | "CredentialTimedOut" | "IntegrationWithoutCredential" | "GuestOutsideScan" | "GuestBehindHypervisor" | "GuestIsolated" | "ConnectionsWithoutProtocolResponse" | "ScanTimeLimitWithEstimate" | "ScanTimeLimit" | "DcpSweepTimedOut" | "IcmpSweepTimedOut" | "ReverseDnsTimedOut" | "LldpNeighbourNotFound" | "LldpNeighbourAmbiguous" | "LldpPortNoStrategy" | "LldpPortNotFound" | "LldpPortAmbiguous" | "ProvisionalSubnetInferred" | "UnconfirmedHostInferred" | "NeighbourResolutionIncomplete" | "FdbResolutionIncomplete" | "OutdatedDaemonFormat" | "DaemonInDesktopVm" | "WarningsTruncated" | "Unknown";
+        /** @description Request to dismiss a Suggestion from the org's Setup list */
+        DismissSuggestionRequest: {
+            /** @description The Suggestion's item type. */
+            item_type: components["schemas"]["SetupItemDiscriminants"];
+        };
         /**
          * @description An action as the role comparison shows it. `Write` is one [`Action`] and reads as Edit, plus
          *     Create on a resource where it adds rows.
@@ -11267,19 +11292,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-08T18:14:45.073443Z",
+         *               "created_at": "2026-11-09T12:29:09.783980Z",
          *               "first_discovery_id": null,
-         *               "id": "a5b72c25-f4e5-45e9-a823-8d4dc0b93a55",
+         *               "id": "ce220f55-61e8-4adf-b1d8-c5389c6a42e7",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-08T18:14:45.073443Z",
+         *               "last_seen_at": "2026-11-09T12:29:09.783980Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-08T18:14:45.073443Z",
-         *               "valid_from": "2026-11-08T18:14:45.073443Z",
+         *               "updated_at": "2026-11-09T12:29:09.783980Z",
+         *               "valid_from": "2026-11-09T12:29:09.783980Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11292,7 +11317,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Wazuh",
+         *           "service_definition": "GoAnywhere MFT",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -14949,19 +14974,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-08T18:14:45.075958Z",
+         *           "created_at": "2026-11-09T12:29:09.785161Z",
          *           "first_discovery_id": null,
-         *           "id": "c607078c-abeb-472c-9d4f-7b0d73648332",
+         *           "id": "5f69ac79-75bb-4b69-bc5e-003e1fb023e5",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-08T18:14:45.075958Z",
+         *           "last_seen_at": "2026-11-09T12:29:09.785161Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-08T18:14:45.075958Z",
-         *           "valid_from": "2026-11-08T18:14:45.075958Z",
+         *           "updated_at": "2026-11-09T12:29:09.785161Z",
+         *           "valid_from": "2026-11-09T12:29:09.785161Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -14974,7 +14999,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Wazuh",
+         *       "service_definition": "GoAnywhere MFT",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -15212,6 +15237,12 @@ export interface components {
              * @description The newest run that raised the code.
              */
             discovery_id: string;
+            /**
+             * Format: uuid
+             * @description The scan that run belongs to, whose settings answer some codes. `None` for a run
+             *     recorded before runs carried it.
+             */
+            scan_id?: string | null;
             /**
              * Format: uuid
              * @description The site the daemon scans.
@@ -16332,7 +16363,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "2df5fba0-8e60-4137-ba35-891ff8f47e25",
+             *           "id": "ada7411a-a79a-44cb-9fea-b4a6bd1a8199",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16342,23 +16373,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "0a7ada72-65fe-4734-9c2e-b64a8171f1bc",
+             *           "id": "7dc670d4-a2d5-4096-84e3-3a4d3727a571",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "d2075c38-cb8b-4500-ad24-e0cfe5c8ba95",
+             *           "id": "5ed237b2-663b-4903-b116-a8bd808eaefa",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "9ad363d0-3e58-4229-9892-1b5db0ffcae4",
+             *           "id": "7c329653-5399-4ec6-b329-014f03f753fb",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "0a7ada72-65fe-4734-9c2e-b64a8171f1bc",
+             *           "id": "7dc670d4-a2d5-4096-84e3-3a4d3727a571",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16372,19 +16403,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "43e4a790-6b74-4b54-9ed2-70293abe4a77",
+             *         "id": "db9cc78b-ede5-4071-b0a7-b685cb32706e",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "865ba24b-7938-45fc-b44d-03da384a2beb",
+             *         "id": "44c8a59e-cb31-45e1-b580-a8c4f23f7a80",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "0f41c20c-ce61-423c-9924-660f4f1354de",
+             *         "id": "1462a453-06ee-4bcf-93a0-c8747411d5a1",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "11a2a19f-56b6-4f98-a83c-10c07fcc1792",
+             *         "id": "20d06479-dee0-4ce4-94c3-6c9c955b9633",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16405,7 +16436,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "c789b140-5204-4c16-bfb9-d029aba9e710",
+             *         "id": "b3670223-e9c9-4cca-95b0-0840ffd168c4",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16414,19 +16445,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "077e14c5-14c3-4567-8664-fc144c682246",
+             *         "id": "c78c4b13-f430-40cc-8d59-8dd46ded8cd7",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "0551725c-587b-46b6-822b-97367272eeab",
+             *         "id": "e84a9eff-3482-44d9-a0fe-c5623a9fe5d2",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "b7d20edd-f69e-4ead-87ed-0d6095b7c054",
+             *         "id": "31357d43-be32-4eb6-8616-42c7a012793e",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "d44c3cc8-3ccf-483d-ac14-5794ef48b489",
+             *         "id": "e35343e5-3ddc-4459-925c-e441746241ee",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -23367,6 +23398,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    dismiss_setup_suggestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DismissSuggestionRequest"];
+            };
+        };
+        responses: {
+            /** @description Suggestion dismissed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Not a Suggestion */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description The user may not act on the Suggestion */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
         };

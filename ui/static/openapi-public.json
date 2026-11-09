@@ -15880,19 +15880,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-11-08T18:14:45.340680Z",
+              "created_at": "2026-11-09T12:29:09.903844Z",
               "first_discovery_id": null,
-              "id": "1ef8a020-1f92-4b1e-b49b-f98b6b5c1bd9",
+              "id": "82137791-d00d-4c63-8c8e-cbd4ead41780",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-08T18:14:45.340680Z",
+              "last_seen_at": "2026-11-09T12:29:09.903844Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-08T18:14:45.340680Z",
-              "valid_from": "2026-11-08T18:14:45.340680Z",
+              "updated_at": "2026-11-09T12:29:09.903844Z",
+              "valid_from": "2026-11-09T12:29:09.903844Z",
               "valid_to": null
             }
           },
@@ -16565,7 +16565,7 @@
                 "items": {
                   "$ref": "#/components/schemas/SetupItem"
                 },
-                "description": "The most recent discovery runs, newest first."
+                "description": "The organization's Setup list as the caller sees it: Issues, then Next steps, then\nSuggestions."
               },
               "sites": {
                 "type": "array",
@@ -17734,19 +17734,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-11-08T18:14:45.279829Z",
+                      "created_at": "2026-11-09T12:29:09.875248Z",
                       "first_discovery_id": null,
-                      "id": "e731b794-c05a-476b-93ed-aceeb0e1796d",
+                      "id": "c0551538-05fe-403a-9108-08ecf6742ac9",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-11-08T18:14:45.279829Z",
+                      "last_seen_at": "2026-11-09T12:29:09.875248Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-11-08T18:14:45.279829Z",
-                      "valid_from": "2026-11-08T18:14:45.279829Z",
+                      "updated_at": "2026-11-09T12:29:09.875248Z",
+                      "valid_from": "2026-11-09T12:29:09.875248Z",
                       "valid_to": null
                     }
                   ],
@@ -17759,7 +17759,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Wazuh",
+                  "service_definition": "GoAnywhere MFT",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -19253,19 +19253,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-11-08T18:14:45.330442Z",
+                  "created_at": "2026-11-09T12:29:09.898966Z",
                   "first_discovery_id": null,
-                  "id": "a7c11a96-e623-4052-b8f1-82c4a38f22c2",
+                  "id": "8ac3e1bb-5797-4b13-a360-9e9d207cda72",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-08T18:14:45.330442Z",
+                  "last_seen_at": "2026-11-09T12:29:09.898966Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-08T18:14:45.330442Z",
-                  "valid_from": "2026-11-08T18:14:45.330442Z",
+                  "updated_at": "2026-11-09T12:29:09.898966Z",
+                  "valid_from": "2026-11-09T12:29:09.898966Z",
                   "valid_to": null
                 }
               ],
@@ -19278,7 +19278,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Wazuh",
+              "service_definition": "GoAnywhere MFT",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -22564,19 +22564,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-11-08T18:14:45.281094Z",
+          "created_at": "2026-11-09T12:29:09.875872Z",
           "first_discovery_id": null,
-          "id": "e0b92b59-7c2f-4af0-a507-796d7b787e1e",
+          "id": "66b9310e-f361-416f-8c4e-6ac0958a59fa",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-11-08T18:14:45.281094Z",
+          "last_seen_at": "2026-11-09T12:29:09.875872Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-11-08T18:14:45.281094Z",
-          "valid_from": "2026-11-08T18:14:45.281094Z",
+          "updated_at": "2026-11-09T12:29:09.875872Z",
+          "valid_from": "2026-11-09T12:29:09.875872Z",
           "valid_to": null
         }
       },
@@ -23489,7 +23489,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Wazuh",
+              "service_definition": "GoAnywhere MFT",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -25349,7 +25349,7 @@
             "items": {
               "$ref": "#/components/schemas/SetupItem"
             },
-            "description": "The most recent discovery runs, newest first."
+            "description": "The organization's Setup list as the caller sees it: Issues, then Next steps, then\nSuggestions."
           },
           "sites": {
             "type": "array",
@@ -28614,6 +28614,19 @@
           "Unknown"
         ]
       },
+      "DismissSuggestionRequest": {
+        "type": "object",
+        "description": "Request to dismiss a Suggestion from the org's Setup list",
+        "required": [
+          "item_type"
+        ],
+        "properties": {
+          "item_type": {
+            "$ref": "#/components/schemas/SetupItemDiscriminants",
+            "description": "The Suggestion's item type."
+          }
+        }
+      },
       "DisplayAction": {
         "type": "string",
         "description": "An action as the role comparison shows it. `Write` is one [`Action`] and reads as Edit, plus\nCreate on a resource where it adds rows.",
@@ -31861,19 +31874,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-11-08T18:14:45.278332Z",
+                  "created_at": "2026-11-09T12:29:09.874509Z",
                   "first_discovery_id": null,
-                  "id": "6ffeec99-6ee3-4eb5-a920-9483e8ceac08",
+                  "id": "c44b9625-a937-4876-9b6d-b2491cba01b3",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-08T18:14:45.278332Z",
+                  "last_seen_at": "2026-11-09T12:29:09.874509Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-08T18:14:45.278332Z",
-                  "valid_from": "2026-11-08T18:14:45.278332Z",
+                  "updated_at": "2026-11-09T12:29:09.874509Z",
+                  "valid_from": "2026-11-09T12:29:09.874509Z",
                   "valid_to": null
                 }
               ],
@@ -31886,7 +31899,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Wazuh",
+              "service_definition": "GoAnywhere MFT",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -36361,19 +36374,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-11-08T18:14:45.246999Z",
+                        "created_at": "2026-11-09T12:29:09.860225Z",
                         "first_discovery_id": null,
-                        "id": "bd48e22f-7c4b-4e79-a250-7f079ebb18c7",
+                        "id": "3637045d-1997-45f1-8aa0-551e656c99e8",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-11-08T18:14:45.246999Z",
+                        "last_seen_at": "2026-11-09T12:29:09.860225Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-11-08T18:14:45.246999Z",
-                        "valid_from": "2026-11-08T18:14:45.246999Z",
+                        "updated_at": "2026-11-09T12:29:09.860225Z",
+                        "valid_from": "2026-11-09T12:29:09.860225Z",
                         "valid_to": null
                       }
                     ],
@@ -36386,7 +36399,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Wazuh",
+                    "service_definition": "GoAnywhere MFT",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -36633,19 +36646,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-11-08T18:14:45.328939Z",
+                    "created_at": "2026-11-09T12:29:09.898190Z",
                     "first_discovery_id": null,
-                    "id": "d595e236-36e0-4aed-b977-984ff4846b0f",
+                    "id": "d5f9cc8a-0905-4f96-9785-b412ee97a940",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-11-08T18:14:45.328939Z",
+                    "last_seen_at": "2026-11-09T12:29:09.898190Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-11-08T18:14:45.328939Z",
-                    "valid_from": "2026-11-08T18:14:45.328939Z",
+                    "updated_at": "2026-11-09T12:29:09.898190Z",
+                    "valid_from": "2026-11-09T12:29:09.898190Z",
                     "valid_to": null
                   }
                 ],
@@ -36658,7 +36671,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Wazuh",
+                "service_definition": "GoAnywhere MFT",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -39337,19 +39350,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-11-08T18:14:45.280669Z",
+              "created_at": "2026-11-09T12:29:09.875659Z",
               "first_discovery_id": null,
-              "id": "8a3cd549-d9c0-4d4a-8c37-9804df69f31b",
+              "id": "d78eebf8-e00f-4e42-8966-3a2b0fded7fd",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-08T18:14:45.280669Z",
+              "last_seen_at": "2026-11-09T12:29:09.875659Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-08T18:14:45.280669Z",
-              "valid_from": "2026-11-08T18:14:45.280669Z",
+              "updated_at": "2026-11-09T12:29:09.875659Z",
+              "valid_from": "2026-11-09T12:29:09.875659Z",
               "valid_to": null
             }
           ],
@@ -39362,7 +39375,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Wazuh",
+          "service_definition": "GoAnywhere MFT",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -39834,6 +39847,14 @@
                 "type": "string",
                 "format": "uuid",
                 "description": "The newest run that raised the code."
+              },
+              "scan_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The scan that run belongs to, whose settings answer some codes. `None` for a run\nrecorded before runs carried it."
               },
               "site_id": {
                 "type": "string",
@@ -42271,7 +42292,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "64fa6340-cda6-4cfa-9409-6b34f56733fb",
+                  "id": "3cbfee59-61a4-41b6-8247-5c0904ff036e",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -42281,23 +42302,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "9679cc52-9e97-4be6-b4e5-0218c781cfdb",
+                  "id": "90ce815a-549e-4141-b829-cdbf670c51ba",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "ddc4b281-863f-4904-8866-d4fe1d6e8e8a",
+                  "id": "302309a0-09a6-42ff-b2ee-4f91e607c414",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "1288d018-b937-44b2-a72f-bba61a34e256",
+                  "id": "c45aef9a-e6e0-418f-8261-ec0a1040abce",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "9679cc52-9e97-4be6-b4e5-0218c781cfdb",
+                  "id": "90ce815a-549e-4141-b829-cdbf670c51ba",
                   "rule": "ByHost"
                 }
               ]
@@ -42327,19 +42348,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "3f6aa7f8-d895-4bb8-bffd-874f1db5a174",
+                "id": "fb22dbaa-82ff-45d2-a6bb-8bcd319a09f4",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "3666c553-f5d7-4cae-b329-684358481e46",
+                "id": "5a1f741a-011b-48b5-b9d2-5c1b24f0583d",
                 "rule": "ByVLAN"
               },
               {
-                "id": "41088ddf-0018-478a-956f-1bfe2eb93fc3",
+                "id": "395ee1b1-675a-4663-9ebc-5fd4ae2cee22",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "d26c9721-bab2-4378-b0b5-a4a11423226a",
+                "id": "653a615f-5fd5-41b0-8750-a88b3d9e41ed",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -42360,7 +42381,7 @@
                 }
               },
               {
-                "id": "c74d9e7e-b9c0-49e8-a166-45e34840f5ea",
+                "id": "41b71be7-b502-41ef-bc33-c5ac610b544d",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -42369,19 +42390,19 @@
                 }
               },
               {
-                "id": "4cd4db2d-eb7a-4059-9036-c7665cffa2f1",
+                "id": "976d6344-0e27-42c4-a696-69e62ce674ab",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "19e6cfba-6684-42a0-bb80-ac051329b5d5",
+                "id": "31a3ecc9-a2fb-458b-ab7c-88d223a595be",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "13d34b23-8a0c-4135-9443-f25760e1e41b",
+                "id": "8d26314f-cadc-4c0f-9049-b226e2003031",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "8b992b5f-dff5-488a-87bd-2e988ed4dcf7",
+                "id": "83153ed9-5ae9-444f-812f-aa9951df504c",
                 "rule": "ByStack"
               }
             ]

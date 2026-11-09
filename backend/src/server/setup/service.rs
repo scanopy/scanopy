@@ -15,6 +15,7 @@ use crate::server::{
         access::{Action, Resource},
         middleware::auth::AuthenticatedEntity,
     },
+    config::DeploymentType,
     credentials::service::{CredentialService, FoundIntegration},
     daemons::{
         r#impl::{api::DaemonHealth, base::Daemon, version::DaemonVersionPolicy},
@@ -54,6 +55,7 @@ pub struct SetupService {
     pub user_service: Arc<UserService>,
     pub invite_service: Arc<InviteService>,
     pub tag_service: Arc<TagService>,
+    pub deployment_type: DeploymentType,
 }
 
 impl SetupService {
@@ -193,6 +195,7 @@ impl SetupService {
                 .has_manual_interface_credential(org_id)
                 .await?,
             plan: org.base.plan.clone(),
+            cloud: self.deployment_type == DeploymentType::Cloud,
             can_write: entity.map(|e| {
                 Resource::iter()
                     .filter(|r| e.can(*r, Action::Write))

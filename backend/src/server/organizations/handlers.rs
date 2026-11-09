@@ -45,6 +45,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         .routes(routes!(update_org_name))
         .routes(routes!(update_profile))
         .routes(routes!(submit_referral_source))
+        .routes(routes!(dismiss_setup_suggestion))
         .routes(routes!(reset))
         .routes(routes!(delete_organization))
         .routes(routes!(populate_demo_data))
@@ -254,6 +255,54 @@ async fn submit_referral_source(
                 },
             },
             authentication,
+        )
+        .await?;
+
+    Ok(Json(ApiResponse::success(())))
+}
+
+/// Request to dismiss a Suggestion from the org's Setup list
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct DismissSuggestionRequest {
+    /// The Suggestion's item type.
+    pub item_type: SetupItemDiscriminants,
+}
+
+/// Dismiss a Setup suggestion
+///
+/// Hides the Suggestion for the whole organization. Issues and Next steps can't be dismissed.
+#[utoipa::path(
+    post,
+    path = "/setup/dismiss-suggestion",
+    tags = [Organization::ENTITY_NAME_PLURAL, api_tags::INTERNAL],
+    request_body = DismissSuggestionRequest,
+    responses(
+        (status = 200, description = "Suggestion dismissed", body = EmptyApiResponse),
+        (status = 400, description = "Not a Suggestion", body = ApiErrorResponse),
+        (status = 403, description = "The user may not act on the Suggestion", body = ApiErrorResponse),
+    )
+)]
+async fn dismiss_setup_suggestion(
+    auth: Authorized<IsUser>,
+    State(state): State<Arc<AppState>>,
+    ApiJson(request): ApiJson<DismissSuggestionRequest>,
+) -> ApiResult<Json<ApiResponse<()>>> {
+    let org_id = auth.require_organization_id()?;
+    let item_type = request.item_type;
+    if item_type.tier() != SetupItemTier::Suggestion {
+        return Err(ApiError::bad_request("Only a Suggestion can be dismissed"));
+    }
+    if !item_type.dismissable_by(&auth.entity) {
+        return Err(ApiError::permission_denied());
+    }
+
+    state
+        .services
+        .organization_service
+        .record_setup(
+            org_id,
+            SetupOperation::Dismissed { item_type },
+            auth.into_entity(),
         )
         .await?;
 

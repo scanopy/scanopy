@@ -544,6 +544,7 @@ impl ServiceFactory {
             user_service: user_service.clone(),
             invite_service: invite_service.clone(),
             tag_service: tag_service.clone(),
+            deployment_type,
         });
 
         let release_notes_service = Arc::new(ReleaseNotesService::new(
