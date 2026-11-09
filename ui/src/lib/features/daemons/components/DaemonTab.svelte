@@ -173,12 +173,15 @@
 	let pageLoad = $derived(loadFailure(daemonsPageQuery, daemonsQuery, sitesQuery));
 
 	let showCreateDaemonModal = $state(false);
+	/** The site a deep link opened the wizard on (`sites` prefill), for a site with no daemon. */
+	let createDaemonSiteId = $state<string | null>(null);
 	let showDaemonEditor = $state(false);
 	let editingDaemon = $state<Daemon | null>(null);
 
 	// Auto-open modal when deep-linked via ?modal=create-daemon
 	$effect(() => {
 		if ($modalState.name === 'create-daemon' && !showCreateDaemonModal && can('Daemon', 'Write')) {
+			createDaemonSiteId = $modalState.prefill?.sites ?? null;
 			showCreateDaemonModal = true;
 		}
 	});
@@ -329,6 +332,7 @@
 	}
 
 	function handleCreateDaemon() {
+		createDaemonSiteId = null;
 		showCreateDaemonModal = true;
 	}
 
@@ -454,6 +458,7 @@
 <CreateDaemonModal
 	isOpen={showCreateDaemonModal}
 	name="create-daemon"
+	siteId={createDaemonSiteId}
 	onClose={handleCloseCreateDaemon}
 	onNavigate={(tab) => {
 		window.location.hash = tab;

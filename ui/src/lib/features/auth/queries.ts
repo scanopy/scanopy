@@ -307,8 +307,9 @@ export function useProfileUpdateMutation() {
 			return true;
 		},
 		onSuccess: () => {
-			// Refetch organization to pick up ProfileCompleted milestone
+			// The answer is recorded in the org's setup, which the Setup list reads.
 			queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
+			queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
 		}
 	}));
 }

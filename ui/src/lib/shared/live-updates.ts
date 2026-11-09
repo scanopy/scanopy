@@ -18,6 +18,11 @@ class LiveUpdatesSSEManager extends BaseSSEManager<LiveUpdate> {
 				switch (update.type) {
 					case 'Discovery':
 						await discoveryStream.handleUpdate(update.data);
+						// A finished run can record the first scan and raise or clear Setup items.
+						if (update.data.phase === 'Complete') {
+							queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.summary() });
+							queryClient.invalidateQueries({ queryKey: queryKeys.organizations.current() });
+						}
 						break;
 					case 'Topology':
 						topologyStream.handleUpdate(update.data);
@@ -26,6 +31,7 @@ class LiveUpdatesSSEManager extends BaseSSEManager<LiveUpdate> {
 					case 'Daemon':
 						queryClient.invalidateQueries({ queryKey: queryKeys.daemons.all });
 						queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.summary() });
+						queryClient.invalidateQueries({ queryKey: queryKeys.organizations.current() });
 						break;
 				}
 			},
@@ -42,6 +48,7 @@ class LiveUpdatesSSEManager extends BaseSSEManager<LiveUpdate> {
 			queryKeys.services.all,
 			queryKeys.subnets.all,
 			queryKeys.daemons.all,
+			queryKeys.dashboard.summary(),
 			queryKeys.organizations.current()
 		]) {
 			queryClient.invalidateQueries({ queryKey });

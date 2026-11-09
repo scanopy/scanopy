@@ -105,9 +105,11 @@
 		onClose: () => void;
 		onNavigate?: (tab: string) => void;
 		name?: string;
+		/** The site the wizard opens on, as when Home asks for a daemon on a site with none. */
+		siteId?: string | null;
 	}
 
-	let { isOpen = false, onClose, onNavigate, name = undefined }: Props = $props();
+	let { isOpen = false, onClose, onNavigate, name = undefined, siteId = null }: Props = $props();
 
 	// Queries & mutations
 	const configQuery = useConfigQuery();
@@ -748,6 +750,7 @@
 		serverPollReachabilityResult = null;
 		configureCommitted = false;
 		hasCopied = false;
+		if (siteId) selectedSiteId = siteId;
 	}
 
 	let colorHelper = entities.getColorHelper('Daemon');
