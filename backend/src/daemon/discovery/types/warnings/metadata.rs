@@ -342,6 +342,85 @@ impl DiscoveryWarningCode {
             | Self::Unknown => WarningRemedy::NothingToDo,
         }
     }
+
+    /// Whether a daemon's latest run carrying this code is an Issue on the Setup list: the scan
+    /// left data missing and a person can act on it.
+    ///
+    /// Exhaustive, so a new code has to say whether it belongs on Home.
+    pub fn is_setup_issue(&self) -> bool {
+        match self {
+            // Not actionable by its remedy, but a silent SNMP device has no interfaces or
+            // neighbours, and the issue leads to its credential.
+            Self::SnmpWalkNoAnswer
+            | Self::SnmpWalkFailed
+            | Self::ClaimedCountUnderRead
+            | Self::ClaimedCapabilityEmpty
+            | Self::SnmpCollectedNothing
+            | Self::CredentialTargetNotScanned
+            | Self::CredentialTargetNotResponding
+            | Self::CredentialDaemonOsMismatch
+            | Self::CredentialNeedsNewerDaemon
+            | Self::CredentialLoginUnavailable
+            | Self::CredentialGateClosed
+            | Self::CredentialRejected
+            | Self::CredentialMalformed
+            | Self::CredentialTlsFailed
+            | Self::CredentialNotThisService
+            | Self::CredentialCollectionFailed
+            | Self::CredentialCollectionTimedOut
+            | Self::CredentialUnreachable
+            | Self::CredentialTimedOut
+            | Self::GuestOutsideScan
+            | Self::GuestBehindHypervisor
+            | Self::GuestIsolated
+            | Self::ConnectionsWithoutProtocolResponse
+            | Self::ScanTimeLimit
+            | Self::ScanTimeLimitWithEstimate
+            | Self::NeighbourResolutionIncomplete
+            | Self::FdbResolutionIncomplete
+            | Self::DaemonInDesktopVm => true,
+
+            // Live Setup items cover these: TargetlessCredential, UncoveredIntegration,
+            // ReviewUnconfirmed and the daemon's Outdated health.
+            Self::CredentialWithoutTarget
+            | Self::IntegrationWithoutCredential
+            | Self::ProvisionalSubnetInferred
+            | Self::UnconfirmedHostInferred
+            | Self::OutdatedDaemonFormat
+            // Duplicates to merge and the report's own length: no data is missing.
+            | Self::LldpNeighbourAmbiguous
+            | Self::WarningsTruncated
+            // Each clears on the next scan or needs no action.
+            | Self::InterfaceSetCutShort
+            | Self::InterfaceDetailsCutShort
+            | Self::SnmpWalkEntryCap
+            | Self::SnmpWalkUnsupported
+            | Self::SnmpWalkDesynchronised
+            | Self::SnmpWalkPartialDiscarded
+            | Self::SnmpWalkPartialRecorded
+            | Self::SnmpWalkBridgeMibAbsent
+            | Self::ClaimedCountReadCutShort
+            | Self::ClaimedCapabilityReadCutShort
+            | Self::LldpLocalPortDropped
+            | Self::LldpLocalPortDroppedReadCutShort
+            | Self::LldpLocalPortMisplaced
+            | Self::MalformedNeighboursWalkCutShort
+            | Self::MalformedNeighboursGhostRows
+            | Self::MalformedNeighboursIncompleteRecords
+            | Self::MalformedNeighboursUnexpectedType
+            | Self::MalformedNeighboursUnreadableIndex
+            | Self::VlanRecordingFailed
+            | Self::EqualReachIntegrationsMerged
+            | Self::DcpSweepTimedOut
+            | Self::IcmpSweepTimedOut
+            | Self::ReverseDnsTimedOut
+            | Self::LldpNeighbourNotFound
+            | Self::LldpPortNoStrategy
+            | Self::LldpPortNotFound
+            | Self::LldpPortAmbiguous
+            | Self::Unknown => false,
+        }
+    }
 }
 
 impl HasId for DiscoveryWarningCode {
@@ -646,6 +725,7 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
         json!({
             "slots": self.slots(),
             "concerns_credential": self.concerns_credential(),
+            "is_setup_issue": self.is_setup_issue(),
             "snmp_check": self.snmp_check(),
             "snmp_check_group": self.snmp_check_group(),
         })
@@ -881,6 +961,19 @@ mod tests {
             assert!(
                 undeclared.is_empty(),
                 "{}'s name uses undeclared slots {undeclared:?}",
+                code.id()
+            );
+        }
+    }
+
+    /// A setup issue asks for work, so it sits on an actionable rung. SnmpWalkNoAnswer is the one
+    /// exception: its remedy says it clears, but a device that never answers stays empty.
+    #[test]
+    fn setup_issues_are_actionable_codes_plus_snmp_walk_no_answer() {
+        for code in DiscoveryWarningCode::iter().filter(|c| c.is_setup_issue()) {
+            assert!(
+                code.remedy().is_actionable() || code == DiscoveryWarningCode::SnmpWalkNoAnswer,
+                "{} is a setup issue on a rung that asks for nothing",
                 code.id()
             );
         }
