@@ -248,7 +248,7 @@ impl SetupItemKey {
 pub enum SetupItemState {
     /// Still to do.
     Open,
-    /// Waiting on an earlier step. Counted in the progress total and not shown.
+    /// Waiting on an earlier step. Shown disabled.
     Locked,
     /// Done once, and done for good.
     Done,
@@ -475,11 +475,12 @@ impl SetupItemDiscriminants {
     }
 
     /// Whether the app records this item through `POST /organizations/setup`: an item finished in
-    /// the browser, with no request of its own the server could record it on. Every other item is
-    /// recorded where it happens, or from its live condition.
+    /// the browser, with no request of its own the server could record it on, or a question
+    /// dismissed unanswered. Every other item is recorded where it happens, or from its live
+    /// condition.
     pub fn recorded_by_client(self) -> bool {
         match self {
-            Self::DependencyTutorial => true,
+            Self::DependencyTutorial | Self::AnswerReferralSource | Self::AnswerProfile => true,
             Self::DaemonHealth
             | Self::UncoveredIntegration
             | Self::TargetlessCredential
@@ -490,8 +491,6 @@ impl SetupItemDiscriminants {
             | Self::InstallDaemon
             | Self::RunFirstScan
             | Self::OpenTopology
-            | Self::AnswerReferralSource
-            | Self::AnswerProfile
             | Self::ExploreViews
             | Self::ApplicationTags
             | Self::Dependencies
@@ -616,8 +615,8 @@ impl TypeMetadataProvider for SetupItemDiscriminants {
             }
             Self::RunFirstScan => "Your daemon is connected. Its first scan maps your network.",
             Self::OpenTopology => "See the hosts, subnets and links your scan found.",
-            Self::AnswerReferralSource => "One question, and it helps us reach people like you.",
-            Self::AnswerProfile => "Your role and company size help us shape what we build.",
+            // The question is the whole row.
+            Self::AnswerReferralSource | Self::AnswerProfile => "",
             Self::ExploreViews => "Switch the map to its layer 2, workloads or applications view.",
             Self::ApplicationTags => {
                 "Tag a host or service with an application to see what makes it up as one group on the map."

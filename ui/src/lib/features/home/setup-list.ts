@@ -22,6 +22,11 @@ export function openEntries(entries: SetupListEntry[]): SetupListEntry[] {
 	return entries.filter((entry) => entry.tier === 'Setup' && entry.state === 'Open');
 }
 
+/** The Setup items waiting on an earlier step, shown disabled after the open ones. */
+export function lockedEntries(entries: SetupListEntry[]): SetupListEntry[] {
+	return entries.filter((entry) => entry.tier === 'Setup' && entry.state === 'Locked');
+}
+
 /** The Setup items done. */
 export function doneEntries(entries: SetupListEntry[]): SetupListEntry[] {
 	return entries.filter((entry) => entry.tier === 'Setup' && entry.state === 'Done');

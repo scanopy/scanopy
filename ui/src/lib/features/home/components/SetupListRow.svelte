@@ -31,7 +31,8 @@
 </script>
 
 <script lang="ts">
-	import { ChevronRight, CircleCheck } from '@lucide/svelte';
+	import { ChevronRight, CircleCheck, Lock, X } from '@lucide/svelte';
+	import { useRecordSetupItemMutation } from '$lib/features/organizations/queries';
 	import type { components } from '$lib/api/schema';
 	import type { EntityDiscriminants } from '$lib/api/entities';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
@@ -91,7 +92,9 @@
 		home_nudges_unconfirmedReviewHosts,
 		home_nudges_unconfirmedReviewSubnets,
 		home_nudges_unconfirmedSubnetsDescription,
-		common_answer
+		common_answer,
+		common_dismiss,
+		dependencies_createDependency
 	} from '$lib/paraglide/messages';
 	import type { SetupItemType, SetupListEntry } from '../setup-list';
 
@@ -121,8 +124,13 @@
 
 	let item = $derived(entry.item);
 	let done = $derived(entry.state === 'Done');
+	/** A step waiting on an earlier one: shown disabled, with nothing to click. */
+	let locked = $derived(entry.state === 'Locked');
+	/** A question the user can dismiss unanswered. */
+	let dismissable = $derived(item.type === 'AnswerReferralSource' || item.type === 'AnswerProfile');
+	const recordSetupItem = useRecordSetupItemMutation();
 	/** A first-scan row whose scan is running shows its progress, with nothing to click. */
-	let running = $derived(!done && item.type === 'RunFirstScan' && session !== null);
+	let running = $derived(!done && !locked && item.type === 'RunFirstScan' && session !== null);
 	let Icon = $derived(setupItems.getIconComponent(item.type));
 	let iconColors = $derived(setupItems.getColorHelper(item.type));
 
@@ -338,7 +346,7 @@
 				case 'Dependencies': {
 					const tutorial = item.type === 'DependencyTutorial';
 					return plain({
-						label: home_nudges_dependenciesAction(),
+						label: tutorial ? home_nudges_dependenciesAction() : dependencies_createDependency(),
 						run: () => {
 							activeView.set(setup.includes('ApplicationTags') ? 'Application' : 'Workloads');
 							showDependencyTutorial.set(tutorial);
@@ -386,12 +394,14 @@
 {#snippet body()}
 	<!-- The icon tile the app's other interactive cards use (SupportTab, ConfirmEntityModal). -->
 	<div
-		class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg {done
+		class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg {done || locked
 			? ''
 			: iconColors.bg}"
 	>
 		{#if done}
 			<CircleCheck class="h-5 w-5 text-success" />
+		{:else if locked}
+			<Lock class="h-5 w-5 text-tertiary" />
 		{:else}
 			<Icon class="h-5 w-5 {iconColors.icon}" />
 		{/if}
@@ -424,7 +434,7 @@
 				{/if}
 			{/if}
 		</div>
-		{#if !done}
+		{#if !done && view.sentence}
 			<p class="text-sm text-tertiary">{view.sentence}</p>
 		{/if}
 		{#if running && session}
@@ -451,11 +461,18 @@
 <!-- An open row is an interactive card (`card` without `card-static` rings on hover, as the
      app's other clickable cards do). A transparent button covers the card and runs the fix; the
      content sits over it with pointer events off, except the entity chips, which keep their own
-     tooltip and click. The label on the right says what the card click does. A done row, and a
-     first-scan row whose scan is running, is a static card that only reports. -->
+     tooltip and click. The label on the right says what the card click does. A done row, a locked
+     row, and a first-scan row whose scan is running, is a static card that only reports. A question
+     row also has an X that dismisses it unanswered. -->
 <li>
-	{#if done || running}
-		<div class="card card-static flex items-center gap-3 p-4 {done ? 'opacity-70' : ''}">
+	{#if done || locked || running}
+		<div
+			class="card card-static flex items-center gap-3 p-4 {done
+				? 'opacity-70'
+				: locked
+					? 'opacity-50'
+					: ''}"
+		>
 			{@render body()}
 		</div>
 	{:else}
@@ -474,6 +491,20 @@
 					{view.fix.label}
 					<ChevronRight size={16} />
 				</span>
+				{#if dismissable}
+					<button
+						type="button"
+						class="btn-icon pointer-events-auto relative z-10 shrink-0 rounded-lg p-1"
+						aria-label={common_dismiss()}
+						title={common_dismiss()}
+						onclick={(e) => {
+							e.stopPropagation();
+							recordSetupItem.mutate(item.type);
+						}}
+					>
+						<X size={16} />
+					</button>
+				{/if}
 			</div>
 		</div>
 	{/if}
