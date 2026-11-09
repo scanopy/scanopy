@@ -15880,19 +15880,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-11-09T12:29:09.903844Z",
+              "created_at": "2026-11-09T13:00:13.773010Z",
               "first_discovery_id": null,
-              "id": "82137791-d00d-4c63-8c8e-cbd4ead41780",
+              "id": "300cf689-287d-4e9a-9bbf-edfb13f400ca",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-09T12:29:09.903844Z",
+              "last_seen_at": "2026-11-09T13:00:13.773010Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-09T12:29:09.903844Z",
-              "valid_from": "2026-11-09T12:29:09.903844Z",
+              "updated_at": "2026-11-09T13:00:13.773010Z",
+              "valid_from": "2026-11-09T13:00:13.773010Z",
               "valid_to": null
             }
           },
@@ -17734,19 +17734,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-11-09T12:29:09.875248Z",
+                      "created_at": "2026-11-09T13:00:13.730471Z",
                       "first_discovery_id": null,
-                      "id": "c0551538-05fe-403a-9108-08ecf6742ac9",
+                      "id": "22617bcd-7748-4db9-8fea-1c11e05261bd",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-11-09T12:29:09.875248Z",
+                      "last_seen_at": "2026-11-09T13:00:13.730471Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-11-09T12:29:09.875248Z",
-                      "valid_from": "2026-11-09T12:29:09.875248Z",
+                      "updated_at": "2026-11-09T13:00:13.730471Z",
+                      "valid_from": "2026-11-09T13:00:13.730471Z",
                       "valid_to": null
                     }
                   ],
@@ -17759,7 +17759,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "GoAnywhere MFT",
+                  "service_definition": "IBM Spectrum Protect",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -19253,19 +19253,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-11-09T12:29:09.898966Z",
+                  "created_at": "2026-11-09T13:00:13.765468Z",
                   "first_discovery_id": null,
-                  "id": "8ac3e1bb-5797-4b13-a360-9e9d207cda72",
+                  "id": "6fd88929-e16c-4c7d-8e53-a26849096e6c",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-09T12:29:09.898966Z",
+                  "last_seen_at": "2026-11-09T13:00:13.765468Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-09T12:29:09.898966Z",
-                  "valid_from": "2026-11-09T12:29:09.898966Z",
+                  "updated_at": "2026-11-09T13:00:13.765468Z",
+                  "valid_from": "2026-11-09T13:00:13.765468Z",
                   "valid_to": null
                 }
               ],
@@ -19278,7 +19278,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "GoAnywhere MFT",
+              "service_definition": "IBM Spectrum Protect",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -22564,19 +22564,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-11-09T12:29:09.875872Z",
+          "created_at": "2026-11-09T13:00:13.731348Z",
           "first_discovery_id": null,
-          "id": "66b9310e-f361-416f-8c4e-6ac0958a59fa",
+          "id": "9c035800-5614-4c5a-a598-8f265db005d7",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-11-09T12:29:09.875872Z",
+          "last_seen_at": "2026-11-09T13:00:13.731348Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-11-09T12:29:09.875872Z",
-          "valid_from": "2026-11-09T12:29:09.875872Z",
+          "updated_at": "2026-11-09T13:00:13.731348Z",
+          "valid_from": "2026-11-09T13:00:13.731348Z",
           "valid_to": null
         }
       },
@@ -23489,7 +23489,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "GoAnywhere MFT",
+              "service_definition": "IBM Spectrum Protect",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -31874,19 +31874,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-11-09T12:29:09.874509Z",
+                  "created_at": "2026-11-09T13:00:13.729175Z",
                   "first_discovery_id": null,
-                  "id": "c44b9625-a937-4876-9b6d-b2491cba01b3",
+                  "id": "bf63814e-f2d4-4d68-b055-bf229cc3e1e6",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-09T12:29:09.874509Z",
+                  "last_seen_at": "2026-11-09T13:00:13.729175Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-09T12:29:09.874509Z",
-                  "valid_from": "2026-11-09T12:29:09.874509Z",
+                  "updated_at": "2026-11-09T13:00:13.729175Z",
+                  "valid_from": "2026-11-09T13:00:13.729175Z",
                   "valid_to": null
                 }
               ],
@@ -31899,7 +31899,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "GoAnywhere MFT",
+              "service_definition": "IBM Spectrum Protect",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -36374,19 +36374,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-11-09T12:29:09.860225Z",
+                        "created_at": "2026-11-09T13:00:13.704878Z",
                         "first_discovery_id": null,
-                        "id": "3637045d-1997-45f1-8aa0-551e656c99e8",
+                        "id": "38953fde-1e14-432f-8b00-958343fffecc",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-11-09T12:29:09.860225Z",
+                        "last_seen_at": "2026-11-09T13:00:13.704878Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-11-09T12:29:09.860225Z",
-                        "valid_from": "2026-11-09T12:29:09.860225Z",
+                        "updated_at": "2026-11-09T13:00:13.704878Z",
+                        "valid_from": "2026-11-09T13:00:13.704878Z",
                         "valid_to": null
                       }
                     ],
@@ -36399,7 +36399,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "GoAnywhere MFT",
+                    "service_definition": "IBM Spectrum Protect",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -36646,19 +36646,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-11-09T12:29:09.898190Z",
+                    "created_at": "2026-11-09T13:00:13.763833Z",
                     "first_discovery_id": null,
-                    "id": "d5f9cc8a-0905-4f96-9785-b412ee97a940",
+                    "id": "deb7c0b9-c8fa-4e87-b2d3-5867117aa6f9",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-11-09T12:29:09.898190Z",
+                    "last_seen_at": "2026-11-09T13:00:13.763833Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-11-09T12:29:09.898190Z",
-                    "valid_from": "2026-11-09T12:29:09.898190Z",
+                    "updated_at": "2026-11-09T13:00:13.763833Z",
+                    "valid_from": "2026-11-09T13:00:13.763833Z",
                     "valid_to": null
                   }
                 ],
@@ -36671,7 +36671,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "GoAnywhere MFT",
+                "service_definition": "IBM Spectrum Protect",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -39350,19 +39350,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-11-09T12:29:09.875659Z",
+              "created_at": "2026-11-09T13:00:13.731083Z",
               "first_discovery_id": null,
-              "id": "d78eebf8-e00f-4e42-8966-3a2b0fded7fd",
+              "id": "6e753366-adff-47c7-96d2-2081f1b405b8",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-09T12:29:09.875659Z",
+              "last_seen_at": "2026-11-09T13:00:13.731083Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-09T12:29:09.875659Z",
-              "valid_from": "2026-11-09T12:29:09.875659Z",
+              "updated_at": "2026-11-09T13:00:13.731083Z",
+              "valid_from": "2026-11-09T13:00:13.731083Z",
               "valid_to": null
             }
           ],
@@ -39375,7 +39375,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "GoAnywhere MFT",
+          "service_definition": "IBM Spectrum Protect",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -40168,6 +40168,7 @@
         "oneOf": [
           {
             "type": "object",
+            "title": "Org",
             "description": "An item about the whole org (InstallDaemon, Tags, ...).",
             "required": [
               "item_type",
@@ -40187,6 +40188,7 @@
           },
           {
             "type": "object",
+            "title": "Entity",
             "description": "An item about one entity: a daemon's health, a credential, a site, an integration's hosts.",
             "required": [
               "item_type",
@@ -40196,7 +40198,8 @@
             "properties": {
               "entity_id": {
                 "type": "string",
-                "format": "uuid"
+                "format": "uuid",
+                "description": "The daemon, credential or site the item concerns. For an uncovered integration, its\nfirst host."
               },
               "item_type": {
                 "$ref": "#/components/schemas/SetupItemDiscriminants"
@@ -40211,6 +40214,7 @@
           },
           {
             "type": "object",
+            "title": "RunWarning",
             "description": "One warning code from a daemon's latest runs.",
             "required": [
               "daemon_id",
@@ -40223,7 +40227,8 @@
               },
               "daemon_id": {
                 "type": "string",
-                "format": "uuid"
+                "format": "uuid",
+                "description": "The daemon whose latest runs raised the warning."
               },
               "type": {
                 "type": "string",
@@ -42395,7 +42400,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "3cbfee59-61a4-41b6-8247-5c0904ff036e",
+                  "id": "d1b9cc19-1d3b-4883-8746-f12e8284805b",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -42405,23 +42410,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "90ce815a-549e-4141-b829-cdbf670c51ba",
+                  "id": "2ca1f499-0e46-40d3-9f2c-0ce19ea867e1",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "302309a0-09a6-42ff-b2ee-4f91e607c414",
+                  "id": "56bc7d18-4193-4460-ad4e-4336849f6aa1",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "c45aef9a-e6e0-418f-8261-ec0a1040abce",
+                  "id": "ce5b7c55-360a-422f-9d8b-ab7490549e78",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "90ce815a-549e-4141-b829-cdbf670c51ba",
+                  "id": "2ca1f499-0e46-40d3-9f2c-0ce19ea867e1",
                   "rule": "ByHost"
                 }
               ]
@@ -42451,19 +42456,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "fb22dbaa-82ff-45d2-a6bb-8bcd319a09f4",
+                "id": "9d14f4c1-eb9e-4d9c-8a09-cfbe087b8755",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "5a1f741a-011b-48b5-b9d2-5c1b24f0583d",
+                "id": "99d600b6-ece3-47ba-b80e-e446b14ceab1",
                 "rule": "ByVLAN"
               },
               {
-                "id": "395ee1b1-675a-4663-9ebc-5fd4ae2cee22",
+                "id": "55052dfe-968a-4bc2-8e48-d82b89848b86",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "653a615f-5fd5-41b0-8750-a88b3d9e41ed",
+                "id": "55ed69b9-fc50-448e-9850-e37c2b9b8f27",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -42484,7 +42489,7 @@
                 }
               },
               {
-                "id": "41b71be7-b502-41ef-bc33-c5ac610b544d",
+                "id": "1735fdbf-6e4a-4c6b-8525-3d6e6abd9595",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -42493,19 +42498,19 @@
                 }
               },
               {
-                "id": "976d6344-0e27-42c4-a696-69e62ce674ab",
+                "id": "3b3069e7-1db6-4d66-b4b4-3531bdf8caf7",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "31a3ecc9-a2fb-458b-ab7c-88d223a595be",
+                "id": "a223eec1-9ec5-4e5b-a793-67bb8e6c04b2",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "8d26314f-cadc-4c0f-9049-b226e2003031",
+                "id": "d0b7db10-e87c-4ce3-83b6-eef3076827ed",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "83153ed9-5ae9-444f-812f-aa9951df504c",
+                "id": "858ea6de-4981-47f7-8e02-494551618dbb",
                 "rule": "ByStack"
               }
             ]

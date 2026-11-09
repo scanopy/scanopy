@@ -206,14 +206,20 @@ pub enum SetupItemTier {
 #[serde(tag = "type")]
 pub enum SetupItemKey {
     /// An item about the whole org (InstallDaemon, Tags, ...).
+    #[schema(title = "Org")]
     Org { item_type: SetupItemDiscriminants },
     /// An item about one entity: a daemon's health, a credential, a site, an integration's hosts.
+    #[schema(title = "Entity")]
     Entity {
         item_type: SetupItemDiscriminants,
+        /// The daemon, credential or site the item concerns. For an uncovered integration, its
+        /// first host.
         entity_id: Uuid,
     },
     /// One warning code from a daemon's latest runs.
+    #[schema(title = "RunWarning")]
     RunWarning {
+        /// The daemon whose latest runs raised the warning.
         daemon_id: Uuid,
         code: DiscoveryWarningCode,
     },

@@ -2641,7 +2641,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Dismiss a Setup suggestion
+         * Dismiss Setup suggestion
          * @description Hides the Suggestion for the whole organization. Issues and Next steps can't be dismissed.
          */
         post: operations["dismiss_setup_suggestion"];
@@ -4241,19 +4241,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-09T12:29:09.817272Z",
+             *       "created_at": "2026-11-09T13:00:13.603832Z",
              *       "first_discovery_id": null,
-             *       "id": "5761f0a9-06b9-4f95-adc8-365cd3e7248c",
+             *       "id": "dd5faa49-3afe-4eae-b8f4-ffe5ae8c8bdd",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-09T12:29:09.817272Z",
+             *       "last_seen_at": "2026-11-09T13:00:13.603832Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-09T12:29:09.817272Z",
-             *       "valid_from": "2026-11-09T12:29:09.817272Z",
+             *       "updated_at": "2026-11-09T13:00:13.603832Z",
+             *       "valid_from": "2026-11-09T13:00:13.603832Z",
              *       "valid_to": null
              *     }
              */
@@ -5156,19 +5156,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-09T12:29:09.784730Z",
+             *               "created_at": "2026-11-09T13:00:13.546142Z",
              *               "first_discovery_id": null,
-             *               "id": "182b6ba3-6dd8-460e-8baf-f44e5ae6c025",
+             *               "id": "370d40f5-93fb-40a6-9ecc-4a8116fc391c",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-09T12:29:09.784730Z",
+             *               "last_seen_at": "2026-11-09T13:00:13.546142Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-09T12:29:09.784730Z",
-             *               "valid_from": "2026-11-09T12:29:09.784730Z",
+             *               "updated_at": "2026-11-09T13:00:13.546142Z",
+             *               "valid_from": "2026-11-09T13:00:13.546142Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5181,7 +5181,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "GoAnywhere MFT",
+             *           "service_definition": "IBM Spectrum Protect",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6204,19 +6204,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-09T12:29:09.811804Z",
+             *           "created_at": "2026-11-09T13:00:13.593138Z",
              *           "first_discovery_id": null,
-             *           "id": "92e8180f-94da-45fa-adf8-f0adc542dc2c",
+             *           "id": "e56b5a2e-ae1b-48f3-b744-9dbf0dc3a0ef",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-09T12:29:09.811804Z",
+             *           "last_seen_at": "2026-11-09T13:00:13.593138Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-09T12:29:09.811804Z",
-             *           "valid_from": "2026-11-09T12:29:09.811804Z",
+             *           "updated_at": "2026-11-09T13:00:13.593138Z",
+             *           "valid_from": "2026-11-09T13:00:13.593138Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6229,7 +6229,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "GoAnywhere MFT",
+             *       "service_definition": "IBM Spectrum Protect",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7701,19 +7701,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-09T12:29:09.785375Z",
+         *       "created_at": "2026-11-09T13:00:13.547101Z",
          *       "first_discovery_id": null,
-         *       "id": "53e12239-c688-4068-85b1-fa79a5d1c9b1",
+         *       "id": "f5b224ab-f96c-482b-a972-c9987a3a6566",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-09T12:29:09.785375Z",
+         *       "last_seen_at": "2026-11-09T13:00:13.547101Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-09T12:29:09.785375Z",
-         *       "valid_from": "2026-11-09T12:29:09.785375Z",
+         *       "updated_at": "2026-11-09T13:00:13.547101Z",
+         *       "valid_from": "2026-11-09T13:00:13.547101Z",
          *       "valid_to": null
          *     }
          */
@@ -8103,7 +8103,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "GoAnywhere MFT",
+         *           "service_definition": "IBM Spectrum Protect",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -11292,19 +11292,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-09T12:29:09.783980Z",
+         *               "created_at": "2026-11-09T13:00:13.545126Z",
          *               "first_discovery_id": null,
-         *               "id": "ce220f55-61e8-4adf-b1d8-c5389c6a42e7",
+         *               "id": "79a4d0bc-62d3-4b1d-94b0-580c724f55ec",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-09T12:29:09.783980Z",
+         *               "last_seen_at": "2026-11-09T13:00:13.545126Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-09T12:29:09.783980Z",
-         *               "valid_from": "2026-11-09T12:29:09.783980Z",
+         *               "updated_at": "2026-11-09T13:00:13.545126Z",
+         *               "valid_from": "2026-11-09T13:00:13.545126Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11317,7 +11317,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "GoAnywhere MFT",
+         *           "service_definition": "IBM Spectrum Protect",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -14974,19 +14974,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-09T12:29:09.785161Z",
+         *           "created_at": "2026-11-09T13:00:13.546767Z",
          *           "first_discovery_id": null,
-         *           "id": "5f69ac79-75bb-4b69-bc5e-003e1fb023e5",
+         *           "id": "df9f5a0d-7b21-4e56-b125-8841d5f1bd2d",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-09T12:29:09.785161Z",
+         *           "last_seen_at": "2026-11-09T13:00:13.546767Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-09T12:29:09.785161Z",
-         *           "valid_from": "2026-11-09T12:29:09.785161Z",
+         *           "updated_at": "2026-11-09T13:00:13.546767Z",
+         *           "valid_from": "2026-11-09T13:00:13.546767Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -14999,7 +14999,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "GoAnywhere MFT",
+         *       "service_definition": "IBM Spectrum Protect",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -15321,14 +15321,21 @@ export interface components {
             /** @enum {string} */
             type: "Org";
         } | {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The daemon, credential or site the item concerns. For an uncovered integration, its
+             *     first host.
+             */
             entity_id: string;
             item_type: components["schemas"]["SetupItemDiscriminants"];
             /** @enum {string} */
             type: "Entity";
         } | {
             code: components["schemas"]["DiscoveryWarningCode"];
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The daemon whose latest runs raised the warning.
+             */
             daemon_id: string;
             /** @enum {string} */
             type: "RunWarning";
@@ -16394,7 +16401,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "ada7411a-a79a-44cb-9fea-b4a6bd1a8199",
+             *           "id": "44d2e5a5-8914-4f7b-b2a0-706ce6314cc9",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16404,23 +16411,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "7dc670d4-a2d5-4096-84e3-3a4d3727a571",
+             *           "id": "42b681b8-bfcf-4c1a-9ff1-c2eb1dcdb781",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "5ed237b2-663b-4903-b116-a8bd808eaefa",
+             *           "id": "65702c2f-7dcc-437a-b6d2-07cd1658faed",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "7c329653-5399-4ec6-b329-014f03f753fb",
+             *           "id": "c7ccb9e3-12d5-4275-b4ab-840f44a2dd0e",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "7dc670d4-a2d5-4096-84e3-3a4d3727a571",
+             *           "id": "42b681b8-bfcf-4c1a-9ff1-c2eb1dcdb781",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16434,19 +16441,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "db9cc78b-ede5-4071-b0a7-b685cb32706e",
+             *         "id": "15698107-ad03-4cdf-9d98-aff1d5fa0b38",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "44c8a59e-cb31-45e1-b580-a8c4f23f7a80",
+             *         "id": "90fcf56e-9e0e-47a1-88ff-b4aaa11755f1",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "1462a453-06ee-4bcf-93a0-c8747411d5a1",
+             *         "id": "6649c7f8-bc43-4d01-a21c-6209ae624c26",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "20d06479-dee0-4ce4-94c3-6c9c955b9633",
+             *         "id": "fb8d1729-413c-48ee-93ca-043b5d22160c",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16467,7 +16474,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "b3670223-e9c9-4cca-95b0-0840ffd168c4",
+             *         "id": "7dc2a9a7-f8f2-4ecf-91d1-a214ab9bf526",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16476,19 +16483,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "c78c4b13-f430-40cc-8d59-8dd46ded8cd7",
+             *         "id": "edc40af1-3058-4a9d-b4d9-74e9f5bd1aa9",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "e84a9eff-3482-44d9-a0fe-c5623a9fe5d2",
+             *         "id": "502c181b-5906-4276-804a-4c59e7ff8da5",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "31357d43-be32-4eb6-8616-42c7a012793e",
+             *         "id": "df985c2d-8247-4fc4-9b06-b16f1698f1f9",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "e35343e5-3ddc-4459-925c-e441746241ee",
+             *         "id": "ae475bfd-5e58-4f2d-b675-67aa6413c62a",
              *         "rule": "ByStack"
              *       }
              *     ]

@@ -268,7 +268,7 @@ pub struct DismissSuggestionRequest {
     pub item_type: SetupItemDiscriminants,
 }
 
-/// Dismiss a Setup suggestion
+/// Dismiss Setup suggestion
 ///
 /// Hides the Suggestion for the whole organization. Issues and Next steps can't be dismissed.
 #[utoipa::path(
