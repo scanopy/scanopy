@@ -13,14 +13,19 @@
 		host: (
 			id: string
 		) => (Record<string, unknown> & Parameters<typeof hostDisplayName>[0]) | undefined;
+		site: (id: string) => Record<string, unknown> | undefined;
 		credential: CredentialLookup;
 	}
 
-	/** One chip under a row: an entity the item concerns, with `+N` when it stands for several. */
+	/**
+	 * One chip beside a row's title: the entity the item is about, which the title doesn't name,
+	 * with `+N` when it stands for several. Its own tooltip and click open that entity.
+	 */
 	interface Subject {
 		type: EntityDiscriminants;
 		id: string;
 		label: string;
+		data: object | undefined;
 		badge?: string;
 	}
 </script>
@@ -30,10 +35,16 @@
 	import type { components } from '$lib/api/schema';
 	import type { EntityDiscriminants } from '$lib/api/entities';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
+	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
+	import { entityRef } from '$lib/shared/components/data/types';
 	import DiscoveryEstimation from '$lib/features/discovery/components/DiscoveryEstimation.svelte';
 	import SessionProgress from '$lib/features/discovery/components/cards/SessionProgress.svelte';
 	import { isFullScan } from '$lib/features/discovery/utils/fullScan';
-	import { buildWarningReport } from '$lib/features/discovery/utils/warnings';
+	import {
+		buildWarningReport,
+		credentialIdsOf,
+		hostIdsOf
+	} from '$lib/features/discovery/utils/warnings';
 	import { actionFor } from '$lib/features/discovery/utils/warningActions';
 	import type { CredentialLookup } from '$lib/features/discovery/utils/snmpCheck';
 	import {
@@ -73,7 +84,6 @@
 		home_nudges_tagsAction,
 		home_nudges_targetlessCredentialAction,
 		home_nudges_targetlessCredentialDescription,
-		home_nudges_targetlessCredentialTitle,
 		home_nudges_unconfirmedHostsDescription,
 		home_nudges_unconfirmedReviewHosts,
 		home_nudges_unconfirmedReviewSubnets,
@@ -116,6 +126,39 @@
 		if (modal) openModal(modal, opts);
 	}
 
+	/** The first of `ids` as a chip, with `+N` for the rest. Empty when there are none. */
+	function firstOf(
+		type: EntityDiscriminants,
+		ids: string[],
+		resolve: (id: string) => { label: string; data: object | undefined } | undefined
+	): Subject[] {
+		const [first] = ids;
+		const resolved = first ? resolve(first) : undefined;
+		if (!first || !resolved) return [];
+		return [
+			{
+				type,
+				id: first,
+				...resolved,
+				badge: ids.length > 1 ? `+${ids.length - 1}` : undefined
+			}
+		];
+	}
+
+	function hostSubjects(ids: string[]): Subject[] {
+		return firstOf('Host', ids, (id) => {
+			const host = lookups.host(id);
+			return host ? { label: hostDisplayName(host), data: host } : undefined;
+		});
+	}
+
+	function credentialSubjects(ids: string[]): Subject[] {
+		return firstOf('Credential', ids, (id) => {
+			const credential = lookups.credential(id);
+			return credential ? { label: credential.name, data: credential } : undefined;
+		});
+	}
+
 	/** Opens a list filtered to the Inferred source, which is exactly its unconfirmed rows. */
 	function reviewInferred(tab: string) {
 		return () => openTab(tab, new URLSearchParams({ sources: 'Inferred' }));
@@ -145,28 +188,16 @@
 					return {
 						title,
 						sentence: daemonHealths.getDescription(health),
-						subjects: [{ type: 'Daemon', id, label: name }],
+						subjects: [{ type: 'Daemon', id, label: name, data: lookups.daemon(id) }],
 						fix
 					};
 				}
 				case 'UncoveredIntegration': {
 					const { integration, host_ids, site_ids } = item;
-					const [first] = host_ids;
-					const host = first ? lookups.host(first) : undefined;
 					return {
 						title: integrationWithoutCredentialTitle(integration),
 						sentence: integrationWithoutCredentialSentence(integration, host_ids.length),
-						subjects:
-							first && host
-								? [
-										{
-											type: 'Host',
-											id: first,
-											label: hostDisplayName(host),
-											badge: host_ids.length > 1 ? `+${host_ids.length - 1}` : undefined
-										}
-									]
-								: [],
+						subjects: hostSubjects(host_ids),
 						fix: {
 							label: createIntegrationCredentialLabel(integration),
 							run: () => openCredentialCreate(integration, { hostIds: host_ids, siteIds: site_ids })
@@ -174,11 +205,12 @@
 					};
 				}
 				case 'TargetlessCredential': {
+					// The title stays generic; the chip names the credential, once.
 					const { credential_id: id, name } = item;
 					return {
-						title: home_nudges_targetlessCredentialTitle({ name }),
+						title,
 						sentence: home_nudges_targetlessCredentialDescription(),
-						subjects: [{ type: 'Credential', id, label: name }],
+						subjects: [{ type: 'Credential', id, label: name, data: lookups.credential(id) }],
 						fix: {
 							label: home_nudges_targetlessCredentialAction(),
 							run: () => go('credentials', 'credential-editor', { id, tab: 'assignments' })
@@ -190,7 +222,7 @@
 					return {
 						title,
 						sentence,
-						subjects: [{ type: 'Site', id, label: name }],
+						subjects: [{ type: 'Site', id, label: name, data: lookups.site(id) }],
 						fix: {
 							label: gettingStarted_stepDaemonLabel(),
 							run: () => go('daemons', 'create-daemon', { prefill: { sites: id } })
@@ -213,10 +245,25 @@
 							})
 						: null;
 					const discoveryId = item.discovery_id;
+					// The credentials and hosts the warning is about. A scan-level warning names
+					// neither, and then the chip is the daemon whose scan it was.
+					const named = report
+						? [...credentialSubjects(credentialIdsOf(report)), ...hostSubjects(hostIdsOf(report))]
+						: [];
 					return {
 						title: report?.title ?? title,
 						sentence: report?.details[0]?.sentence ?? report?.devices[0]?.sentence ?? sentence,
-						subjects: [{ type: 'Daemon', id: item.daemon_id, label: item.daemon_name }],
+						subjects:
+							named.length > 0
+								? named
+								: [
+										{
+											type: 'Daemon',
+											id: item.daemon_id,
+											label: item.daemon_name,
+											data: lookups.daemon(item.daemon_id)
+										}
+									],
 						fix: action
 							? { label: action.label, run: action.run }
 							: {
@@ -333,24 +380,32 @@
 		{/if}
 	</div>
 	<div class="min-w-0 flex-1 space-y-1">
-		<p class="text-sm font-medium {done ? 'text-secondary' : 'text-primary'}">{view.title}</p>
-		{#if !done}
-			<p class="text-sm text-tertiary">{view.sentence}</p>
-		{/if}
-		{#if !done && (view.subjects.length > 0 || item.type === 'DaemonHealth')}
-			<div class="flex flex-wrap items-center gap-1">
+		<!-- The title names the problem; the chips beside it name what it's about. Chips sit above
+		     the card's click target, so they hover and open on their own. -->
+		<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+			<p class="text-sm font-medium {done ? 'text-secondary' : 'text-primary'}">{view.title}</p>
+			{#if !done}
 				{#each view.subjects as subject (subject.id)}
-					<Tag
-						icon={entities.getIconComponent(subject.type)}
-						color={entities.getColorHelper(subject.type).color}
-						label={subject.label}
-						badge={subject.badge}
-					/>
+					<span class="pointer-events-auto relative z-10">
+						<EntityTag
+							entityRef={entityRef(
+								subject.type,
+								subject.id,
+								subject.data ?? { id: subject.id, name: subject.label }
+							)}
+							label={subject.label}
+							color={entities.getColorHelper(subject.type).color}
+							badge={subject.badge}
+						/>
+					</span>
 				{/each}
 				{#if item.type === 'DaemonHealth'}
 					<Tag {...daemonHealths.getTag(item.health)} />
 				{/if}
-			</div>
+			{/if}
+		</div>
+		{#if !done}
+			<p class="text-sm text-tertiary">{view.sentence}</p>
 		{/if}
 		{#if !done && item.type === 'RunFirstScan' && session}
 			<div class="space-y-1 pt-1">
@@ -374,24 +429,32 @@
 {/snippet}
 
 <!-- An open row is an interactive card (`card` without `card-static` rings on hover, as the
-     app's other clickable cards do), and its label on the right says what the click does.
-     A done row is a static card that only reports. -->
+     app's other clickable cards do). A transparent button covers the card and runs the fix; the
+     content sits over it with pointer events off, except the entity chips, which keep their own
+     tooltip and click. The label on the right says what the card click does. A done row is a
+     static card that only reports. -->
 <li>
 	{#if done}
 		<div class="card card-static flex items-center gap-3 p-4 opacity-70">
 			{@render body()}
 		</div>
 	{:else}
-		<button
-			type="button"
-			class="card flex w-full cursor-pointer items-center gap-3 p-4 text-left focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
-			onclick={runFix}
+		<div
+			class="card relative flex cursor-pointer items-center gap-3 p-4 has-focus-visible:ring-2 has-focus-visible:ring-blue-500"
 		>
-			{@render body()}
-			<span class="flex shrink-0 items-center gap-1 text-sm text-secondary">
-				{view.fix.label}
-				<ChevronRight size={16} />
-			</span>
-		</button>
+			<button
+				type="button"
+				class="absolute inset-0 cursor-pointer rounded-2xl focus-visible:outline-none"
+				aria-label="{view.title}: {view.fix.label}"
+				onclick={runFix}
+			></button>
+			<div class="pointer-events-none relative flex min-w-0 flex-1 items-center gap-3">
+				{@render body()}
+				<span class="flex shrink-0 items-center gap-1 text-sm text-secondary">
+					{view.fix.label}
+					<ChevronRight size={16} />
+				</span>
+			</div>
+		</div>
 	{/if}
 </li>
