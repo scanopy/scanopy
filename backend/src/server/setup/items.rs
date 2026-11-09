@@ -240,9 +240,15 @@ impl SetupItemDiscriminants {
                 !ctx.has(T::OpenTopology),
                 SetupItem::ApplicationTags,
             ),
-            T::Dependencies => step(
+            // The tutorial and the step it unlocks read the same; only the click differs.
+            T::DependencyTutorial => step(
                 ctx.can_write(Resource::Dependency),
                 !ctx.has(T::OpenTopology),
+                SetupItem::DependencyTutorial,
+            ),
+            T::Dependencies => step(
+                ctx.can_write(Resource::Dependency),
+                !ctx.has(T::DependencyTutorial),
                 SetupItem::Dependencies,
             ),
             // The Create Daemon wizard offers credentials, so this needs no step first.
@@ -299,7 +305,8 @@ impl SetupItemDiscriminants {
             | Self::ExploreViews => false,
             Self::Tags => ctx.has_tag_assignment,
             Self::ApplicationTags => ctx.has_application_tag_assignment,
-            Self::Dependencies => ctx.counts.dependencies > 0,
+            // A dependency made without the tutorial means it isn't needed.
+            Self::DependencyTutorial | Self::Dependencies => ctx.counts.dependencies > 0,
             Self::InterfaceCredential => ctx.has_manual_interface_credential,
             Self::InviteTeam => ctx.counts.members > 1 || ctx.counts.pending_invites > 0,
             Self::MultiSite => ctx.sites.len() > 1,
@@ -640,9 +647,15 @@ mod tests {
                 Some(T::OpenTopology),
                 with(&|c| c.has_application_tag_assignment = true),
             ),
+            // A dependency made without the tutorial completes both.
+            (
+                T::DependencyTutorial,
+                Some(T::OpenTopology),
+                with(&|c| c.counts.dependencies = 1),
+            ),
             (
                 T::Dependencies,
-                Some(T::OpenTopology),
+                Some(T::DependencyTutorial),
                 with(&|c| c.counts.dependencies = 1),
             ),
             (
@@ -720,6 +733,7 @@ mod tests {
         for (item_type, resource) in [
             (T::ApplicationTags, Resource::Tag),
             (T::Tags, Resource::Tag),
+            (T::DependencyTutorial, Resource::Dependency),
             (T::Dependencies, Resource::Dependency),
             (T::InterfaceCredential, Resource::Credential),
             (T::InviteTeam, Resource::Member),

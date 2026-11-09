@@ -30,7 +30,10 @@ use crate::server::{
         storage::{factory::StorageFactory, traits::Storage},
         types::entities::EntitySource,
     },
-    tags::r#impl::base::{Tag, TagBase},
+    tags::{
+        groups::base::{TagGroup, TagGroupBase, TagGroupType},
+        r#impl::base::{Tag, TagBase},
+    },
     users::r#impl::permissions::UserOrgPermissions,
 };
 
@@ -300,6 +303,56 @@ async fn assigning_a_tag_completes_tags_for_good() {
         .unwrap();
     assert_eq!(
         setup_state(&services, &f, SetupItemDiscriminants::Tags).await,
+        Some(SetupItemState::Done)
+    );
+}
+
+/// An application tag on a host completes "Assign an application tag", as one on a service does:
+/// the Application view groups by either.
+#[tokio::test]
+async fn an_application_tag_on_a_host_completes_application_tags() {
+    let (storage, services, _container) = test_services().await;
+    let f = fixture(
+        &storage,
+        &services,
+        &[
+            SetupItemDiscriminants::InstallDaemon,
+            SetupItemDiscriminants::RunFirstScan,
+            SetupItemDiscriminants::OpenTopology,
+        ],
+    )
+    .await;
+    let now = crate::server::shared::clock::now();
+    let group = TagGroup {
+        id: Uuid::new_v4(),
+        created_at: now,
+        updated_at: now,
+        base: TagGroupBase::new(f.org.id, "Application".into(), TagGroupType::Application),
+    };
+    storage.tag_groups.create(&group).await.unwrap();
+    let app_tag = Tag {
+        id: Uuid::new_v4(),
+        base: TagBase {
+            name: "Billing".to_string(),
+            organization_id: f.org.id,
+            tag_group_id: Some(group.id),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    storage.tags.create(&app_tag).await.unwrap();
+    assert_eq!(
+        setup_state(&services, &f, SetupItemDiscriminants::ApplicationTags).await,
+        Some(SetupItemState::Open)
+    );
+
+    services
+        .entity_tag_service
+        .add_tag(f.host_id, EntityDiscriminants::Host, app_tag.id, f.org.id)
+        .await
+        .unwrap();
+    assert_eq!(
+        setup_state(&services, &f, SetupItemDiscriminants::ApplicationTags).await,
         Some(SetupItemState::Done)
     );
 }

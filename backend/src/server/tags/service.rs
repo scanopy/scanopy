@@ -1,4 +1,3 @@
-use crate::server::shared::entities::EntityDiscriminants;
 use crate::server::shared::events::types::{DeletionReason, UpdateReason};
 use crate::server::{
     auth::middleware::auth::AuthenticatedEntity,
@@ -278,20 +277,12 @@ impl TagService {
         self.entity_tags.inner().get_all(filter).await
     }
 
-    /// Whether any of `tag_ids` is assigned to a live entity, of `entity_type` when given.
-    pub(crate) async fn has_live_assignment(
-        &self,
-        tag_ids: &[Uuid],
-        entity_type: Option<EntityDiscriminants>,
-    ) -> Result<bool> {
+    /// Whether any of `tag_ids` is assigned to a live entity.
+    pub(crate) async fn has_live_assignment(&self, tag_ids: &[Uuid]) -> Result<bool> {
         if tag_ids.is_empty() {
             return Ok(false);
         }
         let filter = StorableFilter::<EntityTag>::new_from_uuids_column("tag_id", tag_ids).live();
-        let filter = match entity_type {
-            Some(entity_type) => filter.entity_type(&entity_type),
-            None => filter,
-        };
         self.entity_tags.inner().exists(filter).await
     }
 

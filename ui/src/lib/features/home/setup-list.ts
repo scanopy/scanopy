@@ -33,6 +33,21 @@ export function setupProgress(entries: SetupListEntry[]): { done: number; total:
 	return { done: doneEntries(setup).length, total: setup.length };
 }
 
+/** The sites `issues` are about, in first-seen order. An org-wide Issue names none. */
+export function issueSiteIds(issues: SetupListEntry[]): string[] {
+	return [...new Set(issues.flatMap((entry) => entry.site_ids))];
+}
+
+/**
+ * The `issues` to show with `picked` sites on: an org-wide Issue always, and one about a site
+ * when any of its sites is picked.
+ */
+export function issuesOnSites(issues: SetupListEntry[], picked: Set<string>): SetupListEntry[] {
+	return issues.filter(
+		(entry) => entry.site_ids.length === 0 || entry.site_ids.some((id) => picked.has(id))
+	);
+}
+
 /** The server's key as a string, to key the list and the once-per-key `setup_issue_shown` event. */
 export function entryId(entry: SetupListEntry): string {
 	return JSON.stringify(entry.key);

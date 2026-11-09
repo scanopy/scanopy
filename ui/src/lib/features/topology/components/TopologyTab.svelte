@@ -90,7 +90,10 @@
 	import { TUTORIAL_TOPOLOGY } from './dependency-tutorial-data';
 	import { useUsersQuery } from '$lib/features/users/queries';
 	import { useCan } from '$lib/features/auth/access';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import {
+		useOrganizationQuery,
+		useRecordSetupItemMutation
+	} from '$lib/features/organizations/queries';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
 	import { billingPlans, edgeTypes, entities, views } from '$lib/shared/stores/metadata';
 	import { getInspectorConfig } from './panel/inspectors/view-config';
@@ -658,6 +661,14 @@
 		tutorialTypeToggled = false;
 	}
 
+	// Finishing the tutorial, unlike skipping it, records it, so the Setup list's next "Map a
+	// dependency" opens the map without it.
+	const recordSetupItem = useRecordSetupItemMutation();
+	function finishDependencyTutorial() {
+		recordSetupItem.mutate('DependencyTutorial');
+		dismissDependencyTutorial();
+	}
+
 	$effect(() => {
 		const active = isActive;
 		return () => {
@@ -890,7 +901,7 @@
 							{isReadOnly}
 							raised={showFiltersEmptyState || showL2EmptyState}
 							onClearSelection={$showDependencyTutorial
-								? dismissDependencyTutorial
+								? finishDependencyTutorial
 								: clearMultiSelect}
 							onGroupCreated={() => {
 								clearMultiSelect();

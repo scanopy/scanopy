@@ -32,7 +32,9 @@
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import { queryKeys } from '$lib/api/query-client';
 	import DaemonTroubleshootingModal from '$lib/shared/components/layout/DaemonTroubleshootingModal.svelte';
-	import { setupItemTiers } from '$lib/shared/stores/metadata';
+	import { SvelteSet } from 'svelte/reactivity';
+	import { entities, setupItemTiers } from '$lib/shared/stores/metadata';
+	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import { daemonSetupState } from '$lib/features/daemons/stores/daemon-setup';
@@ -57,6 +59,8 @@
 		doneEntries,
 		entryId,
 		issueEntries,
+		issueSiteIds,
+		issuesOnSites,
 		openEntries,
 		setupProgress,
 		type SetupItem,
@@ -80,7 +84,19 @@
 	const daemonsQuery = useDaemonsQuery();
 	const credentialsQuery = useCredentialsQuery();
 	const sessionsQuery = useActiveSessionsQuery();
-	let issues = $derived(issueEntries(entries));
+	let allIssues = $derived(issueEntries(entries));
+	// With Issues on more than one site, a chip per site narrows the list to the sites picked.
+	// Every site starts picked; a site whose Issues all clear drops out of the chips.
+	let issueSites = $derived(issueSiteIds(allIssues));
+	let unpickedSites = new SvelteSet<string>();
+	let pickedSites = $derived(new Set(issueSites.filter((id) => !unpickedSites.has(id))));
+	let issues = $derived(issueSites.length > 1 ? issuesOnSites(allIssues, pickedSites) : allIssues);
+	const siteColor = entities.getColorHelper('Site').color;
+	const SiteIcon = entities.getIconComponent('Site');
+	function toggleSite(id: string) {
+		if (unpickedSites.has(id)) unpickedSites.delete(id);
+		else unpickedSites.add(id);
+	}
 	let open = $derived(openEntries(entries));
 	let done = $derived(doneEntries(entries));
 	let progress = $derived(setupProgress(entries));
@@ -111,16 +127,16 @@
 		credential: (id) => (credentialsQuery.data ?? []).find((c) => c.id === id)
 	});
 
-	/** The running first scan of the daemon a RunFirstScan item names. */
+	/**
+	 * The running scan a RunFirstScan item shows: its daemon's, or else any network scan in the
+	 * org, such as one started on another daemon. A scan already running needs no prompt to run one.
+	 */
 	function firstScanSession(item: SetupItem) {
-		if (item.type !== 'RunFirstScan' || !item.daemon_id) return null;
-		return (
-			(sessionsQuery.data ?? []).find(
-				(s) =>
-					s.daemon_id === item.daemon_id &&
-					(s.discovery_type?.type === 'Network' || s.discovery_type?.type === 'Unified')
-			) ?? null
+		if (item.type !== 'RunFirstScan') return null;
+		const scans = (sessionsQuery.data ?? []).filter(
+			(s) => s.discovery_type?.type === 'Network' || s.discovery_type?.type === 'Unified'
 		);
+		return scans.find((s) => s.daemon_id === item.daemon_id) ?? scans[0] ?? null;
 	}
 
 	let answering = $state<'AnswerReferralSource' | 'AnswerProfile' | null>(null);
@@ -179,12 +195,34 @@
 {/snippet}
 
 <section class="space-y-6">
-	{#if issues.length > 0}
+	{#if allIssues.length > 0}
 		<div>
-			<h3 class="mb-3 flex items-center gap-2 text-base font-semibold text-primary">
-				<span>{setupItemTiers.getName('Issue')}</span>
-				<NavBadge color={issueColor} count={issues.length} />
-			</h3>
+			<div class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+				<!-- The badge counts every Issue, as the Home badge in the sidebar does. -->
+				<h3 class="flex items-center gap-2 text-base font-semibold text-primary">
+					<span>{setupItemTiers.getName('Issue')}</span>
+					<NavBadge color={issueColor} count={allIssues.length} />
+				</h3>
+				{#if issueSites.length > 1}
+					<div class="flex flex-wrap items-center gap-1.5">
+						{#each issueSites as siteId (siteId)}
+							{@const picked = pickedSites.has(siteId)}
+							<button
+								type="button"
+								onclick={() => toggleSite(siteId)}
+								aria-pressed={picked}
+								class="transition-opacity {picked ? 'opacity-100' : 'opacity-50 hover:opacity-75'}"
+							>
+								<Tag
+									label={(sitesQuery.data ?? []).find((s) => s.id === siteId)?.name ?? ''}
+									color={siteColor}
+									icon={SiteIcon}
+								/>
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
 			<ul class="space-y-2">
 				{#each issues as entry (entryId(entry))}
 					{@render row(entry)}

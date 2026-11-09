@@ -244,6 +244,22 @@ export function useReferralSourceMutation() {
 	}));
 }
 
+/** Records a Setup item finished in the app, such as the dependency tutorial. */
+export function useRecordSetupItemMutation() {
+	const queryClient = useQueryClient();
+
+	return createMutation(() => ({
+		mutationFn: async (item: components['schemas']['SetupItemDiscriminants']) => {
+			requireSuccess(await apiClient.POST('/api/v1/organizations/setup', { body: { item } }));
+			return true;
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
+			queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+		}
+	}));
+}
+
 /** Revokes several invites. */
 export function useBulkRevokeInvitesMutation() {
 	const queryClient = useQueryClient();
