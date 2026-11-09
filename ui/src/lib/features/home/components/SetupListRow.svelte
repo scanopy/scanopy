@@ -109,7 +109,7 @@
 	let item = $derived(entry.item);
 	let done = $derived(entry.state === 'Done');
 	let Icon = $derived(setupItems.getIconComponent(item.type));
-	let iconColor = $derived(setupItems.getColorHelper(item.type).icon);
+	let iconColors = $derived(setupItems.getColorHelper(item.type));
 
 	function go(tab: string, modal?: string, opts?: Parameters<typeof openModal>[1]) {
 		window.location.hash = tab;
@@ -320,11 +320,16 @@
 </script>
 
 {#snippet body()}
-	<div class="flex w-5 shrink-0 justify-center self-start pt-0.5">
+	<!-- The icon tile the app's other interactive cards use (SupportTab, ConfirmEntityModal). -->
+	<div
+		class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg {done
+			? ''
+			: iconColors.bg}"
+	>
 		{#if done}
-			<CircleCheck size={18} class="text-success" />
+			<CircleCheck class="h-5 w-5 text-success" />
 		{:else}
-			<Icon size={18} class={iconColor} />
+			<Icon class="h-5 w-5 {iconColors.icon}" />
 		{/if}
 	</div>
 	<div class="min-w-0 flex-1 space-y-1">
@@ -368,21 +373,18 @@
 	</div>
 {/snippet}
 
-<!-- Each row is its own bordered surface. An open row is one button that runs its fix, and its
-     label on the right says what the click does. A done row only reports. -->
+<!-- An open row is an interactive card (`card` without `card-static` rings on hover, as the
+     app's other clickable cards do), and its label on the right says what the click does.
+     A done row is a static card that only reports. -->
 <li>
 	{#if done}
-		<div
-			class="flex items-center gap-3 rounded-xl border px-5 py-3"
-			style="border-color: var(--color-border)"
-		>
+		<div class="card card-static flex items-center gap-3 p-4 opacity-70">
 			{@render body()}
 		</div>
 	{:else}
 		<button
 			type="button"
-			class="flex w-full items-center gap-3 rounded-xl border px-5 py-4 text-left transition-colors hover:bg-(--color-bg-surface-hover) focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
-			style="border-color: var(--color-border); background: var(--color-bg-surface)"
+			class="card flex w-full cursor-pointer items-center gap-3 p-4 text-left focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
 			onclick={runFix}
 		>
 			{@render body()}
