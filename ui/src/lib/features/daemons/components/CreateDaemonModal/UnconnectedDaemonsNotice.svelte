@@ -40,6 +40,10 @@
 		$props();
 
 	let daemons = $derived(eligibility.unconnected_daemons);
+	// A single step reads as a plain line, not "1." on its own.
+	let stepCount = $derived(
+		Number(eligibility.email_verification_required) + Number(eligibility.plan_required)
+	);
 
 	const deleteDaemonMutation = useDeleteDaemonMutation();
 	const verification = useEmailVerificationPending();
@@ -69,7 +73,7 @@
 	}
 </script>
 
-<div class="card card-static space-y-4">
+<div class="space-y-4">
 	<div class="space-y-2">
 		<h3 class="text-sm font-semibold text-primary">
 			{daemons.length === 1
@@ -122,7 +126,11 @@
 			<!-- Verification first: it completes in place, and the eligibility query refetches on
 			     focus while it is pending, so the user comes back to only the plan step. Checkout
 			     closes the wizard, so it goes last. -->
-			<ol class="flex-1 list-decimal space-y-2 pl-5 text-sm text-secondary">
+			<ol
+				class="flex-1 space-y-2 text-sm text-secondary"
+				class:list-decimal={stepCount > 1}
+				class:pl-5={stepCount > 1}
+			>
 				{#if eligibility.email_verification_required}
 					<li>
 						{daemons_unconnectedStepVerify()}
