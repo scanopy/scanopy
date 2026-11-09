@@ -6,7 +6,6 @@ vi.mock('$env/dynamic/public', () => ({
 	env: { PUBLIC_SERVER_HOSTNAME: 'scanopy.test', PUBLIC_SERVER_PROTOCOL: 'http' }
 }));
 
-const { provisionGate } = await import('$lib/features/daemons/utils');
 const { afterDaemonDeleted } = await import('$lib/features/daemons/queries');
 const { queryKeys } = await import('$lib/api/query-client');
 
@@ -28,36 +27,8 @@ function eligibility(overrides: Partial<ProvisionEligibility>): ProvisionEligibi
 	};
 }
 
-describe('provisionGate', () => {
-	it('leads with the unconnected daemon when either limit refuses', () => {
-		for (const refused of [
-			{ plan_required: true },
-			{ email_verification_required: true },
-			{ plan_required: true, email_verification_required: true }
-		]) {
-			expect(provisionGate(eligibility({ ...refused, unconnected_daemons: [unconnected] }))).toBe(
-				'unconnected'
-			);
-		}
-	});
-
-	it("shows today's banner when every daemon has connected", () => {
-		expect(provisionGate(eligibility({ plan_required: true }))).toBe('plan');
-		expect(provisionGate(eligibility({ email_verification_required: true }))).toBe('verification');
-		// Both limits used to arrive one at a time, plan first. The banner keeps that order.
-		expect(
-			provisionGate(eligibility({ plan_required: true, email_verification_required: true }))
-		).toBe('plan');
-	});
-
-	it('lets the wizard through when nothing refuses', () => {
-		expect(provisionGate(eligibility({}))).toBeNull();
-		expect(provisionGate(undefined)).toBeNull();
-	});
-});
-
 describe('afterDaemonDeleted', () => {
-	it("re-reads the wizard's eligibility, so deleting the unconnected daemon clears the notice", async () => {
+	it("re-reads the wizard's eligibility, so deleting the unconnected daemon lifts the refusal", async () => {
 		const queryClient = new QueryClient();
 		const responses = [
 			eligibility({ plan_required: true, unconnected_daemons: [unconnected] }),
@@ -70,12 +41,13 @@ describe('afterDaemonDeleted', () => {
 		});
 		const unsubscribe = observer.subscribe(() => {});
 		await vi.waitFor(() => expect(observer.getCurrentResult().data).toBeDefined());
-		expect(provisionGate(observer.getCurrentResult().data)).toBe('unconnected');
+		expect(observer.getCurrentResult().data?.plan_required).toBe(true);
 
 		await afterDaemonDeleted(queryClient, unconnected.id);
 
 		expect(queryFn).toHaveBeenCalledTimes(2);
-		expect(provisionGate(observer.getCurrentResult().data)).toBeNull();
+		const after = observer.getCurrentResult().data;
+		expect(after?.plan_required || after?.email_verification_required).toBe(false);
 		unsubscribe();
 	});
 });

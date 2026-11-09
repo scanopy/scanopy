@@ -43,7 +43,6 @@
 		buildInstallConfig,
 		constructDaemonUrl,
 		detectOS,
-		provisionGate,
 		slugifySiteName,
 		type DaemonOS
 	} from '../../utils';
@@ -52,7 +51,7 @@
 	import ConfigureStep from './steps/ConfigureStep.svelte';
 	import InstallStep from './steps/InstallStep.svelte';
 	import AdvancedStep from './steps/AdvancedStep.svelte';
-	import UnconnectedDaemonsNotice from './UnconnectedDaemonsNotice.svelte';
+	import ProvisionRefusedNotice from './ProvisionRefusedNotice.svelte';
 	import CredentialsStep, {
 		type PendingCredential
 	} from '$lib/features/credentials/components/CredentialsStep.svelte';
@@ -92,15 +91,9 @@
 		daemons_installCopiedToastWindows,
 		daemons_installBackToInstall,
 		daemons_installReturnToCommands,
-		daemons_testingConnectionTo,
-		daemons_verifyEmailForMoreDaemons,
-		daemons_planRequiredForMoreDaemons,
-		billing_lapsedBannerCta
+		daemons_testingConnectionTo
 	} from '$lib/paraglide/messages';
 	import { credentialTypes } from '$lib/shared/stores/metadata';
-	import EmailVerificationNotice from '$lib/features/auth/components/EmailVerificationNotice.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
 
 	interface Props {
 		isOpen?: boolean;
@@ -234,8 +227,10 @@
 	const provisionEligibilityQuery = useProvisionEligibilityQuery({
 		enabled: () => isOpen && !provisionedDaemonId
 	});
-	let provisionGateState = $derived(provisionGate(provisionEligibilityQuery.data));
-	let provisionRefused = $derived(provisionGateState !== null);
+	let provisionRefused = $derived(
+		!!provisionEligibilityQuery.data?.plan_required ||
+			!!provisionEligibilityQuery.data?.email_verification_required
+	);
 
 	// Daemon identity (name + site) is frozen once Configure is left, so credentials — which
 	// are created against the selected site — can't be orphaned by a later site change.
@@ -906,36 +901,13 @@
 			<div class="flex-1 overflow-auto p-4 sm:p-6">
 				{#key activeTab}
 					{#if activeTab === 'configure'}
-						{#if provisionGateState === 'unconnected' && provisionEligibilityQuery.data}
-							<!-- The configure fields stay hidden: none of the three options uses them. -->
-							<UnconnectedDaemonsNotice
+						{#if provisionRefused && provisionEligibilityQuery.data}
+							<!-- The configure fields stay hidden: none of the options uses them. -->
+							<ProvisionRefusedNotice
 								eligibility={provisionEligibilityQuery.data}
 								onClose={() => onClose()}
 							/>
 						{:else}
-							{#if provisionGateState === 'plan'}
-								<div class="mb-4">
-									<InlineWarning title="" body={daemons_planRequiredForMoreDaemons()}>
-										<button
-											type="button"
-											class="text-sm text-link hover:underline"
-											onclick={() =>
-												triggerUpgrade({
-													source: 'create_daemon_plan_required',
-													surface: 'sidebar',
-													gate_type: 'limit_hit',
-													beforeModal: () => onClose()
-												})}
-										>
-											{billing_lapsedBannerCta()}
-										</button>
-									</InlineWarning>
-								</div>
-							{:else if provisionGateState === 'verification'}
-								<div class="mb-4">
-									<EmailVerificationNotice body={daemons_verifyEmailForMoreDaemons()} />
-								</div>
-							{/if}
 							<ConfigureStep
 								{form}
 								{selectedOS}
