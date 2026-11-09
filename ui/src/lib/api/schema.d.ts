@@ -2642,8 +2642,9 @@ export interface paths {
         put?: never;
         /**
          * Record Setup item
-         * @description Marks done a Setup item that is finished in the app with no other request to record it on,
-         *     such as the dependency tutorial. Recording an item already done changes nothing.
+         * @description Marks done a Setup item that is finished in the app with no other request to record it on: the
+         *     dependency tutorial, or a question dismissed unanswered. Recording an item already done changes
+         *     nothing.
          */
         post: operations["record_setup_item"];
         delete?: never;
@@ -4242,19 +4243,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-09T19:35:39.870529Z",
+             *       "created_at": "2026-11-09T22:31:14.168195Z",
              *       "first_discovery_id": null,
-             *       "id": "03fc4c01-9101-45ba-acfe-b8298da334de",
+             *       "id": "90763350-1cf4-433f-8b20-47203d7943bf",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-09T19:35:39.870529Z",
+             *       "last_seen_at": "2026-11-09T22:31:14.168195Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-09T19:35:39.870529Z",
-             *       "valid_from": "2026-11-09T19:35:39.870529Z",
+             *       "updated_at": "2026-11-09T22:31:14.168195Z",
+             *       "valid_from": "2026-11-09T22:31:14.168195Z",
              *       "valid_to": null
              *     }
              */
@@ -5157,19 +5158,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-09T19:35:39.838149Z",
+             *               "created_at": "2026-11-09T22:31:14.134684Z",
              *               "first_discovery_id": null,
-             *               "id": "7b387f02-7a24-49e0-94d2-665208a54989",
+             *               "id": "dee58f57-7613-4643-bb0b-695fb5755d9d",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-09T19:35:39.838149Z",
+             *               "last_seen_at": "2026-11-09T22:31:14.134684Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-09T19:35:39.838149Z",
-             *               "valid_from": "2026-11-09T19:35:39.838149Z",
+             *               "updated_at": "2026-11-09T22:31:14.134684Z",
+             *               "valid_from": "2026-11-09T22:31:14.134684Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5182,7 +5183,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Rancher",
+             *           "service_definition": "JBoss",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6205,19 +6206,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-09T19:35:39.865109Z",
+             *           "created_at": "2026-11-09T22:31:14.162673Z",
              *           "first_discovery_id": null,
-             *           "id": "c8803dbd-2f4e-431f-a66c-d9194c6edcc6",
+             *           "id": "151ce02c-fe82-42c6-a03e-3924637d6ce0",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-09T19:35:39.865109Z",
+             *           "last_seen_at": "2026-11-09T22:31:14.162673Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-09T19:35:39.865109Z",
-             *           "valid_from": "2026-11-09T19:35:39.865109Z",
+             *           "updated_at": "2026-11-09T22:31:14.162673Z",
+             *           "valid_from": "2026-11-09T22:31:14.162673Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6230,7 +6231,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Rancher",
+             *       "service_definition": "JBoss",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7702,19 +7703,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-09T19:35:39.838792Z",
+         *       "created_at": "2026-11-09T22:31:14.135369Z",
          *       "first_discovery_id": null,
-         *       "id": "443e22f7-a896-4ded-b12e-bf37e1fdc268",
+         *       "id": "96e6a911-5b25-4e80-8f4a-50798bcbb585",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-09T19:35:39.838792Z",
+         *       "last_seen_at": "2026-11-09T22:31:14.135369Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-09T19:35:39.838792Z",
-         *       "valid_from": "2026-11-09T19:35:39.838792Z",
+         *       "updated_at": "2026-11-09T22:31:14.135369Z",
+         *       "valid_from": "2026-11-09T22:31:14.135369Z",
          *       "valid_to": null
          *     }
          */
@@ -8104,7 +8105,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Rancher",
+         *           "service_definition": "JBoss",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -11288,19 +11289,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-09T19:35:39.837400Z",
+         *               "created_at": "2026-11-09T22:31:14.133867Z",
          *               "first_discovery_id": null,
-         *               "id": "74becc60-ba6d-4d3e-9487-773ed9e0f2d1",
+         *               "id": "8c957443-ec25-4e40-a5c7-4c16fbb578ff",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-09T19:35:39.837400Z",
+         *               "last_seen_at": "2026-11-09T22:31:14.133867Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-09T19:35:39.837400Z",
-         *               "valid_from": "2026-11-09T19:35:39.837400Z",
+         *               "updated_at": "2026-11-09T22:31:14.133867Z",
+         *               "valid_from": "2026-11-09T22:31:14.133867Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11313,7 +11314,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Rancher",
+         *           "service_definition": "JBoss",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -14555,7 +14556,10 @@ export interface components {
         };
         /** @description The Setup item a client finished. */
         RecordSetupRequest: {
-            /** @description The item, which must be one the app records itself, such as the dependency tutorial. */
+            /**
+             * @description The item, which must be one the app records itself: the dependency tutorial, or a question
+             *     dismissed unanswered.
+             */
             item: components["schemas"]["SetupItemDiscriminants"];
         };
         /**
@@ -14975,19 +14979,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-09T19:35:39.838568Z",
+         *           "created_at": "2026-11-09T22:31:14.135146Z",
          *           "first_discovery_id": null,
-         *           "id": "fb8bfba6-af74-406e-be95-0fd21d68c0f8",
+         *           "id": "6933f531-f28f-4278-853b-0f8326c28cd2",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-09T19:35:39.838568Z",
+         *           "last_seen_at": "2026-11-09T22:31:14.135146Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-09T19:35:39.838568Z",
-         *           "valid_from": "2026-11-09T19:35:39.838568Z",
+         *           "updated_at": "2026-11-09T22:31:14.135146Z",
+         *           "valid_from": "2026-11-09T22:31:14.135146Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -15000,7 +15004,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Rancher",
+         *       "service_definition": "JBoss",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -16428,7 +16432,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "4ce8b5f8-3adb-48ad-b110-73a353f47721",
+             *           "id": "df8febd6-b180-4371-b18c-19b85781ebc5",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16438,23 +16442,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "2e9b0d33-1c5f-4b3d-a5a3-83308a4c514f",
+             *           "id": "c88bc9cc-96ee-4981-b146-cea6fa239ff4",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "9cb40a03-1f13-4bad-8c82-a10a48ba8ea0",
+             *           "id": "ea0f6c87-1b19-48a0-bdbe-5d0fc1132cf7",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "9e303315-b5c0-46f4-a69d-3a7f2a781bc2",
+             *           "id": "fc3f929a-9bb4-480e-b80d-50b6ecd4f666",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "2e9b0d33-1c5f-4b3d-a5a3-83308a4c514f",
+             *           "id": "c88bc9cc-96ee-4981-b146-cea6fa239ff4",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16468,19 +16472,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "55818520-53c3-43a0-a1c7-1f3a6446742c",
+             *         "id": "3f7c33c0-53a4-4020-ba5b-f161aad86419",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "8cd6a307-1282-4a2b-8e0e-5fe6393f4c5a",
+             *         "id": "afa63c4b-4738-47a6-90eb-7cf2f3760680",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "66e8f5cf-2c40-44d2-a209-00b9f9cdbeec",
+             *         "id": "4fa33091-22a2-40a0-a73e-af4a123df232",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "80dd9f84-795a-448f-9e33-1788c507a515",
+             *         "id": "1033eca3-baa1-44ad-867a-23bf3f891a63",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16501,7 +16505,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "0743c0b1-125c-4adf-873d-99a4ba4db4c4",
+             *         "id": "6a9670d3-2ae3-4762-91f3-f21e0066814d",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16510,19 +16514,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "8ff9f421-c70d-4ac2-a4da-2758ab532828",
+             *         "id": "dd77ef49-236d-4d49-916f-a37bbb659bb0",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "5c554ccc-ef14-472a-b30c-82925346f55d",
+             *         "id": "bba37e3f-e748-43c3-811b-c58ba59d8e5a",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "6a223b3b-5c32-4b06-8886-229ba4371fcb",
+             *         "id": "68144e11-6274-497b-9736-57e14aba2989",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "ff84d052-d1e0-48eb-bf81-04ac20674697",
+             *         "id": "534fb499-278e-4b13-83ae-95752ffcefb8",
              *         "rule": "ByStack"
              *       }
              *     ]

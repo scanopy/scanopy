@@ -15880,19 +15880,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-11-09T14:29:14.535700Z",
+              "created_at": "2026-11-09T22:31:14.257250Z",
               "first_discovery_id": null,
-              "id": "5673f783-dc5e-4092-8374-ea51ba3adaf8",
+              "id": "8ee91ba8-dfa8-4dff-ad0e-b4de6b8adef2",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-09T14:29:14.535700Z",
+              "last_seen_at": "2026-11-09T22:31:14.257250Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-09T14:29:14.535700Z",
-              "valid_from": "2026-11-09T14:29:14.535700Z",
+              "updated_at": "2026-11-09T22:31:14.257250Z",
+              "valid_from": "2026-11-09T22:31:14.257250Z",
               "valid_to": null
             }
           },
@@ -17734,19 +17734,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-11-09T14:29:14.505272Z",
+                      "created_at": "2026-11-09T22:31:14.228150Z",
                       "first_discovery_id": null,
-                      "id": "3fc784b0-5139-42fb-9835-9780688fd1cb",
+                      "id": "ca863acc-4762-428f-951c-1f8a407fda8b",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-11-09T14:29:14.505272Z",
+                      "last_seen_at": "2026-11-09T22:31:14.228150Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-11-09T14:29:14.505272Z",
-                      "valid_from": "2026-11-09T14:29:14.505272Z",
+                      "updated_at": "2026-11-09T22:31:14.228150Z",
+                      "valid_from": "2026-11-09T22:31:14.228150Z",
                       "valid_to": null
                     }
                   ],
@@ -17759,7 +17759,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Metabase",
+                  "service_definition": "JBoss",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -19253,19 +19253,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-11-09T14:29:14.530527Z",
+                  "created_at": "2026-11-09T22:31:14.252243Z",
                   "first_discovery_id": null,
-                  "id": "739924aa-6c88-4c64-9f35-3a9fc5411d3a",
+                  "id": "e0bf2489-fecd-4a7d-9321-590a2f08c00a",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-09T14:29:14.530527Z",
+                  "last_seen_at": "2026-11-09T22:31:14.252243Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-09T14:29:14.530527Z",
-                  "valid_from": "2026-11-09T14:29:14.530527Z",
+                  "updated_at": "2026-11-09T22:31:14.252243Z",
+                  "valid_from": "2026-11-09T22:31:14.252243Z",
                   "valid_to": null
                 }
               ],
@@ -19278,7 +19278,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Metabase",
+              "service_definition": "JBoss",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -22564,19 +22564,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-11-09T14:29:14.505936Z",
+          "created_at": "2026-11-09T22:31:14.228782Z",
           "first_discovery_id": null,
-          "id": "b085a123-402e-4b56-a7c0-bf0c2f356558",
+          "id": "493d8e9a-9d96-434c-92b3-6a73e92942bf",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-11-09T14:29:14.505936Z",
+          "last_seen_at": "2026-11-09T22:31:14.228782Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-11-09T14:29:14.505936Z",
-          "valid_from": "2026-11-09T14:29:14.505936Z",
+          "updated_at": "2026-11-09T22:31:14.228782Z",
+          "valid_from": "2026-11-09T22:31:14.228782Z",
           "valid_to": null
         }
       },
@@ -23489,7 +23489,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Metabase",
+              "service_definition": "JBoss",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -31861,19 +31861,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-11-09T14:29:14.504486Z",
+                  "created_at": "2026-11-09T22:31:14.227411Z",
                   "first_discovery_id": null,
-                  "id": "8d6fcaae-677a-4144-9458-7798e7fd6d23",
+                  "id": "7aca012d-9292-47ab-90c0-e44574d5418f",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-09T14:29:14.504486Z",
+                  "last_seen_at": "2026-11-09T22:31:14.227411Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-09T14:29:14.504486Z",
-                  "valid_from": "2026-11-09T14:29:14.504486Z",
+                  "updated_at": "2026-11-09T22:31:14.227411Z",
+                  "valid_from": "2026-11-09T22:31:14.227411Z",
                   "valid_to": null
                 }
               ],
@@ -31886,7 +31886,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Metabase",
+              "service_definition": "JBoss",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -36361,19 +36361,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-11-09T14:29:14.489101Z",
+                        "created_at": "2026-11-09T22:31:14.212781Z",
                         "first_discovery_id": null,
-                        "id": "feacc1c9-2d91-4146-9d34-86626ab262e8",
+                        "id": "26a175b2-5aa5-4cab-bd5d-398bec408453",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-11-09T14:29:14.489101Z",
+                        "last_seen_at": "2026-11-09T22:31:14.212781Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-11-09T14:29:14.489101Z",
-                        "valid_from": "2026-11-09T14:29:14.489101Z",
+                        "updated_at": "2026-11-09T22:31:14.212781Z",
+                        "valid_from": "2026-11-09T22:31:14.212781Z",
                         "valid_to": null
                       }
                     ],
@@ -36386,7 +36386,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Metabase",
+                    "service_definition": "JBoss",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -36633,19 +36633,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-11-09T14:29:14.529719Z",
+                    "created_at": "2026-11-09T22:31:14.251475Z",
                     "first_discovery_id": null,
-                    "id": "64c6826a-484f-4454-9345-4ae06e9ff8a2",
+                    "id": "c168978e-29c7-4cd7-9154-0f5a79336c3f",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-11-09T14:29:14.529719Z",
+                    "last_seen_at": "2026-11-09T22:31:14.251475Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-11-09T14:29:14.529719Z",
-                    "valid_from": "2026-11-09T14:29:14.529719Z",
+                    "updated_at": "2026-11-09T22:31:14.251475Z",
+                    "valid_from": "2026-11-09T22:31:14.251475Z",
                     "valid_to": null
                   }
                 ],
@@ -36658,7 +36658,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Metabase",
+                "service_definition": "JBoss",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -38303,6 +38303,19 @@
           }
         }
       },
+      "RecordSetupRequest": {
+        "type": "object",
+        "description": "The Setup item a client finished.",
+        "required": [
+          "item"
+        ],
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/SetupItemDiscriminants",
+            "description": "The item, which must be one the app records itself: the dependency tutorial, or a question\ndismissed unanswered."
+          }
+        }
+      },
       "ReferralSource": {
         "type": "string",
         "description": "How a user first heard about Scanopy, as offered by the onboarding prompt.",
@@ -39337,19 +39350,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-11-09T14:29:14.505713Z",
+              "created_at": "2026-11-09T22:31:14.228567Z",
               "first_discovery_id": null,
-              "id": "abc51324-a422-4f70-a258-850359a15bf3",
+              "id": "e53a61b1-09ef-4bc7-b6d9-5307212d439f",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-09T14:29:14.505713Z",
+              "last_seen_at": "2026-11-09T22:31:14.228567Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-09T14:29:14.505713Z",
-              "valid_from": "2026-11-09T14:29:14.505713Z",
+              "updated_at": "2026-11-09T22:31:14.228567Z",
+              "valid_from": "2026-11-09T22:31:14.228567Z",
               "valid_to": null
             }
           ],
@@ -39362,7 +39375,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Metabase",
+          "service_definition": "JBoss",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -40031,6 +40044,22 @@
           },
           {
             "type": "object",
+            "title": "DependencyTutorial",
+            "description": "The dependency tutorial, which opens until it is finished or a dependency exists. It reads\nas the Dependencies item it unlocks, so the user sees one step whose click changes.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "DependencyTutorial"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "Dependencies",
             "description": "Dependencies between services.",
             "required": [
@@ -40161,6 +40190,7 @@
           "AnswerProfile",
           "ExploreViews",
           "ApplicationTags",
+          "DependencyTutorial",
           "Dependencies",
           "InterfaceCredential",
           "Tags",
@@ -40272,6 +40302,7 @@
           "tier",
           "state",
           "alerts_when_stuck",
+          "site_ids",
           "item"
         ],
         "properties": {
@@ -40285,6 +40316,14 @@
           "key": {
             "$ref": "#/components/schemas/SetupItemKey",
             "description": "The item's identity: the same item on the next load has the same key."
+          },
+          "site_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The sites the item is about, which the list can be narrowed to. Empty for an item about\nthe whole org, which shows whatever sites are picked."
           },
           "state": {
             "$ref": "#/components/schemas/SetupItemState"
@@ -42423,7 +42462,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "3bfefb1d-4324-43fe-9647-f7d470021b8f",
+                  "id": "97484c79-5788-4d51-abe0-085e159166cc",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -42433,23 +42472,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "b8917a52-210b-4d1b-8f3a-f9790ec895f3",
+                  "id": "48075b2d-cf4f-4611-ac1a-136c0d2f4e60",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "e04a961e-a731-4203-8521-05f3bf70cada",
+                  "id": "e6d60950-99ca-4b9c-b9c9-b9c3977ef236",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "da233bea-0b1a-43f1-86f4-93c66b58780e",
+                  "id": "17870cb5-a347-4b67-a2ab-ef8b4cbcde81",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "b8917a52-210b-4d1b-8f3a-f9790ec895f3",
+                  "id": "48075b2d-cf4f-4611-ac1a-136c0d2f4e60",
                   "rule": "ByHost"
                 }
               ]
@@ -42479,19 +42518,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "7ae825aa-2e6e-49c1-8759-65c7d4e23b9e",
+                "id": "9ea75173-f881-4200-82f8-ed0d3c593bed",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "16781ac3-b207-4454-b366-6131ff4d351a",
+                "id": "eb97bbe1-39e7-4849-b83a-85d8b08ca6e2",
                 "rule": "ByVLAN"
               },
               {
-                "id": "e460bf40-fa3c-47aa-9412-492141b7c7a4",
+                "id": "8da89a27-69f9-418a-bcf6-6d68d40a1c75",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "a7dddf6e-8cb5-49f4-8abe-22735a24eb74",
+                "id": "73126f1d-d2ee-4e06-9c42-4a367918fcc8",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -42512,7 +42551,7 @@
                 }
               },
               {
-                "id": "4397f109-f04c-4582-84a5-fb39e7205f7c",
+                "id": "54947ede-6636-4770-8624-1c757fb97acd",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -42521,19 +42560,19 @@
                 }
               },
               {
-                "id": "af142179-5ce7-46c0-b4f8-099e124bc20a",
+                "id": "9214bc6e-ac09-4f64-8b63-6cbcd8932a0f",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "4d5ad14d-bf58-432e-b1c2-4a472bd09d8b",
+                "id": "982c6abf-54ec-4f32-99ed-9835c46a0197",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "f4c9924d-6f9c-498d-a7ff-5d565431060c",
+                "id": "98563104-5fe1-4fa5-bea2-a295de1ceb11",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "5bb3879b-f156-44d3-9e4e-6baa18a0221f",
+                "id": "07bc2e22-e514-4f5c-857a-c9f2e85b72a5",
                 "rule": "ByStack"
               }
             ]

@@ -226,16 +226,8 @@ impl SetupItemDiscriminants {
                 SetupItem::OpenTopology,
             ),
             // Cloud only. Questions are never locked: they can be answered from the start.
-            T::AnswerReferralSource => step(
-                ctx.cloud,
-                false,
-                SetupItem::AnswerReferralSource,
-            ),
-            T::AnswerProfile => step(
-                ctx.cloud,
-                false,
-                SetupItem::AnswerProfile,
-            ),
+            T::AnswerReferralSource => step(ctx.cloud, false, SetupItem::AnswerReferralSource),
+            T::AnswerProfile => step(ctx.cloud, false, SetupItem::AnswerProfile),
             T::ExploreViews => step(
                 features.includes_topology(),
                 !ctx.has(T::OpenTopology),
