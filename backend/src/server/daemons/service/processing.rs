@@ -61,30 +61,54 @@ impl DaemonService {
         //     honoring them so those daemons still report interfaced subnets, but
         //     existence-filter first — a dangling id can't satisfy the FK (that
         //     referential-integrity gap is exactly what this table fixes).
-        let subnet_ids: Vec<Uuid> = if supports_unified_discovery(daemon.base.version.as_ref()) {
-            let mut resolved_ids = Vec::new();
-            for subnet in status.interfaced_subnets {
-                match self.subnet_service.create(subnet, auth.clone()).await {
-                    Ok(resolved) => resolved_ids.push(resolved.id),
-                    Err(e) => {
-                        tracing::warn!(error = ?e, "Failed to resolve interfaced subnet");
+        //   • A report that carries no list leaves the junction as the last one set it.
+        let carries_interfaced_subnets = status.interfaced_subnets.is_some();
+        let subnet_ids: Option<Vec<Uuid>> = if supports_unified_discovery(
+            daemon.base.version.as_ref(),
+        ) {
+            match status.interfaced_subnets {
+                Some(subnets) => {
+                    let mut resolved_ids = Vec::new();
+                    for subnet in subnets {
+                        match self.subnet_service.create(subnet, auth.clone()).await {
+                            Ok(resolved) => resolved_ids.push(resolved.id),
+                            Err(e) => {
+                                tracing::warn!(error = ?e, "Failed to resolve interfaced subnet");
+                            }
+                        }
                     }
+                    Some(resolved_ids)
                 }
+                None => None,
             }
-            resolved_ids
         } else {
-            self.filter_existing_subnet_ids(
-                &status.capabilities.interfaced_subnet_ids,
-                daemon.base.site_id,
+            Some(
+                self.filter_existing_subnet_ids(
+                    &status.capabilities.interfaced_subnet_ids,
+                    daemon.base.site_id,
+                )
+                .await,
             )
-            .await
         };
 
-        self.set_interfaced_subnet_ids(&daemon_id, &subnet_ids)
-            .await?;
+        if let Some(subnet_ids) = subnet_ids {
+            self.set_interfaced_subnet_ids(&daemon_id, &subnet_ids)
+                .await?;
+        }
 
+        let host_id = daemon.base.host_id;
+        let site_id = daemon.base.site_id;
         self.update(&mut daemon, auth, UpdateReason::DaemonStatusReported)
             .await?;
+
+        self.refresh_interfaces_if_changed(
+            daemon_id,
+            site_id,
+            host_id,
+            status.interfaces_fingerprint,
+            carries_interfaced_subnets,
+        )
+        .await;
         Ok(())
     }
 
@@ -598,13 +622,17 @@ impl DaemonService {
         self.scope_discovery_report(daemon_id, site_id, &mut update)
             .await?;
 
+        // An interface refresh scans nothing and leaves no record to report findings on.
+        let records_history = update.discovery_type.records_history();
+
         if update.phase == DiscoveryPhase::Complete
+            && records_history
             && update.discovery_type.rescan_target_host_ids().is_none()
         {
             self.resolve_neighbours_into_session(&mut update).await;
         }
 
-        if update.phase == DiscoveryPhase::Complete {
+        if update.phase == DiscoveryPhase::Complete && records_history {
             self.report_integrations_without_credentials(&mut update)
                 .await;
             self.report_targetless_credentials(&mut update).await;
@@ -1240,7 +1268,7 @@ impl DaemonService {
     /// ([`Organization::discovery_paused`]). A lookup failure reads as not paused: the daemon
     /// then gets the work it would have got before this check existed, and the billed result
     /// routes still refuse a lapsed or license-locked org.
-    async fn site_organization_discovery_paused(&self, site_id: Uuid) -> bool {
+    pub(crate) async fn site_organization_discovery_paused(&self, site_id: Uuid) -> bool {
         let Ok(Some(site)) = self.site_service.get_by_id(&site_id).await else {
             return false;
         };
@@ -1283,17 +1311,11 @@ impl DaemonService {
         }
     }
 
-    /// Get pending cancellation request for a daemon
+    /// The session this daemon is told to cancel in its work response, if any.
     pub async fn get_pending_cancellation(&self, daemon_id: Uuid) -> Option<Uuid> {
-        let (has_cancellation, session_id) = self
-            .discovery_service
+        self.discovery_service
             .pull_cancellation_for_daemon(&daemon_id)
-            .await;
-        if has_cancellation {
-            Some(session_id)
-        } else {
-            None
-        }
+            .await
     }
 
     /// Create default discovery jobs for a newly contacted daemon

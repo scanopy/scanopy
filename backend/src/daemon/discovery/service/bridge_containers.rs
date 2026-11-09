@@ -390,6 +390,8 @@ impl DiscoveryRunner {
             scanned_subnets: std::slice::from_ref(&target.subnet),
             scanning_subnet: Some(&target.subnet),
             ip_address_id: Some(target.ip_address.id),
+            // Still the daemon-host phase.
+            owns_progress: true,
         };
         dispatch::execute_integrations(&mappings, &probe_results, &mut found, &execute_params)
             .await?;

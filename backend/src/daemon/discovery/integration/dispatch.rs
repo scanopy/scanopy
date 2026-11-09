@@ -519,6 +519,8 @@ pub struct ExecuteParams<'a> {
     pub scanned_subnets: &'a [Subnet],
     pub scanning_subnet: Option<&'a Subnet>,
     pub ip_address_id: Option<Uuid>,
+    /// See [`IntegrationContext::owns_progress`].
+    pub owns_progress: bool,
 }
 
 /// Execute integrations whose probe succeeded and whose associated service was matched.
@@ -679,6 +681,7 @@ pub async fn execute_integrations(
             accept_invalid_certs,
             trusted_ca: trusted_ca.as_deref(),
             scanning_subnet: params.scanning_subnet,
+            owns_progress: params.owns_progress,
         };
 
         let executed =
@@ -686,6 +689,8 @@ pub async fn execute_integrations(
                 let _ = params.ops.heartbeat().await;
             })
             .await;
+        // Finished either way, which is the scan advancing: one execute can run 15 minutes.
+        params.ops.stamp_activity().await;
         if executed.is_ok()
             && let Some(id) = cred_id
         {

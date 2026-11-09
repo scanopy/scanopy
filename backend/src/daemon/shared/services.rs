@@ -5,7 +5,6 @@ use crate::daemon::{
     },
     runtime::{service::DaemonRuntimeService, state::DaemonState},
     shared::{api_client::DaemonApiClient, config::ConfigStore},
-    utils::base::create_system_utils,
 };
 use anyhow::Result;
 use std::sync::Arc;
@@ -42,7 +41,6 @@ impl DaemonServiceFactory {
         ));
         let daemon_state = Arc::new(DaemonState::new(
             config.clone(),
-            create_system_utils(),
             discovery_service.clone(),
             entity_buffer.clone(),
             discovery_manager.clone(),
@@ -125,5 +123,60 @@ mod tests {
             terminal.as_ref().map(|p| p.phase),
             Some(DiscoveryPhase::Complete)
         );
+    }
+
+    /// An interface refresh classifies the interfaced subnets, hands them to the next status
+    /// report and no later one, and completes without the phases a scan runs. A first-run
+    /// Unified session would self-report the daemon's host into the buffer; this leaves it empty.
+    #[tokio::test]
+    async fn an_interface_refresh_reports_once_and_scans_nothing() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut app_config = AppConfig::default();
+        app_config.mode = DaemonMode::ServerPoll;
+        app_config.site_id = Some(Uuid::new_v4());
+        app_config.daemon_api_key = Some("key".to_string());
+        // No NIC matches, so there is nothing to create and nothing waits on the server.
+        app_config.interfaces = vec!["scanopy-none0".to_string()];
+        let config = Arc::new(ConfigStore::new(dir.path().join("config.json"), app_config));
+        let services = DaemonServiceFactory::new(config).await.unwrap();
+
+        let request = DaemonDiscoveryRequest {
+            session_id: Uuid::new_v4(),
+            discovery_type: DiscoveryType::InterfaceRefresh {
+                host_id: Uuid::new_v4(),
+            },
+            credential_mappings: Vec::new(),
+            discovery_id: Uuid::nil(),
+            subnets: Vec::new(),
+        };
+        services
+            .discovery_manager
+            .try_initiate_session(request)
+            .await;
+        tokio::time::timeout(std::time::Duration::from_secs(30), async {
+            while services
+                .discovery_service
+                .terminal_payload
+                .read()
+                .await
+                .is_none()
+            {
+                tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+            }
+        })
+        .await
+        .expect("the refresh did not finish");
+
+        let terminal = services.discovery_service.terminal_payload.read().await;
+        assert_eq!(
+            terminal.as_ref().map(|p| p.phase),
+            Some(DiscoveryPhase::Complete)
+        );
+        assert!(services.entity_buffer.get_pending().await.hosts.is_empty());
+        let (reported, fingerprint) = services.discovery_service.status_interfaces().await;
+        assert_eq!(reported.map(|s| s.len()), Some(0));
+        let (again, unchanged) = services.discovery_service.status_interfaces().await;
+        assert!(again.is_none());
+        assert_eq!(unchanged, fingerprint);
     }
 }

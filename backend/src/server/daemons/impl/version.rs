@@ -388,6 +388,18 @@ pub fn resolves_routed_rescan(version: Option<&Version>) -> bool {
     version.is_some_and(|v| v > &last_without_routed_rescan())
 }
 
+/// The last release whose daemon reads a DaemonPoll work response as exactly two elements, the next
+/// session and a cancel flag, and fails on a third. Later daemons read the session to cancel.
+pub fn last_without_cancel_session_id() -> Version {
+    Version::new(0, 19, 5)
+}
+
+/// Whether a daemon at this version reads the session to cancel from a work response. A daemon
+/// without a recorded version is assumed not to.
+pub fn reads_cancel_session_id(version: Option<&Version>) -> bool {
+    version.is_some_and(|v| v > &last_without_cancel_session_id())
+}
+
 /// The last release whose log lines do not carry the session they belong to, so a run it made cannot
 /// be picked out of its log by session id.
 pub fn last_without_session_log_lines() -> Version {

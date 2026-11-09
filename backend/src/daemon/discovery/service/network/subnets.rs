@@ -2,8 +2,6 @@ use std::collections::{HashMap, HashSet};
 use std::net::IpAddr;
 
 use anyhow::Error;
-use futures::future::try_join_all;
-use tokio_util::sync::CancellationToken;
 
 use crate::daemon::discovery::service::ops::DiscoveryOps;
 use crate::daemon::utils::base::{DaemonUtils, PlatformDaemonUtils};
@@ -63,7 +61,6 @@ impl NetworkScan {
         &self,
         ops: &DiscoveryOps,
         utils: &PlatformDaemonUtils,
-        cancel: &CancellationToken,
     ) -> Result<ResolvedScanTargets, Error> {
         let site_id = ops
             .config_store
@@ -101,31 +98,11 @@ impl NetworkScan {
                 .cloned()
                 .collect()
 
-        // Target all interfaced subnets if not
+        // Otherwise the subnets the session classified and created at its start, as the server
+        // confirmed them. Size filtering for non-interfaced subnets is done later in
+        // scan_and_process_hosts() where subnet_cidr_to_mac is available.
         } else {
-            let interface_filter = ops.config_store.get_interfaces().await?;
-            let (_, subnets, _) = utils.get_own_interfaces(site_id, &interface_filter).await?;
-
-            // Filter out docker bridge subnets (handled in docker discovery).
-            // Size filtering for non-interfaced subnets is done later in
-            // scan_and_process_hosts() where subnet_cidr_to_mac is available.
-            let subnets: Vec<Subnet> = subnets
-                .into_iter()
-                .filter(|s| {
-                    if s.is_container_bridge_subnet() {
-                        tracing::warn!("Skipping {} with CIDR {}, container bridge subnets are scanned in container discovery", s.base.name, s.base.cidr);
-                        return false
-                    }
-
-                    true
-                })
-                .collect();
-            let (mut resolved, to_create) = reuse_created_subnets(subnets, &self.created_subnets);
-            let subnet_futures = to_create
-                .iter()
-                .map(|subnet| ops.create_subnet(subnet, cancel));
-            resolved.extend(try_join_all(subnet_futures).await?);
-            resolved
+            self.created_subnets.clone()
         };
 
         Ok(ResolvedScanTargets {
@@ -351,25 +328,6 @@ pub(crate) fn resolve_rescan_subnets(
     resolution
 }
 
-/// Split the daemon's own subnets into those this session already created, returned as the
-/// server confirmed them, and those still to create. The session creates its interface subnets
-/// before the network phase; submitting them again cost a ServerPoll run another poll round and
-/// a DaemonPoll run one redundant POST per subnet.
-pub(crate) fn reuse_created_subnets(
-    own: Vec<Subnet>,
-    created: &[Subnet],
-) -> (Vec<Subnet>, Vec<Subnet>) {
-    let mut reused = Vec::new();
-    let mut to_create = Vec::new();
-    for subnet in own {
-        match created.iter().find(|c| *c.base.cidr == *subnet.base.cidr) {
-            Some(created) => reused.push(created.clone()),
-            None => to_create.push(subnet),
-        }
-    }
-    (reused, to_create)
-}
-
 /// The most specific of `cidrs` that contains `ip`.
 ///
 /// Longest prefix wins, matching the server's dangling-subnet repair
@@ -454,25 +412,6 @@ mod tests {
 
     fn targets(ips: &[&str]) -> HashSet<IpAddr> {
         ips.iter().map(|s| ip(s)).collect()
-    }
-
-    /// A subnet the session already created is handed back as the server confirmed it, under
-    /// the server's id, and is not submitted again. One it hasn't is.
-    #[test]
-    fn the_network_phase_creates_only_subnets_the_session_has_not() {
-        let confirmed = subnet("192.168.4.0/22");
-        let own = vec![subnet("192.168.4.0/22"), subnet("172.16.102.0/24")];
-
-        let (reused, to_create) = reuse_created_subnets(own, std::slice::from_ref(&confirmed));
-
-        assert_eq!(
-            reused.iter().map(|s| s.id).collect::<Vec<_>>(),
-            vec![confirmed.id]
-        );
-        assert_eq!(
-            to_create.iter().map(|s| *s.base.cidr).collect::<Vec<_>>(),
-            vec![cidr("172.16.102.0/24")]
-        );
     }
 
     /// The reported bug: a daemon host carries 127.0.0.1 alongside its real address, and the

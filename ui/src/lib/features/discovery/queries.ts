@@ -23,7 +23,9 @@ import {
 	discoveryStreamConnected,
 	forgetSession,
 	observeSessions,
+	recordSessionActivity,
 	recordSessionMessage,
+	sessionLastActivityAt,
 	sessionLastMessageAt
 } from './utils/staleness';
 
@@ -564,6 +566,7 @@ export function useActiveSessionsQuery(getEnabled: () => boolean = () => true) {
 				sessions.map((s) => s.session_id),
 				Date.now()
 			);
+			sessions.forEach(recordSessionActivity);
 			return sessions;
 		},
 		// Sessions change frequently, keep fresh
@@ -725,6 +728,7 @@ class DiscoveryStream {
 		// Clear progress tracking for all sessions
 		lastProgress.clear();
 		sessionLastMessageAt.set(new Map());
+		sessionLastActivityAt.set(new Map());
 		discoveryStreamConnected.set(false);
 	}
 
@@ -753,6 +757,7 @@ class DiscoveryStream {
 			forgetSession(update.session_id);
 		} else {
 			recordSessionMessage(update.session_id, Date.now());
+			recordSessionActivity(update);
 		}
 
 		// Check if progress increased

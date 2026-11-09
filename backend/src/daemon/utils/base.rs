@@ -68,7 +68,10 @@ async fn negotiate_container_api_version(client: Docker) -> Docker {
 
 pub const SCAN_TIMEOUT: Duration = Duration::from_millis(800);
 
-/// The daemon host's own NICs, after the `--interfaces` filter and the container-bridge skip.
+/// The daemon host's own NICs, after the `--interfaces` filter.
+///
+/// Container bridges stay in: which of them a runtime owns is read from the runtime's API by the
+/// session (`session_subnets`), never guessed from an interface name.
 ///
 /// Shared by `get_own_interfaces` (which keeps the addresses), `own_nics_as_interfaces` (which
 /// keeps the ports), and the DCP sweep (`network::dcp`, which needs raw `NetworkInterface`s rather
@@ -77,9 +80,15 @@ pub const SCAN_TIMEOUT: Duration = Duration::from_millis(800);
 pub(crate) fn filtered_own_nics(
     interface_filter: &[String],
 ) -> Vec<pnet::datalink::NetworkInterface> {
-    let all_interfaces = pnet::datalink::interfaces();
+    select_own_nics(pnet::datalink::interfaces(), interface_filter)
+}
 
-    let selected: Vec<_> = if interface_filter.is_empty() {
+/// `all_interfaces` after the `--interfaces` filter.
+fn select_own_nics(
+    all_interfaces: Vec<pnet::datalink::NetworkInterface>,
+    interface_filter: &[String],
+) -> Vec<pnet::datalink::NetworkInterface> {
+    if interface_filter.is_empty() {
         all_interfaces
     } else {
         let filtered: Vec<_> = all_interfaces
@@ -101,25 +110,142 @@ pub(crate) fn filtered_own_nics(
         }
 
         filtered
-    };
+    }
+}
 
-    selected
-        .into_iter()
-        // Container bridges on this host belong to the container integration,
-        // which types them from the runtime API. Skip them here so an
-        // unreachable runtime can't leave them to be created and scanned as
-        // ordinary subnets (and so the heartbeat never reports them at all).
-        .filter(|iface| {
-            let reserved = ContainerRuntime::reserves_host_interface_name(&iface.name);
-            if reserved {
-                tracing::debug!(
-                    interface = %iface.name,
-                    "Skipping container-runtime bridge interface"
-                );
-            }
-            !reserved
+/// A digest of the IPv4 networks on `nics`, by interface name, in an order that does not depend
+/// on how the OS lists them. Each status report carries it, and the server classifies the
+/// daemon's interfaced subnets again when it changes. IPv6 is left out because no subnet is made
+/// from it, and a veth's link-local address would otherwise change it on every container restart.
+pub(crate) fn interfaces_fingerprint(nics: &[pnet::datalink::NetworkInterface]) -> String {
+    use sha2::{Digest, Sha256};
+
+    let mut pairs: Vec<String> = nics
+        .iter()
+        .flat_map(|nic| {
+            nic.ips.iter().filter_map(move |ip| match ip {
+                IpNetwork::V4(v4) => Some(format!("{} {}/{}", nic.name, v4.network(), v4.prefix())),
+                IpNetwork::V6(_) => None,
+            })
         })
-        .collect()
+        .collect();
+    pairs.sort();
+    pairs.dedup();
+    let digest = Sha256::digest(pairs.join("\n").as_bytes());
+    digest[..8].iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// The addresses on `nics`, the subnets they sit in, and each subnet's MAC.
+pub(crate) fn own_addresses_from_nics(
+    nics: Vec<pnet::datalink::NetworkInterface>,
+    site_id: Uuid,
+) -> (
+    Vec<IPAddress>,
+    Vec<Subnet>,
+    HashMap<IpCidr, Option<MacAddress>>,
+) {
+    tracing::debug!(
+        interface_count = nics.len(),
+        "Enumerating network ip_addresses"
+    );
+
+    for nic in &nics {
+        tracing::debug!(
+            name = %nic.name,
+            index = nic.index,
+            is_up = nic.is_up(),
+            is_loopback = nic.is_loopback(),
+            mac = ?nic.mac,
+            ips = ?nic.ips,
+            flags = nic.flags,
+            "Found ip_address"
+        );
+    }
+
+    // First pass: collect all interface data and potential subnets
+    let mut potential_subnets: Vec<(String, IpNetwork)> = Vec::new();
+    let mut interface_data: Vec<(String, IpAddr, Option<MacEvidence>)> = Vec::new();
+
+    for nic in nics.into_iter() {
+        let name = nic.name.clone();
+        // The daemon reading its own NIC.
+        let mac_address = nic_mac(&nic)
+            .map(|m| MacEvidence::new(MacEvidenceValue(m), AttributeSource::DaemonSelfReport));
+
+        for ip in nic.ips.iter() {
+            // APIPA (169.254.x.x) is defined as exactly /16 by RFC 3927.
+            // Windows can report bogus prefixes (e.g. /0) via pnet — correct them.
+            let ip = match ip {
+                IpNetwork::V4(v4)
+                    if v4.ip().octets()[0] == 169
+                        && v4.ip().octets()[1] == 254
+                        && v4.prefix() != 16 =>
+                {
+                    tracing::warn!(
+                        ip = %v4.ip(),
+                        reported_prefix = v4.prefix(),
+                        "Correcting APIPA ip_address prefix to /16"
+                    );
+                    IpNetwork::V4(pnet::ipnetwork::Ipv4Network::new(v4.ip(), 16).unwrap_or(*v4))
+                }
+                other => *other,
+            };
+            interface_data.push((name.clone(), ip.ip(), mac_address.clone()));
+            potential_subnets.push((name.clone(), ip));
+        }
+    }
+
+    // Second pass: create unique subnets from valid networks
+    let mut subnet_map: HashMap<IpCidr, Subnet> = HashMap::new();
+
+    for (interface_name, ip_network) in potential_subnets {
+        if let Some(subnet) = Subnet::from_discovery(
+            interface_name,
+            &ip_network,
+            site_id,
+            AttributeSource::DaemonSelfReport,
+        ) {
+            subnet_map.entry(*subnet.base.cidr).or_insert(subnet);
+        }
+    }
+
+    // Third pass: assign all ip_addresses to appropriate subnets
+    let mut ip_addresses = Vec::new();
+    let mut cidr_to_mac = HashMap::new();
+
+    for (interface_name, ip_addr, mac_address) in interface_data {
+        // Find which subnet this IP belongs to
+        if let Some(subnet) = subnet_map
+            .values()
+            .filter(|s| s.base.cidr.contains(&ip_addr))
+            .max_by_key(|s| s.base.cidr.network_length())
+        {
+            cidr_to_mac
+                .entry(*subnet.base.cidr)
+                .and_modify(|existing: &mut Option<MacAddress>| {
+                    // Prefer a valid MAC over None
+                    if existing.is_none() && mac_address.is_some() {
+                        *existing = mac_of(&mac_address);
+                    }
+                })
+                .or_insert(mac_of(&mac_address));
+
+            ip_addresses.push(IPAddress::new(IPAddressBase {
+                site_id: subnet.base.site_id,
+                host_id: Uuid::nil(), // Placeholder - server will set correct host_id
+                name: Some(interface_name),
+                subnet_id: subnet.id,
+                ip_address: ip_addr,
+                mac_address,
+                position: ip_addresses.len() as i32,
+                ip_address_source: AttributeSource::DaemonSelfReport,
+            }));
+        }
+    }
+
+    let subnets: Vec<Subnet> = subnet_map.into_values().collect();
+
+    (ip_addresses, subnets, cidr_to_mac)
 }
 
 /// One of this host's NICs, as an `Interface` row.
@@ -246,110 +372,10 @@ pub trait DaemonUtils {
         ),
         Error,
     > {
-        let ip_addresses = filtered_own_nics(interface_filter);
-
-        tracing::debug!(
-            interface_count = ip_addresses.len(),
-            "Enumerating network ip_addresses"
-        );
-
-        for ip_address in &ip_addresses {
-            tracing::debug!(
-                name = %ip_address.name,
-                index = ip_address.index,
-                is_up = ip_address.is_up(),
-                is_loopback = ip_address.is_loopback(),
-                mac = ?ip_address.mac,
-                ips = ?ip_address.ips,
-                flags = ip_address.flags,
-                "Found ip_address"
-            );
-        }
-
-        // First pass: collect all interface data and potential subnets
-        let mut potential_subnets: Vec<(String, IpNetwork)> = Vec::new();
-        let mut interface_data: Vec<(String, IpAddr, Option<MacEvidence>)> = Vec::new();
-
-        for ip_address in ip_addresses.into_iter() {
-            let name = ip_address.name.clone();
-            // The daemon reading its own NIC.
-            let mac_address = nic_mac(&ip_address)
-                .map(|m| MacEvidence::new(MacEvidenceValue(m), AttributeSource::DaemonSelfReport));
-
-            for ip in ip_address.ips.iter() {
-                // APIPA (169.254.x.x) is defined as exactly /16 by RFC 3927.
-                // Windows can report bogus prefixes (e.g. /0) via pnet — correct them.
-                let ip = match ip {
-                    IpNetwork::V4(v4)
-                        if v4.ip().octets()[0] == 169
-                            && v4.ip().octets()[1] == 254
-                            && v4.prefix() != 16 =>
-                    {
-                        tracing::warn!(
-                            ip = %v4.ip(),
-                            reported_prefix = v4.prefix(),
-                            "Correcting APIPA ip_address prefix to /16"
-                        );
-                        IpNetwork::V4(pnet::ipnetwork::Ipv4Network::new(v4.ip(), 16).unwrap_or(*v4))
-                    }
-                    other => *other,
-                };
-                interface_data.push((name.clone(), ip.ip(), mac_address.clone()));
-                potential_subnets.push((name.clone(), ip));
-            }
-        }
-
-        // Second pass: create unique subnets from valid networks
-        let mut subnet_map: HashMap<IpCidr, Subnet> = HashMap::new();
-
-        for (interface_name, ip_network) in potential_subnets {
-            if let Some(subnet) = Subnet::from_discovery(
-                interface_name,
-                &ip_network,
-                site_id,
-                AttributeSource::DaemonSelfReport,
-            ) {
-                subnet_map.entry(*subnet.base.cidr).or_insert(subnet);
-            }
-        }
-
-        // Third pass: assign all ip_addresses to appropriate subnets
-        let mut ip_addresses = Vec::new();
-        let mut cidr_to_mac = HashMap::new();
-
-        for (interface_name, ip_addr, mac_address) in interface_data {
-            // Find which subnet this IP belongs to
-            if let Some(subnet) = subnet_map
-                .values()
-                .filter(|s| s.base.cidr.contains(&ip_addr))
-                .max_by_key(|s| s.base.cidr.network_length())
-            {
-                cidr_to_mac
-                    .entry(*subnet.base.cidr)
-                    .and_modify(|existing: &mut Option<MacAddress>| {
-                        // Prefer a valid MAC over None
-                        if existing.is_none() && mac_address.is_some() {
-                            *existing = mac_of(&mac_address);
-                        }
-                    })
-                    .or_insert(mac_of(&mac_address));
-
-                ip_addresses.push(IPAddress::new(IPAddressBase {
-                    site_id: subnet.base.site_id,
-                    host_id: Uuid::nil(), // Placeholder - server will set correct host_id
-                    name: Some(interface_name),
-                    subnet_id: subnet.id,
-                    ip_address: ip_addr,
-                    mac_address,
-                    position: ip_addresses.len() as i32,
-                    ip_address_source: AttributeSource::DaemonSelfReport,
-                }));
-            }
-        }
-
-        let subnets: Vec<Subnet> = subnet_map.into_values().collect();
-
-        Ok((ip_addresses, subnets, cidr_to_mac))
+        Ok(own_addresses_from_nics(
+            filtered_own_nics(interface_filter),
+            site_id,
+        ))
     }
 
     /// The daemon host's own NICs as `Interface` rows, linked to the addresses they carry.
@@ -709,6 +735,21 @@ pub fn merge_host_and_docker_subnets(
     [host_subnets, filtered_docker].concat()
 }
 
+/// The subnets a session creates and scans: this host's interface subnets merged with the
+/// networks its container runtimes report, less the runtimes' own bridges, one per CIDR.
+///
+/// The runtime API is the only thing that types a bridge (`ContainerRuntime::subnet_from_network`).
+/// With no runtime reachable, `runtime_subnets` is empty and every interface subnet is scanned as
+/// an ordinary one.
+pub fn session_subnets(host_subnets: Vec<Subnet>, runtime_subnets: Vec<Subnet>) -> Vec<Subnet> {
+    let mut seen = HashSet::new();
+    merge_host_and_docker_subnets(host_subnets, runtime_subnets)
+        .into_iter()
+        .filter(|s| !s.is_container_bridge_subnet())
+        .filter(|s| seen.insert(*s.base.cidr))
+        .collect()
+}
+
 #[cfg(target_os = "linux")]
 use crate::daemon::utils::linux::LinuxDaemonUtils;
 #[cfg(target_os = "linux")]
@@ -818,6 +859,62 @@ mod tests {
             ips: Vec::new(),
             flags,
         }
+    }
+
+    fn nic_with_ip(name: &str, ip: &str) -> NetworkInterface {
+        let mut nic = make_nic(name, 0, None, IFF_UP);
+        nic.ips = vec![ip.parse().unwrap()];
+        nic
+    }
+
+    fn cidrs(subnets: &[Subnet]) -> Vec<String> {
+        let mut cidrs: Vec<String> = subnets.iter().map(|s| s.base.cidr.to_string()).collect();
+        cidrs.sort();
+        cidrs
+    }
+
+    /// The default bridge, a per-network bridge and a custom-named one: the runtime API types
+    /// all three, so the session scans the LAN only. With no runtime to ask, nothing types them
+    /// and all four are scanned.
+    #[test]
+    fn a_session_scans_every_interface_subnet_the_runtime_does_not_own() {
+        let nics = vec![
+            nic_with_ip("enp6s18", "192.168.1.10/24"),
+            nic_with_ip("docker0", "172.17.0.1/16"),
+            nic_with_ip("br-0123456789ab", "172.18.0.1/16"),
+            nic_with_ip("apps", "172.20.0.1/16"),
+        ];
+        let (_, host_subnets, _) = own_addresses_from_nics(select_own_nics(nics, &[]), Uuid::nil());
+        let runtime_subnets: Vec<Subnet> = [
+            ("bridge", "172.17.0.0/16"),
+            ("backend", "172.18.0.0/16"),
+            ("apps", "172.20.0.0/16"),
+        ]
+        .into_iter()
+        .filter_map(|(name, cidr)| {
+            ContainerRuntime::Docker.subnet_from_network(
+                Uuid::nil(),
+                IpCidr::from_str(cidr).unwrap(),
+                name.to_string(),
+                "bridge",
+                Uuid::nil(),
+            )
+        })
+        .collect();
+
+        assert_eq!(
+            cidrs(&session_subnets(host_subnets.clone(), runtime_subnets)),
+            vec!["192.168.1.0/24"]
+        );
+        assert_eq!(
+            cidrs(&session_subnets(host_subnets, Vec::new())),
+            vec![
+                "172.17.0.0/16",
+                "172.18.0.0/16",
+                "172.20.0.0/16",
+                "192.168.1.0/24"
+            ]
+        );
     }
 
     /// A NIC that carries no address Scanopy recorded still becomes an interface row.

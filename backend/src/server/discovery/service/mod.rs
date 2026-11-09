@@ -56,7 +56,10 @@ pub struct DiscoveryService {
     sessions: RwLock<HashMap<Uuid, DiscoveryUpdatePayload>>, // session_id -> session state mapping
     daemon_sessions: RwLock<HashMap<Uuid, Vec<Uuid>>>,       // daemon_id -> session_id mapping
     discovery_sessions: RwLock<HashMap<Uuid, Uuid>>, // discovery_id -> session_id mapping (enforces one active session per discovery)
-    daemon_pull_cancellations: RwLock<HashMap<Uuid, (bool, Uuid)>>, // daemon_id -> (boolean, session_id) mapping for pull mode cancellations of current session on daemon
+    /// daemon_id → the cancel requested for the session it is running. Sent on every DaemonPoll
+    /// work request until the session ends, and read by the stall sweep for both modes to end a
+    /// session its daemon has not stopped by `state::CANCEL_DEADLINE`.
+    daemon_pull_cancellations: RwLock<HashMap<Uuid, state::PendingCancel>>,
     /// Site IDs with an in-flight site snapshot. While a site is in
     /// this set, new sessions on it start in `AwaitingSnapshot` and are not
     /// dispatched until `release_site_for_snapshot` clears the entry.
@@ -276,6 +279,7 @@ impl CrudService<Discovery> for DiscoveryService {
 }
 
 mod bulk;
+mod cancel;
 mod cleanup;
 mod discovery_crud;
 mod dispatch;

@@ -207,6 +207,7 @@ async fn discovery_field_values_with_historical_count_only_history_rows() {
                     reason: None,
                     last_update_at: None,
                     daemon_version: None,
+                    last_activity_at: None,
                 }),
             },
         ))
