@@ -29,10 +29,8 @@
 
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { SvelteSet } from 'svelte/reactivity';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import { queryKeys } from '$lib/api/query-client';
-	import GroupHeading from '$lib/shared/components/data/table/GroupHeading.svelte';
 	import DaemonTroubleshootingModal from '$lib/shared/components/layout/DaemonTroubleshootingModal.svelte';
 	import { displaySettings } from '$lib/shared/stores/display-settings.svelte';
 	import { setupItemTiers } from '$lib/shared/stores/metadata';
@@ -55,7 +53,6 @@
 		entryId,
 		groupByTier,
 		type SetupItem,
-		type SetupItemTier,
 		type SetupItemType,
 		type SetupListEntry
 	} from '../setup-list';
@@ -107,11 +104,6 @@
 					(s.discovery_type?.type === 'Network' || s.discovery_type?.type === 'Unified')
 			) ?? null
 		);
-	}
-
-	const collapsed = new SvelteSet<SetupItemTier>();
-	function toggle(tier: SetupItemTier) {
-		if (!collapsed.delete(tier)) collapsed.add(tier);
 	}
 
 	let answering = $state<'AnswerReferralSource' | 'AnswerProfile' | null>(null);
@@ -166,31 +158,28 @@
 	data-density={displaySettings.current.table_density}
 >
 	{#each groups as group (group.tier)}
-		<div class="border-b py-2 last:border-b-0" style="border-color: var(--color-border)">
-			<div style="padding: var(--cell-py) var(--cell-px)">
-				<GroupHeading
-					name={setupItemTiers.getName(group.tier)}
-					count={group.entries.length}
-					collapsed={collapsed.has(group.tier)}
-					onToggle={() => toggle(group.tier)}
-				/>
-			</div>
-			{#if !collapsed.has(group.tier)}
-				<ul>
-					{#each group.entries as entry (entryId(entry))}
-						<SetupListRow
-							{entry}
-							{setup}
-							{lookups}
-							session={firstScanSession(entry.item)}
-							{hasEmail}
-							onDismiss={dismiss}
-							onAnswer={(type) => (answering = type)}
-							onTroubleshoot={() => (showTroubleshooting = true)}
-						/>
-					{/each}
-				</ul>
-			{/if}
+		<div class="border-b pt-4 pb-2 last:border-b-0" style="border-color: var(--color-border)">
+			<h3
+				class="mb-3 flex items-baseline gap-2 text-base font-semibold text-primary"
+				style="padding: 0 var(--cell-px)"
+			>
+				<span>{setupItemTiers.getName(group.tier)}</span>
+				<span class="text-sm font-normal text-tertiary">({group.entries.length})</span>
+			</h3>
+			<ul>
+				{#each group.entries as entry (entryId(entry))}
+					<SetupListRow
+						{entry}
+						{setup}
+						{lookups}
+						session={firstScanSession(entry.item)}
+						{hasEmail}
+						onDismiss={dismiss}
+						onAnswer={(type) => (answering = type)}
+						onTroubleshoot={() => (showTroubleshooting = true)}
+					/>
+				{/each}
+			</ul>
 		</div>
 	{/each}
 </section>
