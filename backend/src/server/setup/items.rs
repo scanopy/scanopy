@@ -109,6 +109,12 @@ impl SetupContext {
             .as_ref()
             .is_none_or(|writable| writable.contains(&resource))
     }
+
+    /// Whether the dependency tutorial is done, recorded or shown done by the org's rows.
+    fn dependency_tutorial_done(&self) -> bool {
+        use SetupItemDiscriminants as T;
+        self.has(T::DependencyTutorial) || T::DependencyTutorial.live_done(self)
+    }
 }
 
 impl SetupItemDiscriminants {
@@ -240,15 +246,16 @@ impl SetupItemDiscriminants {
                 !ctx.has(T::OpenTopology),
                 SetupItem::ApplicationTags,
             ),
-            // The tutorial and the step it unlocks read the same; only the click differs.
+            // The tutorial and the step it unlocks read the same; only the click differs. They are
+            // one row and one count: the tutorial until it is done, then the step it unlocks.
             T::DependencyTutorial => step(
-                ctx.can_write(Resource::Dependency),
+                ctx.can_write(Resource::Dependency) && !ctx.dependency_tutorial_done(),
                 !ctx.has(T::OpenTopology),
                 SetupItem::DependencyTutorial,
             ),
             T::Dependencies => step(
-                ctx.can_write(Resource::Dependency),
-                !ctx.has(T::DependencyTutorial),
+                ctx.can_write(Resource::Dependency) && ctx.dependency_tutorial_done(),
+                false,
                 SetupItem::Dependencies,
             ),
             // The Create Daemon wizard offers credentials, so this needs no step first.
@@ -647,17 +654,6 @@ mod tests {
                 Some(T::OpenTopology),
                 with(&|c| c.has_application_tag_assignment = true),
             ),
-            // A dependency made without the tutorial completes both.
-            (
-                T::DependencyTutorial,
-                Some(T::OpenTopology),
-                with(&|c| c.counts.dependencies = 1),
-            ),
-            (
-                T::Dependencies,
-                Some(T::DependencyTutorial),
-                with(&|c| c.counts.dependencies = 1),
-            ),
             (
                 T::InterfaceCredential,
                 None,
@@ -684,7 +680,8 @@ mod tests {
     }
 
     /// Every Setup type is Locked until its prerequisite is recorded, then Open, then Done once
-    /// recorded or once the rows show it done, whatever its prerequisite.
+    /// recorded or once the rows show it done, whatever its prerequisite. The dependency pair,
+    /// one row between them, has its own test.
     #[test]
     fn a_setup_item_is_locked_then_open_then_done() {
         let cases = setup_cases();
@@ -692,6 +689,7 @@ mod tests {
             cases.iter().map(|(t, ..)| *t).collect::<Vec<_>>(),
             T::iter()
                 .filter(|t| t.tier() == SetupItemTier::Setup)
+                .filter(|t| !matches!(t, T::DependencyTutorial | T::Dependencies))
                 .collect::<Vec<_>>(),
             "every Setup type has a case"
         );
@@ -726,6 +724,34 @@ mod tests {
         }
     }
 
+    /// The dependency tutorial and the step it unlocks are one row: the tutorial, Locked then
+    /// Open, until it is done, then the step. A dependency made first completes both.
+    #[test]
+    fn the_dependency_pair_is_one_row() {
+        let pair = |ctx: &SetupContext| -> Vec<(T, SetupItemState)> {
+            [T::DependencyTutorial, T::Dependencies]
+                .into_iter()
+                .flat_map(|t| t.items(ctx).into_iter().map(move |e| (t, e.state)))
+                .collect()
+        };
+        let mut with_dependency = recorded(ctx(), &[T::OpenTopology]);
+        with_dependency.counts.dependencies = 1;
+        for (context, expected) in [
+            (ctx(), (T::DependencyTutorial, SetupItemState::Locked)),
+            (
+                recorded(ctx(), &[T::OpenTopology]),
+                (T::DependencyTutorial, SetupItemState::Open),
+            ),
+            (
+                recorded(ctx(), &[T::OpenTopology, T::DependencyTutorial]),
+                (T::Dependencies, SetupItemState::Open),
+            ),
+            (with_dependency, (T::Dependencies, SetupItemState::Done)),
+        ] {
+            assert_eq!(pair(&context), vec![expected]);
+        }
+    }
+
     /// A Setup item that needs a write is left out for a user without it. The sweep, with no
     /// user, passes every write check.
     #[test]
@@ -734,7 +760,6 @@ mod tests {
             (T::ApplicationTags, Resource::Tag),
             (T::Tags, Resource::Tag),
             (T::DependencyTutorial, Resource::Dependency),
-            (T::Dependencies, Resource::Dependency),
             (T::InterfaceCredential, Resource::Credential),
             (T::InviteTeam, Resource::Member),
             (T::MultiSite, Resource::NewSite),

@@ -36,9 +36,10 @@ pub(super) fn generate_daemons(
                 mode: DaemonMode::DaemonPoll,
                 name: "HQ Daemon".to_string(),
                 tags: vec![],
-                version: Version::parse(env!("CARGO_PKG_VERSION"))
-                    .map(Some)
-                    .unwrap_or_default(),
+                // Two releases behind, so Home shows an outdated daemon with its Upgrade action.
+                // 0.18.2 predates every 0.19 release note, and is newer than the daemon floor of
+                // every credential HQ uses.
+                version: Some(Version::new(0, 18, 2)),
                 user_id,
                 api_key_id: None,
                 is_unreachable: false,
@@ -66,8 +67,7 @@ pub(super) fn generate_daemons(
                 os: Some(DaemonOs::Linux),
                 name: "DC Daemon".to_string(),
                 tags: vec![],
-                // Current, like HQ: the demo shows a finished setup, and an outdated daemon is an
-                // Issue on Home.
+                // Current: the KVM Inventory credential needs a daemon newer than 0.19.5.
                 version: Version::parse(env!("CARGO_PKG_VERSION"))
                     .map(Some)
                     .unwrap_or_default(),

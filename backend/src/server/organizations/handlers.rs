@@ -3,7 +3,6 @@ use crate::server::auth::middleware::permissions::{
     And, Authorized, Can, Delete, IsUser, Read, Write,
 };
 use crate::server::config::AppState;
-use crate::server::dependencies::r#impl::base::Dependency;
 use crate::server::openapi::tags as api_tags;
 use crate::server::organizations::demo_seed::seed_demo_data;
 use crate::server::organizations::demo_status::DemoPopulateStatus;
@@ -262,14 +261,16 @@ async fn submit_referral_source(
 /// The Setup item a client finished.
 #[derive(Debug, Clone, Deserialize, ToSchema)]
 pub struct RecordSetupRequest {
-    /// The item, which must be one the app records itself, such as the dependency tutorial.
+    /// The item, which must be one the app records itself: the dependency tutorial, or a question
+    /// dismissed unanswered.
     pub item: SetupItemDiscriminants,
 }
 
 /// Record Setup item
 ///
-/// Marks done a Setup item that is finished in the app with no other request to record it on,
-/// such as the dependency tutorial. Recording an item already done changes nothing.
+/// Marks done a Setup item that is finished in the app with no other request to record it on: the
+/// dependency tutorial, or a question dismissed unanswered. Recording an item already done changes
+/// nothing.
 #[utoipa::path(
     post,
     path = "/setup",
@@ -281,7 +282,7 @@ pub struct RecordSetupRequest {
     )
 )]
 async fn record_setup_item(
-    auth: Authorized<And<IsUser, Can<Dependency, Write>>>,
+    auth: Authorized<IsUser>,
     State(state): State<Arc<AppState>>,
     ApiJson(request): ApiJson<RecordSetupRequest>,
 ) -> ApiResult<Json<ApiResponse<()>>> {

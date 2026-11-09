@@ -61,6 +61,7 @@
 		issueEntries,
 		issueSiteIds,
 		issuesOnSites,
+		lockedEntries,
 		openEntries,
 		setupProgress,
 		type SetupItem,
@@ -98,6 +99,7 @@
 		else unpickedSites.add(id);
 	}
 	let open = $derived(openEntries(entries));
+	let locked = $derived(lockedEntries(entries));
 	let done = $derived(doneEntries(entries));
 	let progress = $derived(setupProgress(entries));
 	let showCompleted = $state(false);
@@ -230,7 +232,7 @@
 			</ul>
 		</div>
 	{/if}
-	<!-- Locked items count in the total and never show. Once every item is done, the section goes. -->
+	<!-- Locked items show disabled after the open ones. Once every item is done, the section goes. -->
 	{#if progress.done < progress.total}
 		<div>
 			<div class="mb-3 flex items-center gap-3">
@@ -242,6 +244,9 @@
 			</div>
 			<ul class="space-y-2">
 				{#each open as entry (entryId(entry))}
+					{@render row(entry)}
+				{/each}
+				{#each locked as entry (entryId(entry))}
 					{@render row(entry)}
 				{/each}
 				{#if showCompleted}
