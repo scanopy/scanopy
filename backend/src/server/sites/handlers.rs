@@ -230,7 +230,7 @@ async fn create_site(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Can<NewSite, Write>>,
     RequireFeature { .. }: RequireFeature<CreateSiteFeature>,
-    ApiJson(site): ApiJson<Site>,
+    ApiJson(mut site): ApiJson<Site>,
 ) -> ApiResult<Json<ApiResponse<Site>>> {
     let entity = auth.entity.clone();
     let organization_id = auth.organization_id();
@@ -241,6 +241,7 @@ async fn create_site(
     // credential secrets to daemons), so an unchecked foreign id would leak
     // another tenant's secret. Omitted, the service assigns the site-wide defaults.
     let org_id = organization_id.ok_or_else(ApiError::organization_required)?;
+    site.base.organization_id = org_id;
     if let Some(credential_ids) = &site.base.credential_ids {
         state
             .services

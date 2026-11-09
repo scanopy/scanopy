@@ -26,6 +26,7 @@ use crate::server::{
         MetadataFixture as Fx,
     },
     shares::r#impl::base::Share,
+    sites::r#impl::Site,
     subnets::r#impl::base::Subnet,
     topology::types::base::Topology,
     user_api_keys::r#impl::base::UserApiKey,
@@ -662,7 +663,7 @@ const SITE_FIELDS: &[F] = &[
     F::new("name", "Name", G::Identity).summary(),
     F::new("stale_after_hours", "Stale After (hours)", G::Configuration)
         .format(FieldFormat::Number),
-    ORGANIZATION_ID,
+    ORGANIZATION_ID.server_owned(pin!(Site, base.organization_id)),
     F::internal("credential_ids")
         .entity(&[Hop::parent(E::Credential, "credential_ids")])
         .many(),

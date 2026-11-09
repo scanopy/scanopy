@@ -47,6 +47,7 @@ use tokio::sync::OnceCell;
 use uuid::Uuid;
 
 pub mod access_writes;
+pub mod api_key_all_sites;
 pub mod api_key_site_access;
 pub mod billing_emails_zero_amount;
 pub mod cloud_setup;
@@ -423,7 +424,7 @@ pub async fn setup_test_app() -> Router<Arc<AppState>> {
 
 /// What a principal holding `role` on `site_ids` can do.
 pub fn access_on(role: UserOrgPermissions, site_ids: &[Uuid]) -> AccessSet {
-    AccessSet::new(role, &Assignment::for_api_key(role, site_ids), &[])
+    AccessSet::new(role, &Assignment::for_api_key(role, Some(site_ids)), &[])
 }
 
 /// The scope of a caller who sees `site_ids` in `organization_id`, with no user behind it.

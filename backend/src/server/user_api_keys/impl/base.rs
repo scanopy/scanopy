@@ -58,9 +58,19 @@ pub struct UserApiKeyBase {
     #[serde(default)]
     #[schema(required)]
     pub tags: Vec<Uuid>,
-    /// Site IDs this key has access to (hydrated from junction table)
-    #[serde(default)]
-    pub site_ids: Vec<Uuid>,
+    /// The sites this key reaches, read from its site assignments. `null` reaches every site in
+    /// the organization, including sites created later, and only a caller who holds All sites can
+    /// set it. A list must name at least one site. A key from before site assignments, with none,
+    /// reads as an empty list and reaches no site.
+    // Omitted reads as the empty list, which create and update refuse: only an explicit `null`
+    // means All sites.
+    #[serde(default = "no_sites")]
+    #[schema(required)]
+    pub site_ids: Option<Vec<Uuid>>,
+}
+
+fn no_sites() -> Option<Vec<Uuid>> {
+    Some(Vec::new())
 }
 
 #[derive(

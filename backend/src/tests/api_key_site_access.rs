@@ -53,11 +53,18 @@ pub(super) async fn user_key(
         .await
         .unwrap();
     set_user_access(state, owner.id, UserOrgPermissions::Owner, &[]).await;
-    user_key_of(state, owner.id, organization_id, permissions, site_ids).await
+    user_key_of(
+        state,
+        owner.id,
+        organization_id,
+        permissions,
+        Some(site_ids),
+    )
+    .await
 }
 
 /// Give a user their role, on `site_ids` when the role is limited to sites.
-async fn set_user_access(
+pub(super) async fn set_user_access(
     state: &AppState,
     user_id: Uuid,
     permissions: UserOrgPermissions,
@@ -76,13 +83,13 @@ async fn set_user_access(
         .unwrap();
 }
 
-/// An enabled key for `user_id`, holding `site_ids`. Returns the plaintext.
-async fn user_key_of(
+/// An enabled key for `user_id`, holding `site_ids`, or All sites when `None`. Returns the plaintext.
+pub(super) async fn user_key_of(
     state: &AppState,
     user_id: Uuid,
     organization_id: Uuid,
     permissions: UserOrgPermissions,
-    site_ids: Vec<Uuid>,
+    site_ids: Option<Vec<Uuid>>,
 ) -> (Uuid, String) {
     let (plaintext, hashed) = generate_api_key_for_storage(ApiKeyType::User);
     let key = UserApiKey::new(UserApiKeyBase {
@@ -160,7 +167,7 @@ async fn a_viewer_creates_rotates_and_deletes_their_own_key_and_no_one_elses() {
         name: "read-only".to_string(),
         permissions: UserOrgPermissions::Viewer,
         is_enabled: true,
-        site_ids: vec![own_site.id],
+        site_ids: Some(vec![own_site.id]),
         ..UserApiKeyBase::default()
     }))
     .unwrap();
@@ -275,7 +282,7 @@ async fn an_open_stream_stops_delivering_a_site_the_key_lost() {
         .set_access(
             Principal::ApiKey(key_id),
             role,
-            &Assignment::for_api_key(role, &[kept.id, marker.id]),
+            &Assignment::for_api_key(role, Some(&[kept.id, marker.id])),
             AuthenticatedEntity::System,
         )
         .await
@@ -328,6 +335,7 @@ async fn a_key_that_creates_a_site_can_list_it_and_populate_it_and_keeps_its_oth
         .user_api_key_service
         .get_site_ids(&key_id)
         .await
+        .unwrap()
         .unwrap();
     held.sort();
     let mut expected = vec![existing.id, created];
@@ -422,7 +430,14 @@ async fn a_key_drops_with_its_owner() {
         .unwrap();
     let admin = UserOrgPermissions::Admin;
     set_user_access(&state, person.id, admin, &[]).await;
-    let (_, key) = user_key_of(&state, person.id, org.id, admin, vec![kept.id, lost.id]).await;
+    let (_, key) = user_key_of(
+        &state,
+        person.id,
+        org.id,
+        admin,
+        Some(vec![kept.id, lost.id]),
+    )
+    .await;
     let addr = serve(&state).await;
 
     let listed = |body: &Value| -> Vec<Uuid> {
@@ -575,7 +590,7 @@ async fn invites_and_keys_stop_at_what_the_caller_could_grant() {
             name: "own level".to_string(),
             permissions: role,
             is_enabled: true,
-            site_ids: vec![held.id],
+            site_ids: Some(vec![held.id]),
             ..UserApiKeyBase::default()
         }))
         .unwrap();

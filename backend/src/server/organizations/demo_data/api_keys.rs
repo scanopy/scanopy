@@ -44,10 +44,9 @@ pub(super) fn generate_user_api_keys(
     sites: &[Site],
     organization_id: Uuid,
     now: DateTime<Utc>,
-) -> Vec<(UserApiKey, Vec<Uuid>)> {
+) -> Vec<(UserApiKey, Option<Vec<Uuid>>)> {
     use super::super::handlers::DEMO_USER_ID;
 
-    let site_ids: Vec<Uuid> = sites.iter().map(|n| n.id).collect();
     let hq_id = sites
         .iter()
         .find(|n| n.base.name.contains("Headquarters"))
@@ -73,10 +72,10 @@ pub(super) fn generate_user_api_keys(
                     expires_at: Some(now + Duration::days(180)),
                     is_enabled: true,
                     tags: vec![],
-                    site_ids: vec![], // set by create_api_key
+                    site_ids: None, // set by create_api_key
                 },
             },
-            vec![hq_id],
+            Some(vec![hq_id]),
         ),
         (
             UserApiKey {
@@ -93,10 +92,11 @@ pub(super) fn generate_user_api_keys(
                     expires_at: None,
                     is_enabled: true,
                     tags: vec![],
-                    site_ids: vec![], // set by create_api_key
+                    site_ids: None, // set by create_api_key
                 },
             },
-            site_ids,
+            // All sites: monitoring follows every office, including ones opened later.
+            None,
         ),
     ]
 }

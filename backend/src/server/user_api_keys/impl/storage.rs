@@ -109,8 +109,8 @@ impl Storable for UserApiKey {
                 last_used: row.get("last_used"),
                 expires_at: row.get("expires_at"),
                 is_enabled: row.get("is_enabled"),
-                tags: Vec::new(),     // Hydrated from entity_tags junction table
-                site_ids: Vec::new(), // Hydrated separately from junction table
+                tags: Vec::new(), // Hydrated from entity_tags junction table
+                site_ids: Some(Vec::new()), // Hydrated from site_assignments
             },
         })
     }

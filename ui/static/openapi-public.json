@@ -40016,7 +40016,8 @@
           "organization_id": {
             "type": "string",
             "format": "uuid",
-            "description": "The organization that owns this record."
+            "description": "The organization that owns this record. Set from the caller on create.",
+            "readOnly": true
           },
           "stale_after_hours": {
             "type": [
@@ -42783,7 +42784,8 @@
           "user_id",
           "organization_id",
           "last_used",
-          "tags"
+          "tags",
+          "site_ids"
         ],
         "properties": {
           "expires_at": {
@@ -42827,12 +42829,15 @@
             "description": "Role the key is limited to, which cannot exceed the user's own."
           },
           "site_ids": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "string",
               "format": "uuid"
             },
-            "description": "Site IDs this key has access to (hydrated from junction table)"
+            "description": "The sites this key reaches, read from its site assignments. `null` reaches every site in\nthe organization, including sites created later, and only a caller who holds All sites can\nset it. A list must name at least one site. A key from before site assignments, with none,\nreads as an empty list and reaches no site."
           },
           "tags": {
             "type": "array",

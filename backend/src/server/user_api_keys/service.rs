@@ -89,27 +89,35 @@ impl UserApiKeyService {
         Ok(keys)
     }
 
-    /// Fill each key's `site_ids` from its site assignments.
+    /// Fill each key's `site_ids` from its site assignments: `None` for All sites, and an empty
+    /// list for a key from before site assignments, which has no rows.
     pub async fn hydrate_site_ids(&self, keys: &mut [UserApiKey]) -> Result<()> {
         let key_ids: Vec<Uuid> = keys.iter().map(|k| k.id).collect();
-        let listed = self
+        let mut scopes = self
             .site_assignments
-            .listed_site_ids_by("api_key_id", &key_ids, |principal| match principal {
+            .site_scopes_by("api_key_id", &key_ids, |principal| match principal {
                 Principal::ApiKey(id) => Some(*id),
                 _ => None,
             })
             .await?;
         for key in keys {
-            key.base.site_ids = listed.get(&key.id).cloned().unwrap_or_default();
+            key.base.site_ids = scopes.remove(&key.id).unwrap_or_else(|| Some(Vec::new()));
         }
         Ok(())
     }
 
-    /// The sites listed for an API key.
-    pub async fn get_site_ids(&self, api_key_id: &Uuid) -> Result<Vec<Uuid>> {
-        self.site_assignments
-            .listed_site_ids(Principal::ApiKey(*api_key_id))
-            .await
+    /// An API key's `site_ids`, as [`Self::hydrate_site_ids`] fills them.
+    pub async fn get_site_ids(&self, api_key_id: &Uuid) -> Result<Option<Vec<Uuid>>> {
+        let mut scopes = self
+            .site_assignments
+            .site_scopes_by("api_key_id", &[*api_key_id], |principal| match principal {
+                Principal::ApiKey(id) => Some(*id),
+                _ => None,
+            })
+            .await?;
+        Ok(scopes
+            .remove(api_key_id)
+            .unwrap_or_else(|| Some(Vec::new())))
     }
 }
 

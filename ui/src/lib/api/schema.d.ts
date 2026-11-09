@@ -15363,9 +15363,9 @@ export interface components {
             name: string;
             /**
              * Format: uuid
-             * @description The organization that owns this record.
+             * @description The organization that owns this record. Set from the caller on create.
              */
-            organization_id: string;
+            readonly organization_id: string;
             /**
              * Format: int64
              * @description How long a discovery-managed entity on this site may go unobserved
@@ -16732,8 +16732,13 @@ export interface components {
             readonly organization_id: string;
             /** @description Role the key is limited to, which cannot exceed the user's own. */
             permissions?: components["schemas"]["UserOrgPermissions"];
-            /** @description Site IDs this key has access to (hydrated from junction table) */
-            site_ids?: string[];
+            /**
+             * @description The sites this key reaches, read from its site assignments. `null` reaches every site in
+             *     the organization, including sites created later, and only a caller who holds All sites can
+             *     set it. A list must name at least one site. A key from before site assignments, with none,
+             *     reads as an empty list and reaches no site.
+             */
+            site_ids: string[] | null;
             /** @description Tags assigned to this entity. */
             tags: string[];
             /**

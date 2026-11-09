@@ -32,12 +32,16 @@ use crate::server::{
         },
         services::traits::{CrudService, EventBusService},
         storage::{filter::StorableFilter, traits::Storable},
-        types::api::{
-            ApiError, ApiErrorResponse, ApiResponse, ApiResult, EmptyApiResponse,
-            PaginatedApiResponse,
+        types::{
+            api::{
+                ApiError, ApiErrorResponse, ApiResponse, ApiResult, EmptyApiResponse,
+                PaginatedApiResponse,
+            },
+            error_codes::ErrorCode,
         },
     },
     site_assignments::r#impl::base::Principal,
+    sites::r#impl::Site,
     user_api_keys::r#impl::{api::UserApiKeyResponse, base::UserApiKey},
     users::r#impl::permissions::UserOrgPermissions,
 };
@@ -208,6 +212,27 @@ pub async fn get_all(
     Ok(Json(list_page::<UserApiKey>(&state, &scope, &query).await?))
 }
 
+/// Refuses a key scope the caller can't hand out: an empty site list, All sites from a caller
+/// without All sites, or a listed site the caller can't reach. All sites gets the same refusal as
+/// an unreachable site.
+fn refuse_unreachable_key_sites<P: PermissionRequirement>(
+    auth: &Authorized<P>,
+    key: &UserApiKey,
+) -> Result<(), ApiError> {
+    // The sites the user can hand out: a key is org-keyed, the sites in it aren't.
+    match key.base.site_ids.as_deref() {
+        Some([]) => Err(ApiError::validation(ErrorCode::ValidationEmpty {
+            field: "site_ids".to_string(),
+        })),
+        Some(site_ids) => validate_site_ids_access(
+            site_ids,
+            &auth.entity.site_ids_for(Resource::Site, Action::Read),
+        ),
+        None if auth.entity.all_sites_allow(Resource::Site, Action::Read) => Ok(()),
+        None => Err(ApiError::entity_access_denied::<Site>(Uuid::nil())),
+    }
+}
+
 /// Refuses a key holding anything its user doesn't, at the organization or on any site.
 async fn refuse_key_escalation<P: PermissionRequirement>(
     state: &AppState,
@@ -216,7 +241,7 @@ async fn refuse_key_escalation<P: PermissionRequirement>(
     key: &UserApiKey,
 ) -> Result<(), ApiError> {
     let role = key.base.permissions;
-    let assignments = Assignment::for_api_key(role, &key.base.site_ids);
+    let assignments = Assignment::for_api_key(role, key.base.site_ids.as_deref());
     let granted = state
         .services
         .access_service
@@ -252,11 +277,9 @@ pub async fn create_user_api_key(
 ) -> ApiResult<Json<ApiResponse<UserApiKeyResponse>>> {
     let user_id = auth.require_user_id()?;
     let organization_id = auth.require_organization_id()?;
-    // The sites the user can hand out: a key is org-keyed, the sites in it aren't.
-    let user_site_ids = auth.entity.site_ids_for(Resource::Site, Action::Read);
     let entity = auth.entity.clone();
 
-    validate_site_ids_access(&api_key.base.site_ids, &user_site_ids)?;
+    refuse_unreachable_key_sites(&auth, &api_key)?;
     refuse_key_escalation(&state, &auth, organization_id, &api_key).await?;
 
     // Set user_id and organization_id from authenticated user
@@ -333,7 +356,6 @@ pub async fn update_user_api_key(
 ) -> ApiResult<Json<ApiResponse<UserApiKey>>> {
     let user_id = auth.require_user_id()?;
     let organization_id = auth.require_organization_id()?;
-    let user_site_ids = auth.entity.site_ids_for(Resource::Site, Action::Read);
 
     let service = &state.services.user_api_key_service;
 
@@ -348,7 +370,7 @@ pub async fn update_user_api_key(
         return Err(ApiError::entity_access_denied::<UserApiKey>(id));
     }
 
-    validate_site_ids_access(&request.base.site_ids, &user_site_ids)?;
+    refuse_unreachable_key_sites(&auth, &request)?;
     refuse_key_escalation(&state, &auth, organization_id, &request).await?;
 
     // Preserve immutable fields
@@ -370,7 +392,7 @@ pub async fn update_user_api_key(
         .set_access(
             Principal::ApiKey(id),
             role,
-            &Assignment::for_api_key(role, &site_ids),
+            &Assignment::for_api_key(role, site_ids.as_deref()),
             entity,
         )
         .await?;
@@ -452,16 +474,19 @@ pub async fn get_by_id(
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<ApiResponse<UserApiKey>>> {
     let user_id = auth.user_id().unwrap_or(Uuid::nil());
-    let result = get_by_id_handler::<UserApiKey>(state, auth, Path(id)).await?;
+    let result = get_by_id_handler::<UserApiKey>(state.clone(), auth, Path(id)).await?;
 
-    if result
-        .data()
-        .map(|k| k.base.user_id != user_id)
-        .unwrap_or(true)
-    {
+    let Some(key) = result.data().filter(|k| k.base.user_id == user_id) else {
         return Err(ApiError::entity_not_found::<UserApiKey>(id));
-    }
-    Ok(result)
+    };
+    let mut keys = [key.clone()];
+    state
+        .services
+        .user_api_key_service
+        .hydrate_site_ids(&mut keys)
+        .await?;
+    let [key] = keys;
+    Ok(Json(ApiResponse::success(key)))
 }
 
 /// Delete user API key

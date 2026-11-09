@@ -150,7 +150,7 @@ pub struct DemoData {
     pub topologies: Vec<Topology>,
     pub discoveries: Vec<Discovery>,
     pub shares: Vec<Share>,
-    pub user_api_keys: Vec<(UserApiKey, Vec<Uuid>)>,
+    pub user_api_keys: Vec<(UserApiKey, Option<Vec<Uuid>>)>,
 }
 
 impl DemoData {

@@ -18,7 +18,7 @@ use crate::server::{
 };
 use async_trait::async_trait;
 
-/// The sites each user API key may reach. A key's All sites row names no site, so it matches none.
+/// The sites each user API key may reach. A key's All sites row names no site.
 const KEY_SITES: Junction = Junction {
     table: "site_assignments",
     own_column: "api_key_id",
@@ -37,7 +37,8 @@ impl UserApiKeyFilterQuery {
             self.search.as_deref(),
         )?;
         Ok(match &self.site_ids {
-            Some(ids) if !ids.is_empty() => filter.linked_to(KEY_SITES, ids),
+            // An All sites key reaches every requested site.
+            Some(ids) if !ids.is_empty() => filter.linked_to_or_every(KEY_SITES, ids),
             _ => filter,
         })
     }

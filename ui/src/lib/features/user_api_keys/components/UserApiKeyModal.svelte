@@ -113,9 +113,12 @@
 
 	// Mirrored from the form store for SiteAccessSelect: form.state.values is not tracked by $derived.
 	let permissionsValue = $state(createEmptyUserApiKeyFormData().permissions);
+	// `null` is All sites.
+	let siteIdsValue = $state<string[] | null>(createEmptyUserApiKeyFormData().site_ids);
 	$effect(() => {
 		const { unsubscribe } = form.store.subscribe(() => {
 			permissionsValue = form.state.values.permissions;
+			siteIdsValue = form.state.values.site_ids;
 		});
 		return unsubscribe;
 	});
@@ -140,7 +143,7 @@
 			pushError(common_nameRequired());
 			return;
 		}
-		if (!formData.site_ids?.length) {
+		if (formData.site_ids !== null && !formData.site_ids.length) {
 			pushError(common_siteRequired());
 			return;
 		}
@@ -187,6 +190,10 @@
 	// Handle site selection changes
 	function handleSiteChange(siteIds: string[]) {
 		form.setFieldValue('site_ids', siteIds);
+	}
+
+	function handleAllSitesChange(allSites: boolean) {
+		form.setFieldValue('site_ids', allSites ? null : []);
 	}
 
 	let colorHelper = entities.getColorHelper('UserApiKey');
@@ -278,10 +285,12 @@
 					</form.Field>
 
 					<form.Field name="site_ids">
-						{#snippet children(field)}
+						{#snippet children()}
 							<SiteAccessSelect
-								selectedSiteIds={field.state.value ?? []}
+								selectedSiteIds={siteIdsValue ?? []}
 								onChange={handleSiteChange}
+								allSites={siteIdsValue === null}
+								onAllSitesChange={handleAllSitesChange}
 								permissionLevel={permissionsValue}
 								helpText=""
 								alwaysShowSelection={true}

@@ -474,14 +474,20 @@ impl Assignment {
                 scope: AssignmentScope::AllSites,
             }],
             UserOrgPermissions::Member | UserOrgPermissions::Viewer => {
-                Self::for_api_key(role, site_ids)
+                Self::for_api_key(role, Some(site_ids))
             }
         }
     }
 
-    /// What `permissions` plus `site_ids` mean on an API key: its role on the listed sites, and no
-    /// others, whatever the role.
-    pub fn for_api_key(role: UserOrgPermissions, site_ids: &[Uuid]) -> Vec<Self> {
+    /// What `permissions` plus `site_ids` mean on an API key: its role on every site when
+    /// `site_ids` is `None`, otherwise on the listed sites and no others, whatever the role.
+    pub fn for_api_key(role: UserOrgPermissions, site_ids: Option<&[Uuid]>) -> Vec<Self> {
+        let Some(site_ids) = site_ids else {
+            return vec![Self {
+                role: role.into(),
+                scope: AssignmentScope::AllSites,
+            }];
+        };
         site_ids
             .iter()
             .map(|site_id| Self {
@@ -577,6 +583,12 @@ impl AccessSet {
         &self.organization
     }
 
+    /// Whether the principal holds `action` on `resource` through All sites, so on sites created
+    /// after this was loaded too. An org-keyed resource is held on no site.
+    pub fn all_sites_allow(&self, resource: Resource, action: Action) -> bool {
+        resource.keying() == Keying::Site && self.all_sites.allows(resource, action)
+    }
+
     /// This access, limited to what `owner` holds at each level. Compares grants, so it holds for
     /// roles with no order between them.
     pub fn capped_by(&self, owner: &AccessSet) -> AccessSet {
@@ -638,10 +650,12 @@ impl AccessSet {
     }
 
     /// Whether this principal may give a key `granted`. A subset is enough, so a user can make a
-    /// key at their own level.
+    /// key at their own level. An All sites grant needs All sites: holding every site that exists
+    /// today doesn't cover the sites created later.
     pub fn may_grant_to_key(&self, granted: &AccessSet) -> bool {
         let none = Grants::default();
         granted.organization.is_subset_of(&self.organization)
+            && granted.all_sites.is_subset_of(&self.all_sites)
             && granted.sites.iter().all(|(site_id, grants)| {
                 grants.is_subset_of(self.sites.get(site_id).unwrap_or(&none))
             })
@@ -1063,7 +1077,8 @@ mod tests {
         use UserOrgPermissions::{Admin, Member, Owner};
         let site = Uuid::new_v4();
         let person = |role| AccessSet::new(role, &Assignment::for_person(role, &[site]), &[site]);
-        let key = |role| AccessSet::new(role, &Assignment::for_api_key(role, &[site]), &[site]);
+        let key =
+            |role| AccessSet::new(role, &Assignment::for_api_key(role, Some(&[site])), &[site]);
 
         assert!(!person(Admin).may_grant_to_person(&person(Admin)));
         assert!(!person(Admin).may_grant_to_person(&person(Owner)));
@@ -1080,16 +1095,37 @@ mod tests {
     fn a_limited_owner_key_cannot_grant_every_site() {
         use UserOrgPermissions::{Admin, Owner};
         let (held, other) = (Uuid::new_v4(), Uuid::new_v4());
-        let limited = AccessSet::new(Owner, &Assignment::for_api_key(Owner, &[held]), &[]);
+        let limited = AccessSet::new(Owner, &Assignment::for_api_key(Owner, Some(&[held])), &[]);
         let admin = AccessSet::new(Admin, &Assignment::for_person(Admin, &[]), &[held, other]);
         assert!(!limited.may_grant_to_person(&admin));
+    }
+
+    /// Holding every site there is today isn't All sites: an All sites key also reaches the next
+    /// site, which a caller with a site list wouldn't.
+    #[test]
+    fn only_all_sites_can_grant_an_all_sites_key() {
+        use UserOrgPermissions::{Admin, Member};
+        let (a, b) = (Uuid::new_v4(), Uuid::new_v4());
+        let every_listed = AccessSet::new(Member, &Assignment::for_person(Member, &[a, b]), &[]);
+        let admin = AccessSet::new(Admin, &Assignment::for_person(Admin, &[]), &[a, b]);
+        let all_sites_key = AccessSet::new(Member, &Assignment::for_api_key(Member, None), &[a, b]);
+        let listed_key =
+            AccessSet::new(Member, &Assignment::for_api_key(Member, Some(&[a, b])), &[]);
+
+        assert!(!every_listed.may_grant_to_key(&all_sites_key));
+        assert!(every_listed.may_grant_to_key(&listed_key));
+        assert!(admin.may_grant_to_key(&all_sites_key));
     }
 
     #[test]
     fn capping_drops_what_a_demoted_owner_lost() {
         use UserOrgPermissions::{Admin, Member};
         let (kept, lost) = (Uuid::new_v4(), Uuid::new_v4());
-        let key = AccessSet::new(Admin, &Assignment::for_api_key(Admin, &[kept, lost]), &[]);
+        let key = AccessSet::new(
+            Admin,
+            &Assignment::for_api_key(Admin, Some(&[kept, lost])),
+            &[],
+        );
         let demoted = AccessSet::new(Member, &Assignment::for_person(Member, &[kept]), &[]);
 
         let capped = key.capped_by(&demoted);
