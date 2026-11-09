@@ -43,7 +43,6 @@
 	import { daemonSetupState } from '$lib/features/daemons/stores/daemon-setup';
 	import { isAllComplete } from '$lib/shared/onboarding/checklist';
 	import SidebarChecklist from './SidebarChecklist.svelte';
-	import type { components } from '$lib/api/schema';
 
 	// Import tab components
 	import TopologyTab from '$lib/features/topology/components/TopologyTab.svelte';
@@ -63,8 +62,6 @@
 	import CredentialsTab from '$lib/features/credentials/components/CredentialsTab.svelte';
 
 	import HomeTab from '$lib/features/home/components/HomeTab.svelte';
-
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 
 	let {
 		activeTab = $bindable('topology'),
@@ -207,8 +204,8 @@
 	}
 
 	// Onboarding checklist state
-	let onboarding = $derived((organization?.onboarding ?? []) as OnboardingOperation[]);
-	let showSidebarChecklist = $derived(organization && !isAllComplete(onboarding));
+	let setup = $derived(organization?.setup ?? []);
+	let showSidebarChecklist = $derived(organization && !isAllComplete(setup));
 	let isDiscoveryActive = $derived(
 		(activeSessionsQuery.data ?? []).some(
 			(s) => s.discovery_type?.type === 'Network' || s.discovery_type?.type === 'Unified'
@@ -739,7 +736,7 @@
 		<!-- Sidebar Checklist -->
 		{#if showSidebarChecklist && !mainAppLocked}
 			<SidebarChecklist
-				{onboarding}
+				{setup}
 				{collapsed}
 				onNavigate={(tab) => {
 					activeTab = tab;

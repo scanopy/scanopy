@@ -13,7 +13,8 @@ function org(overrides: Partial<Organization> = {}): Organization {
 		created_at: '2026-01-01T00:00:00Z',
 		updated_at: '2026-01-01T00:00:00Z',
 		name: 'Acme',
-		onboarding: [],
+		setup: [],
+		daemon_connected: false,
 		plan: { type: 'Free' } as Organization['plan'],
 		plan_status: null,
 		...overrides

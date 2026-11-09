@@ -236,6 +236,7 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				updated_at: 'updated_at',
 				id: ID,
 				organization_id: ORGANIZATION,
+				source: excluded('Whether Scanopy seeded the tag; only the Setup list reads it'),
 				...HISTORY
 			})
 		]
@@ -486,6 +487,7 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				is_default: excluded(
 					"A default's description says what it is, and its row has no delete action"
 				),
+				source: excluded('Whether Scanopy seeded the credential; only the Setup list reads it'),
 				// A login's Assignments cell lists the credentials that sign in with it.
 				used_by: 'assignments',
 				login_credential_id: excluded(

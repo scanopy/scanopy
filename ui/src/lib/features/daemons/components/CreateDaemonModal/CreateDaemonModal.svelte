@@ -117,7 +117,7 @@
 	// Derived data
 	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
 	let org = $derived(organizationQuery.data);
-	let isFirstDaemon = $derived(!org?.onboarding?.includes('FirstDaemonRegistered'));
+	let isFirstDaemon = $derived(!org?.daemon_connected);
 	// Snapshot: tracks whether wizard was opened as first-daemon flow.
 	// Prevents reactivity from flipping showWaitingUI when FirstDaemonRegistered appears.
 	let startedAsFirstDaemon = $state(false);

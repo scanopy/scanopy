@@ -786,9 +786,9 @@ class DiscoveryStream {
 			pushFailureToast(update);
 		}
 
-		// Invalidate org cache until FirstDiscoveryCompleted milestone appears
+		// Invalidate org cache until RunFirstScan is recorded
 		const org = queryClient.getQueryData<Organization>(queryKeys.organizations.current());
-		if (org && !org.onboarding.includes('FirstDiscoveryCompleted')) {
+		if (org && !org.setup.includes('RunFirstScan')) {
 			queryClient.invalidateQueries({ queryKey: queryKeys.organizations.current() });
 		}
 

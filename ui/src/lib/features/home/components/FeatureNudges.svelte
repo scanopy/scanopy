@@ -69,7 +69,7 @@
 	} from '$lib/paraglide/messages';
 
 	type Organization = components['schemas']['Organization'];
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
+	type SetupItemType = components['schemas']['SetupItemDiscriminants'];
 	type DashboardSummary = components['schemas']['DashboardSummary'];
 
 	let {
@@ -100,8 +100,10 @@
 	}
 
 	const planType = $derived(organization.plan?.type ?? null);
-	const onboarding = $derived(organization.onboarding ?? []);
-	const has = (op: OnboardingOperation) => onboarding.includes(op);
+	// Each nudge's "done" is the matching Setup suggestion's dismissal until the Setup list
+	// replaces the nudges.
+	const setup = $derived(organization.setup ?? []);
+	const has = (item: SetupItemType) => setup.includes(item);
 
 	const planMetadata = $derived(billingPlans.getMetadata(planType));
 	const features = $derived(planMetadata?.features ?? {});
@@ -138,7 +140,7 @@
 				description: integrationWithoutCredentialSentence(integration, host_ids.length),
 				actionLabel: createIntegrationCredentialLabel(integration),
 				action: () => openCredentialCreate(integration, { hostIds: host_ids, siteIds: site_ids }),
-				visible: has('FirstDiscoveryCompleted') && can('Credential', 'Write'),
+				visible: has('RunFirstScan') && can('Credential', 'Write'),
 				icon: credentialIntegrations.getIconComponent(integration),
 				iconColor: credentialIntegrations.getColorHelper(integration).icon,
 				dismissOnAction: false
@@ -203,7 +205,7 @@
 					showViewSwitcherHint.set(true);
 					onNavigate('topology');
 				},
-				visible: has('FirstTopologyRebuild'),
+				visible: has('OpenTopology'),
 				icon: entities.getIconComponent('Topology'),
 				iconColor: entities.getColorHelper('Topology').icon
 			},
@@ -216,8 +218,7 @@
 					activeView.set('Application');
 					onNavigate('topology');
 				},
-				visible:
-					has('FirstTopologyRebuild') && !has('FirstApplicationTagCreated') && can('Tag', 'Write'),
+				visible: has('OpenTopology') && !has('ApplicationTags') && can('Tag', 'Write'),
 				icon: entities.getIconComponent('Tag'),
 				iconColor: entities.getColorHelper('Tag').icon
 			},
@@ -227,14 +228,11 @@
 				description: home_nudges_dependenciesDescription(),
 				actionLabel: home_nudges_dependenciesAction(),
 				action: () => {
-					activeView.set(has('FirstApplicationTagCreated') ? 'Application' : 'Workloads');
+					activeView.set(has('ApplicationTags') ? 'Application' : 'Workloads');
 					showDependencyTutorial.set(true);
 					onNavigate('topology');
 				},
-				visible:
-					has('FirstTopologyRebuild') &&
-					!has('FirstDependencyCreated') &&
-					can('Dependency', 'Write'),
+				visible: has('OpenTopology') && !has('Dependencies') && can('Dependency', 'Write'),
 				icon: entities.getIconComponent('Dependency'),
 				iconColor: entities.getColorHelper('Dependency').icon
 			},
@@ -249,10 +247,7 @@
 					onNavigate('credentials');
 					openModal('credential-editor');
 				},
-				visible:
-					has('FirstDiscoveryCompleted') &&
-					!has('FirstInterfaceCredentialCreated') &&
-					can('Credential', 'Write'),
+				visible: has('RunFirstScan') && !has('InterfaceCredential') && can('Credential', 'Write'),
 				icon: entities.getIconComponent('Credential'),
 				iconColor: entities.getColorHelper('Credential').icon
 			},
@@ -265,7 +260,7 @@
 					onNavigate('tags');
 					openModal('tag-editor');
 				},
-				visible: has('FirstDiscoveryCompleted') && !has('FirstTagCreated') && can('Tag', 'Write'),
+				visible: has('RunFirstScan') && !has('Tags') && can('Tag', 'Write'),
 				icon: entities.getIconComponent('Tag'),
 				iconColor: entities.getColorHelper('Tag').icon
 			},
@@ -281,7 +276,7 @@
 				visible:
 					((organization.plan?.included_seats ?? 0) > 1 ||
 						(organization.plan?.seat_cents ?? 0) > 0) &&
-					!has('InviteSent') &&
+					!has('InviteTeam') &&
 					can('Member', 'Write'),
 				icon: entities.getIconComponent('User'),
 				iconColor: entities.getColorHelper('User').icon
@@ -313,8 +308,7 @@
 					onNavigate('api-keys');
 					openModal('user-api-key');
 				},
-				visible:
-					features.api_access && has('FirstDiscoveryCompleted') && !has('FirstUserApiKeyCreated'),
+				visible: features.api_access && has('RunFirstScan') && !has('ApiKeys'),
 				icon: entities.getIconComponent('UserApiKey'),
 				iconColor: entities.getColorHelper('UserApiKey').icon
 			},
@@ -327,7 +321,7 @@
 					onNavigate('topology');
 					openModal('topology-share');
 				},
-				visible: features.sharing && has('FirstTopologyRebuild') && can('Share', 'Write'),
+				visible: features.sharing && has('OpenTopology') && can('Share', 'Write'),
 				icon: entities.getIconComponent('Share'),
 				iconColor: entities.getColorHelper('Share').icon
 			}

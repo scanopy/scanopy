@@ -277,11 +277,11 @@ export function loadTopologyData(
 }
 
 /**
- * One-shot GET that records the `FirstTopologyRebuild` onboarding milestone ("user viewed
- * their topology"). Sends `mark_viewed=true`, which the backend only honours for a live
- * topology that has hosts and a completed discovery. Deliberately NOT routed through
- * `useTopologyDataQuery` (which never sets the flag) so the milestone only fires from an
- * explicit on-tab view, never from background fetches on other tabs.
+ * One-shot GET that records the `OpenTopology` setup item ("user viewed their topology").
+ * Sends `mark_viewed=true`, which the backend only honours for a live topology that has hosts
+ * once the first scan is done. Deliberately NOT routed through `useTopologyDataQuery` (which
+ * never sets the flag) so it is only recorded from an explicit on-tab view, never from
+ * background fetches on other tabs.
  */
 export async function markTopologyViewed(siteId: string, view: TopologyView): Promise<void> {
 	await apiClient.GET('/api/v1/topologies/data', {
@@ -1054,9 +1054,9 @@ class TopologyStream {
 			queryClient.invalidateQueries({ queryKey: queryKeys.snapshots.bySite(siteId) });
 		}
 
-		// Invalidate org cache until FirstTopologyRebuild milestone appears.
+		// Invalidate org cache until OpenTopology is recorded.
 		const org = queryClient.getQueryData<Organization>(queryKeys.organizations.current());
-		if (org && !org.onboarding.includes('FirstTopologyRebuild')) {
+		if (org && !org.setup.includes('OpenTopology')) {
 			queryClient.invalidateQueries({ queryKey: queryKeys.organizations.current() });
 		}
 	}

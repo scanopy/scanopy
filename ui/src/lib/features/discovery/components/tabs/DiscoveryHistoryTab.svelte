@@ -24,7 +24,6 @@
 	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
 	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
 	import type { components } from '$lib/api/schema';
 	import type { TabProps } from '$lib/shared/types';
@@ -51,7 +50,6 @@
 		discovery_noHistorySessionsSubtitle
 	} from '$lib/paraglide/messages';
 
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 	type DiscoveryOrderField = components['schemas']['DiscoveryOrderField'];
 
 	const DISCOVERY_FIELD_VALUES = '/api/v1/discoveries/field-values/{field}';
@@ -61,9 +59,8 @@
 	let { isActive = false }: TabProps = $props();
 	const can = useCan();
 
-	// Organization query for onboarding state
 	const organizationQuery = useOrganizationQuery();
-	let onboarding = $derived((organizationQuery.data?.onboarding ?? []) as OnboardingOperation[]);
+	let daemonConnected = $derived(organizationQuery.data?.daemon_connected ?? false);
 
 	// Pagination state (managed by DataControls, updated via callback)
 	let pageSize = $state(20);
@@ -307,7 +304,7 @@
 <div class="space-y-6">
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
-	{:else if !hasDaemon(onboarding)}
+	{:else if !daemonConnected}
 		<PreDaemonEmptyState title={daemons_installPromptDiscoveries()} />
 	{:else if isLoading}
 		<Loading />

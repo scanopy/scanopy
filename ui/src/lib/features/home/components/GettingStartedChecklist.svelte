@@ -50,16 +50,16 @@
 		gettingStarted_whileYouWait
 	} from '$lib/paraglide/messages';
 
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
+	type SetupItemType = components['schemas']['SetupItemDiscriminants'];
 
 	let {
-		onboarding,
+		setup,
 		organization,
 		onNavigate,
 		onDismiss,
 		isActive = false
 	}: {
-		onboarding: OnboardingOperation[];
+		setup: SetupItemType[];
 		organization: {
 			use_case?: string | null;
 			plan?: { included_seats?: number | null; seat_cents?: number | null } | null;
@@ -118,7 +118,7 @@
 
 	// Clear fun item states when discovery completes
 	$effect(() => {
-		if (onboarding.includes('FirstDiscoveryCompleted')) {
+		if (setup.includes('RunFirstScan')) {
 			for (let i = localStorage.length - 1; i >= 0; i--) {
 				const key = localStorage.key(i);
 				if (key?.startsWith('waiting-fun:')) {
@@ -138,11 +138,11 @@
 		}
 	});
 
-	// Detect connection via onboarding prop updates
+	// Detect connection via setup prop updates
 	$effect(() => {
 		if (
 			(daemonStatus === 'waiting' || daemonStatus === 'trouble') &&
-			onboarding.includes('FirstDaemonRegistered')
+			setup.includes('InstallDaemon')
 		) {
 			daemonSetupState.set({ connectionStatus: 'connected' });
 			// The Daemons table reads the list pages, which still hold the daemon as never seen.
@@ -164,9 +164,9 @@
 
 	const steps = CHECKLIST_STEPS;
 
-	let completedCount = $derived(getCompletedCount(onboarding));
+	let completedCount = $derived(getCompletedCount(setup));
 
-	let allComplete = $derived(isAllComplete(onboarding));
+	let allComplete = $derived(isAllComplete(setup));
 
 	function handleStepClick(step: ChecklistStep) {
 		trackChecklistStepClicked(step.id, 'home');
@@ -174,8 +174,7 @@
 	}
 
 	let showDaemonTroubleTag = $derived(
-		(daemonStatus === 'waiting' || daemonStatus === 'trouble') &&
-			!onboarding.includes('FirstDaemonRegistered')
+		(daemonStatus === 'waiting' || daemonStatus === 'trouble') && !setup.includes('InstallDaemon')
 	);
 
 	function handleTroubleTagClick(e: MouseEvent) {
@@ -200,7 +199,7 @@
 				onNavigate('credentials');
 				openModal('credential-editor');
 			},
-			completed: onboarding.includes('FirstInterfaceCredentialCreated')
+			completed: setup.includes('InterfaceCredential')
 		});
 		suggestions.push({
 			label: gettingStarted_createTags(),
@@ -208,7 +207,7 @@
 				onNavigate('tags');
 				openModal('tag-editor');
 			},
-			completed: onboarding.includes('FirstTagCreated')
+			completed: setup.includes('Tags')
 		});
 		if (
 			organization?.plan &&
@@ -220,7 +219,7 @@
 					onNavigate('users');
 					openModal('invite-user');
 				},
-				completed: onboarding.includes('InviteSent')
+				completed: setup.includes('InviteTeam')
 			});
 		}
 		return suggestions;
@@ -319,8 +318,8 @@
 
 			<div class="space-y-2">
 				{#each steps as step (step.id)}
-					{@const complete = checkStepComplete(step, onboarding)}
-					{@const enabled = checkStepEnabled(step, onboarding)}
+					{@const complete = checkStepComplete(step, setup)}
+					{@const enabled = checkStepEnabled(step, setup)}
 					{@const isAccountStep = step.id === 'account'}
 					{@const isActiveDiscoveryStep = step.id === 'discovery' && isDiscoveryActive && !complete}
 					<ChecklistItem

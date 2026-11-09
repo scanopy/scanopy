@@ -19,18 +19,18 @@
 	import DaemonTroubleshootingModal from './DaemonTroubleshootingModal.svelte';
 	import { tooltip } from '$lib/shared/actions/tooltip';
 
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
+	type SetupItemType = components['schemas']['SetupItemDiscriminants'];
 	type DaemonStatus = 'idle' | 'waiting' | 'connected' | 'trouble';
 
 	let {
-		onboarding,
+		setup,
 		collapsed,
 		onNavigate,
 		isDiscoveryActive,
 		daemonStatus,
 		onExpandSidebar
 	}: {
-		onboarding: OnboardingOperation[];
+		setup: SetupItemType[];
 		collapsed: boolean;
 		onNavigate: (tab: string) => void;
 		isDiscoveryActive: boolean;
@@ -54,8 +54,8 @@
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(expanded));
 	}
 
-	let completedCount = $derived(getCompletedCount(onboarding));
-	let allComplete = $derived(isAllComplete(onboarding));
+	let completedCount = $derived(getCompletedCount(setup));
+	let allComplete = $derived(isAllComplete(setup));
 	let showTroubleshootingModal = $state(false);
 
 	let progressText = $derived(
@@ -100,7 +100,7 @@
 					<div class="flex gap-0.5">
 						{#each CHECKLIST_STEPS as step (step.id)}
 							<span
-								class="inline-block h-1.5 w-1.5 rounded-full {isStepComplete(step, onboarding)
+								class="inline-block h-1.5 w-1.5 rounded-full {isStepComplete(step, setup)
 									? 'bg-green-400'
 									: 'bg-gray-300 dark:bg-gray-600'}"
 							></span>
@@ -113,8 +113,8 @@
 			{#if expanded}
 				<div class="mt-1 space-y-0.5">
 					{#each CHECKLIST_STEPS as step (step.id)}
-						{@const complete = isStepComplete(step, onboarding)}
-						{@const enabled = isStepEnabled(step, onboarding)}
+						{@const complete = isStepComplete(step, setup)}
+						{@const enabled = isStepEnabled(step, setup)}
 						{@const isAccountStep = step.id === 'account'}
 						{@const daemonTrouble = isDaemonTrouble(step.id, complete)}
 						{@const discoverySpinner = isDiscoverySpinner(step.id, complete)}

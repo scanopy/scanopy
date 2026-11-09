@@ -30,7 +30,6 @@
 	import { useTagsQuery } from '$lib/features/tags/queries';
 	import { discoveryRunIds } from '$lib/features/discovery/columns';
 	import type { Vlan, VlanOrderField } from '../types/base';
-	import type { components } from '$lib/api/schema';
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
 	import {
 		common_confirmBulkDelete,
@@ -43,9 +42,6 @@
 		vlans_emptySubtitle,
 		vlans_vlanTitle
 	} from '$lib/paraglide/messages';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
-
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 
 	import { refusedUnless, useCan } from '$lib/features/auth/access';
 
@@ -72,9 +68,8 @@
 		}
 	});
 
-	// Organization query for onboarding state
 	const organizationQuery = useOrganizationQuery();
-	let onboarding = $derived((organizationQuery.data?.onboarding ?? []) as OnboardingOperation[]);
+	let daemonConnected = $derived(organizationQuery.data?.daemon_connected ?? false);
 
 	// Queries
 	// One page of VLANs, paged, filtered and ordered on the server.
@@ -219,7 +214,7 @@
 
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
-	{:else if !hasDaemon(onboarding)}
+	{:else if !daemonConnected}
 		<PreDaemonEmptyState title={daemons_installPromptVlans()} />
 	{:else if isLoading}
 		<!-- Loading state -->

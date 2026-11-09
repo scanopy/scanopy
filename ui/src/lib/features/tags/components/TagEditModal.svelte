@@ -77,15 +77,24 @@
 	let title = $derived(isEditing ? common_editName({ name: tag?.name ?? '' }) : tags_createTag());
 	let saveLabel = $derived(isEditing ? common_update() : common_create());
 
-	function getDefaultValues(): Tag {
-		if (tag) return { ...tag };
-		if (organization) return createDefaultTag(organization.id);
-		return createDefaultTag('');
+	// The form leaves out `source`: the server sets it, and its nested union is too deep for the
+	// form's field-path types.
+	type TagFormValues = Omit<Tag, 'source'>;
+	function formValues(t: Tag): TagFormValues {
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		const { source, ...values } = t;
+		return values;
+	}
+
+	function getDefaultValues(): TagFormValues {
+		if (tag) return formValues(tag);
+		if (organization) return formValues(createDefaultTag(organization.id));
+		return formValues(createDefaultTag(''));
 	}
 
 	// Create form
 	const form = createForm(() => ({
-		defaultValues: createDefaultTag(''),
+		defaultValues: formValues(createDefaultTag('')),
 		onSubmit: async ({ value }) => {
 			if (!organization) {
 				pushError(common_couldNotLoadOrganization());
@@ -94,7 +103,8 @@
 			}
 
 			const tagData: Tag = {
-				...(value as Tag),
+				...(value as TagFormValues),
+				source: tag?.source ?? { type: 'Manual' },
 				name: value.name.trim(),
 				description: value.description?.trim() || null,
 				organization_id: organization.id

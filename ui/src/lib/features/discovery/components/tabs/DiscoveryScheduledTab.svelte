@@ -39,8 +39,6 @@
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { isPlanLapsed } from '$lib/features/organizations/types';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
-	import type { components } from '$lib/api/schema';
 	import type { TabProps } from '$lib/shared/types';
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
 	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
@@ -76,16 +74,13 @@
 		discovery_noScheduledSessions
 	} from '$lib/paraglide/messages';
 
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
-
 	import { refusedUnless, useCan } from '$lib/features/auth/access';
 
 	let { isActive = false }: TabProps = $props();
 	const can = useCan();
 
-	// Organization query for onboarding state
 	const organizationQuery = useOrganizationQuery();
-	let onboarding = $derived((organizationQuery.data?.onboarding ?? []) as OnboardingOperation[]);
+	let daemonConnected = $derived(organizationQuery.data?.daemon_connected ?? false);
 
 	// Queries
 	const tagsQuery = useTagsQuery();
@@ -403,7 +398,7 @@
 
 <!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
 {#snippet toolbarActions()}
-	{#if hasDaemon(onboarding) && can('Discovery', 'Write')}
+	{#if daemonConnected && can('Discovery', 'Write')}
 		<CreateButton onclick={handleCreateDiscovery} />
 	{/if}
 {/snippet}
@@ -421,7 +416,7 @@
 
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
-	{:else if !hasDaemon(onboarding)}
+	{:else if !daemonConnected}
 		<PreDaemonEmptyState title={daemons_installPromptDiscoveries()} />
 	{:else if isLoading}
 		<Loading />

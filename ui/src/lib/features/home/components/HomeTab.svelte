@@ -31,7 +31,7 @@
 		home_demoNetworkTopology,
 		gettingStarted_stepDaemonDescription
 	} from '$lib/paraglide/messages';
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
+	type SetupItemType = components['schemas']['SetupItemDiscriminants'];
 
 	let { isActive = false }: TabProps = $props();
 
@@ -46,7 +46,7 @@
 	let activeSessions = $derived(sessionsQuery.data ?? []);
 	let pageLoad = $derived(loadFailure(dashboardQuery, organizationQuery));
 
-	let onboarding = $derived((organization?.onboarding ?? []) as OnboardingOperation[]);
+	let setup = $derived(organization?.setup ?? []);
 	let isOwner = $derived(can('Billing', 'Write'));
 	let configData = $derived(configQuery.data);
 
@@ -75,20 +75,22 @@
 	});
 
 	// Journey stage derivation
-	const has = (op: OnboardingOperation) => onboarding.includes(op);
+	const has = (item: SetupItemType) => setup.includes(item);
 	let showNudges = $derived(dashboard != null && organization != null);
 
 	// One prompt at a time: referral source first, then profile
 	let showReferralSource = $derived(
 		configData &&
 			configData.deployment_type === 'cloud' &&
-			has('FirstDaemonRegistered') &&
-			!has('ReferralSourceCompleted')
+			has('InstallDaemon') &&
+			!has('AnswerReferralSource')
 	);
 	let showProfile = $derived(!showReferralSource);
 
 	// Fills the checklist's slot once it is dismissed before the first daemon
-	let showDaemonPrompt = $derived(homeDaemonPrompt(onboarding, checklistDismissed));
+	let showDaemonPrompt = $derived(
+		homeDaemonPrompt(organization?.daemon_connected ?? false, checklistDismissed)
+	);
 
 	// Navigation handler — sets the active tab via the URL hash
 	function navigateTo(tab: string) {
@@ -111,7 +113,7 @@
 		<!-- Getting Started Checklist -->
 		{#if !checklistDismissed}
 			<GettingStartedChecklist
-				{onboarding}
+				{setup}
 				{organization}
 				onNavigate={navigateTo}
 				onDismiss={() => (checklistDismissed = true)}
@@ -131,7 +133,7 @@
 		{/if}
 
 		<!-- Demo Topology Embed — shown before first topology rebuild -->
-		{#if configData && isCloud(configData) && !has('FirstDiscoveryCompleted') && !demoTopologyDismissed}
+		{#if configData && isCloud(configData) && !has('RunFirstScan') && !demoTopologyDismissed}
 			<section>
 				<div class="card-static card overflow-hidden p-0!">
 					<div class="flex items-center justify-between px-4 pt-3">
@@ -171,7 +173,7 @@
 		{/if}
 
 		<!-- Active Discoveries — shown when sessions exist, after first discovery completed -->
-		{#if has('FirstDiscoveryCompleted') && activeSessions.length > 0}
+		{#if has('RunFirstScan') && activeSessions.length > 0}
 			<ActiveDiscoveries
 				sessions={activeSessions}
 				onNavigate={() => navigateTo('discovery-scans')}
@@ -190,7 +192,7 @@
 		{/if}
 
 		<!-- Recent scans — shown once a daemon exists, so before that the checklist is the only ask -->
-		{#if dashboard.recent_discoveries.length > 0 || has('FirstDaemonRegistered')}
+		{#if dashboard.recent_discoveries.length > 0 || has('InstallDaemon')}
 			<RecentDiscoveries
 				recent={dashboard.recent_discoveries}
 				daemons={dashboard.daemons}
@@ -204,12 +206,12 @@
 		{/if}
 
 		<!-- Plan Usage — hidden pre-daemon since limits can't be hit -->
-		{#if has('FirstDaemonRegistered')}
+		{#if has('InstallDaemon')}
 			<PlanUsage planUsage={dashboard.plan_usage} plan={organization.plan} {isOwner} />
 		{/if}
 
 		<!-- Site Metrics — hidden pre-daemon since no meaningful data yet -->
-		{#if has('FirstDaemonRegistered') && dashboard.sites.length > 0}
+		{#if has('InstallDaemon') && dashboard.sites.length > 0}
 			<SiteMetrics sites={dashboard.sites} />
 		{/if}
 	{/if}

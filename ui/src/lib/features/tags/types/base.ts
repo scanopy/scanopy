@@ -11,6 +11,8 @@ export function createDefaultTag(organization_id: string): Tag {
 		tag_group_id: null,
 		position: null,
 		icon: null,
+		// Read-only: the server sets it to Manual on create.
+		source: { type: 'Manual' },
 		id: uuidv4Sentinel,
 		created_at: utcTimeZoneSentinel,
 		updated_at: utcTimeZoneSentinel,

@@ -61,10 +61,6 @@
 		gettingStarted_stepDaemonLabel
 	} from '$lib/paraglide/messages';
 	import { useTagsQuery } from '$lib/features/tags/queries';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
-	import type { components } from '$lib/api/schema';
-
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 
 	import { useCan } from '$lib/features/auth/access';
 
@@ -95,7 +91,7 @@
 	// Queries and mutations
 	const organizationQuery = useOrganizationQuery();
 	let organization = $derived(organizationQuery.data);
-	let onboarding = $derived((organization?.onboarding ?? []) as OnboardingOperation[]);
+	let daemonConnected = $derived(organization?.daemon_connected ?? false);
 
 	// With no daemon there are no hosts to assign to yet. The daemon setup's credentials step
 	// targets devices by IP address instead, so the empty page points there too.
@@ -336,7 +332,7 @@
 			onClick={canManage ? handleCreateCredential : undefined}
 			cta={canManage ? common_create() : ''}
 		/>
-		{#if canManage && !hasDaemon(onboarding)}
+		{#if canManage && !daemonConnected}
 			<p class="-mt-6 text-center text-sm text-tertiary">
 				{credentials_emptyNoDaemonHint()}
 				<button type="button" class="text-link hover:underline" onclick={handleInstallDaemon}>

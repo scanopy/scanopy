@@ -30,7 +30,7 @@
 	} from '$lib/paraglide/messages';
 
 	type Organization = components['schemas']['Organization'];
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
+	type SetupItemType = components['schemas']['SetupItemDiscriminants'];
 
 	let {
 		organization,
@@ -40,14 +40,12 @@
 		configData?: PublicServerConfig | null;
 	} = $props();
 
-	const onboarding = $derived(organization.onboarding ?? []);
-	const has = (op: OnboardingOperation) => onboarding.includes(op);
+	const setup = $derived(organization.setup ?? []);
+	const has = (item: SetupItemType) => setup.includes(item);
 
 	const isCloud = $derived(configData?.deployment_type === 'cloud');
 
-	const visible = $derived(
-		has('FirstDaemonRegistered') && !has('ReferralSourceCompleted') && isCloud
-	);
+	const visible = $derived(has('InstallDaemon') && !has('AnswerReferralSource') && isCloud);
 
 	const referralSourceMutation = useReferralSourceMutation();
 

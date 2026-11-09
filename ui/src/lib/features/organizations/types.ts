@@ -2,11 +2,14 @@ import type { components } from '$lib/api/schema';
 import { billingPlans } from '$lib/shared/stores/metadata';
 
 // Re-export generated types
-export type Organization = components['schemas']['Organization'];
+// The signed-in user's organization, as `/api/v1/organizations/current` serves it.
+export type Organization = components['schemas']['OrganizationResponse'];
+/** The stored organization, which the plan predicates below read. */
+type OrganizationEntity = components['schemas']['Organization'];
 export type OrganizationInvite = components['schemas']['Invite'];
 export type CreateInviteRequest = components['schemas']['CreateInviteRequest'];
 
-export function isBillingPlanActive(organization: Organization): boolean {
+export function isBillingPlanActive(organization: OrganizationEntity): boolean {
 	const type = organization.plan?.type;
 	// No plan selected yet: the plan picker opens and the app locks to Settings.
 	if (type == null) return false;
@@ -31,7 +34,7 @@ export function isBillingPlanActive(organization: Organization): boolean {
  * the backend refuses mutating requests until it does. Mirrors
  * `Organization::is_lapsed` on the backend.
  */
-export function isPlanLapsed(organization: Organization): boolean {
+export function isPlanLapsed(organization: OrganizationEntity): boolean {
 	const type = organization.plan?.type;
 	if (type == null) return false;
 	if (billingPlans.getMetadata(type).is_stripe_managed !== true) return false;
@@ -47,13 +50,13 @@ export function isPlanLapsed(organization: Organization): boolean {
  * shows a plan-required overlay and nothing fetches topology data, which the
  * backend refuses for it.
  */
-export function hasTopologyAccess(organization: Organization | null | undefined): boolean {
+export function hasTopologyAccess(organization: OrganizationEntity | null | undefined): boolean {
 	const type = organization?.plan?.type;
 	if (type == null) return false;
 	return billingPlans.getMetadata(type).includes_topology === true;
 }
 
-export function hasLicensedPlan(organization: Organization): boolean {
+export function hasLicensedPlan(organization: OrganizationEntity): boolean {
 	const type = organization.plan?.type;
 	if (type == null) return false;
 	return billingPlans.getMetadata(type).license_plan != null;
@@ -65,7 +68,7 @@ export function hasLicensedPlan(organization: Organization): boolean {
  * only Settings here. Mirrors `EmailService::self_hosted_plan_locked`.
  */
 export function isSelfHostedPlanLocked(
-	organization: Organization | null | undefined,
+	organization: OrganizationEntity | null | undefined,
 	isCloudDeployment: boolean
 ): boolean {
 	return isCloudDeployment && organization != null && hasLicensedPlan(organization);
@@ -78,7 +81,7 @@ export function isSelfHostedPlanLocked(
  * until it chooses. A cloud org always has a plan: Free, if nothing else.
  */
 export function isPlanUnchosen(
-	organization: Organization | null | undefined,
+	organization: OrganizationEntity | null | undefined,
 	isCloudDeployment: boolean
 ): boolean {
 	return (
@@ -95,7 +98,7 @@ export function isPlanUnchosen(
  * "Subscription activated successfully!" toast so it doesn't fire for
  * downgrade-to-Free, pause, past_due, or pending_cancellation.
  */
-export function isPaidSubscriptionActive(organization: Organization): boolean {
+export function isPaidSubscriptionActive(organization: OrganizationEntity): boolean {
 	const type = organization.plan?.type;
 	if (type == null) return false;
 	if (billingPlans.getMetadata(type).is_stripe_managed !== true) return false;

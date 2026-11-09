@@ -12,12 +12,13 @@ import {
 	gettingStarted_stepTopologyLabel
 } from '$lib/paraglide/messages';
 
-type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
+type SetupItemType = components['schemas']['SetupItemDiscriminants'];
 
 export interface ChecklistStep {
 	id: string;
-	milestone: OnboardingOperation;
-	prerequisite: OnboardingOperation | null;
+	/** The setup item that completes the step. `null` for the account step, done at signup. */
+	milestone: SetupItemType | null;
+	prerequisite: SetupItemType | null;
 	label: () => string;
 	description: () => string;
 	actionTab: string;
@@ -27,7 +28,7 @@ export interface ChecklistStep {
 export const CHECKLIST_STEPS: ChecklistStep[] = [
 	{
 		id: 'account',
-		milestone: 'OrgCreated',
+		milestone: null,
 		prerequisite: null,
 		label: () => gettingStarted_stepAccountLabel(),
 		description: () => gettingStarted_stepAccountDescription(),
@@ -35,8 +36,8 @@ export const CHECKLIST_STEPS: ChecklistStep[] = [
 	},
 	{
 		id: 'daemon',
-		milestone: 'FirstDaemonRegistered',
-		prerequisite: 'OrgCreated',
+		milestone: 'InstallDaemon',
+		prerequisite: null,
 		label: () => gettingStarted_stepDaemonLabel(),
 		description: () => gettingStarted_stepDaemonDescription(),
 		actionTab: 'daemons',
@@ -44,41 +45,37 @@ export const CHECKLIST_STEPS: ChecklistStep[] = [
 	},
 	{
 		id: 'discovery',
-		milestone: 'FirstDiscoveryCompleted',
-		prerequisite: 'FirstDaemonRegistered',
+		milestone: 'RunFirstScan',
+		prerequisite: 'InstallDaemon',
 		label: () => gettingStarted_stepDiscoveryLabel(),
 		description: () => gettingStarted_stepDiscoveryDescription(),
 		actionTab: 'discovery-scans'
 	},
 	{
 		id: 'topology',
-		milestone: 'FirstTopologyRebuild',
-		prerequisite: 'FirstDiscoveryCompleted',
+		milestone: 'OpenTopology',
+		prerequisite: 'RunFirstScan',
 		label: () => gettingStarted_stepTopologyLabel(),
 		description: () => gettingStarted_stepTopologyDescription(),
 		actionTab: 'topology'
 	}
 ];
 
-export function isStepComplete(step: ChecklistStep, onboarding: OnboardingOperation[]): boolean {
-	return onboarding.includes(step.milestone);
+export function isStepComplete(step: ChecklistStep, setup: SetupItemType[]): boolean {
+	return step.milestone === null || setup.includes(step.milestone);
 }
 
-export function isStepEnabled(step: ChecklistStep, onboarding: OnboardingOperation[]): boolean {
+export function isStepEnabled(step: ChecklistStep, setup: SetupItemType[]): boolean {
 	if (step.prerequisite === null) return true;
-	return onboarding.includes(step.prerequisite);
+	return setup.includes(step.prerequisite);
 }
 
-export function getCompletedCount(onboarding: OnboardingOperation[]): number {
-	return CHECKLIST_STEPS.filter((s) => onboarding.includes(s.milestone)).length;
+export function getCompletedCount(setup: SetupItemType[]): number {
+	return CHECKLIST_STEPS.filter((s) => isStepComplete(s, setup)).length;
 }
 
-export function isAllComplete(onboarding: OnboardingOperation[]): boolean {
-	return CHECKLIST_STEPS.every((s) => onboarding.includes(s.milestone));
-}
-
-export function hasDaemon(onboarding: OnboardingOperation[]): boolean {
-	return onboarding.includes('FirstDaemonRegistered');
+export function isAllComplete(setup: SetupItemType[]): boolean {
+	return CHECKLIST_STEPS.every((s) => isStepComplete(s, setup));
 }
 
 /**
@@ -86,11 +83,8 @@ export function hasDaemon(onboarding: OnboardingOperation[]): boolean {
  * checklist carries its own daemon step, so the prompt only fills in once the
  * checklist is dismissed.
  */
-export function homeDaemonPrompt(
-	onboarding: OnboardingOperation[],
-	checklistDismissed: boolean
-): boolean {
-	return checklistDismissed && !hasDaemon(onboarding);
+export function homeDaemonPrompt(daemonConnected: boolean, checklistDismissed: boolean): boolean {
+	return checklistDismissed && !daemonConnected;
 }
 
 export function executeStepAction(step: ChecklistStep, navigate: (tab: string) => void): void {

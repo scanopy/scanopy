@@ -195,10 +195,19 @@
 	let assignedSiteIds = $state<string[]>([]);
 	let hostAssignments = $state<CredentialHostAssignment[]>([]);
 
-	function getDefaultValues(): Credential {
-		if (credential) return { ...credential };
-		if (organization) return createDefaultCredential(organization.id);
-		return createDefaultCredential('');
+	// The form leaves out `source`: the server sets it, and its nested union is too deep for the
+	// form's field-path types.
+	type CredentialFormValues = Omit<Credential, 'source'>;
+	function formValuesOf(c: Credential): CredentialFormValues {
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		const { source, ...values } = c;
+		return values;
+	}
+
+	function getDefaultValues(): CredentialFormValues {
+		if (credential) return formValuesOf(credential);
+		if (organization) return formValuesOf(createDefaultCredential(organization.id));
+		return formValuesOf(createDefaultCredential(''));
 	}
 
 	// Form owns the name field; CredentialForm handles the rest
@@ -233,6 +242,7 @@
 
 			const credentialData: Credential = {
 				...(formValues as unknown as Credential),
+				source: credential?.source ?? { type: 'Manual' },
 				organization_id: organization.id,
 				credential_type: credentialType,
 				daemon_os: credentialFormRef?.getDaemonOs() ?? null,
