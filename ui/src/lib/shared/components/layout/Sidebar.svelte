@@ -23,6 +23,8 @@
 	import { Menu, ChevronDown, History, Settings, Clock, Home, Search } from '@lucide/svelte';
 	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
 	import PaidCrown from '$lib/shared/components/PaidCrown.svelte';
+	import NavBadge from '$lib/shared/components/layout/NavBadge.svelte';
+	import { createColorHelper } from '$lib/shared/utils/styling';
 	import { GLOBAL_SEARCH_KEY, globalSearchOpen } from '$lib/features/search/results';
 	import { tableSearchFocused } from '$lib/shared/components/data/controls/listShortcuts';
 	import { onMount } from 'svelte';
@@ -637,22 +639,23 @@
 		return activeTab === item.id;
 	}
 
-	// Notification-dot color for a nav item, or null for none. One place that maps
-	// an item to its dot so the same rendering covers every item that has one
-	// (Scans → active sessions; Daemons → a daemon that isn't Healthy).
-	function itemNotificationColor(item: NavItem): string | null {
+	// The badge on a nav item, or null for none: one place that maps an item to its badge (Scans →
+	// active sessions; Daemons → a daemon that isn't Healthy; Home → its Issues, counted;
+	// Settings → a billing action).
+	function itemBadge(item: NavItem): { color: string; count?: number } | null {
 		if (item.id === 'discovery' && hasActiveSessions) {
-			return entities.getColorHelper('Discovery').rgb;
+			return { color: entities.getColorHelper('Discovery').rgb };
 		}
 		if (item.id === 'daemons-group' && worstDaemonHealth) {
-			return daemonHealths.getColorHelper(worstDaemonHealth).rgb;
+			return { color: daemonHealths.getColorHelper(worstDaemonHealth).rgb };
+		}
+		if (item.id === 'home' && setupIssues > 0) {
+			return { color: setupItemTiers.getColorHelper('Issue').rgb, count: setupIssues };
+		}
+		if (item.id === 'settings' && showBillingNotification) {
+			return { color: createColorHelper('Amber').rgb };
 		}
 		return null;
-	}
-
-	// The count a standalone item draws where a section item draws its dot (Home → its Issues).
-	function itemCount(item: NavItem): number {
-		return item.id === 'home' ? setupIssues : 0;
 	}
 
 	const inactiveButtonClass =
@@ -742,7 +745,7 @@
 							{#if !sectionStates[configItem.id] || collapsed}
 								<ul class="mt-1 space-y-1" class:mt-0={collapsed}>
 									{#each configItem.items as item (item.id)}
-										{@const dotColor = itemNotificationColor(item)}
+										{@const badge = itemBadge(item)}
 										<li>
 											<button
 												onclick={() => handleItemClick(item)}
@@ -754,11 +757,8 @@
 											>
 												<span class="relative">
 													<item.icon class="h-4 w-4 shrink-0" />
-													{#if dotColor}
-														<span
-															class="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full"
-															style="background-color: {dotColor}"
-														></span>
+													{#if badge}
+														<NavBadge {...badge} class="absolute -top-1 -right-1" />
 													{/if}
 												</span>
 												{#if !collapsed}
@@ -794,7 +794,7 @@
 						</li>
 					{:else}
 						<!-- Standalone item (no section, no indentation) -->
-						{@const count = itemCount(configItem)}
+						{@const badge = itemBadge(configItem)}
 						<li>
 							<button
 								onclick={() => handleItemClick(configItem)}
@@ -807,13 +807,13 @@
 							>
 								<span class="relative">
 									<configItem.icon class="h-4 w-4 shrink-0" />
-									{#if count > 0}
-										<span
-											class="absolute -top-1.5 -right-2 h-4 min-w-4 rounded-full px-1 text-center text-[10px] leading-4 font-semibold text-white"
-											style="background-color: {setupItemTiers.getColorHelper('Issue').rgb}"
-										>
-											{count}
-										</span>
+									{#if badge}
+										<NavBadge
+											{...badge}
+											class="absolute {badge.count === undefined
+												? '-top-1 -right-1'
+												: '-top-1.5 -right-2'}"
+										/>
 									{/if}
 								</span>
 								{#if !collapsed}
@@ -885,6 +885,7 @@
 			{/if}
 			{#each bottomNavItems as item (item.id)}
 				{#if !isSection(item)}
+					{@const badge = itemBadge(item)}
 					<li>
 						<button
 							onclick={() => handleItemClick(item)}
@@ -897,9 +898,8 @@
 						>
 							<span class="relative">
 								<item.icon class="h-5 w-5 shrink-0" />
-								{#if item.id === 'settings' && showBillingNotification}
-									<span class="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-amber-500"
-									></span>
+								{#if badge}
+									<NavBadge {...badge} class="absolute -top-1 -right-1" />
 								{/if}
 							</span>
 							{#if !collapsed}
