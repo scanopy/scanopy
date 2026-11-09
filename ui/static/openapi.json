@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scanopy API",
-    "description": "\nSite topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.6\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.6\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.19.6)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **site(s)**:\n\n- You can only access entities within your organization\n- Site-level entities (hosts, services, etc.) are filtered to sites you have access to\n- Use `?site_id=<UUID>` to filter list endpoints to a specific site\n- API keys can be scoped to a subset of your accessible sites\n",
+    "description": "\nSite topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.7\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.19.7\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.19.7)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **site(s)**:\n\n- You can only access entities within your organization\n- Site-level entities (hosts, services, etc.) are filtered to sites you have access to\n- Use `?site_id=<UUID>` to filter list endpoints to a specific site\n- API keys can be scoped to a subset of your accessible sites\n",
     "license": {
       "name": "Dual (AGPL3.0, Commercial License Available)"
     },
@@ -12623,6 +12623,49 @@
         }
       }
     },
+    "/api/v1/organizations/setup": {
+      "post": {
+        "tags": [
+          "Organizations",
+          "internal"
+        ],
+        "summary": "Record Setup item",
+        "description": "Marks done a Setup item that is finished in the app with no other request to record it on,\nsuch as the dependency tutorial. Recording an item already done changes nothing.",
+        "operationId": "record_setup_item",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordSetupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Setup item recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The item is not recorded by the app",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/organizations/{id}": {
       "put": {
         "tags": [
@@ -23363,12 +23406,12 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.19.6"
+            "example": "0.19.7"
           }
         },
         "example": {
           "api_version": 1,
-          "server_version": "0.19.6"
+          "server_version": "0.19.7"
         }
       },
       "ApiResponse": {
@@ -23500,19 +23543,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-11-09T14:45:15.389484Z",
+              "created_at": "2026-11-09T19:50:38.693717Z",
               "first_discovery_id": null,
-              "id": "f979a1d3-dc11-4731-9156-3af9fdd53fb9",
+              "id": "2ea304e0-ca3c-4f23-b874-a0002e4b8c15",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-09T14:45:15.389484Z",
+              "last_seen_at": "2026-11-09T19:50:38.693717Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-09T14:45:15.389484Z",
-              "valid_from": "2026-11-09T14:45:15.389484Z",
+              "updated_at": "2026-11-09T19:50:38.693717Z",
+              "valid_from": "2026-11-09T19:50:38.693717Z",
               "valid_to": null
             }
           },
@@ -25229,9 +25272,11 @@
               "created_at": "2026-01-15T10:30:00Z",
               "credential_assignments": [],
               "description": "Primary web server",
-              "device_type": "Unidentified",
+              "device_type": "IoT",
               "device_type_source": {
-                "type": "NoEvidence"
+                "service_id": "550e8400-e29b-41d4-a716-446655440007",
+                "service_name": "nginx",
+                "type": "Service"
               },
               "dismissed_at": null,
               "display_name": "web-server-01",
@@ -25360,19 +25405,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-11-09T14:45:15.355597Z",
+                      "created_at": "2026-11-09T19:50:38.657784Z",
                       "first_discovery_id": null,
-                      "id": "d936bbf6-75ba-4712-96b0-84f5e447cdcb",
+                      "id": "60b11167-c69a-427f-aee2-6a313eaf84eb",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-11-09T14:45:15.355597Z",
+                      "last_seen_at": "2026-11-09T19:50:38.657784Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-11-09T14:45:15.355597Z",
-                      "valid_from": "2026-11-09T14:45:15.355597Z",
+                      "updated_at": "2026-11-09T19:50:38.657784Z",
+                      "valid_from": "2026-11-09T19:50:38.657784Z",
                       "valid_to": null
                     }
                   ],
@@ -25385,7 +25430,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Shell In A Box",
+                  "service_definition": "IoT",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -26887,19 +26932,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-11-09T14:45:15.383748Z",
+                  "created_at": "2026-11-09T19:50:38.688265Z",
                   "first_discovery_id": null,
-                  "id": "98f615d0-769f-4f25-88d4-15cb67593ce0",
+                  "id": "22e04d1f-a090-43bb-8813-9a7f627cd33a",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-09T14:45:15.383748Z",
+                  "last_seen_at": "2026-11-09T19:50:38.688265Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-09T14:45:15.383748Z",
-                  "valid_from": "2026-11-09T14:45:15.383748Z",
+                  "updated_at": "2026-11-09T19:50:38.688265Z",
+                  "valid_from": "2026-11-09T19:50:38.688265Z",
                   "valid_to": null
                 }
               ],
@@ -26912,7 +26957,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Shell In A Box",
+              "service_definition": "IoT",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -30206,19 +30251,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-11-09T14:45:15.356234Z",
+          "created_at": "2026-11-09T19:50:38.658561Z",
           "first_discovery_id": null,
-          "id": "720da842-3ad0-40ad-b891-f771f3adea99",
+          "id": "e07e39ae-235f-45ea-bb06-f70d5991867e",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-11-09T14:45:15.356234Z",
+          "last_seen_at": "2026-11-09T19:50:38.658561Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-11-09T14:45:15.356234Z",
-          "valid_from": "2026-11-09T14:45:15.356234Z",
+          "updated_at": "2026-11-09T19:50:38.658561Z",
+          "valid_from": "2026-11-09T19:50:38.658561Z",
           "valid_to": null
         }
       },
@@ -31131,7 +31176,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Shell In A Box",
+              "service_definition": "IoT",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -39411,9 +39456,11 @@
           "created_at": "2026-01-15T10:30:00Z",
           "credential_assignments": [],
           "description": "Primary web server",
-          "device_type": "Unidentified",
+          "device_type": "IoT",
           "device_type_source": {
-            "type": "NoEvidence"
+            "service_id": "550e8400-e29b-41d4-a716-446655440007",
+            "service_name": "nginx",
+            "type": "Service"
           },
           "dismissed_at": null,
           "display_name": "web-server-01",
@@ -39542,19 +39589,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-11-09T14:45:15.354844Z",
+                  "created_at": "2026-11-09T19:50:38.656868Z",
                   "first_discovery_id": null,
-                  "id": "56106ac0-3f36-41a8-a450-b7d3647a2551",
+                  "id": "d4a198bf-37b6-4bc3-b9aa-0b75908e2988",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-09T14:45:15.354844Z",
+                  "last_seen_at": "2026-11-09T19:50:38.656868Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-09T14:45:15.354844Z",
-                  "valid_from": "2026-11-09T14:45:15.354844Z",
+                  "updated_at": "2026-11-09T19:50:38.656868Z",
+                  "valid_from": "2026-11-09T19:50:38.656868Z",
                   "valid_to": null
                 }
               ],
@@ -39567,7 +39614,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Shell In A Box",
+              "service_definition": "IoT",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -43079,7 +43126,7 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.19.6"
+            "example": "0.19.7"
           }
         },
         "example": {
@@ -43090,7 +43137,7 @@
             "offset": 0,
             "total_count": 142
           },
-          "server_version": "0.19.6"
+          "server_version": "0.19.7"
         }
       },
       "PaginatedApiResponse_Credential": {
@@ -43909,9 +43956,11 @@
                 "created_at": "2026-01-15T10:30:00Z",
                 "credential_assignments": [],
                 "description": "Primary web server",
-                "device_type": "Unidentified",
+                "device_type": "IoT",
                 "device_type_source": {
-                  "type": "NoEvidence"
+                  "service_id": "550e8400-e29b-41d4-a716-446655440007",
+                  "service_name": "nginx",
+                  "type": "Service"
                 },
                 "dismissed_at": null,
                 "display_name": "web-server-01",
@@ -44040,19 +44089,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-11-09T14:45:15.337559Z",
+                        "created_at": "2026-11-09T19:50:38.632811Z",
                         "first_discovery_id": null,
-                        "id": "183dfa03-a900-4497-8c92-a6094c6267ba",
+                        "id": "301b806f-f0be-4675-b43f-71980c8b8421",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-11-09T14:45:15.337559Z",
+                        "last_seen_at": "2026-11-09T19:50:38.632811Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-11-09T14:45:15.337559Z",
-                        "valid_from": "2026-11-09T14:45:15.337559Z",
+                        "updated_at": "2026-11-09T19:50:38.632811Z",
+                        "valid_from": "2026-11-09T19:50:38.632811Z",
                         "valid_to": null
                       }
                     ],
@@ -44065,7 +44114,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Shell In A Box",
+                    "service_definition": "IoT",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -44312,19 +44361,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-11-09T14:45:15.382935Z",
+                    "created_at": "2026-11-09T19:50:38.687468Z",
                     "first_discovery_id": null,
-                    "id": "0ff5fde9-ea0f-4289-8a10-5922f3dd3392",
+                    "id": "e0a68ae1-7af7-4ed4-9b3d-785e0224d2b8",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-11-09T14:45:15.382935Z",
+                    "last_seen_at": "2026-11-09T19:50:38.687468Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-11-09T14:45:15.382935Z",
-                    "valid_from": "2026-11-09T14:45:15.382935Z",
+                    "updated_at": "2026-11-09T19:50:38.687468Z",
+                    "valid_from": "2026-11-09T19:50:38.687468Z",
                     "valid_to": null
                   }
                 ],
@@ -44337,7 +44386,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Shell In A Box",
+                "service_definition": "IoT",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -45990,6 +46039,19 @@
           }
         }
       },
+      "RecordSetupRequest": {
+        "type": "object",
+        "description": "The Setup item a client finished.",
+        "required": [
+          "item"
+        ],
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/SetupItemDiscriminants",
+            "description": "The item, which must be one the app records itself, such as the dependency tutorial."
+          }
+        }
+      },
       "ReferralSource": {
         "type": "string",
         "description": "How a user first heard about Scanopy, as offered by the onboarding prompt.",
@@ -47024,19 +47086,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-11-09T14:45:15.356019Z",
+              "created_at": "2026-11-09T19:50:38.658293Z",
               "first_discovery_id": null,
-              "id": "17f03a23-2e9f-4a1e-a605-3fa46fcf1dfb",
+              "id": "bf26dfce-123c-46c5-b531-f43278a564d4",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-09T14:45:15.356019Z",
+              "last_seen_at": "2026-11-09T19:50:38.658293Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-09T14:45:15.356019Z",
-              "valid_from": "2026-11-09T14:45:15.356019Z",
+              "updated_at": "2026-11-09T19:50:38.658293Z",
+              "valid_from": "2026-11-09T19:50:38.658293Z",
               "valid_to": null
             }
           ],
@@ -47049,7 +47111,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Shell In A Box",
+          "service_definition": "IoT",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -47718,6 +47780,22 @@
           },
           {
             "type": "object",
+            "title": "DependencyTutorial",
+            "description": "The dependency tutorial, which opens until it is finished or a dependency exists. It reads\nas the Dependencies item it unlocks, so the user sees one step whose click changes.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "DependencyTutorial"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "Dependencies",
             "description": "Dependencies between services.",
             "required": [
@@ -47848,6 +47926,7 @@
           "AnswerProfile",
           "ExploreViews",
           "ApplicationTags",
+          "DependencyTutorial",
           "Dependencies",
           "InterfaceCredential",
           "Tags",
@@ -47959,6 +48038,7 @@
           "tier",
           "state",
           "alerts_when_stuck",
+          "site_ids",
           "item"
         ],
         "properties": {
@@ -47972,6 +48052,14 @@
           "key": {
             "$ref": "#/components/schemas/SetupItemKey",
             "description": "The item's identity: the same item on the next load has the same key."
+          },
+          "site_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The sites the item is about, which the list can be narrowed to. Empty for an item about\nthe whole org, which shows whatever sites are picked."
           },
           "state": {
             "$ref": "#/components/schemas/SetupItemState"
@@ -50111,7 +50199,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "dc895262-b6fb-4748-a0e9-fbeeddbba6a5",
+                  "id": "5637ea37-4f33-4d75-95d8-db68f5bbdc91",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -50121,23 +50209,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "7621e5ac-f5a9-4c77-ae66-d1ea22360770",
+                  "id": "c2ccf55f-b0ad-4e8a-8695-820396e1f87b",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "904be274-210d-4e0b-8d79-0b03544b9c33",
+                  "id": "89a60890-6f28-44c0-983f-885c4b794a17",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "44045ce9-95f6-4002-b021-79a2ca569a44",
+                  "id": "df8343e4-f87c-4da8-8bad-a0efb4a448c1",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "7621e5ac-f5a9-4c77-ae66-d1ea22360770",
+                  "id": "c2ccf55f-b0ad-4e8a-8695-820396e1f87b",
                   "rule": "ByHost"
                 }
               ]
@@ -50167,19 +50255,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "5de147c0-c0a5-4dc4-8027-511f7c3eb827",
+                "id": "b0256ff6-9461-4df3-96b9-d0045421dc48",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "8c02910d-2fff-4b26-aaff-ca1a6367cbdc",
+                "id": "f0fdec5c-fbfb-451b-87bb-138025e88690",
                 "rule": "ByVLAN"
               },
               {
-                "id": "e1097f5b-1084-48d9-be52-322cab1e3108",
+                "id": "06e109ab-a367-4629-8e7b-285e161611e7",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "8d3cc9b5-bebd-448f-974e-d22ce99a8a16",
+                "id": "5820d96f-7b8c-4cd9-83b4-165603e8bc87",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -50200,7 +50288,7 @@
                 }
               },
               {
-                "id": "b72ef54c-8f0c-490b-9a0b-0f59bc9d733c",
+                "id": "ac1d31aa-e849-482c-8706-303b6e5a12b7",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -50209,19 +50297,19 @@
                 }
               },
               {
-                "id": "f244eefc-f2ec-4f9d-8656-0563e3abd25b",
+                "id": "b0906390-008b-4294-bb10-3d7701d1464e",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "9c4ff89a-9413-4e23-bfda-47f3b5e3341c",
+                "id": "6f40fe51-d1ca-4dda-bf6b-aa27965f64ab",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "988d2f43-b47a-497d-913d-054205e528e3",
+                "id": "e442a8cb-313a-465c-bd7c-7fd507f884ea",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "f3ad717e-4a55-456b-b43f-73f0427c338f",
+                "id": "96e45ff6-f64f-49db-bb02-be8fc87cdd2e",
                 "rule": "ByStack"
               }
             ]

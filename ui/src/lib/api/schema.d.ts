@@ -2632,6 +2632,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record Setup item
+         * @description Marks done a Setup item that is finished in the app with no other request to record it on,
+         *     such as the dependency tutorial. Recording an item already done changes nothing.
+         */
+        post: operations["record_setup_item"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/{id}": {
         parameters: {
             query?: never;
@@ -4182,7 +4203,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.19.6"
+         *       "server_version": "0.19.7"
          *     }
          */
         ApiMeta: {
@@ -4193,7 +4214,7 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.19.6
+             * @example 0.19.7
              */
             server_version: string;
         };
@@ -4222,19 +4243,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-09T14:45:15.389484Z",
+             *       "created_at": "2026-11-09T19:50:38.693717Z",
              *       "first_discovery_id": null,
-             *       "id": "f979a1d3-dc11-4731-9156-3af9fdd53fb9",
+             *       "id": "2ea304e0-ca3c-4f23-b874-a0002e4b8c15",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-09T14:45:15.389484Z",
+             *       "last_seen_at": "2026-11-09T19:50:38.693717Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-09T14:45:15.389484Z",
-             *       "valid_from": "2026-11-09T14:45:15.389484Z",
+             *       "updated_at": "2026-11-09T19:50:38.693717Z",
+             *       "valid_from": "2026-11-09T19:50:38.693717Z",
              *       "valid_to": null
              *     }
              */
@@ -5010,9 +5031,11 @@ export interface components {
              *       "created_at": "2026-01-15T10:30:00Z",
              *       "credential_assignments": [],
              *       "description": "Primary web server",
-             *       "device_type": "Unidentified",
+             *       "device_type": "IoT",
              *       "device_type_source": {
-             *         "type": "NoEvidence"
+             *         "service_id": "550e8400-e29b-41d4-a716-446655440007",
+             *         "service_name": "nginx",
+             *         "type": "Service"
              *       },
              *       "dismissed_at": null,
              *       "display_name": "web-server-01",
@@ -5141,19 +5164,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-09T14:45:15.355597Z",
+             *               "created_at": "2026-11-09T19:50:38.657784Z",
              *               "first_discovery_id": null,
-             *               "id": "d936bbf6-75ba-4712-96b0-84f5e447cdcb",
+             *               "id": "60b11167-c69a-427f-aee2-6a313eaf84eb",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-09T14:45:15.355597Z",
+             *               "last_seen_at": "2026-11-09T19:50:38.657784Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-09T14:45:15.355597Z",
-             *               "valid_from": "2026-11-09T14:45:15.355597Z",
+             *               "updated_at": "2026-11-09T19:50:38.657784Z",
+             *               "valid_from": "2026-11-09T19:50:38.657784Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5166,7 +5189,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Shell In A Box",
+             *           "service_definition": "IoT",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6198,19 +6221,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-09T14:45:15.383748Z",
+             *           "created_at": "2026-11-09T19:50:38.688265Z",
              *           "first_discovery_id": null,
-             *           "id": "98f615d0-769f-4f25-88d4-15cb67593ce0",
+             *           "id": "22e04d1f-a090-43bb-8813-9a7f627cd33a",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-09T14:45:15.383748Z",
+             *           "last_seen_at": "2026-11-09T19:50:38.688265Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-09T14:45:15.383748Z",
-             *           "valid_from": "2026-11-09T14:45:15.383748Z",
+             *           "updated_at": "2026-11-09T19:50:38.688265Z",
+             *           "valid_from": "2026-11-09T19:50:38.688265Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6223,7 +6246,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Shell In A Box",
+             *       "service_definition": "IoT",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7701,19 +7724,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-09T14:45:15.356234Z",
+         *       "created_at": "2026-11-09T19:50:38.658561Z",
          *       "first_discovery_id": null,
-         *       "id": "720da842-3ad0-40ad-b891-f771f3adea99",
+         *       "id": "e07e39ae-235f-45ea-bb06-f70d5991867e",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-09T14:45:15.356234Z",
+         *       "last_seen_at": "2026-11-09T19:50:38.658561Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-09T14:45:15.356234Z",
-         *       "valid_from": "2026-11-09T14:45:15.356234Z",
+         *       "updated_at": "2026-11-09T19:50:38.658561Z",
+         *       "valid_from": "2026-11-09T19:50:38.658561Z",
          *       "valid_to": null
          *     }
          */
@@ -8103,7 +8126,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Shell In A Box",
+         *           "service_definition": "IoT",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -11175,9 +11198,11 @@ export interface components {
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "credential_assignments": [],
          *       "description": "Primary web server",
-         *       "device_type": "Unidentified",
+         *       "device_type": "IoT",
          *       "device_type_source": {
-         *         "type": "NoEvidence"
+         *         "service_id": "550e8400-e29b-41d4-a716-446655440007",
+         *         "service_name": "nginx",
+         *         "type": "Service"
          *       },
          *       "dismissed_at": null,
          *       "display_name": "web-server-01",
@@ -11306,19 +11331,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-09T14:45:15.354844Z",
+         *               "created_at": "2026-11-09T19:50:38.656868Z",
          *               "first_discovery_id": null,
-         *               "id": "56106ac0-3f36-41a8-a450-b7d3647a2551",
+         *               "id": "d4a198bf-37b6-4bc3-b9aa-0b75908e2988",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-09T14:45:15.354844Z",
+         *               "last_seen_at": "2026-11-09T19:50:38.656868Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-09T14:45:15.354844Z",
-         *               "valid_from": "2026-11-09T14:45:15.354844Z",
+         *               "updated_at": "2026-11-09T19:50:38.656868Z",
+         *               "valid_from": "2026-11-09T19:50:38.656868Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11331,7 +11356,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Shell In A Box",
+         *           "service_definition": "IoT",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -13228,7 +13253,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.19.6"
+         *       "server_version": "0.19.7"
          *     }
          */
         PaginatedApiMeta: {
@@ -13241,7 +13266,7 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.19.6
+             * @example 0.19.7
              */
             server_version: string;
         };
@@ -14580,6 +14605,11 @@ export interface components {
             /** @description Whether a shared VLAN widened the range past the conventional prefix. */
             widened_by_vlan: boolean;
         };
+        /** @description The Setup item a client finished. */
+        RecordSetupRequest: {
+            /** @description The item, which must be one the app records itself, such as the dependency tutorial. */
+            item: components["schemas"]["SetupItemDiscriminants"];
+        };
         /**
          * @description How a user first heard about Scanopy, as offered by the onboarding prompt.
          * @enum {string}
@@ -14997,19 +15027,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-09T14:45:15.356019Z",
+         *           "created_at": "2026-11-09T19:50:38.658293Z",
          *           "first_discovery_id": null,
-         *           "id": "17f03a23-2e9f-4a1e-a605-3fa46fcf1dfb",
+         *           "id": "bf26dfce-123c-46c5-b531-f43278a564d4",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-09T14:45:15.356019Z",
+         *           "last_seen_at": "2026-11-09T19:50:38.658293Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-09T14:45:15.356019Z",
-         *           "valid_from": "2026-11-09T14:45:15.356019Z",
+         *           "updated_at": "2026-11-09T19:50:38.658293Z",
+         *           "valid_from": "2026-11-09T19:50:38.658293Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -15022,7 +15052,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Shell In A Box",
+         *       "service_definition": "IoT",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -15320,6 +15350,9 @@ export interface components {
             type: "ApplicationTags";
         } | {
             /** @enum {string} */
+            type: "DependencyTutorial";
+        } | {
+            /** @enum {string} */
             type: "Dependencies";
         } | {
             /** @enum {string} */
@@ -15341,7 +15374,7 @@ export interface components {
             type: "Share";
         };
         /** @enum {string} */
-        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "UnconfirmedHosts" | "UnconfirmedSubnets" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ExploreViews" | "ApplicationTags" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
+        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "UnconfirmedHosts" | "UnconfirmedSubnets" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ExploreViews" | "ApplicationTags" | "DependencyTutorial" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
         /** @description One item's identity across sweeps and page loads. */
         SetupItemKey: {
             item_type: components["schemas"]["SetupItemDiscriminants"];
@@ -15390,6 +15423,11 @@ export interface components {
             item: components["schemas"]["SetupItem"];
             /** @description The item's identity: the same item on the next load has the same key. */
             key: components["schemas"]["SetupItemKey"];
+            /**
+             * @description The sites the item is about, which the list can be narrowed to. Empty for an item about
+             *     the whole org, which shows whatever sites are picked.
+             */
+            site_ids: string[];
             state: components["schemas"]["SetupItemState"];
             /** @description The group of the list the item sits in. */
             tier: components["schemas"]["SetupItemTier"];
@@ -16442,7 +16480,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "dc895262-b6fb-4748-a0e9-fbeeddbba6a5",
+             *           "id": "5637ea37-4f33-4d75-95d8-db68f5bbdc91",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16452,23 +16490,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "7621e5ac-f5a9-4c77-ae66-d1ea22360770",
+             *           "id": "c2ccf55f-b0ad-4e8a-8695-820396e1f87b",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "904be274-210d-4e0b-8d79-0b03544b9c33",
+             *           "id": "89a60890-6f28-44c0-983f-885c4b794a17",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "44045ce9-95f6-4002-b021-79a2ca569a44",
+             *           "id": "df8343e4-f87c-4da8-8bad-a0efb4a448c1",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "7621e5ac-f5a9-4c77-ae66-d1ea22360770",
+             *           "id": "c2ccf55f-b0ad-4e8a-8695-820396e1f87b",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16482,19 +16520,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "5de147c0-c0a5-4dc4-8027-511f7c3eb827",
+             *         "id": "b0256ff6-9461-4df3-96b9-d0045421dc48",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "8c02910d-2fff-4b26-aaff-ca1a6367cbdc",
+             *         "id": "f0fdec5c-fbfb-451b-87bb-138025e88690",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "e1097f5b-1084-48d9-be52-322cab1e3108",
+             *         "id": "06e109ab-a367-4629-8e7b-285e161611e7",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "8d3cc9b5-bebd-448f-974e-d22ce99a8a16",
+             *         "id": "5820d96f-7b8c-4cd9-83b4-165603e8bc87",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16515,7 +16553,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "b72ef54c-8f0c-490b-9a0b-0f59bc9d733c",
+             *         "id": "ac1d31aa-e849-482c-8706-303b6e5a12b7",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16524,19 +16562,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "f244eefc-f2ec-4f9d-8656-0563e3abd25b",
+             *         "id": "b0906390-008b-4294-bb10-3d7701d1464e",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "9c4ff89a-9413-4e23-bfda-47f3b5e3341c",
+             *         "id": "6f40fe51-d1ca-4dda-bf6b-aa27965f64ab",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "988d2f43-b47a-497d-913d-054205e528e3",
+             *         "id": "e442a8cb-313a-465c-bd7c-7fd507f884ea",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "f3ad717e-4a55-456b-b43f-73f0427c338f",
+             *         "id": "96e45ff6-f64f-49db-bb02-be8fc87cdd2e",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -23492,6 +23530,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    record_setup_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordSetupRequest"];
+            };
+        };
+        responses: {
+            /** @description Setup item recorded */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description The item is not recorded by the app */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
         };
