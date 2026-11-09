@@ -227,55 +227,40 @@ pub(super) fn generate_discoveries(
                         error: None,
                         // One warning per WarningRemedy group, so the report's four sections
                         // (and more than one Severity icon) all have something to show.
-                        warnings: vec![
-                            // FixInScanopy: nothing answered at this address for the SNMP
-                            // credential during the scan.
-                            DiscoveryWarning::CredentialTargetNotResponding {
-                                address: IpAddr::V4(Ipv4Addr::new(10, 0, 1, 15)),
-                                integration: CredentialQueryPayloadDiscriminants::Snmp,
-                                credential_id: Some(network_devices_cred_id),
-                            },
-                            // FixInScanopy: a credential stored without a target, which no scan
-                            // sends to a daemon.
-                            DiscoveryWarning::CredentialWithoutTarget {
-                                integration: CredentialQueryPayloadDiscriminants::Snmp,
-                                credential_id: Some(branch_snmp_cred_id),
-                            },
-                            // CheckTheDevice: the switch claims LLDP (it answered
-                            // lldpLocChassisId) but its neighbour table came back empty.
-                            DiscoveryWarning::ClaimedCapabilityEmpty {
-                                address: IpAddr::V4(Ipv4Addr::new(10, 0, 1, 3)),
-                                group: SnmpWalkGroup::Lldp,
-                                source: ClaimSource::LldpLocalIdentity,
-                                credential_id: Some(network_devices_cred_id),
-                                snmp_version: None,
-                            },
-                            // ClearsOnTheNextScan: a partial ARP-table read was discarded
-                            // rather than recorded.
-                            DiscoveryWarning::SnmpWalkPartialDiscarded {
-                                address: IpAddr::V4(Ipv4Addr::new(10, 0, 40, 20)),
-                                group: SnmpWalkGroup::ArpTable,
-                                credential_id: Some(network_devices_cred_id),
-                                snmp_version: None,
-                            },
-                            // NothingToDo: a firewall has no bridge ports to number, and no
-                            // later scan changes that.
-                            DiscoveryWarning::SnmpWalkUnsupported {
-                                address: IpAddr::V4(Ipv4Addr::new(10, 0, 1, 1)),
-                                group: SnmpWalkGroup::BridgePortNumbering,
-                                credential_id: Some(network_devices_cred_id),
-                                snmp_version: None,
-                            },
-                        ]
-                        .into_iter()
-                        // The annex range, assumed around the address the HQ switch's LLDP table
-                        // heard the annex uplink advertise. The subnet's resolve modal reads its
-                        // evidence from this warning.
-                        .chain(annex_range_warning(subnets, hosts))
-                        // The two hosts it knew only from other devices' reports, which each
-                        // resolve modal links back to as the scan that found it.
-                        .chain(unconfirmed_host_warnings(hosts, interfaces))
-                        .collect(),
+                        warnings: hq_open_warnings(network_devices_cred_id)
+                            .into_iter()
+                            .chain([
+                                // FixInScanopy: a credential stored without a target, which no scan
+                                // sends to a daemon.
+                                DiscoveryWarning::CredentialWithoutTarget {
+                                    integration: CredentialQueryPayloadDiscriminants::Snmp,
+                                    credential_id: Some(branch_snmp_cred_id),
+                                },
+                                // ClearsOnTheNextScan: a partial ARP-table read was discarded
+                                // rather than recorded.
+                                DiscoveryWarning::SnmpWalkPartialDiscarded {
+                                    address: IpAddr::V4(Ipv4Addr::new(10, 0, 40, 20)),
+                                    group: SnmpWalkGroup::ArpTable,
+                                    credential_id: Some(network_devices_cred_id),
+                                    snmp_version: None,
+                                },
+                                // NothingToDo: a firewall has no bridge ports to number, and no
+                                // later scan changes that.
+                                DiscoveryWarning::SnmpWalkUnsupported {
+                                    address: IpAddr::V4(Ipv4Addr::new(10, 0, 1, 1)),
+                                    group: SnmpWalkGroup::BridgePortNumbering,
+                                    credential_id: Some(network_devices_cred_id),
+                                    snmp_version: None,
+                                },
+                            ])
+                            // The annex range, assumed around the address the HQ switch's LLDP table
+                            // heard the annex uplink advertise. The subnet's resolve modal reads its
+                            // evidence from this warning.
+                            .chain(annex_range_warning(subnets, hosts))
+                            // The two hosts it knew only from other devices' reports, which each
+                            // resolve modal links back to as the scan that found it.
+                            .chain(unconfirmed_host_warnings(hosts, interfaces))
+                            .collect(),
                         credential_results: hq_credential_results.clone(),
                         started_at: Some(one_week_ago),
                         finished_at: Some(one_week_ago + Duration::minutes(35)),
@@ -299,8 +284,9 @@ pub(super) fn generate_discoveries(
             integration_targets: snmp_network_targets(),
         });
 
-        // Historical — the latest run, 2 days ago, came back clean: the week-old warnings were
-        // fixed, so they stay in that run's report and leave Home.
+        // Historical — the latest run, 2 days ago, still couldn't reach 10.0.1.15 or read the
+        // core switch's LLDP table, so those two stay on Home. The rest of the week-old warnings
+        // were fixed and stay only in that run's report.
         let two_days_ago = now - Duration::days(2);
         let hq_latest = unified(daemon, Some(hq_subnet_ids.clone()));
         discoveries.push(Discovery {
@@ -318,7 +304,7 @@ pub(super) fn generate_discoveries(
                         discovery_type: hq_latest,
                         progress: 100,
                         error: None,
-                        warnings: Vec::new(),
+                        warnings: hq_open_warnings(network_devices_cred_id),
                         credential_results: hq_credential_results,
                         started_at: Some(two_days_ago),
                         finished_at: Some(two_days_ago + Duration::minutes(7)),
@@ -399,6 +385,17 @@ pub(super) fn generate_discoveries(
                                 integration: CredentialIntegration::Proxmox,
                             })
                             .into_iter()
+                            // The core switch reported 64 interfaces and the SNMPv3 read
+                            // returned 52, so Home lists the gap as an Issue.
+                            .chain([DiscoveryWarning::ClaimedCountUnderRead {
+                                address: IpAddr::V4(Ipv4Addr::new(172, 16, 0, 2)),
+                                group: SnmpWalkGroup::Interfaces,
+                                source: ClaimSource::IfNumber,
+                                expected: 64,
+                                observed: 52,
+                                credential_id: Some(find_cred_id("Data Center SNMPv3")),
+                                snmp_version: None,
+                            }])
                             .collect(),
                         // SNMPv3 read the firewall and the switch, and gNMI the switch.
                         credential_results: vec![
@@ -441,6 +438,27 @@ pub(super) fn generate_discoveries(
     }
 
     discoveries
+}
+
+/// The two HQ warnings no scan has cleared yet, so Home lists them as Issues.
+fn hq_open_warnings(network_devices_cred_id: Uuid) -> Vec<DiscoveryWarning> {
+    vec![
+        // FixInScanopy: nothing answered at this address for the SNMP credential.
+        DiscoveryWarning::CredentialTargetNotResponding {
+            address: IpAddr::V4(Ipv4Addr::new(10, 0, 1, 15)),
+            integration: CredentialQueryPayloadDiscriminants::Snmp,
+            credential_id: Some(network_devices_cred_id),
+        },
+        // CheckTheDevice: the switch claims LLDP (it answered lldpLocChassisId) but its
+        // neighbour table came back empty.
+        DiscoveryWarning::ClaimedCapabilityEmpty {
+            address: IpAddr::V4(Ipv4Addr::new(10, 0, 1, 3)),
+            group: SnmpWalkGroup::Lldp,
+            source: ClaimSource::LldpLocalIdentity,
+            credential_id: Some(network_devices_cred_id),
+            snmp_version: None,
+        },
+    ]
 }
 
 /// The warning the HQ scan raised when it assumed the annex's range: the address the annex uplink
