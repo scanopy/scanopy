@@ -53,13 +53,12 @@ use crate::server::hosts::r#impl::name::HostName;
 use crate::server::hosts::r#impl::name::HostNameSources;
 use crate::server::hosts::service::{HostLimitContext, HostService};
 use crate::server::organizations::service::OrganizationService;
+use crate::server::setup::types::{SetupItemDiscriminants, SetupOperation};
 use crate::server::shared::api_key_common::{ApiKeyType, generate_api_key_for_storage};
 use crate::server::shared::entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants};
 use crate::server::shared::events::bus::EventBus;
 use crate::server::shared::events::traits::{EntityEventFlags, EntityScope, Event, OrgScope};
-use crate::server::shared::events::types::{
-    BillingOperation, EntityOperation, OnboardingOperation, OnboardingOperationDiscriminants,
-};
+use crate::server::shared::events::types::{BillingOperation, EntityOperation};
 use crate::server::shared::legacy::rewrite_response_for_legacy_daemon;
 use crate::server::shared::services::traits::{CrudService, EventBusService};
 use crate::server::shared::storage::child::{GenericChildStorage, ParentRef};
@@ -163,6 +162,9 @@ pub struct DaemonService {
     /// Per daemon, the interface fingerprint its interfaced subnets were last classified from.
     /// See `interface_refresh`.
     classified_interfaces: tokio::sync::RwLock<std::collections::HashMap<Uuid, String>>,
+    // Check-ins that changed a daemon's version or health, for the live-update stream.
+    live_update_tx:
+        tokio::sync::broadcast::Sender<crate::server::live_updates::types::LiveDaemonUpdate>,
 }
 
 impl EventBusService<Daemon> for DaemonService {

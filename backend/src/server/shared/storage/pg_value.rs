@@ -287,7 +287,7 @@ impl SqlValue {
             Self::Tags(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
             Self::Vlans(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
             Self::OrgNotifications(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
-            Self::OnboardingOperation(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
+            Self::SetupItems(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
             Self::ShareOptions(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
             Self::DiscoveryWarningDetails(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
             Self::RunType(v) => {

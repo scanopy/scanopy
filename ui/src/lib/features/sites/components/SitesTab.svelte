@@ -10,7 +10,7 @@
 	import SiteEditModal from './SiteEditModal.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
 	import type { TableDefaults } from '$lib/shared/components/data/types';
-	import type { CardAction } from '$lib/shared/components/data/types';
+	import type { RowAction } from '$lib/shared/components/data/types';
 	import { useCredentialsQuery } from '$lib/features/credentials/queries';
 	import { Trash2, Edit } from '@lucide/svelte';
 	import { useTagsQuery } from '$lib/features/tags/queries';
@@ -120,7 +120,7 @@
 	});
 
 	/** Row actions. */
-	function siteActions(site: Site): CardAction[] {
+	function siteActions(site: Site): RowAction[] {
 		if (!can('Site', 'Write')) return [];
 
 		return [

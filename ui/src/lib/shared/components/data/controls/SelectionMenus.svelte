@@ -4,7 +4,7 @@
 	import ActionMenu from './ActionMenu.svelte';
 	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
 	import type { EntityDiscriminants } from '$lib/features/tags/queries';
-	import type { CardAction } from '../types';
+	import type { RowAction } from '../types';
 	import { common_actions, common_commonTags, common_tags } from '$lib/paraglide/messages';
 
 	/**
@@ -16,7 +16,7 @@
 		selectedCount,
 		tagging = null
 	}: {
-		actions: CardAction[];
+		actions: RowAction[];
 		selectedCount: number;
 		/** Present when the viewer can tag the selection. */
 		tagging?: {

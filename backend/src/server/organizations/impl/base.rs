@@ -11,10 +11,8 @@ use validator::Validate;
 use crate::server::{
     billing::types::base::{BillingPlan, PlanStatus},
     license::{instances::InstanceLimits, online::InstanceUsage},
-    shared::{
-        entities::ChangeTriggersTopologyStaleness,
-        events::types::{BillingOperation, OnboardingOperationDiscriminants},
-    },
+    setup::types::SetupItemDiscriminants,
+    shared::{entities::ChangeTriggersTopologyStaleness, events::types::BillingOperation},
 };
 
 #[derive(
@@ -99,6 +97,13 @@ pub struct OrgNotifications {
     /// per overrun.
     #[serde(default)]
     pub license_over_instance_limit: bool,
+    /// The Issues and Next steps the hourly trial sweep last saw on the org's Setup list, each
+    /// with when the sweep first saw it. An item that clears leaves the list.
+    #[serde(default)]
+    pub setup_items_open: Vec<crate::server::setup::types::OpenSetupItem>,
+    /// The items already reported as stuck. Never pruned, so each item is reported once per org.
+    #[serde(default)]
+    pub setup_items_reported: Vec<crate::server::setup::types::SetupItemKey>,
 }
 
 #[derive(
@@ -125,13 +130,13 @@ pub struct OrganizationBase {
     )]
     #[schema(read_only, required)]
     pub plan_status: Option<PlanStatus>,
-    /// Progress through first-run setup.
+    /// The Setup item types the org has finished or dismissed.
     #[serde(
         default,
         deserialize_with = "crate::server::shared::types::api::ignored"
     )]
     #[schema(read_only, required)]
-    pub onboarding: Vec<OnboardingOperationDiscriminants>,
+    pub setup: Vec<SetupItemDiscriminants>,
     /// Whether a payment method is on file.
     #[serde(default)]
     #[schema(read_only)]
@@ -282,12 +287,9 @@ pub struct Organization {
 }
 
 impl Organization {
-    pub fn not_onboarded(&self, step: &OnboardingOperationDiscriminants) -> bool {
-        !self.base.onboarding.contains(step)
-    }
-
-    pub fn has_onboarded(&self, step: &OnboardingOperationDiscriminants) -> bool {
-        self.base.onboarding.contains(step)
+    /// Whether the org has finished or dismissed this Setup item type.
+    pub fn has_setup(&self, item_type: SetupItemDiscriminants) -> bool {
+        self.base.setup.contains(&item_type)
     }
 
     /// Whether the org has a way to pay its next invoice: a card on file, or a

@@ -42,36 +42,19 @@
 	import { entityRef } from '$lib/shared/components/data/types';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import { useCredentialsQuery } from '$lib/features/credentials/queries';
-	import { closeModal, navigateToEntity, openModal } from '$lib/shared/stores/modal-registry';
-	import {
-		credentialIntegrations,
-		discoveryTerminalReasons,
-		entities
-	} from '$lib/shared/stores/metadata';
-	import {
-		createIntegrationCredentialLabel,
-		openCredentialCreate
-	} from '$lib/features/credentials/utils/prefill';
-	import type { components } from '$lib/api/schema';
+	import { discoveryTerminalReasons, entities } from '$lib/shared/stores/metadata';
 	import { createColorHelper, createIconComponent } from '$lib/shared/utils/styling';
-	import type { IconComponent } from '$lib/shared/utils/types';
 	import {
-		common_credentials,
 		common_warnings,
-		daemons_upgradeDaemon,
 		discovery_daemonLogsHint,
 		discovery_daemonLogsTitle,
 		discovery_noWarnings,
 		discovery_noWarningsBeforeStop,
 		discovery_noWarningsSubtitle,
-		discovery_scanSettings,
 		discovery_snmpCheckFor,
 		discovery_warningAffectsAddresses,
 		discovery_warningAffectsHosts,
-		discovery_warningAffectsSubnets,
-		gettingStarted_stepDaemonLabel,
-		hosts_resolveUnconfirmed,
-		subnets_resolveRange
+		discovery_warningAffectsSubnets
 	} from '$lib/paraglide/messages';
 	import type { EntityDiscriminants } from '$lib/api/entities';
 	import type { DiscoveryUpdatePayload } from '../../types/api';
@@ -81,20 +64,17 @@
 	import { daemonVersionAtOrBelow, runLogCommand } from '$lib/features/daemons/utils';
 	import {
 		buildWarningReport,
-		credentialIdsOf,
 		isCredentialWarning,
 		type WarningAffects,
-		type WarningEntry,
 		type WarningSubject
 	} from '../../utils/warnings';
+	import { actionFor, type WarningRunContext } from '../../utils/warningActions';
 
 	interface Props {
 		payload: DiscoveryUpdatePayload;
 	}
 
 	let { payload }: Props = $props();
-
-	type CredentialIntegration = components['schemas']['CredentialIntegration'];
 
 	// Credential warnings are shown with their credential on the Credentials tab, whose title counts
 	// them; this tab keeps the scan's own.
@@ -241,171 +221,17 @@
 		return label ? { label, entity: { type: 'Credential', id: credentialId } } : null;
 	}
 
-	/** The codes whose answer is a scan setting, and the editor tab that holds it. */
-	const SCAN_SETTING_TABS = new Map<WarningEntry['code'], string>([
-		// Max Discovery Duration lives on Detection, not Performance.
-		['ScanTimeLimit', 'detection'],
-		['ScanTimeLimitWithEstimate', 'detection'],
-		['WarningsTruncated', 'detection'],
-		// The guests' subnet is added to the scan's targets.
-		['GuestOutsideScan', 'targets']
-	]);
-
-	/** Guests only a daemon beside them can reach: on the hypervisor, or on their bridge. */
-	const NEEDS_A_DAEMON_CODES = new Set<WarningEntry['code']>([
-		'GuestBehindHypervisor',
-		'GuestIsolated'
-	]);
-
 	/**
-	 * Whether the run still has a scan to send the reader to.
-	 *
-	 * The historical row carries no parent, but the payload does. It is absent on records written
-	 * before the field existed, and it dangles for a rescan — that discovery is deleted the moment
-	 * the run finishes.
+	 * The run the rows' actions read their ids from. The historical row carries no parent, but the
+	 * payload does. It is absent on records written before the field existed, and it dangles for a
+	 * rescan, whose discovery is deleted the moment the run finishes.
 	 */
-	let scanSettingsTarget = $derived(
-		payload.discovery_type.type === 'Rescan' ? null : (payload.discovery_id ?? null)
-	);
-
-	/**
-	 * Where a row hands off to, when Scanopy owns the fix.
-	 *
-	 * A row without a destination renders no button rather than a dead one. The hypervisor guest
-	 * warnings come first: they carry an `integration` only to name the hypervisor, and what they
-	 * ask for is a daemon or a scan setting. Past them, an `integration` on the payload marks a
-	 * credential warning, recognised by the field rather than a list of code names so that one a
-	 * newer daemon sends (`Unknown` here) still gets its credential.
-	 */
-	function actionFor(
-		entry: WarningEntry
-	): { label: string; icon: IconComponent; run: () => void } | null {
-		// A credential withheld for the daemon's version is fixed the same way: upgrade that daemon.
-		if (entry.code === 'OutdatedDaemonFormat' || entry.code === 'CredentialNeedsNewerDaemon') {
-			return {
-				label: daemons_upgradeDaemon(),
-				icon: createIconComponent('circle-arrow-up'),
-				run: () => {
-					// The daemon to upgrade is the one that ran this scan, so the id comes off the
-					// payload rather than the warning — one session has exactly one daemon, and
-					// repeating it per warning would let the two disagree.
-					window.location.hash = 'daemons';
-					openModal('upgrade-daemon', { id: payload.daemon_id });
-				}
-			};
-		}
-
-		if (entry.code === 'ProvisionalSubnetInferred') {
-			// A range deleted since the scan has nothing left to resolve.
-			const subnetIds = entry.warnings.flatMap((w) =>
-				'subnet_id' in w && w.subnet_id ? [w.subnet_id] : []
-			);
-			if (subnetIds.length === 0) return null;
-			return {
-				label: subnets_resolveRange(),
-				icon: createIconComponent('circle-dashed-check'),
-				run: () => {
-					window.location.hash = 'subnets';
-					// One range resolves in place; several is a trip to the list, because the
-					// four-way choice is made per subnet and there is no "all of them" answer.
-					// Opening the resolve modal replaces this one; the list needs this one closed.
-					if (subnetIds.length === 1) openModal('provisional-range', { id: subnetIds[0] });
-					else closeModal();
-				}
-			};
-		}
-
-		if (entry.code === 'UnconfirmedHostInferred') {
-			// The same hand-off as an assumed range: one host resolves in place, several is the list,
-			// where each one is settled on its own.
-			const hostIds = entry.warnings.flatMap((w) =>
-				w.code === 'UnconfirmedHostInferred' && w.host_id ? [w.host_id] : []
-			);
-			if (hostIds.length === 0) return null;
-			return {
-				label: hosts_resolveUnconfirmed(),
-				icon: createIconComponent('circle-dashed-check'),
-				run: () => {
-					window.location.hash = 'hosts';
-					if (hostIds.length === 1) openModal('unconfirmed-host', { id: hostIds[0] });
-					else closeModal();
-				}
-			};
-		}
-
-		if (entry.code === 'IntegrationWithoutCredential') {
-			// The row's title names its integration, so every occurrence under it is that one.
-			const found = entry.warnings.flatMap((w) =>
-				w.code === 'IntegrationWithoutCredential' ? [w] : []
-			);
-			if (!found.length) return null;
-			const integration: CredentialIntegration = found[0].integration;
-			const hostIds = found.flatMap((w) => (w.host_id ? [w.host_id] : []));
-			const siteIds = [payload.site_id];
-			return {
-				label: createIntegrationCredentialLabel(integration),
-				icon: credentialIntegrations.getIconComponent(integration),
-				run: () => openCredentialCreate(integration, { hostIds, siteIds })
-			};
-		}
-
-		if (NEEDS_A_DAEMON_CODES.has(entry.code)) {
-			return {
-				label: gettingStarted_stepDaemonLabel(),
-				icon: entities.getIconComponent('Daemon'),
-				run: () => {
-					window.location.hash = 'daemons';
-					openModal('create-daemon');
-				}
-			};
-		}
-
-		const scanId = scanSettingsTarget;
-		const scanTab = SCAN_SETTING_TABS.get(entry.code);
-		if (scanTab) {
-			// A rescan's discovery is gone by now, so it has no settings to open.
-			if (!scanId) return null;
-			return {
-				label: discovery_scanSettings(),
-				icon: createIconComponent('sliders-horizontal'),
-				run: () => {
-					window.location.hash = 'discovery-scans';
-					openModal('discovery-editor', { id: scanId, tab: scanTab });
-				}
-			};
-		}
-
-		if (entry.warnings.some((w) => 'integration' in w)) {
-			const [credentialId] = credentialIdsOf(entry);
-			return {
-				label: common_credentials(),
-				icon: createIconComponent('key-round'),
-				run: () => {
-					// Any known id opens that credential's editor. Unlike an inferred range above,
-					// where the four-way choice is genuinely per subnet, every credential on this
-					// row needs the same thing done to it — so landing on the first is a head start
-					// on the list, and the row's chips reach the others directly. Only a row with
-					// no id at all — written before ids were carried, or posted by a daemon that
-					// predates them — still goes to the list.
-					if (!credentialId) {
-						window.location.hash = 'credentials';
-						closeModal();
-						return;
-					}
-					// The credential itself where it has loaded, so the editor opens on the id
-					// alone rather than waiting for the credentials tab's own query to settle —
-					// `resolveModalDeepLink` falls back to `entityData` for exactly this.
-					navigateToEntity(
-						'Credential',
-						credentialId,
-						credentialsData.find((c) => c.id === credentialId)
-					);
-				}
-			};
-		}
-
-		return null;
-	}
+	let run = $derived<WarningRunContext>({
+		daemonId: payload.daemon_id,
+		siteId: payload.site_id,
+		scanId: payload.discovery_type.type === 'Rescan' ? null : (payload.discovery_id ?? null),
+		credentialOf
+	});
 </script>
 
 <!--
@@ -481,7 +307,7 @@
 					{#each section.entries as entry (entry.key)}
 						{@const EntryIcon = createIconComponent(entry.icon)}
 						{@const colors = createColorHelper(entry.color)}
-						{@const action = actionFor(entry)}
+						{@const action = actionFor(entry, run)}
 						{@const isOpen = openRows.has(entry.key)}
 						<li class="py-1.5">
 							<div class="flex min-w-0 items-center gap-2">

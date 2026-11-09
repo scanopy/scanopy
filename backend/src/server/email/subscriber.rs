@@ -1,5 +1,5 @@
-//! Email subscriber for entity (Host/Site/User Created/Deleted) and
-//! onboarding (FirstDaemonRegistered, FirstDiscoveryCompleted) events, and failed discovery runs.
+//! Email subscriber for entity (Host/Site/User Created/Deleted) and setup (the first daemon
+//! connecting) events, and failed discovery runs.
 //!
 //! Triggers transactional emails: plan-limit notifications on entity
 //! create/delete, and post-onboarding guides (discovery walkthrough,
@@ -20,6 +20,7 @@ use crate::server::{
         service::{EmailService, format_cents},
     },
     license::types::LicenseKeyType,
+    setup::types::{SetupItemDiscriminants, SetupOperation, SetupOperationDiscriminants},
     shared::{
         entities::{Entity, EntityDiscriminants},
         events::{
@@ -31,7 +32,7 @@ use crate::server::{
             types::{
                 AuthOperation, AuthOperationDiscriminants, BillingOperation,
                 BillingOperationDiscriminants, EntityOperation, EntityOperationDiscriminants,
-                OnboardingOperation, OnboardingOperationDiscriminants,
+                TrialExtensionSource,
             },
         },
         services::traits::CrudService,
@@ -195,6 +196,7 @@ impl Subscriber<BillingOperation> for EmailService {
                     plan,
                     has_payment_method,
                     trial_started_at,
+                    can_extend,
                 } => {
                     // The cloud email recaps hosts, sites, daemons and
                     // services found during the trial. A self-hosted trial's
@@ -210,6 +212,7 @@ impl Subscriber<BillingOperation> for EmailService {
                             has_payment_method,
                             plan.billing_period(),
                             &key_expires,
+                            can_extend,
                         )
                         .await?;
                     } else {
@@ -220,10 +223,16 @@ impl Subscriber<BillingOperation> for EmailService {
                             has_payment_method,
                             plan.billing_period(),
                             trial_started_at,
+                            can_extend,
                         )
                         .await?;
                     }
                 }
+                // The plan change's success message states the new end.
+                BillingOperation::TrialExtended {
+                    source: TrialExtensionSource::PlanSwitch,
+                    ..
+                } => {}
                 BillingOperation::TrialExtended {
                     plan,
                     days_added,
@@ -510,7 +519,7 @@ impl Subscriber<BillingOperation> for EmailService {
                         self.send_self_hosted_welcome_email(
                             org_owner,
                             plan.name(),
-                            is_trialing.then(|| plan.config().trial_days),
+                            is_trialing.then(|| plan.current_trial_days()),
                             plan.features().onboarding_call,
                         )
                         .await?;
@@ -702,36 +711,42 @@ impl Subscriber<EntityOperation> for EmailService {
 inventory::submit!(SubscriberRegistration::new::<EmailService, EntityOperation>());
 
 #[async_trait]
-impl Subscriber<OnboardingOperation> for EmailService {
-    fn filter(&self) -> EventFilter<OnboardingOperation> {
-        EventFilter::ops(vec![
-            OnboardingOperationDiscriminants::FirstDaemonRegistered,
-        ])
+impl Subscriber<SetupOperation> for EmailService {
+    fn filter(&self) -> EventFilter<SetupOperation> {
+        EventFilter::ops(vec![SetupOperationDiscriminants::Completed])
     }
 
-    /// One send per event, and with no debounce window the bus passes one event per call, so a
-    /// failure is a plain `Err` the bus retries.
-    async fn handle(&self, events: Vec<Event<OnboardingOperation>>) -> Result<(), Error> {
+    /// The discovery guide goes out when the org's first daemon connects. One send per event, and
+    /// with no debounce window the bus passes one event per call, so a failure is a plain `Err`
+    /// the bus retries.
+    async fn handle(&self, events: Vec<Event<SetupOperation>>) -> Result<(), Error> {
         for event in events {
             let org_id = event.scope.organization_id;
-            if let OnboardingOperation::FirstDaemonRegistered {
-                daemon_name,
-                site_name,
-                ..
+            let SetupOperation::Completed {
+                item_type: SetupItemDiscriminants::InstallDaemon,
+                subject_id,
             } = &event.operation
-            {
-                self.send_discovery_guide_for_org(org_id, daemon_name, site_name)
-                    .await
-                    .map_err(|e| e.context(format!("send discovery guide for org {org_id}")))?;
-            }
+            else {
+                continue;
+            };
+            let daemon = match subject_id {
+                Some(daemon_id) => self.daemon_service.get_by_id(daemon_id).await?,
+                None => None,
+            };
+            let site = match &daemon {
+                Some(daemon) => self.site_service.get_by_id(&daemon.base.site_id).await?,
+                None => None,
+            };
+            let daemon_name = daemon.map_or_else(|| "your daemon".to_string(), |d| d.base.name);
+            let site_name = site.map_or_else(|| "your site".to_string(), |s| s.base.name);
+            self.send_discovery_guide_for_org(org_id, &daemon_name, &site_name)
+                .await
+                .map_err(|e| e.context(format!("send discovery guide for org {org_id}")))?;
         }
         Ok(())
     }
 }
-inventory::submit!(SubscriberRegistration::new::<
-    EmailService,
-    OnboardingOperation,
->());
+inventory::submit!(SubscriberRegistration::new::<EmailService, SetupOperation>());
 
 #[async_trait]
 impl Subscriber<DiscoveryDigestOperation> for EmailService {

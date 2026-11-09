@@ -44,7 +44,16 @@ impl DaemonService {
             deployment_type,
             has_email_service,
             classified_interfaces: Default::default(),
+            live_update_tx: tokio::sync::broadcast::channel(100).0,
         }
+    }
+
+    /// Subscribe to daemon check-ins that changed a version or health.
+    pub fn subscribe_live_daemon_updates(
+        &self,
+    ) -> tokio::sync::broadcast::Receiver<crate::server::live_updates::types::LiveDaemonUpdate>
+    {
+        self.live_update_tx.subscribe()
     }
 
     /// Subnet ids this daemon has interfaces on, from the
@@ -225,6 +234,26 @@ impl DaemonService {
             .await
             .unwrap_or_default()
             .is_empty()
+    }
+
+    /// Whether any of the org's daemons has ever connected (`last_seen` set). A seeded integrated
+    /// daemon that never checked in doesn't count.
+    pub async fn org_has_connected_daemon(&self, org_id: Uuid) -> Result<bool, anyhow::Error> {
+        let site_ids: Vec<Uuid> = self
+            .site_service
+            .get_all(StorableFilter::<Site>::new_from_org_id(&org_id))
+            .await?
+            .iter()
+            .map(|site| site.id)
+            .collect();
+        if site_ids.is_empty() {
+            return Ok(false);
+        }
+        self.exists(
+            StorableFilter::<Daemon>::new_from_site_ids(&site_ids)
+                .column_is_null("last_seen", false),
+        )
+        .await
     }
 
     /// Refuse a new daemon while [`Self::daemon_limit_reached`].

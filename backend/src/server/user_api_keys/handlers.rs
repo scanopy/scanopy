@@ -1,8 +1,5 @@
 use crate::server::openapi::tags as api_tags;
-use crate::server::shared::events::traits::{Event, OrgScope};
-use crate::server::shared::events::types::{
-    OnboardingOperation, OnboardingOperationDiscriminants, UpdateReason,
-};
+use crate::server::shared::events::types::UpdateReason;
 use crate::server::shared::extractors::Query;
 use crate::server::shared::storage::traits::Entity;
 use crate::server::shared::types::api::ApiJson;
@@ -30,7 +27,7 @@ use crate::server::{
                 get_by_id_handler,
             },
         },
-        services::traits::{CrudService, EventBusService},
+        services::traits::CrudService,
         storage::{filter::StorableFilter, traits::Storable},
         types::{
             api::{
@@ -291,11 +288,10 @@ pub async fn create_user_api_key(
 
     let site_ids = api_key.base.site_ids.clone();
 
-    let service = &state.services.user_api_key_service;
     let api_key = state
         .services
         .access_service
-        .create_api_key(api_key, site_ids, entity.clone())
+        .create_api_key(api_key, site_ids, entity)
         .await
         .map_err(|e| {
             tracing::error!(
@@ -305,26 +301,6 @@ pub async fn create_user_api_key(
             );
             ApiError::internal_error(&e.to_string())
         })?;
-
-    // Emit FirstUserApiKeyCreated telemetry event if this is the first user API key
-    if state
-        .services
-        .organization_service
-        .record_milestone(
-            organization_id,
-            OnboardingOperationDiscriminants::FirstUserApiKeyCreated,
-        )
-        .await?
-    {
-        service
-            .event_bus()
-            .publish(Event::new(
-                OrgScope { organization_id },
-                OnboardingOperation::FirstUserApiKeyCreated,
-                entity,
-            ))
-            .await;
-    }
 
     Ok(Json(ApiResponse::success(UserApiKeyResponse {
         key: plaintext,

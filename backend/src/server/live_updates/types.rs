@@ -14,6 +14,9 @@ pub enum LiveUpdate {
     /// A site's live entity set changed, so its topology needs refetching.
     #[schema(title = "Topology")]
     Topology(LiveTopologyUpdate),
+    /// A daemon checked in with a new version or health, so the daemons list and Home need refetching.
+    #[schema(title = "Daemon")]
+    Daemon(LiveDaemonUpdate),
 }
 
 /// A site whose live topology changed.
@@ -23,11 +26,21 @@ pub struct LiveTopologyUpdate {
     pub site_id: Uuid,
 }
 
+/// A daemon whose version or health changed when it checked in.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
+pub struct LiveDaemonUpdate {
+    /// The daemon that checked in.
+    pub id: Uuid,
+    /// The daemon's site, which decides who receives the update.
+    pub site_id: Uuid,
+}
+
 impl LiveUpdate {
     pub fn site_id(&self) -> Uuid {
         match self {
             LiveUpdate::Discovery(update) => update.site_id,
             LiveUpdate::Topology(update) => update.site_id,
+            LiveUpdate::Daemon(update) => update.site_id,
         }
     }
 
@@ -36,6 +49,7 @@ impl LiveUpdate {
         match self {
             LiveUpdate::Discovery(_) => Resource::Discovery,
             LiveUpdate::Topology(_) => Resource::Topology,
+            LiveUpdate::Daemon(_) => Resource::Daemon,
         }
     }
 
@@ -75,15 +89,22 @@ mod tests {
         LiveUpdate::Topology(LiveTopologyUpdate { site_id })
     }
 
+    fn daemon(site_id: Uuid) -> LiveUpdate {
+        LiveUpdate::Daemon(LiveDaemonUpdate {
+            id: Uuid::new_v4(),
+            site_id,
+        })
+    }
+
     #[test]
     fn subscribers_get_only_their_sites() {
         let mine = Uuid::new_v4();
         let other = Uuid::new_v4();
 
-        for update in [discovery(mine), topology(mine)] {
+        for update in [discovery(mine), topology(mine), daemon(mine)] {
             assert!(update.is_visible_to(&viewer_of(mine), true));
         }
-        for update in [discovery(other), topology(other)] {
+        for update in [discovery(other), topology(other), daemon(other)] {
             assert!(!update.is_visible_to(&viewer_of(mine), true));
         }
     }

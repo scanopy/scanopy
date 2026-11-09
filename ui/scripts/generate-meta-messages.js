@@ -103,6 +103,11 @@ export const COVERED_FIXTURES = [
 	{ file: 'container-network-types.json', key: 'container_network_types', kind: 'typeMetadata' },
 	// A container's or VM's run state at the last scan, keyed by `GuestState`.
 	{ file: 'guest-states.json', key: 'guest_states', kind: 'typeMetadata' },
+	// A daemon's health, the most severe status that applies, keyed by `DaemonHealth`.
+	{ file: 'daemon-healths.json', key: 'daemon_healths', kind: 'typeMetadata' },
+	// The Setup list's item types and tiers, keyed by `SetupItemDiscriminants` and `SetupItemTier`.
+	{ file: 'setup-items.json', key: 'setup_items', kind: 'typeMetadata' },
+	{ file: 'setup-item-tiers.json', key: 'setup_item_tiers', kind: 'typeMetadata' },
 	{ file: 'device-types.json', key: 'device_types', kind: 'typeMetadata' },
 	// Scan warnings. Descriptions here are templates with `{named}` slots, unlike every other
 	// entry above: the values are copied through verbatim, paraglide compiles them into functions
@@ -115,6 +120,7 @@ export const COVERED_FIXTURES = [
 	{ file: 'snmp-walk-groups.json', key: 'snmp_walk_groups', kind: 'typeMetadata' },
 	{ file: 'snmp-walk-causes.json', key: 'snmp_walk_causes', kind: 'typeMetadata' },
 	{ file: 'claim-sources.json', key: 'claim_sources', kind: 'typeMetadata' },
+	{ file: 'desktop-vms.json', key: 'desktop_vms', kind: 'typeMetadata' },
 	// Keyed by the credential-query discriminant a warning carries, which credential-types.json
 	// cannot resolve — it is keyed by CredentialType.
 	{ file: 'discovery-integrations.json', key: 'discovery_integrations', kind: 'typeMetadata' },

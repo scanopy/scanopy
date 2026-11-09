@@ -20,6 +20,7 @@
 
 pub mod entity_ids;
 pub mod metadata;
+pub mod remedy;
 pub mod summary;
 pub mod values;
 
@@ -35,11 +36,11 @@ use crate::server::credentials::r#impl::mapping::CredentialQueryPayloadDiscrimin
 use crate::server::credentials::r#impl::types::{CredentialIntegration, SnmpVersion};
 
 pub use entity_ids::EntityIdSlots;
-pub use metadata::WarningRemedy;
+pub use remedy::WarningRemedy;
 pub use summary::{RemedyCount, RunWarningSummary};
 pub use values::{
-    ClaimSource, MalformedNeighbourConsequence, SnmpCheck, SnmpWalkCause, SnmpWalkFailure,
-    SnmpWalkGroup,
+    ClaimSource, DesktopVm, MalformedNeighbourConsequence, SnmpCheck, SnmpWalkCause,
+    SnmpWalkFailure, SnmpWalkGroup,
 };
 
 /// A single non-fatal finding from one discovery run, about one device, neighbour, or the scan
@@ -742,6 +743,16 @@ pub enum DiscoveryWarning {
         )]
         daemon_version: Option<Version>,
     },
+    /// The daemon runs inside a desktop container VM, whose virtual network keeps ARP, mDNS and LLDP
+    /// off the LAN. Raised by the daemon at the start of every network discovery run.
+    ///
+    /// The daemon is the session's own, so the UI names it from the payload like
+    /// [`DiscoveryWarning::OutdatedDaemonFormat`].
+    #[schema(title = "DaemonInDesktopVm")]
+    DaemonInDesktopVm {
+        /// The VM the daemon runs in.
+        vm: DesktopVm,
+    },
 
     // ---- Meta ------------------------------------------------------------
     /// The run produced more warnings than the scan record holds. Emitted rather than dropping
@@ -1005,6 +1016,7 @@ pub enum DiscoveryWarningCode {
     NeighbourResolutionIncomplete,
     FdbResolutionIncomplete,
     OutdatedDaemonFormat,
+    DaemonInDesktopVm,
     WarningsTruncated,
     /// Absorbs a code from a newer binary. Fieldless, so `#[serde(other)]` applies — the text of
     /// an unrecognised warning rides on [`DiscoveryWarning::Unknown`] instead, where no metric
@@ -1113,6 +1125,7 @@ impl DiscoveryWarning {
             }
             Self::FdbResolutionIncomplete { .. } => DiscoveryWarningCode::FdbResolutionIncomplete,
             Self::OutdatedDaemonFormat { .. } => DiscoveryWarningCode::OutdatedDaemonFormat,
+            Self::DaemonInDesktopVm { .. } => DiscoveryWarningCode::DaemonInDesktopVm,
             Self::WarningsTruncated { .. } => DiscoveryWarningCode::WarningsTruncated,
             Self::Unknown { .. } => DiscoveryWarningCode::Unknown,
         }
@@ -1195,6 +1208,7 @@ impl DiscoveryWarning {
             | Self::NeighbourResolutionIncomplete { .. }
             | Self::FdbResolutionIncomplete { .. }
             | Self::OutdatedDaemonFormat { .. }
+            | Self::DaemonInDesktopVm { .. }
             | Self::WarningsTruncated { .. }
             | Self::Unknown { .. } => None,
         }
@@ -1268,6 +1282,7 @@ impl DiscoveryWarning {
             | Self::NeighbourResolutionIncomplete { .. }
             | Self::FdbResolutionIncomplete { .. }
             | Self::OutdatedDaemonFormat { .. }
+            | Self::DaemonInDesktopVm { .. }
             | Self::WarningsTruncated { .. }
             | Self::Unknown { .. } => None,
         }

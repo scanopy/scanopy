@@ -21,7 +21,7 @@
 	import HostExportModal from './HostExportModal.svelte';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
 	import type { TableDefaults } from '$lib/shared/components/data/types';
-	import { disabledWhen, hiddenWhen, type CardAction } from '$lib/shared/components/data/types';
+	import { disabledWhen, hiddenWhen, type RowAction } from '$lib/shared/components/data/types';
 	import { hostColumns } from './HostTab.columns';
 	import { collectionLookup } from '$lib/shared/entity-fields';
 	import { Trash2, RefreshCw, Replace, Edit, CircleDashedCheck } from '@lucide/svelte';
@@ -80,10 +80,8 @@
 	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 	import type { components } from '$lib/api/schema';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
 	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
 
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 	type HostOrderField = components['schemas']['HostOrderField'];
 
 	const HOST_FIELD_VALUES = '/api/v1/hosts/field-values/{field}';
@@ -113,7 +111,7 @@
 	let canBuyMoreHosts = $derived(
 		org?.plan?.host_cents !== undefined && org?.plan?.host_cents !== null
 	);
-	let onboarding = $derived((org?.onboarding ?? []) as OnboardingOperation[]);
+	let daemonConnected = $derived(org?.daemon_connected ?? false);
 
 	const tagsQuery = useTagsQuery();
 	// Paginated hosts with server-side pagination, ordering, and tag filtering.
@@ -376,7 +374,7 @@
 	}
 
 	/** Row actions. */
-	function hostActions(host: Host): CardAction[] {
+	function hostActions(host: Host): RowAction[] {
 		if (!can('Host', 'Write')) return [];
 
 		const writeRefusal = refusedUnless(can('Host', 'Write', host.site_id));
@@ -565,7 +563,7 @@
 
 <!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
 {#snippet toolbarActions()}
-	{#if hasDaemon(onboarding)}
+	{#if daemonConnected}
 		<div class="flex items-center gap-3">
 			{#if hostLimit !== null && !canBuyMoreHosts}
 				<span
@@ -593,7 +591,7 @@
 <div class="space-y-6">
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
-	{:else if !hasDaemon(onboarding)}
+	{:else if !daemonConnected}
 		<PreDaemonEmptyState title={daemons_installPromptHosts()} />
 	{:else if isInitialLoading}
 		<!-- Loading state (only on initial load) -->

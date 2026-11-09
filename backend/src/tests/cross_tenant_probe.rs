@@ -824,6 +824,11 @@ const NO_RESOURCE_CHECK: &[(&str, &str)] = &[
         "the caller's own onboarding answer",
     ),
     (
+        "post /api/v1/organizations/setup/dismiss-suggestion",
+        "the probe's first item type is an Issue, refused before any check; a Suggestion checks \
+         its own write in `dismissable_by`, covered by its unit test",
+    ),
+    (
         "put /api/v1/users/{id}",
         "refuses anyone but the record's own user",
     ),

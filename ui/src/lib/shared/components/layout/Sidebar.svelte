@@ -4,12 +4,16 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { isBillingPlanActive } from '$lib/features/organizations/types';
 	import SettingsModal from '$lib/features/settings/SettingsModal.svelte';
-	import { billingPlans, entities, productAreas } from '$lib/shared/stores/metadata';
+	import {
+		billingPlans,
+		daemonHealths,
+		entities,
+		productAreas,
+		setupItemTiers
+	} from '$lib/shared/stores/metadata';
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
 	import { useApiKeysQuery } from '$lib/features/daemon_api_keys/queries';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { hasSunsetWarning } from '$lib/features/daemons/utils';
-	import { createColorHelper } from '$lib/shared/utils/styling';
 	import { modalState } from '$lib/shared/stores/modal-registry';
 	import { entityUIConfig, TAB_LABELS } from '$lib/shared/entity-ui-config';
 	import type { EntityDiscriminants } from '$lib/api/entities';
@@ -42,10 +46,8 @@
 		isMissingPaymentMethod
 	} from '$lib/shared/utils/trial';
 	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
-	import { daemonSetupState } from '$lib/features/daemons/stores/daemon-setup';
-	import { isAllComplete } from '$lib/shared/onboarding/checklist';
-	import SidebarChecklist from './SidebarChecklist.svelte';
-	import type { components } from '$lib/api/schema';
+	import { useDashboardQuery } from '$lib/features/home/queries';
+	import { setupIssueCount } from '$lib/features/home/setup-list';
 
 	// Import tab components
 	import TopologyTab from '$lib/features/topology/components/TopologyTab.svelte';
@@ -65,8 +67,6 @@
 	import CredentialsTab from '$lib/features/credentials/components/CredentialsTab.svelte';
 
 	import HomeTab from '$lib/features/home/components/HomeTab.svelte';
-
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 
 	let {
 		activeTab = $bindable('topology'),
@@ -179,10 +179,17 @@
 	const activeSessionsQuery = useActiveSessionsQuery(() => mainAppAvailable);
 	let hasActiveSessions = $derived((activeSessionsQuery.data?.length ?? 0) > 0);
 
-	// Daemons needing a version update (Deprecated/Unsupported) — drives the
-	// Daemons nav dot, same mechanism as the Scans active-sessions dot.
+	// The most severe health among daemons that aren't Healthy — drives the Daemons nav dot,
+	// same mechanism as the Scans active-sessions dot. Fixture order is severity order.
 	const daemonsQuery = useDaemonsQuery({ enabled: () => mainAppAvailable });
-	let hasDaemonUpdatesNeeded = $derived((daemonsQuery.data ?? []).some(hasSunsetWarning));
+	let worstDaemonHealth = $derived.by(() => {
+		const daemons = daemonsQuery.data ?? [];
+		return (
+			daemonHealths
+				.getItems()
+				.find((h) => h.id !== 'healthy' && daemons.some((d) => d.health === h.id))?.id ?? null
+		);
+	});
 
 	// Legacy (unbound) daemon API keys. When none exist, the Daemon API Keys sub-tab is
 	// hidden and the Daemons group collapses to a single-entity page (no tab strip).
@@ -201,20 +208,9 @@
 		return true;
 	}
 
-	// Onboarding checklist state
-	let onboarding = $derived((organization?.onboarding ?? []) as OnboardingOperation[]);
-	let showSidebarChecklist = $derived(organization && !isAllComplete(onboarding));
-	let isDiscoveryActive = $derived(
-		(activeSessionsQuery.data ?? []).some(
-			(s) => s.discovery_type?.type === 'Network' || s.discovery_type?.type === 'Unified'
-		)
-	);
-
-	// Subscribe to daemon setup state
-	let daemonStatus = $state<'idle' | 'waiting' | 'connected' | 'trouble'>('idle');
-	const unsubscribeDaemon = daemonSetupState.subscribe((s) => {
-		daemonStatus = s.connectionStatus;
-	});
+	// The Home badge counts the Issues on the Setup list, from the array Home lists them from.
+	const dashboardQuery = useDashboardQuery({ enabled: () => mainAppAvailable });
+	let setupIssues = $derived(setupIssueCount(dashboardQuery.data?.setup_items ?? []));
 
 	// Sync settings modal state from modal registry (for deep-link opens)
 	$effect(() => {
@@ -591,8 +587,6 @@
 				console.warn('Failed to load sidebar state from localStorage:', error);
 			}
 		}
-
-		return unsubscribeDaemon;
 	});
 
 	function toggleCollapse() {
@@ -604,19 +598,6 @@
 				localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(collapsed));
 			} catch (error) {
 				console.error('Failed to save sidebar state to localStorage:', error);
-			}
-		}
-	}
-
-	function expandSidebar() {
-		if (collapsed) {
-			collapsed = false;
-			if (typeof window !== 'undefined') {
-				try {
-					localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(false));
-				} catch (error) {
-					console.error('Failed to save sidebar state to localStorage:', error);
-				}
 			}
 		}
 	}
@@ -658,15 +639,20 @@
 
 	// Notification-dot color for a nav item, or null for none. One place that maps
 	// an item to its dot so the same rendering covers every item that has one
-	// (Scans → active sessions; Daemons → updates needed).
+	// (Scans → active sessions; Daemons → a daemon that isn't Healthy).
 	function itemNotificationColor(item: NavItem): string | null {
 		if (item.id === 'discovery' && hasActiveSessions) {
 			return entities.getColorHelper('Discovery').rgb;
 		}
-		if (item.id === 'daemons-group' && hasDaemonUpdatesNeeded) {
-			return createColorHelper('Yellow').rgb;
+		if (item.id === 'daemons-group' && worstDaemonHealth) {
+			return daemonHealths.getColorHelper(worstDaemonHealth).rgb;
 		}
 		return null;
+	}
+
+	// The count a standalone item draws where a section item draws its dot (Home → its Issues).
+	function itemCount(item: NavItem): number {
+		return item.id === 'home' ? setupIssues : 0;
 	}
 
 	const inactiveButtonClass =
@@ -730,20 +716,6 @@
 				</button>
 			{/if}
 		</div>
-
-		<!-- Sidebar Checklist -->
-		{#if showSidebarChecklist && !mainAppLocked}
-			<SidebarChecklist
-				{onboarding}
-				{collapsed}
-				onNavigate={(tab) => {
-					activeTab = tab;
-				}}
-				{isDiscoveryActive}
-				{daemonStatus}
-				onExpandSidebar={expandSidebar}
-			/>
-		{/if}
 
 		<!-- Main Navigation -->
 		<nav class="flex-1 overflow-y-auto px-2 py-2">
@@ -822,6 +794,7 @@
 						</li>
 					{:else}
 						<!-- Standalone item (no section, no indentation) -->
+						{@const count = itemCount(configItem)}
 						<li>
 							<button
 								onclick={() => handleItemClick(configItem)}
@@ -832,7 +805,17 @@
 								style="height: 2rem; padding: 0.375rem 0.75rem;"
 								title={collapsed ? configItem.label : ''}
 							>
-								<configItem.icon class="h-4 w-4 shrink-0" />
+								<span class="relative">
+									<configItem.icon class="h-4 w-4 shrink-0" />
+									{#if count > 0}
+										<span
+											class="absolute -top-1.5 -right-2 h-4 min-w-4 rounded-full px-1 text-center text-[10px] leading-4 font-semibold text-white"
+											style="background-color: {setupItemTiers.getColorHelper('Issue').rgb}"
+										>
+											{count}
+										</span>
+									{/if}
+								</span>
 								{#if !collapsed}
 									<span class="ml-2.5 truncate">{configItem.label}</span>
 								{/if}

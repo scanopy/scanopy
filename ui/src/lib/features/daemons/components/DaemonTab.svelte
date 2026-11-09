@@ -7,7 +7,6 @@
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import type { Daemon } from '$lib/features/daemons/types/base';
-	import { hasSunsetWarning } from '$lib/features/daemons/utils';
 	import OsTag from '$lib/features/hosts/components/OsTag.svelte';
 	import { hostOsOfDaemonOs } from '$lib/features/hosts/host-os';
 	import CreateDaemonModal from './CreateDaemonModal/CreateDaemonModal.svelte';
@@ -15,7 +14,7 @@
 		disabledWhen,
 		hiddenWhen,
 		type ActionTone,
-		type CardAction
+		type RowAction
 	} from '$lib/shared/components/data/types';
 	import { daemonColumns } from './DaemonTab.columns';
 	import { collectionLookup } from '$lib/shared/entity-fields';
@@ -153,12 +152,14 @@
 
 	// Any daemon with a scheduled/active sunset. Drives a non-dismissable banner
 	// so the warning re-arms as long as an affected daemon exists.
-	let hasSunsetDaemons = $derived(daemonsData.some(hasSunsetWarning));
+	const hasSunset = (daemon: Daemon) =>
+		daemon.health === 'deprecated' || daemon.health === 'unsupported';
+	let hasSunsetDaemons = $derived(daemonsData.some(hasSunset));
 	// The shared sunset date across affected daemons (server-published, same value
 	// the email uses), formatted for display. All below-floor daemons share the
 	// one announced date.
 	let sunsetDateDisplay = $derived.by(() => {
-		const iso = daemonsData.find(hasSunsetWarning)?.version_status.sunset_date;
+		const iso = daemonsData.find(hasSunset)?.version_status.sunset_date;
 		if (!iso) return null;
 		return formatLongDate(iso, 'UTC');
 	});
@@ -172,12 +173,15 @@
 	let pageLoad = $derived(loadFailure(daemonsPageQuery, daemonsQuery, sitesQuery));
 
 	let showCreateDaemonModal = $state(false);
+	/** The site a deep link opened the wizard on (`sites` prefill), for a site with no daemon. */
+	let createDaemonSiteId = $state<string | null>(null);
 	let showDaemonEditor = $state(false);
 	let editingDaemon = $state<Daemon | null>(null);
 
 	// Auto-open modal when deep-linked via ?modal=create-daemon
 	$effect(() => {
 		if ($modalState.name === 'create-daemon' && !showCreateDaemonModal && can('Daemon', 'Write')) {
+			createDaemonSiteId = $modalState.prefill?.sites ?? null;
 			showCreateDaemonModal = true;
 		}
 	});
@@ -214,12 +218,12 @@
 	 * sunset is a warning/danger action, a plain newer release is neutral-info.
 	 */
 	function upgradeTone(daemon: Daemon): ActionTone | undefined {
-		switch (daemon.version_status.status) {
-			case 'Unsupported':
+		switch (daemon.health) {
+			case 'unsupported':
 				return 'danger';
-			case 'Deprecated':
+			case 'deprecated':
 				return 'warning';
-			case 'Outdated':
+			case 'outdated':
 				return 'info';
 			default:
 				return undefined;
@@ -240,15 +244,15 @@
 	 * Row actions: Retry Connection and Upgrade (each only when the daemon's state calls for it,
 	 * the rarer leftmost), then Edit and Delete on every row.
 	 */
-	function daemonActions(daemon: Daemon): CardAction[] {
+	function daemonActions(daemon: Daemon): RowAction[] {
 		// A Member sees the upgrade command and changes nothing. A Viewer has no key access, so no row.
 		if (!can('Daemon', 'Write') && !can('DaemonApiKey', 'Read')) return [];
 
 		const writeRefusal = refusedUnless(can('Daemon', 'Write', daemon.site_id));
 		const hasUpdateAvailable =
-			daemon.version_status.status === 'Outdated' ||
-			daemon.version_status.status === 'Deprecated' ||
-			daemon.version_status.status === 'Unsupported';
+			daemon.health === 'outdated' ||
+			daemon.health === 'deprecated' ||
+			daemon.health === 'unsupported';
 		// The scheduled sunset date is server-published — the UI never computes it.
 		const sunsetDate = daemon.version_status.sunset_date ?? null;
 		const serverPolled = daemon.mode === 'server_poll';
@@ -328,6 +332,7 @@
 	}
 
 	function handleCreateDaemon() {
+		createDaemonSiteId = null;
 		showCreateDaemonModal = true;
 	}
 
@@ -453,6 +458,7 @@
 <CreateDaemonModal
 	isOpen={showCreateDaemonModal}
 	name="create-daemon"
+	siteId={createDaemonSiteId}
 	onClose={handleCloseCreateDaemon}
 	onNavigate={(tab) => {
 		window.location.hash = tab;

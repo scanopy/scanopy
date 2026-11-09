@@ -217,11 +217,8 @@ pub(crate) async fn register(
         .await
         .map_err(|e| ApiError::internal_error(&format!("Failed to save session: {}", e)))?;
 
-    // If this is a new org, finish its onboarding.
+    // A new org's pending setup was applied in `provision_user`.
     if matches!(provision_org, ProvisionOrg::New(_)) {
-        apply_pending_setup(&state, &user).await?;
-
-        // Clear pending setup data from session
         clear_pending_setup(&session).await;
     }
 
@@ -416,32 +413,6 @@ pub(crate) async fn onboarding_state(
         site,
         site_id,
     })))
-}
-
-/// Apply pending setup after user registration: publish `OnboardingModalCompleted`. The org,
-/// its plan and its onboarding state (this milestone included) are created in
-/// `provision_user`, so the event is published here without a `record_milestone` guard. Its
-/// setup data, the integrated daemon included, comes from `OrgSetupService` reacting to
-/// `OrgCreated`.
-pub(crate) async fn apply_pending_setup(
-    state: &Arc<AppState>,
-    user: &User,
-) -> Result<(), ApiError> {
-    let organization_id = user.base.organization_id;
-    let auth_entity: AuthenticatedEntity = user.clone().into();
-
-    // Publish telemetry event
-    state
-        .services
-        .event_bus
-        .publish(Event::new(
-            OrgScope { organization_id },
-            OnboardingOperation::OnboardingModalCompleted,
-            auth_entity,
-        ))
-        .await;
-
-    Ok(())
 }
 
 #[cfg(test)]

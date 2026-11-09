@@ -24,13 +24,11 @@ use crate::{
     },
     server::{
         metrics::service::MetricsService,
+        setup::types::SetupOperation,
         shared::events::{
             registry::SubscriberRegistration,
             traits::{EntityEventFilter, Event, EventFilter, Subscriber},
-            types::{
-                AnalyticsOperation, AuthOperation, BillingOperation, EntityOperation,
-                OnboardingOperation,
-            },
+            types::{AnalyticsOperation, AuthOperation, BillingOperation, EntityOperation},
         },
         shared::types::metadata::HasId,
     },
@@ -46,7 +44,7 @@ fn record_entity(entity_type: &str, operation: impl std::fmt::Display) {
     .increment(1);
 }
 
-/// Per-category counter for non-entity events (billing/onboarding/analytics/...).
+/// Per-category counter for non-entity events (billing/setup/analytics/...).
 /// Kept distinct from entity events so per-host metrics aren't muddled with
 /// per-login metrics.
 fn record_event(category: &str, operation: impl std::fmt::Display) {
@@ -144,21 +142,18 @@ inventory::submit!(SubscriberRegistration::new::<
 >());
 
 #[async_trait]
-impl Subscriber<OnboardingOperation> for MetricsService {
-    fn filter(&self) -> EventFilter<OnboardingOperation> {
+impl Subscriber<SetupOperation> for MetricsService {
+    fn filter(&self) -> EventFilter<SetupOperation> {
         EventFilter::all()
     }
-    async fn handle(&self, events: Vec<Event<OnboardingOperation>>) -> Result<(), Error> {
+    async fn handle(&self, events: Vec<Event<SetupOperation>>) -> Result<(), Error> {
         for event in events {
-            record_event("onboarding", event.operation);
+            record_event("setup", event.operation);
         }
         Ok(())
     }
 }
-inventory::submit!(SubscriberRegistration::new::<
-    MetricsService,
-    OnboardingOperation,
->());
+inventory::submit!(SubscriberRegistration::new::<MetricsService, SetupOperation>());
 
 #[async_trait]
 impl Subscriber<AnalyticsOperation> for MetricsService {

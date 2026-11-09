@@ -11,20 +11,13 @@ use crate::server::{
             base::{LoginRegisterParams, PendingSetup, PendingSiteSetup, ProvisionOrg},
             oidc::{OidcFlow, OidcPendingAuth, OidcProviderMetadata, OidcRegisterParams},
         },
-        middleware::{
-            auth::AuthenticatedEntity,
-            permissions::{Authorized, IsUser},
-        },
+        middleware::permissions::{Authorized, IsUser},
         oidc::{OidcRegisterResult, OidcService},
     },
     config::{AppState, DeploymentType, get_deployment_type},
     invites::handlers::process_pending_invite,
     organizations::r#impl::base::UseCase,
     shared::{
-        events::{
-            traits::{Event, OrgScope},
-            types::OnboardingOperation,
-        },
         services::traits::CrudService,
         storage::{filter::StorableFilter, traits::Storable},
         types::{

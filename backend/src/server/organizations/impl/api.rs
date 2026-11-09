@@ -16,3 +16,14 @@ pub struct CreateInviteRequest {
     #[schema(value_type = Option<String>)]
     pub send_to: Option<EmailAddress>,
 }
+
+/// The signed-in user's organization, with what the server derives about it.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct OrganizationResponse {
+    #[serde(flatten)]
+    pub organization: crate::server::organizations::r#impl::base::Organization,
+    /// Whether any of the organization's daemons has ever connected. A daemon created but not
+    /// yet started doesn't count.
+    #[schema(read_only)]
+    pub daemon_connected: bool,
+}

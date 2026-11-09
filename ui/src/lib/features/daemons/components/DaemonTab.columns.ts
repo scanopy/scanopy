@@ -1,19 +1,12 @@
 import type { Snippet } from 'svelte';
 import type { Daemon } from '$lib/features/daemons/types/base';
-import {
-	daemonStatusTag,
-	getDaemonStatus,
-	getDaemonStatusTag,
-	osLabel,
-	daemonOsIds,
-	DAEMON_STATUSES
-} from '$lib/features/daemons/utils';
+import { osLabel, daemonOsIds, DAEMON_STATUS_DOCS_URL } from '$lib/features/daemons/utils';
 import { defineRegistryFields } from '$lib/shared/entity-fields/table';
 import type { EntityLookup } from '$lib/shared/entity-fields';
 import { tagNames } from '$lib/features/tags/columns';
 import { siteItems } from '$lib/features/sites/columns';
 import { entityRef } from '$lib/shared/components/data/types';
-import { entities } from '$lib/shared/stores/metadata';
+import { daemonHealths, entities } from '$lib/shared/stores/metadata';
 import type { Subnet } from '$lib/features/subnets/types/base';
 import type { Site } from '$lib/features/sites/types';
 import type { Tag } from '$lib/features/tags/types/base';
@@ -102,25 +95,24 @@ export function daemonColumns(ctx: DaemonColumnsContext) {
 				filterable: true,
 				serverFiltered: true,
 				queryParam: 'statuses',
-				filterOptions: DAEMON_STATUSES,
-				getFilterValue: (daemon) => getDaemonStatus(daemon),
-				filterLabel: (value) => {
-					const status = DAEMON_STATUSES.find((s) => s === value);
-					return status ? daemonStatusTag(status).label : value;
-				},
-				getGroupValue: (daemon) => getDaemonStatus(daemon),
-				getValue: (daemon) => getDaemonStatusTag(daemon).label,
+				filterOptions: daemonHealths.getItems().map((health) => health.id),
+				getFilterValue: (daemon) => daemon.health,
+				filterLabel: (value) => daemonHealths.getName(value),
+				getGroupValue: (daemon) => daemon.health,
+				getValue: (daemon) => daemonHealths.getName(daemon.health),
 				display: {
 					order: 1,
 					getItems: (daemon) => {
-						const tag = getDaemonStatusTag(daemon);
+						const tag = daemonHealths.getTag(daemon.health);
 						return [
 							{
 								id: tag.label,
 								label: tag.label,
 								color: tag.color,
-								icon: tag.icon,
-								href: tag.href
+								title: tag.title,
+								icon: daemonHealths.getIconComponent(daemon.health),
+								// Every status but Healthy links to what it means and how to clear it.
+								href: daemon.health === 'healthy' ? undefined : DAEMON_STATUS_DOCS_URL
 							}
 						];
 					}

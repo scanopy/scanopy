@@ -3,7 +3,8 @@ use super::*;
 use crate::daemon::discovery::types::base::DiscoveryPhase;
 use crate::daemon::discovery::types::warnings::DiscoveryWarning;
 use crate::server::credentials::r#impl::base::Credential;
-use crate::server::daemons::r#impl::api::ScannedEntityIds;
+use crate::server::daemons::r#impl::api::{DaemonHealth, ScannedEntityIds};
+use crate::server::live_updates::types::LiveDaemonUpdate;
 use crate::server::shared::events::types::DeletionReason;
 
 /// How long the completion request will wait for neighbour resolution before cutting it short.
@@ -14,6 +15,14 @@ use crate::server::shared::events::types::DeletionReason;
 /// measured -- but a pathological one must degrade to a reported gap, not to a lost scan record.
 const RESOLUTION_BUDGET: std::time::Duration = std::time::Duration::from_secs(10);
 use crate::server::interfaces::r#impl::base::InterfaceDataComplete;
+
+/// Whether a check-in changed a daemon's version or its health, the two things its row and its
+/// upgrade modal show. `last_seen` moves on every check-in and changes neither on its own.
+fn check_in_changed(before: &DaemonBase, after: &DaemonBase, policy: &DaemonVersionPolicy) -> bool {
+    let health =
+        |base: &DaemonBase| DaemonHealth::of(base, &policy.evaluate(base.version.as_ref()));
+    before.version != after.version || health(before) != health(after)
+}
 
 impl DaemonService {
     // ========================================================================
@@ -32,6 +41,7 @@ impl DaemonService {
             .get_by_id(&daemon_id)
             .await?
             .ok_or_else(|| ApiError::entity_not_found::<Daemon>(daemon_id))?;
+        let before = daemon.base.clone();
 
         self.check_reported_os(&mut daemon, status.os)?;
 
@@ -109,7 +119,20 @@ impl DaemonService {
             carries_interfaced_subnets,
         )
         .await;
+        self.announce_check_in(&before, &daemon);
         Ok(())
+    }
+
+    /// Tell the live-update stream when a check-in changed what the daemons list shows for this
+    /// daemon, so an open upgrade modal and Home see the new version without a reload.
+    fn announce_check_in(&self, before: &DaemonBase, after: &Daemon) {
+        if check_in_changed(before, &after.base, &DaemonVersionPolicy::default()) {
+            // No subscriber is not an error: nobody has the app open.
+            let _ = self.live_update_tx.send(LiveDaemonUpdate {
+                id: after.id,
+                site_id: after.base.site_id,
+            });
+        }
     }
 
     /// Hold a handshake to the OS this daemon was created for; see
@@ -209,6 +232,7 @@ impl DaemonService {
             .get_by_id(&daemon_id)
             .await?
             .ok_or_else(|| ApiError::entity_not_found::<Daemon>(daemon_id))?;
+        let before = daemon.base.clone();
 
         self.check_reported_os(&mut daemon, reported_os)?;
 
@@ -229,6 +253,7 @@ impl DaemonService {
 
         self.update(&mut daemon, auth, UpdateReason::DaemonStarted)
             .await?;
+        self.announce_check_in(&before, &daemon);
 
         // Migrate legacy discoveries if daemon just upgraded to unified-capable version
         if was_pre_unified
@@ -370,10 +395,9 @@ impl DaemonService {
                 .await?;
 
             // A provisioned daemon's FIRST contact lands here (its record already exists from
-            // provisioning), not in the new-registration branch — so emit the onboarding
-            // milestone here too, or the org never records FirstDaemonRegistered and the UI
-            // keeps showing "install a daemon" while discovery actually runs. Idempotent: the
-            // emit is guarded by record_milestone, so restarts don't re-fire it.
+            // provisioning), not in the new-registration branch — so record InstallDaemon here too,
+            // or Home keeps showing "install a daemon" while discovery actually runs. Idempotent:
+            // `record_setup` publishes only once, so restarts don't re-fire it.
             self.emit_first_daemon_telemetry(updated_daemon.id, updated_daemon.base.site_id)
                 .await?;
 
@@ -1141,34 +1165,6 @@ impl DaemonService {
             }
         }
 
-        // Emit FirstHostDiscovered telemetry if this is the org's first discovered host
-        if !created_hosts.is_empty()
-            && let Some((_, first_host)) = created_hosts.first()
-            && let Ok(Some(site)) = self.site_service.get_by_id(&first_host.site_id).await
-            && let Ok(Some(org)) = self
-                .organization_service
-                .get_by_id(&site.base.organization_id)
-                .await
-            && org.not_onboarded(&OnboardingOperationDiscriminants::FirstHostDiscovered)
-            && let Ok(true) = self
-                .organization_service
-                .record_milestone(
-                    org.id,
-                    OnboardingOperationDiscriminants::FirstHostDiscovered,
-                )
-                .await
-        {
-            self.event_bus
-                .publish(Event::new(
-                    OrgScope {
-                        organization_id: org.id,
-                    },
-                    OnboardingOperation::FirstHostDiscovered,
-                    AuthenticatedEntity::System,
-                ))
-                .await;
-        }
-
         // Process discovered subnets - continue on failure to avoid blocking entire batch
         for subnet in entities.subnets {
             let pending_id = subnet.id;
@@ -1481,7 +1477,7 @@ impl DaemonService {
         Ok(())
     }
 
-    /// Emit FirstDaemonRegistered telemetry event if this is the org's first daemon
+    /// Record InstallDaemon when this is the first of the org's daemons to connect.
     pub async fn emit_first_daemon_telemetry(
         &self,
         daemon_id: Uuid,
@@ -1499,34 +1495,18 @@ impl DaemonService {
             .await?
             .ok_or_else(|| ApiError::not_found("Organization not found".to_string()))?;
 
-        if org.not_onboarded(&OnboardingOperationDiscriminants::FirstDaemonRegistered)
-            && self
-                .organization_service
-                .record_milestone(
+        // The unlocked read skips the org lock on every later check-in.
+        if !org.has_setup(SetupItemDiscriminants::InstallDaemon) {
+            self.organization_service
+                .record_setup(
                     org.id,
-                    OnboardingOperationDiscriminants::FirstDaemonRegistered,
-                )
-                .await?
-        {
-            let daemon_name = self
-                .get_by_id(&daemon_id)
-                .await?
-                .map(|d| d.base.name.clone())
-                .unwrap_or_else(|| "your daemon".to_string());
-
-            self.event_bus
-                .publish(Event::new(
-                    OrgScope {
-                        organization_id: org.id,
-                    },
-                    OnboardingOperation::FirstDaemonRegistered {
-                        daemon_id,
-                        daemon_name: daemon_name.to_string(),
-                        site_name: site.base.name.clone(),
+                    SetupOperation::Completed {
+                        item_type: SetupItemDiscriminants::InstallDaemon,
+                        subject_id: Some(daemon_id),
                     },
                     AuthenticatedEntity::System,
-                ))
-                .await;
+                )
+                .await?;
         }
 
         Ok(())

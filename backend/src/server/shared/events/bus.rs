@@ -5,15 +5,13 @@ use crate::{
     server::{
         dependencies::r#impl::member_events::DependencyMemberChange,
         digest::payload::DiscoveryDigestOperation,
+        setup::types::SetupOperation,
         shared::events::{
             traits::{
                 DispatchTracker, Event, Operation, Subscriber, SubscriberFailureReporter,
                 TypedChannel,
             },
-            types::{
-                AnalyticsOperation, AuthOperation, BillingOperation, EntityOperation,
-                OnboardingOperation,
-            },
+            types::{AnalyticsOperation, AuthOperation, BillingOperation, EntityOperation},
         },
         subnets::r#impl::correction_events::SubnetCorrection,
     },
@@ -21,7 +19,7 @@ use crate::{
 
 pub struct EventBus {
     pub billing_channel: TypedChannel<BillingOperation>,
-    pub onboarding_channel: TypedChannel<OnboardingOperation>,
+    pub setup_channel: TypedChannel<SetupOperation>,
     pub analytics_channel: TypedChannel<AnalyticsOperation>,
     pub auth_channel: TypedChannel<AuthOperation>,
     pub entity_channel: TypedChannel<EntityOperation>,
@@ -52,7 +50,7 @@ impl EventBus {
         Self {
             tracker: tracker.clone(),
             billing_channel: TypedChannel::with_tracker(tracker.clone()),
-            onboarding_channel: TypedChannel::with_tracker(tracker.clone()),
+            setup_channel: TypedChannel::with_tracker(tracker.clone()),
             analytics_channel: TypedChannel::with_tracker(tracker.clone()),
             auth_channel: TypedChannel::with_tracker(tracker.clone()),
             entity_channel: TypedChannel::with_tracker(tracker.clone()),
@@ -125,9 +123,9 @@ impl BusChannel<BillingOperation> for EventBus {
     }
 }
 
-impl BusChannel<OnboardingOperation> for EventBus {
-    fn channel(&self) -> &TypedChannel<OnboardingOperation> {
-        &self.onboarding_channel
+impl BusChannel<SetupOperation> for EventBus {
+    fn channel(&self) -> &TypedChannel<SetupOperation> {
+        &self.setup_channel
     }
 }
 

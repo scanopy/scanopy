@@ -20,11 +20,7 @@ use crate::server::{
     organizations::service::OrganizationService,
     shared::{
         entities::EntityDiscriminants,
-        events::{
-            bus::EventBus,
-            traits::{Event, OrgScope},
-            types::{OnboardingOperation, OnboardingOperationDiscriminants},
-        },
+        events::bus::EventBus,
         services::traits::{CrudService, EventBusService},
         storage::{
             child::{GenericChildStorage, ParentRef},
@@ -32,6 +28,7 @@ use crate::server::{
             generic::GenericPostgresStorage,
             traits::Storage,
         },
+        types::entities::EntitySourceDiscriminants,
     },
     sites::service::SiteService,
     tags::entity_tags::EntityTagService,
@@ -184,53 +181,7 @@ impl CrudService<Credential> for CredentialService {
         self.refuse_type_outside_plan(None, &entity).await?;
         self.refuse_invalid_login(&entity).await?;
 
-        let created = self.create_base(entity, authentication.clone()).await?;
-
-        // Emit onboarding events for credential creation
-        let organization_id = created.base.organization_id;
-
-        // Generic event for any credential type
-        if self
-            .organization_service
-            .record_milestone(
-                organization_id,
-                OnboardingOperationDiscriminants::FirstCredentialCreated,
-            )
-            .await?
-        {
-            self.event_bus
-                .publish(Event::new(
-                    OrgScope { organization_id },
-                    OnboardingOperation::FirstCredentialCreated,
-                    authentication.clone(),
-                ))
-                .await;
-        }
-
-        // Clears the interface prompts on home and the L2 view; a container or Wake-on-LAN
-        // credential adds no interfaces, so it does not count, and neither does a login, which
-        // runs nothing.
-        let discriminant = created.base.credential_type.discriminant();
-        if discriminant.role() == CredentialRole::Dispatched
-            && discriminant.integration().reports_interfaces()
-            && self
-                .organization_service
-                .record_milestone(
-                    organization_id,
-                    OnboardingOperationDiscriminants::FirstInterfaceCredentialCreated,
-                )
-                .await?
-        {
-            self.event_bus
-                .publish(Event::new(
-                    OrgScope { organization_id },
-                    OnboardingOperation::FirstInterfaceCredentialCreated,
-                    authentication,
-                ))
-                .await;
-        }
-
-        Ok(created)
+        self.create_base(entity, authentication).await
     }
 
     /// A default keeps its settings, and no edit may turn another credential into a second copy
@@ -314,6 +265,27 @@ impl CredentialService {
             site_credential_storage,
             host_credential_storage,
         }
+    }
+
+    /// Whether a person added a credential to the org whose integration reports interfaces. A
+    /// container or Wake-on-LAN credential adds no interfaces and a login runs nothing, so neither
+    /// counts, and a seeded default isn't one a person added.
+    pub async fn has_manual_interface_credential(
+        &self,
+        organization_id: Uuid,
+    ) -> Result<bool, Error> {
+        let manual = StorableFilter::<Credential>::new_from_org_id(&organization_id)
+            .source_type_in(&[EntitySourceDiscriminants::Manual]);
+        Ok(self
+            .storage
+            .get_all(manual)
+            .await?
+            .iter()
+            .any(|credential| {
+                let discriminant = credential.base.credential_type.discriminant();
+                discriminant.role() == CredentialRole::Dispatched
+                    && discriminant.integration().reports_interfaces()
+            }))
     }
 
     /// Set the host service dependency after construction (breaks circular dep).

@@ -107,9 +107,11 @@
 		onClose: () => void;
 		onNavigate?: (tab: string) => void;
 		name?: string;
+		/** The site the wizard opens on, as when Home asks for a daemon on a site with none. */
+		siteId?: string | null;
 	}
 
-	let { isOpen = false, onClose, onNavigate, name = undefined }: Props = $props();
+	let { isOpen = false, onClose, onNavigate, name = undefined, siteId = null }: Props = $props();
 
 	// Queries & mutations
 	const configQuery = useConfigQuery();
@@ -119,7 +121,7 @@
 	// Derived data
 	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
 	let org = $derived(organizationQuery.data);
-	let isFirstDaemon = $derived(!org?.onboarding?.includes('FirstDaemonRegistered'));
+	let isFirstDaemon = $derived(!org?.daemon_connected);
 	// Snapshot: tracks whether wizard was opened as first-daemon flow.
 	// Prevents reactivity from flipping showWaitingUI when FirstDaemonRegistered appears.
 	let startedAsFirstDaemon = $state(false);
@@ -748,6 +750,7 @@
 		serverPollReachabilityResult = null;
 		configureCommitted = false;
 		hasCopied = false;
+		if (siteId) selectedSiteId = siteId;
 	}
 
 	let colorHelper = entities.getColorHelper('Daemon');

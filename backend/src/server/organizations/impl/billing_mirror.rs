@@ -15,7 +15,6 @@
 
 use anyhow::Error;
 use chrono::{DateTime, Utc};
-use strum::IntoDiscriminant;
 use uuid::Uuid;
 
 use crate::server::{
@@ -28,7 +27,7 @@ use crate::server::{
     shared::{
         events::{
             traits::Event,
-            types::{BillingOperation, OnboardingOperation, TrialExtensionSource, UpdateReason},
+            types::{BillingOperation, TrialExtensionSource, UpdateReason},
         },
         services::traits::EventBusService,
     },
@@ -41,24 +40,14 @@ impl OrganizationService {
     /// choosing the transition and writing it are one step under the org lock: a
     /// second webhook for the same org waits, then reads the committed row. Each
     /// event changes the row through [`BillingOperation::apply`], in order, so a
-    /// later event sees what an earlier one wrote. `milestone` is recorded on the
-    /// same write and published, ahead of the billing events, only when this call
-    /// added it. Saved as `System` with an `Updated` event when anything changed.
+    /// later event sees what an earlier one wrote. Saved as `System` with an `Updated` event
+    /// when anything changed.
     pub async fn commit_billing(
         &self,
         mut locked: LockedOrganization<'_>,
-        milestone: Option<Event<OnboardingOperation>>,
         events: Vec<Event<BillingOperation>>,
     ) -> Result<(), Error> {
-        let milestone = milestone.filter(|event| {
-            let step = event.operation.discriminant();
-            let new = locked.org.not_onboarded(&step);
-            if new {
-                locked.org.base.onboarding.push(step);
-            }
-            new
-        });
-        let mut changed = milestone.is_some();
+        let mut changed = false;
         for event in &events {
             changed |= event.operation.apply(&mut locked.org, event.timestamp);
         }
@@ -73,9 +62,6 @@ impl OrganizationService {
             locked.release().await?;
         }
 
-        if let Some(milestone) = milestone {
-            self.event_bus().publish(milestone).await;
-        }
         for event in events {
             self.event_bus().publish(event).await;
         }
@@ -93,7 +79,7 @@ impl OrganizationService {
         let Some(locked) = self.lock_for_update(organization_id).await? else {
             return Ok(false);
         };
-        self.commit_billing(locked, None, events).await?;
+        self.commit_billing(locked, events).await?;
         Ok(true)
     }
 }
@@ -158,7 +144,8 @@ impl BillingOperation {
                 ..
             } => {
                 // The flag is the org's one self-serve extension. Staff
-                // extending the trial leaves it available.
+                // extending the trial, or a plan switch lengthening it, leaves
+                // it available.
                 if *source == TrialExtensionSource::User && !organization.base.trial_extended_used {
                     organization.base.trial_extended_used = true;
                     changed = true;

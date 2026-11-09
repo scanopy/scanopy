@@ -103,7 +103,7 @@ export function useCan(): Can {
 }
 
 /**
- * `CardAction.unavailable` for a row the user can't act on, when they can on other rows. A user
+ * `RowAction.unavailable` for a row the user can't act on, when they can on other rows. A user
  * who can't act on any row gets no actions column instead.
  */
 export function refusedUnless(allowed: boolean): Unavailable | undefined {

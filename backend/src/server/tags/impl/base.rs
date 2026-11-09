@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::server::shared::{
     entities::ChangeTriggersTopologyStaleness,
-    types::{Color, Icon, api::deserialize_empty_string_as_none},
+    types::{Color, Icon, api::deserialize_empty_string_as_none, entities::EntitySource},
 };
 use chrono::DateTime;
 use chrono::Utc;
@@ -93,6 +93,11 @@ pub struct TagBase {
     /// Icon drawn on the tag. Application tags always use the application icon.
     #[serde(default)]
     pub icon: Option<TagIcon>,
+    /// `System` for a tag Scanopy seeds (the starter tags), `Manual` for one a person added. Set
+    /// by the server.
+    #[serde(default)]
+    #[schema(read_only, required)]
+    pub source: EntitySource,
 }
 
 impl Default for TagBase {
@@ -105,6 +110,7 @@ impl Default for TagBase {
             tag_group_id: None,
             position: None,
             icon: None,
+            source: EntitySource::System,
         }
     }
 }

@@ -3,14 +3,15 @@ use crate::server::auth::middleware::permissions::{
     And, Authorized, Can, Delete, IsUser, Read, Write,
 };
 use crate::server::config::AppState;
-use crate::server::daemon_api_keys::r#impl::base::DaemonApiKey;
 use crate::server::openapi::tags as api_tags;
 use crate::server::organizations::demo_seed::seed_demo_data;
 use crate::server::organizations::demo_status::DemoPopulateStatus;
+use crate::server::organizations::r#impl::api::OrganizationResponse;
 use crate::server::organizations::r#impl::base::Organization;
-use crate::server::shared::events::traits::{Event, OrgScope};
+use crate::server::setup::types::{
+    SetupAnswers, SetupItemDiscriminants, SetupItemTier, SetupOperation,
+};
 use crate::server::shared::events::types::{DeletionReason, UpdateReason};
-use crate::server::shared::events::types::{OnboardingOperation, OnboardingOperationDiscriminants};
 use crate::server::shared::handlers::traits::CrudHandlers;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
@@ -44,7 +45,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         .routes(routes!(update_org_name))
         .routes(routes!(update_profile))
         .routes(routes!(submit_referral_source))
-        .routes(routes!(daemon_prompt_response))
+        .routes(routes!(dismiss_setup_suggestion))
         .routes(routes!(reset))
         .routes(routes!(delete_organization))
         .routes(routes!(populate_demo_data))
@@ -60,7 +61,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
     path = "/current",
     tags = [Organization::ENTITY_NAME_PLURAL, api_tags::INTERNAL],
     responses(
-        (status = 200, description = "Organization details", body = ApiResponse<Organization>),
+        (status = 200, description = "Organization details", body = ApiResponse<OrganizationResponse>),
         (status = 404, description = "Organization not found", body = ApiErrorResponse),
     ),
     security(("session" = []))
@@ -68,7 +69,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 pub async fn get_organization(
     State(state): State<Arc<AppState>>,
     auth: Authorized<And<IsUser, Can<Organization, Read>>>,
-) -> ApiResult<Json<ApiResponse<Organization>>> {
+) -> ApiResult<Json<ApiResponse<OrganizationResponse>>> {
     let organization_id = auth.require_organization_id()?;
     let service = Organization::get_service(&state);
     let entity = service
@@ -77,7 +78,9 @@ pub async fn get_organization(
         .map_err(|e| ApiError::internal_error(&e.to_string()))?
         .ok_or_else(|| ApiError::entity_not_found::<Organization>(organization_id))?;
 
-    Ok(Json(ApiResponse::success(entity)))
+    Ok(Json(ApiResponse::success(
+        organization_response(&state, entity).await?,
+    )))
 }
 
 /// Update organization name
@@ -89,7 +92,7 @@ pub async fn get_organization(
     params(("id" = Uuid, Path, description = "Organization ID")),
     request_body = String,
     responses(
-        (status = 200, description = "Organization updated", body = ApiResponse<Organization>),
+        (status = 200, description = "Organization updated", body = ApiResponse<OrganizationResponse>),
         (status = 403, description = "Only owners can update organization", body = ApiErrorResponse),
         (status = 404, description = "Organization not found", body = ApiErrorResponse),
     ),
@@ -100,7 +103,7 @@ pub async fn update_org_name(
     auth: Authorized<Can<Organization, Write>>,
     Path(id): Path<Uuid>,
     ApiJson(name): ApiJson<String>,
-) -> ApiResult<Json<ApiResponse<Organization>>> {
+) -> ApiResult<Json<ApiResponse<OrganizationResponse>>> {
     // Organization's scoping fields are both None, so the generic update_handler
     // below cannot enforce tenant ownership — check it explicitly here, matching
     // the sibling reset/delete/populate-demo handlers.
@@ -126,7 +129,25 @@ pub async fn update_org_name(
         .save(auth.into_entity(), UpdateReason::EntityRequested)
         .await?;
 
-    Ok(Json(ApiResponse::success(updated)))
+    Ok(Json(ApiResponse::success(
+        organization_response(&state, updated).await?,
+    )))
+}
+
+/// `organization` with what the server derives about it.
+async fn organization_response(
+    state: &AppState,
+    organization: Organization,
+) -> Result<OrganizationResponse, ApiError> {
+    let daemon_connected = state
+        .services
+        .daemon_service
+        .org_has_connected_daemon(organization.id)
+        .await?;
+    Ok(OrganizationResponse {
+        organization,
+        daemon_connected,
+    })
 }
 
 /// Request to update user profile (deferred marketing fields)
@@ -156,26 +177,21 @@ async fn update_profile(
     let org_id = auth.organization_id().unwrap();
     let authentication: AuthenticatedEntity = auth.into();
 
-    // Every submission is published with its answers; the milestone hides the prompt.
     state
         .services
         .organization_service
-        .record_milestone(org_id, OnboardingOperationDiscriminants::ProfileCompleted)
-        .await?;
-    state
-        .services
-        .event_bus
-        .publish(Event::new(
-            OrgScope {
-                organization_id: org_id,
-            },
-            OnboardingOperation::ProfileCompleted {
-                job_title: request.job_title,
-                company_size: request.company_size,
+        .record_setup(
+            org_id,
+            SetupOperation::Answered {
+                item_type: SetupItemDiscriminants::AnswerProfile,
+                answers: SetupAnswers::Profile {
+                    job_title: request.job_title,
+                    company_size: request.company_size,
+                },
             },
             authentication,
-        ))
-        .await;
+        )
+        .await?;
 
     Ok(Json(ApiResponse::success(())))
 }
@@ -226,99 +242,69 @@ async fn submit_referral_source(
     let org_id = auth.organization_id().unwrap();
     let authentication: AuthenticatedEntity = auth.into();
 
-    // Every submission is published with its answer; the milestone hides the prompt.
     state
         .services
         .organization_service
-        .record_milestone(
+        .record_setup(
             org_id,
-            OnboardingOperationDiscriminants::ReferralSourceCompleted,
-        )
-        .await?;
-    state
-        .services
-        .event_bus
-        .publish(Event::new(
-            OrgScope {
-                organization_id: org_id,
-            },
-            OnboardingOperation::ReferralSourceCompleted {
-                referral_source: request.referral_source,
-                referral_source_other: request.referral_source_other,
+            SetupOperation::Answered {
+                item_type: SetupItemDiscriminants::AnswerReferralSource,
+                answers: SetupAnswers::ReferralSource {
+                    referral_source: request.referral_source,
+                    referral_source_other: request.referral_source_other,
+                },
             },
             authentication,
-        ))
-        .await;
+        )
+        .await?;
 
     Ok(Json(ApiResponse::success(())))
 }
 
-/// Which daemon-prompt CTA the user chose.
+/// Request to dismiss a Suggestion from the org's Setup list
 #[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum DaemonPromptAction {
-    Dismissed,
-    Accepted,
+pub struct DismissSuggestionRequest {
+    /// The Suggestion's item type.
+    pub item_type: SetupItemDiscriminants,
 }
 
-/// Request recording the user's response to the "Start Discovering Your Network" prompt.
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct DaemonPromptResponseRequest {
-    /// What the user chose to do about the daemon prompt.
-    pub action: DaemonPromptAction,
-}
-
-/// Record daemon-install prompt response
+/// Dismiss a Setup suggestion
 ///
-/// Records the response so the prompt is not shown again.
-/// Each CTA records a distinct onboarding milestone, which the UI reads to hide the prompt.
-/// Every response is published; the PostHog subscriber turns these into funnel events, so
-/// no client-side telemetry is needed.
+/// Hides the Suggestion for the whole organization. Issues and Next steps can't be dismissed.
 #[utoipa::path(
     post,
-    path = "/daemon-prompt-response",
+    path = "/setup/dismiss-suggestion",
     tags = [Organization::ENTITY_NAME_PLURAL, api_tags::INTERNAL],
-    request_body = DaemonPromptResponseRequest,
+    request_body = DismissSuggestionRequest,
     responses(
-        (status = 200, description = "Response recorded", body = EmptyApiResponse),
+        (status = 200, description = "Suggestion dismissed", body = EmptyApiResponse),
+        (status = 400, description = "Not a Suggestion", body = ApiErrorResponse),
+        (status = 403, description = "The user may not act on the Suggestion", body = ApiErrorResponse),
     )
 )]
-async fn daemon_prompt_response(
-    auth: Authorized<Can<DaemonApiKey, Read>>,
+async fn dismiss_setup_suggestion(
+    auth: Authorized<IsUser>,
     State(state): State<Arc<AppState>>,
-    ApiJson(request): ApiJson<DaemonPromptResponseRequest>,
+    ApiJson(request): ApiJson<DismissSuggestionRequest>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
-    let org_id = auth.organization_id().unwrap();
-    let authentication: AuthenticatedEntity = auth.into();
-
-    let (operation, step) = match request.action {
-        DaemonPromptAction::Dismissed => (
-            OnboardingOperation::DaemonPromptDismissed,
-            OnboardingOperationDiscriminants::DaemonPromptDismissed,
-        ),
-        DaemonPromptAction::Accepted => (
-            OnboardingOperation::DaemonPromptAccepted,
-            OnboardingOperationDiscriminants::DaemonPromptAccepted,
-        ),
-    };
+    let org_id = auth.require_organization_id()?;
+    let item_type = request.item_type;
+    if item_type.tier() != SetupItemTier::Suggestion {
+        return Err(ApiError::bad_request("Only a Suggestion can be dismissed"));
+    }
+    if !item_type.dismissable_by(&auth.entity) {
+        return Err(ApiError::permission_denied());
+    }
 
     state
         .services
         .organization_service
-        .record_milestone(org_id, step)
+        .record_setup(
+            org_id,
+            SetupOperation::Dismissed { item_type },
+            auth.into_entity(),
+        )
         .await?;
-
-    state
-        .services
-        .event_bus
-        .publish(Event::new(
-            OrgScope {
-                organization_id: org_id,
-            },
-            operation,
-            authentication,
-        ))
-        .await;
 
     Ok(Json(ApiResponse::success(())))
 }
@@ -617,8 +603,11 @@ async fn run_populate_demo(
             id,
             entity.clone(),
             UpdateReason::OrganizationDemoPopulated,
+            // The demo shows a finished setup, so every Next step is done.
             |org| {
-                org.base.onboarding = OnboardingOperationDiscriminants::iter().collect();
+                org.base.setup = SetupItemDiscriminants::iter()
+                    .filter(|t| t.tier() == SetupItemTier::NextStep)
+                    .collect();
             },
         )
         .await?;

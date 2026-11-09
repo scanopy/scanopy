@@ -4,8 +4,14 @@
 	import AppBanner from './AppBanner.svelte';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { useHasPendingQuote } from '$lib/features/billing/queries';
+	import { useExtendTrial } from '$lib/features/billing/extend-trial';
+	import { useCan } from '$lib/features/auth/access';
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
-	import { getTrialDaysLeft, isTrialingWithoutPayment } from '$lib/shared/utils/trial';
+	import {
+		canExtendTrial,
+		getTrialDaysLeft,
+		isTrialingWithoutPayment
+	} from '$lib/shared/utils/trial';
 	import { hasLicensedPlan } from '$lib/features/organizations/types';
 	import { trackOncePerSession } from '$lib/shared/utils/analytics';
 	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
@@ -16,11 +22,14 @@
 		billing_trialBannerBodyToday,
 		billing_trialBannerBodyLicense,
 		billing_trialBannerBodyLicenseOneDay,
-		billing_trialBannerBodyLicenseToday
+		billing_trialBannerBodyLicenseToday,
+		billing_trialBannerExtend
 	} from '$lib/paraglide/messages';
 
 	const organizationQuery = useOrganizationQuery();
 	const configQuery = useConfigQuery();
+	const can = useCan();
+	const extendTrial = useExtendTrial();
 
 	let org = $derived(organizationQuery.data);
 	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
@@ -34,6 +43,10 @@
 			trialDaysLeft !== null &&
 			trialDaysLeft <= 3
 	);
+
+	// The one self-serve extension, offered beside the card prompt to whoever
+	// can act on billing.
+	let showExtend = $derived(can('Billing', 'Write') && canExtendTrial(org, trialDaysLeft));
 
 	// A licensed trial ends in a stopped license key, not a downgraded cloud account.
 	let isLicensed = $derived(org != null && hasLicensedPlan(org));
@@ -73,6 +86,15 @@
 			>
 				{billing_addPaymentMethod()}
 			</button>
+			{#if showExtend}
+				<button
+					onclick={extendTrial.extend}
+					disabled={extendTrial.isPending}
+					class="ml-2 rounded-sm px-2 py-0.5 text-xs underline opacity-80 hover:no-underline hover:opacity-100 disabled:opacity-50"
+				>
+					{billing_trialBannerExtend()}
+				</button>
+			{/if}
 		{/snippet}
 	</AppBanner>
 {/if}

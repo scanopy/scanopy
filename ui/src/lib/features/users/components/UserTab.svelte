@@ -4,7 +4,7 @@
 	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { userColumns } from './UserTab.columns';
 	import { Edit, UserX, Trash2 } from '@lucide/svelte';
-	import { disabledWhen, type CardAction } from '$lib/shared/components/data/types';
+	import { disabledWhen, type RowAction } from '$lib/shared/components/data/types';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
 	import { loadFailure } from '$lib/shared/utils/load-failure';
@@ -230,9 +230,9 @@
 	}
 
 	/** Row actions. A user is edited or deleted; an invite is revoked. */
-	function userActions(item: UserOrInvite): CardAction[] {
+	function userActions(item: UserOrInvite): RowAction[] {
 		if (isUser(item)) {
-			const actions: CardAction[] = [
+			const actions: RowAction[] = [
 				{ label: common_edit(), icon: Edit, isOpen: true, onClick: () => handleEditUser(item.data) }
 			];
 			if (managesUsers) {

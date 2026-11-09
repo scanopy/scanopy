@@ -16,7 +16,7 @@
 	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
 	import { fieldValueOptions, useFieldValuesQuery } from '$lib/shared/api/field-values';
 	import type { TableDefaults } from '$lib/shared/components/data/types';
-	import { disabledWhen, hiddenWhen, type CardAction } from '$lib/shared/components/data/types';
+	import { disabledWhen, hiddenWhen, type RowAction } from '$lib/shared/components/data/types';
 	import { subnetColumns } from './SubnetTab.columns';
 	import { collectionLookup } from '$lib/shared/entity-fields';
 	import { Trash2, Edit, CircleDashedCheck } from '@lucide/svelte';
@@ -60,9 +60,7 @@
 		subnets_sharedRangeReadOnly,
 		subnets_sharedRangeReadOnlyBulk
 	} from '$lib/paraglide/messages';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
 
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 	type SubnetOrderField = components['schemas']['SubnetOrderField'];
 
 	import { refusedUnless, useCan } from '$lib/features/auth/access';
@@ -70,9 +68,8 @@
 	let { isActive = false }: TabProps = $props();
 	const can = useCan();
 
-	// Organization query for onboarding state
 	const organizationQuery = useOrganizationQuery();
-	let onboarding = $derived((organizationQuery.data?.onboarding ?? []) as OnboardingOperation[]);
+	let daemonConnected = $derived(organizationQuery.data?.daemon_connected ?? false);
 
 	// Queries
 	const tagsQuery = useTagsQuery();
@@ -213,7 +210,7 @@
 	}
 
 	/** Row actions. */
-	function subnetActions(subnet: SubnetResponse): CardAction[] {
+	function subnetActions(subnet: SubnetResponse): RowAction[] {
 		if (!can('Subnet', 'Write')) return [];
 
 		const writeRefusal = refusedUnless(can('Subnet', 'Write', subnet.site_id));
@@ -421,7 +418,7 @@
 
 <!-- The page's own actions, last in the table toolbar beside the filter and columns. -->
 {#snippet toolbarActions()}
-	{#if hasDaemon(onboarding) && can('Subnet', 'Write')}
+	{#if daemonConnected && can('Subnet', 'Write')}
 		<CreateButton onclick={handleCreateSubnet} />
 	{/if}
 {/snippet}
@@ -429,7 +426,7 @@
 <div class="space-y-6">
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
-	{:else if !hasDaemon(onboarding)}
+	{:else if !daemonConnected}
 		<PreDaemonEmptyState title={daemons_installPromptSubnets()} />
 	{:else if isLoading}
 		<!-- Loading state -->

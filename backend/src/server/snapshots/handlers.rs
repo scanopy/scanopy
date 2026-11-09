@@ -29,10 +29,6 @@ use crate::server::{
         permissions::{Authorized, Can, Write},
     },
     config::AppState,
-    shared::events::{
-        traits::{Event, OrgScope},
-        types::{OnboardingOperation, OnboardingOperationDiscriminants},
-    },
     shared::{
         services::traits::CrudService,
         storage::traits::Entity,
@@ -48,7 +44,7 @@ pub struct CreateSnapshotRequest {
 }
 
 // Generated handlers for generic CRUD operations. `create` is hand-rolled below
-// because it needs the discovery lock + close-and-clone + onboarding event.
+// because it needs the discovery lock + close-and-clone.
 mod generated {
     use super::*;
     crate::crud_get_all_handler!(Snapshot);
@@ -177,33 +173,6 @@ async fn create_snapshot(
     reservation.release().await;
 
     let created = result?;
-
-    // First-snapshot onboarding event. Best-effort: failures here don't fail
-    // the request — same fire-and-forget pattern as SecondSiteCreated in
-    // sites/handlers.rs.
-    if let Some(organization_id) = auth.organization_id()
-        && let Ok(true) = state
-            .services
-            .organization_service
-            .record_milestone(
-                organization_id,
-                OnboardingOperationDiscriminants::FirstSnapshotCreated,
-            )
-            .await
-    {
-        state
-            .services
-            .event_bus
-            .publish(Event::new(
-                OrgScope { organization_id },
-                OnboardingOperation::FirstSnapshotCreated {
-                    snapshot_id: created.id,
-                    site_id: created.base.site_id,
-                },
-                auth.entity.clone(),
-            ))
-            .await;
-    }
 
     Ok(Json(ApiResponse::success(created)))
 }

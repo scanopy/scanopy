@@ -17,7 +17,7 @@
 	import { loadFailure } from '$lib/shared/utils/load-failure';
 	import type { TagGroup } from '../types/base';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import { disabledWhen, type CardAction } from '$lib/shared/components/data/types';
+	import { disabledWhen, type RowAction } from '$lib/shared/components/data/types';
 	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
 	import { Trash2, Edit } from '@lucide/svelte';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
@@ -102,7 +102,7 @@
 		}
 	}
 
-	function actions(group: TagGroup): CardAction[] {
+	function actions(group: TagGroup): RowAction[] {
 		if (!canManage) return [];
 		return [
 			{ label: common_edit(), icon: Edit, isOpen: true, onClick: () => handleEdit(group) },

@@ -17,6 +17,12 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
         updated_at: now,
         is_default: credential_type.is_default(),
         base: CredentialBase {
+            // The seeded defaults are Scanopy's, the rest stand for credentials a person added.
+            source: if credential_type.is_default() {
+                EntitySource::System
+            } else {
+                EntitySource::Manual
+            },
             organization_id,
             daemon_os,
             login_credential_id: None,
@@ -112,11 +118,11 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
                 context_name: None,
             },
         ),
-        // Created ahead of the branch office's daemon and not yet targeted, so the demo carries
-        // the warning and home nudge for a credential no scan uses.
+        // Saved a week ago with no target, which that week's HQ scan reported. It has since been
+        // assigned to HQ, where the branch switches uplink.
         credential(
             "Branch Office SNMPv3",
-            "SNMPv3 for the branch office switches, ready for when the branch daemon is installed.",
+            "SNMPv3 for the branch office switches, which HQ's daemon reaches over the uplink.",
             None,
             CredentialType::SnmpV3 {
                 security_name: "scanopy-branch".to_string(),
@@ -255,6 +261,18 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
                 token_secret: inline("3f9c2a7e-5b1d-4c8e-9a6f-2d7b8e1c4a90"),
             },
         ),
+        // Added after the data center scan reported Proxmox VE on dc-proxmox-hv01 with no
+        // credential, so that run's report carries the warning and Home doesn't.
+        credential(
+            "Data Center Proxmox API",
+            "Read-only API token (PVEAuditor) for the data center Proxmox node.",
+            None,
+            CredentialType::ProxmoxApiToken {
+                port: 8006,
+                token_id: "scanopy@pve!dc-discovery".to_string(),
+                token_secret: inline("8b2e6d41-7c3a-4f95-b0d8-1e6a9c5f2b73"),
+            },
+        ),
         credential(
             "Backup NAS Wake",
             "Wakes the backup NAS, which sleeps between weekly backup windows.",
@@ -295,14 +313,15 @@ pub(super) fn generate_site_credential_assignments(
 
     let default_snmp = find_default(credentials, CredentialTypeDiscriminants::SnmpCommunity);
     let network_snmp = find_cred("Network Devices");
+    let branch_snmp = find_cred("Branch Office SNMPv3");
     let hq = find_site("Headquarters");
     let dc = find_site("Data Center");
 
     vec![
-        // HQ: both SNMP credentials + Docker proxy
+        // HQ: both SNMP credentials, and the branch switches' SNMPv3
         SiteCredentialAssignment {
             site_id: hq.id,
-            credential_ids: vec![default_snmp.id, network_snmp.id],
+            credential_ids: vec![default_snmp.id, network_snmp.id, branch_snmp.id],
         },
         // DC: both SNMP credentials
         SiteCredentialAssignment {

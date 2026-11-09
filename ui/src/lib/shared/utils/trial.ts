@@ -131,3 +131,19 @@ export function topologyTrialDays(): number {
 export function canTrialTopology(org: Organization | null | undefined): boolean {
 	return !isReturningCustomer(org) && topologyTrialDays() > 0;
 }
+
+/**
+ * Whether the org can take its one self-serve trial extension now: trialing,
+ * in the last three days, and not extended before.
+ */
+export function canExtendTrial(
+	org: Organization | null | undefined,
+	trialDaysLeft: number | null
+): boolean {
+	return (
+		org?.plan_status === 'trialing' &&
+		trialDaysLeft !== null &&
+		trialDaysLeft <= 3 &&
+		!org.trial_extended_used
+	);
+}

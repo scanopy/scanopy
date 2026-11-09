@@ -17,7 +17,7 @@
 	import type { Tag } from '../types/base';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
 	import type { TableDefaults } from '$lib/shared/components/data/types';
-	import type { CardAction } from '$lib/shared/components/data/types';
+	import type { RowAction } from '$lib/shared/components/data/types';
 	import { tagColumns } from './TagTab.columns';
 	import { collectionLookup } from '$lib/shared/entity-fields';
 	import { Trash2, Edit } from '@lucide/svelte';
@@ -104,7 +104,7 @@
 	}
 
 	/** Row actions. */
-	function tagActions(tag: Tag): CardAction[] {
+	function tagActions(tag: Tag): RowAction[] {
 		if (!canManage) return [];
 
 		return [

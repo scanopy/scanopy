@@ -6,6 +6,7 @@ use mac_address::MacAddress;
 use uuid::Uuid;
 
 use crate::server::{
+    billing::types::base::PlanStatus,
     daemons::r#impl::base::DaemonMode,
     license::types::LicenseKeyType,
     shared::{entities::EntityDiscriminants, storage::traits::SqlValue},

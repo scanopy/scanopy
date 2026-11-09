@@ -160,6 +160,51 @@ pub(super) fn generate_discoveries(
             integration_targets: snmp_network_targets(),
         });
 
+        // What each HQ credential produced on a scan: SNMP collected from the network devices,
+        // the inventory script ran on jenkins-ci, and the backup NAS woke for the scan.
+        let hq_credential_results = vec![
+            CredentialRunResult {
+                credential_id: network_devices_cred_id,
+                outcome: CredentialRunOutcome::Collected {
+                    hosts: 9,
+                    hosts_with_guests_listed: vec![],
+                },
+            },
+            CredentialRunResult {
+                credential_id: linux_inventory_cred_id,
+                outcome: CredentialRunOutcome::SshScript {
+                    runs: vec![SshScriptRun {
+                        ip: IpAddr::V4(Ipv4Addr::new(10, 0, 20, 30)),
+                        outcome: SshScriptOutcome::Applied,
+                        exit_code: Some(0),
+                        applied_keys: [
+                            "hostname",
+                            "sys_descr",
+                            "manufacturer",
+                            "model",
+                            "serial_number",
+                            "firmware_revision",
+                            "software_revision",
+                        ]
+                        .map(String::from)
+                        .to_vec(),
+                        rejected_keys: Vec::new(),
+                        detail: None,
+                        duration_ms: 412,
+                    }],
+                },
+            },
+            CredentialRunResult {
+                credential_id: backup_wake_cred_id,
+                outcome: CredentialRunOutcome::WakeOnLan {
+                    hosts: vec![WakeOnLanResult {
+                        ip: IpAddr::V4(Ipv4Addr::new(10, 0, 40, 21)),
+                        woke: true,
+                    }],
+                },
+            },
+        ];
+
         // Historical — the second run, a full scan of all ports, completed 1 week ago
         let one_week_ago = now - Duration::weeks(1);
         let mut hq_unified_full = hq_unified;
@@ -232,50 +277,7 @@ pub(super) fn generate_discoveries(
                         // resolve modal links back to as the scan that found it.
                         .chain(unconfirmed_host_warnings(hosts, interfaces))
                         .collect(),
-                        // What each credential produced: SNMP collected from the network devices,
-                        // the inventory script ran on jenkins-ci, and the backup NAS woke for the scan.
-                        credential_results: vec![
-                            CredentialRunResult {
-                                credential_id: network_devices_cred_id,
-                                outcome: CredentialRunOutcome::Collected {
-                                    hosts: 9,
-                                    hosts_with_guests_listed: vec![],
-                                },
-                            },
-                            CredentialRunResult {
-                                credential_id: linux_inventory_cred_id,
-                                outcome: CredentialRunOutcome::SshScript {
-                                    runs: vec![SshScriptRun {
-                                        ip: IpAddr::V4(Ipv4Addr::new(10, 0, 20, 30)),
-                                        outcome: SshScriptOutcome::Applied,
-                                        exit_code: Some(0),
-                                        applied_keys: [
-                                            "hostname",
-                                            "sys_descr",
-                                            "manufacturer",
-                                            "model",
-                                            "serial_number",
-                                            "firmware_revision",
-                                            "software_revision",
-                                        ]
-                                        .map(String::from)
-                                        .to_vec(),
-                                        rejected_keys: Vec::new(),
-                                        detail: None,
-                                        duration_ms: 412,
-                                    }],
-                                },
-                            },
-                            CredentialRunResult {
-                                credential_id: backup_wake_cred_id,
-                                outcome: CredentialRunOutcome::WakeOnLan {
-                                    hosts: vec![WakeOnLanResult {
-                                        ip: IpAddr::V4(Ipv4Addr::new(10, 0, 40, 21)),
-                                        woke: true,
-                                    }],
-                                },
-                            },
-                        ],
+                        credential_results: hq_credential_results.clone(),
                         started_at: Some(one_week_ago),
                         finished_at: Some(one_week_ago + Duration::minutes(35)),
                         hosts_discovered: None,
@@ -286,6 +288,50 @@ pub(super) fn generate_discoveries(
                         last_update_at: Some(one_week_ago + Duration::minutes(35)),
                         daemon_version: daemon.base.version.as_ref().map(|v| v.to_string()),
                         last_activity_at: None,
+                    }),
+                },
+                name: "Discovery".to_string(),
+                daemon_id: daemon.id,
+                site_id: hq.id,
+                tags: vec![],
+            },
+            scan_count: 0,
+            force_full_scan: false,
+            next_run_is_full_scan: false,
+            integration_targets: snmp_network_targets(),
+        });
+
+        // Historical — the latest run, 2 days ago, came back clean: the week-old warnings were
+        // fixed, so they stay in that run's report and leave Home.
+        let two_days_ago = now - Duration::days(2);
+        let hq_latest = unified(daemon, Some(hq_subnet_ids.clone()));
+        discoveries.push(Discovery {
+            id: Uuid::new_v4(),
+            created_at: two_days_ago,
+            updated_at: two_days_ago,
+            base: DiscoveryBase {
+                discovery_type: hq_latest.clone(),
+                run_type: RunType::Historical {
+                    results: Box::new(DiscoveryUpdatePayload {
+                        session_id: Uuid::new_v4(),
+                        daemon_id: daemon.id,
+                        site_id: hq.id,
+                        phase: DiscoveryPhase::Complete,
+                        discovery_type: hq_latest,
+                        progress: 100,
+                        error: None,
+                        warnings: Vec::new(),
+                        credential_results: hq_credential_results,
+                        started_at: Some(two_days_ago),
+                        finished_at: Some(two_days_ago + Duration::minutes(7)),
+                        hosts_discovered: None,
+                        estimated_remaining_secs: None,
+                        discovery_id: None,
+                        scanned: None,
+                        reason: Some(DiscoveryTerminalReason::Completed),
+                        last_update_at: Some(two_days_ago + Duration::minutes(7)),
+                        last_activity_at: None,
+                        daemon_version: daemon.base.version.as_ref().map(|v| v.to_string()),
                     }),
                 },
                 name: "Discovery".to_string(),
@@ -325,8 +371,8 @@ pub(super) fn generate_discoveries(
             integration_targets: snmp_and_docker_targets(),
         });
 
-        // Historical — the run 3 days ago. It found Proxmox VE on dc-proxmox-hv01, which has no
-        // Proxmox credential (HQ's hypervisors do), so the report and home prompt for one.
+        // Historical — the run 3 days ago. It found Proxmox VE on dc-proxmox-hv01 with no Proxmox
+        // credential, so the report prompts for one. The credential was added since.
         let three_days_ago = now - Duration::days(3);
         let dc_unified = unified(daemon, Some(find_subnets_for_site(dc.id)));
         let find_cred_id =

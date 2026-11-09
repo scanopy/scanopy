@@ -791,6 +791,7 @@ mod tests {
                 tag_group_id: Some(APP_GROUP),
                 position: None,
                 icon: None,
+                source: crate::server::shared::types::entities::EntitySource::Manual,
             },
             ..Default::default()
         };
@@ -806,6 +807,7 @@ mod tests {
                 tag_group_id: Some(APP_GROUP),
                 position: None,
                 icon: None,
+                source: crate::server::shared::types::entities::EntitySource::Manual,
             },
             ..Default::default()
         };
@@ -946,6 +948,7 @@ mod tests {
                 tag_group_id: Some(APP_GROUP),
                 position: None,
                 icon: None,
+                source: crate::server::shared::types::entities::EntitySource::Manual,
             },
             ..Default::default()
         };
@@ -961,6 +964,7 @@ mod tests {
                 tag_group_id: Some(APP_GROUP),
                 position: None,
                 icon: None,
+                source: crate::server::shared::types::entities::EntitySource::Manual,
             },
             ..Default::default()
         };

@@ -28,6 +28,7 @@ use crate::server::{
     shares::r#impl::base::Share,
     sites::r#impl::Site,
     subnets::r#impl::base::Subnet,
+    tags::r#impl::base::Tag,
     topology::types::base::Topology,
     user_api_keys::r#impl::base::UserApiKey,
     users::r#impl::base::User,
@@ -468,6 +469,8 @@ const TAG: &[F] = &[
     F::new("icon", "Icon", G::Identity),
     ORGANIZATION_ID,
     F::internal("position"),
+    // Set by the server: `System` when seeded, `Manual` when a person creates it.
+    F::internal("source").immutable(pin!(Tag, base.source)),
     CREATED_AT,
     UPDATED_AT,
 ];
@@ -649,6 +652,8 @@ const CREDENTIAL: &[F] = &[
     ]),
     F::internal("is_default"),
     TAGS,
+    // Set by the server: `System` when seeded, `Manual` when a person creates it.
+    F::internal("source").immutable(pin!(Credential, base.source)),
     F::column("integration", "Integration", G::Identity).computed(),
     F::column("category", "Category", G::Identity).computed(),
     F::column("beta", "Beta", G::Identity).computed(),
@@ -792,9 +797,9 @@ const ORGANIZATION: &[F] = &[
     F::internal("plan").server_owned(pin!(Organization, base.plan)),
     F::internal("plan_status").server_owned(pin!(Organization, base.plan_status)),
     F::internal("next_renewal_at").server_owned(pin!(Organization, base.next_renewal_at)),
-    F::internal("onboarding")
+    F::internal("setup")
         .many()
-        .server_owned(pin!(Organization, base.onboarding)),
+        .server_owned(pin!(Organization, base.setup)),
     // License state is server-managed. The key version is never serialized, so a PUT body always
     // carries the default and would otherwise reset it, reviving retired online keys.
     F::internal("license_paid_through").server_owned(pin!(Organization, base.license_paid_through)),
@@ -830,6 +835,8 @@ const ORGANIZATION: &[F] = &[
     F::internal("discount_save_offer_percent_off"),
     F::internal("discount_save_offer_active_until"),
     F::internal("air_gapped_key_current_until"),
+    // On `OrganizationResponse`, derived from the org's daemons.
+    F::internal("daemon_connected").computed(),
 ];
 
 const SNAPSHOT: &[F] = &[

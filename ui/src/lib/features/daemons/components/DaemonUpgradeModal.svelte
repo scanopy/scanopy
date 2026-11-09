@@ -5,6 +5,7 @@
 	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
 	import InlineDanger from '$lib/shared/components/feedback/InlineDanger.svelte';
 	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
+	import InlineSuccess from '$lib/shared/components/feedback/InlineSuccess.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
@@ -15,7 +16,7 @@
 	import type { Daemon, UpgradeStep } from '../types/base';
 	import { VERSION } from '$lib/version';
 	import { type DaemonOS, detectOS, isPreUnifiedDaemon } from '../utils';
-	import { useDaemonUpgradeCommandQuery } from '../queries';
+	import { useDaemonsQuery, useDaemonUpgradeCommandQuery } from '../queries';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import OsSelector from './OsSelector.svelte';
 	import {
@@ -30,6 +31,8 @@
 		daemons_latestVersion,
 		daemons_updateAvailable,
 		daemons_upgradeConfigPreserved,
+		daemons_upgradeUpdatedTo,
+		daemons_upgradeWaitingForCheckIn,
 		daemons_upgradeDownload,
 		daemons_upgradeDaemon,
 		daemons_upgradeLegacyServiceName,
@@ -97,6 +100,16 @@
 		trackEvent('daemon_upgrade_os_selected', { os });
 	}
 
+	// The version the daemon checked in on since the modal opened, once it differs. The daemons query
+	// refetches on the live `Daemon` update the server sends when a check-in changes the version, and
+	// the `daemon` prop stays the record the modal opened on.
+	const daemonsQuery = useDaemonsQuery();
+	let checkedInVersion = $derived.by(() => {
+		const current = daemonsQuery.data?.find((d) => d.id === daemon.id);
+		const version = current?.version_status.version ?? null;
+		return version && version !== daemon.version_status.version ? version : null;
+	});
+
 	let colorHelper = entities.getColorHelper('Daemon');
 
 	let actions = $derived<ModalAction[]>([
@@ -137,6 +150,12 @@
 				{/if}
 
 				<InlineInfo title="" body={daemons_upgradeConfigPreserved()} />
+
+				{#if checkedInVersion}
+					<InlineSuccess title="" body={daemons_upgradeUpdatedTo({ version: checkedInVersion })} />
+				{:else}
+					<InlineInfo title="" body={daemons_upgradeWaitingForCheckIn({ name: daemon.name })} />
+				{/if}
 
 				{#if isPreUnifiedDaemon(daemon)}
 					<InlineWarning

@@ -126,7 +126,8 @@ impl DiscoveryRunner {
 
     /// Subnet setup at the start of a session. Merges daemon interface subnets with Docker
     /// network subnets (host CIDR wins on overlap). Runs before the self-report and localhost
-    /// integration phases, which take the subnets it returns.
+    /// integration phases, which take the subnets it returns. Reports a desktop container VM from the
+    /// same Docker connection.
     async fn create_initial_subnets(
         &self,
         ops: &DiscoveryOps,
@@ -146,7 +147,8 @@ impl DiscoveryRunner {
 
         // The runtimes' bridges are handled by the container integration phase, so the session
         // neither creates nor scans them.
-        let runtime_subnets = self.runtime_subnets(site_id).await;
+        let (runtime_subnets, docker_client) = self.runtime_subnets(site_id).await;
+        report_desktop_vm(ops, docker_client.as_ref()).await;
         let subnets_to_create = session_subnets(host_subnets, runtime_subnets);
 
         tracing::info!(
@@ -183,8 +185,9 @@ impl DiscoveryRunner {
 
     /// The networks this host's container runtimes report, read with the session's localhost
     /// Docker and Podman credentials (socket or proxy). Empty with none: the session then has
-    /// nothing that types a bridge, and scans each one as an ordinary subnet.
-    async fn runtime_subnets(&self, site_id: Uuid) -> Vec<Subnet> {
+    /// nothing that types a bridge, and scans each one as an ordinary subnet. Also returns the
+    /// first Docker client it reached, for the desktop container VM check.
+    async fn runtime_subnets(&self, site_id: Uuid) -> (Vec<Subnet>, Option<bollard::Docker>) {
         use crate::daemon::discovery::integration::container::{
             build_container_proxy_url, resolve_container_ssl,
         };
@@ -192,6 +195,7 @@ impl DiscoveryRunner {
 
         let utils = &self.service.utils;
         let mut subnets = Vec::new();
+        let mut docker = None;
         let overrides = self
             .credential_mappings
             .iter()
@@ -248,7 +252,10 @@ impl DiscoveryRunner {
             };
             match client {
                 Ok(client) => {
-                    subnets.extend(self.list_runtime_networks(site_id, &client, runtime).await)
+                    subnets.extend(self.list_runtime_networks(site_id, &client, runtime).await);
+                    if runtime == ContainerRuntime::Docker && docker.is_none() {
+                        docker = Some(client);
+                    }
                 }
                 Err(e) => tracing::warn!(
                     runtime = runtime.label(),
@@ -258,7 +265,7 @@ impl DiscoveryRunner {
                 ),
             }
         }
-        subnets
+        (subnets, docker)
     }
 
     async fn list_runtime_networks(
@@ -775,5 +782,33 @@ mod tests {
                 ("10.0.0.3".to_string(), vpn.id)
             ]
         );
+    }
+}
+
+/// Warn when this daemon runs inside Docker Desktop, OrbStack or Colima, whose VM network keeps
+/// ARP, mDNS and LLDP off the LAN. `docker` is the engine the daemon reached, if any: Colima is
+/// named only by the engine's `info`.
+async fn report_desktop_vm(ops: &DiscoveryOps, docker: Option<&bollard::Docker>) {
+    use crate::daemon::discovery::types::warnings::DiscoveryWarning;
+    use crate::daemon::utils::host_os::{desktop_vm, kernel_release};
+
+    let Some(kernel) = kernel_release() else {
+        return;
+    };
+    let engine_info = match docker {
+        Some(client) => client.info().await.ok(),
+        None => None,
+    };
+    let Some(vm) = desktop_vm(&kernel, engine_info.as_ref()) else {
+        return;
+    };
+    tracing::warn!(
+        ?vm,
+        "The daemon runs inside a desktop container VM, so ARP, mDNS and LLDP do not reach the LAN"
+    );
+    if let Ok(session) = ops.get_session().await
+        && let Ok(mut warnings) = session.warnings.lock()
+    {
+        warnings.push(DiscoveryWarning::DaemonInDesktopVm { vm });
     }
 }

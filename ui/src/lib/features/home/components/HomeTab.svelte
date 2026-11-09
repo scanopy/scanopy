@@ -3,58 +3,42 @@
 	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
 	import { loadFailure } from '$lib/shared/utils/load-failure';
 	import PageTitle from '$lib/shared/components/layout/PageTitle.svelte';
-	import { common_home } from '$lib/paraglide/messages';
+	import { common_dismiss, common_home } from '$lib/paraglide/messages';
 	import { useDashboardQuery } from '$lib/features/home/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import SetupList from './SetupList.svelte';
 	import { isPlanLapsed } from '$lib/features/organizations/types';
-	import { useCan } from '$lib/features/auth/access';
-	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
-	import GettingStartedChecklist from './GettingStartedChecklist.svelte';
-	import ActiveDiscoveries from './ActiveDiscoveries.svelte';
 	import SiteMetrics from './SiteMetrics.svelte';
-	import DaemonHealthPanel from './DaemonHealthPanel.svelte';
-	import RecentDiscoveries from './RecentDiscoveries.svelte';
-	import FeatureNudges from './FeatureNudges.svelte';
-	import PlanUsage from './PlanUsage.svelte';
-	import ProfilePrompt from './ProfilePrompt.svelte';
-	import ReferralSourcePrompt from './ReferralSourcePrompt.svelte';
-	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import { homeDaemonPrompt } from '$lib/shared/onboarding/checklist';
 	import type { TabProps } from '$lib/shared/types';
-	import type { components } from '$lib/api/schema';
 	import { onMount, untrack } from 'svelte';
-	import { openModal } from '$lib/shared/stores/modal-registry';
 	import { useConfigQuery, isCloud } from '$lib/shared/stores/config-query';
 	import {
 		home_demoEmbedTitle,
 		home_demoEmbedSubtitle,
-		home_demoNetworkTopology,
-		gettingStarted_stepDaemonDescription
+		home_demoNetworkTopology
 	} from '$lib/paraglide/messages';
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 
 	let { isActive = false }: TabProps = $props();
 
-	const can = useCan();
 	const dashboardQuery = useDashboardQuery();
 	const organizationQuery = useOrganizationQuery();
 	const configQuery = useConfigQuery();
-	const sessionsQuery = useActiveSessionsQuery();
 
 	let dashboard = $derived(dashboardQuery.data);
 	let organization = $derived(organizationQuery.data);
-	let activeSessions = $derived(sessionsQuery.data ?? []);
 	let pageLoad = $derived(loadFailure(dashboardQuery, organizationQuery));
 
-	let onboarding = $derived((organization?.onboarding ?? []) as OnboardingOperation[]);
-	let isOwner = $derived(can('Billing', 'Write'));
+	let setup = $derived(organization?.setup ?? []);
+	// A lapsed org keeps its plan's feature flags but can act on none of them, so it gets no Suggestions.
+	let setupItems = $derived(
+		(dashboard?.setup_items ?? []).filter(
+			(entry) => !(organization && isPlanLapsed(organization)) || entry.tier !== 'Suggestion'
+		)
+	);
 	let configData = $derived(configQuery.data);
 
-	// Checklist dismiss state
-	let checklistDismissed = $state(false);
 	let demoTopologyDismissed = $state(false);
 	onMount(() => {
-		checklistDismissed = localStorage.getItem('home-checklist-dismissed') === 'true';
 		demoTopologyDismissed = localStorage.getItem('home-demo-topology-dismissed') === 'true';
 	});
 
@@ -73,29 +57,6 @@
 			});
 		}
 	});
-
-	// Journey stage derivation
-	const has = (op: OnboardingOperation) => onboarding.includes(op);
-	let showNudges = $derived(dashboard != null && organization != null);
-
-	// One prompt at a time: referral source first, then profile
-	let showReferralSource = $derived(
-		configData &&
-			configData.deployment_type === 'cloud' &&
-			has('FirstDaemonRegistered') &&
-			!has('ReferralSourceCompleted')
-	);
-	let showProfile = $derived(!showReferralSource);
-
-	// Fills the checklist's slot once it is dismissed before the first daemon
-	let showDaemonPrompt = $derived(homeDaemonPrompt(onboarding, checklistDismissed));
-
-	// Navigation handler — sets the active tab via the URL hash
-	function navigateTo(tab: string) {
-		if (typeof window !== 'undefined') {
-			window.location.hash = tab;
-		}
-	}
 </script>
 
 <div class="space-y-6">
@@ -108,30 +69,12 @@
 	{:else if dashboardQuery.isPending || organizationQuery.isPending}
 		<Loading />
 	{:else if dashboard && organization}
-		<!-- Getting Started Checklist -->
-		{#if !checklistDismissed}
-			<GettingStartedChecklist
-				{onboarding}
-				{organization}
-				onNavigate={navigateTo}
-				onDismiss={() => (checklistDismissed = true)}
-				{isActive}
-			/>
-		{:else if showDaemonPrompt}
-			<section class="card-static card">
-				<PreDaemonEmptyState title={gettingStarted_stepDaemonDescription()} />
-			</section>
+		{#if setupItems.length > 0}
+			<SetupList entries={setupItems} {setup} />
 		{/if}
 
-		<!-- Onboarding prompts — one at a time -->
-		{#if showReferralSource}
-			<ReferralSourcePrompt {organization} {configData} />
-		{:else if showProfile}
-			<ProfilePrompt {organization} {configData} />
-		{/if}
-
-		<!-- Demo Topology Embed — shown before first topology rebuild -->
-		{#if configData && isCloud(configData) && !has('FirstDiscoveryCompleted') && !demoTopologyDismissed}
+		<!-- Demo Topology Embed — shown until the first scan finishes -->
+		{#if configData && isCloud(configData) && !setup.includes('RunFirstScan') && !demoTopologyDismissed}
 			<section>
 				<div class="card-static card overflow-hidden p-0!">
 					<div class="flex items-center justify-between px-4 pt-3">
@@ -149,7 +92,7 @@
 								onclick={dismissDemoTopology}
 								class="text-sm text-tertiary hover:text-secondary"
 							>
-								Dismiss
+								{common_dismiss()}
 							</button>
 						</div>
 					</div>
@@ -170,46 +113,8 @@
 			</section>
 		{/if}
 
-		<!-- Active Discoveries — shown when sessions exist, after first discovery completed -->
-		{#if has('FirstDiscoveryCompleted') && activeSessions.length > 0}
-			<ActiveDiscoveries
-				sessions={activeSessions}
-				onNavigate={() => navigateTo('discovery-scans')}
-			/>
-		{/if}
-
-		<!-- Feature Nudges — shown after checklist is complete/dismissed. A lapsed
-		     org keeps its plan's feature flags but cannot act on any of them. -->
-		{#if showNudges && !isPlanLapsed(organization)}
-			<FeatureNudges {organization} {dashboard} onNavigate={navigateTo} />
-		{/if}
-
-		<!-- Daemon Health — shown when daemons exist -->
-		{#if dashboard.daemons.length > 0}
-			<DaemonHealthPanel daemons={dashboard.daemons} onNavigate={navigateTo} />
-		{/if}
-
-		<!-- Recent scans — shown once a daemon exists, so before that the checklist is the only ask -->
-		{#if dashboard.recent_discoveries.length > 0 || has('FirstDaemonRegistered')}
-			<RecentDiscoveries
-				recent={dashboard.recent_discoveries}
-				daemons={dashboard.daemons}
-				sites={dashboard.sites}
-				onOpenRun={(discovery) => {
-					// The run itself, so the modal opens even when the history tab has not loaded it.
-					openModal('discovery-history-detail', { id: discovery.id, entityData: discovery });
-					navigateTo('discovery-history');
-				}}
-			/>
-		{/if}
-
-		<!-- Plan Usage — hidden pre-daemon since limits can't be hit -->
-		{#if has('FirstDaemonRegistered')}
-			<PlanUsage planUsage={dashboard.plan_usage} plan={organization.plan} {isOwner} />
-		{/if}
-
 		<!-- Site Metrics — hidden pre-daemon since no meaningful data yet -->
-		{#if has('FirstDaemonRegistered') && dashboard.sites.length > 0}
+		{#if setup.includes('InstallDaemon') && dashboard.sites.length > 0}
 			<SiteMetrics sites={dashboard.sites} />
 		{/if}
 	{/if}

@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { components } from '$lib/api/schema';
-	import type { PublicServerConfig } from '$lib/shared/stores/config-query';
 	import { useProfileUpdateMutation } from '$lib/features/auth/queries';
 	import { createForm } from '@tanstack/svelte-form';
 	import { submitForm } from '$lib/shared/components/forms/form-context';
+	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
 	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
 	import {
 		common_companySize,
@@ -30,23 +30,8 @@
 		home_profileTitle
 	} from '$lib/paraglide/messages';
 
-	type Organization = components['schemas']['Organization'];
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
-
-	let {
-		organization,
-		configData = null
-	}: {
-		organization: Organization;
-		configData?: PublicServerConfig | null;
-	} = $props();
-
-	const onboarding = $derived(organization.onboarding ?? []);
-	const has = (op: OnboardingOperation) => onboarding.includes(op);
-
-	const isCloud = $derived(configData?.deployment_type === 'cloud');
-
-	const visible = $derived(has('FirstDiscoveryCompleted') && !has('ProfileCompleted') && isCloud);
+	/** The AnswerProfile item's form. Opened over Home, so it carries no registry name. */
+	let { isOpen = false, onClose }: { isOpen?: boolean; onClose: () => void } = $props();
 
 	const profileMutation = useProfileUpdateMutation();
 
@@ -78,66 +63,57 @@
 			company_size: ''
 		},
 		onSubmit: async ({ value }) => {
-			profileMutation.mutate({
+			await profileMutation.mutateAsync({
 				job_title: value.job_title || undefined,
 				company_size: value.company_size || undefined
 			});
+			onClose();
 		}
 	}));
 
-	function dismiss() {
-		// Submit empty payload — still records ProfileCompleted milestone
-		profileMutation.mutate({ job_title: undefined, company_size: undefined });
+	/** Records the item with no answers, so it leaves the list. */
+	async function dismiss() {
+		await profileMutation.mutateAsync({ job_title: undefined, company_size: undefined });
+		onClose();
 	}
 
-	async function handleSubmit() {
-		await submitForm(form);
-	}
+	let actions = $derived<ModalAction[]>([
+		{ role: 'secondary', label: common_dismiss(), onClick: dismiss },
+		{
+			role: 'primary',
+			label: common_submit(),
+			onClick: () => submitForm(form),
+			busy: profileMutation.isPending
+		}
+	]);
 </script>
 
-{#if visible}
-	<section>
-		<div class="card-static card rounded-lg! p-4!">
-			<div class="flex items-center justify-between">
-				<div>
-					<h3 class="text-sm font-semibold text-primary">{home_profileTitle()}</h3>
-					<p class="mt-1 text-xs text-secondary">{home_profileSubtitle()}</p>
-				</div>
-				<button onclick={dismiss} class="text-sm text-tertiary hover:text-secondary">
-					{common_dismiss()}
-				</button>
-			</div>
-			<form
-				onsubmit={(e) => {
-					e.preventDefault();
-					e.stopPropagation();
-					handleSubmit();
-				}}
-			>
-				<div class="mt-3 grid gap-3 sm:grid-cols-2">
-					<form.Field name="job_title">
-						{#snippet children(field)}
-							<SelectInput
-								label={common_role()}
-								id="profile-job-title"
-								{field}
-								options={roleOptions}
-							/>
-						{/snippet}
-					</form.Field>
-					<form.Field name="company_size">
-						{#snippet children(field)}
-							<SelectInput
-								label={common_companySize()}
-								id="profile-company-size"
-								{field}
-								options={companySizeOptions}
-							/>
-						{/snippet}
-					</form.Field>
-				</div>
-				<button type="submit" class="btn-primary mt-3 text-sm">{common_submit()}</button>
-			</form>
+<GenericModal title={home_profileTitle()} {isOpen} {onClose} size="md" {actions}>
+	<form
+		class="space-y-3 p-6"
+		onsubmit={(e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			submitForm(form);
+		}}
+	>
+		<p class="text-sm text-secondary">{home_profileSubtitle()}</p>
+		<div class="grid gap-3 sm:grid-cols-2">
+			<form.Field name="job_title">
+				{#snippet children(field)}
+					<SelectInput label={common_role()} id="profile-job-title" {field} options={roleOptions} />
+				{/snippet}
+			</form.Field>
+			<form.Field name="company_size">
+				{#snippet children(field)}
+					<SelectInput
+						label={common_companySize()}
+						id="profile-company-size"
+						{field}
+						options={companySizeOptions}
+					/>
+				{/snippet}
+			</form.Field>
 		</div>
-	</section>
-{/if}
+	</form>
+</GenericModal>

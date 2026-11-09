@@ -22,7 +22,7 @@
 	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
 	import VlanEditModal from './VlanEditModal.svelte';
 	import { Edit, Trash2 } from '@lucide/svelte';
-	import type { CardAction } from '$lib/shared/components/data/types';
+	import type { RowAction } from '$lib/shared/components/data/types';
 	import type { TabProps } from '$lib/shared/types';
 	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
@@ -30,7 +30,6 @@
 	import { useTagsQuery } from '$lib/features/tags/queries';
 	import { discoveryRunIds } from '$lib/features/discovery/columns';
 	import type { Vlan, VlanOrderField } from '../types/base';
-	import type { components } from '$lib/api/schema';
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
 	import {
 		common_confirmBulkDelete,
@@ -43,9 +42,6 @@
 		vlans_emptySubtitle,
 		vlans_vlanTitle
 	} from '$lib/paraglide/messages';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
-
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 
 	import { refusedUnless, useCan } from '$lib/features/auth/access';
 
@@ -72,9 +68,8 @@
 		}
 	});
 
-	// Organization query for onboarding state
 	const organizationQuery = useOrganizationQuery();
-	let onboarding = $derived((organizationQuery.data?.onboarding ?? []) as OnboardingOperation[]);
+	let daemonConnected = $derived(organizationQuery.data?.daemon_connected ?? false);
 
 	// Queries
 	// One page of VLANs, paged, filtered and ordered on the server.
@@ -124,7 +119,7 @@
 	const bulkDeleteVlansMutation = useBulkDeleteVlansMutation();
 
 	/** Row actions. */
-	function vlanActions(vlan: Vlan): CardAction[] {
+	function vlanActions(vlan: Vlan): RowAction[] {
 		if (!can('Vlan', 'Write')) return [];
 		return [
 			{
@@ -219,7 +214,7 @@
 
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
-	{:else if !hasDaemon(onboarding)}
+	{:else if !daemonConnected}
 		<PreDaemonEmptyState title={daemons_installPromptVlans()} />
 	{:else if isLoading}
 		<!-- Loading state -->

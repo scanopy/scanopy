@@ -4,7 +4,6 @@
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
 	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
 	import TopologyViewer from './visualization/TopologyViewer.svelte';
 	import TopologyOptionsPanel from './panel/TopologyOptionsPanel.svelte';
 	import { Camera, Radar, Share2, Trash2 } from '@lucide/svelte';
@@ -93,7 +92,6 @@
 	import { useCan } from '$lib/features/auth/access';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
-	import type { components } from '$lib/api/schema';
 	import { billingPlans, edgeTypes, entities, views } from '$lib/shared/stores/metadata';
 	import { getInspectorConfig } from './panel/inspectors/view-config';
 	import type { TabProps } from '$lib/shared/types';
@@ -395,20 +393,17 @@
 
 	let viewColorStyle = $derived(views.getColorHelper($activeView));
 
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
-	let onboarding = $derived((organizationQuery.data?.onboarding ?? []) as OnboardingOperation[]);
+	let setup = $derived(organizationQuery.data?.setup ?? []);
+	let daemonConnected = $derived(organizationQuery.data?.daemon_connected ?? false);
 	let topologyAccess = $derived(hasTopologyAccess(organizationQuery.data));
-	let hasCompletedFirstDiscovery = $derived(
-		onboarding.length === 0 || onboarding.includes('FirstDiscoveryCompleted')
-	);
+	let hasCompletedFirstDiscovery = $derived(setup.includes('RunFirstScan'));
 
-	// Complete the "View your topology" onboarding step the first time the user is focused on
-	// the topology tab with hosts to look at (and discovery already done). markTopologyViewed
-	// is a one-shot GET carrying mark_viewed=true — only sent here, never by the background
-	// data query — so the milestone only fires from an actual on-tab view, never from other
-	// tabs. Then poll the org until the milestone lands so the checklist updates. The
-	// `tracked` flag only flips once we actually call, so if discovery completes later while
-	// the user is on the tab, the effect re-fires.
+	// Record OpenTopology the first time the user is focused on the topology tab with hosts to
+	// look at (and the first scan already done). markTopologyViewed is a one-shot GET carrying
+	// mark_viewed=true — only sent here, never by the background data query — so it is only
+	// recorded from an actual on-tab view, never from other tabs. Then poll the org until it
+	// lands so the checklist updates. The `tracked` flag only flips once we actually call, so if
+	// discovery completes later while the user is on the tab, the effect re-fires.
 	let firstTopologyMilestoneTracked = $state(false);
 	$effect(() => {
 		const hasHosts = (topologyDataQuery.data?.hosts.length ?? 0) > 0;
@@ -416,16 +411,16 @@
 			isActive &&
 			$selectedSiteId &&
 			hasHosts &&
-			onboarding.includes('FirstDiscoveryCompleted') &&
+			setup.includes('RunFirstScan') &&
 			topologyAccess &&
 			!firstTopologyMilestoneTracked &&
-			!onboarding.includes('FirstTopologyRebuild')
+			!setup.includes('OpenTopology')
 		) {
 			firstTopologyMilestoneTracked = true;
 			const siteId = $selectedSiteId;
 			void (async () => {
 				await markTopologyViewed(siteId, get(activeView));
-				void waitForOrgUpdate((o) => o.onboarding.includes('FirstTopologyRebuild'));
+				void waitForOrgUpdate((o) => o.setup.includes('OpenTopology'));
 			})();
 		}
 	});
@@ -722,7 +717,7 @@
 		<!-- Onboarding comes from the organization, and reading a failed load as an empty one
 		     would ask the user to install a daemon. -->
 		<LoadFailedState onRetry={organizationLoad.retry} />
-	{:else if !hasDaemon(onboarding)}
+	{:else if !daemonConnected}
 		<PreDaemonEmptyState title={daemons_installPromptTopology()} />
 	{:else}
 		<div class="space-y-3">
@@ -888,9 +883,7 @@
 					{#if !topologyAccess}
 						<!-- Free: the plan prompt from the first scan on, with its progress while it runs,
 						     then over the org's own diagram, shrouded. -->
-						<TopologyPlanRequiredOverlay
-							scanning={!onboarding.includes('FirstDiscoveryCompleted')}
-						/>
+						<TopologyPlanRequiredOverlay scanning={!setup.includes('RunFirstScan')} />
 					{:else if $showDependencyTutorial}
 						<DependencyTutorial
 							onDismiss={dismissDependencyTutorial}
@@ -912,7 +905,7 @@
 						/>
 					{:else if topologyAccess && showL2EmptyState}
 						<L2EmptyStateOverlay
-							hasInterfaceCredential={onboarding.includes('FirstInterfaceCredentialCreated')}
+							hasInterfaceCredential={topologyDataQuery.data?.has_interface_credential ?? false}
 						/>
 					{/if}
 				</div>

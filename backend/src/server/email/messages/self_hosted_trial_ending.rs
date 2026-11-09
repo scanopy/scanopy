@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, links};
+use super::{Body, Content, Email, EmailCategory, links, trial_extension_offer};
 
 /// Sent instead of the cloud trial-ending email when the trial is for a
 /// self-hosted plan. The cloud email recaps hosts, sites, daemons and
@@ -13,6 +13,8 @@ pub struct SelfHostedTrialEnding<'a> {
     /// end plus the buffer every key is minted with. Used only when there is
     /// no payment method.
     pub key_expires: &'a str,
+    /// The org has not used its one self-serve extension, so the email offers it.
+    pub can_extend: bool,
 }
 
 impl Email for SelfHostedTrialEnding<'_> {
@@ -66,6 +68,11 @@ impl Email for SelfHostedTrialEnding<'_> {
                 links::ADD_PAYMENT_METHOD,
                 "Add payment method",
             )
+        };
+        let content = if self.can_extend {
+            content.paragraph(&trial_extension_offer())
+        } else {
+            content
         };
 
         Body::new()

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { collectionLookup } from '$lib/shared/entity-fields';
 	import { Edit, Trash2 } from '@lucide/svelte';
-	import { disabledWhen, type CardAction } from '$lib/shared/components/data/types';
+	import { disabledWhen, type RowAction } from '$lib/shared/components/data/types';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
 	import { loadFailure } from '$lib/shared/utils/load-failure';
@@ -146,7 +146,7 @@
 	}
 
 	/** Row actions. */
-	function apiKeyActions(apiKey: ApiKey): CardAction[] {
+	function apiKeyActions(apiKey: ApiKey): RowAction[] {
 		if (!can('DaemonApiKey', 'Write')) return [];
 
 		return [

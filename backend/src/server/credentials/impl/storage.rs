@@ -12,6 +12,7 @@ use crate::server::{
         entities::EntityDiscriminants,
         product_area::ProductArea,
         storage::traits::{Entity, SqlValue, Storable},
+        types::entities::EntitySource,
     },
 };
 
@@ -56,6 +57,7 @@ impl Storable for Credential {
                     assigned_site_ids: _, // Stored in site_credentials junction table
                     host_assignments: _,  // Stored in host_credentials junction table
                     used_by: _,           // Derived from other rows' login_credential_id
+                    source,
                 },
         } = self.clone();
 
@@ -68,6 +70,7 @@ impl Storable for Credential {
                 "credential_type",
                 "daemon_os",
                 "login_credential_id",
+                "source",
                 "created_at",
                 "updated_at",
             ],
@@ -79,6 +82,7 @@ impl Storable for Credential {
                 SqlValue::CredentialType(credential_type),
                 SqlValue::OptionalOsFamily(daemon_os),
                 SqlValue::OptionalUuid(login_credential_id),
+                SqlValue::EntitySource(source),
                 SqlValue::Timestamp(created_at),
                 SqlValue::Timestamp(updated_at),
             ],
@@ -110,6 +114,8 @@ impl Storable for Credential {
                 assigned_site_ids: Vec::new(), // Hydrated from site_credentials junction table
                 host_assignments: Vec::new(), // Hydrated from host_credentials junction table
                 used_by: Vec::new(), // Hydrated from login_credential_id
+                source: serde_json::from_value(row.get::<serde_json::Value, _>("source"))
+                    .map_err(|e| anyhow::anyhow!("Failed to deserialize source: {}", e))?,
             },
         })
     }
@@ -167,6 +173,10 @@ impl Entity for Credential {
 
     fn set_tags(&mut self, tags: Vec<Uuid>) {
         self.base.tags = tags;
+    }
+
+    fn set_source(&mut self, source: EntitySource) {
+        self.base.source = source;
     }
 }
 

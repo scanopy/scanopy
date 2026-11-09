@@ -16,6 +16,7 @@
 import type { components } from '$lib/api/schema';
 import type { EntityDiscriminants } from '$lib/api/entities';
 import claimSources from '$lib/data/claim-sources.json';
+import desktopVms from '$lib/data/desktop-vms.json';
 import discoveryIntegrations from '$lib/data/discovery-integrations.json';
 import malformedNeighbourConsequences from '$lib/data/malformed-neighbour-consequences.json';
 import osFamilies from '$lib/data/os-families.json';
@@ -244,6 +245,7 @@ function failuresOf(failures: components['schemas']['SnmpWalkFailure'][] | null)
 		.join(' ');
 }
 const claimSource = (id: string) => nameOf(claimSources, 'claim_sources', id);
+const desktopVm = (id: string) => nameOf(desktopVms, 'desktop_vms', id);
 const consequence = (id: string) =>
 	nameOf(malformedNeighbourConsequences, 'malformed_neighbour_consequences', id);
 
@@ -507,6 +509,8 @@ const WARNING_PARAMS = {
 	OutdatedDaemonFormat: (w) => ({
 		daemon_version: w[0].daemon_version ?? common_unknown()
 	}),
+	// One per session, raised by the daemon that ran the scan, so its name is the session's.
+	DaemonInDesktopVm: (w, { daemonName }) => ({ daemon: daemonName, vm: desktopVm(w[0].vm) }),
 
 	WarningsTruncated: (w) => ({ elided: sum(w.map((x) => x.elided)) }),
 	// The whole sentence *is* the detail: a warning from another version, or one written before

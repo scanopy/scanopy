@@ -9,7 +9,7 @@
 	import type { TableDefaults } from '$lib/shared/components/data/types';
 	import {
 		entityRef,
-		type CardAction,
+		type RowAction,
 		type LabelledCardFieldItem
 	} from '$lib/shared/components/data/types';
 	import { usePortsQuery } from '$lib/features/ports/queries';
@@ -60,10 +60,8 @@
 		services_subtitle
 	} from '$lib/paraglide/messages';
 	import { serviceDefinitions, ports as ports_metadata } from '$lib/shared/stores/metadata';
-	import { hasDaemon } from '$lib/shared/onboarding/checklist';
 	import { fieldValueOptions, useFieldValuesQuery } from '$lib/shared/api/field-values';
 
-	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 	type ServiceOrderField = components['schemas']['ServiceOrderField'];
 
 	const SERVICE_FIELD_VALUES = '/api/v1/services/field-values/{field}';
@@ -90,9 +88,8 @@
 	let { isActive = false }: TabProps = $props();
 	const can = useCan();
 
-	// Organization query for onboarding state
 	const organizationQuery = useOrganizationQuery();
-	let onboarding = $derived((organizationQuery.data?.onboarding ?? []) as OnboardingOperation[]);
+	let daemonConnected = $derived(organizationQuery.data?.daemon_connected ?? false);
 
 	// Pagination state (managed by DataControls, updated via callback)
 	let pageSize = $state(20);
@@ -306,7 +303,7 @@
 	});
 
 	/** Row actions. */
-	function serviceActions(service: Service): CardAction[] {
+	function serviceActions(service: Service): RowAction[] {
 		if (!can('Service', 'Write')) return [];
 
 		return [
@@ -459,7 +456,7 @@
 <div class="space-y-6">
 	{#if pageLoad.failed}
 		<LoadFailedState onRetry={pageLoad.retry} />
-	{:else if !hasDaemon(onboarding)}
+	{:else if !daemonConnected}
 		<PreDaemonEmptyState title={daemons_installPromptServices()} />
 	{:else if isInitialLoading}
 		<!-- Loading state (only on initial load) -->

@@ -13,12 +13,10 @@
 
 	import { attachUrlState, setActiveTab } from '$lib/shared/stores/url-state';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { useSitesQuery } from '$lib/features/sites/queries';
 	import BillingPlanModal from '$lib/features/billing/BillingPlanModal.svelte';
 	import CloudPlanRequired from '$lib/features/billing/CloudPlanRequired.svelte';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
 	import { TAB_LABELS } from '$lib/shared/entity-ui-config';
-	import DaemonPromptModal from '$lib/features/daemons/components/DaemonPromptModal.svelte';
 	import ReleaseNotesModal from '$lib/features/release-notes/ReleaseNotesModal.svelte';
 	import TermsAcceptanceModal from '$lib/features/auth/components/TermsAcceptanceModal.svelte';
 	import EmailVerificationGate from '$lib/features/auth/components/EmailVerificationGate.svelte';
@@ -34,10 +32,7 @@
 		isCloud,
 		isLicenseSigningAvailable
 	} from '$lib/shared/stores/config-query';
-	import {
-		useOrganizationQuery,
-		useDaemonPromptResponseMutation
-	} from '$lib/features/organizations/queries';
+	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import {
 		hasLicensedPlan,
 		hasTopologyAccess,
@@ -157,25 +152,7 @@
 	// it, closeModal() clears $modalState but needsPlanSelection keeps showBillingModal true.
 	let planJustActivated = $state(false);
 
-	// A self-hosted signup that picks a cloud plan gets its site from the plan
-	// webhook, so the daemon prompt waits (polling) until that site exists.
-	const sitesQuery = useSitesQuery({
-		enabled: () => isAuthenticated && mainAppAvailable,
-		pollWhileEmpty: () => planJustActivated
-	});
-	let hasSite = $derived((sitesQuery.data?.length ?? 0) > 0);
-
-	// Daemon prompt: driven by modal registry
-	let showDaemonPrompt = $derived($modalState.name === 'daemon-prompt');
-	const daemonPromptResponseMutation = useDaemonPromptResponseMutation();
-	// Don't nag anyone who can't install a daemon, and never re-show the prompt once
-	// the user has responded to it (either CTA persists an onboarding milestone).
-	let canInstallDaemon = $derived(can('Daemon', 'Write'));
 	let isOwner = $derived(can('Billing', 'Write'));
-	let daemonPromptResponded = $derived(
-		(organization?.onboarding?.includes('DaemonPromptDismissed') ?? false) ||
-			(organization?.onboarding?.includes('DaemonPromptAccepted') ?? false)
-	);
 
 	// A license signup's trial starts off the signup itself, a second or two
 	// after the org exists. A fresh org with no subscription yet waits for it
@@ -264,8 +241,7 @@
 	let initialTabSet = $state(false);
 	$effect(() => {
 		if (!initialHash && !initialTabSet && daemonsQuery.isSuccess && !showBillingModal) {
-			const wantsDaemonSetup =
-				$modalState.name === 'create-daemon' || $modalState.name === 'daemon-prompt';
+			const wantsDaemonSetup = $modalState.name === 'create-daemon';
 			activeTab = wantsDaemonSetup ? 'daemons' : 'home';
 			initialTabSet = true;
 		}
@@ -361,39 +337,8 @@
 	// Set when the URL named a modal at load; the user came for that one.
 	let deepLinkOpened = $state(false);
 
-	// Whether this org should see the daemon prompt: a new org with a site and
-	// no daemon that hasn't answered the prompt.
-	let daemonPromptWanted = $derived(
-		!isMainAppLocked &&
-			canInstallDaemon &&
-			(organization?.onboarding?.includes('OrgCreated') ?? false) &&
-			!organization?.onboarding?.includes('FirstDaemonRegistered') &&
-			!daemonPromptResponded &&
-			hasSite &&
-			daemonsQuery.isSuccess &&
-			daemonsQuery.data?.length === 0
-	);
-
-	// Auto-show daemon prompt for new orgs that haven't installed a daemon yet.
-	// Centralizes logic that previously lived in each registration path.
-	let daemonPromptShown = $state(false);
-	$effect(() => {
-		if (
-			appInitialized &&
-			!daemonPromptShown &&
-			!showBillingModal &&
-			!trialModalOpen &&
-			$modalState.name === null &&
-			daemonPromptWanted
-		) {
-			daemonPromptShown = true;
-			openModal('daemon-prompt');
-		}
-	});
-
 	// Release notes: the releases since the user last dismissed them, opened
-	// when one of them asks to be. Last in the order, so it waits until the
-	// daemon prompt's inputs have loaded. Never in the demo.
+	// when one of them asks to be. Last in the order. Never in the demo.
 	const unseenReleaseNotesQuery = useUnseenReleaseNotesQuery({
 		enabled: () => isAuthenticated && mainAppAvailable && !isDemoOrg
 	});
@@ -409,12 +354,8 @@
 			!releaseNotesShown &&
 			!deepLinkOpened &&
 			!higherModalShownThisLoad &&
-			!daemonPromptShown &&
 			!isMainAppLocked &&
 			$modalState.name === null &&
-			sitesQuery.isSuccess &&
-			daemonsQuery.isSuccess &&
-			!daemonPromptWanted &&
 			hasUnseenReleaseNotes &&
 			unseenReleaseNotesQuery.data?.auto_open
 		) {
@@ -621,9 +562,7 @@
 			if (overModal) billingOverModal.set(null);
 			planJustActivated = true;
 			// Key the licensed check off the plan the user just picked: `organization`
-			// still holds the previous plan at this point, which is how the daemon
-			// prompt used to win the race and ask a self-hosted buyer to install a
-			// daemon they can't reach.
+			// still holds the previous plan at this point.
 			const licensed =
 				selectedPlan != null && billingPlans.getMetadata(selectedPlan.type).license_plan != null;
 			if (selectedPlan != null && !licensed) cloudPlanJustPicked = true;
@@ -634,7 +573,6 @@
 				// when the webhook lands the plan on the org, whether the org was on a
 				// cloud plan or another licensed one.
 				licensedPlanJustPicked = true;
-				daemonPromptShown = true;
 				reopenSettingsAfterBilling.set(false);
 				licenseSettingsOpenedFor = selectedPlan.type;
 				if (organization) markLicenseSettingsOpened(organization.id, selectedPlan.type);
@@ -642,32 +580,7 @@
 			} else if ($reopenSettingsAfterBilling) {
 				reopenSettingsAfterBilling.set(false);
 				openModal('settings', { tab: 'billing' });
-			} else if (
-				!overModal &&
-				canInstallDaemon &&
-				!daemonPromptResponded &&
-				hasSite &&
-				daemonsQuery.data?.length === 0
-			) {
-				// Mark as shown here too so the first Skip click sticks — otherwise the
-				// auto-open $effect re-fires on close (its guard was never set on this path).
-				daemonPromptShown = true;
-				openModal('daemon-prompt');
 			}
-		}}
-	/>
-
-	<DaemonPromptModal
-		isOpen={showDaemonPrompt}
-		onInstall={() => {
-			daemonPromptResponseMutation.mutate('accepted');
-			// CreateDaemonModal lives in DaemonTab; the prompt usually opens over Home.
-			activeTab = 'daemons';
-			openModal('create-daemon');
-		}}
-		onSkip={() => {
-			daemonPromptResponseMutation.mutate('dismissed');
-			closeModal();
 		}}
 	/>
 

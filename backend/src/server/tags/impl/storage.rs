@@ -11,6 +11,7 @@ use crate::server::{
             snapshot::Snapshotable,
             traits::{Entity, SqlValue, Storable},
         },
+        types::entities::EntitySource,
     },
     tags::r#impl::base::{Tag, TagBase},
 };
@@ -67,6 +68,7 @@ impl Storable for Tag {
                     tag_group_id,
                     position,
                     icon,
+                    source,
                 },
         } = self.clone();
 
@@ -80,6 +82,7 @@ impl Storable for Tag {
                 "tag_group_id",
                 "position",
                 "icon",
+                "source",
                 "created_at",
                 "updated_at",
                 "valid_from",
@@ -95,6 +98,7 @@ impl Storable for Tag {
                 SqlValue::OptionalUuid(tag_group_id),
                 SqlValue::OptionalI32(position),
                 SqlValue::OptionalString(icon.map(|icon| icon.to_string())),
+                SqlValue::EntitySource(source),
                 SqlValue::Timestamp(created_at),
                 SqlValue::Timestamp(updated_at),
                 SqlValue::Timestamp(valid_from),
@@ -124,6 +128,8 @@ impl Storable for Tag {
                 icon: row
                     .get::<Option<String>, _>("icon")
                     .and_then(|name| name.parse().ok()),
+                source: serde_json::from_value(row.get::<serde_json::Value, _>("source"))
+                    .map_err(|e| anyhow::anyhow!("Failed to deserialize source: {}", e))?,
             },
         })
     }
@@ -202,6 +208,10 @@ impl Entity for Tag {
 
     fn set_updated_at(&mut self, time: DateTime<Utc>) {
         self.updated_at = time;
+    }
+
+    fn set_source(&mut self, source: EntitySource) {
+        self.base.source = source;
     }
 }
 

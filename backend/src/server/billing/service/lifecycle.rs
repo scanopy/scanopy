@@ -765,7 +765,7 @@ impl BillingService {
         }
 
         self.organization_service
-            .commit_billing(locked, None, events)
+            .commit_billing(locked, events)
             .await
     }
 

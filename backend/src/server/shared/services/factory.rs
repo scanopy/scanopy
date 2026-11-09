@@ -33,6 +33,7 @@ use crate::server::{
     ports::service::PortService,
     posthog::PosthogService,
     services::service::ServiceService,
+    setup::service::SetupService,
     shared::{
         events::{
             bus::EventBus,
@@ -102,6 +103,7 @@ pub struct ServiceFactory {
     pub vlan_service: Arc<VlanService>,
     pub discovery_digest_service: Arc<DiscoveryDigestService>,
     pub release_notes_service: Arc<ReleaseNotesService>,
+    pub setup_service: Arc<SetupService>,
     /// Present only when a license key applies (self-hosted commercial). A
     /// keyless deployment (community or cloud) has no license service —
     /// licensing is "not required".
@@ -530,6 +532,23 @@ impl ServiceFactory {
             ))
         });
 
+        let setup_service = Arc::new(SetupService {
+            site_service: site_service.clone(),
+            daemon_service: daemon_service.clone(),
+            discovery_service: discovery_service.clone(),
+            credential_service: credential_service.clone(),
+            host_service: host_service.clone(),
+            subnet_service: subnet_service.clone(),
+            dependency_service: dependency_service.clone(),
+            share_service: share_service.clone(),
+            user_api_key_service: user_api_key_service.clone(),
+            user_service: user_service.clone(),
+            invite_service: invite_service.clone(),
+            tag_service: tag_service.clone(),
+            organization_service: organization_service.clone(),
+            deployment_type,
+        });
+
         let release_notes_service = Arc::new(ReleaseNotesService::new(
             storage.release_announcements.clone(),
             user_service.clone(),
@@ -662,6 +681,7 @@ impl ServiceFactory {
             vlan_service,
             discovery_digest_service,
             release_notes_service,
+            setup_service,
             license_service,
             license_instance_service,
             trusted_ca,
@@ -726,6 +746,7 @@ impl ServiceFactory {
             vlan_service,
             discovery_digest_service,
             release_notes_service: _, // not a Subscriber: run at boot and by its handlers
+            setup_service: _,         // not a Subscriber: read by the dashboard
             license_service: _,       // not a Subscriber: bespoke service, no EventBusService impl
             license_instance_service: _, // not a Subscriber: called by the license handlers
             trusted_ca: _,            // not a service; shared TLS roots

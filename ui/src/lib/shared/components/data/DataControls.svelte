@@ -7,7 +7,7 @@
 		groupPageSlice,
 		type GroupSlice,
 		type PageSizeOption,
-		type CardAction,
+		type RowAction,
 		type TableDefaults,
 		type TagProps
 	} from './types';
@@ -203,7 +203,7 @@
 		// Export button click override: if provided, replaces onCsvExport entirely
 		onExportClick?: (() => void | Promise<void>) | null;
 		// Row actions.
-		getActions?: ((item: T) => CardAction[]) | null;
+		getActions?: ((item: T) => RowAction[]) | null;
 		/** Icon-only status badges ahead of each row's name, whatever columns are shown. */
 		getRowBadges?: ((item: T) => TagProps[]) | null;
 		// Accessible name for the table, e.g. "Hosts".
@@ -686,7 +686,7 @@
 	}
 
 	/** Runs a row action's `onBulk` on the selection. */
-	function runOnSelection(action: CardAction) {
+	function runOnSelection(action: RowAction) {
 		return async () => {
 			const done = await runBulkAction(action.label, selectedIds, Boolean(action.onBulk), (ids) =>
 				Promise.resolve(action.onBulk!(ids))

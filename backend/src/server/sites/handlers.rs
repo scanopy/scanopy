@@ -8,7 +8,7 @@ use crate::server::shared::handlers::traits::{
     BulkDeleteResponse, CrudHandlers, ListScope, bulk_delete_handler, create_handler,
     delete_handler, update_handler,
 };
-use crate::server::shared::services::traits::{CrudService, EventBusService};
+use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable};
 use crate::server::shared::types::api::ApiJson;
@@ -18,13 +18,7 @@ use crate::server::{
         features::{CreateSiteFeature, RequireFeature},
         permissions::{Authorized, Can, Delete, NewSite, Read, Write},
     },
-    shared::{
-        events::{
-            traits::{Event, OrgScope},
-            types::{OnboardingOperation, OnboardingOperationDiscriminants},
-        },
-        types::api::{ApiError, ApiErrorResponse, EmptyApiResponse},
-    },
+    shared::types::api::{ApiError, ApiErrorResponse, EmptyApiResponse},
 };
 use crate::server::{
     config::AppState,
@@ -233,14 +227,15 @@ async fn create_site(
     ApiJson(mut site): ApiJson<Site>,
 ) -> ApiResult<Json<ApiResponse<Site>>> {
     let entity = auth.entity.clone();
-    let organization_id = auth.organization_id();
 
     // Validate referenced credentials belong to the caller's org before any
     // writes — the credential_ids are caller-supplied and the site service syncs
     // them to the site→credential junction (which is later read to hand
     // credential secrets to daemons), so an unchecked foreign id would leak
     // another tenant's secret. Omitted, the service assigns the site-wide defaults.
-    let org_id = organization_id.ok_or_else(ApiError::organization_required)?;
+    let org_id = auth
+        .organization_id()
+        .ok_or_else(ApiError::organization_required)?;
     site.base.organization_id = org_id;
     if let Some(credential_ids) = &site.base.credential_ids {
         state
@@ -253,8 +248,6 @@ async fn create_site(
     let response = create_handler::<Site>(State(state.clone()), auth, ApiJson(site)).await?;
 
     if let Some(site) = response.data() {
-        let service = Site::get_service(&state);
-
         // Without this, a creator limited to listed sites could not reach the site it created.
         state
             .services
@@ -262,38 +255,6 @@ async fn create_site(
             .keep_creator_access(&entity, org_id, site.id)
             .await
             .map_err(|e| ApiError::internal_error(&e.to_string()))?;
-
-        // Emit SecondSiteCreated telemetry event
-        if let Some(organization_id) = organization_id {
-            // Count sites to confirm this is actually the second+
-            let site_filter = StorableFilter::<Site>::new_from_org_id(&organization_id);
-            let sites = service.get_all(site_filter).await.unwrap_or_default();
-            let site_count = sites.len();
-
-            if site_count >= 2
-                && state
-                    .services
-                    .organization_service
-                    .record_milestone(
-                        organization_id,
-                        OnboardingOperationDiscriminants::SecondSiteCreated,
-                    )
-                    .await?
-            {
-                service
-                    .event_bus()
-                    .publish(Event::new(
-                        OrgScope { organization_id },
-                        OnboardingOperation::SecondSiteCreated {
-                            site_id: site.id,
-                            site_name: site.base.name.clone(),
-                            total_sites: site_count as u32,
-                        },
-                        entity,
-                    ))
-                    .await;
-            }
-        }
     }
 
     Ok(response)

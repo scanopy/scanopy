@@ -63,6 +63,8 @@ export function createDefaultCredential(organization_id: string): Credential {
 		host_assignments: [],
 		used_by: [],
 		is_default: false,
+		// Read-only: the server sets it to Manual on create.
+		source: { type: 'Manual' },
 		id: uuidv4Sentinel,
 		created_at: utcTimeZoneSentinel,
 		updated_at: utcTimeZoneSentinel

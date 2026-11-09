@@ -3,8 +3,8 @@
 
 use crate::daemon::discovery::types::base::{DiscoveryPhase, DiscoveryTerminalReason};
 use crate::daemon::discovery::types::warnings::{
-    ClaimSource, DiscoveryWarningCode, MalformedNeighbourConsequence, SnmpWalkCause, SnmpWalkGroup,
-    WarningRemedy,
+    ClaimSource, DesktopVm, DiscoveryWarningCode, MalformedNeighbourConsequence, SnmpWalkCause,
+    SnmpWalkGroup, WarningRemedy,
 };
 use crate::server::auth::access::Resource;
 use crate::server::auth::r#impl::oidc::IdentityProviderLogo;
@@ -226,6 +226,10 @@ pub fn generate_ui_data_fixtures(output_dir: &Path, force_logos: bool) {
     let claim_sources: Vec<TypeMetadata> = ClaimSource::iter().map(|c| c.to_metadata()).collect();
     write_fixture(&claim_sources, output_dir, "claim-sources.json");
 
+    // The VM a daemon was found running in, named in the DaemonInDesktopVm warning.
+    let desktop_vms: Vec<TypeMetadata> = DesktopVm::iter().map(|v| v.to_metadata()).collect();
+    write_fixture(&desktop_vms, output_dir, "desktop-vms.json");
+
     // The SNMPv3 protocols, with the names net-snmp takes for them, so a scan warning can hand an
     // operator the command that checks it with the stored credential's options.
     let snmp_auth_protocols: Vec<TypeMetadata> = SnmpV3AuthProtocol::iter()
@@ -311,6 +315,24 @@ pub fn generate_ui_data_fixtures(output_dir: &Path, force_logos: bool) {
             .map(|s| s.to_metadata())
             .collect();
     write_fixture(&guest_states, output_dir, "guest-states.json");
+
+    // A daemon's health, the most severe status that applies, keyed by `DaemonHealth`.
+    let daemon_healths: Vec<TypeMetadata> =
+        crate::server::daemons::r#impl::api::DaemonHealth::iter()
+            .map(|h| h.to_metadata())
+            .collect();
+    write_fixture(&daemon_healths, output_dir, "daemon-healths.json");
+
+    // The Setup list: each item type (tier, icon, copy) and each tier (group heading).
+    let setup_items: Vec<TypeMetadata> =
+        crate::server::setup::types::SetupItemDiscriminants::iter()
+            .map(|t| t.to_metadata())
+            .collect();
+    write_fixture(&setup_items, output_dir, "setup-items.json");
+    let setup_item_tiers: Vec<TypeMetadata> = crate::server::setup::types::SetupItemTier::iter()
+        .map(|t| t.to_metadata())
+        .collect();
+    write_fixture(&setup_item_tiers, output_dir, "setup-item-tiers.json");
 
     // A port's ifOperStatus, keyed by `IfOperStatus`: the inspector's status tag colour.
     let if_oper_statuses: Vec<TypeMetadata> =

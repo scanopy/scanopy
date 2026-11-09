@@ -2,10 +2,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::daemon::discovery::types::warnings::RunWarningSummary;
-use crate::server::credentials::r#impl::types::CredentialIntegration;
-use crate::server::daemons::r#impl::api::DaemonResponse;
-use crate::server::discovery::r#impl::base::Discovery;
+use crate::server::setup::types::SetupListEntry;
 
 /// Per-site summary of entity counts
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -41,57 +38,14 @@ pub struct PlanUsage {
     pub seat_count: u64,
 }
 
-/// A recent discovery run with its warnings counted by remedy.
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct RecentDiscovery {
-    /// The historical run.
-    pub discovery: Discovery,
-    /// The run's warnings counted by remedy. Empty for a run that recorded none.
-    pub warning_summary: RunWarningSummary,
-}
-
 /// Dashboard summary response
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct DashboardSummary {
     /// Per-site counts for every site the caller can see.
     pub sites: Vec<SiteSummary>,
-    /// Daemons the caller can see, with their current status.
-    pub daemons: Vec<DaemonResponse>,
-    /// The most recent discovery runs, newest first.
-    pub recent_discoveries: Vec<RecentDiscovery>,
     /// Current usage against the organization's plan allowances.
     pub plan_usage: PlanUsage,
-    /// Integrations found on hosts with no credential of them, most hosts first.
-    pub uncovered_integrations: Vec<UncoveredIntegration>,
-    /// Credentials no scan will send to a daemon, by name.
-    pub targetless_credentials: Vec<TargetlessCredential>,
-    /// Hosts known only from another device's report, waiting to be confirmed, merged or
-    /// dismissed.
-    pub unconfirmed_host_count: u64,
-    /// Subnets whose range was assumed, waiting to be confirmed or corrected.
-    pub unconfirmed_subnet_count: u64,
-}
-
-/// A credential with no site or host assignment that no discovery targets, so no daemon receives it.
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct TargetlessCredential {
-    /// The credential.
-    pub id: Uuid,
-    /// Its name.
-    pub name: String,
-    /// The integration it authenticates.
-    pub integration: CredentialIntegration,
-}
-
-/// An integration the latest scans found on hosts with no credential of it, still uncovered now.
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct UncoveredIntegration {
-    /// The integration a credential would add.
-    pub integration: CredentialIntegration,
-    /// The hosts running its service, which the create flow pre-assigns when the integration's
-    /// credentials can only be pinned to hosts.
-    pub host_ids: Vec<Uuid>,
-    /// The sites those hosts are on, which the create flow pre-assigns instead when its
-    /// credentials can apply to a whole site.
-    pub site_ids: Vec<Uuid>,
+    /// The organization's Setup list as the caller sees it: Issues, then Next steps, then
+    /// Suggestions.
+    pub setup_items: Vec<SetupListEntry>,
 }

@@ -102,6 +102,7 @@ impl DiscoveryWarning {
             | Self::NeighbourResolutionIncomplete { .. }
             | Self::FdbResolutionIncomplete { .. }
             | Self::OutdatedDaemonFormat { .. }
+            | Self::DaemonInDesktopVm { .. }
             | Self::WarningsTruncated { .. }
             | Self::Unknown { .. } => {}
         }
