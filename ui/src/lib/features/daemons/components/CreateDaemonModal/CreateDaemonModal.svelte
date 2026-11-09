@@ -904,52 +904,53 @@
 				{#key activeTab}
 					{#if activeTab === 'configure'}
 						{#if provisionGateState === 'unconnected' && provisionEligibilityQuery.data}
-							<div class="mb-4">
-								<UnconnectedDaemonsNotice
-									eligibility={provisionEligibilityQuery.data}
-									onClose={() => onClose()}
-								/>
-							</div>
-						{:else if provisionGateState === 'plan'}
-							<div class="mb-4">
-								<InlineWarning title="" body={daemons_planRequiredForMoreDaemons()}>
-									<button
-										type="button"
-										class="text-sm text-link hover:underline"
-										onclick={() =>
-											triggerUpgrade({
-												source: 'create_daemon_plan_required',
-												surface: 'sidebar',
-												gate_type: 'limit_hit',
-												beforeModal: () => onClose()
-											})}
-									>
-										{billing_lapsedBannerCta()}
-									</button>
-								</InlineWarning>
-							</div>
-						{:else if provisionGateState === 'verification'}
-							<div class="mb-4">
-								<EmailVerificationNotice body={daemons_verifyEmailForMoreDaemons()} />
-							</div>
+							<!-- The configure fields stay hidden: none of the three options uses them. -->
+							<UnconnectedDaemonsNotice
+								eligibility={provisionEligibilityQuery.data}
+								onClose={() => onClose()}
+							/>
+						{:else}
+							{#if provisionGateState === 'plan'}
+								<div class="mb-4">
+									<InlineWarning title="" body={daemons_planRequiredForMoreDaemons()}>
+										<button
+											type="button"
+											class="text-sm text-link hover:underline"
+											onclick={() =>
+												triggerUpgrade({
+													source: 'create_daemon_plan_required',
+													surface: 'sidebar',
+													gate_type: 'limit_hit',
+													beforeModal: () => onClose()
+												})}
+										>
+											{billing_lapsedBannerCta()}
+										</button>
+									</InlineWarning>
+								</div>
+							{:else if provisionGateState === 'verification'}
+								<div class="mb-4">
+									<EmailVerificationNotice body={daemons_verifyEmailForMoreDaemons()} />
+								</div>
+							{/if}
+							<ConfigureStep
+								{form}
+								{selectedOS}
+								onOsSelect={handleOsSelect}
+								osLocked={credentialIds.length > 0}
+								{formValues}
+								{selectedSiteId}
+								onSiteChange={(id) => (selectedSiteId = id)}
+								onNameInput={() => (nameManuallyEdited = true)}
+								identityLocked={configureCommitted}
+								{isFirstDaemon}
+								onReachabilityChange={(r) => {
+									serverPollReachable = r;
+									if (r === null) serverPollReachabilityResult = null;
+								}}
+								bind:reachabilityResult={serverPollReachabilityResult}
+							/>
 						{/if}
-						<ConfigureStep
-							{form}
-							{selectedOS}
-							onOsSelect={handleOsSelect}
-							osLocked={credentialIds.length > 0}
-							{formValues}
-							{selectedSiteId}
-							onSiteChange={(id) => (selectedSiteId = id)}
-							onNameInput={() => (nameManuallyEdited = true)}
-							identityLocked={configureCommitted}
-							{isFirstDaemon}
-							onReachabilityChange={(r) => {
-								serverPollReachable = r;
-								if (r === null) serverPollReachabilityResult = null;
-							}}
-							bind:reachabilityResult={serverPollReachabilityResult}
-						/>
 					{:else if activeTab === 'install' && currentInstallCommand}
 						<InstallStep
 							{selectedOS}
