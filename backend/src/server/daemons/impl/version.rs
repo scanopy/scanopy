@@ -391,7 +391,7 @@ pub fn resolves_routed_rescan(version: Option<&Version>) -> bool {
 /// The last release whose daemon reads a DaemonPoll work response as exactly two elements, the next
 /// session and a cancel flag, and fails on a third. Later daemons read the session to cancel.
 pub fn last_without_cancel_session_id() -> Version {
-    Version::new(0, 19, 5)
+    Version::new(0, 19, 6)
 }
 
 /// Whether a daemon at this version reads the session to cancel from a work response. A daemon
