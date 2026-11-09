@@ -3646,6 +3646,7 @@
 	"upgradeBanner_body": "Scanopy v{latest} is out. This server runs v{current}.",
 	"upgradeBanner_howToUpgrade": "How to upgrade",
 	"userApiKeys_allSitesHelp": "This key reaches every site in the organization, including sites added later.",
+	"userApiKeys_specificSites": "Specific sites",
 	"userApiKeys_createApiKey": "Create API Key",
 	"userApiKeys_enableHelp": "Manually enable or disable API Key. Will be auto-disabled if used after expiry date.",
 	"userApiKeys_namePlaceholder": "e.g., CI/CD Pipeline, Terraform, Local Development",

@@ -19,8 +19,10 @@
 		common_allSites,
 		common_sites,
 		userApiKeys_allSitesHelp,
+		userApiKeys_specificSites,
 		users_hasAllSites
 	} from '$lib/paraglide/messages';
+	import SegmentedControl from '$lib/shared/components/forms/SegmentedControl.svelte';
 
 	interface Props {
 		/** Currently selected site IDs */
@@ -118,15 +120,15 @@
 {#if needsSiteSelection}
 	<div class="space-y-3">
 		{#if offersAllSites}
-			<label class="flex cursor-pointer items-center gap-2 text-sm text-secondary">
-				<input
-					type="checkbox"
-					checked={allSites}
-					onchange={(e) => onAllSitesChange?.(e.currentTarget.checked)}
-					class="checkbox-card h-4 w-4 focus:ring-1 focus:ring-blue-500"
-				/>
-				{common_allSites()}
-			</label>
+			<SegmentedControl
+				options={[
+					{ value: 'all', label: common_allSites() },
+					{ value: 'specific', label: userApiKeys_specificSites() }
+				]}
+				selected={allSites ? 'all' : 'specific'}
+				onchange={(value) => onAllSitesChange?.(value === 'all')}
+				size="md"
+			/>
 		{/if}
 		{#if offersAllSites && allSites}
 			<InlineInfo body={userApiKeys_allSitesHelp()} />
