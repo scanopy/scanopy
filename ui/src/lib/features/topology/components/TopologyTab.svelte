@@ -425,6 +425,30 @@
 		}
 	});
 
+	// Record ExploreViews once the user views another view: each view shown on the tab is sent
+	// once with mark_viewed=true, and the server records ExploreViews for any but the default.
+	let viewsMarked = new Set<string>();
+	$effect(() => {
+		const view = $activeView;
+		const hasHosts = (topologyDataQuery.data?.hosts.length ?? 0) > 0;
+		if (
+			isActive &&
+			$selectedSiteId &&
+			hasHosts &&
+			topologyAccess &&
+			setup.includes('OpenTopology') &&
+			!setup.includes('ExploreViews') &&
+			!viewsMarked.has(view)
+		) {
+			viewsMarked.add(view);
+			const siteId = $selectedSiteId;
+			void (async () => {
+				await markTopologyViewed(siteId, view);
+				void organizationQuery.refetch();
+			})();
+		}
+	});
+
 	// URL params: read once on init for topology/view deep-linking
 	const urlParams = topologyParamsFrom(takeInitialParams('topology'));
 	let urlViewConsumed = false;

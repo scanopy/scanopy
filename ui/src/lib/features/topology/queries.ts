@@ -277,7 +277,8 @@ export function loadTopologyData(
 }
 
 /**
- * One-shot GET that records the `OpenTopology` setup item ("user viewed their topology").
+ * One-shot GET that records the `OpenTopology` setup item ("user viewed their topology"), and
+ * `ExploreViews` when `view` is not the default view.
  * Sends `mark_viewed=true`, which the backend only honours for a live topology that has hosts
  * once the first scan is done. Deliberately NOT routed through `useTopologyDataQuery` (which
  * never sets the flag) so it is only recorded from an explicit on-tab view, never from
