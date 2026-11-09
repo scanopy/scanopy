@@ -1,5 +1,5 @@
-//! The org's setup state: the items Home lists, the record of the ones the org has finished or
-//! dismissed (`organizations.setup`), and the `SetupOperation` events.
+//! The org's setup state: the items Home lists, the record of the Setup items the org has done
+//! (`organizations.setup`), and the `SetupOperation` events.
 
 pub mod items;
 pub mod service;

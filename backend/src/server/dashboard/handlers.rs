@@ -14,7 +14,6 @@ use crate::server::{
 };
 
 use super::types::{DashboardSummary, PlanUsage, SiteSummary};
-use crate::server::setup::types::SetupListEntry;
 
 use axum::{extract::State, response::Json};
 use std::sync::Arc;
@@ -133,10 +132,7 @@ async fn get_dashboard_summary(
         .setup_service
         .for_user(&organization, &auth.entity)
         .await
-        .map_err(|e| ApiError::internal_error(&e.to_string()))?
-        .into_iter()
-        .map(SetupListEntry::from)
-        .collect();
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
     let plan_usage = PlanUsage {
         host_limit,

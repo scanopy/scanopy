@@ -1,5 +1,5 @@
-//! The hourly trial sweep: reports an Issue or Next step left open 24 hours on a trialing org, so
-//! someone can reach out while the trial runs.
+//! The hourly trial sweep: reports an Issue or first step left open 24 hours on a trialing org, so
+//! someone can reach out while the trial runs. It also records the Setup items the org has done.
 
 use std::collections::BTreeSet;
 
@@ -7,7 +7,7 @@ use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
 
 use super::service::SetupService;
-use super::types::{OpenSetupItem, SetupItem, SetupItemKey, SetupOperation};
+use super::types::{OpenSetupItem, SetupItemKey, SetupOperation};
 use crate::server::{
     auth::middleware::auth::AuthenticatedEntity,
     billing::types::base::{BillingPlan, PlanStatus},
@@ -52,8 +52,14 @@ impl SetupService {
         let Some(trial_end) = org.base.trial_end_date else {
             return Ok(0);
         };
-        let ctx = self.gather(&org, None).await?;
-        let listed: BTreeSet<SetupItemKey> = Self::list(&ctx).iter().map(SetupItem::key).collect();
+        let mut ctx = self.gather(&org, None).await?;
+        self.record_newly_done(&mut ctx, org.id, &AuthenticatedEntity::System)
+            .await?;
+        let listed: BTreeSet<SetupItemKey> = Self::list(&ctx)
+            .into_iter()
+            .filter(|entry| entry.alerts_when_stuck)
+            .map(|entry| entry.key)
+            .collect();
 
         let Some(mut locked) = self.organization_service.lock_for_update(org.id).await? else {
             return Ok(0);

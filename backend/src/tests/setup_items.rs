@@ -22,9 +22,10 @@ use crate::server::{
     organizations::{demo_data::DemoData, demo_seed::insert_demo_data, r#impl::base::Organization},
     setup::{
         service::SetupService,
-        types::{SetupItem, SetupItemDiscriminants, SetupItemTier},
+        types::{SetupItem, SetupItemDiscriminants, SetupItemState, SetupItemTier},
     },
     shared::{
+        entities::EntityDiscriminants,
         services::{factory::ServiceFactory, traits::CrudService},
         storage::{factory::StorageFactory, traits::Storage},
         types::entities::EntitySource,
@@ -60,7 +61,7 @@ async fn fixture(
 ) -> Fixture {
     let mut org = organization();
     org.base.setup = recorded.to_vec();
-    // Every feature, so a Suggestion is held back only by the condition under test.
+    // Every feature, so a Setup item is held back only by the condition under test.
     org.base.plan = get_enterprise_plan();
     storage.organizations.create(&org).await.unwrap();
     let site_row = services
@@ -90,6 +91,9 @@ async fn list(services: &ServiceFactory, f: &Fixture) -> Vec<SetupItem> {
         .await
         .unwrap();
     SetupService::list(&ctx)
+        .into_iter()
+        .map(|e| e.item)
+        .collect()
 }
 
 fn types(items: &[SetupItem]) -> Vec<SetupItemDiscriminants> {
@@ -226,10 +230,33 @@ async fn a_withheld_credential_clears_when_the_daemon_is_upgraded() {
     assert_eq!(run_warning_codes(&list(&services, &f).await), 0);
 }
 
-/// Seeded starter tags and default credentials are `System`, so they leave the Tags and
-/// InterfaceCredential suggestions up. A tag a person adds takes Tags down.
+/// The state of the one entry of a Setup type in the list `owner` reads, recording what the
+/// org's rows show done as the dashboard does.
+async fn setup_state(
+    services: &ServiceFactory,
+    f: &Fixture,
+    item_type: SetupItemDiscriminants,
+) -> Option<SetupItemState> {
+    let org = services
+        .organization_service
+        .get_by_id(&f.org.id)
+        .await
+        .unwrap()
+        .unwrap();
+    services
+        .setup_service
+        .for_user(&org, &owner_on(&org, &[f.site_id]))
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|e| SetupItemDiscriminants::from(&e.item) == item_type)
+        .map(|e| e.state)
+}
+
+/// A seeded tag nobody assigned leaves "Assign your first tag" open. Assigning one marks it done,
+/// and removing the tag again leaves it done.
 #[tokio::test]
-async fn seeded_tags_and_credentials_leave_the_suggestions_up() {
+async fn assigning_a_tag_completes_tags_for_good() {
     let (storage, services, _container) = test_services().await;
     let f = fixture(
         &storage,
@@ -240,54 +267,54 @@ async fn seeded_tags_and_credentials_leave_the_suggestions_up() {
         ],
     )
     .await;
-    let seeded_tag = |source| Tag {
+    let tag = Tag {
         id: Uuid::new_v4(),
         base: TagBase {
-            name: format!("{source:?} tag"),
+            name: "Production".to_string(),
             organization_id: f.org.id,
-            source,
+            source: EntitySource::System,
             ..Default::default()
         },
         ..Default::default()
     };
-    storage
-        .tags
-        .create(&seeded_tag(EntitySource::System))
-        .await
-        .unwrap();
-    storage
-        .credentials
-        .create(&Credential::new(CredentialBase {
-            organization_id: f.org.id,
-            source: EntitySource::System,
-            ..Default::default()
-        }))
-        .await
-        .unwrap();
-
-    let shown = types(&list(&services, &f).await);
-    assert!(shown.contains(&SetupItemDiscriminants::Tags), "{shown:?}");
-    assert!(
-        shown.contains(&SetupItemDiscriminants::InterfaceCredential),
-        "{shown:?}"
+    storage.tags.create(&tag).await.unwrap();
+    assert_eq!(
+        setup_state(&services, &f, SetupItemDiscriminants::Tags).await,
+        Some(SetupItemState::Open)
     );
 
-    storage
-        .tags
-        .create(&seeded_tag(EntitySource::Manual))
+    services
+        .entity_tag_service
+        .add_tag(f.host_id, EntityDiscriminants::Host, tag.id, f.org.id)
         .await
         .unwrap();
-    assert!(!types(&list(&services, &f).await).contains(&SetupItemDiscriminants::Tags));
+    assert_eq!(
+        setup_state(&services, &f, SetupItemDiscriminants::Tags).await,
+        Some(SetupItemState::Done)
+    );
+
+    services
+        .entity_tag_service
+        .remove_tag(f.host_id, EntityDiscriminants::Host, tag.id)
+        .await
+        .unwrap();
+    assert_eq!(
+        setup_state(&services, &f, SetupItemDiscriminants::Tags).await,
+        Some(SetupItemState::Done)
+    );
 }
 
-/// The demo is a product tour of a finished setup: nothing to fix and no step left.
+/// The demo is a product tour of a set-up network: nothing to fix. Its unconfirmed hosts and
+/// subnet are there to show the review flow, so they are its only Issues.
 #[tokio::test]
-async fn the_demo_org_has_no_issues_and_no_next_steps() {
+async fn the_demo_orgs_only_issues_are_its_unconfirmed_rows() {
     let (storage, services, _container) = test_services().await;
     let mut org = organization();
-    org.base.setup = <SetupItemDiscriminants as strum::IntoEnumIterator>::iter()
-        .filter(|t| t.tier() == SetupItemTier::NextStep)
-        .collect();
+    org.base.setup = vec![
+        SetupItemDiscriminants::InstallDaemon,
+        SetupItemDiscriminants::RunFirstScan,
+        SetupItemDiscriminants::OpenTopology,
+    ];
     storage.organizations.create(&org).await.unwrap();
     let owner = user(&org.id);
     storage.users.create(&owner).await.unwrap();
@@ -303,16 +330,22 @@ async fn the_demo_org_has_no_issues_and_no_next_steps() {
     .await
     .unwrap();
 
-    let ctx = services
+    let issues: Vec<SetupItem> = services
         .setup_service
-        .gather(&org, Some(&owner_on(&org, &site_ids)))
+        .for_user(&org, &owner_on(&org, &site_ids))
         .await
-        .unwrap();
-    let blocking: Vec<SetupItem> = SetupService::list(&ctx)
+        .unwrap()
         .into_iter()
-        .filter(|item| SetupItemDiscriminants::from(item).tier() != SetupItemTier::Suggestion)
+        .filter(|e| e.tier == SetupItemTier::Issue)
+        .map(|e| e.item)
+        .filter(|item| {
+            !matches!(
+                item,
+                SetupItem::UnconfirmedHosts { .. } | SetupItem::UnconfirmedSubnets { .. }
+            )
+        })
         .collect();
-    assert!(blocking.is_empty(), "{blocking:#?}");
+    assert!(issues.is_empty(), "{issues:#?}");
 }
 
 /// The trial sweep reports a step left open a day on a trialing org, once, and leaves an org

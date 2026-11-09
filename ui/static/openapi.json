@@ -12623,59 +12623,6 @@
         }
       }
     },
-    "/api/v1/organizations/setup/dismiss-suggestion": {
-      "post": {
-        "tags": [
-          "Organizations",
-          "internal"
-        ],
-        "summary": "Dismiss Setup suggestion",
-        "description": "Hides the Suggestion for the whole organization. Issues and Next steps can't be dismissed.",
-        "operationId": "dismiss_setup_suggestion",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DismissSuggestionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Suggestion dismissed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Not a Suggestion",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "The user may not act on the Suggestion",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/organizations/{id}": {
       "put": {
         "tags": [
@@ -20110,7 +20057,7 @@
           {
             "name": "mark_viewed",
             "in": "query",
-            "description": "When `true`, records the `OpenTopology` setup item (the user has viewed their topology).\nOnly the frontend's explicit on-tab view sets this — the background topology-data query\nnever does — so it is never recorded from other tabs. Once per org.",
+            "description": "When `true`, records the `OpenTopology` setup item (the user has viewed their topology),\nand `ExploreViews` when `view` is not the default view.\nOnly the frontend's explicit on-tab view sets this — the background topology-data query\nnever does — so it is never recorded from other tabs. Once per org.",
             "required": false,
             "schema": {
               "type": [
@@ -23553,19 +23500,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-11-09T13:00:13.603832Z",
+              "created_at": "2026-11-09T14:29:14.444061Z",
               "first_discovery_id": null,
-              "id": "dd5faa49-3afe-4eae-b8f4-ffe5ae8c8bdd",
+              "id": "284e17aa-bcd5-4521-9de6-82ef9e9ae160",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-09T13:00:13.603832Z",
+              "last_seen_at": "2026-11-09T14:29:14.444061Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-09T13:00:13.603832Z",
-              "valid_from": "2026-11-09T13:00:13.603832Z",
+              "updated_at": "2026-11-09T14:29:14.444061Z",
+              "valid_from": "2026-11-09T14:29:14.444061Z",
               "valid_to": null
             }
           },
@@ -25407,19 +25354,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-11-09T13:00:13.546142Z",
+                      "created_at": "2026-11-09T14:29:14.410534Z",
                       "first_discovery_id": null,
-                      "id": "370d40f5-93fb-40a6-9ecc-4a8116fc391c",
+                      "id": "ea7e4856-7075-475a-87fb-76924ef49e0f",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-11-09T13:00:13.546142Z",
+                      "last_seen_at": "2026-11-09T14:29:14.410534Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-11-09T13:00:13.546142Z",
-                      "valid_from": "2026-11-09T13:00:13.546142Z",
+                      "updated_at": "2026-11-09T14:29:14.410534Z",
+                      "valid_from": "2026-11-09T14:29:14.410534Z",
                       "valid_to": null
                     }
                   ],
@@ -25432,7 +25379,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "IBM Spectrum Protect",
+                  "service_definition": "Metabase",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -26926,19 +26873,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-11-09T13:00:13.593138Z",
+                  "created_at": "2026-11-09T14:29:14.438590Z",
                   "first_discovery_id": null,
-                  "id": "e56b5a2e-ae1b-48f3-b744-9dbf0dc3a0ef",
+                  "id": "74c39690-b481-4988-9329-e31bec8351b2",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-09T13:00:13.593138Z",
+                  "last_seen_at": "2026-11-09T14:29:14.438590Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-09T13:00:13.593138Z",
-                  "valid_from": "2026-11-09T13:00:13.593138Z",
+                  "updated_at": "2026-11-09T14:29:14.438590Z",
+                  "valid_from": "2026-11-09T14:29:14.438590Z",
                   "valid_to": null
                 }
               ],
@@ -26951,7 +26898,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "IBM Spectrum Protect",
+              "service_definition": "Metabase",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -30237,19 +30184,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-11-09T13:00:13.547101Z",
+          "created_at": "2026-11-09T14:29:14.411229Z",
           "first_discovery_id": null,
-          "id": "f5b224ab-f96c-482b-a972-c9987a3a6566",
+          "id": "71d09839-d3b0-4715-aaba-8d29ee2ec17f",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-11-09T13:00:13.547101Z",
+          "last_seen_at": "2026-11-09T14:29:14.411229Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-11-09T13:00:13.547101Z",
-          "valid_from": "2026-11-09T13:00:13.547101Z",
+          "updated_at": "2026-11-09T14:29:14.411229Z",
+          "valid_from": "2026-11-09T14:29:14.411229Z",
           "valid_to": null
         }
       },
@@ -31162,7 +31109,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "IBM Spectrum Protect",
+              "service_definition": "Metabase",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -36287,19 +36234,6 @@
           "Unknown"
         ]
       },
-      "DismissSuggestionRequest": {
-        "type": "object",
-        "description": "Request to dismiss a Suggestion from the org's Setup list",
-        "required": [
-          "item_type"
-        ],
-        "properties": {
-          "item_type": {
-            "$ref": "#/components/schemas/SetupItemDiscriminants",
-            "description": "The Suggestion's item type."
-          }
-        }
-      },
       "DisplayAction": {
         "type": "string",
         "description": "An action as the role comparison shows it. `Write` is one [`Action`] and reads as Edit, plus\nCreate on a resource where it adds rows.",
@@ -39547,19 +39481,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-11-09T13:00:13.545126Z",
+                  "created_at": "2026-11-09T14:29:14.409758Z",
                   "first_discovery_id": null,
-                  "id": "79a4d0bc-62d3-4b1d-94b0-580c724f55ec",
+                  "id": "296e4cfb-2745-4544-ad5f-4fca550493f2",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-09T13:00:13.545126Z",
+                  "last_seen_at": "2026-11-09T14:29:14.409758Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-09T13:00:13.545126Z",
-                  "valid_from": "2026-11-09T13:00:13.545126Z",
+                  "updated_at": "2026-11-09T14:29:14.409758Z",
+                  "valid_from": "2026-11-09T14:29:14.409758Z",
                   "valid_to": null
                 }
               ],
@@ -39572,7 +39506,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "IBM Spectrum Protect",
+              "service_definition": "Metabase",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -44047,19 +43981,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-11-09T13:00:13.517435Z",
+                        "created_at": "2026-11-09T14:29:14.391464Z",
                         "first_discovery_id": null,
-                        "id": "48738608-f662-4a9f-90be-bbd3b3ae4bca",
+                        "id": "bd084554-bd5d-4677-b7c9-a0b550ed511a",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-11-09T13:00:13.517435Z",
+                        "last_seen_at": "2026-11-09T14:29:14.391464Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-11-09T13:00:13.517435Z",
-                        "valid_from": "2026-11-09T13:00:13.517435Z",
+                        "updated_at": "2026-11-09T14:29:14.391464Z",
+                        "valid_from": "2026-11-09T14:29:14.391464Z",
                         "valid_to": null
                       }
                     ],
@@ -44072,7 +44006,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "IBM Spectrum Protect",
+                    "service_definition": "Metabase",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -44319,19 +44253,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-11-09T13:00:13.591904Z",
+                    "created_at": "2026-11-09T14:29:14.437803Z",
                     "first_discovery_id": null,
-                    "id": "7bf8be3b-e394-4dea-9947-4290e8d478ea",
+                    "id": "3f824080-c35f-4ba9-ac4c-14349da54f2f",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-11-09T13:00:13.591904Z",
+                    "last_seen_at": "2026-11-09T14:29:14.437803Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-11-09T13:00:13.591904Z",
-                    "valid_from": "2026-11-09T13:00:13.591904Z",
+                    "updated_at": "2026-11-09T14:29:14.437803Z",
+                    "valid_from": "2026-11-09T14:29:14.437803Z",
                     "valid_to": null
                   }
                 ],
@@ -44344,7 +44278,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "IBM Spectrum Protect",
+                "service_definition": "Metabase",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -47023,19 +46957,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-11-09T13:00:13.546767Z",
+              "created_at": "2026-11-09T14:29:14.410995Z",
               "first_discovery_id": null,
-              "id": "df9f5a0d-7b21-4e56-b125-8841d5f1bd2d",
+              "id": "8c76d0ee-e33d-4dc0-807b-78ebc222baf8",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-09T13:00:13.546767Z",
+              "last_seen_at": "2026-11-09T14:29:14.410995Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-09T13:00:13.546767Z",
-              "valid_from": "2026-11-09T13:00:13.546767Z",
+              "updated_at": "2026-11-09T14:29:14.410995Z",
+              "valid_from": "2026-11-09T14:29:14.410995Z",
               "valid_to": null
             }
           ],
@@ -47048,7 +46982,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "IBM Spectrum Protect",
+          "service_definition": "Metabase",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -47551,8 +47485,54 @@
           },
           {
             "type": "object",
+            "title": "UnconfirmedHosts",
+            "description": "Hosts known only from other devices' reports, which the user may review.",
+            "required": [
+              "count",
+              "type"
+            ],
+            "properties": {
+              "count": {
+                "type": "integer",
+                "format": "int64",
+                "description": "The unconfirmed hosts on the sites the user reads.",
+                "minimum": 0
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "UnconfirmedHosts"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "UnconfirmedSubnets",
+            "description": "Subnets known only from other devices' reports, which the user may review.",
+            "required": [
+              "count",
+              "type"
+            ],
+            "properties": {
+              "count": {
+                "type": "integer",
+                "format": "int64",
+                "description": "The unconfirmed subnets on the sites the user reads.",
+                "minimum": 0
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "UnconfirmedSubnets"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "InstallDaemon",
-            "description": "No daemon is installed yet.",
+            "description": "Installing a daemon.",
             "required": [
               "type"
             ],
@@ -47568,16 +47548,18 @@
           {
             "type": "object",
             "title": "RunFirstScan",
-            "description": "A daemon is connected and no scan has finished.",
+            "description": "The first scan.",
             "required": [
-              "daemon_id",
               "type"
             ],
             "properties": {
               "daemon_id": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "format": "uuid",
-                "description": "The connected daemon that runs the first scan, whose progress the item shows."
+                "description": "The first daemon to connect, which runs the first scan and whose progress the item\nshows. `None` while no daemon has connected, or once that daemon is deleted."
               },
               "type": {
                 "type": "string",
@@ -47590,7 +47572,7 @@
           {
             "type": "object",
             "title": "OpenTopology",
-            "description": "The first scan finished and nobody has opened the topology.",
+            "description": "Opening the topology.",
             "required": [
               "type"
             ],
@@ -47637,37 +47619,7 @@
           },
           {
             "type": "object",
-            "title": "ReviewUnconfirmed",
-            "description": "Hosts and subnets known only from other devices' reports.",
-            "required": [
-              "hosts",
-              "subnets",
-              "type"
-            ],
-            "properties": {
-              "hosts": {
-                "type": "integer",
-                "format": "int64",
-                "description": "Unconfirmed hosts the user may review. 0 when the user can't edit hosts.",
-                "minimum": 0
-              },
-              "subnets": {
-                "type": "integer",
-                "format": "int64",
-                "description": "Unconfirmed subnets the user may review. 0 when the user can't edit subnets.",
-                "minimum": 0
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "ReviewUnconfirmed"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "title": "ExplorePerspectives",
+            "title": "ExploreViews",
             "description": "The topology's other views.",
             "required": [
               "type"
@@ -47676,7 +47628,7 @@
               "type": {
                 "type": "string",
                 "enum": [
-                  "ExplorePerspectives"
+                  "ExploreViews"
                 ]
               }
             }
@@ -47810,7 +47762,7 @@
             }
           }
         ],
-        "description": "One thing on the org's Setup list: a problem to fix (Issue), the next step of first-run setup\n(Next step), or a feature to try (Suggestion)."
+        "description": "One thing on the org's Setup list: a problem to fix (Issue), or a step of setting up Scanopy\n(Setup)."
       },
       "SetupItemDiscriminants": {
         "type": "string",
@@ -47820,13 +47772,14 @@
           "TargetlessCredential",
           "SiteWithoutDaemon",
           "RunWarnings",
+          "UnconfirmedHosts",
+          "UnconfirmedSubnets",
           "InstallDaemon",
           "RunFirstScan",
           "OpenTopology",
           "AnswerReferralSource",
           "AnswerProfile",
-          "ReviewUnconfirmed",
-          "ExplorePerspectives",
+          "ExploreViews",
           "ApplicationTags",
           "Dependencies",
           "InterfaceCredential",
@@ -47914,30 +47867,47 @@
         ],
         "description": "One item's identity across sweeps and page loads."
       },
+      "SetupItemState": {
+        "type": "string",
+        "description": "Where a Setup item stands. Issues are always Open.",
+        "enum": [
+          "Open",
+          "Locked",
+          "Done"
+        ]
+      },
       "SetupItemTier": {
         "type": "string",
         "description": "Which group of the Setup list an item sits in, in display order.",
         "enum": [
           "Issue",
-          "NextStep",
-          "Suggestion"
+          "Setup"
         ]
       },
       "SetupListEntry": {
         "type": "object",
-        "description": "One Setup list row as the dashboard serves it: the item, with its identity and its tier.",
+        "description": "One Setup list row as the dashboard serves it: the item, with its identity, its tier and its\nstate.",
         "required": [
           "key",
           "tier",
+          "state",
+          "alerts_when_stuck",
           "item"
         ],
         "properties": {
+          "alerts_when_stuck": {
+            "type": "boolean",
+            "description": "Whether the trial sweep reports the item once it stays open a day: an Issue, or a first\nstep still Open."
+          },
           "item": {
             "$ref": "#/components/schemas/SetupItem"
           },
           "key": {
             "$ref": "#/components/schemas/SetupItemKey",
             "description": "The item's identity: the same item on the next load has the same key."
+          },
+          "state": {
+            "$ref": "#/components/schemas/SetupItemState"
           },
           "tier": {
             "$ref": "#/components/schemas/SetupItemTier",
@@ -50073,7 +50043,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "44d2e5a5-8914-4f7b-b2a0-706ce6314cc9",
+                  "id": "62f2755d-91e4-4ece-986f-a8bc803d83db",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -50083,23 +50053,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "42b681b8-bfcf-4c1a-9ff1-c2eb1dcdb781",
+                  "id": "41abbde2-b096-4f11-bdb1-345a7c824ccd",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "65702c2f-7dcc-437a-b6d2-07cd1658faed",
+                  "id": "85366720-3164-4a7e-95a4-c9641589d7f9",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "c7ccb9e3-12d5-4275-b4ab-840f44a2dd0e",
+                  "id": "09853f3e-70d8-481e-a3e5-499a8c10e713",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "42b681b8-bfcf-4c1a-9ff1-c2eb1dcdb781",
+                  "id": "41abbde2-b096-4f11-bdb1-345a7c824ccd",
                   "rule": "ByHost"
                 }
               ]
@@ -50129,19 +50099,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "15698107-ad03-4cdf-9d98-aff1d5fa0b38",
+                "id": "e69cebc1-667c-4359-9dcb-5863e81323df",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "90fcf56e-9e0e-47a1-88ff-b4aaa11755f1",
+                "id": "c129bcb4-9d0b-4b97-bf25-2d07e159476c",
                 "rule": "ByVLAN"
               },
               {
-                "id": "6649c7f8-bc43-4d01-a21c-6209ae624c26",
+                "id": "3167e24d-a8c6-41b9-b963-bc76d9fc78d0",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "fb8d1729-413c-48ee-93ca-043b5d22160c",
+                "id": "915f4a59-5f58-4dcf-8635-3fc51f5a3014",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -50162,7 +50132,7 @@
                 }
               },
               {
-                "id": "7dc2a9a7-f8f2-4ecf-91d1-a214ab9bf526",
+                "id": "bb77a6a3-9522-40db-add6-72630ae11b6c",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -50171,19 +50141,19 @@
                 }
               },
               {
-                "id": "edc40af1-3058-4a9d-b4d9-74e9f5bd1aa9",
+                "id": "0a3ef3af-b202-420d-bab6-1a37f4f4475c",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "502c181b-5906-4276-804a-4c59e7ff8da5",
+                "id": "4bf0ee5e-daf4-43c4-bf85-9ddfb4042739",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "df985c2d-8247-4fc4-9b06-b16f1698f1f9",
+                "id": "5ca599f7-086c-46ca-b66c-3aabc39d7398",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "ae475bfd-5e58-4f2d-b675-67aa6413c62a",
+                "id": "9ac2b11f-b522-4c78-98f8-7dcc9fcbd3fc",
                 "rule": "ByStack"
               }
             ]

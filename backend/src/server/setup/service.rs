@@ -9,7 +9,7 @@ use uuid::Uuid;
 use super::items::{
     SetupContext, SetupCounts, SetupDaemon, SetupSite, TargetlessCredential, UncoveredIntegration,
 };
-use super::types::{SetupItem, SetupItemDiscriminants, SetupItemTier};
+use super::types::{SetupItemDiscriminants, SetupListEntry, SetupOperation};
 use crate::server::{
     auth::{
         access::{Action, Resource},
@@ -27,9 +27,8 @@ use crate::server::{
     invites::{r#impl::base::Invite, service::InviteService},
     organizations::{r#impl::base::Organization, service::OrganizationService},
     shared::{
-        services::traits::CrudService,
-        storage::filter::StorableFilter,
-        types::entities::{EntitySource, EntitySourceDiscriminants},
+        entities::EntityDiscriminants, services::traits::CrudService,
+        storage::filter::StorableFilter, types::entities::EntitySource,
     },
     shares::service::ShareService,
     sites::{r#impl::Site, service::SiteService},
@@ -58,7 +57,8 @@ pub struct SetupService {
 
 impl SetupService {
     /// The org's facts. `entity` is the user the list is for, whose writable resources decide
-    /// the Suggestions and whose readable sites count the unconfirmed rows. `None` for the sweep.
+    /// which items apply and whose readable sites count the unconfirmed rows. `None` for the
+    /// sweep.
     pub async fn gather(
         &self,
         org: &Organization,
@@ -161,19 +161,34 @@ impl SetupService {
                 .count() as u64,
         };
 
-        let manual_tags = self
-            .tag_service
-            .get_all(
-                StorableFilter::<Tag>::new_from_org_id(&org_id)
-                    .live()
-                    .source_type_in(&[EntitySourceDiscriminants::Manual]),
-            )
-            .await?;
-        let application_group_id = self.tag_service.application_group_id(&org_id).await?;
-        let has_manual_application_tag = application_group_id.is_some()
-            && manual_tags
+        // Read only while the step is still to do: once recorded, it stays done.
+        let has_tag_assignment = !org.has_setup(SetupItemDiscriminants::Tags) && {
+            let tag_ids: Vec<Uuid> = self
+                .tag_service
+                .get_all(StorableFilter::<Tag>::new_from_org_id(&org_id).live())
+                .await?
                 .iter()
-                .any(|t| t.base.tag_group_id == application_group_id);
+                .map(|t| t.id)
+                .collect();
+            self.tag_service.has_live_assignment(&tag_ids, None).await?
+        };
+        let has_application_tag_assignment = !org
+            .has_setup(SetupItemDiscriminants::ApplicationTags)
+            && match self.tag_service.application_group_id(&org_id).await? {
+                Some(group_id) => {
+                    let tag_ids: Vec<Uuid> = self
+                        .tag_service
+                        .live_tags_in_group(group_id)
+                        .await?
+                        .iter()
+                        .map(|t| t.id)
+                        .collect();
+                    self.tag_service
+                        .has_live_assignment(&tag_ids, Some(EntityDiscriminants::Service))
+                        .await?
+                }
+                None => false,
+            };
 
         Ok(SetupContext {
             recorded: org.base.setup.iter().copied().collect(),
@@ -186,8 +201,8 @@ impl SetupService {
             unconfirmed_hosts,
             unconfirmed_subnets,
             counts,
-            has_manual_tag: !manual_tags.is_empty(),
-            has_manual_application_tag,
+            has_tag_assignment,
+            has_application_tag_assignment,
             has_manual_interface_credential: self
                 .credential_service
                 .has_manual_interface_credential(org_id)
@@ -202,30 +217,60 @@ impl SetupService {
         })
     }
 
-    /// Every type's items in declaration order, which groups them by tier. The sweep's context
-    /// has no user, so it lists no Suggestions.
-    pub fn list(ctx: &SetupContext) -> Vec<SetupItem> {
+    /// Every type's entries in declaration order, which groups them by tier.
+    pub fn list(ctx: &SetupContext) -> Vec<SetupListEntry> {
         SetupItemDiscriminants::iter()
-            .filter(|t| ctx.can_write.is_some() || t.tier() != SetupItemTier::Suggestion)
             .flat_map(|t| t.items(ctx))
             .collect()
     }
 
-    /// The Setup list `entity` sees: Issues on what it may read, and the first Suggestions.
+    /// Record each Setup type the org's rows show done and `organizations.setup` doesn't hold
+    /// yet, so it stays done after the rows change, and add it to `ctx`.
+    pub async fn record_newly_done(
+        &self,
+        ctx: &mut SetupContext,
+        organization_id: Uuid,
+        entity: &AuthenticatedEntity,
+    ) -> Result<()> {
+        let newly_done: Vec<SetupItemDiscriminants> = SetupItemDiscriminants::iter()
+            .filter(|t| t.recorded() && !ctx.recorded.contains(t) && t.live_done(ctx))
+            .collect();
+        for item_type in newly_done {
+            self.organization_service
+                .record_setup(
+                    organization_id,
+                    SetupOperation::Completed {
+                        item_type,
+                        subject_id: None,
+                    },
+                    entity.clone(),
+                )
+                .await?;
+            ctx.recorded.insert(item_type);
+        }
+        Ok(())
+    }
+
+    /// The Setup list `entity` sees: Issues on what it may read, and every Setup item that
+    /// applies to it, each with its state.
     pub async fn for_user(
         &self,
         org: &Organization,
         entity: &AuthenticatedEntity,
-    ) -> Result<Vec<SetupItem>> {
-        let ctx = self.gather(org, Some(entity)).await?;
+    ) -> Result<Vec<SetupListEntry>> {
+        let mut ctx = self.gather(org, Some(entity)).await?;
+        self.record_newly_done(&mut ctx, org.id, entity).await?;
         Ok(Self::for_reader(Self::list(&ctx), entity))
     }
 
-    /// `items` cut to what `entity` may read.
-    fn for_reader(items: Vec<SetupItem>, entity: &AuthenticatedEntity) -> Vec<SetupItem> {
-        items
+    /// `entries` cut to what `entity` may read.
+    fn for_reader(
+        entries: Vec<SetupListEntry>,
+        entity: &AuthenticatedEntity,
+    ) -> Vec<SetupListEntry> {
+        entries
             .into_iter()
-            .filter(|item| item.readable_by(entity))
+            .filter(|entry| entry.item.readable_by(entity))
             .collect()
     }
 }
@@ -256,7 +301,9 @@ fn group_by_integration(found: Vec<FoundIntegration>) -> Vec<UncoveredIntegratio
 mod tests {
     use super::*;
     use crate::server::{
-        daemons::r#impl::api::DaemonHealth, users::r#impl::permissions::UserOrgPermissions,
+        daemons::r#impl::api::DaemonHealth,
+        setup::types::{SetupItem, SetupItemState},
+        users::r#impl::permissions::UserOrgPermissions,
     };
     use email_address::EmailAddress;
 
@@ -272,6 +319,10 @@ mod tests {
         }
     }
 
+    fn entry(item: SetupItem) -> SetupListEntry {
+        SetupListEntry::new(item, SetupItemState::Open)
+    }
+
     fn daemon_issue(site_id: Uuid) -> SetupItem {
         SetupItem::DaemonHealth {
             daemon_id: Uuid::new_v4(),
@@ -281,22 +332,24 @@ mod tests {
         }
     }
 
-    /// A member sees Issues on its own sites only, every Next step and every Suggestion.
+    /// A member sees Issues on its own sites only, and every Setup item.
     #[test]
-    fn a_reader_sees_its_sites_issues_and_every_suggestion() {
+    fn a_reader_sees_its_sites_issues_and_every_setup_item() {
         let (mine, other) = (Uuid::new_v4(), Uuid::new_v4());
-        let items = vec![
+        let entries = [
             daemon_issue(mine),
             daemon_issue(other),
             SetupItem::OpenTopology,
             SetupItem::Tags,
             SetupItem::InviteTeam,
             SetupItem::Share,
-        ];
+        ]
+        .map(entry)
+        .to_vec();
         let shown: Vec<SetupItemDiscriminants> =
-            SetupService::for_reader(items, &member_on(&[mine]))
+            SetupService::for_reader(entries, &member_on(&[mine]))
                 .iter()
-                .map(SetupItemDiscriminants::from)
+                .map(|e| SetupItemDiscriminants::from(&e.item))
                 .collect();
         assert_eq!(
             shown,

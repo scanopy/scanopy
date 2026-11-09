@@ -2631,26 +2631,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/organizations/setup/dismiss-suggestion": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Dismiss Setup suggestion
-         * @description Hides the Suggestion for the whole organization. Issues and Next steps can't be dismissed.
-         */
-        post: operations["dismiss_setup_suggestion"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/organizations/{id}": {
         parameters: {
             query?: never;
@@ -4241,19 +4221,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-09T13:00:13.603832Z",
+             *       "created_at": "2026-11-09T14:29:14.444061Z",
              *       "first_discovery_id": null,
-             *       "id": "dd5faa49-3afe-4eae-b8f4-ffe5ae8c8bdd",
+             *       "id": "284e17aa-bcd5-4521-9de6-82ef9e9ae160",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-09T13:00:13.603832Z",
+             *       "last_seen_at": "2026-11-09T14:29:14.444061Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-09T13:00:13.603832Z",
-             *       "valid_from": "2026-11-09T13:00:13.603832Z",
+             *       "updated_at": "2026-11-09T14:29:14.444061Z",
+             *       "valid_from": "2026-11-09T14:29:14.444061Z",
              *       "valid_to": null
              *     }
              */
@@ -5156,19 +5136,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-09T13:00:13.546142Z",
+             *               "created_at": "2026-11-09T14:29:14.410534Z",
              *               "first_discovery_id": null,
-             *               "id": "370d40f5-93fb-40a6-9ecc-4a8116fc391c",
+             *               "id": "ea7e4856-7075-475a-87fb-76924ef49e0f",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-09T13:00:13.546142Z",
+             *               "last_seen_at": "2026-11-09T14:29:14.410534Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-09T13:00:13.546142Z",
-             *               "valid_from": "2026-11-09T13:00:13.546142Z",
+             *               "updated_at": "2026-11-09T14:29:14.410534Z",
+             *               "valid_from": "2026-11-09T14:29:14.410534Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5181,7 +5161,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "IBM Spectrum Protect",
+             *           "service_definition": "Metabase",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6204,19 +6184,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-09T13:00:13.593138Z",
+             *           "created_at": "2026-11-09T14:29:14.438590Z",
              *           "first_discovery_id": null,
-             *           "id": "e56b5a2e-ae1b-48f3-b744-9dbf0dc3a0ef",
+             *           "id": "74c39690-b481-4988-9329-e31bec8351b2",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-09T13:00:13.593138Z",
+             *           "last_seen_at": "2026-11-09T14:29:14.438590Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-09T13:00:13.593138Z",
-             *           "valid_from": "2026-11-09T13:00:13.593138Z",
+             *           "updated_at": "2026-11-09T14:29:14.438590Z",
+             *           "valid_from": "2026-11-09T14:29:14.438590Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6229,7 +6209,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "IBM Spectrum Protect",
+             *       "service_definition": "Metabase",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7701,19 +7681,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-09T13:00:13.547101Z",
+         *       "created_at": "2026-11-09T14:29:14.411229Z",
          *       "first_discovery_id": null,
-         *       "id": "f5b224ab-f96c-482b-a972-c9987a3a6566",
+         *       "id": "71d09839-d3b0-4715-aaba-8d29ee2ec17f",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-09T13:00:13.547101Z",
+         *       "last_seen_at": "2026-11-09T14:29:14.411229Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-09T13:00:13.547101Z",
-         *       "valid_from": "2026-11-09T13:00:13.547101Z",
+         *       "updated_at": "2026-11-09T14:29:14.411229Z",
+         *       "valid_from": "2026-11-09T14:29:14.411229Z",
          *       "valid_to": null
          *     }
          */
@@ -8103,7 +8083,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "IBM Spectrum Protect",
+         *           "service_definition": "Metabase",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -10078,11 +10058,6 @@ export interface components {
          * @enum {string}
          */
         DiscoveryWarningCode: "InterfaceSetCutShort" | "InterfaceDetailsCutShort" | "SnmpWalkEntryCap" | "SnmpWalkUnsupported" | "SnmpWalkDesynchronised" | "SnmpWalkPartialDiscarded" | "SnmpWalkPartialRecorded" | "SnmpWalkBridgeMibAbsent" | "SnmpWalkNoAnswer" | "SnmpWalkFailed" | "ClaimedCountReadCutShort" | "ClaimedCountUnderRead" | "ClaimedCapabilityReadCutShort" | "ClaimedCapabilityEmpty" | "LldpLocalPortDropped" | "LldpLocalPortDroppedReadCutShort" | "LldpLocalPortMisplaced" | "MalformedNeighboursWalkCutShort" | "MalformedNeighboursGhostRows" | "MalformedNeighboursIncompleteRecords" | "MalformedNeighboursUnexpectedType" | "MalformedNeighboursUnreadableIndex" | "SnmpCollectedNothing" | "VlanRecordingFailed" | "EqualReachIntegrationsMerged" | "CredentialTargetNotScanned" | "CredentialTargetNotResponding" | "CredentialDaemonOsMismatch" | "CredentialNeedsNewerDaemon" | "CredentialWithoutTarget" | "CredentialLoginUnavailable" | "CredentialGateClosed" | "CredentialRejected" | "CredentialMalformed" | "CredentialTlsFailed" | "CredentialNotThisService" | "CredentialCollectionFailed" | "CredentialCollectionTimedOut" | "CredentialUnreachable" | "CredentialTimedOut" | "IntegrationWithoutCredential" | "GuestOutsideScan" | "GuestBehindHypervisor" | "GuestIsolated" | "ConnectionsWithoutProtocolResponse" | "ScanTimeLimitWithEstimate" | "ScanTimeLimit" | "DcpSweepTimedOut" | "IcmpSweepTimedOut" | "ReverseDnsTimedOut" | "LldpNeighbourNotFound" | "LldpNeighbourAmbiguous" | "LldpPortNoStrategy" | "LldpPortNotFound" | "LldpPortAmbiguous" | "ProvisionalSubnetInferred" | "UnconfirmedHostInferred" | "NeighbourResolutionIncomplete" | "FdbResolutionIncomplete" | "OutdatedDaemonFormat" | "DaemonInDesktopVm" | "WarningsTruncated" | "Unknown";
-        /** @description Request to dismiss a Suggestion from the org's Setup list */
-        DismissSuggestionRequest: {
-            /** @description The Suggestion's item type. */
-            item_type: components["schemas"]["SetupItemDiscriminants"];
-        };
         /**
          * @description An action as the role comparison shows it. `Write` is one [`Action`] and reads as Edit, plus
          *     Create on a resource where it adds rows.
@@ -11292,19 +11267,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-09T13:00:13.545126Z",
+         *               "created_at": "2026-11-09T14:29:14.409758Z",
          *               "first_discovery_id": null,
-         *               "id": "79a4d0bc-62d3-4b1d-94b0-580c724f55ec",
+         *               "id": "296e4cfb-2745-4544-ad5f-4fca550493f2",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-09T13:00:13.545126Z",
+         *               "last_seen_at": "2026-11-09T14:29:14.409758Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-09T13:00:13.545126Z",
-         *               "valid_from": "2026-11-09T13:00:13.545126Z",
+         *               "updated_at": "2026-11-09T14:29:14.409758Z",
+         *               "valid_from": "2026-11-09T14:29:14.409758Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11317,7 +11292,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "IBM Spectrum Protect",
+         *           "service_definition": "Metabase",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -14974,19 +14949,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-09T13:00:13.546767Z",
+         *           "created_at": "2026-11-09T14:29:14.410995Z",
          *           "first_discovery_id": null,
-         *           "id": "df9f5a0d-7b21-4e56-b125-8841d5f1bd2d",
+         *           "id": "8c76d0ee-e33d-4dc0-807b-78ebc222baf8",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-09T13:00:13.546767Z",
+         *           "last_seen_at": "2026-11-09T14:29:14.410995Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-09T13:00:13.546767Z",
-         *           "valid_from": "2026-11-09T13:00:13.546767Z",
+         *           "updated_at": "2026-11-09T14:29:14.410995Z",
+         *           "valid_from": "2026-11-09T14:29:14.410995Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -14999,7 +14974,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "IBM Spectrum Protect",
+         *       "service_definition": "Metabase",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -15165,8 +15140,8 @@ export interface components {
             client_secret: string;
         };
         /**
-         * @description One thing on the org's Setup list: a problem to fix (Issue), the next step of first-run setup
-         *     (Next step), or a feature to try (Suggestion).
+         * @description One thing on the org's Setup list: a problem to fix (Issue), or a step of setting up Scanopy
+         *     (Setup).
          */
         SetupItem: {
             /**
@@ -15253,14 +15228,31 @@ export interface components {
             /** @description Every warning of the code from the daemon's latest runs. */
             warnings: components["schemas"]["DiscoveryWarning"][];
         } | {
+            /**
+             * Format: int64
+             * @description The unconfirmed hosts on the sites the user reads.
+             */
+            count: number;
+            /** @enum {string} */
+            type: "UnconfirmedHosts";
+        } | {
+            /**
+             * Format: int64
+             * @description The unconfirmed subnets on the sites the user reads.
+             */
+            count: number;
+            /** @enum {string} */
+            type: "UnconfirmedSubnets";
+        } | {
             /** @enum {string} */
             type: "InstallDaemon";
         } | {
             /**
              * Format: uuid
-             * @description The connected daemon that runs the first scan, whose progress the item shows.
+             * @description The first daemon to connect, which runs the first scan and whose progress the item
+             *     shows. `None` while no daemon has connected, or once that daemon is deleted.
              */
-            daemon_id: string;
+            daemon_id?: string | null;
             /** @enum {string} */
             type: "RunFirstScan";
         } | {
@@ -15273,21 +15265,8 @@ export interface components {
             /** @enum {string} */
             type: "AnswerProfile";
         } | {
-            /**
-             * Format: int64
-             * @description Unconfirmed hosts the user may review. 0 when the user can't edit hosts.
-             */
-            hosts: number;
-            /**
-             * Format: int64
-             * @description Unconfirmed subnets the user may review. 0 when the user can't edit subnets.
-             */
-            subnets: number;
             /** @enum {string} */
-            type: "ReviewUnconfirmed";
-        } | {
-            /** @enum {string} */
-            type: "ExplorePerspectives";
+            type: "ExploreViews";
         } | {
             /** @enum {string} */
             type: "ApplicationTags";
@@ -15314,7 +15293,7 @@ export interface components {
             type: "Share";
         };
         /** @enum {string} */
-        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ReviewUnconfirmed" | "ExplorePerspectives" | "ApplicationTags" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
+        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "UnconfirmedHosts" | "UnconfirmedSubnets" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ExploreViews" | "ApplicationTags" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
         /** @description One item's identity across sweeps and page loads. */
         SetupItemKey: {
             item_type: components["schemas"]["SetupItemDiscriminants"];
@@ -15341,15 +15320,29 @@ export interface components {
             type: "RunWarning";
         };
         /**
+         * @description Where a Setup item stands. Issues are always Open.
+         * @enum {string}
+         */
+        SetupItemState: "Open" | "Locked" | "Done";
+        /**
          * @description Which group of the Setup list an item sits in, in display order.
          * @enum {string}
          */
-        SetupItemTier: "Issue" | "NextStep" | "Suggestion";
-        /** @description One Setup list row as the dashboard serves it: the item, with its identity and its tier. */
+        SetupItemTier: "Issue" | "Setup";
+        /**
+         * @description One Setup list row as the dashboard serves it: the item, with its identity, its tier and its
+         *     state.
+         */
         SetupListEntry: {
+            /**
+             * @description Whether the trial sweep reports the item once it stays open a day: an Issue, or a first
+             *     step still Open.
+             */
+            alerts_when_stuck: boolean;
             item: components["schemas"]["SetupItem"];
             /** @description The item's identity: the same item on the next load has the same key. */
             key: components["schemas"]["SetupItemKey"];
+            state: components["schemas"]["SetupItemState"];
             /** @description The group of the list the item sits in. */
             tier: components["schemas"]["SetupItemTier"];
         };
@@ -16401,7 +16394,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "44d2e5a5-8914-4f7b-b2a0-706ce6314cc9",
+             *           "id": "62f2755d-91e4-4ece-986f-a8bc803d83db",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16411,23 +16404,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "42b681b8-bfcf-4c1a-9ff1-c2eb1dcdb781",
+             *           "id": "41abbde2-b096-4f11-bdb1-345a7c824ccd",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "65702c2f-7dcc-437a-b6d2-07cd1658faed",
+             *           "id": "85366720-3164-4a7e-95a4-c9641589d7f9",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "c7ccb9e3-12d5-4275-b4ab-840f44a2dd0e",
+             *           "id": "09853f3e-70d8-481e-a3e5-499a8c10e713",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "42b681b8-bfcf-4c1a-9ff1-c2eb1dcdb781",
+             *           "id": "41abbde2-b096-4f11-bdb1-345a7c824ccd",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16441,19 +16434,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "15698107-ad03-4cdf-9d98-aff1d5fa0b38",
+             *         "id": "e69cebc1-667c-4359-9dcb-5863e81323df",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "90fcf56e-9e0e-47a1-88ff-b4aaa11755f1",
+             *         "id": "c129bcb4-9d0b-4b97-bf25-2d07e159476c",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "6649c7f8-bc43-4d01-a21c-6209ae624c26",
+             *         "id": "3167e24d-a8c6-41b9-b963-bc76d9fc78d0",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "fb8d1729-413c-48ee-93ca-043b5d22160c",
+             *         "id": "915f4a59-5f58-4dcf-8635-3fc51f5a3014",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16474,7 +16467,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "7dc2a9a7-f8f2-4ecf-91d1-a214ab9bf526",
+             *         "id": "bb77a6a3-9522-40db-add6-72630ae11b6c",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16483,19 +16476,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "edc40af1-3058-4a9d-b4d9-74e9f5bd1aa9",
+             *         "id": "0a3ef3af-b202-420d-bab6-1a37f4f4475c",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "502c181b-5906-4276-804a-4c59e7ff8da5",
+             *         "id": "4bf0ee5e-daf4-43c4-bf85-9ddfb4042739",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "df985c2d-8247-4fc4-9b06-b16f1698f1f9",
+             *         "id": "5ca599f7-086c-46ca-b66c-3aabc39d7398",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "ae475bfd-5e58-4f2d-b675-67aa6413c62a",
+             *         "id": "9ac2b11f-b522-4c78-98f8-7dcc9fcbd3fc",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -23440,48 +23433,6 @@ export interface operations {
             };
         };
     };
-    dismiss_setup_suggestion: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DismissSuggestionRequest"];
-            };
-        };
-        responses: {
-            /** @description Suggestion dismissed */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse"];
-                };
-            };
-            /** @description Not a Suggestion */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-            /** @description The user may not act on the Suggestion */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
     update_organization: {
         parameters: {
             query?: never;
@@ -26676,7 +26627,8 @@ export interface operations {
                  */
                 snapshot_id?: string | null;
                 /**
-                 * @description When `true`, records the `OpenTopology` setup item (the user has viewed their topology).
+                 * @description When `true`, records the `OpenTopology` setup item (the user has viewed their topology),
+                 *     and `ExploreViews` when `view` is not the default view.
                  *     Only the frontend's explicit on-tab view sets this — the background topology-data query
                  *     never does — so it is never recorded from other tabs. Once per org.
                  */

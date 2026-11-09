@@ -181,7 +181,7 @@ impl OrganizationService {
         Ok(Some(result))
     }
 
-    /// Store the item type a Completed, Answered or Dismissed `operation` names in the org's
+    /// Store the item type a Completed or Answered `operation` names in the org's
     /// `setup`, and publish the operation. Only the call that added the type publishes, so the
     /// event goes out once however many requests reach it together. `true` for that call.
     pub async fn record_setup(

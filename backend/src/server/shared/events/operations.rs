@@ -365,8 +365,9 @@ pub(crate) mod tests {
             sample(
                 Event::new(
                     OrgScope { organization_id },
-                    SetupOperation::Dismissed {
+                    SetupOperation::Completed {
                         item_type: crate::server::setup::types::SetupItemDiscriminants::Tags,
+                        subject_id: None,
                     },
                     system(),
                 ),

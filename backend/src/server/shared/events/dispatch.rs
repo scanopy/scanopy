@@ -564,8 +564,9 @@ mod tests {
                 OrgScope {
                     organization_id: Uuid::new_v4(),
                 },
-                SetupOperation::Dismissed {
+                SetupOperation::Completed {
                     item_type: SetupItemDiscriminants::Tags,
+                    subject_id: None,
                 },
                 AuthenticatedEntity::System,
             ))
@@ -682,8 +683,9 @@ mod tests {
         channel
             .publish(Event::new(
                 OrgScope { organization_id },
-                SetupOperation::Dismissed {
+                SetupOperation::Completed {
                     item_type: SetupItemDiscriminants::Tags,
+                    subject_id: None,
                 },
                 AuthenticatedEntity::System,
             ))
@@ -729,7 +731,7 @@ mod tests {
             failure.organizations,
             vec![ScopeOrganization::Org(organization_id)]
         );
-        assert_eq!(failure.operations, vec!["setup_dismissed"]);
+        assert_eq!(failure.operations, vec!["setup_completed"]);
         assert!(failure.error.contains("timed out"), "{}", failure.error);
     }
 
@@ -790,8 +792,9 @@ mod tests {
             .await;
 
         channel
-            .publish(setup_event(SetupOperation::Dismissed {
+            .publish(setup_event(SetupOperation::Completed {
                 item_type: SetupItemDiscriminants::Tags,
+                subject_id: None,
             }))
             .await;
         assert_eq!(handled.load(Ordering::SeqCst), 0);
@@ -834,8 +837,9 @@ mod tests {
 
         let mut published = Vec::new();
         for _ in 0..100 {
-            let event = setup_event(SetupOperation::Dismissed {
+            let event = setup_event(SetupOperation::Completed {
                 item_type: SetupItemDiscriminants::Tags,
+                subject_id: None,
             });
             published.push(event.id);
             channel.publish(event).await;
@@ -881,8 +885,9 @@ mod tests {
             .await;
         for _ in 0..2 {
             channel
-                .publish(setup_event(SetupOperation::Dismissed {
+                .publish(setup_event(SetupOperation::Completed {
                     item_type: SetupItemDiscriminants::Tags,
+                    subject_id: None,
                 }))
                 .await;
         }
@@ -926,8 +931,9 @@ mod tests {
         tokio::task::yield_now().await;
         for _ in 0..3 {
             channel
-                .publish(setup_event(SetupOperation::Dismissed {
+                .publish(setup_event(SetupOperation::Completed {
                     item_type: SetupItemDiscriminants::Tags,
+                    subject_id: None,
                 }))
                 .await;
         }

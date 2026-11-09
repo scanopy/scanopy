@@ -244,26 +244,6 @@ export function useReferralSourceMutation() {
 	}));
 }
 
-/** Hides a Suggestion from the org's Setup list. */
-export function useDismissSetupSuggestionMutation() {
-	const queryClient = useQueryClient();
-
-	return createMutation(() => ({
-		mutationFn: async (itemType: components['schemas']['SetupItemDiscriminants']) => {
-			requireSuccess(
-				await apiClient.POST('/api/v1/organizations/setup/dismiss-suggestion', {
-					body: { item_type: itemType }
-				})
-			);
-			return true;
-		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
-			queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
-		}
-	}));
-}
-
 /** Revokes several invites. */
 export function useBulkRevokeInvitesMutation() {
 	const queryClient = useQueryClient();

@@ -24,8 +24,8 @@ use crate::{
     },
 };
 
-/// One thing on the org's Setup list: a problem to fix (Issue), the next step of first-run setup
-/// (Next step), or a feature to try (Suggestion).
+/// One thing on the org's Setup list: a problem to fix (Issue), or a step of setting up Scanopy
+/// (Setup).
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, EnumDiscriminants)]
 #[strum_discriminants(derive(
     Serialize,
@@ -104,24 +104,36 @@ pub enum SetupItem {
         /// Every warning of the code from the daemon's latest runs.
         warnings: Vec<DiscoveryWarning>,
     },
-    // Next steps. The aliases read the onboarding milestones they replace, which
+    /// Hosts known only from other devices' reports, which the user may review.
+    #[schema(title = "UnconfirmedHosts")]
+    UnconfirmedHosts {
+        /// The unconfirmed hosts on the sites the user reads.
+        count: u64,
+    },
+    /// Subnets known only from other devices' reports, which the user may review.
+    #[schema(title = "UnconfirmedSubnets")]
+    UnconfirmedSubnets {
+        /// The unconfirmed subnets on the sites the user reads.
+        count: u64,
+    },
+    // Setup, first steps first. The aliases read the onboarding milestones they replace, which
     // `organizations.setup` was copied from.
-    /// No daemon is installed yet.
+    /// Installing a daemon.
     #[schema(title = "InstallDaemon")]
     #[strum_discriminants(serde(alias = "FirstDaemonRegistered"))]
     InstallDaemon,
-    /// A daemon is connected and no scan has finished.
+    /// The first scan.
     #[schema(title = "RunFirstScan")]
     #[strum_discriminants(serde(alias = "FirstDiscoveryCompleted"))]
     RunFirstScan {
-        /// The connected daemon that runs the first scan, whose progress the item shows.
-        daemon_id: Uuid,
+        /// The first daemon to connect, which runs the first scan and whose progress the item
+        /// shows. `None` while no daemon has connected, or once that daemon is deleted.
+        daemon_id: Option<Uuid>,
     },
-    /// The first scan finished and nobody has opened the topology.
+    /// Opening the topology.
     #[schema(title = "OpenTopology")]
     #[strum_discriminants(serde(alias = "FirstTopologyRebuild"))]
     OpenTopology,
-    // Suggestions
     /// Asks how the org heard of Scanopy.
     #[schema(title = "AnswerReferralSource")]
     #[strum_discriminants(serde(alias = "ReferralSourceCompleted"))]
@@ -130,17 +142,9 @@ pub enum SetupItem {
     #[schema(title = "AnswerProfile")]
     #[strum_discriminants(serde(alias = "ProfileCompleted"))]
     AnswerProfile,
-    /// Hosts and subnets known only from other devices' reports.
-    #[schema(title = "ReviewUnconfirmed")]
-    ReviewUnconfirmed {
-        /// Unconfirmed hosts the user may review. 0 when the user can't edit hosts.
-        hosts: u64,
-        /// Unconfirmed subnets the user may review. 0 when the user can't edit subnets.
-        subnets: u64,
-    },
     /// The topology's other views.
-    #[schema(title = "ExplorePerspectives")]
-    ExplorePerspectives,
+    #[schema(title = "ExploreViews")]
+    ExploreViews,
     /// Application tags, which group services on the Application view.
     #[schema(title = "ApplicationTags")]
     ApplicationTags,
@@ -185,8 +189,7 @@ pub enum SetupItem {
 )]
 pub enum SetupItemTier {
     Issue,
-    NextStep,
-    Suggestion,
+    Setup,
 }
 
 /// One item's identity across sweeps and page loads.
@@ -236,27 +239,46 @@ impl SetupItemKey {
     }
 }
 
-/// One Setup list row as the dashboard serves it: the item, with its identity and its tier.
+/// Where a Setup item stands. Issues are always Open.
+#[derive(Serialize, Deserialize, ToSchema, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SetupItemState {
+    /// Still to do.
+    Open,
+    /// Waiting on an earlier step. Counted in the progress total and not shown.
+    Locked,
+    /// Done once, and done for good.
+    Done,
+}
+
+/// One Setup list row as the dashboard serves it: the item, with its identity, its tier and its
+/// state.
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct SetupListEntry {
     /// The item's identity: the same item on the next load has the same key.
     pub key: SetupItemKey,
     /// The group of the list the item sits in.
     pub tier: SetupItemTier,
+    pub state: SetupItemState,
+    /// Whether the trial sweep reports the item once it stays open a day: an Issue, or a first
+    /// step still Open.
+    pub alerts_when_stuck: bool,
     pub item: SetupItem,
 }
 
-impl From<SetupItem> for SetupListEntry {
-    fn from(item: SetupItem) -> Self {
+impl SetupListEntry {
+    pub fn new(item: SetupItem, state: SetupItemState) -> Self {
+        let item_type = SetupItemDiscriminants::from(&item);
         Self {
             key: item.key(),
-            tier: SetupItemDiscriminants::from(&item).tier(),
+            tier: item_type.tier(),
+            state,
+            alerts_when_stuck: item_type.alerts_when_stuck() && state == SetupItemState::Open,
             item,
         }
     }
 }
 
-/// An Issue or Next step the trial sweep saw open, and since when.
+/// An Issue or first step the trial sweep saw open, and since when.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct OpenSetupItem {
     pub key: SetupItemKey,
@@ -285,13 +307,14 @@ impl SetupItem {
                 daemon_id: *daemon_id,
                 code: *code,
             },
-            Self::InstallDaemon
+            Self::UnconfirmedHosts { .. }
+            | Self::UnconfirmedSubnets { .. }
+            | Self::InstallDaemon
             | Self::RunFirstScan { .. }
             | Self::OpenTopology
             | Self::AnswerReferralSource
             | Self::AnswerProfile
-            | Self::ReviewUnconfirmed { .. }
-            | Self::ExplorePerspectives
+            | Self::ExploreViews
             | Self::ApplicationTags
             | Self::Dependencies
             | Self::InterfaceCredential
@@ -304,8 +327,9 @@ impl SetupItem {
     }
 
     /// Whether `entity` may read what this item is about. An Issue names a daemon, a site, a run
-    /// or a credential, so it shows only to a reader of that resource on that item's site. Next
-    /// steps and Suggestions are about the org, and every member sees them.
+    /// or a credential, so it shows only to a reader of that resource on that item's site. The
+    /// unconfirmed counts are already cut to the sites the reader reads. Setup items are about
+    /// the org, and every member sees them.
     pub fn readable_by(&self, entity: &AuthenticatedEntity) -> bool {
         let on_site = |resource, site_id: &Uuid| {
             entity
@@ -327,13 +351,14 @@ impl SetupItem {
                         .iter()
                         .any(|site_id| on_site(Resource::Host, site_id))
             }
-            Self::InstallDaemon
+            Self::UnconfirmedHosts { .. }
+            | Self::UnconfirmedSubnets { .. }
+            | Self::InstallDaemon
             | Self::RunFirstScan { .. }
             | Self::OpenTopology
             | Self::AnswerReferralSource
             | Self::AnswerProfile
-            | Self::ReviewUnconfirmed { .. }
-            | Self::ExplorePerspectives
+            | Self::ExploreViews
             | Self::ApplicationTags
             | Self::Dependencies
             | Self::InterfaceCredential
@@ -353,43 +378,15 @@ impl SetupItemDiscriminants {
             | Self::UncoveredIntegration
             | Self::TargetlessCredential
             | Self::SiteWithoutDaemon
-            | Self::RunWarnings => SetupItemTier::Issue,
-            Self::InstallDaemon | Self::RunFirstScan | Self::OpenTopology => {
-                SetupItemTier::NextStep
-            }
-            Self::AnswerReferralSource
-            | Self::AnswerProfile
-            | Self::ReviewUnconfirmed
-            | Self::ExplorePerspectives
-            | Self::ApplicationTags
-            | Self::Dependencies
-            | Self::InterfaceCredential
-            | Self::Tags
-            | Self::InviteTeam
-            | Self::MultiSite
-            | Self::ApiKeys
-            | Self::Share => SetupItemTier::Suggestion,
-        }
-    }
-
-    /// Whether finishing this item is stored in `organizations.setup`, because live state can't
-    /// show it: InstallDaemon (first connection), RunFirstScan, OpenTopology, AnswerProfile,
-    /// AnswerReferralSource. Every Suggestion is stored when dismissed. Issues never are, so they
-    /// clear only when their condition clears.
-    pub fn recorded(self) -> bool {
-        match self {
-            Self::DaemonHealth
-            | Self::UncoveredIntegration
-            | Self::TargetlessCredential
-            | Self::SiteWithoutDaemon
-            | Self::RunWarnings => false,
+            | Self::RunWarnings
+            | Self::UnconfirmedHosts
+            | Self::UnconfirmedSubnets => SetupItemTier::Issue,
             Self::InstallDaemon
             | Self::RunFirstScan
             | Self::OpenTopology
             | Self::AnswerReferralSource
             | Self::AnswerProfile
-            | Self::ReviewUnconfirmed
-            | Self::ExplorePerspectives
+            | Self::ExploreViews
             | Self::ApplicationTags
             | Self::Dependencies
             | Self::InterfaceCredential
@@ -397,36 +394,42 @@ impl SetupItemDiscriminants {
             | Self::InviteTeam
             | Self::MultiSite
             | Self::ApiKeys
-            | Self::Share => true,
+            | Self::Share => SetupItemTier::Setup,
         }
     }
 
-    /// Whether `entity` may dismiss this type for the org: a Suggestion, dismissed by a user who
-    /// may act on it, which is the same write its arm requires before showing it. Issues clear
-    /// when fixed and Next steps when done, so neither is dismissed.
-    pub fn dismissable_by(self, entity: &AuthenticatedEntity) -> bool {
-        let can_write = |resource| entity.can(resource, Action::Write);
+    /// Whether finishing this item is stored in `organizations.setup`: every Setup item is, the
+    /// first time it is done, so it stays done. Issues never are, so they clear only when their
+    /// condition clears.
+    pub fn recorded(self) -> bool {
+        self.tier() == SetupItemTier::Setup
+    }
+
+    /// Whether the trial sweep reports an Open item of this type left a day: every Issue, and the
+    /// first steps without which Scanopy maps nothing.
+    pub fn alerts_when_stuck(self) -> bool {
         match self {
             Self::DaemonHealth
             | Self::UncoveredIntegration
             | Self::TargetlessCredential
             | Self::SiteWithoutDaemon
             | Self::RunWarnings
+            | Self::UnconfirmedHosts
+            | Self::UnconfirmedSubnets
             | Self::InstallDaemon
             | Self::RunFirstScan
-            | Self::OpenTopology => false,
-            // Every user is shown these.
+            | Self::OpenTopology => true,
             Self::AnswerReferralSource
             | Self::AnswerProfile
-            | Self::ExplorePerspectives
-            | Self::ApiKeys => entity.user_id().is_some(),
-            Self::ReviewUnconfirmed => can_write(Resource::Host) || can_write(Resource::Subnet),
-            Self::ApplicationTags | Self::Tags => can_write(Resource::Tag),
-            Self::Dependencies => can_write(Resource::Dependency),
-            Self::InterfaceCredential => can_write(Resource::Credential),
-            Self::InviteTeam => can_write(Resource::Member),
-            Self::MultiSite => can_write(Resource::NewSite),
-            Self::Share => can_write(Resource::Share),
+            | Self::ExploreViews
+            | Self::ApplicationTags
+            | Self::Dependencies
+            | Self::InterfaceCredential
+            | Self::Tags
+            | Self::InviteTeam
+            | Self::MultiSite
+            | Self::ApiKeys
+            | Self::Share => false,
         }
     }
 
@@ -464,9 +467,10 @@ impl SetupItemDiscriminants {
             }
             Self::SiteWithoutDaemon | Self::MultiSite => &EntityDiscriminants::Site,
             Self::RunWarnings | Self::RunFirstScan => &EntityDiscriminants::Discovery,
-            Self::OpenTopology | Self::ExplorePerspectives => &EntityDiscriminants::Topology,
+            Self::OpenTopology | Self::ExploreViews => &EntityDiscriminants::Topology,
             Self::AnswerProfile => &EntityDiscriminants::User,
-            Self::ReviewUnconfirmed => &EntityDiscriminants::Host,
+            Self::UnconfirmedHosts => &EntityDiscriminants::Host,
+            Self::UnconfirmedSubnets => &EntityDiscriminants::Subnet,
             Self::ApplicationTags => &Concept::Application,
             Self::Dependencies => &EntityDiscriminants::Dependency,
             // Ports, neighbours and VLANs are what the credential adds.
@@ -500,17 +504,18 @@ impl TypeMetadataProvider for SetupItemDiscriminants {
             Self::TargetlessCredential => "Credential not used by any scan",
             Self::SiteWithoutDaemon => "Site has no daemon",
             Self::RunWarnings => "Scan left data missing",
+            Self::UnconfirmedHosts => "Review unconfirmed hosts",
+            Self::UnconfirmedSubnets => "Review unconfirmed subnets",
             Self::InstallDaemon => "Install a daemon",
             Self::RunFirstScan => "Run your first scan",
             Self::OpenTopology => "Open your network map",
             Self::AnswerReferralSource => "How did you hear about Scanopy?",
             Self::AnswerProfile => "Tell us about your role",
-            Self::ReviewUnconfirmed => "Review unconfirmed hosts and subnets",
-            Self::ExplorePerspectives => "Explore the topology views",
-            Self::ApplicationTags => "Group services into applications",
+            Self::ExploreViews => "Switch topology views",
+            Self::ApplicationTags => "Assign an application tag",
             Self::Dependencies => "Map a dependency",
             Self::InterfaceCredential => "Add a switch or router credential",
-            Self::Tags => "Tag your hosts",
+            Self::Tags => "Assign your first tag",
             Self::InviteTeam => "Invite your team",
             Self::MultiSite => "Add another site",
             Self::ApiKeys => "Create an API key",
@@ -529,6 +534,12 @@ impl TypeMetadataProvider for SetupItemDiscriminants {
             }
             Self::SiteWithoutDaemon => "Nothing on this site is scanned until it has a daemon.",
             Self::RunWarnings => "The daemon's latest scan couldn't read part of your network.",
+            Self::UnconfirmedHosts => {
+                "Other devices reported these hosts, and no scan has reached them yet. Confirm, merge or dismiss them."
+            }
+            Self::UnconfirmedSubnets => {
+                "Other devices reported these subnets, and no scan has reached them yet. Confirm, merge or dismiss them."
+            }
             Self::InstallDaemon => {
                 "The daemon scans your network and reports what it finds. Install it on a host on the network you want to map."
             }
@@ -536,14 +547,9 @@ impl TypeMetadataProvider for SetupItemDiscriminants {
             Self::OpenTopology => "See the hosts, subnets and links your scan found.",
             Self::AnswerReferralSource => "One question, and it helps us reach people like you.",
             Self::AnswerProfile => "Your role and company size help us shape what we build.",
-            Self::ReviewUnconfirmed => {
-                "Other devices reported these, and no scan has reached them yet. Confirm, merge or dismiss them."
-            }
-            Self::ExplorePerspectives => {
-                "The map has views for layer 2, layer 3, workloads and applications."
-            }
+            Self::ExploreViews => "Switch the map to its layer 2, workloads or applications view.",
             Self::ApplicationTags => {
-                "Tag the services that make up an application to see it as one group on the map."
+                "Tag a service with an application to see the services that make it up as one group on the map."
             }
             Self::Dependencies => {
                 "Record which services depend on which, and see the path requests take."
@@ -551,7 +557,9 @@ impl TypeMetadataProvider for SetupItemDiscriminants {
             Self::InterfaceCredential => {
                 "An SNMP or controller credential adds ports, neighbours and VLANs to your map."
             }
-            Self::Tags => "Tags group hosts by role, owner or environment, and filter every list.",
+            Self::Tags => {
+                "Tag a host, service or other record. Tags group records by role, owner or environment, and filter every list."
+            }
             Self::InviteTeam => {
                 "Your plan includes more seats. Invite the people who run the network with you."
             }
@@ -576,16 +584,14 @@ impl EntityMetadataProvider for SetupItemTier {
     fn color(&self) -> Color {
         match self {
             Self::Issue => Color::Red,
-            Self::NextStep => Color::Blue,
-            Self::Suggestion => Color::Gray,
+            Self::Setup => Color::Blue,
         }
     }
 
     fn icon(&self) -> Icon {
         match self {
             Self::Issue => Icon::CircleAlert,
-            Self::NextStep => Icon::CircleArrowRight,
-            Self::Suggestion => Icon::Lightbulb,
+            Self::Setup => Icon::CircleArrowRight,
         }
     }
 }
@@ -594,8 +600,7 @@ impl TypeMetadataProvider for SetupItemTier {
     fn name(&self) -> &'static str {
         match self {
             Self::Issue => "Issues",
-            Self::NextStep => "Next steps",
-            Self::Suggestion => "Suggestions",
+            Self::Setup => "Setup",
         }
     }
 
@@ -604,8 +609,7 @@ impl TypeMetadataProvider for SetupItemTier {
             Self::Issue => {
                 "Problems that leave part of your network unscanned. Each clears once fixed."
             }
-            Self::NextStep => "The next step of setting up Scanopy.",
-            Self::Suggestion => "Features to try next.",
+            Self::Setup => "The steps of setting up Scanopy. Each stays done once done.",
         }
     }
 }
@@ -647,8 +651,6 @@ pub enum SetupOperation {
         item_type: SetupItemDiscriminants,
         answers: SetupAnswers,
     },
-    /// A Suggestion was dismissed. Stored in `setup`.
-    Dismissed { item_type: SetupItemDiscriminants },
     /// The sweep saw an open item clear.
     Resolved {
         key: SetupItemKey,
@@ -670,9 +672,9 @@ impl SetupOperation {
     /// events, which store nothing there.
     pub fn recorded_item_type(&self) -> Option<SetupItemDiscriminants> {
         match self {
-            Self::Completed { item_type, .. }
-            | Self::Answered { item_type, .. }
-            | Self::Dismissed { item_type } => Some(*item_type),
+            Self::Completed { item_type, .. } | Self::Answered { item_type, .. } => {
+                Some(*item_type)
+            }
             Self::Resolved { .. } | Self::Stuck { .. } => None,
         }
     }
@@ -682,7 +684,7 @@ impl SetupOperation {
     /// nested lookup.
     pub fn metadata(&self) -> SetupOperationMetadata<'_> {
         let (key, tier, plan, trial_end, hours_open) = match self {
-            Self::Completed { .. } | Self::Answered { .. } | Self::Dismissed { .. } => {
+            Self::Completed { .. } | Self::Answered { .. } => {
                 return SetupOperationMetadata::Recorded(self);
             }
             Self::Resolved {
@@ -785,46 +787,6 @@ mod tests {
         assert_eq!(
             SetupItemDiscriminants::parse_recorded(stored),
             vec![SetupItemDiscriminants::InstallDaemon]
-        );
-    }
-
-    fn user(
-        role: crate::server::users::r#impl::permissions::UserOrgPermissions,
-    ) -> AuthenticatedEntity {
-        let site_id = Uuid::new_v4();
-        AuthenticatedEntity::User {
-            user_id: Uuid::new_v4(),
-            organization_id: Uuid::new_v4(),
-            permissions: role,
-            access: crate::tests::access_on(role, &[site_id]),
-            email: email_address::EmailAddress::new_unchecked("user@example.test"),
-            email_verified: true,
-            terms_accepted_at: None,
-        }
-    }
-
-    /// Only Suggestions are dismissed, and only by a user the Suggestion's own write would let
-    /// act on it.
-    #[test]
-    fn only_suggestions_are_dismissed_by_a_user_who_may_act_on_them() {
-        use crate::server::users::r#impl::permissions::UserOrgPermissions as Role;
-        use strum::IntoEnumIterator;
-        let owner = user(Role::Owner);
-        for item_type in SetupItemDiscriminants::iter() {
-            assert_eq!(
-                item_type.dismissable_by(&owner),
-                item_type.tier() == SetupItemTier::Suggestion,
-                "{item_type:?}"
-            );
-        }
-        let (viewer, member) = (user(Role::Viewer), user(Role::Member));
-        assert!(SetupItemDiscriminants::ExplorePerspectives.dismissable_by(&viewer));
-        assert!(!SetupItemDiscriminants::Tags.dismissable_by(&viewer));
-        assert!(SetupItemDiscriminants::Tags.dismissable_by(&member));
-        assert!(!SetupItemDiscriminants::InviteTeam.dismissable_by(&member));
-        assert!(
-            !SetupItemDiscriminants::ExplorePerspectives
-                .dismissable_by(&AuthenticatedEntity::System)
         );
     }
 
