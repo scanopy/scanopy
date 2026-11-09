@@ -20,6 +20,7 @@ use crate::{
             Color, Icon,
             metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider},
         },
+        shared::{concepts::Concept, entities::EntityDiscriminants},
     },
 };
 
@@ -463,26 +464,26 @@ impl EntityMetadataProvider for SetupItemDiscriminants {
 
     fn icon(&self) -> Icon {
         match self {
-            Self::DaemonHealth => Icon::Activity,
-            Self::UncoveredIntegration => Icon::KeyRound,
-            Self::TargetlessCredential => Icon::Unplug,
-            Self::SiteWithoutDaemon => Icon::MapPinOff,
-            Self::RunWarnings => Icon::TriangleAlert,
-            Self::InstallDaemon => Icon::Download,
-            Self::RunFirstScan => Icon::Radar,
-            Self::OpenTopology => Icon::Network,
+            // An item about an entity or a concept takes that entity's or concept's icon.
+            Self::DaemonHealth | Self::InstallDaemon => EntityDiscriminants::Daemon.icon(),
+            Self::UncoveredIntegration | Self::TargetlessCredential => {
+                EntityDiscriminants::Credential.icon()
+            }
+            Self::SiteWithoutDaemon | Self::MultiSite => EntityDiscriminants::Site.icon(),
+            Self::RunWarnings | Self::RunFirstScan => EntityDiscriminants::Discovery.icon(),
+            Self::OpenTopology | Self::ExplorePerspectives => EntityDiscriminants::Topology.icon(),
+            Self::AnswerProfile => EntityDiscriminants::User.icon(),
+            Self::ReviewUnconfirmed => EntityDiscriminants::Host.icon(),
+            Self::ApplicationTags => Concept::Application.icon(),
+            Self::Dependencies => EntityDiscriminants::Dependency.icon(),
+            // Ports, neighbours and VLANs are what the credential adds.
+            Self::InterfaceCredential => Concept::L2.icon(),
+            Self::Tags => EntityDiscriminants::Tag.icon(),
+            Self::InviteTeam => EntityDiscriminants::Invite.icon(),
+            Self::ApiKeys => EntityDiscriminants::UserApiKey.icon(),
+            Self::Share => EntityDiscriminants::Share.icon(),
+            // A question about the person, tied to no entity or concept.
             Self::AnswerReferralSource => Icon::MessageCircleQuestion,
-            Self::AnswerProfile => Icon::UserRound,
-            Self::ReviewUnconfirmed => Icon::CircleDashed,
-            Self::ExplorePerspectives => Icon::Layers,
-            Self::ApplicationTags => Icon::AppWindow,
-            Self::Dependencies => Icon::Workflow,
-            Self::InterfaceCredential => Icon::Cable,
-            Self::Tags => Icon::Tag,
-            Self::InviteTeam => Icon::UserPlus,
-            Self::MultiSite => Icon::Building2,
-            Self::ApiKeys => Icon::Code,
-            Self::Share => Icon::Share2,
         }
     }
 }
