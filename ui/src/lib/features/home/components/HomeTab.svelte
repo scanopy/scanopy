@@ -7,7 +7,6 @@
 	import { useDashboardQuery } from '$lib/features/home/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import SetupList from './SetupList.svelte';
-	import { tierOf } from '../setup-list';
 	import { isPlanLapsed } from '$lib/features/organizations/types';
 	import SiteMetrics from './SiteMetrics.svelte';
 	import type { TabProps } from '$lib/shared/types';
@@ -33,7 +32,7 @@
 	// A lapsed org keeps its plan's feature flags but can act on none of them, so it gets no Suggestions.
 	let setupItems = $derived(
 		(dashboard?.setup_items ?? []).filter(
-			(item) => !(organization && isPlanLapsed(organization)) || tierOf(item) !== 'Suggestion'
+			(entry) => !(organization && isPlanLapsed(organization)) || entry.tier !== 'Suggestion'
 		)
 	);
 	let configData = $derived(configQuery.data);
@@ -71,7 +70,7 @@
 		<Loading />
 	{:else if dashboard && organization}
 		{#if setupItems.length > 0}
-			<SetupList items={setupItems} {setup} />
+			<SetupList entries={setupItems} {setup} />
 		{/if}
 
 		<!-- Demo Topology Embed — shown until the first scan finishes -->

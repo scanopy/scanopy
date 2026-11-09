@@ -229,6 +229,26 @@ impl SetupItemKey {
     }
 }
 
+/// One Setup list row as the dashboard serves it: the item, with its identity and its tier.
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct SetupListEntry {
+    /// The item's identity: the same item on the next load has the same key.
+    pub key: SetupItemKey,
+    /// The group of the list the item sits in.
+    pub tier: SetupItemTier,
+    pub item: SetupItem,
+}
+
+impl From<SetupItem> for SetupListEntry {
+    fn from(item: SetupItem) -> Self {
+        Self {
+            key: item.key(),
+            tier: SetupItemDiscriminants::from(&item).tier(),
+            item,
+        }
+    }
+}
+
 /// An Issue or Next step the trial sweep saw open, and since when.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct OpenSetupItem {

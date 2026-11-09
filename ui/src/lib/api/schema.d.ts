@@ -4671,7 +4671,7 @@ export interface components {
                  * @description The organization's Setup list as the caller sees it: Issues, then Next steps, then
                  *     Suggestions.
                  */
-                setup_items: components["schemas"]["SetupItem"][];
+                setup_items: components["schemas"]["SetupListEntry"][];
                 /** @description Per-site counts for every site the caller can see. */
                 sites: components["schemas"]["SiteSummary"][];
             };
@@ -8966,7 +8966,7 @@ export interface components {
              * @description The organization's Setup list as the caller sees it: Issues, then Next steps, then
              *     Suggestions.
              */
-            setup_items: components["schemas"]["SetupItem"][];
+            setup_items: components["schemas"]["SetupListEntry"][];
             /** @description Per-site counts for every site the caller can see. */
             sites: components["schemas"]["SiteSummary"][];
         };
@@ -15315,6 +15315,37 @@ export interface components {
         };
         /** @enum {string} */
         SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ReviewUnconfirmed" | "ExplorePerspectives" | "ApplicationTags" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
+        /** @description One item's identity across sweeps and page loads. */
+        SetupItemKey: {
+            item_type: components["schemas"]["SetupItemDiscriminants"];
+            /** @enum {string} */
+            type: "Org";
+        } | {
+            /** Format: uuid */
+            entity_id: string;
+            item_type: components["schemas"]["SetupItemDiscriminants"];
+            /** @enum {string} */
+            type: "Entity";
+        } | {
+            code: components["schemas"]["DiscoveryWarningCode"];
+            /** Format: uuid */
+            daemon_id: string;
+            /** @enum {string} */
+            type: "RunWarning";
+        };
+        /**
+         * @description Which group of the Setup list an item sits in, in display order.
+         * @enum {string}
+         */
+        SetupItemTier: "Issue" | "NextStep" | "Suggestion";
+        /** @description One Setup list row as the dashboard serves it: the item, with its identity and its tier. */
+        SetupListEntry: {
+            item: components["schemas"]["SetupItem"];
+            /** @description The item's identity: the same item on the next load has the same key. */
+            key: components["schemas"]["SetupItemKey"];
+            /** @description The group of the list the item sits in. */
+            tier: components["schemas"]["SetupItemTier"];
+        };
         /** @description Setup request for pre-registration org/site configuration */
         SetupRequest: {
             /** @description Name for the organization created during setup. */

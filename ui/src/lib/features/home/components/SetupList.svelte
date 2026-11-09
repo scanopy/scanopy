@@ -52,20 +52,20 @@
 	import ReferralSourceModal from './ReferralSourceModal.svelte';
 	import ProfileModal from './ProfileModal.svelte';
 	import {
+		entryId,
 		groupByTier,
-		setupItemKey,
-		tierOf,
 		type SetupItem,
 		type SetupItemTier,
-		type SetupItemType
+		type SetupItemType,
+		type SetupListEntry
 	} from '../setup-list';
 
 	let {
-		items,
+		entries,
 		setup
 	}: {
 		/** The Setup list the server computed for this user. */
-		items: SetupItem[];
+		entries: SetupListEntry[];
 		/** The org's finished and dismissed item types. */
 		setup: SetupItemType[];
 	} = $props();
@@ -79,12 +79,14 @@
 	const sessionsQuery = useActiveSessionsQuery();
 	const dismissMutation = useDismissSetupSuggestionMutation();
 
-	let groups = $derived(groupByTier(items));
+	let groups = $derived(groupByTier(entries));
 	let hasEmail = $derived(configQuery.data?.has_email_service ?? false);
 
 	// The hosts an uncovered integration was found on, for its chip's name.
 	let hostIds = $derived(
-		items.flatMap((item) => (item.type === 'UncoveredIntegration' ? item.host_ids.slice(0, 1) : []))
+		entries.flatMap(({ item }) =>
+			item.type === 'UncoveredIntegration' ? item.host_ids.slice(0, 1) : []
+		)
 	);
 	const hostsQuery = useHostsByIds(() => hostIds);
 
@@ -123,13 +125,12 @@
 
 	// Issues and Next steps report once per item per page load.
 	$effect(() => {
-		for (const item of items) {
-			const tier = tierOf(item);
-			if (tier === 'Suggestion') continue;
-			const key = setupItemKey(item);
+		for (const entry of entries) {
+			if (entry.tier === 'Suggestion') continue;
+			const key = entryId(entry);
 			if (shownKeys.has(key)) continue;
 			shownKeys.add(key);
-			trackEvent('setup_issue_shown', { item_type: item.type, key });
+			trackEvent('setup_issue_shown', { item_type: entry.item.type, tier: entry.tier, key });
 		}
 	});
 
@@ -169,19 +170,19 @@
 			<div style="padding: var(--cell-py) var(--cell-px)">
 				<GroupHeading
 					name={setupItemTiers.getName(group.tier)}
-					count={group.items.length}
+					count={group.entries.length}
 					collapsed={collapsed.has(group.tier)}
 					onToggle={() => toggle(group.tier)}
 				/>
 			</div>
 			{#if !collapsed.has(group.tier)}
 				<ul>
-					{#each group.items as item (setupItemKey(item))}
+					{#each group.entries as entry (entryId(entry))}
 						<SetupListRow
-							{item}
+							{entry}
 							{setup}
 							{lookups}
-							session={firstScanSession(item)}
+							session={firstScanSession(entry.item)}
 							{hasEmail}
 							onDismiss={dismiss}
 							onAnswer={(type) => (answering = type)}

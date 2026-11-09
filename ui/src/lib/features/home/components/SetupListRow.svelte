@@ -87,12 +87,12 @@
 		home_nudges_unconfirmedReviewSubnets,
 		common_answer
 	} from '$lib/paraglide/messages';
-	import { isDismissable, type SetupItem, type SetupItemType } from '../setup-list';
+	import { isDismissable, type SetupItemType, type SetupListEntry } from '../setup-list';
 
 	type DiscoveryUpdatePayload = components['schemas']['DiscoveryUpdatePayload'];
 
 	let {
-		item,
+		entry,
 		setup,
 		lookups,
 		session = null,
@@ -101,7 +101,7 @@
 		onAnswer,
 		onTroubleshoot
 	}: {
-		item: SetupItem;
+		entry: SetupListEntry;
 		/** The org's finished and dismissed item types. */
 		setup: SetupItemType[];
 		lookups: SetupLookups;
@@ -115,6 +115,7 @@
 		onTroubleshoot: () => void;
 	} = $props();
 
+	let item = $derived(entry.item);
 	let Icon = $derived(setupItems.getIconComponent(item.type));
 	let iconColor = $derived(setupItems.getColorHelper(item.type).icon);
 
@@ -410,7 +411,7 @@
 	}
 
 	let rowActions = $derived<RowAction[]>(
-		isDismissable(item)
+		isDismissable(entry)
 			? [{ label: common_dismiss(), icon: X, onClick: () => onDismiss(item.type) }]
 			: []
 	);

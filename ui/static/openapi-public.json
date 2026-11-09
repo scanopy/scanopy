@@ -16563,7 +16563,7 @@
               "setup_items": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/SetupItem"
+                  "$ref": "#/components/schemas/SetupListEntry"
                 },
                 "description": "The organization's Setup list as the caller sees it: Issues, then Next steps, then\nSuggestions."
               },
@@ -25347,7 +25347,7 @@
           "setup_items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SetupItem"
+              "$ref": "#/components/schemas/SetupListEntry"
             },
             "description": "The organization's Setup list as the caller sees it: Issues, then Next steps, then\nSuggestions."
           },
@@ -40163,6 +40163,109 @@
           "ApiKeys",
           "Share"
         ]
+      },
+      "SetupItemKey": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "An item about the whole org (InstallDaemon, Tags, ...).",
+            "required": [
+              "item_type",
+              "type"
+            ],
+            "properties": {
+              "item_type": {
+                "$ref": "#/components/schemas/SetupItemDiscriminants"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Org"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "An item about one entity: a daemon's health, a credential, a site, an integration's hosts.",
+            "required": [
+              "item_type",
+              "entity_id",
+              "type"
+            ],
+            "properties": {
+              "entity_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "item_type": {
+                "$ref": "#/components/schemas/SetupItemDiscriminants"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Entity"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "One warning code from a daemon's latest runs.",
+            "required": [
+              "daemon_id",
+              "code",
+              "type"
+            ],
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/DiscoveryWarningCode"
+              },
+              "daemon_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "RunWarning"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "One item's identity across sweeps and page loads."
+      },
+      "SetupItemTier": {
+        "type": "string",
+        "description": "Which group of the Setup list an item sits in, in display order.",
+        "enum": [
+          "Issue",
+          "NextStep",
+          "Suggestion"
+        ]
+      },
+      "SetupListEntry": {
+        "type": "object",
+        "description": "One Setup list row as the dashboard serves it: the item, with its identity and its tier.",
+        "required": [
+          "key",
+          "tier",
+          "item"
+        ],
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/SetupItem"
+          },
+          "key": {
+            "$ref": "#/components/schemas/SetupItemKey",
+            "description": "The item's identity: the same item on the next load has the same key."
+          },
+          "tier": {
+            "$ref": "#/components/schemas/SetupItemTier",
+            "description": "The group of the list the item sits in."
+          }
+        }
       },
       "SetupRequest": {
         "type": "object",

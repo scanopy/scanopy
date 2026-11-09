@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::server::setup::types::SetupItem;
+use crate::server::setup::types::SetupListEntry;
 
 /// Per-site summary of entity counts
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -47,5 +47,5 @@ pub struct DashboardSummary {
     pub plan_usage: PlanUsage,
     /// The organization's Setup list as the caller sees it: Issues, then Next steps, then
     /// Suggestions.
-    pub setup_items: Vec<SetupItem>,
+    pub setup_items: Vec<SetupListEntry>,
 }
