@@ -782,7 +782,9 @@ pub struct TestReachabilityRequest {
     pub check_health: bool,
 }
 
-/// Whether provisioning another daemon would be refused for the caller's organization.
+/// Whether provisioning another daemon would be refused for the caller's organization. Both
+/// flags can be set at once, so the wizard can name every step that stands between the user and
+/// a second daemon.
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct ProvisionEligibility {
     /// The organization already has a daemon and no owner has verified their email, so a new
@@ -791,6 +793,18 @@ pub struct ProvisionEligibility {
     /// The organization already has a daemon and is on Free, which runs one, so a new daemon
     /// is refused until it chooses a plan.
     pub plan_required: bool,
+    /// The daemons on the caller's sites that have never connected. Filled only while a new
+    /// daemon is refused: deleting the one holding the org's only slot lets a new one be set up.
+    pub unconnected_daemons: Vec<UnconnectedDaemon>,
+}
+
+/// A daemon that has never checked in, as the create wizard lists it.
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
+pub struct UnconnectedDaemon {
+    pub id: Uuid,
+    pub name: String,
+    pub site_id: Uuid,
+    pub created_at: DateTime<Utc>,
 }
 
 /// Response from a reachability test.

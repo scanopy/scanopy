@@ -171,6 +171,7 @@ export const queryKeys = {
 	daemons: {
 		all: ['daemons'] as const,
 		fieldValues: () => [...queryKeys.daemons.all, 'field-values'] as const,
+		provisionEligibility: () => [...queryKeys.daemons.all, 'provision-eligibility'] as const,
 		detail: (id: string) => [...queryKeys.daemons.all, 'detail', id] as const
 	},
 	discovery: {

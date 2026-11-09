@@ -33,7 +33,7 @@ use crate::server::daemon_api_keys::service::DaemonApiKeyService;
 use crate::server::daemons::r#impl::api::{
     DaemonDiscoveryRequest, DaemonRegistrationRequest, DaemonRegistrationResponse,
     DiscoveryUpdatePayload, FirstContactRequest, LegacyCapabilities, ProvisionDaemonRequest,
-    ServerCapabilities,
+    ProvisionEligibility, ServerCapabilities, UnconnectedDaemon,
 };
 use crate::server::daemons::r#impl::base::{
     Daemon, DaemonBase, DaemonMode, DaemonOs, ReportedOsOutcome,
@@ -113,6 +113,20 @@ pub enum DaemonLimit {
     PlanRequired,
     /// No owner has verified their email.
     EmailVerification,
+}
+
+/// Every [`DaemonLimit`] that applies to an organization at once.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct DaemonLimits {
+    pub plan_required: bool,
+    pub email_verification_required: bool,
+}
+
+impl DaemonLimits {
+    /// A new daemon is refused.
+    pub fn refused(&self) -> bool {
+        self.plan_required || self.email_verification_required
+    }
 }
 
 pub struct DaemonService {
