@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
-	groupByTier,
-	isDismissable,
+	doneEntries,
+	openEntries,
 	setupIssueCount,
+	setupProgress,
+	type SetupItemState,
 	type SetupItemType,
 	type SetupListEntry
 } from '$lib/features/home/setup-list';
@@ -14,6 +16,8 @@ const daemonIssue: SetupListEntry = {
 		entity_id: '00000000-0000-4000-8000-000000000001'
 	},
 	tier: 'Issue',
+	state: 'Open',
+	alerts_when_stuck: true,
 	item: {
 		type: 'DaemonHealth',
 		daemon_id: '00000000-0000-4000-8000-000000000001',
@@ -23,50 +27,41 @@ const daemonIssue: SetupListEntry = {
 	}
 };
 
-function orgEntry(
+function setupEntry(
 	type: Exclude<SetupItemType, 'DaemonHealth' | 'RunFirstScan'>,
-	tier: SetupListEntry['tier']
+	state: SetupItemState
 ) {
-	return { key: { type: 'Org', item_type: type }, tier, item: { type } } as SetupListEntry;
+	return {
+		key: { type: 'Org', item_type: type },
+		tier: 'Setup',
+		state,
+		alerts_when_stuck: false,
+		item: { type }
+	} as SetupListEntry;
 }
 
-/** One Issue, one Next step and three Suggestions, in the order the server lists them. */
+/** One Issue, and Setup items in each state, in the order the server lists them. */
 const entries: SetupListEntry[] = [
 	daemonIssue,
-	orgEntry('OpenTopology', 'NextStep'),
-	orgEntry('Tags', 'Suggestion'),
-	orgEntry('InviteTeam', 'Suggestion'),
-	orgEntry('Share', 'Suggestion')
+	setupEntry('InstallDaemon', 'Done'),
+	setupEntry('OpenTopology', 'Open'),
+	setupEntry('ExploreViews', 'Locked'),
+	setupEntry('Share', 'Locked'),
+	setupEntry('Tags', 'Done')
 ];
 
 describe('Setup list', () => {
-	it('groups what it is given by tier, in tier order, without capping', () => {
-		const groups = groupByTier([...entries].reverse());
-		expect(groups.map((g) => [g.tier, g.entries.length])).toEqual([
-			['Issue', 1],
-			['NextStep', 1],
-			['Suggestion', 3]
-		]);
+	it('counts Locked items in the progress total and Done items in the numerator', () => {
+		expect(setupProgress(entries)).toEqual({ done: 2, total: 5 });
 	});
 
-	it('leaves out a tier with no entries', () => {
-		expect(groupByTier([orgEntry('Tags', 'Suggestion')]).map((g) => g.tier)).toEqual([
-			'Suggestion'
-		]);
+	it('lists only Open Setup items as open, never a Locked one or an Issue', () => {
+		expect(openEntries(entries).map((e) => e.item.type)).toEqual(['OpenTopology']);
+		expect(doneEntries(entries).map((e) => e.item.type)).toEqual(['InstallDaemon', 'Tags']);
 	});
 
-	it('offers Dismiss on Suggestions only', () => {
-		const dismissable = groupByTier(entries).map((g) => [g.tier, g.entries.map(isDismissable)]);
-		expect(dismissable).toEqual([
-			['Issue', [false]],
-			['NextStep', [false]],
-			['Suggestion', [true, true, true]]
-		]);
-	});
-
-	it('badges Home with the rows under Issues', () => {
-		const issues = groupByTier(entries).find((g) => g.tier === 'Issue')?.entries ?? [];
-		expect(setupIssueCount(entries)).toBe(issues.length);
+	it('badges Home with the Issue rows', () => {
+		expect(setupIssueCount(entries)).toBe(1);
 		const other: SetupListEntry = {
 			...daemonIssue,
 			key: { ...daemonIssue.key, entity_id: '00000000-0000-4000-8000-000000000003' }

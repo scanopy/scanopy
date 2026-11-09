@@ -37,20 +37,26 @@
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import { daemonSetupState } from '$lib/features/daemons/stores/daemon-setup';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { useSitesQuery } from '$lib/features/sites/queries';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import { useCredentialsQuery } from '$lib/features/credentials/queries';
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
+	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import NavBadge from '$lib/shared/components/layout/NavBadge.svelte';
+	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
 	import {
-		useDismissSetupSuggestionMutation,
-		useOrganizationQuery
-	} from '$lib/features/organizations/queries';
+		home_setup_hideCompleted,
+		home_setup_progress,
+		home_setup_showCompleted
+	} from '$lib/paraglide/messages';
 	import SetupListRow, { type SetupLookups } from './SetupListRow.svelte';
 	import ReferralSourceModal from './ReferralSourceModal.svelte';
 	import ProfileModal from './ProfileModal.svelte';
 	import {
+		doneEntries,
 		entryId,
-		groupByTier,
+		issueEntries,
+		openEntries,
+		setupProgress,
 		type SetupItem,
 		type SetupItemType,
 		type SetupListEntry
@@ -62,7 +68,7 @@
 	}: {
 		/** The Setup list the server computed for this user. */
 		entries: SetupListEntry[];
-		/** The org's finished and dismissed item types. */
+		/** The org's done Setup item types. */
 		setup: SetupItemType[];
 	} = $props();
 
@@ -70,12 +76,14 @@
 	const configQuery = useConfigQuery();
 	const organizationQuery = useOrganizationQuery();
 	const daemonsQuery = useDaemonsQuery();
-	const sitesQuery = useSitesQuery();
 	const credentialsQuery = useCredentialsQuery();
 	const sessionsQuery = useActiveSessionsQuery();
-	const dismissMutation = useDismissSetupSuggestionMutation();
-
-	let groups = $derived(groupByTier(entries));
+	let issues = $derived(issueEntries(entries));
+	let open = $derived(openEntries(entries));
+	let done = $derived(doneEntries(entries));
+	let progress = $derived(setupProgress(entries));
+	let showCompleted = $state(false);
+	let issueColor = $derived(setupItemTiers.getColorHelper('Issue').rgb);
 	let hasEmail = $derived(configQuery.data?.has_email_service ?? false);
 
 	// The hosts an uncovered integration was found on, for its chip's name.
@@ -88,14 +96,13 @@
 
 	let lookups = $derived<SetupLookups>({
 		daemon: (id) => (daemonsQuery.data ?? []).find((d) => d.id === id),
-		site: (id) => (sitesQuery.data ?? []).find((s) => s.id === id),
 		host: (id) => (hostsQuery.data ?? []).find((h) => h.id === id),
 		credential: (id) => (credentialsQuery.data ?? []).find((c) => c.id === id)
 	});
 
 	/** The running first scan of the daemon a RunFirstScan item names. */
 	function firstScanSession(item: SetupItem) {
-		if (item.type !== 'RunFirstScan') return null;
+		if (item.type !== 'RunFirstScan' || !item.daemon_id) return null;
 		return (
 			(sessionsQuery.data ?? []).find(
 				(s) =>
@@ -108,16 +115,12 @@
 	let answering = $state<'AnswerReferralSource' | 'AnswerProfile' | null>(null);
 	let showTroubleshooting = $state(false);
 
-	function dismiss(itemType: SetupItemType) {
-		dismissMutation.mutate(itemType);
-	}
-
 	onMount(clearRetiredStorageKeys);
 
-	// Issues and Next steps report once per item per page load.
+	// Issues and Open first steps (what the trial sweep reports) report once per item per page load.
 	$effect(() => {
 		for (const entry of entries) {
-			if (entry.tier === 'Suggestion') continue;
+			if (!entry.alerts_when_stuck) continue;
 			const key = entryId(entry);
 			if (shownKeys.has(key)) continue;
 			shownKeys.add(key);
@@ -152,29 +155,65 @@
 	});
 </script>
 
+{#snippet row(entry: SetupListEntry)}
+	<SetupListRow
+		{entry}
+		{setup}
+		{lookups}
+		session={firstScanSession(entry.item)}
+		{hasEmail}
+		onAnswer={(type) => (answering = type)}
+		onTroubleshoot={() => (showTroubleshooting = true)}
+	/>
+{/snippet}
+
 <section class="space-y-6">
-	{#each groups as group (group.tier)}
+	{#if issues.length > 0}
 		<div>
-			<h3 class="mb-3 flex items-baseline gap-2 text-base font-semibold text-primary">
-				<span>{setupItemTiers.getName(group.tier)}</span>
-				<span class="text-sm font-normal text-tertiary">({group.entries.length})</span>
+			<h3 class="mb-3 flex items-center gap-2 text-base font-semibold text-primary">
+				<span>{setupItemTiers.getName('Issue')}</span>
+				<NavBadge color={issueColor} count={issues.length} />
 			</h3>
 			<ul class="space-y-2">
-				{#each group.entries as entry (entryId(entry))}
-					<SetupListRow
-						{entry}
-						{setup}
-						{lookups}
-						session={firstScanSession(entry.item)}
-						{hasEmail}
-						onDismiss={dismiss}
-						onAnswer={(type) => (answering = type)}
-						onTroubleshoot={() => (showTroubleshooting = true)}
-					/>
+				{#each issues as entry (entryId(entry))}
+					{@render row(entry)}
 				{/each}
 			</ul>
 		</div>
-	{/each}
+	{/if}
+	<!-- Locked items count in the total and never show. Once every item is done, the section goes. -->
+	{#if progress.done < progress.total}
+		<div>
+			<div class="mb-3 flex items-center gap-3">
+				<h3 class="text-base font-semibold text-primary">{setupItemTiers.getName('Setup')}</h3>
+				<ProgressTrack progress={(progress.done / progress.total) * 100} size="sm" class="w-32" />
+				<span class="text-sm text-tertiary">
+					{home_setup_progress({ done: progress.done, total: progress.total })}
+				</span>
+			</div>
+			<ul class="space-y-2">
+				{#each open as entry (entryId(entry))}
+					{@render row(entry)}
+				{/each}
+				{#if showCompleted}
+					{#each done as entry (entryId(entry))}
+						{@render row(entry)}
+					{/each}
+				{/if}
+			</ul>
+			{#if done.length > 0}
+				<button
+					type="button"
+					class="mt-2 text-sm text-link hover:underline"
+					onclick={() => (showCompleted = !showCompleted)}
+				>
+					{showCompleted
+						? home_setup_hideCompleted()
+						: home_setup_showCompleted({ count: done.length })}
+				</button>
+			{/if}
+		</div>
+	{/if}
 </section>
 
 <ReferralSourceModal
