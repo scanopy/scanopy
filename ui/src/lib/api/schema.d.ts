@@ -772,7 +772,8 @@ export interface paths {
          * Request work from server
          * @description Internal endpoint for daemons to poll for pending discovery sessions.
          *     Also updates heartbeat and returns any pending cancellation requests.
-         *     Returns tuple of (next_session, should_cancel).
+         *     Returns `[next_session, should_cancel]`, plus the session to cancel for daemons that read it
+         *     (see [`DaemonWorkResponse`]).
          */
         post: operations["receive_work_request"];
         delete?: never;
@@ -4245,19 +4246,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-03T22:25:05.869448Z",
+             *       "created_at": "2026-11-09T11:46:03.254952Z",
              *       "first_discovery_id": null,
-             *       "id": "ef1d6909-1d53-43d4-9115-26baefb56328",
+             *       "id": "d24d16d6-acad-424e-928d-6f66cecf0faf",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-03T22:25:05.869448Z",
+             *       "last_seen_at": "2026-11-09T11:46:03.254952Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-03T22:25:05.869448Z",
-             *       "valid_from": "2026-11-03T22:25:05.869448Z",
+             *       "updated_at": "2026-11-09T11:46:03.254952Z",
+             *       "valid_from": "2026-11-09T11:46:03.254952Z",
              *       "valid_to": null
              *     }
              */
@@ -4932,6 +4933,12 @@ export interface components {
                 hosts_discovered?: number | null;
                 /**
                  * Format: date-time
+                 * @description When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or
+                 *     an integration finished. Heartbeats leave it alone. `null` from daemons that predate it.
+                 */
+                last_activity_at?: string | null;
+                /**
+                 * Format: date-time
                  * @description When the server last heard about this run. Stamped by the server at terminal.
                  */
                 last_update_at?: string | null;
@@ -5174,19 +5181,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-03T22:25:05.836217Z",
+             *               "created_at": "2026-11-09T11:46:03.221744Z",
              *               "first_discovery_id": null,
-             *               "id": "3910cb97-304d-4868-b210-9825f7b62ef3",
+             *               "id": "4270e718-2677-48a5-b967-7d084038cc32",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-03T22:25:05.836217Z",
+             *               "last_seen_at": "2026-11-09T11:46:03.221744Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-03T22:25:05.836217Z",
-             *               "valid_from": "2026-11-03T22:25:05.836217Z",
+             *               "updated_at": "2026-11-09T11:46:03.221744Z",
+             *               "valid_from": "2026-11-09T11:46:03.221744Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5199,7 +5206,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Grafana",
+             *           "service_definition": "Tenable Nessus",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -5992,7 +5999,11 @@ export interface components {
          *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_ProvisionEligibility: {
-            /** @description Whether provisioning another daemon would be refused for the caller's organization. */
+            /**
+             * @description Whether provisioning another daemon would be refused for the caller's organization. Both
+             *     flags can be set at once, so the wizard can name every step that stands between the user and
+             *     a second daemon.
+             */
             data?: {
                 /**
                  * @description The organization already has a daemon and no owner has verified their email, so a new
@@ -6004,6 +6015,11 @@ export interface components {
                  *     is refused until it chooses a plan.
                  */
                 plan_required: boolean;
+                /**
+                 * @description The daemons on the caller's sites that have never connected. Filled only while a new
+                 *     daemon is refused: deleting the one holding the org's only slot lets a new one be set up.
+                 */
+                unconnected_daemons: components["schemas"]["UnconnectedDaemon"][];
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -6232,19 +6248,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-03T22:25:05.864139Z",
+             *           "created_at": "2026-11-09T11:46:03.249634Z",
              *           "first_discovery_id": null,
-             *           "id": "a8dcdd0d-b644-4925-aadc-d6a1e35a40f7",
+             *           "id": "16b850b4-f957-484c-b8a9-0abfa3e2e8ab",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-03T22:25:05.864139Z",
+             *           "last_seen_at": "2026-11-09T11:46:03.249634Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-03T22:25:05.864139Z",
-             *           "valid_from": "2026-11-03T22:25:05.864139Z",
+             *           "updated_at": "2026-11-09T11:46:03.249634Z",
+             *           "valid_from": "2026-11-09T11:46:03.249634Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6257,7 +6273,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Grafana",
+             *       "service_definition": "Tenable Nessus",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7353,6 +7369,12 @@ export interface components {
                 hosts_discovered?: number | null;
                 /**
                  * Format: date-time
+                 * @description When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or
+                 *     an integration finished. Heartbeats leave it alone. `null` from daemons that predate it.
+                 */
+                last_activity_at?: string | null;
+                /**
+                 * Format: date-time
                  * @description When the server last heard about this run. Stamped by the server at terminal.
                  */
                 last_update_at?: string | null;
@@ -7721,19 +7743,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-03T22:25:05.836891Z",
+         *       "created_at": "2026-11-09T11:46:03.222370Z",
          *       "first_discovery_id": null,
-         *       "id": "a094d60b-ecfc-4ce9-ac54-1f13542d5a30",
+         *       "id": "3b44c16e-75fb-43c2-b2a3-6ef5731780d8",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-03T22:25:05.836891Z",
+         *       "last_seen_at": "2026-11-09T11:46:03.222370Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-03T22:25:05.836891Z",
-         *       "valid_from": "2026-11-03T22:25:05.836891Z",
+         *       "updated_at": "2026-11-09T11:46:03.222370Z",
+         *       "valid_from": "2026-11-09T11:46:03.222370Z",
          *       "valid_to": null
          *     }
          */
@@ -8123,7 +8145,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Grafana",
+         *           "service_definition": "Tenable Nessus",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8928,11 +8950,18 @@ export interface components {
             /** @description Backwards compat: pre-v0.15.0 daemons send capabilities instead of interfaced_subnets. */
             capabilities?: components["schemas"]["LegacyCapabilities"];
             /**
-             * @description Subnets detected from daemon's network ip_addresses. Server resolves these
-             *     via SubnetService::create (create-or-match by CIDR) to get real IDs.
-             *     v0.15.0+ daemons populate this; pre-v0.15.0 daemons leave it empty.
+             * @description The subnets the daemon's host is attached to, as its last session classified them. The
+             *     server resolves these via SubnetService::create (create-or-match by CIDR) and replaces
+             *     the daemon's interfaced subnets with them. Absent: leave them as they are. A daemon sends
+             *     them once after each session; older daemons send them on every report.
              */
-            interfaced_subnets?: components["schemas"]["Subnet"][];
+            interfaced_subnets?: components["schemas"]["Subnet"][] | null;
+            /**
+             * @description A digest of the daemon's interfaces. With `interfaced_subnets`, the interfaces those were
+             *     classified from; without, the interfaces as they are now. The server starts an interface
+             *     refresh when it differs from the last classified one. Absent from older daemons.
+             */
+            interfaces_fingerprint?: string | null;
             /** @description How the daemon connects: it polls the server, or the server polls it. */
             mode: components["schemas"]["DaemonMode"];
             /** @description Name the daemon reports for itself. */
@@ -9327,7 +9356,7 @@ export interface components {
          *     [`Self::daemon_assigned`]. Absent on runs recorded before this field existed.
          * @enum {string}
          */
-        DiscoveryTerminalReason: "Completed" | "UserCancelled" | "DaemonReportedFailure" | "StalledNoUpdates" | "DaemonRestarted" | "DaemonUnreachable" | "DaemonBusy" | "WatchdogTimeout" | "DaemonOffline" | "SessionSilent" | "DaemonDroppedSession";
+        DiscoveryTerminalReason: "Completed" | "UserCancelled" | "DaemonReportedFailure" | "StalledNoUpdates" | "DaemonRestarted" | "DaemonUnreachable" | "DaemonBusy" | "WatchdogTimeout" | "DaemonOffline" | "SessionSilent" | "DaemonDroppedSession" | "SessionStoppedAdvancing";
         DiscoveryType: {
             /**
              * Format: uuid
@@ -9396,6 +9425,14 @@ export interface components {
             subnet_ids: string[] | null;
             /** @enum {string} */
             type: "Unified";
+        } | {
+            /**
+             * Format: uuid
+             * @description ID of the host that the daemon is running on
+             */
+            host_id: string;
+            /** @enum {string} */
+            type: "InterfaceRefresh";
         };
         /** @description Progress update from daemon to server during discovery */
         DiscoveryUpdatePayload: {
@@ -9442,6 +9479,12 @@ export interface components {
              * @description Hosts found so far.
              */
             hosts_discovered?: number | null;
+            /**
+             * Format: date-time
+             * @description When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or
+             *     an integration finished. Heartbeats leave it alone. `null` from daemons that predate it.
+             */
+            last_activity_at?: string | null;
             /**
              * Format: date-time
              * @description When the server last heard about this run. Stamped by the server at terminal.
@@ -11303,19 +11346,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-03T22:25:05.835427Z",
+         *               "created_at": "2026-11-09T11:46:03.221005Z",
          *               "first_discovery_id": null,
-         *               "id": "d48e86c8-a0e6-4249-83f4-7c25a00d6a7b",
+         *               "id": "5ad8b948-7a40-4410-be7a-82fade086413",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-03T22:25:05.835427Z",
+         *               "last_seen_at": "2026-11-09T11:46:03.221005Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-03T22:25:05.835427Z",
-         *               "valid_from": "2026-11-03T22:25:05.835427Z",
+         *               "updated_at": "2026-11-09T11:46:03.221005Z",
+         *               "valid_from": "2026-11-09T11:46:03.221005Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11328,7 +11371,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Grafana",
+         *           "service_definition": "Tenable Nessus",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -14320,7 +14363,11 @@ export interface components {
              */
             readonly daemon_api_key: string;
         };
-        /** @description Whether provisioning another daemon would be refused for the caller's organization. */
+        /**
+         * @description Whether provisioning another daemon would be refused for the caller's organization. Both
+         *     flags can be set at once, so the wizard can name every step that stands between the user and
+         *     a second daemon.
+         */
         ProvisionEligibility: {
             /**
              * @description The organization already has a daemon and no owner has verified their email, so a new
@@ -14332,6 +14379,11 @@ export interface components {
              *     is refused until it chooses a plan.
              */
             plan_required: boolean;
+            /**
+             * @description The daemons on the caller's sites that have never connected. Filled only while a new
+             *     daemon is refused: deleting the one holding the org's only slot lets a new one be set up.
+             */
+            unconnected_daemons: components["schemas"]["UnconnectedDaemon"][];
         };
         /**
          * @description A range inferred from where unplaceable far ends say they live.
@@ -14996,19 +15048,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-03T22:25:05.836669Z",
+         *           "created_at": "2026-11-09T11:46:03.222157Z",
          *           "first_discovery_id": null,
-         *           "id": "0617146d-9c3f-4b4c-a6c6-1a339469f4c2",
+         *           "id": "906c3b7e-f052-48e4-a4bc-17a4f081a3c0",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-03T22:25:05.836669Z",
+         *           "last_seen_at": "2026-11-09T11:46:03.222157Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-03T22:25:05.836669Z",
-         *           "valid_from": "2026-11-03T22:25:05.836669Z",
+         *           "updated_at": "2026-11-09T11:46:03.222157Z",
+         *           "valid_from": "2026-11-09T11:46:03.222157Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -15021,7 +15073,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Grafana",
+         *       "service_definition": "Tenable Nessus",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -16233,7 +16285,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "136d3236-c4f3-4e49-9e4e-10c2aafab68e",
+             *           "id": "3bc4bad1-a4f4-479d-8e12-876c41a59bc7",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16243,23 +16295,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "924d0f90-3320-40c2-9ed3-d48076d03529",
+             *           "id": "a73044b7-9e10-4cad-9c35-eb00ed78db41",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "2b513178-6637-47fa-b4f5-03d862977ebc",
+             *           "id": "f919b43a-1903-4dc5-b0c4-12551fb63712",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "c23cb9f5-53ba-4a4f-a6fb-46f8287ea085",
+             *           "id": "cb184ab4-e4d5-43b5-8102-36d41b1323d9",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "924d0f90-3320-40c2-9ed3-d48076d03529",
+             *           "id": "a73044b7-9e10-4cad-9c35-eb00ed78db41",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16273,19 +16325,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "23eb1ae9-70e6-4def-83ba-e12499d3c57b",
+             *         "id": "f311e20e-865b-453e-91a5-89e3bca5731b",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "c8b47712-17a7-48eb-bd27-e3c9c0796154",
+             *         "id": "e7bd2090-5655-4ab3-a38b-3397ea43ddc0",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "fa2c260f-7b0f-4389-b92b-c615695ddb76",
+             *         "id": "f8eddab0-a50d-47b2-8e9a-66875e0b38bb",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "c322d6c4-7f90-4b65-905a-45d393e488ba",
+             *         "id": "7c0c49a5-a130-49f4-8d7d-827ac55bdd3e",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16306,7 +16358,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "4c9d1ce2-cec5-4daf-8425-24c56a31b52a",
+             *         "id": "6772a221-6fa3-4cb5-b663-6ac3d967d390",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16315,19 +16367,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "a8267243-dd8e-4a36-8bc8-2b1d4bd26c43",
+             *         "id": "a02f9369-71e8-46d7-aa9c-48684264eba5",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "0ff04269-e118-4ebf-ada7-5dc0dcf34c32",
+             *         "id": "cebf0bc3-973b-4544-9fdd-b1d298127228",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "f1fd7958-599d-467e-a259-b0a16bdb39c1",
+             *         "id": "376fea9f-006d-45aa-869b-5cbdb03233dc",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "f9ee288a-bb4e-47ce-b350-58c561df38e7",
+             *         "id": "3e392d2f-2888-4a59-969b-14c5e4a03dac",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -16449,6 +16501,16 @@ export interface components {
             sys_name: string | null;
             /** @description What reported it. */
             via: components["schemas"]["InferredVia"];
+        };
+        /** @description A daemon that has never checked in, as the create wizard lists it. */
+        UnconnectedDaemon: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: uuid */
+            site_id: string;
         };
         /** @description An integration the latest scans found on hosts with no credential of it, still uncovered now. */
         UncoveredIntegration: {
@@ -18460,7 +18522,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Work request processed - returns (Option<Value>, bool) */
+            /** @description Work request processed - returns [Option<Value>, bool, Option<Uuid>] */
             200: {
                 headers: {
                     [name: string]: unknown;

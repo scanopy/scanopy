@@ -15880,19 +15880,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-11-03T22:25:05.957196Z",
+              "created_at": "2026-11-09T11:46:03.344356Z",
               "first_discovery_id": null,
-              "id": "a9674482-9b61-4298-ac3d-8690b2b4fe2b",
+              "id": "24e67f79-d80d-4ece-a853-2207b53c4683",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-03T22:25:05.957196Z",
+              "last_seen_at": "2026-11-09T11:46:03.344356Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-03T22:25:05.957196Z",
-              "valid_from": "2026-11-03T22:25:05.957196Z",
+              "updated_at": "2026-11-09T11:46:03.344356Z",
+              "valid_from": "2026-11-09T11:46:03.344356Z",
               "valid_to": null
             }
           },
@@ -17005,6 +17005,14 @@
                 "description": "Hosts found so far.",
                 "minimum": 0
               },
+              "last_activity_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time",
+                "description": "When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or\nan integration finished. Heartbeats leave it alone. `null` from daemons that predate it."
+              },
               "last_update_at": {
                 "type": [
                   "string",
@@ -17772,19 +17780,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-11-03T22:25:05.928198Z",
+                      "created_at": "2026-11-09T11:46:03.315131Z",
                       "first_discovery_id": null,
-                      "id": "0919bf2a-3a9e-4e1c-b39d-1b554b80b63b",
+                      "id": "248c05bb-198f-4b98-9896-7c2d043e792d",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-11-03T22:25:05.928198Z",
+                      "last_seen_at": "2026-11-09T11:46:03.315131Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-11-03T22:25:05.928198Z",
-                      "valid_from": "2026-11-03T22:25:05.928198Z",
+                      "updated_at": "2026-11-09T11:46:03.315131Z",
+                      "valid_from": "2026-11-09T11:46:03.315131Z",
                       "valid_to": null
                     }
                   ],
@@ -17797,7 +17805,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Grafana",
+                  "service_definition": "Tenable Nessus",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -18813,10 +18821,11 @@
         "properties": {
           "data": {
             "type": "object",
-            "description": "Whether provisioning another daemon would be refused for the caller's organization.",
+            "description": "Whether provisioning another daemon would be refused for the caller's organization. Both\nflags can be set at once, so the wizard can name every step that stands between the user and\na second daemon.",
             "required": [
               "email_verification_required",
-              "plan_required"
+              "plan_required",
+              "unconnected_daemons"
             ],
             "properties": {
               "email_verification_required": {
@@ -18826,6 +18835,13 @@
               "plan_required": {
                 "type": "boolean",
                 "description": "The organization already has a daemon and is on Free, which runs one, so a new daemon\nis refused until it chooses a plan."
+              },
+              "unconnected_daemons": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/UnconnectedDaemon"
+                },
+                "description": "The daemons on the caller's sites that have never connected. Filled only while a new\ndaemon is refused: deleting the one holding the org's only slot lets a new one be set up."
               }
             }
           },
@@ -19306,19 +19322,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-11-03T22:25:05.952454Z",
+                  "created_at": "2026-11-09T11:46:03.339548Z",
                   "first_discovery_id": null,
-                  "id": "b63edd33-174e-4252-8e2e-dbde5cf6aecb",
+                  "id": "0f25b52d-f9ac-45d2-aee3-bfc6e86dc5ac",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-03T22:25:05.952454Z",
+                  "last_seen_at": "2026-11-09T11:46:03.339548Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-03T22:25:05.952454Z",
-                  "valid_from": "2026-11-03T22:25:05.952454Z",
+                  "updated_at": "2026-11-09T11:46:03.339548Z",
+                  "valid_from": "2026-11-09T11:46:03.339548Z",
                   "valid_to": null
                 }
               ],
@@ -19331,7 +19347,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Grafana",
+              "service_definition": "Tenable Nessus",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -21398,6 +21414,14 @@
                   "description": "Hosts found so far.",
                   "minimum": 0
                 },
+                "last_activity_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "description": "When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or\nan integration finished. Heartbeats leave it alone. `null` from daemons that predate it."
+                },
                 "last_update_at": {
                   "type": [
                     "string",
@@ -22606,19 +22630,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-11-03T22:25:05.928827Z",
+          "created_at": "2026-11-09T11:46:03.315759Z",
           "first_discovery_id": null,
-          "id": "dcbf8706-a3ca-429f-b5aa-8e16463993f8",
+          "id": "86d0b339-ccff-449f-9176-2173189e1b78",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-11-03T22:25:05.928827Z",
+          "last_seen_at": "2026-11-09T11:46:03.315759Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-11-03T22:25:05.928827Z",
-          "valid_from": "2026-11-03T22:25:05.928827Z",
+          "updated_at": "2026-11-09T11:46:03.315759Z",
+          "valid_from": "2026-11-09T11:46:03.315759Z",
           "valid_to": null
         }
       },
@@ -23531,7 +23555,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Grafana",
+              "service_definition": "Tenable Nessus",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -25293,11 +25317,21 @@
             "description": "Backwards compat: pre-v0.15.0 daemons send capabilities instead of interfaced_subnets."
           },
           "interfaced_subnets": {
-            "type": "array",
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/Subnet"
             },
-            "description": "Subnets detected from daemon's network ip_addresses. Server resolves these\nvia SubnetService::create (create-or-match by CIDR) to get real IDs.\nv0.15.0+ daemons populate this; pre-v0.15.0 daemons leave it empty."
+            "description": "The subnets the daemon's host is attached to, as its last session classified them. The\nserver resolves these via SubnetService::create (create-or-match by CIDR) and replaces\nthe daemon's interfaced subnets with them. Absent: leave them as they are. A daemon sends\nthem once after each session; older daemons send them on every report."
+          },
+          "interfaces_fingerprint": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A digest of the daemon's interfaces. With `interfaced_subnets`, the interfaces those were\nclassified from; without, the interfaces as they are now. The server starts an interface\nrefresh when it differs from the last classified one. Absent from older daemons."
           },
           "mode": {
             "$ref": "#/components/schemas/DaemonMode",
@@ -26139,7 +26173,8 @@
           "WatchdogTimeout",
           "DaemonOffline",
           "SessionSilent",
-          "DaemonDroppedSession"
+          "DaemonDroppedSession",
+          "SessionStoppedAdvancing"
         ]
       },
       "DiscoveryType": {
@@ -26317,6 +26352,28 @@
                 ]
               }
             }
+          },
+          {
+            "type": "object",
+            "title": "InterfaceRefresh",
+            "description": "Classify the daemon's interfaced subnets again and report them, scanning nothing. The\nserver starts one when the daemon's interfaces change.\n\nCreated by the server only, with no discovery configuration behind it, and kept out of\nthe run history, the digest and the active sessions.",
+            "required": [
+              "host_id",
+              "type"
+            ],
+            "properties": {
+              "host_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "ID of the host that the daemon is running on"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "InterfaceRefresh"
+                ]
+              }
+            }
           }
         ]
       },
@@ -26395,6 +26452,14 @@
             "format": "int32",
             "description": "Hosts found so far.",
             "minimum": 0
+          },
+          "last_activity_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the scan last advanced on the daemon: a progress rise, a host created, a deep scan or\nan integration finished. Heartbeats leave it alone. `null` from daemons that predate it."
           },
           "last_update_at": {
             "type": [
@@ -31857,19 +31922,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-11-03T22:25:05.927456Z",
+                  "created_at": "2026-11-09T11:46:03.314394Z",
                   "first_discovery_id": null,
-                  "id": "44e0e757-61f1-4749-a421-34f0e0c15624",
+                  "id": "07fa3b77-b337-4bcd-9970-8b1fc3cbc3c4",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-03T22:25:05.927456Z",
+                  "last_seen_at": "2026-11-09T11:46:03.314394Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-03T22:25:05.927456Z",
-                  "valid_from": "2026-11-03T22:25:05.927456Z",
+                  "updated_at": "2026-11-09T11:46:03.314394Z",
+                  "valid_from": "2026-11-09T11:46:03.314394Z",
                   "valid_to": null
                 }
               ],
@@ -31882,7 +31947,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Grafana",
+              "service_definition": "Tenable Nessus",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -36321,19 +36386,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-11-03T22:25:05.912991Z",
+                        "created_at": "2026-11-09T11:46:03.299867Z",
                         "first_discovery_id": null,
-                        "id": "25344362-2ebc-4463-ad3c-fca05e01dec1",
+                        "id": "aa02fd44-e2a1-451a-8a87-4d3d8df1f9fc",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-11-03T22:25:05.912991Z",
+                        "last_seen_at": "2026-11-09T11:46:03.299867Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-11-03T22:25:05.912991Z",
-                        "valid_from": "2026-11-03T22:25:05.912991Z",
+                        "updated_at": "2026-11-09T11:46:03.299867Z",
+                        "valid_from": "2026-11-09T11:46:03.299867Z",
                         "valid_to": null
                       }
                     ],
@@ -36346,7 +36411,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Grafana",
+                    "service_definition": "Tenable Nessus",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -36593,19 +36658,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-11-03T22:25:05.951710Z",
+                    "created_at": "2026-11-09T11:46:03.338779Z",
                     "first_discovery_id": null,
-                    "id": "398acd11-ccfb-46f3-bd1c-a48904de1237",
+                    "id": "2376af41-76d1-4812-85f9-dac9d7b496e2",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-11-03T22:25:05.951710Z",
+                    "last_seen_at": "2026-11-09T11:46:03.338779Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-11-03T22:25:05.951710Z",
-                    "valid_from": "2026-11-03T22:25:05.951710Z",
+                    "updated_at": "2026-11-09T11:46:03.338779Z",
+                    "valid_from": "2026-11-09T11:46:03.338779Z",
                     "valid_to": null
                   }
                 ],
@@ -36618,7 +36683,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Grafana",
+                "service_definition": "Tenable Nessus",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -37850,10 +37915,11 @@
       },
       "ProvisionEligibility": {
         "type": "object",
-        "description": "Whether provisioning another daemon would be refused for the caller's organization.",
+        "description": "Whether provisioning another daemon would be refused for the caller's organization. Both\nflags can be set at once, so the wizard can name every step that stands between the user and\na second daemon.",
         "required": [
           "email_verification_required",
-          "plan_required"
+          "plan_required",
+          "unconnected_daemons"
         ],
         "properties": {
           "email_verification_required": {
@@ -37863,6 +37929,13 @@
           "plan_required": {
             "type": "boolean",
             "description": "The organization already has a daemon and is on Free, which runs one, so a new daemon\nis refused until it chooses a plan."
+          },
+          "unconnected_daemons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnconnectedDaemon"
+            },
+            "description": "The daemons on the caller's sites that have never connected. Filled only while a new\ndaemon is refused: deleting the one holding the org's only slot lets a new one be set up."
           }
         }
       },
@@ -39362,19 +39435,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-11-03T22:25:05.928613Z",
+              "created_at": "2026-11-09T11:46:03.315546Z",
               "first_discovery_id": null,
-              "id": "c7e03dc0-f2b7-4c19-9d10-26399a0ff00b",
+              "id": "7aec04d5-43b9-4710-b2ac-0c4d27a78ac9",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-03T22:25:05.928613Z",
+              "last_seen_at": "2026-11-09T11:46:03.315546Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-03T22:25:05.928613Z",
-              "valid_from": "2026-11-03T22:25:05.928613Z",
+              "updated_at": "2026-11-09T11:46:03.315546Z",
+              "valid_from": "2026-11-09T11:46:03.315546Z",
               "valid_to": null
             }
           ],
@@ -39387,7 +39460,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Grafana",
+          "service_definition": "Tenable Nessus",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -41829,7 +41902,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "261d0db8-9efb-4230-b1e6-2a50322b0277",
+                  "id": "9ec07f76-a6db-4872-aa4a-6e726252668e",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -41839,23 +41912,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "b7b01e79-0303-4cec-861d-5c546a7dfe03",
+                  "id": "4eb74f0a-7607-43f8-8eb3-5911c693d33b",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "9d0c2a8b-a7b8-45d8-9ecf-36cdf9f19e1a",
+                  "id": "ad8053e6-770e-42ed-9327-9441f58fb300",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "328d6faa-b270-423a-af53-e5cf7b7f9b4d",
+                  "id": "cabcddb8-c43e-4380-af56-5e515dd70873",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "b7b01e79-0303-4cec-861d-5c546a7dfe03",
+                  "id": "4eb74f0a-7607-43f8-8eb3-5911c693d33b",
                   "rule": "ByHost"
                 }
               ]
@@ -41885,19 +41958,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "3742a35d-a36b-466c-b57f-8b4cfe467c7b",
+                "id": "b00df0e3-b2b7-430c-bef5-88ec171175e9",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "ae43859b-1fbe-44ef-a333-f4ecfa84930c",
+                "id": "e4695811-7f90-4853-82c8-accbe347be3f",
                 "rule": "ByVLAN"
               },
               {
-                "id": "5c3cf11c-d132-46a8-a149-c8435f8cccbe",
+                "id": "877a2d1e-9158-40d9-861c-2d0283911f65",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "156bf1bd-8614-4494-bd57-33afeade2b6d",
+                "id": "dba488d0-1eab-403b-9fdd-00db4f42ec12",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -41918,7 +41991,7 @@
                 }
               },
               {
-                "id": "11320747-c3ba-4b87-8587-41d24a3fe81e",
+                "id": "5158186e-480a-423c-8364-024bd9f23068",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -41927,19 +42000,19 @@
                 }
               },
               {
-                "id": "c961dc14-234e-4cdd-910a-b3bc526b8ccb",
+                "id": "674aa4ed-5352-4a60-8673-abf2dca81e6b",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "123fd545-efd1-4a51-87df-562060a41438",
+                "id": "1df97e43-acb5-42d4-bf46-683a6e1b1210",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "bb199106-2ef5-47c3-b46e-ae7f8e1bc62b",
+                "id": "c27c8e82-eef3-4081-99c2-e72893ce0f85",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "f65f7e67-85ea-4e41-bc38-344b1971bf03",
+                "id": "6b547568-0dd3-4f7a-8f43-536d375b1296",
                 "rule": "ByStack"
               }
             ]
@@ -42227,6 +42300,33 @@
           "via": {
             "$ref": "#/components/schemas/InferredVia",
             "description": "What reported it."
+          }
+        }
+      },
+      "UnconnectedDaemon": {
+        "type": "object",
+        "description": "A daemon that has never checked in, as the create wizard lists it.",
+        "required": [
+          "id",
+          "name",
+          "site_id",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string",
+            "format": "uuid"
           }
         }
       },

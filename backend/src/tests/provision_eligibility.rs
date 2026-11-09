@@ -1,7 +1,6 @@
 //! What the create-daemon wizard reads before its first step: every limit on a new daemon, and,
 //! while one applies, the caller's daemons that have never connected.
 
-use chrono::Utc;
 use uuid::Uuid;
 
 use super::email_verification::{
@@ -33,7 +32,7 @@ async fn provision(state: &AppState, owner: &User, site_id: Uuid, name: &str) ->
 }
 
 async fn mark_connected(state: &AppState, mut daemon: Daemon) {
-    daemon.base.last_seen = Some(Utc::now());
+    daemon.base.last_seen = Some(crate::server::shared::clock::now());
     state
         .services
         .daemon_service
