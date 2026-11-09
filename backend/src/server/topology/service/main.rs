@@ -1,6 +1,7 @@
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     sync::Arc,
+    time::Instant,
 };
 
 use anyhow::Error;
@@ -635,8 +636,10 @@ impl TopologyService {
         snapshot_id: Option<Uuid>,
         views: &[TopologyView],
     ) -> Result<TopologyData, Error> {
+        let started = Instant::now();
         let options = self.site_topology_options(site_id).await?;
         let (mut data, tag_hidden) = self.get_topology_data(site_id, snapshot_id).await?;
+        let loaded = started.elapsed();
         // `data.tags` only carries tags applied to entities. A grouping rule can
         // reference a tag applied to nothing (e.g. ByTag on an unused tag); the
         // frontend needs its name/color to label the group, so ship it too.
@@ -663,7 +666,9 @@ impl TopologyService {
         if let Some(bundle) = tag_hidden_bundle {
             data.hidden_by_tag = self.hidden_by_tag_per_view(&bundle, &options, views);
         }
+        let filtered = started.elapsed();
         let (nodes, edges) = self.build_view_graphs(&data, &options, views);
+        let built = started.elapsed();
         data.node_entities = nodes
             .iter()
             .map(|(view, view_nodes)| {
@@ -675,6 +680,16 @@ impl TopologyService {
             .collect();
         data.nodes = nodes;
         data.edges = edges;
+        tracing::debug!(
+            %site_id,
+            ?views,
+            hosts = data.hosts.len(),
+            load_ms = loaded.as_millis(),
+            filter_ms = (filtered - loaded).as_millis(),
+            build_ms = (built - filtered).as_millis(),
+            node_entities_ms = (started.elapsed() - built).as_millis(),
+            "Built topology render data"
+        );
         Ok(data)
     }
 

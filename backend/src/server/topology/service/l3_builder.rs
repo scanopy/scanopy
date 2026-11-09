@@ -30,8 +30,7 @@ impl ViewBuilder for L3Builder {
 
         // Create nodes (positions zeroed — frontend computes layout via elkjs)
         let mut subnet_builder = SubnetGraphBuilder::new();
-        let (subnet_ids, mut child_nodes) =
-            subnet_builder.create_subnet_child_nodes(ctx, &mut all_edges, grouping);
+        let (subnet_ids, mut child_nodes) = subnet_builder.create_subnet_child_nodes(ctx, grouping);
 
         let mut subnet_nodes = subnet_builder.create_subnet_nodes(ctx, &subnet_ids);
 
