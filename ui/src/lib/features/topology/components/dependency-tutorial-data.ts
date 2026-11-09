@@ -106,6 +106,7 @@ export const TUTORIAL_XYFLOW_NODES: Node[] = TUTORIAL_SERVICES.map((n, i) => ({
 		id: n.id,
 		node_type: 'Element',
 		element_type: 'Service',
+		entity_id: n.id,
 		host_id: n.hostId,
 		header: n.hostName,
 		position: POSITIONS[i],
