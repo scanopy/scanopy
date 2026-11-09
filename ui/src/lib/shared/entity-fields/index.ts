@@ -84,17 +84,35 @@ function valuesAt(object: Obj, path: string): unknown[] {
 	return current;
 }
 
+/** Each entity once, by id, in first-seen order. */
+function distinctById(objects: Obj[]): Obj[] {
+	const seen = new Set<unknown>();
+	return objects.filter((o) => {
+		if (seen.has(o.id)) return false;
+		seen.add(o.id);
+		return true;
+	});
+}
+
+/**
+ * The objects one hop away. A relation hop yields each entity once: two of a host's IP addresses
+ * on one subnet reach that subnet twice, and it is still one related subnet.
+ */
 function follow(hop: Hop, objects: Obj[], lookup: EntityLookup): Obj[] {
 	switch (hop.type) {
 		case 'Embedded':
 			return objects.flatMap((o) => valuesAt(o, hop.key) as Obj[]);
 		case 'Parent':
-			return objects.flatMap((o) =>
-				idsAt(o, hop.key).flatMap((id) => lookup.byColumn(hop.entity, 'id', id))
+			return distinctById(
+				objects.flatMap((o) =>
+					idsAt(o, hop.key).flatMap((id) => lookup.byColumn(hop.entity, 'id', id))
+				)
 			);
 		case 'Children':
-			return objects.flatMap((o) =>
-				idsAt(o, 'id').flatMap((id) => lookup.byColumn(hop.entity, hop.key, id))
+			return distinctById(
+				objects.flatMap((o) =>
+					idsAt(o, 'id').flatMap((id) => lookup.byColumn(hop.entity, hop.key, id))
+				)
 			);
 	}
 }

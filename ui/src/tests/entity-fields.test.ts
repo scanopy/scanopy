@@ -34,14 +34,15 @@ function field(path: EntityField['path'], value: string | null, many = false): E
 
 const host = { id: 'h1', name: 'web-01', virtualization_service_id: 's9' };
 const ips = [
-	{ id: 'ip1', host_id: 'h1', ip_address: '10.0.0.5' },
-	{ id: 'ip2', host_id: 'h1', ip_address: '10.0.0.6' },
+	{ id: 'ip1', host_id: 'h1', ip_address: '10.0.0.5', subnet_id: 'n1' },
+	{ id: 'ip2', host_id: 'h1', ip_address: '10.0.0.6', subnet_id: 'n1' },
 	{ id: 'ip3', host_id: 'h2', ip_address: '10.0.0.7' }
 ];
 const vlans = [
 	{ id: 'v10', vlan_number: 10 },
 	{ id: 'v20', vlan_number: 20 }
 ];
+const walkerSubnets = [{ id: 'n1', cidr: '10.0.0.0/24' }];
 const ports = [{ id: 'p1', number: 443, protocol: 'Tcp' }];
 const services = [{ id: 's9', name: 'Proxmox', bindings: [{ type: 'Port', port_id: 'p1' }] }];
 const lookup = collectionLookup({
@@ -49,7 +50,8 @@ const lookup = collectionLookup({
 	Vlan: vlans,
 	Port: ports,
 	Service: services,
-	Host: [host]
+	Host: [host],
+	Subnet: walkerSubnets
 });
 
 describe('entity field walker', () => {
@@ -76,6 +78,20 @@ describe('entity field walker', () => {
 			true
 		);
 		expect(resolveField(children, host, lookup)).toEqual(['10.0.0.5', '10.0.0.6']);
+	});
+
+	it('reaches an entity once when two paths lead to it', () => {
+		// Both of web-01's addresses sit on 10.0.0.0/24: one related subnet, not two. A duplicate
+		// crashed the inspector's keyed chip list.
+		const subnets = field(
+			[
+				{ type: 'Children', entity: 'IPAddress', key: 'host_id' },
+				{ type: 'Parent', entity: 'Subnet', key: 'subnet_id' }
+			],
+			null,
+			true
+		);
+		expect(resolveField(subnets, host, lookup)).toEqual([walkerSubnets[0]]);
 	});
 
 	it('walks an embedded array, then a parent key on each element', () => {
