@@ -11,7 +11,8 @@
 		useResendVerificationMutation
 	} from '$lib/features/auth/queries';
 	import { useDeleteDaemonMutation } from '../../queries';
-	import { DAEMON_STATUS_DOCS_URL, daemonStatusTag } from '../../utils';
+	import { DAEMON_STATUS_DOCS_URL } from '../../utils';
+	import { daemonHealths } from '$lib/shared/stores/metadata';
 	import {
 		billing_lapsedBannerCta,
 		common_confirmDeleteName,
@@ -44,7 +45,7 @@
 	const verification = useEmailVerificationPending();
 	const resendMutation = useResendVerificationMutation();
 
-	const awaitingTag = daemonStatusTag('awaiting_connection');
+	const awaitingTag = daemonHealths.getTag('awaiting_connection');
 	const troubleshootUrl = `${DAEMON_STATUS_DOCS_URL}#awaiting-connection`;
 
 	function handleDelete(daemon: UnconnectedDaemon) {
