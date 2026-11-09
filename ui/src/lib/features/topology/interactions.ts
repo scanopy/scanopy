@@ -1,4 +1,4 @@
-import { writable, get } from 'svelte/store';
+import { writable, get, type Writable } from 'svelte/store';
 import type { Edge } from '@xyflow/svelte';
 import type { Node } from '@xyflow/svelte';
 import { edgeTypes, entities, views } from '$lib/shared/stores/metadata';
@@ -35,6 +35,8 @@ import { isUnconfirmed, type ConfirmationSubject } from '$lib/shared/utils/confi
 import { buildFullParentMap, resolveCollapsedAncestor } from './collapse';
 import { formatEntityLabelTitle } from './labels';
 import { declaredMetadataFilters, hiddenValuesFor } from './view-filters';
+import { sameGroup } from './pipeline/reload-guard';
+import * as perf from './perf';
 import { common_byTag, common_untagged } from '$lib/paraglide/messages';
 import type { components } from '$lib/api/schema';
 
@@ -95,6 +97,17 @@ export const tagHiddenNodeIds = writable<Set<string>>(new Set());
  * left every other inlined type — Port among them — with no path to being hidden at all.
  */
 export const hiddenEntityIds = writable<Set<string>>(new Set());
+
+/**
+ * Write `next` only when its members differ from the store's.
+ *
+ * The viewer starts a pipeline run on every write to the hidden-id stores. A filter pass that
+ * recomputes the same ids (a refetched topology, an unrelated option change) would otherwise
+ * rebuild and re-adopt every node for an identical result.
+ */
+function setIfChanged(store: Writable<Set<string>>, next: Set<string>): void {
+	if (!sameGroup(get(store), next)) store.set(next);
+}
 
 // Search stores
 export const searchHiddenNodeIds = writable<Set<string>>(new Set());
@@ -449,8 +462,8 @@ export function updateTagFilter(
 	site?: Site
 ) {
 	if (!topology) {
-		tagHiddenNodeIds.set(new Set());
-		hiddenEntityIds.set(new Set());
+		setIfChanged(tagHiddenNodeIds, new Set());
+		setIfChanged(hiddenEntityIds, new Set());
 		hiddenEntityIdsByType.set(new Map());
 		presentFilterValues.set({});
 		return;
@@ -473,8 +486,8 @@ export function updateTagFilter(
 	const hasEntityFilter = hiddenEntityTypes && hiddenEntityTypes.length > 0;
 
 	if (!hasTagFilter && !hasMetadataFilter && !hasEntityFilter) {
-		tagHiddenNodeIds.set(new Set());
-		hiddenEntityIds.set(new Set());
+		setIfChanged(tagHiddenNodeIds, new Set());
+		setIfChanged(hiddenEntityIds, new Set());
 		hiddenEntityIdsByType.set(new Map());
 		return;
 	}
@@ -631,8 +644,8 @@ export function updateTagFilter(
 	}
 	hideContainersAndDescendants(hiddenContainerIds, topology.nodes, hiddenNodeIds);
 
-	tagHiddenNodeIds.set(hiddenNodeIds);
-	hiddenEntityIds.set(hiddenEntities);
+	setIfChanged(tagHiddenNodeIds, hiddenNodeIds);
+	setIfChanged(hiddenEntityIds, hiddenEntities);
 	hiddenEntityIdsByType.set(hiddenByType);
 }
 
@@ -1167,6 +1180,48 @@ function resolveEntityToNodes(
 	return { elementNodeIds, containerNodeIds };
 }
 
+/** One entity's searchable text: every searchable field, lowercased. */
+interface SearchableEntity {
+	id: string;
+	texts: string[];
+}
+
+const searchableCache = new WeakMap<RenderableTopology, Map<string, SearchableEntity[]>>();
+
+/**
+ * Every entity's searchable text, by entity type, built once per topology object.
+ *
+ * Reading and lowercasing each searchable field is the whole cost of a search (about 21,000
+ * entities on a 4,000-host site) and none of it depends on the query, so a keystroke only scans
+ * the strings.
+ */
+function searchableEntities(topology: RenderableTopology): Map<string, SearchableEntity[]> {
+	const cached = searchableCache.get(topology);
+	if (cached) return cached;
+	const lookup = collectionLookup(
+		Object.fromEntries(
+			Object.keys(ENTITY_COLLECTIONS).map((type) => [type, entityCollection(topology, type)])
+		)
+	);
+	const byType = new Map<string, SearchableEntity[]>();
+	for (const type of Object.keys(ENTITY_COLLECTIONS)) {
+		const fields = entityFields(type as EntityType).filter((f) => f.searchable);
+		if (type !== 'Tag' && fields.length === 0) continue;
+		byType.set(
+			type,
+			(entityCollection(topology, type) ?? []).map((entity) => ({
+				id: entity.id,
+				texts:
+					type === 'Tag'
+						? [((entity as { name?: string }).name ?? '').toLowerCase()]
+						: fields.map((f) => fieldText(f, entity, lookup).toLowerCase())
+			}))
+		);
+	}
+	searchableCache.set(topology, byType);
+	return byType;
+}
+
 /**
  * The ids of the entities whose searchable fields contain `q`, by entity type.
  *
@@ -1178,22 +1233,11 @@ export function searchEntityMatches(
 	topology: RenderableTopology,
 	q: string
 ): Map<string, string[]> {
-	const lookup = collectionLookup(
-		Object.fromEntries(
-			Object.keys(ENTITY_COLLECTIONS).map((type) => [type, entityCollection(topology, type)])
-		)
-	);
 	const matches = new Map<string, string[]>();
-	for (const type of Object.keys(ENTITY_COLLECTIONS)) {
-		const fields = entityFields(type as EntityType).filter((f) => f.searchable);
-		if (type !== 'Tag' && fields.length === 0) continue;
+	for (const [type, searchable] of searchableEntities(topology)) {
 		const ids: string[] = [];
-		for (const entity of entityCollection(topology, type) ?? []) {
-			const hit =
-				type === 'Tag'
-					? (entity as { name?: string }).name?.toLowerCase().includes(q)
-					: fields.some((f) => fieldText(f, entity, lookup).toLowerCase().includes(q));
-			if (hit) ids.push(entity.id);
+		for (const entity of searchable) {
+			if (entity.texts.some((text) => text.includes(q))) ids.push(entity.id);
 		}
 		if (ids.length) matches.set(type, ids);
 	}
@@ -1215,13 +1259,14 @@ export function updateSearchFilter(
 	view?: string
 ) {
 	if (!topology || !query.trim()) {
-		searchHiddenNodeIds.set(new Set());
+		setIfChanged(searchHiddenNodeIds, new Set());
 		searchMatchNodeIds.set([]);
 		searchActiveIndex.set(0);
 		return;
 	}
 
 	const q = query.toLowerCase().trim();
+	const endIndex = perf.stage('search.index');
 	const index = buildEntityNodeIndex(topology.nodes);
 	const config = getViewElementConfig(view);
 	const matchingSet = new Set<string>();
@@ -1234,6 +1279,7 @@ export function updateSearchFilter(
 			else nodesOfEntity.set(entityId, [nodeId]);
 		}
 	}
+	endIndex();
 
 	/** Resolve an entity match to visible nodes and add them to matchingSet */
 	const addResolved = (entityType: string, entityId: string) => {
@@ -1250,7 +1296,10 @@ export function updateSearchFilter(
 		for (const id of index.entityIdToContainerIds.get(entityId) ?? []) matchingSet.add(id);
 	};
 
+	const endMatch = perf.stage('search.match');
 	const matches = searchEntityMatches(topology, q);
+	endMatch();
+	const endResolve = perf.stage('search.resolve');
 	for (const [type, ids] of matches) {
 		if (type === 'Tag') continue;
 		for (const id of ids) addResolved(type, id);
@@ -1277,7 +1326,10 @@ export function updateSearchFilter(
 		}
 	}
 
+	endResolve();
+
 	// Hidden = all nodes NOT in the matching set
+	const endPublish = perf.stage('search.publish');
 	const allNodeIds = new Set<string>([...index.allElementNodeIds, ...index.allContainerNodeIds]);
 	const hiddenIds = new Set<string>();
 	for (const nodeId of allNodeIds) {
@@ -1289,6 +1341,7 @@ export function updateSearchFilter(
 	searchHiddenNodeIds.set(hiddenIds);
 	searchMatchNodeIds.set([...matchingSet]);
 	searchActiveIndex.set(0);
+	endPublish();
 }
 
 /**

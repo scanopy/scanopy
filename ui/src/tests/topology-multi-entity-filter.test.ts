@@ -119,6 +119,21 @@ describe('a filter covering hosts and services', () => {
 		expect(nodes.has('sshd')).toBe(false);
 	});
 
+	it('starts no pipeline run when a filter pass hides the same nodes again', () => {
+		const hidden = withFilterValues(filter(), undefined, ['Containerized']);
+		updateTagFilter(buildTopology(), undefined, 'Workloads', hidden, [], site);
+
+		// The viewer runs the pipeline on every emission of this store.
+		let emissions = 0;
+		const unsubscribe = tagHiddenNodeIds.subscribe(() => emissions++);
+		updateTagFilter(buildTopology(), undefined, 'Workloads', hidden, [], site);
+		expect(emissions).toBe(1);
+
+		updateTagFilter(buildTopology(), undefined, 'Workloads', undefined, [], site);
+		expect(emissions).toBe(2);
+		unsubscribe();
+	});
+
 	it('reads as hidden when any covered entity hides the value', () => {
 		expect(hiddenValuesFor(filter(), { Host: { Virtualization: ['Virtualized'] } })).toEqual([
 			'Virtualized'
