@@ -24,7 +24,7 @@ pub async fn get_metrics(
         return ApiError::not_found("Metrics not enabled".to_string()).into_response();
     }
 
-    let metrics = state.services.metrics_service.handle.render();
+    let metrics = state.services.metrics_service.render();
     (
         StatusCode::OK,
         [(header::CONTENT_TYPE, "text/plain; version=0.0.4")],

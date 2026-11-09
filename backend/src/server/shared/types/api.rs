@@ -812,6 +812,13 @@ impl ApiError {
 #[derive(Clone, Copy, Debug)]
 pub struct MetricErrorCode(pub &'static str);
 
+/// Response extension for a route that waits on purpose, such as a reachability probe of a
+/// user-chosen address. The request-logging middleware leaves it out of
+/// `http_request_duration_seconds`, so its timeouts don't read as server latency. It still
+/// counts in `http_requests_total`.
+#[derive(Clone, Copy, Debug)]
+pub struct LatencyExempt;
+
 impl axum::response::IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (code, params) = if let Some(ref error_code) = self.error_code {
