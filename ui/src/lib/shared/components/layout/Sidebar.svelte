@@ -4,7 +4,13 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { isBillingPlanActive } from '$lib/features/organizations/types';
 	import SettingsModal from '$lib/features/settings/SettingsModal.svelte';
-	import { billingPlans, daemonHealths, entities, productAreas } from '$lib/shared/stores/metadata';
+	import {
+		billingPlans,
+		daemonHealths,
+		entities,
+		productAreas,
+		setupItemTiers
+	} from '$lib/shared/stores/metadata';
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
 	import { useApiKeysQuery } from '$lib/features/daemon_api_keys/queries';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
@@ -40,9 +46,8 @@
 		isMissingPaymentMethod
 	} from '$lib/shared/utils/trial';
 	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
-	import { daemonSetupState } from '$lib/features/daemons/stores/daemon-setup';
-	import { isAllComplete } from '$lib/shared/onboarding/checklist';
-	import SidebarChecklist from './SidebarChecklist.svelte';
+	import { useDashboardQuery } from '$lib/features/home/queries';
+	import { setupIssueCount } from '$lib/features/home/setup-list';
 
 	// Import tab components
 	import TopologyTab from '$lib/features/topology/components/TopologyTab.svelte';
@@ -203,20 +208,9 @@
 		return true;
 	}
 
-	// Onboarding checklist state
-	let setup = $derived(organization?.setup ?? []);
-	let showSidebarChecklist = $derived(organization && !isAllComplete(setup));
-	let isDiscoveryActive = $derived(
-		(activeSessionsQuery.data ?? []).some(
-			(s) => s.discovery_type?.type === 'Network' || s.discovery_type?.type === 'Unified'
-		)
-	);
-
-	// Subscribe to daemon setup state
-	let daemonStatus = $state<'idle' | 'waiting' | 'connected' | 'trouble'>('idle');
-	const unsubscribeDaemon = daemonSetupState.subscribe((s) => {
-		daemonStatus = s.connectionStatus;
-	});
+	// The Home badge counts the Issues on the Setup list, from the array Home lists them from.
+	const dashboardQuery = useDashboardQuery({ enabled: () => mainAppAvailable });
+	let setupIssues = $derived(setupIssueCount(dashboardQuery.data?.setup_items ?? []));
 
 	// Sync settings modal state from modal registry (for deep-link opens)
 	$effect(() => {
@@ -593,8 +587,6 @@
 				console.warn('Failed to load sidebar state from localStorage:', error);
 			}
 		}
-
-		return unsubscribeDaemon;
 	});
 
 	function toggleCollapse() {
@@ -606,19 +598,6 @@
 				localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(collapsed));
 			} catch (error) {
 				console.error('Failed to save sidebar state to localStorage:', error);
-			}
-		}
-	}
-
-	function expandSidebar() {
-		if (collapsed) {
-			collapsed = false;
-			if (typeof window !== 'undefined') {
-				try {
-					localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(false));
-				} catch (error) {
-					console.error('Failed to save sidebar state to localStorage:', error);
-				}
 			}
 		}
 	}
@@ -669,6 +648,11 @@
 			return daemonHealths.getColorHelper(worstDaemonHealth).rgb;
 		}
 		return null;
+	}
+
+	// The count a standalone item draws where a section item draws its dot (Home → its Issues).
+	function itemCount(item: NavItem): number {
+		return item.id === 'home' ? setupIssues : 0;
 	}
 
 	const inactiveButtonClass =
@@ -732,20 +716,6 @@
 				</button>
 			{/if}
 		</div>
-
-		<!-- Sidebar Checklist -->
-		{#if showSidebarChecklist && !mainAppLocked}
-			<SidebarChecklist
-				{setup}
-				{collapsed}
-				onNavigate={(tab) => {
-					activeTab = tab;
-				}}
-				{isDiscoveryActive}
-				{daemonStatus}
-				onExpandSidebar={expandSidebar}
-			/>
-		{/if}
 
 		<!-- Main Navigation -->
 		<nav class="flex-1 overflow-y-auto px-2 py-2">
@@ -824,6 +794,7 @@
 						</li>
 					{:else}
 						<!-- Standalone item (no section, no indentation) -->
+						{@const count = itemCount(configItem)}
 						<li>
 							<button
 								onclick={() => handleItemClick(configItem)}
@@ -834,7 +805,17 @@
 								style="height: 2rem; padding: 0.375rem 0.75rem;"
 								title={collapsed ? configItem.label : ''}
 							>
-								<configItem.icon class="h-4 w-4 shrink-0" />
+								<span class="relative">
+									<configItem.icon class="h-4 w-4 shrink-0" />
+									{#if count > 0}
+										<span
+											class="absolute -top-1.5 -right-2 h-4 min-w-4 rounded-full px-1 text-center text-[10px] leading-4 font-semibold text-white"
+											style="background-color: {setupItemTiers.getColorHelper('Issue').rgb}"
+										>
+											{count}
+										</span>
+									{/if}
+								</span>
 								{#if !collapsed}
 									<span class="ml-2.5 truncate">{configItem.label}</span>
 								{/if}
