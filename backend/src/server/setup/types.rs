@@ -453,38 +453,42 @@ impl HasId for SetupItemDiscriminants {
     }
 }
 
+impl SetupItemDiscriminants {
+    /// The entity or concept this item is about, whose icon and color it takes. `None` for an
+    /// item about neither.
+    fn subject(&self) -> Option<&'static dyn EntityMetadataProvider> {
+        Some(match self {
+            Self::DaemonHealth | Self::InstallDaemon => &EntityDiscriminants::Daemon,
+            Self::UncoveredIntegration | Self::TargetlessCredential => {
+                &EntityDiscriminants::Credential
+            }
+            Self::SiteWithoutDaemon | Self::MultiSite => &EntityDiscriminants::Site,
+            Self::RunWarnings | Self::RunFirstScan => &EntityDiscriminants::Discovery,
+            Self::OpenTopology | Self::ExplorePerspectives => &EntityDiscriminants::Topology,
+            Self::AnswerProfile => &EntityDiscriminants::User,
+            Self::ReviewUnconfirmed => &EntityDiscriminants::Host,
+            Self::ApplicationTags => &Concept::Application,
+            Self::Dependencies => &EntityDiscriminants::Dependency,
+            // Ports, neighbours and VLANs are what the credential adds.
+            Self::InterfaceCredential => &Concept::L2,
+            Self::Tags => &EntityDiscriminants::Tag,
+            Self::InviteTeam => &EntityDiscriminants::Invite,
+            Self::ApiKeys => &EntityDiscriminants::UserApiKey,
+            Self::Share => &EntityDiscriminants::Share,
+            // A question about the person.
+            Self::AnswerReferralSource => return None,
+        })
+    }
+}
+
 impl EntityMetadataProvider for SetupItemDiscriminants {
     fn color(&self) -> Color {
-        match self.tier() {
-            SetupItemTier::Issue => Color::Red,
-            SetupItemTier::NextStep => Color::Blue,
-            SetupItemTier::Suggestion => Color::Gray,
-        }
+        self.subject().map_or(Color::Gray, |s| s.color())
     }
 
     fn icon(&self) -> Icon {
-        match self {
-            // An item about an entity or a concept takes that entity's or concept's icon.
-            Self::DaemonHealth | Self::InstallDaemon => EntityDiscriminants::Daemon.icon(),
-            Self::UncoveredIntegration | Self::TargetlessCredential => {
-                EntityDiscriminants::Credential.icon()
-            }
-            Self::SiteWithoutDaemon | Self::MultiSite => EntityDiscriminants::Site.icon(),
-            Self::RunWarnings | Self::RunFirstScan => EntityDiscriminants::Discovery.icon(),
-            Self::OpenTopology | Self::ExplorePerspectives => EntityDiscriminants::Topology.icon(),
-            Self::AnswerProfile => EntityDiscriminants::User.icon(),
-            Self::ReviewUnconfirmed => EntityDiscriminants::Host.icon(),
-            Self::ApplicationTags => Concept::Application.icon(),
-            Self::Dependencies => EntityDiscriminants::Dependency.icon(),
-            // Ports, neighbours and VLANs are what the credential adds.
-            Self::InterfaceCredential => Concept::L2.icon(),
-            Self::Tags => EntityDiscriminants::Tag.icon(),
-            Self::InviteTeam => EntityDiscriminants::Invite.icon(),
-            Self::ApiKeys => EntityDiscriminants::UserApiKey.icon(),
-            Self::Share => EntityDiscriminants::Share.icon(),
-            // A question about the person, tied to no entity or concept.
-            Self::AnswerReferralSource => Icon::MessageCircleQuestion,
-        }
+        self.subject()
+            .map_or(Icon::MessageCircleQuestion, |s| s.icon())
     }
 }
 
