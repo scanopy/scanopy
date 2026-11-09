@@ -6386,7 +6386,7 @@
           "internal"
         ],
         "summary": "Get dashboard summary",
-        "description": "Returns aggregated dashboard data including site metrics, daemon health,\nrecent discoveries, and plan usage.",
+        "description": "Returns site metrics, plan usage and the organization's Setup list as the caller sees it.",
         "operationId": "get_dashboard_summary",
         "responses": {
           "200": {
@@ -12536,7 +12536,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponse_Organization"
+                  "$ref": "#/components/schemas/ApiResponse_OrganizationResponse"
                 }
               }
             }
@@ -12557,39 +12557,6 @@
             "session": []
           }
         ]
-      }
-    },
-    "/api/v1/organizations/daemon-prompt-response": {
-      "post": {
-        "tags": [
-          "Organizations",
-          "internal"
-        ],
-        "summary": "Record daemon-install prompt response",
-        "description": "Records the response so the prompt is not shown again.\nEach CTA records a distinct onboarding milestone, which the UI reads to hide the prompt.\nEvery response is published; the PostHog subscriber turns these into funnel events, so\nno client-side telemetry is needed.",
-        "operationId": "daemon_prompt_response",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DaemonPromptResponseRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Response recorded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponse"
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/api/v1/organizations/profile": {
@@ -12656,6 +12623,59 @@
         }
       }
     },
+    "/api/v1/organizations/setup/dismiss-suggestion": {
+      "post": {
+        "tags": [
+          "Organizations",
+          "internal"
+        ],
+        "summary": "Dismiss Setup suggestion",
+        "description": "Hides the Suggestion for the whole organization. Issues and Next steps can't be dismissed.",
+        "operationId": "dismiss_setup_suggestion",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DismissSuggestionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Suggestion dismissed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a Suggestion",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user may not act on the Suggestion",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/organizations/{id}": {
       "put": {
         "tags": [
@@ -12691,7 +12711,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponse_Organization"
+                  "$ref": "#/components/schemas/ApiResponse_OrganizationResponse"
                 }
               }
             }
@@ -20090,7 +20110,7 @@
           {
             "name": "mark_viewed",
             "in": "query",
-            "description": "When `true`, records the `FirstTopologyRebuild` onboarding milestone (the user has\nviewed their topology). Only the frontend's explicit on-tab view sets this — the\nbackground topology-data query never does — so the milestone never fires from other\ntabs. One-time per org (guarded below + subscriber dedup).",
+            "description": "When `true`, records the `OpenTopology` setup item (the user has viewed their topology).\nOnly the frontend's explicit on-tab view sets this — the background topology-data query\nnever does — so it is never recorded from other tabs. Once per org.",
             "required": false,
             "schema": {
               "type": [
@@ -23533,19 +23553,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-11-09T11:46:03.254952Z",
+              "created_at": "2026-11-09T13:22:45.413071Z",
               "first_discovery_id": null,
-              "id": "d24d16d6-acad-424e-928d-6f66cecf0faf",
+              "id": "ffbc7ff3-1233-40c5-a201-097230ebb9b9",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-09T11:46:03.254952Z",
+              "last_seen_at": "2026-11-09T13:22:45.413071Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-09T11:46:03.254952Z",
-              "valid_from": "2026-11-09T11:46:03.254952Z",
+              "updated_at": "2026-11-09T13:22:45.413071Z",
+              "valid_from": "2026-11-09T13:22:45.413071Z",
               "valid_to": null
             }
           },
@@ -24205,32 +24225,20 @@
             "description": "Dashboard summary response",
             "required": [
               "sites",
-              "daemons",
-              "recent_discoveries",
               "plan_usage",
-              "uncovered_integrations",
-              "targetless_credentials",
-              "unconfirmed_host_count",
-              "unconfirmed_subnet_count"
+              "setup_items"
             ],
             "properties": {
-              "daemons": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/DaemonResponse"
-                },
-                "description": "Daemons the caller can see, with their current status."
-              },
               "plan_usage": {
                 "$ref": "#/components/schemas/PlanUsage",
                 "description": "Current usage against the organization's plan allowances."
               },
-              "recent_discoveries": {
+              "setup_items": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/RecentDiscovery"
+                  "$ref": "#/components/schemas/SetupListEntry"
                 },
-                "description": "The most recent discovery runs, newest first."
+                "description": "The organization's Setup list as the caller sees it: Issues, then Next steps, then\nSuggestions."
               },
               "sites": {
                 "type": "array",
@@ -24238,32 +24246,6 @@
                   "$ref": "#/components/schemas/SiteSummary"
                 },
                 "description": "Per-site counts for every site the caller can see."
-              },
-              "targetless_credentials": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/TargetlessCredential"
-                },
-                "description": "Credentials no scan will send to a daemon, by name."
-              },
-              "unconfirmed_host_count": {
-                "type": "integer",
-                "format": "int64",
-                "description": "Hosts known only from another device's report, waiting to be confirmed, merged or\ndismissed.",
-                "minimum": 0
-              },
-              "unconfirmed_subnet_count": {
-                "type": "integer",
-                "format": "int64",
-                "description": "Subnets whose range was assumed, waiting to be confirmed or corrected.",
-                "minimum": 0
-              },
-              "uncovered_integrations": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/UncoveredIntegration"
-                },
-                "description": "Integrations found on hosts with no credential of them, most hosts first."
               }
             }
           },
@@ -25433,19 +25415,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-11-09T11:46:03.221744Z",
+                      "created_at": "2026-11-09T13:22:45.380081Z",
                       "first_discovery_id": null,
-                      "id": "4270e718-2677-48a5-b967-7d084038cc32",
+                      "id": "c87eb7cc-bdf6-4b9b-83ec-65b43f7c407d",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-11-09T11:46:03.221744Z",
+                      "last_seen_at": "2026-11-09T13:22:45.380081Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-11-09T11:46:03.221744Z",
-                      "valid_from": "2026-11-09T11:46:03.221744Z",
+                      "updated_at": "2026-11-09T13:22:45.380081Z",
+                      "valid_from": "2026-11-09T13:22:45.380081Z",
                       "valid_to": null
                     }
                   ],
@@ -25458,7 +25440,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Tenable Nessus",
+                  "service_definition": "FreeIPA",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -26232,7 +26214,7 @@
           }
         }
       },
-      "ApiResponse_Organization": {
+      "ApiResponse_OrganizationResponse": {
         "type": "object",
         "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
@@ -26243,38 +26225,23 @@
           "data": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/OrganizationBase"
+                "$ref": "#/components/schemas/Organization"
               },
               {
                 "type": "object",
                 "required": [
-                  "id",
-                  "created_at",
-                  "updated_at"
+                  "daemon_connected"
                 ],
                 "properties": {
-                  "created_at": {
-                    "type": "string",
-                    "format": "date-time",
-                    "description": "When this record was first created.",
-                    "readOnly": true
-                  },
-                  "id": {
-                    "type": "string",
-                    "format": "uuid",
-                    "description": "Server-assigned unique identifier.",
-                    "readOnly": true
-                  },
-                  "updated_at": {
-                    "type": "string",
-                    "format": "date-time",
-                    "description": "When this record was last modified.",
+                  "daemon_connected": {
+                    "type": "boolean",
+                    "description": "Whether any of the organization's daemons has ever connected. A daemon created but not\nyet started doesn't count.",
                     "readOnly": true
                   }
                 }
               }
             ],
-            "description": "The result payload. Omitted on failure."
+            "description": "The signed-in user's organization, with what the server derives about it."
           },
           "error": {
             "type": [
@@ -26975,19 +26942,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-11-09T11:46:03.249634Z",
+                  "created_at": "2026-11-09T13:22:45.407689Z",
                   "first_discovery_id": null,
-                  "id": "16b850b4-f957-484c-b8a9-0abfa3e2e8ab",
+                  "id": "d40f3b3f-0acf-4443-a1d0-96bdab879f0f",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-09T11:46:03.249634Z",
+                  "last_seen_at": "2026-11-09T13:22:45.407689Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-09T11:46:03.249634Z",
-                  "valid_from": "2026-11-09T11:46:03.249634Z",
+                  "updated_at": "2026-11-09T13:22:45.407689Z",
+                  "valid_from": "2026-11-09T13:22:45.407689Z",
                   "valid_to": null
                 }
               ],
@@ -27000,7 +26967,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Tenable Nessus",
+              "service_definition": "FreeIPA",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -27740,6 +27707,9 @@
               "name": "production",
               "organization_id": "550e8400-e29b-41d4-a716-446655440001",
               "position": 1,
+              "source": {
+                "type": "Manual"
+              },
               "tag_group_id": "550e8400-e29b-41d4-a716-446655440010",
               "updated_at": "2026-01-15T10:30:00Z",
               "valid_from": "2026-01-15T10:30:00Z",
@@ -27971,7 +27941,8 @@
               "services",
               "vlans",
               "tags",
-              "application_group_id"
+              "application_group_id",
+              "has_interface_credential"
             ],
             "properties": {
               "application_group_id": {
@@ -28074,6 +28045,10 @@
                     "Invite"
                   ]
                 }
+              },
+              "has_interface_credential": {
+                "type": "boolean",
+                "description": "Whether a person added an interface-reporting credential to the organization: the L2\nview's setup prompt reads it. Set by the topology data endpoint, `false` elsewhere."
               },
               "hidden_by_tag": {
                 "type": "object",
@@ -29354,6 +29329,9 @@
                 "name": "production",
                 "organization_id": "550e8400-e29b-41d4-a716-446655440001",
                 "position": 1,
+                "source": {
+                  "type": "Manual"
+                },
                 "tag_group_id": "550e8400-e29b-41d4-a716-446655440010",
                 "updated_at": "2026-01-15T10:30:00Z",
                 "valid_from": "2026-01-15T10:30:00Z",
@@ -30283,19 +30261,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-11-09T11:46:03.222370Z",
+          "created_at": "2026-11-09T13:22:45.380709Z",
           "first_discovery_id": null,
-          "id": "3b44c16e-75fb-43c2-b2a3-6ef5731780d8",
+          "id": "65c098a1-9fa7-4d8c-b3a4-f3f2e7286044",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-11-09T11:46:03.222370Z",
+          "last_seen_at": "2026-11-09T13:22:45.380709Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-11-09T11:46:03.222370Z",
-          "valid_from": "2026-11-09T11:46:03.222370Z",
+          "updated_at": "2026-11-09T13:22:45.380709Z",
+          "valid_from": "2026-11-09T13:22:45.380709Z",
           "valid_to": null
         }
       },
@@ -31208,7 +31186,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Tenable Nessus",
+              "service_definition": "FreeIPA",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -31471,7 +31449,8 @@
           "tags",
           "assigned_site_ids",
           "host_assignments",
-          "used_by"
+          "used_by",
+          "source"
         ],
         "properties": {
           "assigned_site_ids": {
@@ -31527,6 +31506,11 @@
             "type": "string",
             "format": "uuid",
             "description": "The organization that owns this record."
+          },
+          "source": {
+            "$ref": "#/components/schemas/EntitySource",
+            "description": "`System` for a credential Scanopy seeds (the defaults), `Manual` for one a person added.\nSet by the server.",
+            "readOnly": true
           },
           "tags": {
             "type": "array",
@@ -32755,27 +32739,6 @@
         "type": "string",
         "description": "A file on the daemon's own machine, read by the daemon at scan time."
       },
-      "DaemonPromptAction": {
-        "type": "string",
-        "description": "Which daemon-prompt CTA the user chose.",
-        "enum": [
-          "dismissed",
-          "accepted"
-        ]
-      },
-      "DaemonPromptResponseRequest": {
-        "type": "object",
-        "description": "Request recording the user's response to the \"Start Discovering Your Network\" prompt.",
-        "required": [
-          "action"
-        ],
-        "properties": {
-          "action": {
-            "$ref": "#/components/schemas/DaemonPromptAction",
-            "description": "What the user chose to do about the daemon prompt."
-          }
-        }
-      },
       "DaemonRegistrationRequest": {
         "type": "object",
         "description": "Daemon registration request from daemon to server",
@@ -33080,32 +33043,20 @@
         "description": "Dashboard summary response",
         "required": [
           "sites",
-          "daemons",
-          "recent_discoveries",
           "plan_usage",
-          "uncovered_integrations",
-          "targetless_credentials",
-          "unconfirmed_host_count",
-          "unconfirmed_subnet_count"
+          "setup_items"
         ],
         "properties": {
-          "daemons": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DaemonResponse"
-            },
-            "description": "Daemons the caller can see, with their current status."
-          },
           "plan_usage": {
             "$ref": "#/components/schemas/PlanUsage",
             "description": "Current usage against the organization's plan allowances."
           },
-          "recent_discoveries": {
+          "setup_items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/RecentDiscovery"
+              "$ref": "#/components/schemas/SetupListEntry"
             },
-            "description": "The most recent discovery runs, newest first."
+            "description": "The organization's Setup list as the caller sees it: Issues, then Next steps, then\nSuggestions."
           },
           "sites": {
             "type": "array",
@@ -33113,32 +33064,6 @@
               "$ref": "#/components/schemas/SiteSummary"
             },
             "description": "Per-site counts for every site the caller can see."
-          },
-          "targetless_credentials": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TargetlessCredential"
-            },
-            "description": "Credentials no scan will send to a daemon, by name."
-          },
-          "unconfirmed_host_count": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Hosts known only from another device's report, waiting to be confirmed, merged or\ndismissed.",
-            "minimum": 0
-          },
-          "unconfirmed_subnet_count": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Subnets whose range was assumed, waiting to be confirmed or corrected.",
-            "minimum": 0
-          },
-          "uncovered_integrations": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UncoveredIntegration"
-            },
-            "description": "Integrations found on hosts with no credential of them, most hosts first."
           }
         }
       },
@@ -33510,6 +33435,15 @@
             "description": "Date after which this daemon version stops being supported."
           }
         }
+      },
+      "DesktopVm": {
+        "type": "string",
+        "description": "The desktop container VM a daemon was found running inside.\n\nEach one runs containers in a Linux VM whose network is NAT'd behind the machine it runs on, so\nARP, mDNS and LLDP from a daemon in it reach the VM's virtual network and not the LAN.",
+        "enum": [
+          "DockerDesktop",
+          "OrbStack",
+          "Colima"
+        ]
       },
       "DeviceType": {
         "type": "string",
@@ -36283,6 +36217,27 @@
           },
           {
             "type": "object",
+            "title": "DaemonInDesktopVm",
+            "description": "The daemon runs inside a desktop container VM, whose virtual network keeps ARP, mDNS and LLDP\noff the LAN. Raised by the daemon at the start of every network discovery run.\n\nThe daemon is the session's own, so the UI names it from the payload like\n[`DiscoveryWarning::OutdatedDaemonFormat`].",
+            "required": [
+              "vm",
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "DaemonInDesktopVm"
+                ]
+              },
+              "vm": {
+                "$ref": "#/components/schemas/DesktopVm",
+                "description": "The VM the daemon runs in."
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "WarningsTruncated",
             "description": "The run produced more warnings than the scan record holds. Emitted rather than dropping\nthe tail silently — a list that simply stops reads as though that was all of them.",
             "required": [
@@ -36327,6 +36282,88 @@
           }
         ],
         "description": "A single non-fatal finding from one discovery run, about one device, neighbour, or the scan\nitself.\n\nSerialized with the code as the tag, so the generated TypeScript is a discriminated union the\nUI can switch on exhaustively. The derived `Deserialize` reads that shape; the leniency that\nkeeps historical records and pre-coded daemons working lives in [`deserialize_warnings`],\nwhich is applied at the one field that holds these."
+      },
+      "DiscoveryWarningCode": {
+        "type": "string",
+        "description": "The stable identity of a warning: what crosses the wire as the tag, what labels the metric,\nand what the UI resolves its sentence from.\n\nHand-declared rather than generated by `EnumDiscriminants` because it has to carry its own\nderives to satisfy `Operation`, and a generated enum cannot.\n[`DiscoveryWarning::code`] is an exhaustive match, so the two cannot drift.",
+        "enum": [
+          "InterfaceSetCutShort",
+          "InterfaceDetailsCutShort",
+          "SnmpWalkEntryCap",
+          "SnmpWalkUnsupported",
+          "SnmpWalkDesynchronised",
+          "SnmpWalkPartialDiscarded",
+          "SnmpWalkPartialRecorded",
+          "SnmpWalkBridgeMibAbsent",
+          "SnmpWalkNoAnswer",
+          "SnmpWalkFailed",
+          "ClaimedCountReadCutShort",
+          "ClaimedCountUnderRead",
+          "ClaimedCapabilityReadCutShort",
+          "ClaimedCapabilityEmpty",
+          "LldpLocalPortDropped",
+          "LldpLocalPortDroppedReadCutShort",
+          "LldpLocalPortMisplaced",
+          "MalformedNeighboursWalkCutShort",
+          "MalformedNeighboursGhostRows",
+          "MalformedNeighboursIncompleteRecords",
+          "MalformedNeighboursUnexpectedType",
+          "MalformedNeighboursUnreadableIndex",
+          "SnmpCollectedNothing",
+          "VlanRecordingFailed",
+          "EqualReachIntegrationsMerged",
+          "CredentialTargetNotScanned",
+          "CredentialTargetNotResponding",
+          "CredentialDaemonOsMismatch",
+          "CredentialNeedsNewerDaemon",
+          "CredentialWithoutTarget",
+          "CredentialLoginUnavailable",
+          "CredentialGateClosed",
+          "CredentialRejected",
+          "CredentialMalformed",
+          "CredentialTlsFailed",
+          "CredentialNotThisService",
+          "CredentialCollectionFailed",
+          "CredentialCollectionTimedOut",
+          "CredentialUnreachable",
+          "CredentialTimedOut",
+          "IntegrationWithoutCredential",
+          "GuestOutsideScan",
+          "GuestBehindHypervisor",
+          "GuestIsolated",
+          "ConnectionsWithoutProtocolResponse",
+          "ScanTimeLimitWithEstimate",
+          "ScanTimeLimit",
+          "DcpSweepTimedOut",
+          "IcmpSweepTimedOut",
+          "ReverseDnsTimedOut",
+          "LldpNeighbourNotFound",
+          "LldpNeighbourAmbiguous",
+          "LldpPortNoStrategy",
+          "LldpPortNotFound",
+          "LldpPortAmbiguous",
+          "ProvisionalSubnetInferred",
+          "UnconfirmedHostInferred",
+          "NeighbourResolutionIncomplete",
+          "FdbResolutionIncomplete",
+          "OutdatedDaemonFormat",
+          "DaemonInDesktopVm",
+          "WarningsTruncated",
+          "Unknown"
+        ]
+      },
+      "DismissSuggestionRequest": {
+        "type": "object",
+        "description": "Request to dismiss a Suggestion from the org's Setup list",
+        "required": [
+          "item_type"
+        ],
+        "properties": {
+          "item_type": {
+            "$ref": "#/components/schemas/SetupItemDiscriminants",
+            "description": "The Suggestion's item type."
+          }
+        }
       },
       "DisplayAction": {
         "type": "string",
@@ -39575,19 +39612,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-11-09T11:46:03.221005Z",
+                  "created_at": "2026-11-09T13:22:45.379321Z",
                   "first_discovery_id": null,
-                  "id": "5ad8b948-7a40-4410-be7a-82fade086413",
+                  "id": "ab33004a-5337-48f0-b46d-cd5dd0c74b59",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-09T11:46:03.221005Z",
+                  "last_seen_at": "2026-11-09T13:22:45.379321Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-09T11:46:03.221005Z",
-                  "valid_from": "2026-11-09T11:46:03.221005Z",
+                  "updated_at": "2026-11-09T13:22:45.379321Z",
+                  "valid_from": "2026-11-09T13:22:45.379321Z",
                   "valid_to": null
                 }
               ],
@@ -39600,7 +39637,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Tenable Nessus",
+              "service_definition": "FreeIPA",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -41717,6 +41754,26 @@
           "pending"
         ]
       },
+      "LiveDaemonUpdate": {
+        "type": "object",
+        "description": "A daemon whose version or health changed when it checked in.",
+        "required": [
+          "id",
+          "site_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The daemon that checked in."
+          },
+          "site_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The daemon's site, which decides who receives the update."
+          }
+        }
+      },
       "LiveTopologyUpdate": {
         "type": "object",
         "description": "A site whose live topology changed.",
@@ -41771,6 +41828,27 @@
                 "type": "string",
                 "enum": [
                   "Topology"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Daemon",
+            "description": "A daemon checked in with a new version or health, so the daemons list and Home need refetching.",
+            "required": [
+              "data",
+              "type"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/LiveDaemonUpdate",
+                "description": "A daemon checked in with a new version or health, so the daemons list and Home need refetching."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Daemon"
                 ]
               }
             }
@@ -42721,32 +42799,6 @@
           }
         }
       },
-      "OnboardingOperationDiscriminants": {
-        "type": "string",
-        "enum": [
-          "OrgCreated",
-          "OnboardingModalCompleted",
-          "PlanSelected",
-          "DaemonPromptDismissed",
-          "DaemonPromptAccepted",
-          "FirstDaemonRegistered",
-          "FirstTopologyRebuild",
-          "FirstDiscoveryCompleted",
-          "FirstHostDiscovered",
-          "SecondSiteCreated",
-          "FirstTagCreated",
-          "FirstDependencyCreated",
-          "FirstUserApiKeyCreated",
-          "FirstInterfaceCredentialCreated",
-          "FirstApplicationTagCreated",
-          "FirstCredentialCreated",
-          "FirstSnapshotCreated",
-          "InviteSent",
-          "InviteAccepted",
-          "ProfileCompleted",
-          "ReferralSourceCompleted"
-        ]
-      },
       "OnboardingSiteState": {
         "type": "object",
         "description": "Site data in onboarding state response",
@@ -42891,7 +42943,7 @@
           "name",
           "plan",
           "plan_status",
-          "onboarding"
+          "setup"
         ],
         "properties": {
           "air_gapped_key_current_until": {
@@ -43001,14 +43053,6 @@
             "description": "Stripe `subscription.items.data[0].current_period_end`, mirrored on\nevery billing event that re-anchors the period (checkout, trial start\n/ end, plan change, renewal, pause/resume, reactivate). Cleared by\nSubscriptionCancelled. Powers the \"Next renewal on …\" line in\nBillingPlanModal; the UI interprets the value based on plan_status\n(hide for paused/cancelled/past_due where the stored value can be\nstale or meaningless).",
             "readOnly": true
           },
-          "onboarding": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/OnboardingOperationDiscriminants",
-              "readOnly": true
-            },
-            "description": "Progress through first-run setup."
-          },
           "plan": {
             "$ref": "#/components/schemas/BillingPlan",
             "description": "The plan this organization is on.",
@@ -43025,6 +43069,14 @@
               }
             ],
             "readOnly": true
+          },
+          "setup": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SetupItemDiscriminants",
+              "readOnly": true
+            },
+            "description": "The Setup item types the org has finished or dismissed."
           },
           "trial_end_date": {
             "type": [
@@ -43045,6 +43097,27 @@
             "description": "Use case selection (homelab, company, msp, other)"
           }
         }
+      },
+      "OrganizationResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Organization"
+          },
+          {
+            "type": "object",
+            "required": [
+              "daemon_connected"
+            ],
+            "properties": {
+              "daemon_connected": {
+                "type": "boolean",
+                "description": "Whether any of the organization's daemons has ever connected. A daemon created but not\nyet started doesn't count.",
+                "readOnly": true
+              }
+            }
+          }
+        ],
+        "description": "The signed-in user's organization, with what the server derives about it."
       },
       "OsFamily": {
         "type": "string",
@@ -44039,19 +44112,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-11-09T11:46:03.204552Z",
+                        "created_at": "2026-11-09T13:22:45.362269Z",
                         "first_discovery_id": null,
-                        "id": "4a2b7b4b-5592-4e6a-859e-d1e89170e625",
+                        "id": "9dbc1e25-0046-43b4-bfa7-5da3afb0f6bc",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-11-09T11:46:03.204552Z",
+                        "last_seen_at": "2026-11-09T13:22:45.362269Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-11-09T11:46:03.204552Z",
-                        "valid_from": "2026-11-09T11:46:03.204552Z",
+                        "updated_at": "2026-11-09T13:22:45.362269Z",
+                        "valid_from": "2026-11-09T13:22:45.362269Z",
                         "valid_to": null
                       }
                     ],
@@ -44064,7 +44137,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Tenable Nessus",
+                    "service_definition": "FreeIPA",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -44311,19 +44384,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-11-09T11:46:03.248783Z",
+                    "created_at": "2026-11-09T13:22:45.406835Z",
                     "first_discovery_id": null,
-                    "id": "736f0d06-138f-4226-b4c8-9504c4b14051",
+                    "id": "b5a46ddb-50b0-4fc0-9132-32da51c8a51e",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-11-09T11:46:03.248783Z",
+                    "last_seen_at": "2026-11-09T13:22:45.406835Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-11-09T11:46:03.248783Z",
-                    "valid_from": "2026-11-09T11:46:03.248783Z",
+                    "updated_at": "2026-11-09T13:22:45.406835Z",
+                    "valid_from": "2026-11-09T13:22:45.406835Z",
                     "valid_to": null
                   }
                 ],
@@ -44336,7 +44409,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Tenable Nessus",
+                "service_definition": "FreeIPA",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -44548,6 +44621,9 @@
                 "name": "production",
                 "organization_id": "550e8400-e29b-41d4-a716-446655440001",
                 "position": 1,
+                "source": {
+                  "type": "Manual"
+                },
                 "tag_group_id": "550e8400-e29b-41d4-a716-446655440010",
                 "updated_at": "2026-01-15T10:30:00Z",
                 "valid_from": "2026-01-15T10:30:00Z",
@@ -45986,24 +46062,6 @@
           }
         }
       },
-      "RecentDiscovery": {
-        "type": "object",
-        "description": "A recent discovery run with its warnings counted by remedy.",
-        "required": [
-          "discovery",
-          "warning_summary"
-        ],
-        "properties": {
-          "discovery": {
-            "$ref": "#/components/schemas/Discovery",
-            "description": "The historical run."
-          },
-          "warning_summary": {
-            "$ref": "#/components/schemas/RunWarningSummary",
-            "description": "The run's warnings counted by remedy. Empty for a run that recorded none."
-          }
-        }
-      },
       "ReferralSource": {
         "type": "string",
         "description": "How a user first heard about Scanopy, as offered by the onboarding prompt.",
@@ -46113,26 +46171,6 @@
             "type": "string",
             "description": "The release, as semver (e.g. `0.18.0`).",
             "example": "0.18.0"
-          }
-        }
-      },
-      "RemedyCount": {
-        "type": "object",
-        "description": "The number of a run's warnings on one [`WarningRemedy`] rung.",
-        "required": [
-          "remedy",
-          "count"
-        ],
-        "properties": {
-          "count": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Warnings on that rung.",
-            "minimum": 0
-          },
-          "remedy": {
-            "$ref": "#/components/schemas/WarningRemedy",
-            "description": "The rung these warnings sit on."
           }
         }
       },
@@ -46350,36 +46388,6 @@
             }
           }
         ]
-      },
-      "RunWarningSummary": {
-        "type": "object",
-        "description": "One run's warnings, counted by remedy.",
-        "required": [
-          "by_remedy",
-          "actionable",
-          "total"
-        ],
-        "properties": {
-          "actionable": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Warnings whose remedy asks the reader to act ([`WarningRemedy::is_actionable`]).",
-            "minimum": 0
-          },
-          "by_remedy": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RemedyCount"
-            },
-            "description": "Counts per remedy in [`WarningRemedy`] declaration order. Rungs with no warnings are left\nout."
-          },
-          "total": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Every warning the run recorded.",
-            "minimum": 0
-          }
-        }
       },
       "SaveOffer": {
         "type": "string",
@@ -47088,19 +47096,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-11-09T11:46:03.222157Z",
+              "created_at": "2026-11-09T13:22:45.380494Z",
               "first_discovery_id": null,
-              "id": "906c3b7e-f052-48e4-a4bc-17a4f081a3c0",
+              "id": "ffd0139f-d2ab-4167-aa50-85913dec6a66",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-09T11:46:03.222157Z",
+              "last_seen_at": "2026-11-09T13:22:45.380494Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-09T11:46:03.222157Z",
-              "valid_from": "2026-11-09T11:46:03.222157Z",
+              "updated_at": "2026-11-09T13:22:45.380494Z",
+              "valid_from": "2026-11-09T13:22:45.380494Z",
               "valid_to": null
             }
           ],
@@ -47113,7 +47121,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Tenable Nessus",
+          "service_definition": "FreeIPA",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -47413,6 +47421,600 @@
           "client_secret": {
             "type": "string",
             "description": "Stripe SetupIntent client secret, used to mount the Payment Element."
+          }
+        }
+      },
+      "SetupItem": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "DaemonHealth",
+            "description": "A daemon whose health isn't Healthy.",
+            "required": [
+              "daemon_id",
+              "name",
+              "site_id",
+              "health",
+              "type"
+            ],
+            "properties": {
+              "daemon_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The daemon."
+              },
+              "health": {
+                "$ref": "#/components/schemas/DaemonHealth",
+                "description": "The daemon's status, the most severe that applies."
+              },
+              "name": {
+                "type": "string",
+                "description": "The daemon's name."
+              },
+              "site_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The site the daemon scans."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "DaemonHealth"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "UncoveredIntegration",
+            "description": "An integration the latest scans found on hosts with no credential of it.",
+            "required": [
+              "integration",
+              "host_ids",
+              "site_ids",
+              "type"
+            ],
+            "properties": {
+              "host_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "The hosts running its service, which the create flow pre-assigns when the\nintegration's credentials can only be pinned to hosts."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialIntegration",
+                "description": "The integration a credential would add."
+              },
+              "site_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "The sites those hosts are on, pre-assigned instead when its credentials can apply to\na whole site."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "UncoveredIntegration"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "TargetlessCredential",
+            "description": "A credential with no site or host assignment that no discovery targets, so no daemon\nreceives it.",
+            "required": [
+              "credential_id",
+              "name",
+              "integration",
+              "type"
+            ],
+            "properties": {
+              "credential_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The credential."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialIntegration",
+                "description": "The integration it authenticates."
+              },
+              "name": {
+                "type": "string",
+                "description": "The credential's name."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "TargetlessCredential"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "SiteWithoutDaemon",
+            "description": "A site with no daemon, once the org has connected one.",
+            "required": [
+              "site_id",
+              "name",
+              "type"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The site's name."
+              },
+              "site_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The site."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "SiteWithoutDaemon"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "RunWarnings",
+            "description": "One warning code from a daemon's latest runs.",
+            "required": [
+              "daemon_id",
+              "daemon_name",
+              "site_id",
+              "discovery_id",
+              "code",
+              "warnings",
+              "type"
+            ],
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/DiscoveryWarningCode",
+                "description": "The warning code."
+              },
+              "daemon_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The daemon that ran the scans."
+              },
+              "daemon_name": {
+                "type": "string",
+                "description": "The daemon's name."
+              },
+              "discovery_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The newest run that raised the code."
+              },
+              "scan_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The scan that run belongs to, whose settings answer some codes. `None` for a run\nrecorded before runs carried it."
+              },
+              "site_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The site the daemon scans."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "RunWarnings"
+                ]
+              },
+              "warnings": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DiscoveryWarning"
+                },
+                "description": "Every warning of the code from the daemon's latest runs."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "InstallDaemon",
+            "description": "No daemon is installed yet.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "InstallDaemon"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "RunFirstScan",
+            "description": "A daemon is connected and no scan has finished.",
+            "required": [
+              "daemon_id",
+              "type"
+            ],
+            "properties": {
+              "daemon_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The connected daemon that runs the first scan, whose progress the item shows."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "RunFirstScan"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "OpenTopology",
+            "description": "The first scan finished and nobody has opened the topology.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "OpenTopology"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "AnswerReferralSource",
+            "description": "Asks how the org heard of Scanopy.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "AnswerReferralSource"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "AnswerProfile",
+            "description": "Asks the user's role and company size.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "AnswerProfile"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ReviewUnconfirmed",
+            "description": "Hosts and subnets known only from other devices' reports.",
+            "required": [
+              "hosts",
+              "subnets",
+              "type"
+            ],
+            "properties": {
+              "hosts": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Unconfirmed hosts the user may review. 0 when the user can't edit hosts.",
+                "minimum": 0
+              },
+              "subnets": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Unconfirmed subnets the user may review. 0 when the user can't edit subnets.",
+                "minimum": 0
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "ReviewUnconfirmed"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ExplorePerspectives",
+            "description": "The topology's other views.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "ExplorePerspectives"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ApplicationTags",
+            "description": "Application tags, which group services on the Application view.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "ApplicationTags"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Dependencies",
+            "description": "Dependencies between services.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Dependencies"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "InterfaceCredential",
+            "description": "A credential whose integration reports interfaces.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "InterfaceCredential"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Tags",
+            "description": "Tags on hosts.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Tags"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "InviteTeam",
+            "description": "Inviting members, on a plan with more than one seat.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "InviteTeam"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "MultiSite",
+            "description": "A second site, on a plan with more than one.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "MultiSite"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ApiKeys",
+            "description": "A user API key, on a plan with API access.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "ApiKeys"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Share",
+            "description": "A share link, on a plan with sharing.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Share"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "One thing on the org's Setup list: a problem to fix (Issue), the next step of first-run setup\n(Next step), or a feature to try (Suggestion)."
+      },
+      "SetupItemDiscriminants": {
+        "type": "string",
+        "enum": [
+          "DaemonHealth",
+          "UncoveredIntegration",
+          "TargetlessCredential",
+          "SiteWithoutDaemon",
+          "RunWarnings",
+          "InstallDaemon",
+          "RunFirstScan",
+          "OpenTopology",
+          "AnswerReferralSource",
+          "AnswerProfile",
+          "ReviewUnconfirmed",
+          "ExplorePerspectives",
+          "ApplicationTags",
+          "Dependencies",
+          "InterfaceCredential",
+          "Tags",
+          "InviteTeam",
+          "MultiSite",
+          "ApiKeys",
+          "Share"
+        ]
+      },
+      "SetupItemKey": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Org",
+            "description": "An item about the whole org (InstallDaemon, Tags, ...).",
+            "required": [
+              "item_type",
+              "type"
+            ],
+            "properties": {
+              "item_type": {
+                "$ref": "#/components/schemas/SetupItemDiscriminants"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Org"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Entity",
+            "description": "An item about one entity: a daemon's health, a credential, a site, an integration's hosts.",
+            "required": [
+              "item_type",
+              "entity_id",
+              "type"
+            ],
+            "properties": {
+              "entity_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The daemon, credential or site the item concerns. For an uncovered integration, its\nfirst host."
+              },
+              "item_type": {
+                "$ref": "#/components/schemas/SetupItemDiscriminants"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Entity"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "RunWarning",
+            "description": "One warning code from a daemon's latest runs.",
+            "required": [
+              "daemon_id",
+              "code",
+              "type"
+            ],
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/DiscoveryWarningCode"
+              },
+              "daemon_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The daemon whose latest runs raised the warning."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "RunWarning"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "One item's identity across sweeps and page loads."
+      },
+      "SetupItemTier": {
+        "type": "string",
+        "description": "Which group of the Setup list an item sits in, in display order.",
+        "enum": [
+          "Issue",
+          "NextStep",
+          "Suggestion"
+        ]
+      },
+      "SetupListEntry": {
+        "type": "object",
+        "description": "One Setup list row as the dashboard serves it: the item, with its identity and its tier.",
+        "required": [
+          "key",
+          "tier",
+          "item"
+        ],
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/SetupItem"
+          },
+          "key": {
+            "$ref": "#/components/schemas/SetupItemKey",
+            "description": "The item's identity: the same item on the next load has the same key."
+          },
+          "tier": {
+            "$ref": "#/components/schemas/SetupItemTier",
+            "description": "The group of the list the item sits in."
           }
         }
       },
@@ -48717,6 +49319,9 @@
           "name": "production",
           "organization_id": "550e8400-e29b-41d4-a716-446655440001",
           "position": 1,
+          "source": {
+            "type": "Manual"
+          },
           "tag_group_id": "550e8400-e29b-41d4-a716-446655440010",
           "updated_at": "2026-01-15T10:30:00Z",
           "valid_from": "2026-01-15T10:30:00Z",
@@ -48730,7 +49335,8 @@
           "color",
           "organization_id",
           "tag_group_id",
-          "position"
+          "position",
+          "source"
         ],
         "properties": {
           "color": {
@@ -48771,6 +49377,11 @@
             ],
             "format": "int32",
             "description": "The tag's place in its group's order, from 1. `null` when the tag is in no group. Set by\nthe server: a tag joins the end of its group, and the group's tag order endpoint reorders.",
+            "readOnly": true
+          },
+          "source": {
+            "$ref": "#/components/schemas/EntitySource",
+            "description": "`System` for a tag Scanopy seeds (the starter tags), `Manual` for one a person added. Set\nby the server.",
             "readOnly": true
           },
           "tag_group_id": {
@@ -48947,30 +49558,6 @@
           "Hosts"
         ]
       },
-      "TargetlessCredential": {
-        "type": "object",
-        "description": "A credential with no site or host assignment that no discovery targets, so no daemon receives it.",
-        "required": [
-          "id",
-          "name",
-          "integration"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "The credential."
-          },
-          "integration": {
-            "$ref": "#/components/schemas/CredentialIntegration",
-            "description": "The integration it authenticates."
-          },
-          "name": {
-            "type": "string",
-            "description": "Its name."
-          }
-        }
-      },
       "TestReachabilityRequest": {
         "type": "object",
         "description": "Request to test reachability of a daemon URL.",
@@ -49089,7 +49676,8 @@
           "services",
           "vlans",
           "tags",
-          "application_group_id"
+          "application_group_id",
+          "has_interface_credential"
         ],
         "properties": {
           "application_group_id": {
@@ -49192,6 +49780,10 @@
                 "Invite"
               ]
             }
+          },
+          "has_interface_credential": {
+            "type": "boolean",
+            "description": "Whether a person added an interface-reporting credential to the organization: the L2\nview's setup prompt reads it. Set by the topology data endpoint, `false` elsewhere."
           },
           "hidden_by_tag": {
             "type": "object",
@@ -49555,7 +50147,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "3bc4bad1-a4f4-479d-8e12-876c41a59bc7",
+                  "id": "a728db37-bed8-4078-bae6-0a592e1ec82a",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -49565,23 +50157,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "a73044b7-9e10-4cad-9c35-eb00ed78db41",
+                  "id": "e2c457fd-b5ee-4e17-be8c-b301582596a4",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "f919b43a-1903-4dc5-b0c4-12551fb63712",
+                  "id": "b3d14037-ea3b-4a67-9a99-2c03b8c611c2",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "cb184ab4-e4d5-43b5-8102-36d41b1323d9",
+                  "id": "dc5bc771-4cf1-4874-be76-ee578989ab30",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "a73044b7-9e10-4cad-9c35-eb00ed78db41",
+                  "id": "e2c457fd-b5ee-4e17-be8c-b301582596a4",
                   "rule": "ByHost"
                 }
               ]
@@ -49611,19 +50203,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "f311e20e-865b-453e-91a5-89e3bca5731b",
+                "id": "125e20e8-6ce2-4659-b26e-0c079b059b79",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "e7bd2090-5655-4ab3-a38b-3397ea43ddc0",
+                "id": "99a0617f-fa75-4c77-85f8-418f21912a51",
                 "rule": "ByVLAN"
               },
               {
-                "id": "f8eddab0-a50d-47b2-8e9a-66875e0b38bb",
+                "id": "3351436f-913f-4748-ae9b-f39837a55fad",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "7c0c49a5-a130-49f4-8d7d-827ac55bdd3e",
+                "id": "a45f6403-e649-4590-afae-0ea59b66a54c",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -49644,7 +50236,7 @@
                 }
               },
               {
-                "id": "6772a221-6fa3-4cb5-b663-6ac3d967d390",
+                "id": "584b97be-8151-4219-a783-79b0dd2f3718",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -49653,19 +50245,19 @@
                 }
               },
               {
-                "id": "a02f9369-71e8-46d7-aa9c-48684264eba5",
+                "id": "0ed4db2c-a03d-4615-a427-351acff4f71c",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "cebf0bc3-973b-4544-9fdd-b1d298127228",
+                "id": "d7a408c8-37be-49f6-9d5c-af1b3534446a",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "376fea9f-006d-45aa-869b-5cbdb03233dc",
+                "id": "476d5634-27fa-4807-ba75-e0e7b3513754",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "3e392d2f-2888-4a59-969b-14c5e4a03dac",
+                "id": "f7f82c40-cd1c-4613-bc2a-0bd157e777a3",
                 "rule": "ByStack"
               }
             ]
@@ -49980,37 +50572,6 @@
           "site_id": {
             "type": "string",
             "format": "uuid"
-          }
-        }
-      },
-      "UncoveredIntegration": {
-        "type": "object",
-        "description": "An integration the latest scans found on hosts with no credential of it, still uncovered now.",
-        "required": [
-          "integration",
-          "host_ids",
-          "site_ids"
-        ],
-        "properties": {
-          "host_ids": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "description": "The hosts running its service, which the create flow pre-assigns when the integration's\ncredentials can only be pinned to hosts."
-          },
-          "integration": {
-            "$ref": "#/components/schemas/CredentialIntegration",
-            "description": "The integration a credential would add."
-          },
-          "site_ids": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "description": "The sites those hosts are on, which the create flow pre-assigns instead when its\ncredentials can apply to a whole site."
           }
         }
       },
@@ -51345,16 +51906,6 @@
             "description": "Whether the scan found the address after the packets went out."
           }
         }
-      },
-      "WarningRemedy": {
-        "type": "string",
-        "description": "What a warning asks of the person reading it.\n\nThe rung a code sits on *is* its instruction, which is why the warning list is grouped by this\nand not by [`Severity`]: a reader scanning a completed run needs to know whether they are being\nasked for something before they need to know how much data was lost. It reaches the UI as each\ncode's `category`, with this enum's own registry supplying the heading — the same shape\n`service-definitions.json` and `service-categories.json` use.\n\nDeclaration order is the order the sections render in, most demanding first.",
-        "enum": [
-          "FixInScanopy",
-          "CheckTheDevice",
-          "ClearsOnTheNextScan",
-          "NothingToDo"
-        ]
       },
       "WeekStart": {
         "type": "string",

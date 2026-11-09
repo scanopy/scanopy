@@ -1552,8 +1552,7 @@ export interface paths {
         };
         /**
          * Get dashboard summary
-         * @description Returns aggregated dashboard data including site metrics, daemon health,
-         *     recent discoveries, and plan usage.
+         * @description Returns site metrics, plan usage and the organization's Setup list as the caller sees it.
          */
         get: operations["get_dashboard_summary"];
         put?: never;
@@ -2599,29 +2598,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/organizations/daemon-prompt-response": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Record daemon-install prompt response
-         * @description Records the response so the prompt is not shown again.
-         *     Each CTA records a distinct onboarding milestone, which the UI reads to hide the prompt.
-         *     Every response is published; the PostHog subscriber turns these into funnel events, so
-         *     no client-side telemetry is needed.
-         */
-        post: operations["daemon_prompt_response"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/organizations/profile": {
         parameters: {
             query?: never;
@@ -2650,6 +2626,26 @@ export interface paths {
         put?: never;
         /** Submit referral source (how did you hear about us) */
         post: operations["submit_referral_source"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/setup/dismiss-suggestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dismiss Setup suggestion
+         * @description Hides the Suggestion for the whole organization. Issues and Next steps can't be dismissed.
+         */
+        post: operations["dismiss_setup_suggestion"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4246,19 +4242,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-09T11:46:03.254952Z",
+             *       "created_at": "2026-11-09T13:22:45.413071Z",
              *       "first_discovery_id": null,
-             *       "id": "d24d16d6-acad-424e-928d-6f66cecf0faf",
+             *       "id": "ffbc7ff3-1233-40c5-a201-097230ebb9b9",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-09T11:46:03.254952Z",
+             *       "last_seen_at": "2026-11-09T13:22:45.413071Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-09T11:46:03.254952Z",
-             *       "valid_from": "2026-11-09T11:46:03.254952Z",
+             *       "updated_at": "2026-11-09T13:22:45.413071Z",
+             *       "valid_from": "2026-11-09T13:22:45.413071Z",
              *       "valid_to": null
              *     }
              */
@@ -4670,29 +4666,15 @@ export interface components {
         ApiResponse_DashboardSummary: {
             /** @description Dashboard summary response */
             data?: {
-                /** @description Daemons the caller can see, with their current status. */
-                daemons: components["schemas"]["DaemonResponse"][];
                 /** @description Current usage against the organization's plan allowances. */
                 plan_usage: components["schemas"]["PlanUsage"];
-                /** @description The most recent discovery runs, newest first. */
-                recent_discoveries: components["schemas"]["RecentDiscovery"][];
+                /**
+                 * @description The organization's Setup list as the caller sees it: Issues, then Next steps, then
+                 *     Suggestions.
+                 */
+                setup_items: components["schemas"]["SetupListEntry"][];
                 /** @description Per-site counts for every site the caller can see. */
                 sites: components["schemas"]["SiteSummary"][];
-                /** @description Credentials no scan will send to a daemon, by name. */
-                targetless_credentials: components["schemas"]["TargetlessCredential"][];
-                /**
-                 * Format: int64
-                 * @description Hosts known only from another device's report, waiting to be confirmed, merged or
-                 *     dismissed.
-                 */
-                unconfirmed_host_count: number;
-                /**
-                 * Format: int64
-                 * @description Subnets whose range was assumed, waiting to be confirmed or corrected.
-                 */
-                unconfirmed_subnet_count: number;
-                /** @description Integrations found on hosts with no credential of them, most hosts first. */
-                uncovered_integrations: components["schemas"]["UncoveredIntegration"][];
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -5181,19 +5163,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-09T11:46:03.221744Z",
+             *               "created_at": "2026-11-09T13:22:45.380081Z",
              *               "first_discovery_id": null,
-             *               "id": "4270e718-2677-48a5-b967-7d084038cc32",
+             *               "id": "c87eb7cc-bdf6-4b9b-83ec-65b43f7c407d",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-09T11:46:03.221744Z",
+             *               "last_seen_at": "2026-11-09T13:22:45.380081Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-09T11:46:03.221744Z",
-             *               "valid_from": "2026-11-09T11:46:03.221744Z",
+             *               "updated_at": "2026-11-09T13:22:45.380081Z",
+             *               "valid_from": "2026-11-09T13:22:45.380081Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5206,7 +5188,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Tenable Nessus",
+             *           "service_definition": "FreeIPA",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -5850,24 +5832,14 @@ export interface components {
          * @description Envelope for a successful response. Failures are sent with a non-2xx status
          *     and an `ApiErrorResponse` body instead.
          */
-        ApiResponse_Organization: {
-            /** @description The result payload. Omitted on failure. */
-            data?: components["schemas"]["OrganizationBase"] & {
+        ApiResponse_OrganizationResponse: {
+            /** @description The signed-in user's organization, with what the server derives about it. */
+            data?: components["schemas"]["Organization"] & {
                 /**
-                 * Format: date-time
-                 * @description When this record was first created.
+                 * @description Whether any of the organization's daemons has ever connected. A daemon created but not
+                 *     yet started doesn't count.
                  */
-                readonly created_at: string;
-                /**
-                 * Format: uuid
-                 * @description Server-assigned unique identifier.
-                 */
-                readonly id: string;
-                /**
-                 * Format: date-time
-                 * @description When this record was last modified.
-                 */
-                readonly updated_at: string;
+                readonly daemon_connected: boolean;
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -6248,19 +6220,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-09T11:46:03.249634Z",
+             *           "created_at": "2026-11-09T13:22:45.407689Z",
              *           "first_discovery_id": null,
-             *           "id": "16b850b4-f957-484c-b8a9-0abfa3e2e8ab",
+             *           "id": "d40f3b3f-0acf-4443-a1d0-96bdab879f0f",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-09T11:46:03.249634Z",
+             *           "last_seen_at": "2026-11-09T13:22:45.407689Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-09T11:46:03.249634Z",
-             *           "valid_from": "2026-11-09T11:46:03.249634Z",
+             *           "updated_at": "2026-11-09T13:22:45.407689Z",
+             *           "valid_from": "2026-11-09T13:22:45.407689Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6273,7 +6245,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Tenable Nessus",
+             *       "service_definition": "FreeIPA",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -6744,6 +6716,9 @@ export interface components {
              *       "name": "production",
              *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
              *       "position": 1,
+             *       "source": {
+             *         "type": "Manual"
+             *       },
              *       "tag_group_id": "550e8400-e29b-41d4-a716-446655440010",
              *       "updated_at": "2026-01-15T10:30:00Z",
              *       "valid_from": "2026-01-15T10:30:00Z",
@@ -6953,6 +6928,11 @@ export interface components {
                         [key: string]: number;
                     };
                 };
+                /**
+                 * @description Whether a person added an interface-reporting credential to the organization: the L2
+                 *     view's setup prompt reads it. Set by the topology data endpoint, `false` elsewhere.
+                 */
+                has_interface_credential: boolean;
                 /**
                  * @description Per view, how many entities of each type a Visibility tag left out that the view would
                  *     have drawn. They never reach the browser, so this is how the filter panel knows to offer
@@ -7743,19 +7723,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-09T11:46:03.222370Z",
+         *       "created_at": "2026-11-09T13:22:45.380709Z",
          *       "first_discovery_id": null,
-         *       "id": "3b44c16e-75fb-43c2-b2a3-6ef5731780d8",
+         *       "id": "65c098a1-9fa7-4d8c-b3a4-f3f2e7286044",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-09T11:46:03.222370Z",
+         *       "last_seen_at": "2026-11-09T13:22:45.380709Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-09T11:46:03.222370Z",
-         *       "valid_from": "2026-11-09T11:46:03.222370Z",
+         *       "updated_at": "2026-11-09T13:22:45.380709Z",
+         *       "valid_from": "2026-11-09T13:22:45.380709Z",
          *       "valid_to": null
          *     }
          */
@@ -8145,7 +8125,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Tenable Nessus",
+         *           "service_definition": "FreeIPA",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8354,6 +8334,11 @@ export interface components {
              * @description The organization that owns this record.
              */
             organization_id: string;
+            /**
+             * @description `System` for a credential Scanopy seeds (the defaults), `Manual` for one a person added.
+             *     Set by the server.
+             */
+            readonly source: components["schemas"]["EntitySource"];
             /** @description Tags assigned to this entity. */
             tags: string[];
             /**
@@ -8838,16 +8823,6 @@ export interface components {
         DaemonOs: "linux" | "macos" | "windows" | "freebsd";
         /** @description A file on the daemon's own machine, read by the daemon at scan time. */
         DaemonPath: string;
-        /**
-         * @description Which daemon-prompt CTA the user chose.
-         * @enum {string}
-         */
-        DaemonPromptAction: "dismissed" | "accepted";
-        /** @description Request recording the user's response to the "Start Discovering Your Network" prompt. */
-        DaemonPromptResponseRequest: {
-            /** @description What the user chose to do about the daemon prompt. */
-            action: components["schemas"]["DaemonPromptAction"];
-        };
         /** @description Daemon registration request from daemon to server */
         DaemonRegistrationRequest: {
             /**
@@ -9014,29 +8989,15 @@ export interface components {
         };
         /** @description Dashboard summary response */
         DashboardSummary: {
-            /** @description Daemons the caller can see, with their current status. */
-            daemons: components["schemas"]["DaemonResponse"][];
             /** @description Current usage against the organization's plan allowances. */
             plan_usage: components["schemas"]["PlanUsage"];
-            /** @description The most recent discovery runs, newest first. */
-            recent_discoveries: components["schemas"]["RecentDiscovery"][];
+            /**
+             * @description The organization's Setup list as the caller sees it: Issues, then Next steps, then
+             *     Suggestions.
+             */
+            setup_items: components["schemas"]["SetupListEntry"][];
             /** @description Per-site counts for every site the caller can see. */
             sites: components["schemas"]["SiteSummary"][];
-            /** @description Credentials no scan will send to a daemon, by name. */
-            targetless_credentials: components["schemas"]["TargetlessCredential"][];
-            /**
-             * Format: int64
-             * @description Hosts known only from another device's report, waiting to be confirmed, merged or
-             *     dismissed.
-             */
-            unconfirmed_host_count: number;
-            /**
-             * Format: int64
-             * @description Subnets whose range was assumed, waiting to be confirmed or corrected.
-             */
-            unconfirmed_subnet_count: number;
-            /** @description Integrations found on hosts with no credential of them, most hosts first. */
-            uncovered_integrations: components["schemas"]["UncoveredIntegration"][];
         };
         /** @enum {string} */
         DateOrder: "browser_default" | "iso" | "day_first" | "month_first";
@@ -9207,6 +9168,14 @@ export interface components {
             /** @description Date after which this daemon version stops being supported. */
             sunset_date?: string | null;
         };
+        /**
+         * @description The desktop container VM a daemon was found running inside.
+         *
+         *     Each one runs containers in a Linux VM whose network is NAT'd behind the machine it runs on, so
+         *     ARP, mDNS and LLDP from a daemon in it reach the VM's virtual network and not the LAN.
+         * @enum {string}
+         */
+        DesktopVm: "DockerDesktop" | "OrbStack" | "Colima";
         /**
          * @description What a host is, as a device: the class its icon stands for on the map.
          *
@@ -10125,6 +10094,11 @@ export interface components {
             daemon_version?: string | null;
         } | {
             /** @enum {string} */
+            code: "DaemonInDesktopVm";
+            /** @description The VM the daemon runs in. */
+            vm: components["schemas"]["DesktopVm"];
+        } | {
+            /** @enum {string} */
             code: "WarningsTruncated";
             /**
              * Format: int32
@@ -10136,6 +10110,21 @@ export interface components {
             code: "Unknown";
             /** @description The original warning text, rendered as-is. */
             detail: string;
+        };
+        /**
+         * @description The stable identity of a warning: what crosses the wire as the tag, what labels the metric,
+         *     and what the UI resolves its sentence from.
+         *
+         *     Hand-declared rather than generated by `EnumDiscriminants` because it has to carry its own
+         *     derives to satisfy `Operation`, and a generated enum cannot.
+         *     [`DiscoveryWarning::code`] is an exhaustive match, so the two cannot drift.
+         * @enum {string}
+         */
+        DiscoveryWarningCode: "InterfaceSetCutShort" | "InterfaceDetailsCutShort" | "SnmpWalkEntryCap" | "SnmpWalkUnsupported" | "SnmpWalkDesynchronised" | "SnmpWalkPartialDiscarded" | "SnmpWalkPartialRecorded" | "SnmpWalkBridgeMibAbsent" | "SnmpWalkNoAnswer" | "SnmpWalkFailed" | "ClaimedCountReadCutShort" | "ClaimedCountUnderRead" | "ClaimedCapabilityReadCutShort" | "ClaimedCapabilityEmpty" | "LldpLocalPortDropped" | "LldpLocalPortDroppedReadCutShort" | "LldpLocalPortMisplaced" | "MalformedNeighboursWalkCutShort" | "MalformedNeighboursGhostRows" | "MalformedNeighboursIncompleteRecords" | "MalformedNeighboursUnexpectedType" | "MalformedNeighboursUnreadableIndex" | "SnmpCollectedNothing" | "VlanRecordingFailed" | "EqualReachIntegrationsMerged" | "CredentialTargetNotScanned" | "CredentialTargetNotResponding" | "CredentialDaemonOsMismatch" | "CredentialNeedsNewerDaemon" | "CredentialWithoutTarget" | "CredentialLoginUnavailable" | "CredentialGateClosed" | "CredentialRejected" | "CredentialMalformed" | "CredentialTlsFailed" | "CredentialNotThisService" | "CredentialCollectionFailed" | "CredentialCollectionTimedOut" | "CredentialUnreachable" | "CredentialTimedOut" | "IntegrationWithoutCredential" | "GuestOutsideScan" | "GuestBehindHypervisor" | "GuestIsolated" | "ConnectionsWithoutProtocolResponse" | "ScanTimeLimitWithEstimate" | "ScanTimeLimit" | "DcpSweepTimedOut" | "IcmpSweepTimedOut" | "ReverseDnsTimedOut" | "LldpNeighbourNotFound" | "LldpNeighbourAmbiguous" | "LldpPortNoStrategy" | "LldpPortNotFound" | "LldpPortAmbiguous" | "ProvisionalSubnetInferred" | "UnconfirmedHostInferred" | "NeighbourResolutionIncomplete" | "FdbResolutionIncomplete" | "OutdatedDaemonFormat" | "DaemonInDesktopVm" | "WarningsTruncated" | "Unknown";
+        /** @description Request to dismiss a Suggestion from the org's Setup list */
+        DismissSuggestionRequest: {
+            /** @description The Suggestion's item type. */
+            item_type: components["schemas"]["SetupItemDiscriminants"];
         };
         /**
          * @description An action as the role comparison shows it. `Write` is one [`Action`] and reads as Edit, plus
@@ -11346,19 +11335,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-09T11:46:03.221005Z",
+         *               "created_at": "2026-11-09T13:22:45.379321Z",
          *               "first_discovery_id": null,
-         *               "id": "5ad8b948-7a40-4410-be7a-82fade086413",
+         *               "id": "ab33004a-5337-48f0-b46d-cd5dd0c74b59",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-09T11:46:03.221005Z",
+         *               "last_seen_at": "2026-11-09T13:22:45.379321Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-09T11:46:03.221005Z",
-         *               "valid_from": "2026-11-09T11:46:03.221005Z",
+         *               "updated_at": "2026-11-09T13:22:45.379321Z",
+         *               "valid_from": "2026-11-09T13:22:45.379321Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11371,7 +11360,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Tenable Nessus",
+         *           "service_definition": "FreeIPA",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -12673,6 +12662,19 @@ export interface components {
          * @enum {string}
          */
         LicenseStatusDiscriminants: "valid" | "expired" | "invalid" | "pending";
+        /** @description A daemon whose version or health changed when it checked in. */
+        LiveDaemonUpdate: {
+            /**
+             * Format: uuid
+             * @description The daemon that checked in.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The daemon's site, which decides who receives the update.
+             */
+            site_id: string;
+        };
         /** @description A site whose live topology changed. */
         LiveTopologyUpdate: {
             /**
@@ -12692,6 +12694,11 @@ export interface components {
             data: components["schemas"]["LiveTopologyUpdate"];
             /** @enum {string} */
             type: "Topology";
+        } | {
+            /** @description A daemon checked in with a new version or health, so the daemons list and Home need refetching. */
+            data: components["schemas"]["LiveDaemonUpdate"];
+            /** @enum {string} */
+            type: "Daemon";
         };
         /**
          * @description LLDP Chassis ID subtypes per IEEE 802.1AB.
@@ -13078,8 +13085,6 @@ export interface components {
             /** @description URL-safe identifier used in the provider's login and link endpoints. */
             slug: string;
         };
-        /** @enum {string} */
-        OnboardingOperationDiscriminants: "OrgCreated" | "OnboardingModalCompleted" | "PlanSelected" | "DaemonPromptDismissed" | "DaemonPromptAccepted" | "FirstDaemonRegistered" | "FirstTopologyRebuild" | "FirstDiscoveryCompleted" | "FirstHostDiscovered" | "SecondSiteCreated" | "FirstTagCreated" | "FirstDependencyCreated" | "FirstUserApiKeyCreated" | "FirstInterfaceCredentialCreated" | "FirstApplicationTagCreated" | "FirstCredentialCreated" | "FirstSnapshotCreated" | "InviteSent" | "InviteAccepted" | "ProfileCompleted" | "ReferralSourceCompleted";
         /** @description Site data in onboarding state response */
         OnboardingSiteState: {
             /**
@@ -13213,11 +13218,11 @@ export interface components {
              *     stale or meaningless).
              */
             readonly next_renewal_at?: string | null;
-            /** @description Progress through first-run setup. */
-            onboarding: components["schemas"]["OnboardingOperationDiscriminants"][];
             /** @description The plan this organization is on. */
             readonly plan: components["schemas"]["BillingPlan"];
             readonly plan_status: components["schemas"]["PlanStatus"] | null;
+            /** @description The Setup item types the org has finished or dismissed. */
+            setup: components["schemas"]["SetupItemDiscriminants"][];
             /**
              * Format: date-time
              * @description When the free trial ends, if one is running.
@@ -13227,6 +13232,14 @@ export interface components {
             readonly trial_extended_used?: boolean;
             /** @description Use case selection (homelab, company, msp, other) */
             use_case?: components["schemas"]["UseCase"];
+        };
+        /** @description The signed-in user's organization, with what the server derives about it. */
+        OrganizationResponse: components["schemas"]["Organization"] & {
+            /**
+             * @description Whether any of the organization's daemons has ever connected. A daemon created but not
+             *     yet started doesn't count.
+             */
+            readonly daemon_connected: boolean;
         };
         /**
          * @description The OS family of a machine a credential's paths live on. Paths, sockets and the shell a script
@@ -14596,13 +14609,6 @@ export interface components {
             /** @description Whether a shared VLAN widened the range past the conventional prefix. */
             widened_by_vlan: boolean;
         };
-        /** @description A recent discovery run with its warnings counted by remedy. */
-        RecentDiscovery: {
-            /** @description The historical run. */
-            discovery: components["schemas"]["Discovery"];
-            /** @description The run's warnings counted by remedy. Empty for a run that recorded none. */
-            warning_summary: components["schemas"]["RunWarningSummary"];
-        };
         /**
          * @description How a user first heard about Scanopy, as offered by the onboarding prompt.
          * @enum {string}
@@ -14652,16 +14658,6 @@ export interface components {
              * @example 0.18.0
              */
             version: string;
-        };
-        /** @description The number of a run's warnings on one [`WarningRemedy`] rung. */
-        RemedyCount: {
-            /**
-             * Format: int32
-             * @description Warnings on that rung.
-             */
-            count: number;
-            /** @description The rung these warnings sit on. */
-            remedy: components["schemas"]["WarningRemedy"];
         };
         RequestEmailChangeRequest: {
             /**
@@ -14763,24 +14759,6 @@ export interface components {
             readonly last_run?: string | null;
             /** @enum {string} */
             type: "AdHoc";
-        };
-        /** @description One run's warnings, counted by remedy. */
-        RunWarningSummary: {
-            /**
-             * Format: int32
-             * @description Warnings whose remedy asks the reader to act ([`WarningRemedy::is_actionable`]).
-             */
-            actionable: number;
-            /**
-             * @description Counts per remedy in [`WarningRemedy`] declaration order. Rungs with no warnings are left
-             *     out.
-             */
-            by_remedy: components["schemas"]["RemedyCount"][];
-            /**
-             * Format: int32
-             * @description Every warning the run recorded.
-             */
-            total: number;
         };
         /**
          * @description Save-offer choices presented during in-app cancellation (Phase 5).
@@ -15048,19 +15026,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-09T11:46:03.222157Z",
+         *           "created_at": "2026-11-09T13:22:45.380494Z",
          *           "first_discovery_id": null,
-         *           "id": "906c3b7e-f052-48e4-a4bc-17a4f081a3c0",
+         *           "id": "ffd0139f-d2ab-4167-aa50-85913dec6a66",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-09T11:46:03.222157Z",
+         *           "last_seen_at": "2026-11-09T13:22:45.380494Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-09T11:46:03.222157Z",
-         *           "valid_from": "2026-11-09T11:46:03.222157Z",
+         *           "updated_at": "2026-11-09T13:22:45.380494Z",
+         *           "valid_from": "2026-11-09T13:22:45.380494Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -15073,7 +15051,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Tenable Nessus",
+         *       "service_definition": "FreeIPA",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -15237,6 +15215,195 @@ export interface components {
         SetupIntentResponse: {
             /** @description Stripe SetupIntent client secret, used to mount the Payment Element. */
             client_secret: string;
+        };
+        /**
+         * @description One thing on the org's Setup list: a problem to fix (Issue), the next step of first-run setup
+         *     (Next step), or a feature to try (Suggestion).
+         */
+        SetupItem: {
+            /**
+             * Format: uuid
+             * @description The daemon.
+             */
+            daemon_id: string;
+            /** @description The daemon's status, the most severe that applies. */
+            health: components["schemas"]["DaemonHealth"];
+            /** @description The daemon's name. */
+            name: string;
+            /**
+             * Format: uuid
+             * @description The site the daemon scans.
+             */
+            site_id: string;
+            /** @enum {string} */
+            type: "DaemonHealth";
+        } | {
+            /**
+             * @description The hosts running its service, which the create flow pre-assigns when the
+             *     integration's credentials can only be pinned to hosts.
+             */
+            host_ids: string[];
+            /** @description The integration a credential would add. */
+            integration: components["schemas"]["CredentialIntegration"];
+            /**
+             * @description The sites those hosts are on, pre-assigned instead when its credentials can apply to
+             *     a whole site.
+             */
+            site_ids: string[];
+            /** @enum {string} */
+            type: "UncoveredIntegration";
+        } | {
+            /**
+             * Format: uuid
+             * @description The credential.
+             */
+            credential_id: string;
+            /** @description The integration it authenticates. */
+            integration: components["schemas"]["CredentialIntegration"];
+            /** @description The credential's name. */
+            name: string;
+            /** @enum {string} */
+            type: "TargetlessCredential";
+        } | {
+            /** @description The site's name. */
+            name: string;
+            /**
+             * Format: uuid
+             * @description The site.
+             */
+            site_id: string;
+            /** @enum {string} */
+            type: "SiteWithoutDaemon";
+        } | {
+            /** @description The warning code. */
+            code: components["schemas"]["DiscoveryWarningCode"];
+            /**
+             * Format: uuid
+             * @description The daemon that ran the scans.
+             */
+            daemon_id: string;
+            /** @description The daemon's name. */
+            daemon_name: string;
+            /**
+             * Format: uuid
+             * @description The newest run that raised the code.
+             */
+            discovery_id: string;
+            /**
+             * Format: uuid
+             * @description The scan that run belongs to, whose settings answer some codes. `None` for a run
+             *     recorded before runs carried it.
+             */
+            scan_id?: string | null;
+            /**
+             * Format: uuid
+             * @description The site the daemon scans.
+             */
+            site_id: string;
+            /** @enum {string} */
+            type: "RunWarnings";
+            /** @description Every warning of the code from the daemon's latest runs. */
+            warnings: components["schemas"]["DiscoveryWarning"][];
+        } | {
+            /** @enum {string} */
+            type: "InstallDaemon";
+        } | {
+            /**
+             * Format: uuid
+             * @description The connected daemon that runs the first scan, whose progress the item shows.
+             */
+            daemon_id: string;
+            /** @enum {string} */
+            type: "RunFirstScan";
+        } | {
+            /** @enum {string} */
+            type: "OpenTopology";
+        } | {
+            /** @enum {string} */
+            type: "AnswerReferralSource";
+        } | {
+            /** @enum {string} */
+            type: "AnswerProfile";
+        } | {
+            /**
+             * Format: int64
+             * @description Unconfirmed hosts the user may review. 0 when the user can't edit hosts.
+             */
+            hosts: number;
+            /**
+             * Format: int64
+             * @description Unconfirmed subnets the user may review. 0 when the user can't edit subnets.
+             */
+            subnets: number;
+            /** @enum {string} */
+            type: "ReviewUnconfirmed";
+        } | {
+            /** @enum {string} */
+            type: "ExplorePerspectives";
+        } | {
+            /** @enum {string} */
+            type: "ApplicationTags";
+        } | {
+            /** @enum {string} */
+            type: "Dependencies";
+        } | {
+            /** @enum {string} */
+            type: "InterfaceCredential";
+        } | {
+            /** @enum {string} */
+            type: "Tags";
+        } | {
+            /** @enum {string} */
+            type: "InviteTeam";
+        } | {
+            /** @enum {string} */
+            type: "MultiSite";
+        } | {
+            /** @enum {string} */
+            type: "ApiKeys";
+        } | {
+            /** @enum {string} */
+            type: "Share";
+        };
+        /** @enum {string} */
+        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ReviewUnconfirmed" | "ExplorePerspectives" | "ApplicationTags" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
+        /** @description One item's identity across sweeps and page loads. */
+        SetupItemKey: {
+            item_type: components["schemas"]["SetupItemDiscriminants"];
+            /** @enum {string} */
+            type: "Org";
+        } | {
+            /**
+             * Format: uuid
+             * @description The daemon, credential or site the item concerns. For an uncovered integration, its
+             *     first host.
+             */
+            entity_id: string;
+            item_type: components["schemas"]["SetupItemDiscriminants"];
+            /** @enum {string} */
+            type: "Entity";
+        } | {
+            code: components["schemas"]["DiscoveryWarningCode"];
+            /**
+             * Format: uuid
+             * @description The daemon whose latest runs raised the warning.
+             */
+            daemon_id: string;
+            /** @enum {string} */
+            type: "RunWarning";
+        };
+        /**
+         * @description Which group of the Setup list an item sits in, in display order.
+         * @enum {string}
+         */
+        SetupItemTier: "Issue" | "NextStep" | "Suggestion";
+        /** @description One Setup list row as the dashboard serves it: the item, with its identity and its tier. */
+        SetupListEntry: {
+            item: components["schemas"]["SetupItem"];
+            /** @description The item's identity: the same item on the next load has the same key. */
+            key: components["schemas"]["SetupItemKey"];
+            /** @description The group of the list the item sits in. */
+            tier: components["schemas"]["SetupItemTier"];
         };
         /** @description Setup request for pre-registration org/site configuration */
         SetupRequest: {
@@ -15848,6 +16015,9 @@ export interface components {
          *       "name": "production",
          *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
          *       "position": 1,
+         *       "source": {
+         *         "type": "Manual"
+         *       },
          *       "tag_group_id": "550e8400-e29b-41d4-a716-446655440010",
          *       "updated_at": "2026-01-15T10:30:00Z",
          *       "valid_from": "2026-01-15T10:30:00Z",
@@ -15905,6 +16075,11 @@ export interface components {
              *     the server: a tag joins the end of its group, and the group's tag order endpoint reorders.
              */
             readonly position: number | null;
+            /**
+             * @description `System` for a tag Scanopy seeds (the starter tags), `Manual` for one a person added. Set
+             *     by the server.
+             */
+            readonly source: components["schemas"]["EntitySource"];
             /**
              * Format: uuid
              * @description The tag group this tag belongs to, if any. An entity holds at most one tag of a group.
@@ -16011,18 +16186,6 @@ export interface components {
         };
         /** @enum {string} */
         Target: "DaemonHost" | "Site" | "Hosts";
-        /** @description A credential with no site or host assignment that no discovery targets, so no daemon receives it. */
-        TargetlessCredential: {
-            /**
-             * Format: uuid
-             * @description The credential.
-             */
-            id: string;
-            /** @description The integration it authenticates. */
-            integration: components["schemas"]["CredentialIntegration"];
-            /** @description Its name. */
-            name: string;
-        };
         /** @description Request to test reachability of a daemon URL. */
         TestReachabilityRequest: {
             /** @description If true, also perform an HTTP GET to {url}/health after the TCP check */
@@ -16118,6 +16281,11 @@ export interface components {
                     [key: string]: number;
                 };
             };
+            /**
+             * @description Whether a person added an interface-reporting credential to the organization: the L2
+             *     view's setup prompt reads it. Set by the topology data endpoint, `false` elsewhere.
+             */
+            has_interface_credential: boolean;
             /**
              * @description Per view, how many entities of each type a Visibility tag left out that the view would
              *     have drawn. They never reach the browser, so this is how the filter panel knows to offer
@@ -16285,7 +16453,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "3bc4bad1-a4f4-479d-8e12-876c41a59bc7",
+             *           "id": "a728db37-bed8-4078-bae6-0a592e1ec82a",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16295,23 +16463,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "a73044b7-9e10-4cad-9c35-eb00ed78db41",
+             *           "id": "e2c457fd-b5ee-4e17-be8c-b301582596a4",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "f919b43a-1903-4dc5-b0c4-12551fb63712",
+             *           "id": "b3d14037-ea3b-4a67-9a99-2c03b8c611c2",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "cb184ab4-e4d5-43b5-8102-36d41b1323d9",
+             *           "id": "dc5bc771-4cf1-4874-be76-ee578989ab30",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "a73044b7-9e10-4cad-9c35-eb00ed78db41",
+             *           "id": "e2c457fd-b5ee-4e17-be8c-b301582596a4",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16325,19 +16493,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "f311e20e-865b-453e-91a5-89e3bca5731b",
+             *         "id": "125e20e8-6ce2-4659-b26e-0c079b059b79",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "e7bd2090-5655-4ab3-a38b-3397ea43ddc0",
+             *         "id": "99a0617f-fa75-4c77-85f8-418f21912a51",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "f8eddab0-a50d-47b2-8e9a-66875e0b38bb",
+             *         "id": "3351436f-913f-4748-ae9b-f39837a55fad",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "7c0c49a5-a130-49f4-8d7d-827ac55bdd3e",
+             *         "id": "a45f6403-e649-4590-afae-0ea59b66a54c",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16358,7 +16526,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "6772a221-6fa3-4cb5-b663-6ac3d967d390",
+             *         "id": "584b97be-8151-4219-a783-79b0dd2f3718",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16367,19 +16535,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "a02f9369-71e8-46d7-aa9c-48684264eba5",
+             *         "id": "0ed4db2c-a03d-4615-a427-351acff4f71c",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "cebf0bc3-973b-4544-9fdd-b1d298127228",
+             *         "id": "d7a408c8-37be-49f6-9d5c-af1b3534446a",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "376fea9f-006d-45aa-869b-5cbdb03233dc",
+             *         "id": "476d5634-27fa-4807-ba75-e0e7b3513754",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "3e392d2f-2888-4a59-969b-14c5e4a03dac",
+             *         "id": "f7f82c40-cd1c-4613-bc2a-0bd157e777a3",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -16511,21 +16679,6 @@ export interface components {
             name: string;
             /** Format: uuid */
             site_id: string;
-        };
-        /** @description An integration the latest scans found on hosts with no credential of it, still uncovered now. */
-        UncoveredIntegration: {
-            /**
-             * @description The hosts running its service, which the create flow pre-assigns when the integration's
-             *     credentials can only be pinned to hosts.
-             */
-            host_ids: string[];
-            /** @description The integration a credential would add. */
-            integration: components["schemas"]["CredentialIntegration"];
-            /**
-             * @description The sites those hosts are on, which the create flow pre-assigns instead when its
-             *     credentials can apply to a whole site.
-             */
-            site_ids: string[];
         };
         /** @description A neighbour advertised by a local interface whose far end could not be placed on a host. */
         UnmatchedNeighbour: {
@@ -17182,19 +17335,6 @@ export interface components {
             /** @description Whether the scan found the address after the packets went out. */
             woke: boolean;
         };
-        /**
-         * @description What a warning asks of the person reading it.
-         *
-         *     The rung a code sits on *is* its instruction, which is why the warning list is grouped by this
-         *     and not by [`Severity`]: a reader scanning a completed run needs to know whether they are being
-         *     asked for something before they need to know how much data was lost. It reaches the UI as each
-         *     code's `category`, with this enum's own registry supplying the heading — the same shape
-         *     `service-definitions.json` and `service-categories.json` use.
-         *
-         *     Declaration order is the order the sections render in, most demanding first.
-         * @enum {string}
-         */
-        WarningRemedy: "FixInScanopy" | "CheckTheDevice" | "ClearsOnTheNextScan" | "NothingToDo";
         /** @enum {string} */
         WeekStart: "monday" | "sunday";
     };
@@ -23305,7 +23445,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Organization"];
+                    "application/json": components["schemas"]["ApiResponse_OrganizationResponse"];
                 };
             };
             /** @description Organization not found */
@@ -23315,30 +23455,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
-    daemon_prompt_response: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DaemonPromptResponseRequest"];
-            };
-        };
-        responses: {
-            /** @description Response recorded */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse"];
                 };
             };
         };
@@ -23391,6 +23507,48 @@ export interface operations {
             };
         };
     };
+    dismiss_setup_suggestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DismissSuggestionRequest"];
+            };
+        };
+        responses: {
+            /** @description Suggestion dismissed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Not a Suggestion */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description The user may not act on the Suggestion */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     update_organization: {
         parameters: {
             query?: never;
@@ -23413,7 +23571,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Organization"];
+                    "application/json": components["schemas"]["ApiResponse_OrganizationResponse"];
                 };
             };
             /** @description Only owners can update organization */
@@ -26585,10 +26743,9 @@ export interface operations {
                  */
                 snapshot_id?: string | null;
                 /**
-                 * @description When `true`, records the `FirstTopologyRebuild` onboarding milestone (the user has
-                 *     viewed their topology). Only the frontend's explicit on-tab view sets this — the
-                 *     background topology-data query never does — so the milestone never fires from other
-                 *     tabs. One-time per org (guarded below + subscriber dedup).
+                 * @description When `true`, records the `OpenTopology` setup item (the user has viewed their topology).
+                 *     Only the frontend's explicit on-tab view sets this — the background topology-data query
+                 *     never does — so it is never recorded from other tabs. Once per org.
                  */
                 mark_viewed?: boolean | null;
                 /**
