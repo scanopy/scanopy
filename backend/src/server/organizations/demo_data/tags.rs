@@ -202,6 +202,8 @@ pub(super) fn generate_tags(
                     tag_group_id,
                     position,
                     icon: icon.map(TagIcon),
+                    // The demo's own tags stand for tags a person added.
+                    source: EntitySource::Manual,
                 },
             }
         })

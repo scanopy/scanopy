@@ -16,12 +16,11 @@ use crate::server::discovery::r#impl::types::{DiscoveryType, RunType};
 use crate::server::discovery_warnings::service::DiscoveryWarningService;
 use crate::server::hosts::service::HostService;
 use crate::server::organizations::service::OrganizationService;
+use crate::server::setup::types::{SetupItemDiscriminants, SetupOperation};
 use crate::server::shared::entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants};
 use crate::server::shared::events::bus::EventBus;
-use crate::server::shared::events::traits::{EntityEventFlags, EntityScope, Event, OrgScope};
-use crate::server::shared::events::types::{
-    EntityOperation, OnboardingOperation, OnboardingOperationDiscriminants, UpdateReason,
-};
+use crate::server::shared::events::traits::{EntityEventFlags, EntityScope, Event};
+use crate::server::shared::events::types::{EntityOperation, UpdateReason};
 use crate::server::shared::services::traits::{CrudService, EventBusService};
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::generic::GenericPostgresStorage;

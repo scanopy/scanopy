@@ -12536,7 +12536,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponse_Organization"
+                  "$ref": "#/components/schemas/ApiResponse_OrganizationResponse"
                 }
               }
             }
@@ -12557,39 +12557,6 @@
             "session": []
           }
         ]
-      }
-    },
-    "/api/v1/organizations/daemon-prompt-response": {
-      "post": {
-        "tags": [
-          "Organizations",
-          "internal"
-        ],
-        "summary": "Record daemon-install prompt response",
-        "description": "Records the response so the prompt is not shown again.\nEach CTA records a distinct onboarding milestone, which the UI reads to hide the prompt.\nEvery response is published; the PostHog subscriber turns these into funnel events, so\nno client-side telemetry is needed.",
-        "operationId": "daemon_prompt_response",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DaemonPromptResponseRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Response recorded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponse"
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/api/v1/organizations/profile": {
@@ -12691,7 +12658,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponse_Organization"
+                  "$ref": "#/components/schemas/ApiResponse_OrganizationResponse"
                 }
               }
             }
@@ -20090,7 +20057,7 @@
           {
             "name": "mark_viewed",
             "in": "query",
-            "description": "When `true`, records the `FirstTopologyRebuild` onboarding milestone (the user has\nviewed their topology). Only the frontend's explicit on-tab view sets this — the\nbackground topology-data query never does — so the milestone never fires from other\ntabs. One-time per org (guarded below + subscriber dedup).",
+            "description": "When `true`, records the `OpenTopology` setup item (the user has viewed their topology).\nOnly the frontend's explicit on-tab view sets this — the background topology-data query\nnever does — so it is never recorded from other tabs. Once per org.",
             "required": false,
             "schema": {
               "type": [
@@ -26224,7 +26191,7 @@
           }
         }
       },
-      "ApiResponse_Organization": {
+      "ApiResponse_OrganizationResponse": {
         "type": "object",
         "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
@@ -26235,38 +26202,23 @@
           "data": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/OrganizationBase"
+                "$ref": "#/components/schemas/Organization"
               },
               {
                 "type": "object",
                 "required": [
-                  "id",
-                  "created_at",
-                  "updated_at"
+                  "daemon_connected"
                 ],
                 "properties": {
-                  "created_at": {
-                    "type": "string",
-                    "format": "date-time",
-                    "description": "When this record was first created.",
-                    "readOnly": true
-                  },
-                  "id": {
-                    "type": "string",
-                    "format": "uuid",
-                    "description": "Server-assigned unique identifier.",
-                    "readOnly": true
-                  },
-                  "updated_at": {
-                    "type": "string",
-                    "format": "date-time",
-                    "description": "When this record was last modified.",
+                  "daemon_connected": {
+                    "type": "boolean",
+                    "description": "Whether any of the organization's daemons has ever connected. A daemon created but not\nyet started doesn't count.",
                     "readOnly": true
                   }
                 }
               }
             ],
-            "description": "The result payload. Omitted on failure."
+            "description": "The signed-in user's organization, with what the server derives about it."
           },
           "error": {
             "type": [
@@ -27724,6 +27676,9 @@
               "name": "production",
               "organization_id": "550e8400-e29b-41d4-a716-446655440001",
               "position": 1,
+              "source": {
+                "type": "Manual"
+              },
               "tag_group_id": "550e8400-e29b-41d4-a716-446655440010",
               "updated_at": "2026-01-15T10:30:00Z",
               "valid_from": "2026-01-15T10:30:00Z",
@@ -27955,7 +27910,8 @@
               "services",
               "vlans",
               "tags",
-              "application_group_id"
+              "application_group_id",
+              "has_interface_credential"
             ],
             "properties": {
               "application_group_id": {
@@ -28058,6 +28014,10 @@
                     "Invite"
                   ]
                 }
+              },
+              "has_interface_credential": {
+                "type": "boolean",
+                "description": "Whether a person added an interface-reporting credential to the organization: the L2\nview's setup prompt reads it. Set by the topology data endpoint, `false` elsewhere."
               },
               "hidden_by_tag": {
                 "type": "object",
@@ -29330,6 +29290,9 @@
                 "name": "production",
                 "organization_id": "550e8400-e29b-41d4-a716-446655440001",
                 "position": 1,
+                "source": {
+                  "type": "Manual"
+                },
                 "tag_group_id": "550e8400-e29b-41d4-a716-446655440010",
                 "updated_at": "2026-01-15T10:30:00Z",
                 "valid_from": "2026-01-15T10:30:00Z",
@@ -31447,7 +31410,8 @@
           "tags",
           "assigned_site_ids",
           "host_assignments",
-          "used_by"
+          "used_by",
+          "source"
         ],
         "properties": {
           "assigned_site_ids": {
@@ -31503,6 +31467,11 @@
             "type": "string",
             "format": "uuid",
             "description": "The organization that owns this record."
+          },
+          "source": {
+            "$ref": "#/components/schemas/EntitySource",
+            "description": "`System` for a credential Scanopy seeds (the defaults), `Manual` for one a person added.\nSet by the server.",
+            "readOnly": true
           },
           "tags": {
             "type": "array",
@@ -32730,27 +32699,6 @@
       "DaemonPath": {
         "type": "string",
         "description": "A file on the daemon's own machine, read by the daemon at scan time."
-      },
-      "DaemonPromptAction": {
-        "type": "string",
-        "description": "Which daemon-prompt CTA the user chose.",
-        "enum": [
-          "dismissed",
-          "accepted"
-        ]
-      },
-      "DaemonPromptResponseRequest": {
-        "type": "object",
-        "description": "Request recording the user's response to the \"Start Discovering Your Network\" prompt.",
-        "required": [
-          "action"
-        ],
-        "properties": {
-          "action": {
-            "$ref": "#/components/schemas/DaemonPromptAction",
-            "description": "What the user chose to do about the daemon prompt."
-          }
-        }
       },
       "DaemonRegistrationRequest": {
         "type": "object",
@@ -42727,32 +42675,6 @@
           }
         }
       },
-      "OnboardingOperationDiscriminants": {
-        "type": "string",
-        "enum": [
-          "OrgCreated",
-          "OnboardingModalCompleted",
-          "PlanSelected",
-          "DaemonPromptDismissed",
-          "DaemonPromptAccepted",
-          "FirstDaemonRegistered",
-          "FirstTopologyRebuild",
-          "FirstDiscoveryCompleted",
-          "FirstHostDiscovered",
-          "SecondSiteCreated",
-          "FirstTagCreated",
-          "FirstDependencyCreated",
-          "FirstUserApiKeyCreated",
-          "FirstInterfaceCredentialCreated",
-          "FirstApplicationTagCreated",
-          "FirstCredentialCreated",
-          "FirstSnapshotCreated",
-          "InviteSent",
-          "InviteAccepted",
-          "ProfileCompleted",
-          "ReferralSourceCompleted"
-        ]
-      },
       "OnboardingSiteState": {
         "type": "object",
         "description": "Site data in onboarding state response",
@@ -42897,7 +42819,7 @@
           "name",
           "plan",
           "plan_status",
-          "onboarding"
+          "setup"
         ],
         "properties": {
           "air_gapped_key_current_until": {
@@ -43007,14 +42929,6 @@
             "description": "Stripe `subscription.items.data[0].current_period_end`, mirrored on\nevery billing event that re-anchors the period (checkout, trial start\n/ end, plan change, renewal, pause/resume, reactivate). Cleared by\nSubscriptionCancelled. Powers the \"Next renewal on …\" line in\nBillingPlanModal; the UI interprets the value based on plan_status\n(hide for paused/cancelled/past_due where the stored value can be\nstale or meaningless).",
             "readOnly": true
           },
-          "onboarding": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/OnboardingOperationDiscriminants",
-              "readOnly": true
-            },
-            "description": "Progress through first-run setup."
-          },
           "plan": {
             "$ref": "#/components/schemas/BillingPlan",
             "description": "The plan this organization is on.",
@@ -43031,6 +42945,14 @@
               }
             ],
             "readOnly": true
+          },
+          "setup": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SetupItemDiscriminants",
+              "readOnly": true
+            },
+            "description": "The Setup item types the org has finished or dismissed."
           },
           "trial_end_date": {
             "type": [
@@ -43051,6 +42973,27 @@
             "description": "Use case selection (homelab, company, msp, other)"
           }
         }
+      },
+      "OrganizationResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Organization"
+          },
+          {
+            "type": "object",
+            "required": [
+              "daemon_connected"
+            ],
+            "properties": {
+              "daemon_connected": {
+                "type": "boolean",
+                "description": "Whether any of the organization's daemons has ever connected. A daemon created but not\nyet started doesn't count.",
+                "readOnly": true
+              }
+            }
+          }
+        ],
+        "description": "The signed-in user's organization, with what the server derives about it."
       },
       "OsFamily": {
         "type": "string",
@@ -44554,6 +44497,9 @@
                 "name": "production",
                 "organization_id": "550e8400-e29b-41d4-a716-446655440001",
                 "position": 1,
+                "source": {
+                  "type": "Manual"
+                },
                 "tag_group_id": "550e8400-e29b-41d4-a716-446655440010",
                 "updated_at": "2026-01-15T10:30:00Z",
                 "valid_from": "2026-01-15T10:30:00Z",
@@ -47414,6 +47360,31 @@
           }
         }
       },
+      "SetupItemDiscriminants": {
+        "type": "string",
+        "enum": [
+          "DaemonHealth",
+          "UncoveredIntegration",
+          "TargetlessCredential",
+          "SiteWithoutDaemon",
+          "RunWarnings",
+          "InstallDaemon",
+          "RunFirstScan",
+          "OpenTopology",
+          "AnswerReferralSource",
+          "AnswerProfile",
+          "ReviewUnconfirmed",
+          "ExplorePerspectives",
+          "ApplicationTags",
+          "Dependencies",
+          "InterfaceCredential",
+          "Tags",
+          "InviteTeam",
+          "MultiSite",
+          "ApiKeys",
+          "Share"
+        ]
+      },
       "SetupRequest": {
         "type": "object",
         "description": "Setup request for pre-registration org/site configuration",
@@ -48714,6 +48685,9 @@
           "name": "production",
           "organization_id": "550e8400-e29b-41d4-a716-446655440001",
           "position": 1,
+          "source": {
+            "type": "Manual"
+          },
           "tag_group_id": "550e8400-e29b-41d4-a716-446655440010",
           "updated_at": "2026-01-15T10:30:00Z",
           "valid_from": "2026-01-15T10:30:00Z",
@@ -48727,7 +48701,8 @@
           "color",
           "organization_id",
           "tag_group_id",
-          "position"
+          "position",
+          "source"
         ],
         "properties": {
           "color": {
@@ -48768,6 +48743,11 @@
             ],
             "format": "int32",
             "description": "The tag's place in its group's order, from 1. `null` when the tag is in no group. Set by\nthe server: a tag joins the end of its group, and the group's tag order endpoint reorders.",
+            "readOnly": true
+          },
+          "source": {
+            "$ref": "#/components/schemas/EntitySource",
+            "description": "`System` for a tag Scanopy seeds (the starter tags), `Manual` for one a person added. Set\nby the server.",
             "readOnly": true
           },
           "tag_group_id": {
@@ -49086,7 +49066,8 @@
           "services",
           "vlans",
           "tags",
-          "application_group_id"
+          "application_group_id",
+          "has_interface_credential"
         ],
         "properties": {
           "application_group_id": {
@@ -49189,6 +49170,10 @@
                 "Invite"
               ]
             }
+          },
+          "has_interface_credential": {
+            "type": "boolean",
+            "description": "Whether a person added an interface-reporting credential to the organization: the L2\nview's setup prompt reads it. Set by the topology data endpoint, `false` elsewhere."
           },
           "hidden_by_tag": {
             "type": "object",

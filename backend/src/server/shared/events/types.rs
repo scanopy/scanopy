@@ -4,7 +4,6 @@ use crate::server::{
         BillingInvoice, BillingPlan, BillingReason, CancelReason, LimitSource, LimitType, SaveOffer,
     },
     credentials::r#impl::types::serialize_secret_value,
-    discovery::r#impl::types::DiscoveryType,
     license::types::LicenseKeyType,
     organizations::r#impl::base::UseCase,
     services::r#impl::definitions::ServiceDefinition,
@@ -146,6 +145,18 @@ pub enum AuthOperation {
         new_email: EmailAddress,
     },
     LoggedOut,
+    /// A signup created an organization. `OrgSetupService` gives it its setup data in reaction.
+    OrgCreated {
+        org_name: String,
+        /// The plan the org starts on: the license-resolved plan on a self-hosted server. `None` on
+        /// cloud, where an org has no plan until checkout.
+        #[serde(default)]
+        plan: Option<BillingPlan>,
+        use_case: UseCase,
+        /// The first site requested at signup. `None` for a self-hosted license buyer.
+        #[serde(default)]
+        site: Option<PendingSiteSetup>,
+    },
 
     // Api Key Auth
     RotateKey {
@@ -372,8 +383,9 @@ pub enum UpdateReason {
     OrganizationBillingSynced,
     /// Its licence key was issued, rotated, or switched type.
     OrganizationLicenseKeyChanged,
-    /// It reached an onboarding milestone.
-    OrganizationOnboardingMilestone,
+    /// It finished or dismissed a Setup item.
+    #[serde(alias = "OrganizationOnboardingMilestone")]
+    OrganizationSetupRecorded,
     /// Demo data was seeded into it.
     OrganizationDemoPopulated,
     /// Its owner reset it: everything but the organization and its owner was deleted, and it
@@ -501,7 +513,7 @@ impl UpdateReason {
             }
             Self::OrganizationBillingSynced => "billing changed".to_string(),
             Self::OrganizationLicenseKeyChanged => "its licence key changed".to_string(),
-            Self::OrganizationOnboardingMilestone => "it reached a milestone".to_string(),
+            Self::OrganizationSetupRecorded => "it finished or dismissed a setup item".to_string(),
             Self::OrganizationDemoPopulated => "demo data was seeded".to_string(),
             Self::OrganizationReset { .. } => "its data was reset".to_string(),
             Self::OrganizationNotificationRecorded => "a notification was recorded".to_string(),
@@ -1108,95 +1120,6 @@ impl BillingOperation {
             | Self::PaymentMethodRemoved => None,
         }
     }
-}
-
-#[derive(
-    Debug,
-    Clone,
-    Serialize,
-    Deserialize,
-    PartialEq,
-    strum::Display,
-    utoipa::ToSchema,
-    EnumDiscriminants,
-)]
-#[serde(tag = "type")]
-#[strum(serialize_all = "snake_case")]
-#[strum_discriminants(derive(
-    Hash,
-    EnumIter,
-    strum::Display,
-    strum::AsRefStr,
-    Serialize,
-    Deserialize,
-    utoipa::ToSchema,
-    strum::IntoStaticStr,
-    strum::VariantNames,
-))]
-pub enum OnboardingOperation {
-    OrgCreated {
-        org_name: String,
-        /// The plan the org starts on: the license-resolved plan on a self-hosted server. `None` on
-        /// cloud, where an org has no plan until checkout.
-        #[serde(default)]
-        plan: Option<BillingPlan>,
-        use_case: UseCase,
-        /// The first site requested at signup. `None` for a self-hosted
-        /// license buyer and on events recorded before this field existed.
-        #[serde(default)]
-        site: Option<PendingSiteSetup>,
-    },
-    OnboardingModalCompleted,
-    PlanSelected {
-        plan: BillingPlan,
-    },
-    DaemonPromptDismissed,
-    DaemonPromptAccepted,
-    FirstDaemonRegistered {
-        daemon_id: Uuid,
-        daemon_name: String,
-        site_name: String,
-    },
-    /// Emitted when a user views their live topology after discovery has produced
-    /// at least one host. (Originally tied to the topology-rebuild lifecycle, which
-    /// was removed in Phase 2 snapshots; the variant name is retained to keep legacy
-    /// persisted values valid, but it now means "first topology viewed".)
-    FirstTopologyRebuild,
-    FirstDiscoveryCompleted {
-        discovery_type: DiscoveryType,
-    },
-    FirstHostDiscovered,
-    SecondSiteCreated {
-        site_id: Uuid,
-        site_name: String,
-        total_sites: u32,
-    },
-    FirstTagCreated,
-    #[serde(alias = "FirstGroupCreated")]
-    FirstDependencyCreated,
-    FirstUserApiKeyCreated,
-    /// A credential for an integration that reports interfaces
-    /// (`CredentialIntegration::reports_interfaces`). Persisted as `FirstSnmpCredentialCreated`
-    /// before every interface-reporting integration counted, hence the alias.
-    #[serde(alias = "FirstSnmpCredentialCreated")]
-    #[strum_discriminants(serde(alias = "FirstSnmpCredentialCreated"))]
-    FirstInterfaceCredentialCreated,
-    FirstApplicationTagCreated,
-    FirstCredentialCreated,
-    FirstSnapshotCreated {
-        snapshot_id: Uuid,
-        site_id: Uuid,
-    },
-    InviteSent,
-    InviteAccepted,
-    ProfileCompleted {
-        job_title: Option<String>,
-        company_size: Option<String>,
-    },
-    ReferralSourceCompleted {
-        referral_source: crate::server::organizations::handlers::ReferralSource,
-        referral_source_other: Option<String>,
-    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, strum::Display, EnumDiscriminants)]

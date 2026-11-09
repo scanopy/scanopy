@@ -14,13 +14,13 @@ use crate::{
     server::{
         dependencies::r#impl::member_events::DependencyMemberChange,
         logging::service::LoggingService,
+        setup::types::SetupOperation,
         shared::events::{
             log::LogBody,
             registry::SubscriberRegistration,
             traits::{EntityEventFilter, Event, EventFilter, Operation, Subscriber},
             types::{
-                AnalyticsOperation, AuthOperation, BillingOperation, EntityOperation,
-                EventLogLevel, OnboardingOperation,
+                AnalyticsOperation, AuthOperation, BillingOperation, EntityOperation, EventLogLevel,
             },
         },
         subnets::r#impl::correction_events::SubnetCorrection,
@@ -87,22 +87,19 @@ inventory::submit!(SubscriberRegistration::new::<
 >());
 
 #[async_trait]
-impl Subscriber<OnboardingOperation> for LoggingService {
-    fn filter(&self) -> EventFilter<OnboardingOperation> {
+impl Subscriber<SetupOperation> for LoggingService {
+    fn filter(&self) -> EventFilter<SetupOperation> {
         EventFilter::all()
     }
 
-    async fn handle(&self, events: Vec<Event<OnboardingOperation>>) -> Result<(), Error> {
+    async fn handle(&self, events: Vec<Event<SetupOperation>>) -> Result<(), Error> {
         for event in events {
             log_event(&event);
         }
         Ok(())
     }
 }
-inventory::submit!(SubscriberRegistration::new::<
-    LoggingService,
-    OnboardingOperation,
->());
+inventory::submit!(SubscriberRegistration::new::<LoggingService, SetupOperation>());
 
 #[async_trait]
 impl Subscriber<AnalyticsOperation> for LoggingService {

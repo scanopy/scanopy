@@ -11,10 +11,8 @@ use validator::Validate;
 use crate::server::{
     billing::types::base::{BillingPlan, PlanStatus},
     license::{instances::InstanceLimits, online::InstanceUsage},
-    shared::{
-        entities::ChangeTriggersTopologyStaleness,
-        events::types::{BillingOperation, OnboardingOperationDiscriminants},
-    },
+    setup::types::SetupItemDiscriminants,
+    shared::{entities::ChangeTriggersTopologyStaleness, events::types::BillingOperation},
 };
 
 #[derive(
@@ -125,13 +123,13 @@ pub struct OrganizationBase {
     )]
     #[schema(read_only, required)]
     pub plan_status: Option<PlanStatus>,
-    /// Progress through first-run setup.
+    /// The Setup item types the org has finished or dismissed.
     #[serde(
         default,
         deserialize_with = "crate::server::shared::types::api::ignored"
     )]
     #[schema(read_only, required)]
-    pub onboarding: Vec<OnboardingOperationDiscriminants>,
+    pub setup: Vec<SetupItemDiscriminants>,
     /// Whether a payment method is on file.
     #[serde(default)]
     #[schema(read_only)]
@@ -282,12 +280,9 @@ pub struct Organization {
 }
 
 impl Organization {
-    pub fn not_onboarded(&self, step: &OnboardingOperationDiscriminants) -> bool {
-        !self.base.onboarding.contains(step)
-    }
-
-    pub fn has_onboarded(&self, step: &OnboardingOperationDiscriminants) -> bool {
-        self.base.onboarding.contains(step)
+    /// Whether the org has finished or dismissed this Setup item type.
+    pub fn has_setup(&self, item_type: SetupItemDiscriminants) -> bool {
+        self.base.setup.contains(&item_type)
     }
 
     /// Whether the org has a way to pay its next invoice: a card on file, or a

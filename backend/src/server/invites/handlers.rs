@@ -9,11 +9,9 @@ use crate::server::config::AppState;
 use crate::server::invites::r#impl::base::Invite;
 use crate::server::organizations::r#impl::api::CreateInviteRequest;
 use crate::server::shared::events::traits::{Event, OrgScope};
+use crate::server::shared::events::types::BillingOperation;
 use crate::server::shared::events::types::DeletionReason;
-use crate::server::shared::events::types::{
-    BillingOperation, OnboardingOperation, OnboardingOperationDiscriminants,
-};
-use crate::server::shared::services::traits::{CrudService, EventBusService};
+use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::Entity;
 use crate::server::shared::types::api::ApiJson;
@@ -180,31 +178,9 @@ async fn create_invite(
     let invite = state
         .services
         .access_service
-        .create_invite(invite, entity.clone())
+        .create_invite(invite, entity)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
-
-    // Emit InviteSent telemetry event if this is the first invite
-    if state
-        .services
-        .organization_service
-        .record_milestone(
-            organization_id,
-            OnboardingOperationDiscriminants::InviteSent,
-        )
-        .await?
-    {
-        state
-            .services
-            .invite_service
-            .event_bus()
-            .publish(Event::new(
-                OrgScope { organization_id },
-                OnboardingOperation::InviteSent,
-                entity,
-            ))
-            .await;
-    }
 
     if let Some(send_to) = send_to
         && let Some(email_service) = &state.services.email_service
@@ -603,30 +579,6 @@ pub async fn process_pending_invite(
         .await?
         .base
         .send_to;
-
-    // Emit InviteAccepted telemetry event if this is the first accepted invite
-    if let Ok(true) = state
-        .services
-        .organization_service
-        .record_milestone(
-            pending_org_id,
-            OnboardingOperationDiscriminants::InviteAccepted,
-        )
-        .await
-    {
-        state
-            .services
-            .invite_service
-            .event_bus()
-            .publish(Event::new(
-                OrgScope {
-                    organization_id: pending_org_id,
-                },
-                OnboardingOperation::InviteAccepted,
-                AuthenticatedEntity::System,
-            ))
-            .await;
-    }
 
     // Clear session data
     let _ = session.remove::<Uuid>("pending_org_invite").await;

@@ -323,6 +323,7 @@ pub fn tag() -> Tag {
             tag_group_id: Some(ids::TAG_GROUP),
             position: Some(1),
             icon: None,
+            source: crate::server::shared::types::entities::EntitySource::Manual,
         },
     }
 }
@@ -438,7 +439,7 @@ pub fn organization() -> Organization {
             stripe_customer_id: None,
             plan: crate::server::billing::plans::get_free_plan(),
             plan_status: None,
-            onboarding: vec![],
+            setup: vec![],
             has_payment_method: false,
             bills_by_invoice: false,
             trial_end_date: None,

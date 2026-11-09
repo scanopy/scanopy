@@ -293,6 +293,11 @@ pub struct TopologyData {
     /// snapshot — while the live view shows all views with setup prompts.
     #[serde(default)]
     pub available_views: Vec<TopologyView>,
+    /// Whether a person added an interface-reporting credential to the organization: the L2
+    /// view's setup prompt reads it. Set by the topology data endpoint, `false` elsewhere.
+    #[serde(default)]
+    #[schema(required)]
+    pub has_interface_credential: bool,
 }
 
 impl TopologyData {

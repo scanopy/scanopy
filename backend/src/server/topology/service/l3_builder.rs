@@ -216,6 +216,7 @@ mod tests {
                 tag_group_id: None,
                 position: None,
                 icon: None,
+                source: crate::server::shared::types::entities::EntitySource::Manual,
             },
             ..Default::default()
         };

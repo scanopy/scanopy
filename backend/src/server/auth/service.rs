@@ -2,9 +2,7 @@ use crate::server::auth::r#impl::base::ProvisionOrg;
 use crate::server::billing::types::base::BillingPlan;
 use crate::server::config::DeploymentType;
 use crate::server::license::service::{LicenseService, self_hosted_plan};
-use crate::server::shared::events::types::{
-    EmailAndToken, OnboardingOperation, OnboardingOperationDiscriminants,
-};
+use crate::server::shared::events::types::EmailAndToken;
 use crate::server::shared::types::api::ApiError;
 use crate::server::shared::types::error_codes::ErrorCode;
 use crate::server::{
@@ -23,7 +21,7 @@ use crate::server::{
     shared::{
         events::{
             bus::EventBus,
-            traits::{AuthScope, Event, OrgScope},
+            traits::{AuthScope, Event},
             types::{AuthMethod, AuthOperation, UpdateReason},
         },
         services::traits::CrudService,
@@ -197,6 +195,8 @@ impl AuthService {
                 site_assignments,
                 terms_accepted_at,
                 deployment_type,
+                ip_address: ip,
+                user_agent: user_agent.clone(),
             })
             .await?;
 
@@ -237,8 +237,8 @@ impl AuthService {
     }
 
     /// Core user provisioning logic - handles both password and OIDC registration
-    /// If pending_setup is provided, uses setup.org_name, marks OrgCreated and
-    /// OnboardingModalCompleted, and publishes `OrgCreated`, which gives the org its setup data
+    /// If pending_setup is provided, uses setup.org_name and publishes `OrgCreated`, which gives
+    /// the org its setup data
     /// On a self-hosted server the new org gets the license plan
     pub async fn provision_user(&self, params: ProvisionUserParams) -> Result<User> {
         let ProvisionUserParams {
@@ -252,9 +252,11 @@ impl AuthService {
             site_assignments,
             terms_accepted_at,
             deployment_type,
+            ip_address,
+            user_agent,
         } = params;
 
-        // Plan at org creation time — surfaced on the OrgCreated onboarding
+        // Plan at org creation time — surfaced on the OrgCreated auth
         // event for downstream PostHog identify.
         let mut new_org_plan: Option<BillingPlan> = None;
 
@@ -292,11 +294,6 @@ impl AuthService {
                     }
                 }
 
-                let onboarding = vec![
-                    OnboardingOperationDiscriminants::OrgCreated,
-                    OnboardingOperationDiscriminants::OnboardingModalCompleted,
-                ];
-
                 // Self-hosted: the license-resolved plan. Cloud: Free for a signup that names a
                 // site, and Self-Hosted Standard for a license buyer (no site), whose trial the
                 // billing subscriber starts off `OrgCreated` below. `plan_status` stays empty
@@ -319,7 +316,7 @@ impl AuthService {
                             name: org_name,
                             plan,
                             plan_status: None,
-                            onboarding,
+                            setup: Vec::new(),
                             has_payment_method: false,
                             bills_by_invoice: false,
                             trial_end_date: None,
@@ -409,8 +406,13 @@ impl AuthService {
             // `OrgSetupService` gives the org its setup data in reaction to this event.
             self.event_bus
                 .publish(Event::new(
-                    OrgScope { organization_id },
-                    OnboardingOperation::OrgCreated {
+                    AuthScope {
+                        user_id: Some(user.id),
+                        organization_id: Some(organization_id),
+                        ip_address,
+                        user_agent,
+                    },
+                    AuthOperation::OrgCreated {
                         org_name,
                         plan: new_org_plan,
                         use_case,

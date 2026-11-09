@@ -4,16 +4,12 @@ use crate::server::shared::storage::traits::Entity;
 use crate::server::shared::types::api::ApiJson;
 use crate::server::{
     auth::middleware::{
-        auth::AuthenticatedEntity,
         features::{ConfluenceExportFeature, MermaidExportFeature, RequireFeature},
         permissions::{Authorized, Can, Read, Write},
     },
     config::AppState,
+    setup::types::{SetupItemDiscriminants, SetupOperation},
     shared::{
-        events::{
-            traits::{Event as BusEvent, OrgScope},
-            types::{OnboardingOperation, OnboardingOperationDiscriminants},
-        },
         handlers::{
             query::{FilterQueryExtractor, SiteFilterQuery},
             traits::{CrudHandlers, update_handler},
@@ -86,10 +82,9 @@ pub struct TopologyDataQuery {
     /// When omitted, returns live entities.
     #[serde(default)]
     pub snapshot_id: Option<Uuid>,
-    /// When `true`, records the `FirstTopologyRebuild` onboarding milestone (the user has
-    /// viewed their topology). Only the frontend's explicit on-tab view sets this — the
-    /// background topology-data query never does — so the milestone never fires from other
-    /// tabs. One-time per org (guarded below + subscriber dedup).
+    /// When `true`, records the `OpenTopology` setup item (the user has viewed their topology).
+    /// Only the frontend's explicit on-tab view sets this — the background topology-data query
+    /// never does — so it is never recorded from other tabs. Once per org.
     #[serde(default)]
     pub mark_viewed: Option<bool>,
     /// The view to build the graph for. When omitted, the graph of every view is built and
@@ -156,51 +151,50 @@ async fn get_topology_data(
         Some(view) => vec![view],
         None => TopologyView::iter().collect(),
     };
-    let data = state
+    let mut data = state
         .services
         .topology_service
         .get_topology_render_data(params.site_id, params.snapshot_id, &views)
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
-    // Onboarding: mark the topology "viewed" only when the frontend explicitly requests it
-    // (`mark_viewed=true`), which it does solely while the topology tab is focused. The
-    // background topology-data query never sets the flag, so the milestone can't fire from
-    // other tabs. Still gated to a live view with hosts and a completed discovery, one-time
-    // per org: the not_onboarded read skips the org lock once recorded, and record_milestone
-    // decides which request publishes.
+    let organization_id = auth.require_organization_id()?;
+    data.has_interface_credential = state
+        .services
+        .credential_service
+        .has_manual_interface_credential(organization_id)
+        .await?;
+
+    // Record OpenTopology only when the frontend explicitly requests it (`mark_viewed=true`),
+    // which it does solely while the topology tab is focused. The background topology-data query
+    // never sets the flag, so it can't be recorded from other tabs. Still gated to a live view
+    // with hosts once RunFirstScan is done: the unlocked read skips the org lock once recorded,
+    // and `record_setup` decides which request publishes.
     if params.mark_viewed.unwrap_or(false)
         && params.snapshot_id.is_none()
         && !data.hosts.is_empty()
-        && let Ok(Some(site)) = state.services.site_service.get_by_id(&params.site_id).await
         && let Ok(Some(org)) = state
             .services
             .organization_service
-            .get_by_id(&site.base.organization_id)
+            .get_by_id(&organization_id)
             .await
         && org.base.plan.features().includes_topology()
-        && org.has_onboarded(&OnboardingOperationDiscriminants::FirstDiscoveryCompleted)
-        && org.not_onboarded(&OnboardingOperationDiscriminants::FirstTopologyRebuild)
-        && let Ok(true) = state
+        && org.has_setup(SetupItemDiscriminants::RunFirstScan)
+        && !org.has_setup(SetupItemDiscriminants::OpenTopology)
+        && let Err(e) = state
             .services
             .organization_service
-            .record_milestone(
+            .record_setup(
                 org.id,
-                OnboardingOperationDiscriminants::FirstTopologyRebuild,
+                SetupOperation::Completed {
+                    item_type: SetupItemDiscriminants::OpenTopology,
+                    subject_id: None,
+                },
+                auth.into_entity(),
             )
             .await
     {
-        state
-            .services
-            .event_bus
-            .publish(BusEvent::new(
-                OrgScope {
-                    organization_id: org.id,
-                },
-                OnboardingOperation::FirstTopologyRebuild,
-                AuthenticatedEntity::System,
-            ))
-            .await;
+        tracing::warn!(error = %e, "Could not record the first topology view");
     }
 
     Ok(Json(ApiResponse::success(data)))

@@ -213,6 +213,8 @@ impl OidcService {
                 site_assignments,
                 terms_accepted_at,
                 deployment_type,
+                ip_address: ip,
+                user_agent: user_agent.clone(),
             })
             .await?;
 

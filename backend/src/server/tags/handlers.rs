@@ -4,10 +4,8 @@ use crate::server::auth::middleware::features::{RequireFeature, TaggingFeature};
 use crate::server::auth::middleware::permissions::{Authorized, Can, InOrganization, Read, Write};
 use crate::server::shared::entities::{Entity as EntityEnum, EntityDiscriminants};
 use crate::server::shared::events::log::EventLog;
-use crate::server::shared::events::traits::{EntityScope, Event, OrgScope};
-use crate::server::shared::events::types::{
-    EntityOperation, OnboardingOperation, OnboardingOperationDiscriminants, UpdateReason,
-};
+use crate::server::shared::events::traits::{EntityScope, Event};
+use crate::server::shared::events::types::{EntityOperation, UpdateReason};
 use crate::server::shared::extractors::Query;
 use crate::server::shared::handlers::list::list_page;
 use crate::server::shared::handlers::ordering::OrderField;
@@ -15,7 +13,7 @@ use crate::server::shared::handlers::query::{
     FilterQueryExtractor, OrderDirection, PaginationParams,
 };
 use crate::server::shared::handlers::traits::{ListScope, create_handler};
-use crate::server::shared::services::traits::{CrudService, EventBusService};
+use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable};
 use crate::server::shared::types::api::ApiJson;
@@ -255,8 +253,6 @@ pub async fn create_tag(
     let organization_id = auth
         .organization_id()
         .ok_or_else(|| ApiError::forbidden("Organization context required"))?;
-    let entity = auth.entity.clone();
-
     // A deleted tag is closed, not removed, and gives up its name, as `idx_tags_org_name_live` does.
     let name_filter = StorableFilter::<Tag>::new_from_org_id(&organization_id)
         .name(tag.base.name.clone())
@@ -269,58 +265,7 @@ pub async fn create_tag(
         )));
     }
 
-    let response = create_handler::<Tag>(State(state.clone()), auth, ApiJson(tag)).await?;
-
-    // Emit onboarding milestones for first tag / first application tag
-    if let Some(created_tag) = response.data() {
-        let organization_service = &state.services.organization_service;
-
-        if organization_service
-            .record_milestone(
-                organization_id,
-                OnboardingOperationDiscriminants::FirstTagCreated,
-            )
-            .await?
-        {
-            state
-                .services
-                .tag_service
-                .event_bus()
-                .publish(Event::new(
-                    OrgScope { organization_id },
-                    OnboardingOperation::FirstTagCreated,
-                    entity.clone(),
-                ))
-                .await;
-        }
-
-        let application_group_id = state
-            .services
-            .tag_service
-            .application_group_id(&organization_id)
-            .await?;
-        if created_tag.in_group(application_group_id)
-            && organization_service
-                .record_milestone(
-                    organization_id,
-                    OnboardingOperationDiscriminants::FirstApplicationTagCreated,
-                )
-                .await?
-        {
-            state
-                .services
-                .tag_service
-                .event_bus()
-                .publish(Event::new(
-                    OrgScope { organization_id },
-                    OnboardingOperation::FirstApplicationTagCreated,
-                    entity,
-                ))
-                .await;
-        }
-    }
-
-    Ok(response)
+    create_handler::<Tag>(State(state), auth, ApiJson(tag)).await
 }
 
 /// Tagging an entity takes `Tag` Write and Read on that entity, so the entity type in the request

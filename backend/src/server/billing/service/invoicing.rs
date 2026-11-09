@@ -519,7 +519,7 @@ impl BillingService {
             AuthenticatedEntity::System,
         );
         self.organization_service
-            .commit_billing(locked, None, vec![event])
+            .commit_billing(locked, vec![event])
             .await
     }
 

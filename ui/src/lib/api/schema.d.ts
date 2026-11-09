@@ -2598,29 +2598,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/organizations/daemon-prompt-response": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Record daemon-install prompt response
-         * @description Records the response so the prompt is not shown again.
-         *     Each CTA records a distinct onboarding milestone, which the UI reads to hide the prompt.
-         *     Every response is published; the PostHog subscriber turns these into funnel events, so
-         *     no client-side telemetry is needed.
-         */
-        post: operations["daemon_prompt_response"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/organizations/profile": {
         parameters: {
             query?: never;
@@ -5843,24 +5820,14 @@ export interface components {
          * @description Envelope for a successful response. Failures are sent with a non-2xx status
          *     and an `ApiErrorResponse` body instead.
          */
-        ApiResponse_Organization: {
-            /** @description The result payload. Omitted on failure. */
-            data?: components["schemas"]["OrganizationBase"] & {
+        ApiResponse_OrganizationResponse: {
+            /** @description The signed-in user's organization, with what the server derives about it. */
+            data?: components["schemas"]["Organization"] & {
                 /**
-                 * Format: date-time
-                 * @description When this record was first created.
+                 * @description Whether any of the organization's daemons has ever connected. A daemon created but not
+                 *     yet started doesn't count.
                  */
-                readonly created_at: string;
-                /**
-                 * Format: uuid
-                 * @description Server-assigned unique identifier.
-                 */
-                readonly id: string;
-                /**
-                 * Format: date-time
-                 * @description When this record was last modified.
-                 */
-                readonly updated_at: string;
+                readonly daemon_connected: boolean;
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -6728,6 +6695,9 @@ export interface components {
              *       "name": "production",
              *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
              *       "position": 1,
+             *       "source": {
+             *         "type": "Manual"
+             *       },
              *       "tag_group_id": "550e8400-e29b-41d4-a716-446655440010",
              *       "updated_at": "2026-01-15T10:30:00Z",
              *       "valid_from": "2026-01-15T10:30:00Z",
@@ -6937,6 +6907,11 @@ export interface components {
                         [key: string]: number;
                     };
                 };
+                /**
+                 * @description Whether a person added an interface-reporting credential to the organization: the L2
+                 *     view's setup prompt reads it. Set by the topology data endpoint, `false` elsewhere.
+                 */
+                has_interface_credential: boolean;
                 /**
                  * @description Per view, how many entities of each type a Visibility tag left out that the view would
                  *     have drawn. They never reach the browser, so this is how the filter panel knows to offer
@@ -8332,6 +8307,11 @@ export interface components {
              * @description The organization that owns this record.
              */
             organization_id: string;
+            /**
+             * @description `System` for a credential Scanopy seeds (the defaults), `Manual` for one a person added.
+             *     Set by the server.
+             */
+            readonly source: components["schemas"]["EntitySource"];
             /** @description Tags assigned to this entity. */
             tags: string[];
             /**
@@ -8816,16 +8796,6 @@ export interface components {
         DaemonOs: "linux" | "macos" | "windows" | "freebsd";
         /** @description A file on the daemon's own machine, read by the daemon at scan time. */
         DaemonPath: string;
-        /**
-         * @description Which daemon-prompt CTA the user chose.
-         * @enum {string}
-         */
-        DaemonPromptAction: "dismissed" | "accepted";
-        /** @description Request recording the user's response to the "Start Discovering Your Network" prompt. */
-        DaemonPromptResponseRequest: {
-            /** @description What the user chose to do about the daemon prompt. */
-            action: components["schemas"]["DaemonPromptAction"];
-        };
         /** @description Daemon registration request from daemon to server */
         DaemonRegistrationRequest: {
             /**
@@ -13066,8 +13036,6 @@ export interface components {
             /** @description URL-safe identifier used in the provider's login and link endpoints. */
             slug: string;
         };
-        /** @enum {string} */
-        OnboardingOperationDiscriminants: "OrgCreated" | "OnboardingModalCompleted" | "PlanSelected" | "DaemonPromptDismissed" | "DaemonPromptAccepted" | "FirstDaemonRegistered" | "FirstTopologyRebuild" | "FirstDiscoveryCompleted" | "FirstHostDiscovered" | "SecondSiteCreated" | "FirstTagCreated" | "FirstDependencyCreated" | "FirstUserApiKeyCreated" | "FirstInterfaceCredentialCreated" | "FirstApplicationTagCreated" | "FirstCredentialCreated" | "FirstSnapshotCreated" | "InviteSent" | "InviteAccepted" | "ProfileCompleted" | "ReferralSourceCompleted";
         /** @description Site data in onboarding state response */
         OnboardingSiteState: {
             /**
@@ -13201,11 +13169,11 @@ export interface components {
              *     stale or meaningless).
              */
             readonly next_renewal_at?: string | null;
-            /** @description Progress through first-run setup. */
-            onboarding: components["schemas"]["OnboardingOperationDiscriminants"][];
             /** @description The plan this organization is on. */
             readonly plan: components["schemas"]["BillingPlan"];
             readonly plan_status: components["schemas"]["PlanStatus"] | null;
+            /** @description The Setup item types the org has finished or dismissed. */
+            setup: components["schemas"]["SetupItemDiscriminants"][];
             /**
              * Format: date-time
              * @description When the free trial ends, if one is running.
@@ -13215,6 +13183,14 @@ export interface components {
             readonly trial_extended_used?: boolean;
             /** @description Use case selection (homelab, company, msp, other) */
             use_case?: components["schemas"]["UseCase"];
+        };
+        /** @description The signed-in user's organization, with what the server derives about it. */
+        OrganizationResponse: components["schemas"]["Organization"] & {
+            /**
+             * @description Whether any of the organization's daemons has ever connected. A daemon created but not
+             *     yet started doesn't count.
+             */
+            readonly daemon_connected: boolean;
         };
         /**
          * @description The OS family of a machine a credential's paths live on. Paths, sockets and the shell a script
@@ -15217,6 +15193,8 @@ export interface components {
             /** @description Stripe SetupIntent client secret, used to mount the Payment Element. */
             client_secret: string;
         };
+        /** @enum {string} */
+        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ReviewUnconfirmed" | "ExplorePerspectives" | "ApplicationTags" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
         /** @description Setup request for pre-registration org/site configuration */
         SetupRequest: {
             /** @description Name for the organization created during setup. */
@@ -15827,6 +15805,9 @@ export interface components {
          *       "name": "production",
          *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
          *       "position": 1,
+         *       "source": {
+         *         "type": "Manual"
+         *       },
          *       "tag_group_id": "550e8400-e29b-41d4-a716-446655440010",
          *       "updated_at": "2026-01-15T10:30:00Z",
          *       "valid_from": "2026-01-15T10:30:00Z",
@@ -15884,6 +15865,11 @@ export interface components {
              *     the server: a tag joins the end of its group, and the group's tag order endpoint reorders.
              */
             readonly position: number | null;
+            /**
+             * @description `System` for a tag Scanopy seeds (the starter tags), `Manual` for one a person added. Set
+             *     by the server.
+             */
+            readonly source: components["schemas"]["EntitySource"];
             /**
              * Format: uuid
              * @description The tag group this tag belongs to, if any. An entity holds at most one tag of a group.
@@ -16097,6 +16083,11 @@ export interface components {
                     [key: string]: number;
                 };
             };
+            /**
+             * @description Whether a person added an interface-reporting credential to the organization: the L2
+             *     view's setup prompt reads it. Set by the topology data endpoint, `false` elsewhere.
+             */
+            has_interface_credential: boolean;
             /**
              * @description Per view, how many entities of each type a Visibility tag left out that the view would
              *     have drawn. They never reach the browser, so this is how the filter panel knows to offer
@@ -23269,7 +23260,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Organization"];
+                    "application/json": components["schemas"]["ApiResponse_OrganizationResponse"];
                 };
             };
             /** @description Organization not found */
@@ -23279,30 +23270,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
-    daemon_prompt_response: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DaemonPromptResponseRequest"];
-            };
-        };
-        responses: {
-            /** @description Response recorded */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse"];
                 };
             };
         };
@@ -23377,7 +23344,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Organization"];
+                    "application/json": components["schemas"]["ApiResponse_OrganizationResponse"];
                 };
             };
             /** @description Only owners can update organization */
@@ -26549,10 +26516,9 @@ export interface operations {
                  */
                 snapshot_id?: string | null;
                 /**
-                 * @description When `true`, records the `FirstTopologyRebuild` onboarding milestone (the user has
-                 *     viewed their topology). Only the frontend's explicit on-tab view sets this — the
-                 *     background topology-data query never does — so the milestone never fires from other
-                 *     tabs. One-time per org (guarded below + subscriber dedup).
+                 * @description When `true`, records the `OpenTopology` setup item (the user has viewed their topology).
+                 *     Only the frontend's explicit on-tab view sets this — the background topology-data query
+                 *     never does — so it is never recorded from other tabs. Once per org.
                  */
                 mark_viewed?: boolean | null;
                 /**

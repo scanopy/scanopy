@@ -14,9 +14,10 @@ use crate::server::dependencies::r#impl::base::Dependency;
 use crate::server::lldp::{LldpChassisId, LldpPortId};
 use crate::server::services::r#impl::base::Service;
 use crate::server::services::r#impl::patterns::ClientProbe;
+use crate::server::setup::types::SetupItemDiscriminants;
 use crate::server::shared::attribution::{AttributeSource, AttributeSourceDiscriminants};
 use crate::server::shared::entities::EntityDiscriminants;
-use crate::server::shared::events::types::{BillingOperation, OnboardingOperationDiscriminants};
+use crate::server::shared::events::types::BillingOperation;
 use crate::server::shared::product_area::ProductArea;
 use crate::server::shares::r#impl::base::ShareOptions;
 use crate::server::subnets::r#impl::base::Subnet;
@@ -415,7 +416,7 @@ pub enum SqlValue {
     Services(Vec<Service>),
     Bindings(Vec<Binding>),
     Dependencies(Vec<Dependency>),
-    OnboardingOperation(Vec<OnboardingOperationDiscriminants>),
+    SetupItems(Vec<SetupItemDiscriminants>),
     StringArray(Vec<String>),
     OptionalStringArray(Option<Vec<String>>),
     OptionalLldpChassisId(Option<LldpChassisId>),
@@ -689,7 +690,6 @@ impl_db_enum_contributor_via_variant_names!(
     crate::server::billing::types::base::LimitType,
     crate::server::billing::types::base::LimitSource,
     AuthenticatedEntity,
-    OnboardingOperationDiscriminants,
 );
 
 // IntegrationTarget is a tagged sum with struct variants (confuses strum::VariantNames on the
@@ -704,6 +704,21 @@ impl DbEnumContributor for IntegrationTarget {
                 .map(|s| s.to_string())
                 .collect(),
         );
+    }
+}
+
+// The stored names are the serde names. Its `strum` names are snake_case ids for the metadata, so
+// `VariantNames` would list the wrong strings.
+impl DbEnumContributor for SetupItemDiscriminants {
+    fn contribute(out: &mut std::collections::BTreeMap<&'static str, Vec<String>>) {
+        use strum::IntoEnumIterator;
+        let variants = SetupItemDiscriminants::iter()
+            .filter_map(|v| match serde_json::to_value(v) {
+                Ok(serde_json::Value::String(name)) => Some(name),
+                _ => None,
+            })
+            .collect();
+        out.insert(db_enum_key_for::<SetupItemDiscriminants>(), variants);
     }
 }
 
@@ -836,9 +851,7 @@ impl SqlValue {
             SqlValueDiscriminants::Services => Service::contribute(out),
             SqlValueDiscriminants::Bindings => Binding::contribute(out),
             SqlValueDiscriminants::Dependencies => Dependency::contribute(out),
-            SqlValueDiscriminants::OnboardingOperation => {
-                OnboardingOperationDiscriminants::contribute(out)
-            }
+            SqlValueDiscriminants::SetupItems => SetupItemDiscriminants::contribute(out),
             SqlValueDiscriminants::OptionalLldpChassisId => LldpChassisId::contribute(out),
             SqlValueDiscriminants::OptionalLldpPortId => LldpPortId::contribute(out),
             SqlValueDiscriminants::ShareOptions => ShareOptions::contribute(out),

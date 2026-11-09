@@ -27,6 +27,7 @@ use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::{
     ApiError, ApiErrorResponse, EmptyApiResponse, PaginatedApiResponse,
 };
+use crate::server::shared::types::entities::EntitySource;
 use crate::server::shared::types::error_codes::ErrorCode;
 use crate::server::shared::validation::validate_site_ids_access;
 use crate::server::{
@@ -800,6 +801,7 @@ async fn bulk_create_credentials(
     let mut created = Vec::new();
     for mut credential in credentials {
         credential.base.organization_id = org_id;
+        credential.base.source = EntitySource::Manual;
         let assigned_site_ids = credential.base.assigned_site_ids.clone();
         let host_assignments = credential.base.host_assignments.clone();
         // Checked sequentially, so each credential also sees earlier batch members

@@ -124,6 +124,8 @@ async fn sign_up(services: &ServiceFactory, site: Option<PendingSiteSetup>) -> U
             terms_accepted_at: None,
             email_verified: true,
             deployment_type: DeploymentType::Cloud,
+            ip_address: std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST),
+            user_agent: None,
         })
         .await
         .unwrap()

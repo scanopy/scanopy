@@ -336,24 +336,9 @@ impl BillingService {
             // — nothing to emit.
             return self
                 .organization_service
-                .commit_billing(locked, None, events)
+                .commit_billing(locked, events)
                 .await;
         }
-
-        // First time signing up for a plan. Recorded and published only if the
-        // org has not selected one before.
-        let milestone = owners
-            .first()
-            .filter(|_| prior_plan.is_free() || prior_status.is_none())
-            .map(|owner| {
-                Event::new(
-                    OrgScope {
-                        organization_id: organization.id,
-                    },
-                    OnboardingOperation::PlanSelected { plan },
-                    owner.clone().into(),
-                )
-            });
 
         // Publish billing lifecycle events for email automation
         if let Some(owner) = owners.first() {
@@ -578,7 +563,7 @@ impl BillingService {
         }
 
         self.organization_service
-            .commit_billing(locked, milestone, events)
+            .commit_billing(locked, events)
             .await?;
 
         // The rest take the org lock themselves, so they run after it is
@@ -920,7 +905,7 @@ impl BillingService {
         .await?;
 
         self.organization_service
-            .commit_billing(locked, None, cancelled.into_iter().collect())
+            .commit_billing(locked, cancelled.into_iter().collect())
             .await
     }
 

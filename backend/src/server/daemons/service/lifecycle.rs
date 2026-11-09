@@ -188,6 +188,26 @@ impl DaemonService {
             .is_empty()
     }
 
+    /// Whether any of the org's daemons has ever connected (`last_seen` set). A seeded integrated
+    /// daemon that never checked in doesn't count.
+    pub async fn org_has_connected_daemon(&self, org_id: Uuid) -> Result<bool, anyhow::Error> {
+        let site_ids: Vec<Uuid> = self
+            .site_service
+            .get_all(StorableFilter::<Site>::new_from_org_id(&org_id))
+            .await?
+            .iter()
+            .map(|site| site.id)
+            .collect();
+        if site_ids.is_empty() {
+            return Ok(false);
+        }
+        self.exists(
+            StorableFilter::<Daemon>::new_from_site_ids(&site_ids)
+                .column_is_null("last_seen", false),
+        )
+        .await
+    }
+
     /// Refuse a new daemon while [`Self::daemon_limit_reached`].
     pub async fn check_daemon_limit(&self, org_id: Uuid) -> Result<(), ApiError> {
         use crate::server::shared::types::error_codes::ErrorCode;

@@ -193,6 +193,7 @@ pub fn hidden_tag(organization_id: Uuid, visibility_group_id: Uuid) -> Tag {
         tag_group_id: Some(visibility_group_id),
         position: None,
         icon: Some(TagIcon(Icon::EyeOff)),
+        source: EntitySource::System,
     })
 }
 
@@ -239,6 +240,7 @@ pub fn create_starter_tags(organization_id: Uuid, groups: &[TagGroup]) -> Vec<Ta
                             tag_group_id: Some(group.id),
                             position: Some(position),
                             icon: Some(TagIcon(*icon)),
+                            source: EntitySource::System,
                         })
                     }),
             )

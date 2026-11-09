@@ -447,7 +447,7 @@ impl DiscoveryService {
 
             // A running session's update reaches the stream while the maps are still locked, so
             // two updates for one session arrive in the order they were applied. A finished
-            // session's goes out from `finish_terminal`, after the onboarding milestone it follows.
+            // session's goes out from `finish_terminal`, after the RunFirstScan record it follows.
             if matches!(outcome, UpdateOutcome::Progress) {
                 let _ = self.update_tx.send(update.clone());
             }
@@ -504,34 +504,27 @@ impl DiscoveryService {
         {
             let is_rescan = session.discovery_type.rescan_target_host_ids().is_some();
 
-            // Record the onboarding milestone on the org row BEFORE the SSE update, so it's
-            // committed when the SSE-triggered org refetch arrives. The event is published
-            // only by the call that recorded it.
+            // Record RunFirstScan on the org row BEFORE the SSE update, so it's committed when the
+            // SSE-triggered org refetch arrives. `record_setup` publishes only once.
             if session.phase == DiscoveryPhase::Complete
                 && matches!(
                     session.discovery_type,
                     DiscoveryType::Network { .. } | DiscoveryType::Unified { .. }
                 )
                 && let Ok(Some(site)) = self.site_service.get_by_id(&site_id).await
-                && let Ok(true) = self
+                && let Err(e) = self
                     .organization_service
-                    .record_milestone(
+                    .record_setup(
                         site.base.organization_id,
-                        OnboardingOperationDiscriminants::FirstDiscoveryCompleted,
+                        SetupOperation::Completed {
+                            item_type: SetupItemDiscriminants::RunFirstScan,
+                            subject_id: Some(daemon_id),
+                        },
+                        AuthenticatedEntity::System,
                     )
                     .await
             {
-                self.event_bus
-                    .publish(Event::new(
-                        OrgScope {
-                            organization_id: site.base.organization_id,
-                        },
-                        OnboardingOperation::FirstDiscoveryCompleted {
-                            discovery_type: session.discovery_type.clone(),
-                        },
-                        AuthenticatedEntity::System,
-                    ))
-                    .await;
+                tracing::warn!(error = %e, %session_id, "Could not record the first scan");
             }
 
             session.daemon_version = self.daemon_version(daemon_id).await;

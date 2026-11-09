@@ -17,6 +17,12 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
         updated_at: now,
         is_default: credential_type.is_default(),
         base: CredentialBase {
+            // The seeded defaults are Scanopy's, the rest stand for credentials a person added.
+            source: if credential_type.is_default() {
+                EntitySource::System
+            } else {
+                EntitySource::Manual
+            },
             organization_id,
             daemon_os,
             login_credential_id: None,

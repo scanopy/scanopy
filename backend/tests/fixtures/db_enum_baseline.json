@@ -392,30 +392,6 @@
     "AllLinksLost",
     "SomeLinksLost"
   ],
-  "OnboardingOperationDiscriminants": [
-    "OrgCreated",
-    "OnboardingModalCompleted",
-    "PlanSelected",
-    "FirstDaemonRegistered",
-    "FirstTopologyRebuild",
-    "FirstDiscoveryCompleted",
-    "FirstHostDiscovered",
-    "SecondSiteCreated",
-    "FirstTagCreated",
-    "FirstDependencyCreated",
-    "FirstUserApiKeyCreated",
-    "FirstSnmpCredentialCreated",
-    "FirstApplicationTagCreated",
-    "FirstCredentialCreated",
-    "FirstSnapshotCreated",
-    "InviteSent",
-    "InviteAccepted",
-    "ProfileCompleted",
-    "ReferralSourceCompleted",
-    "DaemonPromptDismissed",
-    "DaemonPromptAccepted",
-    "FirstInterfaceCredentialCreated"
-  ],
   "OsFamily": [
     "Unix",
     "Windows"
@@ -432,6 +408,28 @@
   "ServiceVirtualization": [
     "Docker",
     "Podman"
+  ],
+  "SetupItemDiscriminants": [
+    "DaemonHealth",
+    "UncoveredIntegration",
+    "TargetlessCredential",
+    "SiteWithoutDaemon",
+    "RunWarnings",
+    "InstallDaemon",
+    "RunFirstScan",
+    "OpenTopology",
+    "AnswerReferralSource",
+    "AnswerProfile",
+    "ReviewUnconfirmed",
+    "ExplorePerspectives",
+    "ApplicationTags",
+    "Dependencies",
+    "InterfaceCredential",
+    "Tags",
+    "InviteTeam",
+    "MultiSite",
+    "ApiKeys",
+    "Share"
   ],
   "SnmpWalkGroup": [
     "Lldp",

@@ -371,10 +371,9 @@ impl DaemonService {
                 .await?;
 
             // A provisioned daemon's FIRST contact lands here (its record already exists from
-            // provisioning), not in the new-registration branch — so emit the onboarding
-            // milestone here too, or the org never records FirstDaemonRegistered and the UI
-            // keeps showing "install a daemon" while discovery actually runs. Idempotent: the
-            // emit is guarded by record_milestone, so restarts don't re-fire it.
+            // provisioning), not in the new-registration branch — so record InstallDaemon here too,
+            // or Home keeps showing "install a daemon" while discovery actually runs. Idempotent:
+            // `record_setup` publishes only once, so restarts don't re-fire it.
             self.emit_first_daemon_telemetry(updated_daemon.id, updated_daemon.base.site_id)
                 .await?;
 
@@ -1138,34 +1137,6 @@ impl DaemonService {
             }
         }
 
-        // Emit FirstHostDiscovered telemetry if this is the org's first discovered host
-        if !created_hosts.is_empty()
-            && let Some((_, first_host)) = created_hosts.first()
-            && let Ok(Some(site)) = self.site_service.get_by_id(&first_host.site_id).await
-            && let Ok(Some(org)) = self
-                .organization_service
-                .get_by_id(&site.base.organization_id)
-                .await
-            && org.not_onboarded(&OnboardingOperationDiscriminants::FirstHostDiscovered)
-            && let Ok(true) = self
-                .organization_service
-                .record_milestone(
-                    org.id,
-                    OnboardingOperationDiscriminants::FirstHostDiscovered,
-                )
-                .await
-        {
-            self.event_bus
-                .publish(Event::new(
-                    OrgScope {
-                        organization_id: org.id,
-                    },
-                    OnboardingOperation::FirstHostDiscovered,
-                    AuthenticatedEntity::System,
-                ))
-                .await;
-        }
-
         // Process discovered subnets - continue on failure to avoid blocking entire batch
         for subnet in entities.subnets {
             let pending_id = subnet.id;
@@ -1484,7 +1455,7 @@ impl DaemonService {
         Ok(())
     }
 
-    /// Emit FirstDaemonRegistered telemetry event if this is the org's first daemon
+    /// Record InstallDaemon when this is the first of the org's daemons to connect.
     pub async fn emit_first_daemon_telemetry(
         &self,
         daemon_id: Uuid,
@@ -1502,34 +1473,18 @@ impl DaemonService {
             .await?
             .ok_or_else(|| ApiError::not_found("Organization not found".to_string()))?;
 
-        if org.not_onboarded(&OnboardingOperationDiscriminants::FirstDaemonRegistered)
-            && self
-                .organization_service
-                .record_milestone(
+        // The unlocked read skips the org lock on every later check-in.
+        if !org.has_setup(SetupItemDiscriminants::InstallDaemon) {
+            self.organization_service
+                .record_setup(
                     org.id,
-                    OnboardingOperationDiscriminants::FirstDaemonRegistered,
-                )
-                .await?
-        {
-            let daemon_name = self
-                .get_by_id(&daemon_id)
-                .await?
-                .map(|d| d.base.name.clone())
-                .unwrap_or_else(|| "your daemon".to_string());
-
-            self.event_bus
-                .publish(Event::new(
-                    OrgScope {
-                        organization_id: org.id,
-                    },
-                    OnboardingOperation::FirstDaemonRegistered {
-                        daemon_id,
-                        daemon_name: daemon_name.to_string(),
-                        site_name: site.base.name.clone(),
+                    SetupOperation::Completed {
+                        item_type: SetupItemDiscriminants::InstallDaemon,
+                        subject_id: Some(daemon_id),
                     },
                     AuthenticatedEntity::System,
-                ))
-                .await;
+                )
+                .await?;
         }
 
         Ok(())

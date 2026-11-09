@@ -515,6 +515,8 @@ impl TopologyService {
             // Filled by `apply_server_metadata_filters`, which runs on the way to the render
             // path; nothing has been dropped yet at this point.
             filtered_out: HashMap::new(),
+            // Set by the topology data endpoint, which knows the caller's organization.
+            has_interface_credential: false,
         };
         Ok((data, tag_hidden))
     }

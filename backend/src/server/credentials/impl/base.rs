@@ -3,6 +3,7 @@ use crate::server::credentials::r#impl::types::{
 };
 use crate::server::shared::entities::ChangeTriggersTopologyStaleness;
 use crate::server::shared::types::api::deserialize_empty_string_as_none;
+use crate::server::shared::types::entities::EntitySource;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -65,6 +66,11 @@ pub struct CredentialBase {
     )]
     #[schema(read_only, required)]
     pub used_by: Vec<Uuid>,
+    /// `System` for a credential Scanopy seeds (the defaults), `Manual` for one a person added.
+    /// Set by the server.
+    #[serde(default)]
+    #[schema(read_only, required)]
+    pub source: EntitySource,
 }
 
 impl PartialEq for CredentialBase {
@@ -78,6 +84,7 @@ impl PartialEq for CredentialBase {
             && self.tags == other.tags
             && self.assigned_site_ids == other.assigned_site_ids
             && self.host_assignments == other.host_assignments
+            && self.source == other.source
     }
 }
 
@@ -143,6 +150,7 @@ impl Default for CredentialBase {
             assigned_site_ids: Vec::new(),
             host_assignments: Vec::new(),
             used_by: Vec::new(),
+            source: EntitySource::System,
         }
     }
 }

@@ -8,6 +8,7 @@
 use super::*;
 use crate::server::credentials::r#impl::base::CredentialBase;
 use crate::server::shared::storage::traits::Storage;
+use crate::server::shared::types::entities::EntitySource;
 use crate::server::shared::types::{api::ApiError, error_codes::ErrorCode};
 use strum::IntoEnumIterator;
 
@@ -52,6 +53,7 @@ impl CredentialService {
                 name: seeded.name.to_string(),
                 description: Some(seeded.description.to_string()),
                 credential_type: seeded.credential_type,
+                source: EntitySource::System,
                 ..Default::default()
             });
             // Straight to storage: seeding is not a person creating a credential, so it must not
