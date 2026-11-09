@@ -918,7 +918,7 @@ function affectsOf(warnings: DiscoveryWarning[], hostName: HostNameLookup): Warn
 }
 
 /** The rung a code sits on, as the backend filed it. */
-function remedyOf(code: DiscoveryWarningCode): string | null {
+export function remedyOf(code: DiscoveryWarningCode): string | null {
 	return warningCodes.find((c) => c.id === code)?.category ?? null;
 }
 

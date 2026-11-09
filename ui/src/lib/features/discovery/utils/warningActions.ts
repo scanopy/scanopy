@@ -8,10 +8,25 @@ import {
 import { createIconComponent } from '$lib/shared/utils/styling';
 import type { IconComponent } from '$lib/shared/utils/types';
 import {
-	common_credentials,
+	credentials_sshLoginRequired,
 	daemons_upgradeDaemon,
-	discovery_scanSettings,
-	gettingStarted_stepDaemonLabel,
+	discovery_fixAddSubnetToScan,
+	discovery_fixAllowInvalidCerts,
+	discovery_fixChangeCredentialTarget,
+	discovery_fixCheckAddressAndPort,
+	discovery_fixCheckCredentialPort,
+	discovery_fixCheckCredentialTarget,
+	discovery_fixCheckSnmpCredential,
+	discovery_fixDaemonOnBridge,
+	discovery_fixDaemonOnHost,
+	discovery_fixDaemonOnHypervisor,
+	discovery_fixDaemonOnSubnet,
+	discovery_fixNarrowScan,
+	discovery_fixOpenCredential,
+	discovery_fixRaiseTimeLimit,
+	discovery_fixReenterCredential,
+	discovery_fixSetDaemonOs,
+	discovery_fixUpdateSecret,
 	hosts_resolveUnconfirmed,
 	subnets_resolveRange
 } from '$lib/paraglide/messages';
@@ -38,25 +53,85 @@ export interface WarningRunContext {
 	credentialOf: CredentialLookup;
 }
 
-/** The codes whose answer is a scan setting, and the editor tab that holds it. */
-const SCAN_SETTING_TABS = new Map<WarningEntry['code'], string>([
+/**
+ * The codes whose answer is a scan setting: the editor tab that holds it, and the label that
+ * names the change.
+ */
+const SCAN_SETTING_FIXES = new Map<WarningEntry['code'], { tab: string; label: () => string }>([
 	// Max Discovery Duration lives on Detection, not Performance.
-	['ScanTimeLimit', 'detection'],
-	['ScanTimeLimitWithEstimate', 'detection'],
-	['WarningsTruncated', 'detection'],
+	['ScanTimeLimit', { tab: 'detection', label: () => discovery_fixRaiseTimeLimit() }],
+	['ScanTimeLimitWithEstimate', { tab: 'detection', label: () => discovery_fixRaiseTimeLimit() }],
+	['WarningsTruncated', { tab: 'targets', label: () => discovery_fixNarrowScan() }],
 	// The guests' subnet is added to the scan's targets.
-	['GuestOutsideScan', 'targets']
+	['GuestOutsideScan', { tab: 'targets', label: () => discovery_fixAddSubnetToScan() }],
+	['NeighbourResolutionIncomplete', { tab: 'targets', label: () => discovery_fixNarrowScan() }],
+	['FdbResolutionIncomplete', { tab: 'targets', label: () => discovery_fixNarrowScan() }],
+	['CredentialCollectionTimedOut', { tab: 'targets', label: () => discovery_fixNarrowScan() }]
 ]);
 
 /**
- * Codes whose fix is a new daemon: guests only a daemon beside them can reach, on the hypervisor
- * or on their bridge, and a daemon whose VM keeps it off the LAN.
+ * Codes whose fix is a new daemon, and where it goes: beside guests only a daemon on their
+ * hypervisor or bridge can reach, onto the host of a daemon whose VM keeps it off the LAN, or
+ * onto a subnet whose handshakes only a daemon with an interface there can tell apart.
  */
-const NEEDS_A_DAEMON_CODES = new Set<WarningEntry['code']>([
-	'GuestBehindHypervisor',
-	'GuestIsolated',
-	'DaemonInDesktopVm'
+const NEW_DAEMON_FIXES = new Map<WarningEntry['code'], () => string>([
+	['GuestBehindHypervisor', () => discovery_fixDaemonOnHypervisor()],
+	['GuestIsolated', () => discovery_fixDaemonOnBridge()],
+	['DaemonInDesktopVm', () => discovery_fixDaemonOnHost()],
+	['ConnectionsWithoutProtocolResponse', () => discovery_fixDaemonOnSubnet()]
 ]);
+
+/** Credential editor tab ids (`CredentialEditModal.svelte`). */
+type CredentialTab = 'details' | 'credential' | 'assignments';
+
+/**
+ * Credential codes whose fix is on the credential: the label that names it, and the editor tab
+ * it is made on. A target lives on Assignments; the port, secret, daemon OS and SSH login on
+ * Credential.
+ */
+const CREDENTIAL_FIXES = new Map<WarningEntry['code'], { tab: CredentialTab; label: () => string }>(
+	[
+		[
+			'CredentialTargetNotScanned',
+			{ tab: 'assignments', label: () => discovery_fixChangeCredentialTarget() }
+		],
+		[
+			'CredentialTargetNotResponding',
+			{ tab: 'assignments', label: () => discovery_fixCheckCredentialTarget() }
+		],
+		[
+			'CredentialUnreachable',
+			{ tab: 'credential', label: () => discovery_fixCheckAddressAndPort() }
+		],
+		['CredentialTimedOut', { tab: 'credential', label: () => discovery_fixCheckAddressAndPort() }],
+		[
+			'CredentialGateClosed',
+			{ tab: 'credential', label: () => discovery_fixCheckCredentialPort() }
+		],
+		[
+			'CredentialNotThisService',
+			{ tab: 'credential', label: () => discovery_fixCheckCredentialPort() }
+		],
+		['CredentialRejected', { tab: 'credential', label: () => discovery_fixUpdateSecret() }],
+		['CredentialMalformed', { tab: 'credential', label: () => discovery_fixReenterCredential() }],
+		['CredentialDaemonOsMismatch', { tab: 'credential', label: () => discovery_fixSetDaemonOs() }],
+		[
+			'CredentialLoginUnavailable',
+			{ tab: 'credential', label: () => credentials_sshLoginRequired() }
+		],
+		['SnmpWalkNoAnswer', { tab: 'credential', label: () => discovery_fixCheckSnmpCredential() }]
+	]
+);
+
+/** Opens a credential's editor on `tab`, or the credentials list when no id was recorded. */
+function openCredential(credentialId: string | undefined, tab: CredentialTab) {
+	window.location.hash = 'credentials';
+	if (!credentialId) {
+		closeModal();
+		return;
+	}
+	openModal('credential-editor', { id: credentialId, tab });
+}
 
 /**
  * Where a row hands off to, when Scanopy owns the fix.
@@ -136,9 +211,10 @@ export function actionFor(entry: WarningEntry, run: WarningRunContext): WarningA
 		};
 	}
 
-	if (NEEDS_A_DAEMON_CODES.has(entry.code)) {
+	const daemonLabel = NEW_DAEMON_FIXES.get(entry.code);
+	if (daemonLabel) {
 		return {
-			label: gettingStarted_stepDaemonLabel(),
+			label: daemonLabel(),
 			icon: entities.getIconComponent('Daemon'),
 			run: () => {
 				window.location.hash = 'daemons';
@@ -148,34 +224,53 @@ export function actionFor(entry: WarningEntry, run: WarningRunContext): WarningA
 	}
 
 	const scanId = run.scanId;
-	const scanTab = SCAN_SETTING_TABS.get(entry.code);
-	if (scanTab) {
+	const scanFix = SCAN_SETTING_FIXES.get(entry.code);
+	if (scanFix) {
 		// A rescan's discovery is gone by now, so it has no settings to open.
 		if (!scanId) return null;
 		return {
-			label: discovery_scanSettings(),
+			label: scanFix.label(),
 			icon: createIconComponent('sliders-horizontal'),
 			run: () => {
 				window.location.hash = 'discovery-scans';
-				openModal('discovery-editor', { id: scanId, tab: scanTab });
+				openModal('discovery-editor', { id: scanId, tab: scanFix.tab });
 			}
 		};
 	}
 
-	if (entry.warnings.some((w) => 'integration' in w)) {
-		const [credentialId] = credentialIdsOf(entry);
+	// Accepting a self-signed certificate is a setting of the daemon that scans, not of the
+	// credential.
+	if (entry.code === 'CredentialTlsFailed') {
 		return {
-			label: common_credentials(),
+			label: discovery_fixAllowInvalidCerts(),
+			icon: entities.getIconComponent('Daemon'),
+			run: () => navigateToEntity('Daemon', run.daemonId)
+		};
+	}
+
+	// Any known id opens that credential's editor. Every credential on this row needs the same
+	// thing done to it, so landing on the first is a head start, and the row's chips reach the
+	// others directly. Only a row with no id at all (written before ids were carried, or posted
+	// by a daemon that predates them) goes to the list.
+	const [credentialId] = credentialIdsOf(entry);
+	const credentialFix = CREDENTIAL_FIXES.get(entry.code);
+	if (credentialFix) {
+		return {
+			label: credentialFix.label(),
+			icon: createIconComponent('key-round'),
+			run: () => openCredential(credentialId, credentialFix.tab)
+		};
+	}
+
+	// A credential warning with no named fix (one a newer daemon sends, `Unknown` here, or a
+	// collection failure whose cause is only in the detail) still opens its credential.
+	if (entry.warnings.some((w) => 'integration' in w)) {
+		return {
+			label: discovery_fixOpenCredential(),
 			icon: createIconComponent('key-round'),
 			run: () => {
-				// Any known id opens that credential's editor. Every credential on this row needs
-				// the same thing done to it, so landing on the first is a head start on the list,
-				// and the row's chips reach the others directly. Only a row with no id at all
-				// (written before ids were carried, or posted by a daemon that predates them)
-				// still goes to the list.
 				if (!credentialId) {
-					window.location.hash = 'credentials';
-					closeModal();
+					openCredential(undefined, 'details');
 					return;
 				}
 				// The credential itself where it has loaded, so the editor opens on the id alone

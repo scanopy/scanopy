@@ -43,7 +43,8 @@
 	import {
 		buildWarningReport,
 		credentialIdsOf,
-		hostIdsOf
+		hostIdsOf,
+		remedyOf
 	} from '$lib/features/discovery/utils/warnings';
 	import { actionFor } from '$lib/features/discovery/utils/warningActions';
 	import type { CredentialLookup } from '$lib/features/discovery/utils/snmpCheck';
@@ -67,13 +68,15 @@
 	import {
 		common_getStarted,
 		common_openScanThatFoundIt,
-		common_view,
 		common_viewTopology,
 		credentials_createCredential,
 		daemons_upgradeDaemon,
+		discovery_fixSeeDeviceChecks,
 		gettingStarted_emailNotification,
-		gettingStarted_havingTrouble,
 		gettingStarted_stepDaemonLabel,
+		home_setup_installDaemonOnSite,
+		home_setup_openDaemon,
+		home_setup_troubleshootConnection,
 		gettingStarted_stepDiscoveryLabel,
 		home_nudges_apiKeysAction,
 		home_nudges_dependenciesAction,
@@ -173,16 +176,18 @@
 			switch (item.type) {
 				case 'DaemonHealth': {
 					const { daemon_id: id, name, health } = item;
+					// A daemon that isn't talking to the server gets the connection help; one on an
+					// old release gets the upgrade; an unknown version opens the daemon itself.
 					const fix: SetupFix =
-						health === 'awaiting_connection'
-							? { label: gettingStarted_havingTrouble(), run: onTroubleshoot }
+						health === 'awaiting_connection' || health === 'unreachable' || health === 'standby'
+							? { label: home_setup_troubleshootConnection(), run: onTroubleshoot }
 							: health === 'outdated' || health === 'deprecated' || health === 'unsupported'
 								? {
 										label: daemons_upgradeDaemon(),
 										run: () => go('daemons', 'upgrade-daemon', { id })
 									}
 								: {
-										label: common_view(),
+										label: home_setup_openDaemon(),
 										run: () => navigateToEntity('Daemon', id, lookups.daemon(id))
 									};
 					return {
@@ -224,7 +229,7 @@
 						sentence,
 						subjects: [{ type: 'Site', id, label: name, data: lookups.site(id) }],
 						fix: {
-							label: gettingStarted_stepDaemonLabel(),
+							label: home_setup_installDaemonOnSite(),
 							run: () => go('daemons', 'create-daemon', { prefill: { sites: id } })
 						}
 					};
@@ -264,10 +269,15 @@
 											data: lookups.daemon(item.daemon_id)
 										}
 									],
+						// Without a fix in Scanopy, the run's report is the destination: for a
+						// device-side problem it holds the commands to check the device with.
 						fix: action
 							? { label: action.label, run: action.run }
 							: {
-									label: common_openScanThatFoundIt(),
+									label:
+										remedyOf(item.code) === 'CheckTheDevice'
+											? discovery_fixSeeDeviceChecks()
+											: common_openScanThatFoundIt(),
 									run: () =>
 										go('discovery-history', 'discovery-history-detail', { id: discoveryId })
 								}
