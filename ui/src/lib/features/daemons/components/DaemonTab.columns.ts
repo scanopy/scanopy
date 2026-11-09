@@ -1,6 +1,6 @@
 import type { Snippet } from 'svelte';
 import type { Daemon } from '$lib/features/daemons/types/base';
-import { osLabel, daemonOsIds, DAEMON_STATUS_DOCS_URL } from '$lib/features/daemons/utils';
+import { osLabel, daemonOsIds } from '$lib/features/daemons/utils';
 import { defineRegistryFields } from '$lib/shared/entity-fields/table';
 import type { EntityLookup } from '$lib/shared/entity-fields';
 import { tagNames } from '$lib/features/tags/columns';
@@ -110,9 +110,7 @@ export function daemonColumns(ctx: DaemonColumnsContext) {
 								label: tag.label,
 								color: tag.color,
 								title: tag.title,
-								icon: daemonHealths.getIconComponent(daemon.health),
-								// Every status but Healthy links to what it means and how to clear it.
-								href: daemon.health === 'healthy' ? undefined : DAEMON_STATUS_DOCS_URL
+								icon: daemonHealths.getIconComponent(daemon.health)
 							}
 						];
 					}
