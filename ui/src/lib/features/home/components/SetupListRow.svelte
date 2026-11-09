@@ -418,12 +418,12 @@
 </script>
 
 <!--
-	Rows alternate their background so a row's button and dismiss read as one line with its text.
-	Every row keeps the dismiss slot, filled or empty, so the buttons share one right edge.
+	Each row is its own bordered surface, so its buttons read with its text. Every row keeps the
+	dismiss slot, filled or empty, so the buttons share one right edge.
 -->
 <li
-	class="flex items-center gap-3 even:bg-black/[0.04] dark:even:bg-white/[0.04]"
-	style="padding: var(--cell-py) var(--cell-px)"
+	class="flex items-center gap-4 rounded-xl border px-5 py-4"
+	style="border-color: var(--color-border); background: var(--color-bg-surface)"
 >
 	<div class="min-w-0 flex-1 space-y-1">
 		<p class="text-sm font-medium text-primary">{view.title}</p>

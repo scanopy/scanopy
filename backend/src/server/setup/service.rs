@@ -39,9 +39,6 @@ use crate::server::{
     users::service::UserService,
 };
 
-/// Suggestions shown at once, so the list stays about what to do next.
-const SUGGESTION_CAP: usize = 2;
-
 pub struct SetupService {
     pub site_service: Arc<SiteService>,
     pub daemon_service: Arc<DaemonService>,
@@ -224,19 +221,11 @@ impl SetupService {
         Ok(Self::for_reader(Self::list(&ctx), entity))
     }
 
-    /// `items` cut to what `entity` may read, with Suggestions capped.
+    /// `items` cut to what `entity` may read.
     fn for_reader(items: Vec<SetupItem>, entity: &AuthenticatedEntity) -> Vec<SetupItem> {
-        let mut suggestions = 0;
         items
             .into_iter()
             .filter(|item| item.readable_by(entity))
-            .filter(|item| {
-                if SetupItemDiscriminants::from(item).tier() != SetupItemTier::Suggestion {
-                    return true;
-                }
-                suggestions += 1;
-                suggestions <= SUGGESTION_CAP
-            })
             .collect()
     }
 }
@@ -292,10 +281,9 @@ mod tests {
         }
     }
 
-    /// A member sees Issues on its own sites only, every Next step, and the first two
-    /// Suggestions.
+    /// A member sees Issues on its own sites only, every Next step and every Suggestion.
     #[test]
-    fn a_reader_sees_its_sites_issues_and_two_suggestions() {
+    fn a_reader_sees_its_sites_issues_and_every_suggestion() {
         let (mine, other) = (Uuid::new_v4(), Uuid::new_v4());
         let items = vec![
             daemon_issue(mine),
@@ -317,6 +305,7 @@ mod tests {
                 SetupItemDiscriminants::OpenTopology,
                 SetupItemDiscriminants::Tags,
                 SetupItemDiscriminants::InviteTeam,
+                SetupItemDiscriminants::Share,
             ]
         );
     }

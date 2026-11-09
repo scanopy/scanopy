@@ -32,7 +32,6 @@
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import { queryKeys } from '$lib/api/query-client';
 	import DaemonTroubleshootingModal from '$lib/shared/components/layout/DaemonTroubleshootingModal.svelte';
-	import { displaySettings } from '$lib/shared/stores/display-settings.svelte';
 	import { setupItemTiers } from '$lib/shared/stores/metadata';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import { trackEvent } from '$lib/shared/utils/analytics';
@@ -153,20 +152,14 @@
 	});
 </script>
 
-<section
-	class="entity-table card-static card p-0!"
-	data-density={displaySettings.current.table_density}
->
+<section class="space-y-6">
 	{#each groups as group (group.tier)}
-		<div class="border-b pt-4 pb-2 last:border-b-0" style="border-color: var(--color-border)">
-			<h3
-				class="mb-3 flex items-baseline gap-2 text-base font-semibold text-primary"
-				style="padding: 0 var(--cell-px)"
-			>
+		<div>
+			<h3 class="mb-3 flex items-baseline gap-2 text-base font-semibold text-primary">
 				<span>{setupItemTiers.getName(group.tier)}</span>
 				<span class="text-sm font-normal text-tertiary">({group.entries.length})</span>
 			</h3>
-			<ul>
+			<ul class="space-y-2">
 				{#each group.entries as entry (entryId(entry))}
 					<SetupListRow
 						{entry}
