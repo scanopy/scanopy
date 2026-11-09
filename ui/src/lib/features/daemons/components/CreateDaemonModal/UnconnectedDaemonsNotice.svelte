@@ -4,6 +4,9 @@
 	// delete it and set up a new one here, or meet every requirement for a second daemon.
 	import type { components } from '$lib/api/schema';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
+	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
+	import { entityRef } from '$lib/shared/components/data/types';
+	import { entities } from '$lib/shared/stores/metadata';
 	import { formatDate } from '$lib/shared/utils/formatting';
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
 	import {
@@ -16,9 +19,7 @@
 		billing_lapsedBannerCta,
 		common_confirmDeleteName,
 		common_sending,
-		daemons_unconnectedAddAnotherBody,
 		daemons_unconnectedAddAnotherTitle,
-		daemons_unconnectedBody,
 		daemons_unconnectedCreated,
 		daemons_unconnectedDelete,
 		daemons_unconnectedFixBody,
@@ -27,7 +28,6 @@
 		daemons_unconnectedStartOverTitle,
 		daemons_unconnectedStepVerify,
 		daemons_unconnectedTitle,
-		daemons_unconnectedTitleMany,
 		daemons_unconnectedTroubleshoot,
 		verifyEmail_resend
 	} from '$lib/paraglide/messages';
@@ -48,7 +48,9 @@
 	const verification = useEmailVerificationPending();
 	const resendMutation = useResendVerificationMutation();
 
+	// Drawn as the Daemons table draws the daemon and its status.
 	const awaitingTag = daemonStatusTag('awaiting_connection');
+	const daemonColor = entities.getColorHelper('Daemon').color;
 	const troubleshootUrl = `${DAEMON_STATUS_DOCS_URL}#awaiting-connection`;
 
 	function handleDelete(daemon: UnconnectedDaemon) {
@@ -74,23 +76,27 @@
 
 <div class="space-y-4">
 	<div class="space-y-2">
-		<h3 class="text-sm font-semibold text-primary">
-			{daemons.length === 1
-				? daemons_unconnectedTitle({ name: daemons[0].name })
-				: daemons_unconnectedTitleMany({ count: daemons.length })}
-		</h3>
+		<h3 class="text-sm font-semibold text-primary">{daemons_unconnectedTitle()}</h3>
 		<ul class="space-y-1">
 			{#each daemons as daemon (daemon.id)}
 				<li class="flex flex-wrap items-center gap-2 text-sm">
-					<span class="font-medium text-primary">{daemon.name}</span>
-					<Tag {...awaitingTag} />
+					<EntityTag
+						entityRef={entityRef('Daemon', daemon.id, daemon)}
+						label={daemon.name}
+						color={daemonColor}
+					/>
+					<Tag
+						label={awaitingTag.label}
+						color={awaitingTag.color}
+						icon={awaitingTag.icon}
+						href={awaitingTag.href ?? ''}
+					/>
 					<span class="text-tertiary">
 						{daemons_unconnectedCreated({ date: formatDate(daemon.created_at) })}
 					</span>
 				</li>
 			{/each}
 		</ul>
-		<p class="text-sm text-secondary">{daemons_unconnectedBody()}</p>
 	</div>
 
 	<div class="grid gap-3 sm:grid-cols-3">
@@ -121,7 +127,6 @@
 
 		<div class="card flex flex-col gap-2">
 			<h4 class="text-sm font-semibold text-primary">{daemons_unconnectedAddAnotherTitle()}</h4>
-			<p class="text-sm text-secondary">{daemons_unconnectedAddAnotherBody()}</p>
 			<!-- Verification first: it completes in place, and the eligibility query refetches on
 			     focus while it is pending, so the user comes back to only the plan step. Checkout
 			     closes the wizard, so it goes last. -->
