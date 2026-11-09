@@ -417,10 +417,14 @@
 	);
 </script>
 
-<li class="flex items-start gap-3" style="padding: var(--cell-py) var(--cell-px)">
-	<div class="mt-0.5 shrink-0 {iconColor}">
-		<Icon size={20} />
-	</div>
+<!--
+	Rows alternate their background so a row's button and dismiss read as one line with its text.
+	Every row keeps the dismiss slot, filled or empty, so the buttons share one right edge.
+-->
+<li
+	class="flex items-center gap-3 even:bg-black/[0.04] dark:even:bg-white/[0.04]"
+	style="padding: var(--cell-py) var(--cell-px)"
+>
 	<div class="min-w-0 flex-1 space-y-1">
 		<p class="text-sm font-medium text-primary">{view.title}</p>
 		<p class="text-sm text-tertiary">{view.sentence}</p>
@@ -459,10 +463,17 @@
 	</div>
 	<div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
 		{#each view.fixes as fix (fix.label)}
-			<button type="button" class="btn-secondary text-sm" onclick={() => runFix(fix)}>
+			<button
+				type="button"
+				class="btn-secondary flex items-center gap-2 text-sm"
+				onclick={() => runFix(fix)}
+			>
+				<Icon size={16} class="shrink-0 {iconColor}" />
 				{fix.label}
 			</button>
 		{/each}
+	</div>
+	<div class="flex w-8 shrink-0 justify-center">
 		{#if rowActions.length > 0}
 			<RowActions actions={rowActions} />
 		{/if}
