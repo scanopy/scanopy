@@ -3,6 +3,7 @@ use crate::server::auth::middleware::permissions::{
     And, Authorized, Can, Delete, IsUser, Read, Write,
 };
 use crate::server::config::AppState;
+use crate::server::dependencies::r#impl::base::Dependency;
 use crate::server::openapi::tags as api_tags;
 use crate::server::organizations::demo_seed::seed_demo_data;
 use crate::server::organizations::demo_status::DemoPopulateStatus;
@@ -42,6 +43,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         .routes(routes!(update_org_name))
         .routes(routes!(update_profile))
         .routes(routes!(submit_referral_source))
+        .routes(routes!(record_setup_item))
         .routes(routes!(reset))
         .routes(routes!(delete_organization))
         .routes(routes!(populate_demo_data))
@@ -249,6 +251,56 @@ async fn submit_referral_source(
                     referral_source: request.referral_source,
                     referral_source_other: request.referral_source_other,
                 },
+            },
+            authentication,
+        )
+        .await?;
+
+    Ok(Json(ApiResponse::success(())))
+}
+
+/// The Setup item a client finished.
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+pub struct RecordSetupRequest {
+    /// The item, which must be one the app records itself, such as the dependency tutorial.
+    pub item: SetupItemDiscriminants,
+}
+
+/// Record Setup item
+///
+/// Marks done a Setup item that is finished in the app with no other request to record it on,
+/// such as the dependency tutorial. Recording an item already done changes nothing.
+#[utoipa::path(
+    post,
+    path = "/setup",
+    tags = [Organization::ENTITY_NAME_PLURAL, api_tags::INTERNAL],
+    request_body = RecordSetupRequest,
+    responses(
+        (status = 200, description = "Setup item recorded", body = EmptyApiResponse),
+        (status = 400, description = "The item is not recorded by the app", body = ApiErrorResponse),
+    )
+)]
+async fn record_setup_item(
+    auth: Authorized<And<IsUser, Can<Dependency, Write>>>,
+    State(state): State<Arc<AppState>>,
+    ApiJson(request): ApiJson<RecordSetupRequest>,
+) -> ApiResult<Json<ApiResponse<()>>> {
+    if !request.item.recorded_by_client() {
+        return Err(ApiError::bad_request(
+            "This Setup item is recorded by the server, not the app",
+        ));
+    }
+    let org_id = auth.organization_id().unwrap();
+    let authentication: AuthenticatedEntity = auth.into();
+
+    state
+        .services
+        .organization_service
+        .record_setup(
+            org_id,
+            SetupOperation::Completed {
+                item_type: request.item,
+                subject_id: None,
             },
             authentication,
         )

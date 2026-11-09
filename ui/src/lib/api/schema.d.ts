@@ -2631,6 +2631,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record Setup item
+         * @description Marks done a Setup item that is finished in the app with no other request to record it on,
+         *     such as the dependency tutorial. Recording an item already done changes nothing.
+         */
+        post: operations["record_setup_item"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizations/{id}": {
         parameters: {
             query?: never;
@@ -4221,19 +4242,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-09T14:29:14.444061Z",
+             *       "created_at": "2026-11-09T19:35:39.870529Z",
              *       "first_discovery_id": null,
-             *       "id": "284e17aa-bcd5-4521-9de6-82ef9e9ae160",
+             *       "id": "03fc4c01-9101-45ba-acfe-b8298da334de",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-09T14:29:14.444061Z",
+             *       "last_seen_at": "2026-11-09T19:35:39.870529Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-09T14:29:14.444061Z",
-             *       "valid_from": "2026-11-09T14:29:14.444061Z",
+             *       "updated_at": "2026-11-09T19:35:39.870529Z",
+             *       "valid_from": "2026-11-09T19:35:39.870529Z",
              *       "valid_to": null
              *     }
              */
@@ -5136,19 +5157,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-09T14:29:14.410534Z",
+             *               "created_at": "2026-11-09T19:35:39.838149Z",
              *               "first_discovery_id": null,
-             *               "id": "ea7e4856-7075-475a-87fb-76924ef49e0f",
+             *               "id": "7b387f02-7a24-49e0-94d2-665208a54989",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-09T14:29:14.410534Z",
+             *               "last_seen_at": "2026-11-09T19:35:39.838149Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-09T14:29:14.410534Z",
-             *               "valid_from": "2026-11-09T14:29:14.410534Z",
+             *               "updated_at": "2026-11-09T19:35:39.838149Z",
+             *               "valid_from": "2026-11-09T19:35:39.838149Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5161,7 +5182,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Metabase",
+             *           "service_definition": "Rancher",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6184,19 +6205,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-09T14:29:14.438590Z",
+             *           "created_at": "2026-11-09T19:35:39.865109Z",
              *           "first_discovery_id": null,
-             *           "id": "74c39690-b481-4988-9329-e31bec8351b2",
+             *           "id": "c8803dbd-2f4e-431f-a66c-d9194c6edcc6",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-09T14:29:14.438590Z",
+             *           "last_seen_at": "2026-11-09T19:35:39.865109Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-09T14:29:14.438590Z",
-             *           "valid_from": "2026-11-09T14:29:14.438590Z",
+             *           "updated_at": "2026-11-09T19:35:39.865109Z",
+             *           "valid_from": "2026-11-09T19:35:39.865109Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6209,7 +6230,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Metabase",
+             *       "service_definition": "Rancher",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7681,19 +7702,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-09T14:29:14.411229Z",
+         *       "created_at": "2026-11-09T19:35:39.838792Z",
          *       "first_discovery_id": null,
-         *       "id": "71d09839-d3b0-4715-aaba-8d29ee2ec17f",
+         *       "id": "443e22f7-a896-4ded-b12e-bf37e1fdc268",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-09T14:29:14.411229Z",
+         *       "last_seen_at": "2026-11-09T19:35:39.838792Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-09T14:29:14.411229Z",
-         *       "valid_from": "2026-11-09T14:29:14.411229Z",
+         *       "updated_at": "2026-11-09T19:35:39.838792Z",
+         *       "valid_from": "2026-11-09T19:35:39.838792Z",
          *       "valid_to": null
          *     }
          */
@@ -8083,7 +8104,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Metabase",
+         *           "service_definition": "Rancher",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -11267,19 +11288,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-09T14:29:14.409758Z",
+         *               "created_at": "2026-11-09T19:35:39.837400Z",
          *               "first_discovery_id": null,
-         *               "id": "296e4cfb-2745-4544-ad5f-4fca550493f2",
+         *               "id": "74becc60-ba6d-4d3e-9487-773ed9e0f2d1",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-09T14:29:14.409758Z",
+         *               "last_seen_at": "2026-11-09T19:35:39.837400Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-09T14:29:14.409758Z",
-         *               "valid_from": "2026-11-09T14:29:14.409758Z",
+         *               "updated_at": "2026-11-09T19:35:39.837400Z",
+         *               "valid_from": "2026-11-09T19:35:39.837400Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11292,7 +11313,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Metabase",
+         *           "service_definition": "Rancher",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -14532,6 +14553,11 @@ export interface components {
             /** @description Whether a shared VLAN widened the range past the conventional prefix. */
             widened_by_vlan: boolean;
         };
+        /** @description The Setup item a client finished. */
+        RecordSetupRequest: {
+            /** @description The item, which must be one the app records itself, such as the dependency tutorial. */
+            item: components["schemas"]["SetupItemDiscriminants"];
+        };
         /**
          * @description How a user first heard about Scanopy, as offered by the onboarding prompt.
          * @enum {string}
@@ -14949,19 +14975,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-09T14:29:14.410995Z",
+         *           "created_at": "2026-11-09T19:35:39.838568Z",
          *           "first_discovery_id": null,
-         *           "id": "8c76d0ee-e33d-4dc0-807b-78ebc222baf8",
+         *           "id": "fb8bfba6-af74-406e-be95-0fd21d68c0f8",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-09T14:29:14.410995Z",
+         *           "last_seen_at": "2026-11-09T19:35:39.838568Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-09T14:29:14.410995Z",
-         *           "valid_from": "2026-11-09T14:29:14.410995Z",
+         *           "updated_at": "2026-11-09T19:35:39.838568Z",
+         *           "valid_from": "2026-11-09T19:35:39.838568Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -14974,7 +15000,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Metabase",
+         *       "service_definition": "Rancher",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -15272,6 +15298,9 @@ export interface components {
             type: "ApplicationTags";
         } | {
             /** @enum {string} */
+            type: "DependencyTutorial";
+        } | {
+            /** @enum {string} */
             type: "Dependencies";
         } | {
             /** @enum {string} */
@@ -15293,7 +15322,7 @@ export interface components {
             type: "Share";
         };
         /** @enum {string} */
-        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "UnconfirmedHosts" | "UnconfirmedSubnets" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ExploreViews" | "ApplicationTags" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
+        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "UnconfirmedHosts" | "UnconfirmedSubnets" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ExploreViews" | "ApplicationTags" | "DependencyTutorial" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
         /** @description One item's identity across sweeps and page loads. */
         SetupItemKey: {
             item_type: components["schemas"]["SetupItemDiscriminants"];
@@ -15342,6 +15371,11 @@ export interface components {
             item: components["schemas"]["SetupItem"];
             /** @description The item's identity: the same item on the next load has the same key. */
             key: components["schemas"]["SetupItemKey"];
+            /**
+             * @description The sites the item is about, which the list can be narrowed to. Empty for an item about
+             *     the whole org, which shows whatever sites are picked.
+             */
+            site_ids: string[];
             state: components["schemas"]["SetupItemState"];
             /** @description The group of the list the item sits in. */
             tier: components["schemas"]["SetupItemTier"];
@@ -16394,7 +16428,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "62f2755d-91e4-4ece-986f-a8bc803d83db",
+             *           "id": "4ce8b5f8-3adb-48ad-b110-73a353f47721",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16404,23 +16438,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "41abbde2-b096-4f11-bdb1-345a7c824ccd",
+             *           "id": "2e9b0d33-1c5f-4b3d-a5a3-83308a4c514f",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "85366720-3164-4a7e-95a4-c9641589d7f9",
+             *           "id": "9cb40a03-1f13-4bad-8c82-a10a48ba8ea0",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "09853f3e-70d8-481e-a3e5-499a8c10e713",
+             *           "id": "9e303315-b5c0-46f4-a69d-3a7f2a781bc2",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "41abbde2-b096-4f11-bdb1-345a7c824ccd",
+             *           "id": "2e9b0d33-1c5f-4b3d-a5a3-83308a4c514f",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16434,19 +16468,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "e69cebc1-667c-4359-9dcb-5863e81323df",
+             *         "id": "55818520-53c3-43a0-a1c7-1f3a6446742c",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "c129bcb4-9d0b-4b97-bf25-2d07e159476c",
+             *         "id": "8cd6a307-1282-4a2b-8e0e-5fe6393f4c5a",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "3167e24d-a8c6-41b9-b963-bc76d9fc78d0",
+             *         "id": "66e8f5cf-2c40-44d2-a209-00b9f9cdbeec",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "915f4a59-5f58-4dcf-8635-3fc51f5a3014",
+             *         "id": "80dd9f84-795a-448f-9e33-1788c507a515",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16467,7 +16501,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "bb77a6a3-9522-40db-add6-72630ae11b6c",
+             *         "id": "0743c0b1-125c-4adf-873d-99a4ba4db4c4",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16476,19 +16510,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "0a3ef3af-b202-420d-bab6-1a37f4f4475c",
+             *         "id": "8ff9f421-c70d-4ac2-a4da-2758ab532828",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "4bf0ee5e-daf4-43c4-bf85-9ddfb4042739",
+             *         "id": "5c554ccc-ef14-472a-b30c-82925346f55d",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "5ca599f7-086c-46ca-b66c-3aabc39d7398",
+             *         "id": "6a223b3b-5c32-4b06-8886-229ba4371fcb",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "9ac2b11f-b522-4c78-98f8-7dcc9fcbd3fc",
+             *         "id": "ff84d052-d1e0-48eb-bf81-04ac20674697",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -23429,6 +23463,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    record_setup_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordSetupRequest"];
+            };
+        };
+        responses: {
+            /** @description Setup item recorded */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description The item is not recorded by the app */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
         };

@@ -148,6 +148,10 @@ pub enum SetupItem {
     /// Application tags, which group services on the Application view.
     #[schema(title = "ApplicationTags")]
     ApplicationTags,
+    /// The dependency tutorial, which opens until it is finished or a dependency exists. It reads
+    /// as the Dependencies item it unlocks, so the user sees one step whose click changes.
+    #[schema(title = "DependencyTutorial")]
+    DependencyTutorial,
     /// Dependencies between services.
     #[schema(title = "Dependencies")]
     Dependencies,
@@ -262,6 +266,9 @@ pub struct SetupListEntry {
     /// Whether the trial sweep reports the item once it stays open a day: an Issue, or a first
     /// step still Open.
     pub alerts_when_stuck: bool,
+    /// The sites the item is about, which the list can be narrowed to. Empty for an item about
+    /// the whole org, which shows whatever sites are picked.
+    pub site_ids: Vec<Uuid>,
     pub item: SetupItem,
 }
 
@@ -273,6 +280,7 @@ impl SetupListEntry {
             tier: item_type.tier(),
             state,
             alerts_when_stuck: item_type.alerts_when_stuck() && state == SetupItemState::Open,
+            site_ids: item.site_ids(),
             item,
         }
     }
@@ -316,6 +324,7 @@ impl SetupItem {
             | Self::AnswerProfile
             | Self::ExploreViews
             | Self::ApplicationTags
+            | Self::DependencyTutorial
             | Self::Dependencies
             | Self::InterfaceCredential
             | Self::Tags
@@ -323,6 +332,35 @@ impl SetupItem {
             | Self::MultiSite
             | Self::ApiKeys
             | Self::Share => SetupItemKey::Org { item_type },
+        }
+    }
+
+    /// The sites this item is about. Empty for one about the whole org: a credential with no
+    /// target, the unconfirmed counts (summed across the reader's sites), and every Setup item.
+    pub fn site_ids(&self) -> Vec<Uuid> {
+        match self {
+            Self::DaemonHealth { site_id, .. }
+            | Self::SiteWithoutDaemon { site_id, .. }
+            | Self::RunWarnings { site_id, .. } => vec![*site_id],
+            Self::UncoveredIntegration { site_ids, .. } => site_ids.clone(),
+            Self::TargetlessCredential { .. }
+            | Self::UnconfirmedHosts { .. }
+            | Self::UnconfirmedSubnets { .. }
+            | Self::InstallDaemon
+            | Self::RunFirstScan { .. }
+            | Self::OpenTopology
+            | Self::AnswerReferralSource
+            | Self::AnswerProfile
+            | Self::ExploreViews
+            | Self::ApplicationTags
+            | Self::DependencyTutorial
+            | Self::Dependencies
+            | Self::InterfaceCredential
+            | Self::Tags
+            | Self::InviteTeam
+            | Self::MultiSite
+            | Self::ApiKeys
+            | Self::Share => Vec::new(),
         }
     }
 
@@ -360,6 +398,7 @@ impl SetupItem {
             | Self::AnswerProfile
             | Self::ExploreViews
             | Self::ApplicationTags
+            | Self::DependencyTutorial
             | Self::Dependencies
             | Self::InterfaceCredential
             | Self::Tags
@@ -388,6 +427,7 @@ impl SetupItemDiscriminants {
             | Self::AnswerProfile
             | Self::ExploreViews
             | Self::ApplicationTags
+            | Self::DependencyTutorial
             | Self::Dependencies
             | Self::InterfaceCredential
             | Self::Tags
@@ -420,6 +460,37 @@ impl SetupItemDiscriminants {
             | Self::RunFirstScan
             | Self::OpenTopology => true,
             Self::AnswerReferralSource
+            | Self::AnswerProfile
+            | Self::ExploreViews
+            | Self::ApplicationTags
+            | Self::DependencyTutorial
+            | Self::Dependencies
+            | Self::InterfaceCredential
+            | Self::Tags
+            | Self::InviteTeam
+            | Self::MultiSite
+            | Self::ApiKeys
+            | Self::Share => false,
+        }
+    }
+
+    /// Whether the app records this item through `POST /organizations/setup`: an item finished in
+    /// the browser, with no request of its own the server could record it on. Every other item is
+    /// recorded where it happens, or from its live condition.
+    pub fn recorded_by_client(self) -> bool {
+        match self {
+            Self::DependencyTutorial => true,
+            Self::DaemonHealth
+            | Self::UncoveredIntegration
+            | Self::TargetlessCredential
+            | Self::SiteWithoutDaemon
+            | Self::RunWarnings
+            | Self::UnconfirmedHosts
+            | Self::UnconfirmedSubnets
+            | Self::InstallDaemon
+            | Self::RunFirstScan
+            | Self::OpenTopology
+            | Self::AnswerReferralSource
             | Self::AnswerProfile
             | Self::ExploreViews
             | Self::ApplicationTags
@@ -472,7 +543,7 @@ impl SetupItemDiscriminants {
             Self::UnconfirmedHosts => &EntityDiscriminants::Host,
             Self::UnconfirmedSubnets => &EntityDiscriminants::Subnet,
             Self::ApplicationTags => &Concept::Application,
-            Self::Dependencies => &EntityDiscriminants::Dependency,
+            Self::DependencyTutorial | Self::Dependencies => &EntityDiscriminants::Dependency,
             // Ports, neighbours and VLANs are what the credential adds.
             Self::InterfaceCredential => &Concept::L2,
             Self::Tags => &EntityDiscriminants::Tag,
@@ -513,7 +584,7 @@ impl TypeMetadataProvider for SetupItemDiscriminants {
             Self::AnswerProfile => "Tell us about your role",
             Self::ExploreViews => "Switch topology views",
             Self::ApplicationTags => "Assign an application tag",
-            Self::Dependencies => "Map a dependency",
+            Self::DependencyTutorial | Self::Dependencies => "Map a dependency",
             Self::InterfaceCredential => "Add a switch or router credential",
             Self::Tags => "Assign your first tag",
             Self::InviteTeam => "Invite your team",
@@ -549,9 +620,9 @@ impl TypeMetadataProvider for SetupItemDiscriminants {
             Self::AnswerProfile => "Your role and company size help us shape what we build.",
             Self::ExploreViews => "Switch the map to its layer 2, workloads or applications view.",
             Self::ApplicationTags => {
-                "Tag a service with an application to see the services that make it up as one group on the map."
+                "Tag a host or service with an application to see what makes it up as one group on the map."
             }
-            Self::Dependencies => {
+            Self::DependencyTutorial | Self::Dependencies => {
                 "Record which services depend on which, and see the path requests take."
             }
             Self::InterfaceCredential => {

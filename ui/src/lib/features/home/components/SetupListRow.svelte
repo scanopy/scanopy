@@ -121,6 +121,8 @@
 
 	let item = $derived(entry.item);
 	let done = $derived(entry.state === 'Done');
+	/** A first-scan row whose scan is running shows its progress, with nothing to click. */
+	let running = $derived(!done && item.type === 'RunFirstScan' && session !== null);
 	let Icon = $derived(setupItems.getIconComponent(item.type));
 	let iconColors = $derived(setupItems.getColorHelper(item.type));
 
@@ -330,15 +332,20 @@
 							go('topology');
 						}
 					});
-				case 'Dependencies':
+				// The same step to the user: the first opens the tutorial, the second (once the
+				// tutorial is finished) the map where the dependency is made.
+				case 'DependencyTutorial':
+				case 'Dependencies': {
+					const tutorial = item.type === 'DependencyTutorial';
 					return plain({
 						label: home_nudges_dependenciesAction(),
 						run: () => {
 							activeView.set(setup.includes('ApplicationTags') ? 'Application' : 'Workloads');
-							showDependencyTutorial.set(true);
+							showDependencyTutorial.set(tutorial);
 							go('topology');
 						}
 					});
+				}
 				case 'InterfaceCredential':
 					return plain({
 						label: credentials_createCredential(),
@@ -410,14 +417,17 @@
 					</span>
 				{/each}
 				{#if item.type === 'DaemonHealth'}
-					<Tag {...daemonHealths.getTag(item.health)} />
+					<Tag
+						{...daemonHealths.getTag(item.health)}
+						icon={daemonHealths.getIconComponent(item.health)}
+					/>
 				{/if}
 			{/if}
 		</div>
 		{#if !done}
 			<p class="text-sm text-tertiary">{view.sentence}</p>
 		{/if}
-		{#if !done && item.type === 'RunFirstScan' && session}
+		{#if running && session}
 			<div class="space-y-1 pt-1">
 				<DiscoveryEstimation
 					phase={session.phase}
@@ -441,11 +451,11 @@
 <!-- An open row is an interactive card (`card` without `card-static` rings on hover, as the
      app's other clickable cards do). A transparent button covers the card and runs the fix; the
      content sits over it with pointer events off, except the entity chips, which keep their own
-     tooltip and click. The label on the right says what the card click does. A done row is a
-     static card that only reports. -->
+     tooltip and click. The label on the right says what the card click does. A done row, and a
+     first-scan row whose scan is running, is a static card that only reports. -->
 <li>
-	{#if done}
-		<div class="card card-static flex items-center gap-3 p-4 opacity-70">
+	{#if done || running}
+		<div class="card card-static flex items-center gap-3 p-4 {done ? 'opacity-70' : ''}">
 			{@render body()}
 		</div>
 	{:else}

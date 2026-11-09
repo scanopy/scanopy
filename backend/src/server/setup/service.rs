@@ -27,8 +27,8 @@ use crate::server::{
     invites::{r#impl::base::Invite, service::InviteService},
     organizations::{r#impl::base::Organization, service::OrganizationService},
     shared::{
-        entities::EntityDiscriminants, services::traits::CrudService,
-        storage::filter::StorableFilter, types::entities::EntitySource,
+        services::traits::CrudService, storage::filter::StorableFilter,
+        types::entities::EntitySource,
     },
     shares::service::ShareService,
     sites::{r#impl::Site, service::SiteService},
@@ -170,7 +170,7 @@ impl SetupService {
                 .iter()
                 .map(|t| t.id)
                 .collect();
-            self.tag_service.has_live_assignment(&tag_ids, None).await?
+            self.tag_service.has_live_assignment(&tag_ids).await?
         };
         let has_application_tag_assignment = !org
             .has_setup(SetupItemDiscriminants::ApplicationTags)
@@ -183,9 +183,8 @@ impl SetupService {
                         .iter()
                         .map(|t| t.id)
                         .collect();
-                    self.tag_service
-                        .has_live_assignment(&tag_ids, Some(EntityDiscriminants::Service))
-                        .await?
+                    // On a host or a service: either groups it on the Application view.
+                    self.tag_service.has_live_assignment(&tag_ids).await?
                 }
                 None => false,
             };
