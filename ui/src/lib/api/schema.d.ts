@@ -2632,26 +2632,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/organizations/setup/dismiss-suggestion": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Dismiss Setup suggestion
-         * @description Hides the Suggestion for the whole organization. Issues and Next steps can't be dismissed.
-         */
-        post: operations["dismiss_setup_suggestion"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/organizations/{id}": {
         parameters: {
             query?: never;
@@ -4242,19 +4222,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-09T13:22:45.413071Z",
+             *       "created_at": "2026-11-09T14:45:15.389484Z",
              *       "first_discovery_id": null,
-             *       "id": "ffbc7ff3-1233-40c5-a201-097230ebb9b9",
+             *       "id": "f979a1d3-dc11-4731-9156-3af9fdd53fb9",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-09T13:22:45.413071Z",
+             *       "last_seen_at": "2026-11-09T14:45:15.389484Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-09T13:22:45.413071Z",
-             *       "valid_from": "2026-11-09T13:22:45.413071Z",
+             *       "updated_at": "2026-11-09T14:45:15.389484Z",
+             *       "valid_from": "2026-11-09T14:45:15.389484Z",
              *       "valid_to": null
              *     }
              */
@@ -5030,11 +5010,9 @@ export interface components {
              *       "created_at": "2026-01-15T10:30:00Z",
              *       "credential_assignments": [],
              *       "description": "Primary web server",
-             *       "device_type": "Server",
+             *       "device_type": "Unidentified",
              *       "device_type_source": {
-             *         "service_id": "550e8400-e29b-41d4-a716-446655440007",
-             *         "service_name": "nginx",
-             *         "type": "Service"
+             *         "type": "NoEvidence"
              *       },
              *       "dismissed_at": null,
              *       "display_name": "web-server-01",
@@ -5163,19 +5141,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-09T13:22:45.380081Z",
+             *               "created_at": "2026-11-09T14:45:15.355597Z",
              *               "first_discovery_id": null,
-             *               "id": "c87eb7cc-bdf6-4b9b-83ec-65b43f7c407d",
+             *               "id": "d936bbf6-75ba-4712-96b0-84f5e447cdcb",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-09T13:22:45.380081Z",
+             *               "last_seen_at": "2026-11-09T14:45:15.355597Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-09T13:22:45.380081Z",
-             *               "valid_from": "2026-11-09T13:22:45.380081Z",
+             *               "updated_at": "2026-11-09T14:45:15.355597Z",
+             *               "valid_from": "2026-11-09T14:45:15.355597Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5188,7 +5166,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "FreeIPA",
+             *           "service_definition": "Shell In A Box",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6220,19 +6198,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-09T13:22:45.407689Z",
+             *           "created_at": "2026-11-09T14:45:15.383748Z",
              *           "first_discovery_id": null,
-             *           "id": "d40f3b3f-0acf-4443-a1d0-96bdab879f0f",
+             *           "id": "98f615d0-769f-4f25-88d4-15cb67593ce0",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-09T13:22:45.407689Z",
+             *           "last_seen_at": "2026-11-09T14:45:15.383748Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-09T13:22:45.407689Z",
-             *           "valid_from": "2026-11-09T13:22:45.407689Z",
+             *           "updated_at": "2026-11-09T14:45:15.383748Z",
+             *           "valid_from": "2026-11-09T14:45:15.383748Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6245,7 +6223,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "FreeIPA",
+             *       "service_definition": "Shell In A Box",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7723,19 +7701,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-09T13:22:45.380709Z",
+         *       "created_at": "2026-11-09T14:45:15.356234Z",
          *       "first_discovery_id": null,
-         *       "id": "65c098a1-9fa7-4d8c-b3a4-f3f2e7286044",
+         *       "id": "720da842-3ad0-40ad-b891-f771f3adea99",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-09T13:22:45.380709Z",
+         *       "last_seen_at": "2026-11-09T14:45:15.356234Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-09T13:22:45.380709Z",
-         *       "valid_from": "2026-11-09T13:22:45.380709Z",
+         *       "updated_at": "2026-11-09T14:45:15.356234Z",
+         *       "valid_from": "2026-11-09T14:45:15.356234Z",
          *       "valid_to": null
          *     }
          */
@@ -8125,7 +8103,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "FreeIPA",
+         *           "service_definition": "Shell In A Box",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -10121,11 +10099,6 @@ export interface components {
          * @enum {string}
          */
         DiscoveryWarningCode: "InterfaceSetCutShort" | "InterfaceDetailsCutShort" | "SnmpWalkEntryCap" | "SnmpWalkUnsupported" | "SnmpWalkDesynchronised" | "SnmpWalkPartialDiscarded" | "SnmpWalkPartialRecorded" | "SnmpWalkBridgeMibAbsent" | "SnmpWalkNoAnswer" | "SnmpWalkFailed" | "ClaimedCountReadCutShort" | "ClaimedCountUnderRead" | "ClaimedCapabilityReadCutShort" | "ClaimedCapabilityEmpty" | "LldpLocalPortDropped" | "LldpLocalPortDroppedReadCutShort" | "LldpLocalPortMisplaced" | "MalformedNeighboursWalkCutShort" | "MalformedNeighboursGhostRows" | "MalformedNeighboursIncompleteRecords" | "MalformedNeighboursUnexpectedType" | "MalformedNeighboursUnreadableIndex" | "SnmpCollectedNothing" | "VlanRecordingFailed" | "EqualReachIntegrationsMerged" | "CredentialTargetNotScanned" | "CredentialTargetNotResponding" | "CredentialDaemonOsMismatch" | "CredentialNeedsNewerDaemon" | "CredentialWithoutTarget" | "CredentialLoginUnavailable" | "CredentialGateClosed" | "CredentialRejected" | "CredentialMalformed" | "CredentialTlsFailed" | "CredentialNotThisService" | "CredentialCollectionFailed" | "CredentialCollectionTimedOut" | "CredentialUnreachable" | "CredentialTimedOut" | "IntegrationWithoutCredential" | "GuestOutsideScan" | "GuestBehindHypervisor" | "GuestIsolated" | "ConnectionsWithoutProtocolResponse" | "ScanTimeLimitWithEstimate" | "ScanTimeLimit" | "DcpSweepTimedOut" | "IcmpSweepTimedOut" | "ReverseDnsTimedOut" | "LldpNeighbourNotFound" | "LldpNeighbourAmbiguous" | "LldpPortNoStrategy" | "LldpPortNotFound" | "LldpPortAmbiguous" | "ProvisionalSubnetInferred" | "UnconfirmedHostInferred" | "NeighbourResolutionIncomplete" | "FdbResolutionIncomplete" | "OutdatedDaemonFormat" | "DaemonInDesktopVm" | "WarningsTruncated" | "Unknown";
-        /** @description Request to dismiss a Suggestion from the org's Setup list */
-        DismissSuggestionRequest: {
-            /** @description The Suggestion's item type. */
-            item_type: components["schemas"]["SetupItemDiscriminants"];
-        };
         /**
          * @description An action as the role comparison shows it. `Write` is one [`Action`] and reads as Edit, plus
          *     Create on a resource where it adds rows.
@@ -11202,11 +11175,9 @@ export interface components {
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "credential_assignments": [],
          *       "description": "Primary web server",
-         *       "device_type": "Server",
+         *       "device_type": "Unidentified",
          *       "device_type_source": {
-         *         "service_id": "550e8400-e29b-41d4-a716-446655440007",
-         *         "service_name": "nginx",
-         *         "type": "Service"
+         *         "type": "NoEvidence"
          *       },
          *       "dismissed_at": null,
          *       "display_name": "web-server-01",
@@ -11335,19 +11306,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-09T13:22:45.379321Z",
+         *               "created_at": "2026-11-09T14:45:15.354844Z",
          *               "first_discovery_id": null,
-         *               "id": "ab33004a-5337-48f0-b46d-cd5dd0c74b59",
+         *               "id": "56106ac0-3f36-41a8-a450-b7d3647a2551",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-09T13:22:45.379321Z",
+         *               "last_seen_at": "2026-11-09T14:45:15.354844Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-09T13:22:45.379321Z",
-         *               "valid_from": "2026-11-09T13:22:45.379321Z",
+         *               "updated_at": "2026-11-09T14:45:15.354844Z",
+         *               "valid_from": "2026-11-09T14:45:15.354844Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11360,7 +11331,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "FreeIPA",
+         *           "service_definition": "Shell In A Box",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -15026,19 +14997,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-09T13:22:45.380494Z",
+         *           "created_at": "2026-11-09T14:45:15.356019Z",
          *           "first_discovery_id": null,
-         *           "id": "ffd0139f-d2ab-4167-aa50-85913dec6a66",
+         *           "id": "17f03a23-2e9f-4a1e-a605-3fa46fcf1dfb",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-09T13:22:45.380494Z",
+         *           "last_seen_at": "2026-11-09T14:45:15.356019Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-09T13:22:45.380494Z",
-         *           "valid_from": "2026-11-09T13:22:45.380494Z",
+         *           "updated_at": "2026-11-09T14:45:15.356019Z",
+         *           "valid_from": "2026-11-09T14:45:15.356019Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -15051,7 +15022,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "FreeIPA",
+         *       "service_definition": "Shell In A Box",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -15217,8 +15188,8 @@ export interface components {
             client_secret: string;
         };
         /**
-         * @description One thing on the org's Setup list: a problem to fix (Issue), the next step of first-run setup
-         *     (Next step), or a feature to try (Suggestion).
+         * @description One thing on the org's Setup list: a problem to fix (Issue), or a step of setting up Scanopy
+         *     (Setup).
          */
         SetupItem: {
             /**
@@ -15305,14 +15276,31 @@ export interface components {
             /** @description Every warning of the code from the daemon's latest runs. */
             warnings: components["schemas"]["DiscoveryWarning"][];
         } | {
+            /**
+             * Format: int64
+             * @description The unconfirmed hosts on the sites the user reads.
+             */
+            count: number;
+            /** @enum {string} */
+            type: "UnconfirmedHosts";
+        } | {
+            /**
+             * Format: int64
+             * @description The unconfirmed subnets on the sites the user reads.
+             */
+            count: number;
+            /** @enum {string} */
+            type: "UnconfirmedSubnets";
+        } | {
             /** @enum {string} */
             type: "InstallDaemon";
         } | {
             /**
              * Format: uuid
-             * @description The connected daemon that runs the first scan, whose progress the item shows.
+             * @description The first daemon to connect, which runs the first scan and whose progress the item
+             *     shows. `None` while no daemon has connected, or once that daemon is deleted.
              */
-            daemon_id: string;
+            daemon_id?: string | null;
             /** @enum {string} */
             type: "RunFirstScan";
         } | {
@@ -15325,21 +15313,8 @@ export interface components {
             /** @enum {string} */
             type: "AnswerProfile";
         } | {
-            /**
-             * Format: int64
-             * @description Unconfirmed hosts the user may review. 0 when the user can't edit hosts.
-             */
-            hosts: number;
-            /**
-             * Format: int64
-             * @description Unconfirmed subnets the user may review. 0 when the user can't edit subnets.
-             */
-            subnets: number;
             /** @enum {string} */
-            type: "ReviewUnconfirmed";
-        } | {
-            /** @enum {string} */
-            type: "ExplorePerspectives";
+            type: "ExploreViews";
         } | {
             /** @enum {string} */
             type: "ApplicationTags";
@@ -15366,7 +15341,7 @@ export interface components {
             type: "Share";
         };
         /** @enum {string} */
-        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ReviewUnconfirmed" | "ExplorePerspectives" | "ApplicationTags" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
+        SetupItemDiscriminants: "DaemonHealth" | "UncoveredIntegration" | "TargetlessCredential" | "SiteWithoutDaemon" | "RunWarnings" | "UnconfirmedHosts" | "UnconfirmedSubnets" | "InstallDaemon" | "RunFirstScan" | "OpenTopology" | "AnswerReferralSource" | "AnswerProfile" | "ExploreViews" | "ApplicationTags" | "Dependencies" | "InterfaceCredential" | "Tags" | "InviteTeam" | "MultiSite" | "ApiKeys" | "Share";
         /** @description One item's identity across sweeps and page loads. */
         SetupItemKey: {
             item_type: components["schemas"]["SetupItemDiscriminants"];
@@ -15393,15 +15368,29 @@ export interface components {
             type: "RunWarning";
         };
         /**
+         * @description Where a Setup item stands. Issues are always Open.
+         * @enum {string}
+         */
+        SetupItemState: "Open" | "Locked" | "Done";
+        /**
          * @description Which group of the Setup list an item sits in, in display order.
          * @enum {string}
          */
-        SetupItemTier: "Issue" | "NextStep" | "Suggestion";
-        /** @description One Setup list row as the dashboard serves it: the item, with its identity and its tier. */
+        SetupItemTier: "Issue" | "Setup";
+        /**
+         * @description One Setup list row as the dashboard serves it: the item, with its identity, its tier and its
+         *     state.
+         */
         SetupListEntry: {
+            /**
+             * @description Whether the trial sweep reports the item once it stays open a day: an Issue, or a first
+             *     step still Open.
+             */
+            alerts_when_stuck: boolean;
             item: components["schemas"]["SetupItem"];
             /** @description The item's identity: the same item on the next load has the same key. */
             key: components["schemas"]["SetupItemKey"];
+            state: components["schemas"]["SetupItemState"];
             /** @description The group of the list the item sits in. */
             tier: components["schemas"]["SetupItemTier"];
         };
@@ -16453,7 +16442,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "a728db37-bed8-4078-bae6-0a592e1ec82a",
+             *           "id": "dc895262-b6fb-4748-a0e9-fbeeddbba6a5",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16463,23 +16452,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "e2c457fd-b5ee-4e17-be8c-b301582596a4",
+             *           "id": "7621e5ac-f5a9-4c77-ae66-d1ea22360770",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "b3d14037-ea3b-4a67-9a99-2c03b8c611c2",
+             *           "id": "904be274-210d-4e0b-8d79-0b03544b9c33",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "dc5bc771-4cf1-4874-be76-ee578989ab30",
+             *           "id": "44045ce9-95f6-4002-b021-79a2ca569a44",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "e2c457fd-b5ee-4e17-be8c-b301582596a4",
+             *           "id": "7621e5ac-f5a9-4c77-ae66-d1ea22360770",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16493,19 +16482,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "125e20e8-6ce2-4659-b26e-0c079b059b79",
+             *         "id": "5de147c0-c0a5-4dc4-8027-511f7c3eb827",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "99a0617f-fa75-4c77-85f8-418f21912a51",
+             *         "id": "8c02910d-2fff-4b26-aaff-ca1a6367cbdc",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "3351436f-913f-4748-ae9b-f39837a55fad",
+             *         "id": "e1097f5b-1084-48d9-be52-322cab1e3108",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "a45f6403-e649-4590-afae-0ea59b66a54c",
+             *         "id": "8d3cc9b5-bebd-448f-974e-d22ce99a8a16",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16526,7 +16515,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "584b97be-8151-4219-a783-79b0dd2f3718",
+             *         "id": "b72ef54c-8f0c-490b-9a0b-0f59bc9d733c",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16535,19 +16524,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "0ed4db2c-a03d-4615-a427-351acff4f71c",
+             *         "id": "f244eefc-f2ec-4f9d-8656-0563e3abd25b",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "d7a408c8-37be-49f6-9d5c-af1b3534446a",
+             *         "id": "9c4ff89a-9413-4e23-bfda-47f3b5e3341c",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "476d5634-27fa-4807-ba75-e0e7b3513754",
+             *         "id": "988d2f43-b47a-497d-913d-054205e528e3",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "f7f82c40-cd1c-4613-bc2a-0bd157e777a3",
+             *         "id": "f3ad717e-4a55-456b-b43f-73f0427c338f",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -23507,48 +23496,6 @@ export interface operations {
             };
         };
     };
-    dismiss_setup_suggestion: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DismissSuggestionRequest"];
-            };
-        };
-        responses: {
-            /** @description Suggestion dismissed */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse"];
-                };
-            };
-            /** @description Not a Suggestion */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-            /** @description The user may not act on the Suggestion */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
     update_organization: {
         parameters: {
             query?: never;
@@ -26743,7 +26690,8 @@ export interface operations {
                  */
                 snapshot_id?: string | null;
                 /**
-                 * @description When `true`, records the `OpenTopology` setup item (the user has viewed their topology).
+                 * @description When `true`, records the `OpenTopology` setup item (the user has viewed their topology),
+                 *     and `ExploreViews` when `view` is not the default view.
                  *     Only the frontend's explicit on-tab view sets this — the background topology-data query
                  *     never does — so it is never recorded from other tabs. Once per org.
                  */
