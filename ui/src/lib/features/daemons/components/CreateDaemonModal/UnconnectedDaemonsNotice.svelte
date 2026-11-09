@@ -16,7 +16,7 @@
 	import { DAEMON_STATUS_DOCS_URL } from '../../utils';
 	import { daemonHealths, entities } from '$lib/shared/stores/metadata';
 	import {
-		billing_lapsedBannerCta,
+		daemons_unconnectedStepPlan,
 		common_confirmDeleteName,
 		common_sending,
 		daemons_unconnectedAddAnotherTitle,
@@ -50,6 +50,7 @@
 
 	// Drawn as the Daemons table draws the daemon and its status.
 	const awaitingTag = daemonHealths.getTag('awaiting_connection');
+	const awaitingIcon = daemonHealths.getIconComponent('awaiting_connection');
 	const daemonColor = entities.getColorHelper('Daemon').color;
 	const troubleshootUrl = `${DAEMON_STATUS_DOCS_URL}#awaiting-connection`;
 
@@ -88,8 +89,8 @@
 					<Tag
 						label={awaitingTag.label}
 						color={awaitingTag.color}
-						icon={awaitingTag.icon}
-						href={awaitingTag.href ?? ''}
+						title={awaitingTag.title}
+						icon={awaitingIcon}
 					/>
 					<span class="text-tertiary">
 						{daemons_unconnectedCreated({ date: formatDate(daemon.created_at) })}
@@ -151,7 +152,7 @@
 				{#if eligibility.plan_required}
 					<li>
 						<button type="button" class="text-link hover:underline" onclick={handleChoosePlan}>
-							{billing_lapsedBannerCta()}
+							{daemons_unconnectedStepPlan()}
 						</button>
 					</li>
 				{/if}
