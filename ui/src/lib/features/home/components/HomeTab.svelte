@@ -29,10 +29,11 @@
 	let pageLoad = $derived(loadFailure(dashboardQuery, organizationQuery));
 
 	let setup = $derived(organization?.setup ?? []);
-	// A lapsed org keeps its plan's feature flags but can act on none of them, so it gets no Suggestions.
+	// A lapsed org keeps its plan's feature flags but can act on none of them, so it gets only its
+	// Issues.
 	let setupItems = $derived(
 		(dashboard?.setup_items ?? []).filter(
-			(entry) => !(organization && isPlanLapsed(organization)) || entry.tier !== 'Suggestion'
+			(entry) => !(organization && isPlanLapsed(organization)) || entry.tier === 'Issue'
 		)
 	);
 	let configData = $derived(configQuery.data);

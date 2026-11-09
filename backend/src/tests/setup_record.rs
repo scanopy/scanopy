@@ -27,12 +27,13 @@ async fn concurrent_records_of_one_item_add_it_once() {
     storage.organizations.create(&org).await.unwrap();
 
     let organizations = &services.organization_service;
-    let dismissed = || SetupOperation::Dismissed {
+    let completed = || SetupOperation::Completed {
         item_type: SetupItemDiscriminants::Tags,
+        subject_id: None,
     };
     let (a, b) = tokio::join!(
-        organizations.record_setup(org.id, dismissed(), AuthenticatedEntity::System),
-        organizations.record_setup(org.id, dismissed(), AuthenticatedEntity::System),
+        organizations.record_setup(org.id, completed(), AuthenticatedEntity::System),
+        organizations.record_setup(org.id, completed(), AuthenticatedEntity::System),
     );
     let added = [a.unwrap(), b.unwrap()];
     assert_eq!(added.iter().filter(|added| **added).count(), 1);

@@ -9,7 +9,7 @@ use std::collections::{BTreeSet, HashSet};
 use semver::Version;
 use uuid::Uuid;
 
-use super::types::{SetupItem, SetupItemDiscriminants};
+use super::types::{SetupItem, SetupItemDiscriminants, SetupItemState, SetupListEntry};
 use crate::{
     daemon::discovery::types::warnings::{DiscoveryWarning, DiscoveryWarningCode},
     server::{
@@ -60,7 +60,7 @@ pub struct DaemonRunWarnings {
     pub warnings: Vec<DiscoveryWarning>,
 }
 
-/// Rows the Suggestions count.
+/// Rows whose count completes a Setup item.
 #[derive(Debug, Clone, Default)]
 pub struct SetupCounts {
     pub dependencies: u64,
@@ -73,7 +73,7 @@ pub struct SetupCounts {
 /// The facts every item type's condition reads.
 #[derive(Debug, Clone)]
 pub struct SetupContext {
-    /// The types the org finished or dismissed (`organizations.setup`).
+    /// The Setup types the org has done (`organizations.setup`).
     pub recorded: HashSet<SetupItemDiscriminants>,
     pub daemons: Vec<SetupDaemon>,
     pub sites: Vec<SetupSite>,
@@ -81,19 +81,21 @@ pub struct SetupContext {
     pub uncovered_integrations: Vec<UncoveredIntegration>,
     /// Each daemon's latest run of each discovery type, newest first.
     pub run_warnings: Vec<DaemonRunWarnings>,
-    /// A connected daemon to run the first scan.
+    /// The first daemon to connect, which runs the first scan.
     pub first_scan_daemon_id: Option<Uuid>,
     pub unconfirmed_hosts: u64,
     pub unconfirmed_subnets: u64,
     pub counts: SetupCounts,
-    pub has_manual_tag: bool,
-    pub has_manual_application_tag: bool,
+    /// Some entity in the org holds a tag.
+    pub has_tag_assignment: bool,
+    /// Some service holds a tag of the org's application group.
+    pub has_application_tag_assignment: bool,
     pub has_manual_interface_credential: bool,
     pub plan: BillingPlan,
     /// Whether this is Scanopy Cloud. The two questions are asked only there.
     pub cloud: bool,
-    /// The resources the user may write. `None` in the sweep, which has no user and lists no
-    /// Suggestions.
+    /// The resources the user may write. `None` in the sweep, which acts for the whole org and
+    /// passes every write check.
     pub can_write: Option<BTreeSet<Resource>>,
 }
 
@@ -105,48 +107,67 @@ impl SetupContext {
     fn can_write(&self, resource: Resource) -> bool {
         self.can_write
             .as_ref()
-            .is_some_and(|writable| writable.contains(&resource))
+            .is_none_or(|writable| writable.contains(&resource))
     }
 }
 
 impl SetupItemDiscriminants {
-    /// This type's items for the org. Issues return one item per affected entity, Next steps and
-    /// Suggestions zero or one. Nothing once the type is recorded as finished or dismissed.
-    pub fn items(self, ctx: &SetupContext) -> Vec<SetupItem> {
+    /// This type's entries for the org. Issues return one Open entry per affected entity. A
+    /// Setup type returns its one entry, or none when it doesn't apply to this org and user (a
+    /// plan feature, Scanopy Cloud, a write permission). A Setup entry is Done once recorded or
+    /// once [`Self::live_done`] holds, Locked while its prerequisite isn't recorded, and Open
+    /// otherwise.
+    pub fn items(self, ctx: &SetupContext) -> Vec<SetupListEntry> {
         use SetupItemDiscriminants as T;
-        if ctx.has(self) {
-            return Vec::new();
-        }
         let features = ctx.plan.features();
-        let one = |condition: bool, item: SetupItem| if condition { vec![item] } else { vec![] };
+        let issue = |item: SetupItem| SetupListEntry::new(item, SetupItemState::Open);
+        let step = |applies: bool, locked: bool, item: SetupItem| {
+            if !applies {
+                return Vec::new();
+            }
+            let state = if ctx.has(self) || self.live_done(ctx) {
+                SetupItemState::Done
+            } else if locked {
+                SetupItemState::Locked
+            } else {
+                SetupItemState::Open
+            };
+            vec![SetupListEntry::new(item, state)]
+        };
         match self {
             T::DaemonHealth => ctx
                 .daemons
                 .iter()
                 .filter(|d| d.health != DaemonHealth::Healthy)
-                .map(|d| SetupItem::DaemonHealth {
-                    daemon_id: d.id,
-                    name: d.name.clone(),
-                    site_id: d.site_id,
-                    health: d.health,
+                .map(|d| {
+                    issue(SetupItem::DaemonHealth {
+                        daemon_id: d.id,
+                        name: d.name.clone(),
+                        site_id: d.site_id,
+                        health: d.health,
+                    })
                 })
                 .collect(),
             T::UncoveredIntegration => ctx
                 .uncovered_integrations
                 .iter()
-                .map(|u| SetupItem::UncoveredIntegration {
-                    integration: u.integration,
-                    host_ids: u.host_ids.clone(),
-                    site_ids: u.site_ids.clone(),
+                .map(|u| {
+                    issue(SetupItem::UncoveredIntegration {
+                        integration: u.integration,
+                        host_ids: u.host_ids.clone(),
+                        site_ids: u.site_ids.clone(),
+                    })
                 })
                 .collect(),
             T::TargetlessCredential => ctx
                 .targetless_credentials
                 .iter()
-                .map(|c| SetupItem::TargetlessCredential {
-                    credential_id: c.id,
-                    name: c.name.clone(),
-                    integration: c.integration,
+                .map(|c| {
+                    issue(SetupItem::TargetlessCredential {
+                        credential_id: c.id,
+                        name: c.name.clone(),
+                        integration: c.integration,
+                    })
                 })
                 .collect(),
             // Before the first connection, InstallDaemon already asks for a daemon.
@@ -155,106 +176,135 @@ impl SetupItemDiscriminants {
                 .sites
                 .iter()
                 .filter(|s| !ctx.daemons.iter().any(|d| d.site_id == s.id))
-                .map(|s| SetupItem::SiteWithoutDaemon {
-                    site_id: s.id,
-                    name: s.name.clone(),
+                .map(|s| {
+                    issue(SetupItem::SiteWithoutDaemon {
+                        site_id: s.id,
+                        name: s.name.clone(),
+                    })
                 })
                 .collect(),
-            T::RunWarnings => run_warning_items(ctx),
-            // A daemon that never connected is an AwaitingConnection Issue instead.
-            T::InstallDaemon => one(
-                !ctx.daemons
+            T::RunWarnings => run_warning_items(ctx).into_iter().map(issue).collect(),
+            T::UnconfirmedHosts if ctx.can_write(Resource::Host) && ctx.unconfirmed_hosts > 0 => {
+                vec![issue(SetupItem::UnconfirmedHosts {
+                    count: ctx.unconfirmed_hosts,
+                })]
+            }
+            T::UnconfirmedSubnets
+                if ctx.can_write(Resource::Subnet) && ctx.unconfirmed_subnets > 0 =>
+            {
+                vec![issue(SetupItem::UnconfirmedSubnets {
+                    count: ctx.unconfirmed_subnets,
+                })]
+            }
+            T::UnconfirmedHosts | T::UnconfirmedSubnets => Vec::new(),
+            // A daemon created and never connected is an AwaitingConnection Issue, which waits
+            // in this step's place.
+            T::InstallDaemon => step(
+                true,
+                ctx.daemons
                     .iter()
                     .any(|d| d.health == DaemonHealth::AwaitingConnection),
                 SetupItem::InstallDaemon,
             ),
-            T::RunFirstScan => match ctx.first_scan_daemon_id {
-                Some(daemon_id) if ctx.has(T::InstallDaemon) => {
-                    vec![SetupItem::RunFirstScan { daemon_id }]
-                }
-                _ => Vec::new(),
-            },
-            // The topology views are a plan feature, so the step waits for a plan with them.
-            T::OpenTopology => one(
-                ctx.has(T::RunFirstScan) && features.includes_topology(),
+            T::RunFirstScan => step(
+                true,
+                !ctx.has(T::InstallDaemon),
+                SetupItem::RunFirstScan {
+                    daemon_id: ctx.first_scan_daemon_id,
+                },
+            ),
+            // The topology views are a plan feature.
+            T::OpenTopology => step(
+                features.includes_topology(),
+                !ctx.has(T::RunFirstScan),
                 SetupItem::OpenTopology,
             ),
-            // Cloud only, one question at a time: the referral source first, then the profile.
-            T::AnswerReferralSource => one(
-                ctx.cloud && ctx.has(T::InstallDaemon),
+            // Cloud only.
+            T::AnswerReferralSource => step(
+                ctx.cloud,
+                !ctx.has(T::InstallDaemon),
                 SetupItem::AnswerReferralSource,
             ),
-            T::AnswerProfile => one(
-                ctx.cloud && ctx.has(T::RunFirstScan) && ctx.has(T::AnswerReferralSource),
+            T::AnswerProfile => step(
+                ctx.cloud,
+                !ctx.has(T::RunFirstScan),
                 SetupItem::AnswerProfile,
             ),
-            T::ReviewUnconfirmed => {
-                let hosts = if ctx.can_write(Resource::Host) {
-                    ctx.unconfirmed_hosts
-                } else {
-                    0
-                };
-                let subnets = if ctx.can_write(Resource::Subnet) {
-                    ctx.unconfirmed_subnets
-                } else {
-                    0
-                };
-                one(
-                    hosts + subnets > 0,
-                    SetupItem::ReviewUnconfirmed { hosts, subnets },
-                )
-            }
-            T::ExplorePerspectives => one(ctx.has(T::OpenTopology), SetupItem::ExplorePerspectives),
-            T::ApplicationTags => one(
-                ctx.has(T::OpenTopology)
-                    && features.tagging
-                    && !ctx.has_manual_application_tag
-                    && ctx.can_write(Resource::Tag),
+            T::ExploreViews => step(
+                features.includes_topology(),
+                !ctx.has(T::OpenTopology),
+                SetupItem::ExploreViews,
+            ),
+            T::ApplicationTags => step(
+                features.tagging && ctx.can_write(Resource::Tag),
+                !ctx.has(T::OpenTopology),
                 SetupItem::ApplicationTags,
             ),
-            T::Dependencies => one(
-                ctx.has(T::OpenTopology)
-                    && ctx.counts.dependencies == 0
-                    && ctx.can_write(Resource::Dependency),
+            T::Dependencies => step(
+                ctx.can_write(Resource::Dependency),
+                !ctx.has(T::OpenTopology),
                 SetupItem::Dependencies,
             ),
-            T::InterfaceCredential => one(
-                ctx.has(T::RunFirstScan)
-                    && !ctx.has_manual_interface_credential
-                    && ctx.can_write(Resource::Credential),
+            // The Create Daemon wizard offers credentials, so this needs no step first.
+            T::InterfaceCredential => step(
+                ctx.can_write(Resource::Credential),
+                false,
                 SetupItem::InterfaceCredential,
             ),
-            T::Tags => one(
-                ctx.has(T::RunFirstScan)
-                    && features.tagging
-                    && !ctx.has_manual_tag
-                    && ctx.can_write(Resource::Tag),
+            T::Tags => step(
+                features.tagging && ctx.can_write(Resource::Tag),
+                !ctx.has(T::RunFirstScan),
                 SetupItem::Tags,
             ),
-            T::InviteTeam => one(
-                ctx.plan.can_invite_users()
-                    && ctx.counts.members == 1
-                    && ctx.counts.pending_invites == 0
-                    && ctx.can_write(Resource::Member),
+            T::InviteTeam => step(
+                ctx.plan.can_invite_users() && ctx.can_write(Resource::Member),
+                false,
                 SetupItem::InviteTeam,
             ),
-            T::MultiSite => one(
-                plan_allows_several_sites(&ctx.plan)
-                    && ctx.sites.len() == 1
-                    && ctx.can_write(Resource::NewSite),
+            T::MultiSite => step(
+                plan_allows_several_sites(&ctx.plan) && ctx.can_write(Resource::NewSite),
+                false,
                 SetupItem::MultiSite,
             ),
-            T::ApiKeys => one(
-                features.api_access && ctx.has(T::RunFirstScan) && ctx.counts.user_api_keys == 0,
+            T::ApiKeys => step(
+                features.api_access,
+                !ctx.has(T::RunFirstScan),
                 SetupItem::ApiKeys,
             ),
-            T::Share => one(
-                features.sharing
-                    && ctx.has(T::OpenTopology)
-                    && ctx.counts.shares == 0
-                    && ctx.can_write(Resource::Share),
+            T::Share => step(
+                features.sharing && ctx.can_write(Resource::Share),
+                !ctx.has(T::OpenTopology),
                 SetupItem::Share,
             ),
+        }
+    }
+
+    /// Whether the org's rows show this Setup type done, which records it. `false` for Issues
+    /// and for the types a request records directly (the first connection, the first scan, the
+    /// topology views, the answers).
+    pub fn live_done(self, ctx: &SetupContext) -> bool {
+        match self {
+            Self::DaemonHealth
+            | Self::UncoveredIntegration
+            | Self::TargetlessCredential
+            | Self::SiteWithoutDaemon
+            | Self::RunWarnings
+            | Self::UnconfirmedHosts
+            | Self::UnconfirmedSubnets
+            | Self::InstallDaemon
+            | Self::RunFirstScan
+            | Self::OpenTopology
+            | Self::AnswerReferralSource
+            | Self::AnswerProfile
+            | Self::ExploreViews => false,
+            Self::Tags => ctx.has_tag_assignment,
+            Self::ApplicationTags => ctx.has_application_tag_assignment,
+            Self::Dependencies => ctx.counts.dependencies > 0,
+            Self::InterfaceCredential => ctx.has_manual_interface_credential,
+            Self::InviteTeam => ctx.counts.members > 1 || ctx.counts.pending_invites > 0,
+            Self::MultiSite => ctx.sites.len() > 1,
+            Self::ApiKeys => ctx.counts.user_api_keys > 0,
+            Self::Share => ctx.counts.shares > 0,
         }
     }
 }
@@ -322,6 +372,7 @@ pub fn is_setup_issue_warning(warning: &DiscoveryWarning) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::server::setup::types::SetupItemTier;
     use crate::server::{
         billing::plans::{get_enterprise_plan, get_free_plan},
         credentials::{
@@ -365,8 +416,8 @@ mod tests {
                 members: 1,
                 ..Default::default()
             },
-            has_manual_tag: false,
-            has_manual_application_tag: false,
+            has_tag_assignment: false,
+            has_application_tag_assignment: false,
             has_manual_interface_credential: false,
             plan: get_enterprise_plan(),
             cloud: true,
@@ -388,6 +439,19 @@ mod tests {
 
     fn count(item_type: T, ctx: &SetupContext) -> usize {
         item_type.items(ctx).len()
+    }
+
+    fn items(item_type: T, ctx: &SetupContext) -> Vec<SetupItem> {
+        item_type.items(ctx).into_iter().map(|e| e.item).collect()
+    }
+
+    /// The state of a Setup type's one entry, `None` when it doesn't apply.
+    fn state(item_type: T, ctx: &SetupContext) -> Option<SetupItemState> {
+        match item_type.items(ctx).as_slice() {
+            [] => None,
+            [entry] => Some(entry.state),
+            entries => panic!("{item_type:?} listed {} entries", entries.len()),
+        }
     }
 
     fn needs_newer_daemon(last_unsupported: Version) -> DiscoveryWarning {
@@ -413,7 +477,7 @@ mod tests {
         let site_id = ctx.sites[0].id;
         let outdated = daemon(site_id, DaemonHealth::Outdated);
         ctx.daemons = vec![daemon(site_id, DaemonHealth::Healthy), outdated.clone()];
-        let items = T::DaemonHealth.items(&ctx);
+        let items = items(T::DaemonHealth, &ctx);
         assert!(matches!(
             items.as_slice(),
             [SetupItem::DaemonHealth { daemon_id, health: DaemonHealth::Outdated, .. }]
@@ -452,7 +516,7 @@ mod tests {
 
         let mut ctx = recorded(ctx, &[T::InstallDaemon]);
         assert!(matches!(
-            T::SiteWithoutDaemon.items(&ctx).as_slice(),
+            items(T::SiteWithoutDaemon, &ctx).as_slice(),
             [SetupItem::SiteWithoutDaemon { site_id, .. }] if *site_id == branch.id
         ));
 
@@ -488,7 +552,7 @@ mod tests {
                 warnings: vec![time_limit()],
             },
         ];
-        let items = T::RunWarnings.items(&ctx);
+        let items = items(T::RunWarnings, &ctx);
         assert!(matches!(
             items.as_slice(),
             [SetupItem::RunWarnings { discovery_id, code: DiscoveryWarningCode::ScanTimeLimit, warnings, .. }]
@@ -515,16 +579,16 @@ mod tests {
     }
 
     /// A daemon created and never connected is an AwaitingConnection Issue, and InstallDaemon
-    /// steps aside for it.
+    /// waits behind it.
     #[test]
-    fn a_never_connected_daemon_replaces_install_daemon() {
+    fn a_never_connected_daemon_locks_install_daemon() {
         let mut ctx = ctx();
-        assert_eq!(count(T::InstallDaemon, &ctx), 1);
+        assert_eq!(state(T::InstallDaemon, &ctx), Some(SetupItemState::Open));
 
         ctx.daemons = vec![daemon(ctx.sites[0].id, DaemonHealth::AwaitingConnection)];
-        assert_eq!(count(T::InstallDaemon, &ctx), 0);
+        assert_eq!(state(T::InstallDaemon, &ctx), Some(SetupItemState::Locked));
         assert!(matches!(
-            T::DaemonHealth.items(&ctx).as_slice(),
+            items(T::DaemonHealth, &ctx).as_slice(),
             [SetupItem::DaemonHealth {
                 health: DaemonHealth::AwaitingConnection,
                 ..
@@ -533,157 +597,151 @@ mod tests {
 
         ctx.daemons.clear();
         let ctx = recorded(ctx, &[T::InstallDaemon]);
-        assert_eq!(count(T::InstallDaemon, &ctx), 0);
+        assert_eq!(state(T::InstallDaemon, &ctx), Some(SetupItemState::Done));
     }
 
     #[test]
-    fn run_first_scan_follows_the_first_connection_and_names_the_daemon() {
+    fn run_first_scan_opens_at_the_first_connection_and_names_the_daemon() {
         let mut ctx = ctx();
+        assert_eq!(state(T::RunFirstScan, &ctx), Some(SetupItemState::Locked));
+
         let daemon_id = Uuid::new_v4();
         ctx.first_scan_daemon_id = Some(daemon_id);
-        assert_eq!(count(T::RunFirstScan, &ctx), 0);
-
         let ctx = recorded(ctx, &[T::InstallDaemon]);
+        assert_eq!(state(T::RunFirstScan, &ctx), Some(SetupItemState::Open));
         assert!(matches!(
-            T::RunFirstScan.items(&ctx).as_slice(),
-            [SetupItem::RunFirstScan { daemon_id: d }] if *d == daemon_id
+            items(T::RunFirstScan, &ctx).as_slice(),
+            [SetupItem::RunFirstScan { daemon_id: Some(d) }] if *d == daemon_id
         ));
         assert_eq!(
-            count(T::RunFirstScan, &recorded(ctx, &[T::RunFirstScan])),
-            0
+            state(T::RunFirstScan, &recorded(ctx, &[T::RunFirstScan])),
+            Some(SetupItemState::Done)
         );
     }
 
-    #[test]
-    fn open_topology_follows_the_first_scan_on_a_plan_with_topology() {
-        assert_eq!(count(T::OpenTopology, &ctx()), 0);
-        let ctx = recorded(ctx(), &[T::RunFirstScan]);
-        assert_eq!(count(T::OpenTopology, &ctx), 1);
-
-        let mut free = ctx.clone();
-        free.plan = get_free_plan();
-        assert_eq!(count(T::OpenTopology, &free), 0);
-    }
-
-    /// The referral question follows the first daemon, and the profile question follows both the
-    /// first scan and the referral answer, so one shows at a time.
-    #[test]
-    fn the_questions_follow_the_daemon_the_first_scan_and_each_other() {
-        assert_eq!(count(T::AnswerReferralSource, &ctx()), 0);
-        assert_eq!(count(T::AnswerProfile, &ctx()), 0);
-        let after_daemon = recorded(ctx(), &[T::InstallDaemon]);
-        assert_eq!(count(T::AnswerReferralSource, &after_daemon), 1);
-        assert_eq!(count(T::AnswerProfile, &after_daemon), 0);
-        let after_scan = recorded(after_daemon, &[T::RunFirstScan]);
-        assert_eq!(count(T::AnswerProfile, &after_scan), 0);
-        let answered = recorded(after_scan, &[T::AnswerReferralSource]);
-        assert_eq!(count(T::AnswerProfile, &answered), 1);
-    }
-
-    #[test]
-    fn a_self_hosted_server_asks_neither_question() {
-        let mut self_hosted = recorded(
-            ctx(),
-            &[T::InstallDaemon, T::RunFirstScan, T::AnswerReferralSource],
-        );
-        self_hosted.cloud = false;
-        assert_eq!(count(T::AnswerProfile, &self_hosted), 0);
-        self_hosted.recorded.remove(&T::AnswerReferralSource);
-        assert_eq!(count(T::AnswerReferralSource, &self_hosted), 0);
-    }
-
-    /// Counts only what the user may review.
-    #[test]
-    fn unconfirmed_rows_count_only_what_the_user_can_write() {
-        let mut ctx = ctx();
-        assert_eq!(count(T::ReviewUnconfirmed, &ctx), 0);
-        ctx.unconfirmed_hosts = 3;
-        ctx.unconfirmed_subnets = 1;
-        let ctx = without_write(ctx, Resource::Subnet);
-        assert!(matches!(
-            T::ReviewUnconfirmed.items(&ctx).as_slice(),
-            [SetupItem::ReviewUnconfirmed {
-                hosts: 3,
-                subnets: 0
-            }]
-        ));
-        assert_eq!(
-            count(T::ReviewUnconfirmed, &without_write(ctx, Resource::Host)),
-            0
-        );
-    }
-
-    /// Each Suggestion appears once its prerequisite is recorded, the user may act on it and the
-    /// org hasn't already done it, and is gone once dismissed.
-    #[test]
-    fn suggestions_need_their_step_their_permission_and_no_prior_use() {
-        let after_topology = recorded(ctx(), &[T::InstallDaemon, T::RunFirstScan, T::OpenTopology]);
-        // (type, the resource it needs, a context where the org has already done it)
-        let mut done_tags = after_topology.clone();
-        done_tags.has_manual_tag = true;
-        let mut done_application_tags = after_topology.clone();
-        done_application_tags.has_manual_application_tag = true;
-        let mut done_dependencies = after_topology.clone();
-        done_dependencies.counts.dependencies = 1;
-        let mut done_interface = after_topology.clone();
-        done_interface.has_manual_interface_credential = true;
-        let mut done_invite = after_topology.clone();
-        done_invite.counts.pending_invites = 1;
-        let mut done_sites = after_topology.clone();
-        done_sites.sites.push(site("Branch"));
-        let mut done_api_keys = after_topology.clone();
-        done_api_keys.counts.user_api_keys = 1;
-        let mut done_shares = after_topology.clone();
-        done_shares.counts.shares = 1;
-        let cases = [
+    /// Each Setup type's prerequisite, and the context where its rows show it done. A type the
+    /// rows can't show is done only once recorded.
+    fn setup_cases() -> Vec<(T, Option<T>, Option<SetupContext>)> {
+        let base = ctx();
+        let with = |change: &dyn Fn(&mut SetupContext)| {
+            let mut ctx = base.clone();
+            change(&mut ctx);
+            Some(ctx)
+        };
+        vec![
+            (T::InstallDaemon, None, None),
+            (T::RunFirstScan, Some(T::InstallDaemon), None),
+            (T::OpenTopology, Some(T::RunFirstScan), None),
+            (T::AnswerReferralSource, Some(T::InstallDaemon), None),
+            (T::AnswerProfile, Some(T::RunFirstScan), None),
+            (T::ExploreViews, Some(T::OpenTopology), None),
             (
                 T::ApplicationTags,
-                Some(Resource::Tag),
-                done_application_tags,
+                Some(T::OpenTopology),
+                with(&|c| c.has_application_tag_assignment = true),
             ),
             (
                 T::Dependencies,
-                Some(Resource::Dependency),
-                done_dependencies,
+                Some(T::OpenTopology),
+                with(&|c| c.counts.dependencies = 1),
             ),
             (
                 T::InterfaceCredential,
-                Some(Resource::Credential),
-                done_interface,
+                None,
+                with(&|c| c.has_manual_interface_credential = true),
             ),
-            (T::Tags, Some(Resource::Tag), done_tags),
-            (T::InviteTeam, Some(Resource::Member), done_invite),
-            (T::MultiSite, Some(Resource::NewSite), done_sites),
-            (T::ApiKeys, None, done_api_keys),
-            (T::Share, Some(Resource::Share), done_shares),
-        ];
-        for (item_type, resource, done) in cases {
-            assert_eq!(count(item_type, &after_topology), 1, "{item_type:?}");
-            // Inviting and adding sites need no setup step first.
-            if !matches!(item_type, T::InviteTeam | T::MultiSite) {
-                assert_eq!(count(item_type, &ctx()), 0, "{item_type:?} before setup");
-            }
-            assert_eq!(count(item_type, &done), 0, "{item_type:?} already done");
-            if let Some(resource) = resource {
-                let read_only = without_write(after_topology.clone(), resource);
-                assert_eq!(
-                    count(item_type, &read_only),
-                    0,
-                    "{item_type:?} without write"
-                );
-            }
-            let dismissed = recorded(after_topology.clone(), &[item_type]);
-            assert_eq!(count(item_type, &dismissed), 0, "{item_type:?} dismissed");
-        }
-        assert_eq!(count(T::ExplorePerspectives, &after_topology), 1);
-        assert_eq!(count(T::ExplorePerspectives, &ctx()), 0);
+            (
+                T::Tags,
+                Some(T::RunFirstScan),
+                with(&|c| c.has_tag_assignment = true),
+            ),
+            (T::InviteTeam, None, with(&|c| c.counts.pending_invites = 1)),
+            (T::MultiSite, None, with(&|c| c.sites.push(site("Branch")))),
+            (
+                T::ApiKeys,
+                Some(T::RunFirstScan),
+                with(&|c| c.counts.user_api_keys = 1),
+            ),
+            (
+                T::Share,
+                Some(T::OpenTopology),
+                with(&|c| c.counts.shares = 1),
+            ),
+        ]
     }
 
-    /// Free holds one seat and one site and lacks tags, the API and sharing, so it suggests none of
-    /// them.
+    /// Every Setup type is Locked until its prerequisite is recorded, then Open, then Done once
+    /// recorded or once the rows show it done, whatever its prerequisite.
     #[test]
-    fn suggestions_for_features_outside_the_plan_stay_hidden() {
-        let mut free = recorded(ctx(), &[T::InstallDaemon, T::RunFirstScan, T::OpenTopology]);
+    fn a_setup_item_is_locked_then_open_then_done() {
+        let cases = setup_cases();
+        assert_eq!(
+            cases.iter().map(|(t, ..)| *t).collect::<Vec<_>>(),
+            T::iter()
+                .filter(|t| t.tier() == SetupItemTier::Setup)
+                .collect::<Vec<_>>(),
+            "every Setup type has a case"
+        );
+        for (item_type, prerequisite, live_done) in cases {
+            let ready = recorded(ctx(), &prerequisite.into_iter().collect::<Vec<_>>());
+            if prerequisite.is_some() {
+                assert_eq!(
+                    state(item_type, &ctx()),
+                    Some(SetupItemState::Locked),
+                    "{item_type:?}"
+                );
+            }
+            assert_eq!(
+                state(item_type, &ready),
+                Some(SetupItemState::Open),
+                "{item_type:?}"
+            );
+            assert_eq!(
+                state(item_type, &recorded(ctx(), &[item_type])),
+                Some(SetupItemState::Done),
+                "{item_type:?} recorded"
+            );
+            assert!(!item_type.live_done(&ctx()), "{item_type:?}");
+            if let Some(live_done) = live_done {
+                assert!(item_type.live_done(&live_done), "{item_type:?}");
+                assert_eq!(
+                    state(item_type, &live_done),
+                    Some(SetupItemState::Done),
+                    "{item_type:?} done in the rows"
+                );
+            }
+        }
+    }
+
+    /// A Setup item that needs a write is left out for a user without it. The sweep, with no
+    /// user, passes every write check.
+    #[test]
+    fn a_setup_item_needing_a_write_is_left_out_without_it() {
+        for (item_type, resource) in [
+            (T::ApplicationTags, Resource::Tag),
+            (T::Tags, Resource::Tag),
+            (T::Dependencies, Resource::Dependency),
+            (T::InterfaceCredential, Resource::Credential),
+            (T::InviteTeam, Resource::Member),
+            (T::MultiSite, Resource::NewSite),
+            (T::Share, Resource::Share),
+        ] {
+            assert_eq!(
+                count(item_type, &without_write(ctx(), resource)),
+                0,
+                "{item_type:?}"
+            );
+            let mut sweep = ctx();
+            sweep.can_write = None;
+            assert_eq!(count(item_type, &sweep), 1, "{item_type:?} in the sweep");
+        }
+    }
+
+    /// Free holds one seat and one site and lacks tags, the API, sharing and the topology views.
+    /// The questions are asked on Cloud only.
+    #[test]
+    fn a_setup_item_outside_the_plan_or_deployment_is_left_out() {
+        let mut free = ctx();
         free.plan = get_free_plan();
         for item_type in [
             T::InviteTeam,
@@ -692,13 +750,53 @@ mod tests {
             T::Share,
             T::Tags,
             T::ApplicationTags,
+            T::OpenTopology,
+            T::ExploreViews,
         ] {
             assert_eq!(count(item_type, &free), 0, "{item_type:?}");
         }
+        let mut self_hosted = ctx();
+        self_hosted.cloud = false;
+        assert_eq!(count(T::AnswerReferralSource, &self_hosted), 0);
+        assert_eq!(count(T::AnswerProfile, &self_hosted), 0);
     }
 
-    /// Types are declared Issues first, then Next steps, then Suggestions, which is the order the
-    /// list is shown in.
+    /// Counts only what the user may review, one Issue per kind of row.
+    #[test]
+    fn unconfirmed_rows_are_issues_the_user_can_write() {
+        let mut ctx = ctx();
+        assert_eq!(count(T::UnconfirmedHosts, &ctx), 0);
+        ctx.unconfirmed_hosts = 3;
+        ctx.unconfirmed_subnets = 1;
+        assert!(matches!(
+            items(T::UnconfirmedHosts, &ctx).as_slice(),
+            [SetupItem::UnconfirmedHosts { count: 3 }]
+        ));
+        let read_only = without_write(ctx, Resource::Subnet);
+        assert_eq!(count(T::UnconfirmedSubnets, &read_only), 0);
+        assert_eq!(count(T::UnconfirmedHosts, &read_only), 1);
+    }
+
+    /// The sweep reports Issues and Open first steps only: a first step Locked or Done, and every
+    /// later step, is never reported.
+    #[test]
+    fn only_issues_and_open_first_steps_alert_when_stuck() {
+        let mut ctx = ctx();
+        ctx.unconfirmed_hosts = 2;
+        let alerting = |ctx: &SetupContext| -> Vec<T> {
+            T::iter()
+                .flat_map(|t| t.items(ctx))
+                .filter(|e| e.alerts_when_stuck)
+                .map(|e| T::from(&e.item))
+                .collect()
+        };
+        assert_eq!(alerting(&ctx), [T::UnconfirmedHosts, T::InstallDaemon]);
+        let mut ctx = recorded(ctx, &[T::InstallDaemon]);
+        ctx.daemons = vec![daemon(ctx.sites[0].id, DaemonHealth::Healthy)];
+        assert_eq!(alerting(&ctx), [T::UnconfirmedHosts, T::RunFirstScan]);
+    }
+
+    /// Types are declared Issues first, then Setup, which is the order the list is shown in.
     #[test]
     fn declaration_order_groups_types_by_tier() {
         let tiers: Vec<_> = T::iter().map(|t| t.tier()).collect();
