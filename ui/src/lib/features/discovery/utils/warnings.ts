@@ -918,7 +918,7 @@ function affectsOf(warnings: DiscoveryWarning[], hostName: HostNameLookup): Warn
 }
 
 /** The rung a code sits on, as the backend filed it. */
-function remedyOf(code: DiscoveryWarningCode): string | null {
+export function remedyOf(code: DiscoveryWarningCode): string | null {
 	return warningCodes.find((c) => c.id === code)?.category ?? null;
 }
 
@@ -953,6 +953,13 @@ const NEEDS_ATTENTION_REMEDY = 'FixInScanopy';
  */
 export function credentialIdsOf(entry: Pick<WarningEntry, 'warnings'>): string[] {
 	return [...new Set(entry.warnings.flatMap(credentialIdOf))];
+}
+
+/** Every host the warnings behind a row name, once each. */
+export function hostIdsOf(entry: Pick<WarningEntry, 'warnings'>): string[] {
+	return [
+		...new Set(entry.warnings.flatMap((w) => ('host_id' in w && w.host_id ? [w.host_id] : [])))
+	];
 }
 
 /** The stored credential one warning names, as a zero- or one-element list. */

@@ -38,6 +38,8 @@
 	import { daemonSetupState } from '$lib/features/daemons/stores/daemon-setup';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
+	import { useSitesQuery } from '$lib/features/sites/queries';
+	import { hostIdsOf } from '$lib/features/discovery/utils/warnings';
 	import { useCredentialsQuery } from '$lib/features/credentials/queries';
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
@@ -86,17 +88,26 @@
 	let issueColor = $derived(setupItemTiers.getColorHelper('Issue').rgb);
 	let hasEmail = $derived(configQuery.data?.has_email_service ?? false);
 
-	// The hosts an uncovered integration was found on, for its chip's name.
-	let hostIds = $derived(
-		entries.flatMap(({ item }) =>
-			item.type === 'UncoveredIntegration' ? item.host_ids.slice(0, 1) : []
+	// The hosts the rows name in their chips: an uncovered integration's first host, and the
+	// hosts a scan warning concerns.
+	let hostIds = $derived([
+		...new Set(
+			entries.flatMap(({ item }) =>
+				item.type === 'UncoveredIntegration'
+					? item.host_ids.slice(0, 1)
+					: item.type === 'RunWarnings'
+						? hostIdsOf(item)
+						: []
+			)
 		)
-	);
+	]);
 	const hostsQuery = useHostsByIds(() => hostIds);
+	const sitesQuery = useSitesQuery();
 
 	let lookups = $derived<SetupLookups>({
 		daemon: (id) => (daemonsQuery.data ?? []).find((d) => d.id === id),
 		host: (id) => (hostsQuery.data ?? []).find((h) => h.id === id),
+		site: (id) => (sitesQuery.data ?? []).find((s) => s.id === id),
 		credential: (id) => (credentialsQuery.data ?? []).find((c) => c.id === id)
 	});
 
