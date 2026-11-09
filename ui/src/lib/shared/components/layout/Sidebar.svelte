@@ -758,7 +758,7 @@
 												<span class="relative">
 													<item.icon class="h-4 w-4 shrink-0" />
 													{#if badge}
-														<NavBadge {...badge} class="absolute -top-1 -right-1" />
+														<NavBadge {...badge} class="absolute -top-1.5 -right-1.5" />
 													{/if}
 												</span>
 												{#if !collapsed}
@@ -808,12 +808,7 @@
 								<span class="relative">
 									<configItem.icon class="h-4 w-4 shrink-0" />
 									{#if badge}
-										<NavBadge
-											{...badge}
-											class="absolute {badge.count === undefined
-												? '-top-1 -right-1'
-												: '-top-1.5 -right-2'}"
-										/>
+										<NavBadge {...badge} class="absolute -top-1.5 -right-1.5" />
 									{/if}
 								</span>
 								{#if !collapsed}
@@ -899,7 +894,7 @@
 							<span class="relative">
 								<item.icon class="h-5 w-5 shrink-0" />
 								{#if badge}
-									<NavBadge {...badge} class="absolute -top-1 -right-1" />
+									<NavBadge {...badge} class="absolute -top-1.5 -right-1.5" />
 								{/if}
 							</span>
 							{#if !collapsed}
