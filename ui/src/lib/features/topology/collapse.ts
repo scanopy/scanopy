@@ -130,6 +130,41 @@ function saveLevelToStorage(level: CollapseLevel): void {
 	}
 }
 
+const SCOPE_STORAGE_KEY = 'scanopy_topology_collapse_scope';
+
+/** Names the topology and view a persisted collapsed set and level were saved for. */
+export function collapseScope(topologyId: string, view: string): string {
+	return `${topologyId}|${view}`;
+}
+
+function loadScopeFromStorage(): string | null {
+	if (!browser) return null;
+	try {
+		return localStorage.getItem(SCOPE_STORAGE_KEY);
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * The scope the persisted collapse state belonged to when the tab opened. `null` when none was
+ * recorded, which includes state saved before the scope was persisted.
+ */
+export const storedCollapseScopeOnLoad = loadScopeFromStorage();
+
+let savedScope = storedCollapseScopeOnLoad;
+
+/** Record the topology and view the persisted collapse state now describes. */
+export function saveCollapseScope(scope: string): void {
+	if (!browser || scope === savedScope) return;
+	savedScope = scope;
+	try {
+		localStorage.setItem(SCOPE_STORAGE_KEY, scope);
+	} catch {
+		// ignore
+	}
+}
+
 export const collapsedContainers = writable<Set<string>>(loadCollapsedFromStorage());
 
 // Persist on change (skip first subscription call)
@@ -225,6 +260,27 @@ export function scaleCollapseCandidates(
 			})
 			.map((n) => n.id)
 	);
+}
+
+/**
+ * The collapsed set to open with when a tab loads a graph at scale-collapse size and the
+ * persisted collapse state was saved for another topology or view. `null` when the persisted
+ * state applies as it stands.
+ *
+ * Container ids are per view, so a set saved in one view names nothing in another. Stripped of
+ * those ids it is empty, and an empty set reads as "everything expanded": a reload or a shared
+ * link into Workloads after viewing L2 mounted every node of a 4,000-host site. A view switch
+ * inside a session opens a view of this size at level 1, and a reload into it does the same.
+ */
+export function collapsedForReloadIntoOtherScope(
+	storedScope: string | null,
+	scope: string,
+	allNodes: TopologyNode[],
+	containerTypesStore: ContainerTypesAccessor
+): Set<string> | null {
+	if (storedScope === scope) return null;
+	const candidates = scaleCollapseCandidates(allNodes, containerTypesStore);
+	return candidates.size > 0 ? candidates : null;
 }
 
 /**

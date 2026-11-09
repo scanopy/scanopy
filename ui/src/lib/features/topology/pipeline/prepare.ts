@@ -13,7 +13,11 @@ import {
 	isScaleCollapsed,
 	scaleCollapseCandidates,
 	expandedInlineGroups,
-	allInlineGroupKeys
+	allInlineGroupKeys,
+	collapseScope,
+	collapsedForReloadIntoOtherScope,
+	saveCollapseScope,
+	storedCollapseScopeOnLoad
 } from '../collapse';
 import { elevateEdgesToContainers } from '../layout/edge-elevation';
 import { containerTypes, views } from '$lib/shared/stores/metadata';
@@ -416,8 +420,15 @@ export function prepareTopologyData(
 	//
 	// Otherwise: infer the level from the persisted collapsed set so any
 	// prior user choice (including an explicit stepExpand to 4) is respected.
+	const scope = collapseScope(topology.id ?? '', currentView);
 	if (!state.collapseLevelInferred) {
 		state.collapseLevelInferred = true;
+		const otherScopeCollapsed = collapsedForReloadIntoOtherScope(
+			storedCollapseScopeOnLoad,
+			scope,
+			topology.nodes,
+			containerTypes
+		);
 		if (!defaultsAppliedThisSession && !hadStoredLevelOnLoad) {
 			const defaultLevel = get(collapseLevel);
 			const defaultCollapsed = computeCollapsedForLevel(
@@ -429,6 +440,12 @@ export function prepareTopologyData(
 			collapsedContainers.set(defaultCollapsed);
 			collapsed = defaultCollapsed;
 			collapseLevel.set(defaultLevel);
+		} else if (!defaultsAppliedThisSession && otherScopeCollapsed) {
+			// The stored state describes another topology or view, and this graph is large enough
+			// to scale-collapse: open it at level 1, as a view switch into it does.
+			collapsedContainers.set(otherScopeCollapsed);
+			collapsed = otherScopeCollapsed;
+			collapseLevel.set(1);
 		} else {
 			const inferred = inferCurrentLevel(
 				collapsed,
@@ -440,6 +457,7 @@ export function prepareTopologyData(
 		}
 		defaultsAppliedThisSession = true;
 	}
+	saveCollapseScope(scope);
 
 	// On view switch, apply the current collapse level to the new view's containers
 	if (viewChanged && topologyChanged && state.collapseLevelInferred) {

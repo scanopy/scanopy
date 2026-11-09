@@ -2,6 +2,7 @@ import { get } from 'svelte/store';
 import { describe, it, expect } from 'vitest';
 import {
 	computeCollapsedForLevel,
+	collapsedForReloadIntoOtherScope,
 	inferCurrentLevel,
 	scaleCollapseCandidates,
 	nextEffectiveLevel,
@@ -93,6 +94,26 @@ describe('computeCollapsedForLevel — scale collapse', () => {
 		container('sub', 'NestedTag', 'root'),
 		...Array.from({ length: 10 }, (_, i) => element(`e${i}`, 'sub'))
 	];
+
+	it('opens a reload into another view collapsed, and leaves a reload of the same view alone', () => {
+		// Stored ids belong to the view they were saved in. A reload into another view strips them
+		// all, and the empty set that remains would otherwise read as "expanded by hand".
+		const other = collapsedForReloadIntoOtherScope(
+			't|L2Physical',
+			't|Workloads',
+			atScale,
+			containerTypes
+		);
+		expect(other).toEqual(computeCollapsedForLevel(1, atScale, containerTypes, null));
+		expect(inferCurrentLevel(other!, atScale, containerTypes, null)).toBe(1);
+
+		expect(
+			collapsedForReloadIntoOtherScope('t|Workloads', 't|Workloads', atScale, containerTypes)
+		).toBeNull();
+		expect(
+			collapsedForReloadIntoOtherScope('t|L2Physical', 't|Workloads', belowScale, containerTypes)
+		).toBeNull();
+	});
 
 	it('infers level 1 for a scale-collapsed load, matching what is drawn', () => {
 		// `applyAutoCollapse` closes every collapsible container at scale, which is
