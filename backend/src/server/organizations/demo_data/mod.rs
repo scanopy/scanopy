@@ -53,6 +53,7 @@ use crate::server::{
         definitions::ServiceDefinitionRegistry,
         r#impl::{
             base::{Service, ServiceBase},
+            definitions::ServiceDefinition,
             virtualization::{DockerVirtualization, ServiceVirtualization},
         },
     },
@@ -141,6 +142,8 @@ pub struct DemoData {
     pub subnet_vlan_records: Vec<SubnetVlanRecord>,
     pub interfaces: Vec<Interface>,
     pub neighbor_updates: Vec<NeighborUpdate>,
+    /// Links known only as far as the far device, written as `Neighbor::Host`.
+    pub host_neighbor_updates: Vec<HostNeighborUpdate>,
     pub daemons: Vec<Daemon>,
     /// (daemon id, subnet ids) for the `daemon_interfaced_subnets` junction, derived from the
     /// daemon host's IP addresses. See [`generate_daemon_interfaced_subnets`].
@@ -151,6 +154,23 @@ pub struct DemoData {
     pub discoveries: Vec<Discovery>,
     pub shares: Vec<Share>,
     pub user_api_keys: Vec<(UserApiKey, Option<Vec<Uuid>>)>,
+    /// The sites the seeder snapshots, and when the snapshot is dated. Every row of those sites
+    /// is valid from this time or earlier, so the snapshot's closed copies cover a real interval.
+    pub snapshot_site_ids: Vec<Uuid>,
+    pub snapshot_taken_at: DateTime<Utc>,
+}
+
+/// How long before seeding the hand-built sites' snapshot is dated.
+const SNAPSHOT_AGE: Duration = Duration::days(30);
+
+/// Moves each row's `valid_from` back to `at` when it is later. See
+/// [`DemoData::snapshot_taken_at`].
+pub(crate) fn backdate_rows<T: Snapshotable>(rows: &mut [T], at: DateTime<Utc>) {
+    for row in rows {
+        if row.valid_from() > at {
+            row.set_valid_from(at);
+        }
+    }
 }
 
 impl DemoData {
@@ -218,8 +238,9 @@ impl DemoData {
         let user_api_keys = generate_user_api_keys(&sites, organization_id, now);
 
         let dependencies = generate_dependencies(&sites, &hosts_with_services);
+        let snapshot_site_ids = sites.iter().map(|s| s.id).collect();
 
-        Self {
+        let mut data = Self {
             tag_groups,
             tags,
             credentials,
@@ -240,6 +261,36 @@ impl DemoData {
             discoveries,
             shares,
             user_api_keys,
+            host_neighbor_updates: Vec::new(),
+            snapshot_site_ids,
+            snapshot_taken_at: now - SNAPSHOT_AGE,
+        };
+        // Before Plant is added: only the hand-built sites are snapshotted.
+        data.backdate_for_snapshot();
+        plant::add_plant_site(&mut data, organization_id, user_id, use_case, now);
+        data
+    }
+
+    /// Makes every row present so far valid from the snapshot time or earlier. The snapshot's
+    /// closed copies keep each row's `valid_from` and end at the snapshot time, so a row valid
+    /// only from seeding time would close before it opened. The "recently discovered" hosts are
+    /// left alone: they arrive after the snapshot.
+    fn backdate_for_snapshot(&mut self) {
+        let at = self.snapshot_taken_at;
+        backdate_rows(&mut self.tags, at);
+        backdate_rows(&mut self.subnets, at);
+        backdate_rows(&mut self.vlans, at);
+        backdate_rows(&mut self.subnet_vlan_records, at);
+        backdate_rows(&mut self.interfaces, at);
+        backdate_rows(&mut self.dependencies, at);
+        for hws in &mut self.hosts_with_services {
+            backdate_rows(std::slice::from_mut(&mut hws.host), at);
+            backdate_rows(&mut hws.ip_addresses, at);
+            backdate_rows(&mut hws.ports, at);
+            backdate_rows(&mut hws.services, at);
+            for service in &mut hws.services {
+                backdate_rows(&mut service.base.bindings, at);
+            }
         }
     }
 }
@@ -261,6 +312,12 @@ mod subnets;
 mod tags;
 mod topologies;
 mod vlans;
+
+pub mod large_estate;
+mod plant;
+
+use crate::server::shared::storage::snapshot::Snapshotable;
+pub use large_estate::HostNeighborUpdate;
 
 use api_keys::{bind_daemon_api_keys, generate_api_keys, generate_user_api_keys};
 use credentials::{generate_credentials, generate_site_credential_assignments};
@@ -598,7 +655,27 @@ fn create_service(
     now: DateTime<Utc>,
 ) -> Option<(Service, Option<Port>)> {
     let service_definition = ServiceDefinitionRegistry::find_by_id(service_def_id)?;
+    Some(build_service(
+        service_definition,
+        name,
+        host,
+        ip_address,
+        port_type,
+        tags,
+        now,
+    ))
+}
 
+/// [`create_service`] for a definition the caller already resolved.
+fn build_service(
+    service_definition: Box<dyn ServiceDefinition>,
+    name: &str,
+    host: &Host,
+    ip_address: &IPAddress,
+    port_type: Option<PortType>,
+    tags: Vec<Uuid>,
+    now: DateTime<Utc>,
+) -> (Service, Option<Port>) {
     let (bindings, port) = if let Some(pt) = port_type {
         let port = Port::new_hostless(pt).with_source(AttributeSource::PortScan);
         let binding = Binding::new_port_serviceless(port.id, Some(ip_address.id));
@@ -608,7 +685,7 @@ fn create_service(
         (vec![binding], None)
     };
 
-    Some((
+    (
         Service {
             valid_from: now,
             valid_to: None,
@@ -633,7 +710,7 @@ fn create_service(
             },
         },
         port,
-    ))
+    )
 }
 
 /// Like `create_service` but accepts a pre-generated UUID for the service ID.
