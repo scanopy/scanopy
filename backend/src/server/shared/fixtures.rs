@@ -323,6 +323,17 @@ pub fn generate_ui_data_fixtures(output_dir: &Path, force_logos: bool) {
             .collect();
     write_fixture(&daemon_healths, output_dir, "daemon-healths.json");
 
+    // The Setup list: each item type (tier, icon, copy) and each tier (group heading).
+    let setup_items: Vec<TypeMetadata> =
+        crate::server::setup::types::SetupItemDiscriminants::iter()
+            .map(|t| t.to_metadata())
+            .collect();
+    write_fixture(&setup_items, output_dir, "setup-items.json");
+    let setup_item_tiers: Vec<TypeMetadata> = crate::server::setup::types::SetupItemTier::iter()
+        .map(|t| t.to_metadata())
+        .collect();
+    write_fixture(&setup_item_tiers, output_dir, "setup-item-tiers.json");
+
     // A port's ifOperStatus, keyed by `IfOperStatus`: the inspector's status tag colour.
     let if_oper_statuses: Vec<TypeMetadata> =
         crate::server::interfaces::r#impl::base::IfOperStatus::iter()

@@ -12,8 +12,6 @@
 	import GettingStartedChecklist from './GettingStartedChecklist.svelte';
 	import ActiveDiscoveries from './ActiveDiscoveries.svelte';
 	import SiteMetrics from './SiteMetrics.svelte';
-	import DaemonHealthPanel from './DaemonHealthPanel.svelte';
-	import RecentDiscoveries from './RecentDiscoveries.svelte';
 	import FeatureNudges from './FeatureNudges.svelte';
 	import PlanUsage from './PlanUsage.svelte';
 	import ProfilePrompt from './ProfilePrompt.svelte';
@@ -23,7 +21,6 @@
 	import type { TabProps } from '$lib/shared/types';
 	import type { components } from '$lib/api/schema';
 	import { onMount, untrack } from 'svelte';
-	import { openModal } from '$lib/shared/stores/modal-registry';
 	import { useConfigQuery, isCloud } from '$lib/shared/stores/config-query';
 	import {
 		home_demoEmbedTitle,
@@ -184,25 +181,6 @@
 		     org keeps its plan's feature flags but cannot act on any of them. -->
 		{#if showNudges && !isPlanLapsed(organization)}
 			<FeatureNudges {organization} {dashboard} onNavigate={navigateTo} />
-		{/if}
-
-		<!-- Daemon Health — shown when daemons exist -->
-		{#if dashboard.daemons.length > 0}
-			<DaemonHealthPanel daemons={dashboard.daemons} onNavigate={navigateTo} />
-		{/if}
-
-		<!-- Recent scans — shown once a daemon exists, so before that the checklist is the only ask -->
-		{#if dashboard.recent_discoveries.length > 0 || has('InstallDaemon')}
-			<RecentDiscoveries
-				recent={dashboard.recent_discoveries}
-				daemons={dashboard.daemons}
-				sites={dashboard.sites}
-				onOpenRun={(discovery) => {
-					// The run itself, so the modal opens even when the history tab has not loaded it.
-					openModal('discovery-history-detail', { id: discovery.id, entityData: discovery });
-					navigateTo('discovery-history');
-				}}
-			/>
 		{/if}
 
 		<!-- Plan Usage — hidden pre-daemon since limits can't be hit -->

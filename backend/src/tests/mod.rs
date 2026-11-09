@@ -87,6 +87,7 @@ pub mod organization_writes;
 pub mod self_hosted_license_emails;
 pub mod self_hosted_licensing;
 pub mod session_gate;
+pub mod setup_items;
 pub mod setup_record;
 pub mod snapshot_close_and_clone;
 pub mod snmp_sim_resolution;

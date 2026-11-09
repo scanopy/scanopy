@@ -105,6 +105,9 @@ export const COVERED_FIXTURES = [
 	{ file: 'guest-states.json', key: 'guest_states', kind: 'typeMetadata' },
 	// A daemon's health, the most severe status that applies, keyed by `DaemonHealth`.
 	{ file: 'daemon-healths.json', key: 'daemon_healths', kind: 'typeMetadata' },
+	// The Setup list's item types and tiers, keyed by `SetupItemDiscriminants` and `SetupItemTier`.
+	{ file: 'setup-items.json', key: 'setup_items', kind: 'typeMetadata' },
+	{ file: 'setup-item-tiers.json', key: 'setup_item_tiers', kind: 'typeMetadata' },
 	{ file: 'device-types.json', key: 'device_types', kind: 'typeMetadata' },
 	// Scan warnings. Descriptions here are templates with `{named}` slots, unlike every other
 	// entry above: the values are copied through verbatim, paraglide compiles them into functions

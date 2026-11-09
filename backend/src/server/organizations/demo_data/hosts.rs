@@ -161,6 +161,7 @@ pub(super) fn generate_hosts_and_services(
     let instant_on_cred = find_cred("Instant On Cloud Account");
     let hypervisor_ssh_cred = find_cred("Hypervisor SSH");
     let proxmox_api_cred = find_cred("Proxmox Cluster API");
+    let dc_proxmox_api_cred = find_cred("Data Center Proxmox API");
     let kvm_inventory_cred = find_cred("KVM Inventory");
 
     let critical_tag = find_tag("Critical");
@@ -2453,12 +2454,15 @@ pub(super) fn generate_hosts_and_services(
             }
             services.push(svc);
         }
-        result.push(HostWithServices {
-            host,
-            ip_addresses,
-            ports,
-            services,
-        });
+        result.push(with_credentials(
+            HostWithServices {
+                host,
+                ip_addresses,
+                ports,
+                services,
+            },
+            &[dc_proxmox_api_cred],
+        ));
     }
 
     // 8. argocd-vm — VM on dc-proxmox-hv01 (vm_id=300)

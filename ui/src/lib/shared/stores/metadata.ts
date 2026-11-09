@@ -36,6 +36,8 @@ import containerNetworkTypesJson from '$lib/data/container-network-types.json';
 import ifOperStatusesJson from '$lib/data/if-oper-statuses.json';
 import guestStatesJson from '$lib/data/guest-states.json';
 import daemonHealthsJson from '$lib/data/daemon-healths.json';
+import setupItemsJson from '$lib/data/setup-items.json';
+import setupItemTiersJson from '$lib/data/setup-item-tiers.json';
 import deviceTypesJson from '$lib/data/device-types.json';
 import {
 	createColorHelper,
@@ -155,6 +157,8 @@ export interface MetadataRegistry {
 	if_oper_statuses: TypeMetadata[];
 	guest_states: TypeMetadata[];
 	daemon_healths: TypeMetadata[];
+	setup_items: TypeMetadata[];
+	setup_item_tiers: TypeMetadata[];
 	device_types: TypeMetadata[];
 }
 
@@ -390,6 +394,8 @@ export const metadata = writable<MetadataRegistry>({
 	if_oper_statuses: ifOperStatusesJson,
 	guest_states: guestStatesJson,
 	daemon_healths: daemonHealthsJson,
+	setup_items: setupItemsJson,
+	setup_item_tiers: setupItemTiersJson,
 	device_types: deviceTypesJson
 } as unknown as MetadataRegistry);
 
@@ -628,6 +634,12 @@ export const guestStates = createTypeMetadataHelpers<'guest_states', object>('gu
 /** A daemon's health, the most severe status that applies, keyed by `DaemonHealth`. Fixture order
  *  is severity order, most severe first. */
 export const daemonHealths = createTypeMetadataHelpers<'daemon_healths', object>('daemon_healths');
+/** The Setup list's item types (copy, icon, tier as `category`), keyed by `SetupItemDiscriminants`. */
+export const setupItems = createTypeMetadataHelpers<'setup_items', object>('setup_items');
+/** The Setup list's tiers, in display order, keyed by `SetupItemTier`. */
+export const setupItemTiers = createTypeMetadataHelpers<'setup_item_tiers', object>(
+	'setup_item_tiers'
+);
 export const deviceTypes = createTypeMetadataHelpers<'device_types', object>('device_types');
 export const discoveryTypes = createTypeMetadataHelpers<'discovery_types', DiscoveryTypeMetadata>(
 	'discovery_types'

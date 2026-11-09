@@ -71,6 +71,7 @@
 	type Organization = components['schemas']['Organization'];
 	type SetupItemType = components['schemas']['SetupItemDiscriminants'];
 	type DashboardSummary = components['schemas']['DashboardSummary'];
+	type SetupItem = components['schemas']['SetupItem'];
 
 	let {
 		organization,
@@ -83,6 +84,13 @@
 	} = $props();
 
 	const can = useCan();
+	// The nudges read the Setup items until the Setup list replaces them.
+	function itemsOf<T extends SetupItem['type']>(type: T): Extract<SetupItem, { type: T }>[] {
+		return dashboard.setup_items.filter(
+			(item): item is Extract<SetupItem, { type: T }> => item.type === type
+		);
+	}
+	let unconfirmed = $derived(itemsOf('ReviewUnconfirmed')[0] ?? { hosts: 0, subnets: 0 });
 	const daemonsQuery = useDaemonsQuery();
 	// Surface the daemon nudge for any daemon that isn't Healthy.
 	let hasDaemonsNeedingAttention = $derived(
@@ -134,7 +142,7 @@
 			},
 			// One per integration the latest scans found with no credential, most hosts first. Gone
 			// once a covering credential is saved, so acting on it does not dismiss it.
-			...dashboard.uncovered_integrations.map(({ integration, host_ids, site_ids }): Nudge => ({
+			...itemsOf('UncoveredIntegration').map(({ integration, host_ids, site_ids }): Nudge => ({
 				id: `integration-${integration}`,
 				title: integrationWithoutCredentialTitle(integration),
 				description: integrationWithoutCredentialSentence(integration, host_ids.length),
@@ -153,19 +161,19 @@
 				id: 'unconfirmed-entities',
 				title: home_nudges_unconfirmedTitle(),
 				description: home_nudges_unconfirmedDescription({
-					hosts: dashboard.unconfirmed_host_count,
-					subnets: dashboard.unconfirmed_subnet_count
+					hosts: unconfirmed.hosts,
+					subnets: unconfirmed.subnets
 				}),
 				actions: [
 					{
 						tab: 'hosts',
-						count: dashboard.unconfirmed_host_count,
+						count: unconfirmed.hosts,
 						label: home_nudges_unconfirmedReviewHosts(),
 						editable: can('Host', 'Write')
 					},
 					{
 						tab: 'subnets',
-						count: dashboard.unconfirmed_subnet_count,
+						count: unconfirmed.subnets,
 						label: home_nudges_unconfirmedReviewSubnets(),
 						editable: can('Subnet', 'Write')
 					}
@@ -176,13 +184,13 @@
 						onAction: () => openTab(tab, new URLSearchParams({ sources: 'Inferred' }))
 					})),
 				visible:
-					(dashboard.unconfirmed_host_count > 0 && can('Host', 'Write')) ||
-					(dashboard.unconfirmed_subnet_count > 0 && can('Subnet', 'Write')),
+					(unconfirmed.hosts > 0 && can('Host', 'Write')) ||
+					(unconfirmed.subnets > 0 && can('Subnet', 'Write')),
 				icon: CircleDashedCheck,
 				iconColor: entitySources.getColorHelper('Inferred').icon,
 				dismissOnAction: false
 			},
-			...dashboard.targetless_credentials.map(({ id, name, integration }): Nudge => ({
+			...itemsOf('TargetlessCredential').map(({ credential_id: id, name, integration }): Nudge => ({
 				id: `targetless-credential-${id}`,
 				title: home_nudges_targetlessCredentialTitle({ name }),
 				description: home_nudges_targetlessCredentialDescription(),

@@ -4,6 +4,7 @@ use super::*;
 use crate::daemon::discovery::types::warnings::DiscoveryWarning;
 use crate::server::credentials::r#impl::base::Credential;
 use crate::server::credentials::service::{FoundIntegration, SiteTriedAt};
+use crate::server::setup::items::{DaemonRunWarnings, is_setup_issue_warning};
 use crate::server::sites::r#impl::Site;
 
 impl DiscoveryService {
@@ -63,6 +64,51 @@ impl DiscoveryService {
             }
         }
         Ok((found, tried_at))
+    }
+
+    /// Each daemon's latest completed run of each discovery type, newest first, holding only the
+    /// warnings that are Setup issues. A newer run of a type replaces the older one, so a warning
+    /// clears once the next run of its type comes back clean, and a run of another type leaves it.
+    ///
+    /// A rescan is skipped: it touches one host, so it would hide what the last full scan found.
+    pub async fn latest_runs_per_daemon(
+        &self,
+        daemon_ids: &[Uuid],
+    ) -> Result<Vec<DaemonRunWarnings>> {
+        let mut latest = Vec::new();
+        for daemon_id in daemon_ids {
+            let filter = StorableFilter::<Discovery>::new_from_uuid_column("daemon_id", daemon_id)
+                .historical_discovery()
+                .exclude_rescans()
+                .completed_runs()
+                .limit(20);
+            let runs = self
+                .discovery_storage
+                .get_all_ordered(filter, "updated_at DESC")
+                .await?;
+            let mut seen_types: HashSet<&'static str> = HashSet::new();
+            let mut per_type: Vec<Discovery> = runs
+                .into_iter()
+                .filter(|run| seen_types.insert((&run.base.discovery_type).into()))
+                .collect();
+            self.attach_warnings(&mut per_type).await?;
+            latest.extend(per_type.into_iter().filter_map(|run| {
+                let RunType::Historical { results } = run.base.run_type else {
+                    return None;
+                };
+                let warnings: Vec<DiscoveryWarning> = results
+                    .warnings
+                    .into_iter()
+                    .filter(is_setup_issue_warning)
+                    .collect();
+                (!warnings.is_empty()).then_some(DaemonRunWarnings {
+                    daemon_id: *daemon_id,
+                    discovery_id: run.id,
+                    warnings,
+                })
+            }));
+        }
+        Ok(latest)
     }
 
     /// The organization's credentials no future scan will send to a daemon: no site or host
