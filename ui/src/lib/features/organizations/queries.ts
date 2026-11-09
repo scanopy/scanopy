@@ -201,36 +201,6 @@ export async function fetchDemoPopulateStatus(
 }
 
 /**
- * Mutation hook for recording the user's response to the daemon-install prompt.
- * Each CTA persists a distinct onboarding milestone so the prompt is not shown again
- * (and survives reload). Optimistically appends the milestone to the cached org so the
- * modal's open-gate flips immediately.
- */
-export function useDaemonPromptResponseMutation() {
-	const queryClient = useQueryClient();
-
-	return createMutation(() => ({
-		mutationFn: async (action: components['schemas']['DaemonPromptAction']) => {
-			requireSuccess(
-				await apiClient.POST('/api/v1/organizations/daemon-prompt-response', {
-					body: { action }
-				})
-			);
-			return action;
-		},
-		onSuccess: (action) => {
-			const milestone: components['schemas']['OnboardingOperationDiscriminants'] =
-				action === 'dismissed' ? 'DaemonPromptDismissed' : 'DaemonPromptAccepted';
-			queryClient.setQueryData<Organization>(queryKeys.organizations.current(), (old) =>
-				old && !old.onboarding.includes(milestone)
-					? { ...old, onboarding: [...old.onboarding, milestone] }
-					: old
-			);
-		}
-	}));
-}
-
-/**
  * Helper to format invite URL
  */
 export function formatInviteUrl(invite: OrganizationInvite): string {
