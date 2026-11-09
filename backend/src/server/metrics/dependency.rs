@@ -8,7 +8,7 @@
 //!
 //! `scanopy_dependency_requests_total{dependency, outcome}`, and for calls made through
 //! [`observe`] or [`observe_http`] their duration in
-//! `scanopy_dependency_request_duration_seconds{dependency, outcome}`
+//! `scanopy_dependency_request_duration_seconds{dependency}`
 //!
 //! An integration gets it by sending through [`observe`] or [`observe_http`]. Each client
 //! library's error type maps onto [`DependencyOutcome`] through [`ClassifyFailure`], so both
@@ -95,15 +95,14 @@ pub fn record(dependency: Dependency, outcome: DependencyOutcome) {
 }
 
 /// Count one call and record how long it took, in
-/// `scanopy_dependency_request_duration_seconds{dependency, outcome}`.
+/// `scanopy_dependency_request_duration_seconds{dependency}`. The outcome stays on the counter
+/// only: on the histogram it would multiply every bucket.
 fn record_timed(dependency: Dependency, outcome: DependencyOutcome, started: Instant) {
     record(dependency, outcome);
     let dependency: &'static str = dependency.into();
-    let outcome: &'static str = outcome.into();
     metrics::histogram!(
         "scanopy_dependency_request_duration_seconds",
         "dependency" => dependency,
-        "outcome" => outcome,
     )
     .record(started.elapsed().as_secs_f64());
 }
@@ -324,7 +323,7 @@ pub(crate) mod tests {
         );
         assert!(
             recorder.render().contains(
-                r#"scanopy_dependency_request_duration_seconds_count{dependency="github",outcome="server_error"} 1"#
+                r#"scanopy_dependency_request_duration_seconds_count{dependency="github"} 1"#
             ),
             "{}",
             recorder.render()

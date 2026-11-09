@@ -229,14 +229,14 @@ pub async fn request_logging_middleware(
     .increment(1);
 
     if records_latency(&response) {
+        // No `entity_type`: it multiplies the series, and `http_requests_total` carries it.
         metrics::histogram!(
             "http_request_duration_seconds",
             "method" => method_str.clone(),
-            "path" => normalized_path.clone(),
-            "entity_type" => entity_type_str.clone()
+            "path" => normalized_path.clone()
         )
         .record(duration.as_secs_f64());
-        crate::server::metrics::db::record_request(&method_str, &normalized_path, db_totals);
+        crate::server::metrics::db::record_request(&normalized_path, duration, db_totals);
     }
 
     // Track request/response sizes

@@ -4,22 +4,29 @@
 //! and, once `acquire_time_level` is set on the pool, for every connection it hands out
 //! (`sqlx::pool::acquire`, with `aquired_after_secs`, sqlx's spelling). [`DbTimingLayer`] reads
 //! those two fields and adds them to the request running on the current task, so the
-//! request-logging middleware can record how much of each request went to the database:
+//! request-logging middleware can record where a slow request's time went.
 //!
-//! - `http_request_db_seconds{method, path, phase}`: `acquire` (waiting for a pool
-//!   connection), `query` (statements running, including Postgres row-lock waits) and
-//!   `lock_wait` (waiting for an advisory lock in `shared/storage/lock.rs`)
-//! - `http_request_db_queries{method, path}`: statements per request
-//! - `scanopy_db_pool_acquire_seconds{scope}`: every acquire, `request` inside a request and
-//!   `other` outside one (jobs, event subscribers, SSE streams, the session store)
+//! Requests taking [`SLOW_REQUEST_SECONDS`] or more are counted by route, and only those, so
+//! the series count follows the few routes with slow requests rather than every route:
 //!
-//! Work a handler hands to `tokio::spawn` runs on another task and counts as `other`.
+//! - `http_slow_requests_total{path}`
+//! - `http_slow_request_milliseconds_total{path, phase}`: `acquire` (waiting for a pool
+//!   connection), `query` (statements running, including Postgres row-lock waits), `lock_wait`
+//!   (waiting for an advisory lock in `shared/storage/lock.rs`) and `other` (the rest: CPU,
+//!   outbound calls, waiting to be polled)
+//! - `http_slow_request_queries_total{path}`: statements run
+//!
+//! Each divided by `http_slow_requests_total` is the average per slow request.
+//! `scanopy_db_pool_acquire_seconds{scope}` times every acquire, `request` inside a request and
+//! `other` outside one (jobs, event subscribers, SSE streams, the session store). Work a handler
+//! hands to `tokio::spawn` runs on another task and counts as `other`.
 //!
 //! The field names are sqlx 0.8's. A sqlx upgrade that renames them leaves these metrics at
 //! zero, so check `logger.rs` and `pool/inner.rs` in sqlx-core when bumping it.
 
 use std::cell::Cell;
 use std::future::Future;
+use std::time::Duration;
 
 use tracing::field::{Field, Visit};
 use tracing::{Event, Level, Subscriber};
@@ -30,6 +37,9 @@ const QUERY_TARGET: &str = "sqlx::query";
 const QUERY_ELAPSED_FIELD: &str = "elapsed_secs";
 const ACQUIRE_TARGET: &str = "sqlx::pool::acquire";
 const ACQUIRE_ELAPSED_FIELD: &str = "aquired_after_secs";
+
+/// A request this long or longer gets its time broken down by phase.
+pub const SLOW_REQUEST_SECONDS: f64 = 1.0;
 
 /// Database time accumulated by the request running on this task.
 #[derive(Default)]
@@ -80,36 +90,37 @@ fn scope_label(in_request: bool) -> &'static str {
 
 /// Record a wait for the advisory lock `lock` (a `LockKey` variant name).
 pub fn record_lock_wait(lock: &'static str, secs: f64) {
-    let in_request = add_to_request(|t| t.lock_wait_secs.set(t.lock_wait_secs.get() + secs));
-    metrics::histogram!(
-        "scanopy_lock_wait_seconds",
-        "lock" => lock,
-        "scope" => scope_label(in_request),
-    )
-    .record(secs);
+    add_to_request(|t| t.lock_wait_secs.set(t.lock_wait_secs.get() + secs));
+    metrics::histogram!("scanopy_lock_wait_seconds", "lock" => lock).record(secs);
 }
 
-/// Record a request's database time under its route.
-pub fn record_request(method: &str, path: &str, totals: DbTotals) {
+/// Break down a slow request's time by phase under its route. Faster requests record nothing.
+pub fn record_request(path: &str, duration: Duration, totals: DbTotals) {
+    let total_secs = duration.as_secs_f64();
+    if total_secs < SLOW_REQUEST_SECONDS {
+        return;
+    }
+    // `xact_lock` waits inside a statement, so its wait is in both `query` and `lock_wait`;
+    // `other` floors at zero rather than going negative.
+    let db_secs = totals.acquire_secs + totals.query_secs + totals.lock_wait_secs;
+    let millis = |secs: f64| (secs * 1000.0).round() as u64;
+
+    metrics::counter!("http_slow_requests_total", "path" => path.to_string()).increment(1);
     for (phase, secs) in [
         ("acquire", totals.acquire_secs),
         ("query", totals.query_secs),
         ("lock_wait", totals.lock_wait_secs),
+        ("other", (total_secs - db_secs).max(0.0)),
     ] {
-        metrics::histogram!(
-            "http_request_db_seconds",
-            "method" => method.to_string(),
+        metrics::counter!(
+            "http_slow_request_milliseconds_total",
             "path" => path.to_string(),
             "phase" => phase,
         )
-        .record(secs);
+        .increment(millis(secs));
     }
-    metrics::histogram!(
-        "http_request_db_queries",
-        "method" => method.to_string(),
-        "path" => path.to_string(),
-    )
-    .record(totals.queries as f64);
+    metrics::counter!("http_slow_request_queries_total", "path" => path.to_string())
+        .increment(totals.queries);
 }
 
 /// Reads one `f64` field from an event.
@@ -235,9 +246,51 @@ mod tests {
             "{rendered}"
         );
         assert!(
-            rendered
-                .contains(r#"scanopy_lock_wait_seconds_sum{lock="host_dedup",scope="request"} 1"#),
+            rendered.contains(r#"scanopy_lock_wait_seconds_sum{lock="host_dedup"} 1"#),
             "{rendered}"
         );
+    }
+
+    /// Fast requests on many routes add no series; a slow one gets its time split by phase.
+    #[test]
+    fn only_slow_requests_add_series() {
+        let recorder = crate::server::metrics::dependency::tests::TestRecorder::new();
+        let _metrics = recorder.install();
+        let busy = DbTotals {
+            acquire_secs: 0.05,
+            query_secs: 0.2,
+            lock_wait_secs: 0.0,
+            queries: 9,
+        };
+        for route in 0..50 {
+            record_request(
+                &format!("/api/fast/{route}"),
+                Duration::from_millis(400),
+                busy,
+            );
+        }
+        record_request(
+            "/api/daemons/{id}/request-work",
+            Duration::from_millis(3000),
+            DbTotals {
+                acquire_secs: 2.0,
+                query_secs: 0.5,
+                lock_wait_secs: 0.0,
+                queries: 15,
+            },
+        );
+
+        let rendered = recorder.render();
+        assert!(!rendered.contains("/api/fast/"), "{rendered}");
+        let slow = r#"path="/api/daemons/{id}/request-work""#;
+        for line in [
+            format!("http_slow_requests_total{{{slow}}} 1"),
+            format!(r#"http_slow_request_milliseconds_total{{{slow},phase="acquire"}} 2000"#),
+            format!(r#"http_slow_request_milliseconds_total{{{slow},phase="query"}} 500"#),
+            format!(r#"http_slow_request_milliseconds_total{{{slow},phase="other"}} 500"#),
+            format!("http_slow_request_queries_total{{{slow}}} 15"),
+        ] {
+            assert!(rendered.contains(&line), "missing {line}:\n{rendered}");
+        }
     }
 }

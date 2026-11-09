@@ -11,7 +11,7 @@ use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
 /// Prometheus histogram rather than the exporter's default summary. Summaries can't be aggregated
 /// across servers or time ranges; buckets can.
 pub fn prometheus_builder() -> PrometheusBuilder {
-    let buckets: [(&str, &[f64]); 10] = [
+    let buckets: [(&str, &[f64]); 8] = [
         // 30s to the 6h default scan ceiling and past it.
         (
             "scanopy_discovery_session_duration_seconds",
@@ -24,19 +24,20 @@ pub fn prometheus_builder() -> PrometheusBuilder {
             "scanopy_link_resolution_duration_seconds",
             &[0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 15.0],
         ),
-        ("http_request_duration_seconds", &REQUEST_SECONDS_BUCKETS),
-        ("http_request_db_seconds", &REQUEST_SECONDS_BUCKETS),
+        // Every bucket is a series per route, so the edges sit where answers change: 2.5s stays
+        // for dashboards that read it, and 3s and 4s stop a p99 being interpolated across
+        // 2.5–5s. 30s is sqlx's acquire timeout.
         (
-            "http_request_db_queries",
-            &[1.0, 2.0, 5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0],
+            "http_request_duration_seconds",
+            &[0.025, 0.1, 0.25, 0.5, 1.0, 2.5, 3.0, 4.0, 5.0, 10.0, 30.0],
         ),
-        // 1ms to sqlx's 30s acquire timeout.
+        // Up to sqlx's 30s acquire timeout.
         ("scanopy_db_pool_acquire_seconds", &WAIT_SECONDS_BUCKETS),
-        // 1ms to the 30s default lock timeout.
+        // Up to the 30s default lock timeout.
         ("scanopy_lock_wait_seconds", &WAIT_SECONDS_BUCKETS),
         (
             "scanopy_dependency_request_duration_seconds",
-            &[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0],
+            &[0.1, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0],
         ),
         // 256B to 16MB, ×4 per bucket.
         ("http_request_size_bytes", &SIZE_BUCKETS),
@@ -52,15 +53,7 @@ pub fn prometheus_builder() -> PrometheusBuilder {
         })
 }
 
-/// Edges every 0.5–1s between 1s and 5s, so a quantile in that range is read off a bucket edge
-/// close to it rather than interpolated across 2.5–5s. 30s is sqlx's acquire timeout.
-const REQUEST_SECONDS_BUCKETS: [f64; 17] = [
-    0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 10.0, 20.0, 30.0,
-];
-
-const WAIT_SECONDS_BUCKETS: [f64; 14] = [
-    0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 20.0, 30.0,
-];
+const WAIT_SECONDS_BUCKETS: [f64; 6] = [0.005, 0.05, 0.25, 1.0, 5.0, 30.0];
 
 const SIZE_BUCKETS: [f64; 9] = [
     256.0, 1024.0, 4096.0, 16384.0, 65536.0, 262144.0, 1048576.0, 4194304.0, 16777216.0,
@@ -82,17 +75,22 @@ pub fn describe_metrics() {
     describe_histogram!(
         "http_request_duration_seconds",
         Unit::Seconds,
-        "HTTP request latency until the response starts. Excludes SSE streams and routes that wait on purpose (daemon reachability tests)"
+        "HTTP request latency until the response starts, by route and method. Excludes SSE streams and routes that wait on purpose (daemon reachability tests)"
     );
-    describe_histogram!(
-        "http_request_db_seconds",
-        Unit::Seconds,
-        "Database time per HTTP request by phase: acquire (waiting for a pool connection), query (statements running, including row-lock waits), lock_wait (waiting for an advisory lock)"
-    );
-    describe_histogram!(
-        "http_request_db_queries",
+    describe_counter!(
+        "http_slow_requests_total",
         Unit::Count,
-        "SQL statements run per HTTP request"
+        "HTTP requests that took 1s or more, by route"
+    );
+    describe_counter!(
+        "http_slow_request_milliseconds_total",
+        Unit::Milliseconds,
+        "Time of HTTP requests that took 1s or more, by route and phase: acquire (waiting for a pool connection), query (statements running, including row-lock waits), lock_wait (waiting for an advisory lock), other (the rest)"
+    );
+    describe_counter!(
+        "http_slow_request_queries_total",
+        Unit::Count,
+        "SQL statements run by HTTP requests that took 1s or more, by route"
     );
     describe_histogram!(
         "scanopy_db_pool_acquire_seconds",
@@ -112,7 +110,7 @@ pub fn describe_metrics() {
     describe_histogram!(
         "scanopy_lock_wait_seconds",
         Unit::Seconds,
-        "Time to take an advisory lock, by lock and scope"
+        "Time to take an advisory lock, by lock"
     );
     describe_gauge!(
         "scanopy_runtime_workers",
@@ -137,7 +135,7 @@ pub fn describe_metrics() {
     describe_histogram!(
         "scanopy_dependency_request_duration_seconds",
         Unit::Seconds,
-        "Outbound call time to external dependencies, by dependency and outcome"
+        "Outbound call time to external dependencies, by dependency"
     );
     describe_histogram!(
         "http_request_size_bytes",
@@ -226,8 +224,6 @@ mod tests {
             metrics::histogram!("scanopy_link_resolution_duration_seconds", "protocol" => "lldp")
                 .record(3.0);
             metrics::histogram!("http_response_size_bytes").record(2000.0);
-            metrics::histogram!("http_request_db_seconds", "phase" => "query").record(0.1);
-            metrics::histogram!("http_request_db_queries").record(12.0);
             metrics::histogram!("scanopy_db_pool_acquire_seconds", "scope" => "request")
                 .record(0.002);
             metrics::histogram!("scanopy_lock_wait_seconds", "lock" => "host").record(0.3);
@@ -242,8 +238,6 @@ mod tests {
             "http_request_duration_seconds",
             "scanopy_link_resolution_duration_seconds",
             "http_response_size_bytes",
-            "http_request_db_seconds",
-            "http_request_db_queries",
             "scanopy_db_pool_acquire_seconds",
             "scanopy_lock_wait_seconds",
             "scanopy_dependency_request_duration_seconds",
