@@ -636,7 +636,6 @@ impl_db_enum_contributor_empty!(
     EmailSettings,
     TopologyOptions,
     ShareOptions,
-    OrgNotifications,
     Port,
     IPAddress,
     Host,
@@ -700,6 +699,21 @@ impl DbEnumContributor for IntegrationTarget {
         out.insert(
             db_enum_key_for::<IntegrationTarget>(),
             <Target as ::strum::VariantNames>::VARIANTS
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+        );
+    }
+}
+
+/// `OrgNotifications` holds the trial sweep's `SetupItemKey`s, whose `type` tag nothing else
+/// stores. Its item types and warning codes are catalogued through their own columns.
+impl DbEnumContributor for OrgNotifications {
+    fn contribute(out: &mut std::collections::BTreeMap<&'static str, Vec<String>>) {
+        use crate::server::setup::types::{SetupItemKey, SetupItemKeyDiscriminants};
+        out.insert(
+            db_enum_key_for::<SetupItemKey>(),
+            <SetupItemKeyDiscriminants as ::strum::VariantNames>::VARIANTS
                 .iter()
                 .map(|s| s.to_string())
                 .collect(),

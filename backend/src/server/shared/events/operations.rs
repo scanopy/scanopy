@@ -66,6 +66,10 @@ impl Operation for SetupOperation {
     fn event_name(&self, _scope: &OrgScope) -> Cow<'static, str> {
         format!("setup_{self}").into()
     }
+
+    fn metadata<'a>(&'a self, _scope: &'a OrgScope) -> impl Serialize + Send + 'a {
+        SetupOperation::metadata(self)
+    }
 }
 
 impl Operation for AnalyticsOperation {

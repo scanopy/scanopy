@@ -188,8 +188,21 @@ pub enum SetupItemTier {
     Suggestion,
 }
 
-/// One item's identity across sweeps.
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+/// One item's identity across sweeps and page loads.
+#[derive(
+    Serialize,
+    Deserialize,
+    ToSchema,
+    Clone,
+    Debug,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    EnumDiscriminants,
+)]
+#[strum_discriminants(derive(strum::VariantNames))]
 #[serde(tag = "type")]
 pub enum SetupItemKey {
     /// An item about the whole org (InstallDaemon, Tags, ...).
@@ -204,6 +217,23 @@ pub enum SetupItemKey {
         daemon_id: Uuid,
         code: DiscoveryWarningCode,
     },
+}
+
+impl SetupItemKey {
+    /// The type of the item this key identifies.
+    pub fn item_type(&self) -> SetupItemDiscriminants {
+        match self {
+            Self::Org { item_type } | Self::Entity { item_type, .. } => *item_type,
+            Self::RunWarning { .. } => SetupItemDiscriminants::RunWarnings,
+        }
+    }
+}
+
+/// An Issue or Next step the trial sweep saw open, and since when.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct OpenSetupItem {
+    pub key: SetupItemKey,
+    pub open_since: DateTime<Utc>,
 }
 
 impl SetupItem {
@@ -615,6 +645,73 @@ impl SetupOperation {
             Self::Resolved { .. } | Self::Stuck { .. } => None,
         }
     }
+
+    /// The fields consumers outside the server receive. A sweep event spreads its key into
+    /// single-level fields, so a PostHog insight breaks down on `metadata.item_type` with no
+    /// nested lookup.
+    pub fn metadata(&self) -> SetupOperationMetadata<'_> {
+        let (key, tier, plan, trial_end, hours_open) = match self {
+            Self::Completed { .. } | Self::Answered { .. } | Self::Dismissed { .. } => {
+                return SetupOperationMetadata::Recorded(self);
+            }
+            Self::Resolved {
+                key,
+                tier,
+                hours_open,
+            } => (key, tier, None, None, hours_open),
+            Self::Stuck {
+                key,
+                tier,
+                plan,
+                trial_end,
+                hours_open,
+            } => (key, tier, Some(plan), Some(*trial_end), hours_open),
+        };
+        let (entity_id, daemon_id, warning_code) = match key {
+            SetupItemKey::Org { .. } => (None, None, None),
+            SetupItemKey::Entity { entity_id, .. } => (Some(*entity_id), None, None),
+            SetupItemKey::RunWarning { daemon_id, code } => (None, Some(*daemon_id), Some(*code)),
+        };
+        SetupOperationMetadata::Swept(SweptItemMetadata {
+            operation: self.into(),
+            item_type: key.item_type(),
+            entity_id,
+            daemon_id,
+            warning_code,
+            tier: *tier,
+            plan,
+            trial_end,
+            hours_open: *hours_open,
+        })
+    }
+}
+
+/// See [`SetupOperation::metadata`].
+#[derive(Serialize)]
+#[serde(untagged)]
+pub enum SetupOperationMetadata<'a> {
+    Recorded(&'a SetupOperation),
+    Swept(SweptItemMetadata<'a>),
+}
+
+/// A Resolved or Stuck event with its key's fields at the top level.
+#[derive(Serialize)]
+pub struct SweptItemMetadata<'a> {
+    #[serde(rename = "type")]
+    operation: SetupOperationDiscriminants,
+    item_type: SetupItemDiscriminants,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    entity_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    daemon_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    warning_code: Option<DiscoveryWarningCode>,
+    tier: SetupItemTier,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    plan: Option<&'a BillingPlan>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    trial_end: Option<DateTime<Utc>>,
+    hours_open: u32,
 }
 
 #[cfg(test)]

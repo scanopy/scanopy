@@ -97,6 +97,13 @@ pub struct OrgNotifications {
     /// per overrun.
     #[serde(default)]
     pub license_over_instance_limit: bool,
+    /// The Issues and Next steps the hourly trial sweep last saw on the org's Setup list, each
+    /// with when the sweep first saw it. An item that clears leaves the list.
+    #[serde(default)]
+    pub setup_items_open: Vec<crate::server::setup::types::OpenSetupItem>,
+    /// The items already reported as stuck. Never pruned, so each item is reported once per org.
+    #[serde(default)]
+    pub setup_items_reported: Vec<crate::server::setup::types::SetupItemKey>,
 }
 
 #[derive(

@@ -544,6 +544,7 @@ impl ServiceFactory {
             user_service: user_service.clone(),
             invite_service: invite_service.clone(),
             tag_service: tag_service.clone(),
+            organization_service: organization_service.clone(),
             deployment_type,
         });
 

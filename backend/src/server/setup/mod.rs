@@ -3,4 +3,5 @@
 
 pub mod items;
 pub mod service;
+pub mod sweep;
 pub mod types;

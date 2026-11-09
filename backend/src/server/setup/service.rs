@@ -25,7 +25,7 @@ use crate::server::{
     discovery::service::DiscoveryService,
     hosts::service::HostService,
     invites::{r#impl::base::Invite, service::InviteService},
-    organizations::r#impl::base::Organization,
+    organizations::{r#impl::base::Organization, service::OrganizationService},
     shared::{
         services::traits::CrudService,
         storage::filter::StorableFilter,
@@ -55,6 +55,7 @@ pub struct SetupService {
     pub user_service: Arc<UserService>,
     pub invite_service: Arc<InviteService>,
     pub tag_service: Arc<TagService>,
+    pub organization_service: Arc<OrganizationService>,
     pub deployment_type: DeploymentType,
 }
 

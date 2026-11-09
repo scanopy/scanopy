@@ -314,3 +314,61 @@ async fn the_demo_org_has_no_issues_and_no_next_steps() {
         .collect();
     assert!(blocking.is_empty(), "{blocking:#?}");
 }
+
+/// The trial sweep reports a step left open a day on a trialing org, once, and leaves an org
+/// that isn't trialing alone.
+#[tokio::test]
+async fn the_trial_sweep_reports_a_trialing_orgs_open_step_once() {
+    use crate::server::billing::types::base::PlanStatus;
+    use crate::server::setup::types::SetupItemKey;
+
+    let (storage, services, _container) = test_services().await;
+    let start = crate::server::shared::clock::now();
+    let mut orgs = Vec::new();
+    for status in [PlanStatus::Trialing, PlanStatus::Active] {
+        let mut org = organization();
+        org.base.plan = get_enterprise_plan();
+        org.base.plan_status = Some(status);
+        org.base.trial_end_date = Some(start + Duration::days(10));
+        storage.organizations.create(&org).await.unwrap();
+        orgs.push(org.id);
+    }
+    let notifications = |id: Uuid| {
+        let organizations = services.organization_service.clone();
+        async move {
+            organizations
+                .get_by_id(&id)
+                .await
+                .unwrap()
+                .unwrap()
+                .base
+                .notifications
+        }
+    };
+    let install_daemon = SetupItemKey::Org {
+        item_type: SetupItemDiscriminants::InstallDaemon,
+    };
+
+    let setup = &services.setup_service;
+    setup.sweep_trials(start).await.unwrap();
+    setup
+        .sweep_trials(start + Duration::hours(24))
+        .await
+        .unwrap();
+    setup
+        .sweep_trials(start + Duration::hours(25))
+        .await
+        .unwrap();
+
+    let trialing = notifications(orgs[0]).await;
+    assert_eq!(trialing.setup_items_reported, vec![install_daemon.clone()]);
+    assert!(
+        trialing
+            .setup_items_open
+            .iter()
+            .any(|open| open.key == install_daemon && open.open_since == start)
+    );
+    let active = notifications(orgs[1]).await;
+    assert!(active.setup_items_open.is_empty());
+    assert!(active.setup_items_reported.is_empty());
+}
