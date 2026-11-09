@@ -374,3 +374,274 @@ async fn demo_unconfirmed_hosts_carry_their_reporter_scan_and_identifier() {
         );
     }
 }
+
+/// The Plant site's estate seeds with every link written, and its L2 view draws the tiers joined:
+/// every access switch to a distribution switch, every distribution switch to a core.
+#[tokio::test]
+async fn plant_site_seeds_and_its_l2_view_links_the_tiers() {
+    use crate::server::interface_neighbors::r#impl::base::{
+        InterfaceNeighborHost, InterfaceNeighborInterface,
+    };
+    use crate::server::organizations::demo_data::large_estate::PLANT_SITE_NAME;
+    use crate::server::topology::types::edges::EdgeType;
+    use crate::server::topology::types::views::TopologyView;
+
+    let (storage, services, _container) = test_services().await;
+    let org = organization();
+    storage.organizations.create(&org).await.unwrap();
+    let owner = user(&org.id);
+    storage.users.create(&owner).await.unwrap();
+
+    let demo_data = DemoData::generate(org.id, owner.id, org.base.use_case);
+    let plant = demo_data
+        .sites
+        .iter()
+        .find(|s| s.base.name == PLANT_SITE_NAME)
+        .expect("the demo seeds the Plant site")
+        .id;
+    // Tier by the description each switch is generated with.
+    let tier: HashMap<Uuid, String> = demo_data
+        .hosts_with_services
+        .iter()
+        .filter(|h| h.host.base.site_id == plant)
+        .filter_map(|h| Some((h.host.id, h.host.base.description.clone()?)))
+        .collect();
+    let plant_host_names: HashSet<String> = demo_data
+        .hosts_with_services
+        .iter()
+        .filter(|h| h.host.base.site_id == plant)
+        .map(|h| h.host.base.name.to_string())
+        .collect();
+    let port_links = demo_data
+        .neighbor_updates
+        .iter()
+        .filter(|n| plant_host_names.contains(&n.source_host_name))
+        .count();
+    let device_links = demo_data.host_neighbor_updates.len();
+
+    insert_demo_data(
+        &services,
+        demo_data,
+        org.id,
+        owner.id,
+        AuthenticatedEntity::System,
+    )
+    .await
+    .expect("the Plant estate seeds with no foreign-key errors");
+
+    macro_rules! site_live {
+        () => {
+            StorableFilter::new_from_site_ids(&[plant]).live()
+        };
+    }
+    let interface_rows: Vec<InterfaceNeighborInterface> = storage
+        .interface_neighbor_interfaces
+        .inner()
+        .get_all(site_live!())
+        .await
+        .unwrap();
+    let host_rows: Vec<InterfaceNeighborHost> = storage
+        .interface_neighbor_hosts
+        .inner()
+        .get_all(site_live!())
+        .await
+        .unwrap();
+    assert_eq!(
+        interface_rows.len(),
+        port_links,
+        "a port-to-port link was dropped"
+    );
+    assert_eq!(
+        host_rows.len(),
+        device_links,
+        "a device-level link was dropped"
+    );
+
+    let interface_host: HashMap<Uuid, Uuid> = storage
+        .interfaces
+        .get_all(site_live!())
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|i| (i.id, i.base.host_id))
+        .collect();
+    let data = services
+        .topology_service
+        .get_topology_render_data(plant, None, &[TopologyView::L2Physical])
+        .await
+        .unwrap();
+    let mut adjacent: HashMap<Uuid, HashSet<Uuid>> = HashMap::new();
+    for edge in &data.edges[&TopologyView::L2Physical] {
+        let pair = match edge.edge_type {
+            EdgeType::PhysicalLink {
+                source_entity_id,
+                target_entity_id,
+                ..
+            } => (
+                interface_host[&source_entity_id],
+                interface_host[&target_entity_id],
+            ),
+            EdgeType::NeighborLink {
+                source_host_id,
+                target_host_id,
+                ..
+            } => (source_host_id, target_host_id),
+            _ => continue,
+        };
+        adjacent.entry(pair.0).or_default().insert(pair.1);
+        adjacent.entry(pair.1).or_default().insert(pair.0);
+    }
+
+    let in_tier = |name: &str| -> Vec<Uuid> {
+        tier.iter()
+            .filter(|(_, d)| d.as_str() == name)
+            .map(|(id, _)| *id)
+            .collect()
+    };
+    let linked_to = |host: Uuid, upper: &str| {
+        adjacent.get(&host).is_some_and(|peers| {
+            peers
+                .iter()
+                .any(|p| tier.get(p).map(String::as_str) == Some(upper))
+        })
+    };
+    let access = in_tier("Access switch");
+    let distribution = in_tier("Distribution switch");
+    assert!(!access.is_empty() && !distribution.is_empty());
+    for host in access {
+        assert!(
+            linked_to(host, "Distribution switch"),
+            "access switch {host} has no uplink drawn"
+        );
+    }
+    for host in distribution {
+        assert!(
+            linked_to(host, "Core switch"),
+            "distribution switch {host} has no core link drawn"
+        );
+    }
+}
+
+/// The hand-built sites are snapshotted a month back, Plant is not, and every closed copy the
+/// snapshot left opens before it closes.
+#[tokio::test]
+async fn hand_built_sites_snapshot_is_a_month_old_and_its_rows_cover_real_intervals() {
+    use crate::server::shared::storage::snapshot::Snapshotable;
+    use crate::server::snapshots::types::base::Snapshot;
+
+    let (storage, services, _container) = test_services().await;
+    let org = organization();
+    storage.organizations.create(&org).await.unwrap();
+    let owner = user(&org.id);
+    storage.users.create(&owner).await.unwrap();
+
+    let demo_data = DemoData::generate(org.id, owner.id, org.base.use_case);
+    let snapshot_site_ids: HashSet<Uuid> = demo_data.snapshot_site_ids.iter().copied().collect();
+    insert_demo_data(
+        &services,
+        demo_data,
+        org.id,
+        owner.id,
+        AuthenticatedEntity::System,
+    )
+    .await
+    .unwrap();
+
+    let snapshots: Vec<Snapshot> = storage
+        .snapshots
+        .get_all(StorableFilter::new_unfiltered())
+        .await
+        .unwrap();
+    let snapshotted: HashSet<Uuid> = snapshots.iter().map(|s| s.base.site_id).collect();
+    assert_eq!(snapshotted, snapshot_site_ids);
+
+    let now = crate::server::shared::clock::now();
+    for snapshot in &snapshots {
+        let age = now - snapshot.base.taken_at;
+        assert!(
+            (age - chrono::Duration::days(30)).num_minutes().abs() < 60,
+            "snapshot is {} days old",
+            age.num_days()
+        );
+
+        fn assert_intervals<T: Snapshotable>(rows: &[T], table: &str) {
+            for row in rows {
+                let valid_to = row.valid_to().expect("a snapshot row is closed");
+                assert!(
+                    row.valid_from() <= valid_to,
+                    "a closed {table} row ends before it starts"
+                );
+            }
+        }
+        macro_rules! filter {
+            () => {
+                StorableFilter::new_unfiltered().snapshot_id(&snapshot.id)
+            };
+        }
+        let hosts = storage.hosts.get_all(filter!()).await.unwrap();
+        assert!(!hosts.is_empty(), "the snapshot holds the site's hosts");
+        assert_intervals(&hosts, "hosts");
+        assert_intervals(
+            &storage.ip_addresses.get_all(filter!()).await.unwrap(),
+            "ip_addresses",
+        );
+        assert_intervals(&storage.ports.get_all(filter!()).await.unwrap(), "ports");
+        assert_intervals(
+            &storage.services.get_all(filter!()).await.unwrap(),
+            "services",
+        );
+        assert_intervals(
+            &storage.bindings.get_all(filter!()).await.unwrap(),
+            "bindings",
+        );
+        assert_intervals(
+            &storage.interfaces.get_all(filter!()).await.unwrap(),
+            "interfaces",
+        );
+        assert_intervals(
+            &storage.subnets.get_all(filter!()).await.unwrap(),
+            "subnets",
+        );
+        assert_intervals(&storage.vlans.get_all(filter!()).await.unwrap(), "vlans");
+        assert_intervals(
+            &storage.dependencies.get_all(filter!()).await.unwrap(),
+            "dependencies",
+        );
+        assert_intervals(
+            &storage
+                .entity_tags
+                .inner()
+                .get_all(filter!())
+                .await
+                .unwrap(),
+            "entity_tags",
+        );
+        assert_intervals(
+            &storage
+                .dependency_members
+                .inner()
+                .get_all(filter!())
+                .await
+                .unwrap(),
+            "dependency_members",
+        );
+        assert_intervals(
+            &storage
+                .subnet_vlan
+                .inner()
+                .get_all(filter!())
+                .await
+                .unwrap(),
+            "subnet_vlans",
+        );
+        assert_intervals(
+            &storage
+                .interface_neighbor_interfaces
+                .inner()
+                .get_all(filter!())
+                .await
+                .unwrap(),
+            "interface_neighbor_interfaces",
+        );
+    }
+}
