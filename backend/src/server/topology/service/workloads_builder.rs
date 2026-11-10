@@ -17,7 +17,7 @@ use crate::server::{
     shared::entities::EntityDiscriminants,
     topology::types::{
         edges::{DiscoveryProtocol, Edge, EdgeHandle, EdgeType, EdgeViewConfig},
-        grouping::{GroupingConfig, PlacementDecision},
+        grouping::{GroupingConfig, InlineGroup, InlineGroupRole, PlacementDecision},
         nodes::{ContainerType, ElementEntityType, Node, NodeType},
     },
 };
@@ -317,27 +317,46 @@ impl ViewBuilder for WorkloadsBuilder {
             .filter(|(_, d)| matches!(d, PlacementDecision::InlineOn { .. }))
             .map(|(id, _)| *id)
             .collect();
+        // `placements` is a HashMap, so walking it directly gives each card's groups a different
+        // order on every request. Order them: a group's header first, then members in node
+        // order. A manager service has no node of its own, so the entity id breaks ties.
+        let inlined_position: HashMap<Uuid, usize> =
+            nodes.iter().enumerate().map(|(i, n)| (n.id, i)).collect();
+        let mut inlined_in_node_order: Vec<(Uuid, InlineGroup)> = placements
+            .values()
+            .filter_map(|decision| match decision {
+                PlacementDecision::InlineOn {
+                    node_id,
+                    inline_group: Some(group),
+                } => Some((*node_id, group.clone())),
+                _ => None,
+            })
+            .collect();
+        inlined_in_node_order.sort_by_key(|(_, group)| {
+            (
+                group.role != InlineGroupRole::Header,
+                inlined_position
+                    .get(&group.entity_id)
+                    .copied()
+                    .unwrap_or(usize::MAX),
+                group.entity_id,
+            )
+        });
         nodes.retain(|n| !inlined_ids.contains(&n.id));
 
         // Attach InlineGroup metadata to target element nodes
-        for decision in placements.values() {
-            if let PlacementDecision::InlineOn {
-                node_id,
-                inline_group: Some(group),
-            } = decision
+        let node_position: HashMap<Uuid, usize> =
+            nodes.iter().enumerate().map(|(i, n)| (n.id, i)).collect();
+        for (target_id, group) in inlined_in_node_order {
+            let Some(&position) = node_position.get(&target_id) else {
+                continue;
+            };
+            if let NodeType::Element {
+                ref mut inline_groups,
+                ..
+            } = nodes[position].node_type
             {
-                for node in nodes.iter_mut() {
-                    if node.id == *node_id {
-                        if let NodeType::Element {
-                            ref mut inline_groups,
-                            ..
-                        } = node.node_type
-                        {
-                            inline_groups.push(group.clone());
-                        }
-                        break;
-                    }
-                }
+                inline_groups.push(group);
             }
         }
 
@@ -1465,6 +1484,36 @@ mod tests {
                 .iter()
                 .any(|g| g.role == InlineGroupRole::Header && g.entity_id == docker_id)
         );
+    }
+
+    /// A card's inline groups come back in the same order on every build.
+    #[test]
+    fn inline_groups_keep_one_order_across_builds() {
+        let node = make_host("pve-01");
+        let proxmox_svc = make_proxmox_service(node.id);
+        let vm = make_proxmox_vm("docker-vm", proxmox_svc.id);
+        let docker_svc = make_docker_service(vm.id);
+        let containers: Vec<Service> = (0..6)
+            .map(|i| make_docker_container(&format!("app-{i}"), vm.id, docker_svc.id))
+            .collect();
+        let vm_id = vm.id;
+        let hosts = [node, vm];
+        let mut services = vec![proxmox_svc, docker_svc];
+        services.extend(containers);
+
+        let order = || -> Vec<Uuid> {
+            let (nodes, _edges) = build(&hosts, &services);
+            let vm_node = nodes.iter().find(|n| n.id == vm_id).unwrap();
+            let NodeType::Element { inline_groups, .. } = &vm_node.node_type else {
+                unreachable!()
+            };
+            inline_groups.iter().map(|g| g.entity_id).collect()
+        };
+        let first = order();
+        assert_eq!(first.len(), 7, "the runtime header and six containers");
+        for _ in 0..10 {
+            assert_eq!(order(), first);
+        }
     }
 
     /// Proxmox VMs and LXC containers group under their hypervisor as before; container hosts
