@@ -495,6 +495,21 @@ export const COVERAGE: Record<string, TabCoverage> = {
 				)
 			})
 		]
+	},
+	'home/components/IssuesTable.svelte': {
+		schemas: [
+			decide('SetupListEntry', {
+				// The Issue column shows the item: its title, the entities it names, its sentence.
+				item: 'type',
+				site_ids: 'site_ids',
+				key: excluded("The item's identity across loads; the row itself is the Issue"),
+				tier: excluded('Always Issue: the table lists Issues only'),
+				state: excluded('Always Open: an Issue is listed only while it holds'),
+				alerts_when_stuck: excluded(
+					'Whether the trial sweep reports the item; only analytics read it'
+				)
+			})
+		]
 	}
 };
 
@@ -592,7 +607,7 @@ export function dataControlsProps(tab: string): Set<string> {
  */
 export function dataControlsServerQuery(tab: string): ServerQuery {
 	const attributes = dataControlsAttributes(tab);
-	const server: ServerQuery = { tags: true, stale: true };
+	const server: ServerQuery = { tags: true, stale: true, search: true };
 	const literal = attributes.find((attribute: SchemaNode) => attribute.name === 'serverQuery')
 		?.value?.expression;
 	for (const property of literal?.properties ?? []) {

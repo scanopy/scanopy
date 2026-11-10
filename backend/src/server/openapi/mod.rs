@@ -42,6 +42,7 @@ use crate::server::organizations::r#impl::base::Organization;
 use crate::server::ports::r#impl::base::Port;
 use crate::server::services::handlers::ServiceOrderField;
 use crate::server::services::r#impl::base::Service;
+use crate::server::setup::types::{IssueCategory, IssueOrderField};
 use crate::server::shared::handlers::query::{OrderDirection, PaginationParams};
 use crate::server::shared::storage::traits::Entity;
 use crate::server::shared::types::Stability;
@@ -118,6 +119,8 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
         TagGroupOrderField,
         MemberOrderField,
         MemberStatus,
+        IssueOrderField,
+        IssueCategory,
         // Derived staleness status. Not a field on any entity (it's computed
         // per-request against the site's window), so nothing else pulls it
         // into the schema — but the frontend must derive its union from here

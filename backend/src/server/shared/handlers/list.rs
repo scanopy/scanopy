@@ -19,7 +19,7 @@ use crate::server::{
         entities::{ChangeTriggersTopologyStaleness, Entity as EntityEnum},
         handlers::{
             ordering::{OrderField, TagGroupOrdering},
-            query::{FilterQueryExtractor, OrderDirection},
+            query::{FilterQueryExtractor, OrderDirection, PaginationParams},
             traits::{CrudHandlers, ListScope},
             tree::{TreePosition, tree_order},
         },
@@ -82,19 +82,53 @@ impl<O: OrderField> ListOrdering<O> {
     }
 }
 
+/// How a list's rows sort, group and filter, wherever the rows come from: storage, for a
+/// [`PaginatedList`], or code, for a list paged by [`computed_page`].
+pub trait ListRows {
+    /// What one row of the list is sent as.
+    type Item: Serialize + Send;
+    /// The fields the list sorts and groups by.
+    type Field: OrderField;
+    /// The request the list is read with.
+    type Query;
+
+    /// How `query` orders the list.
+    fn ordering(query: &Self::Query) -> ListOrdering<Self::Field>;
+
+    /// Whether only code can derive `field` (a daemon's status, a subnet's utilization), so a list
+    /// sorted or grouped by it is ordered here rather than in SQL. Its `to_sql` is then unused.
+    fn is_computed(field: &Self::Field) -> bool {
+        let _ = field;
+        false
+    }
+
+    /// The value of a computed `field` for one row. Called only for a field
+    /// [`Self::is_computed`] accepts, and for every field of a [`computed_page`] list.
+    fn computed(field: &Self::Field, item: &Self::Item) -> Option<Computed> {
+        let _ = (field, item);
+        None
+    }
+
+    /// Whether a row passes the filters only code can apply: for a [`PaginatedList`], those
+    /// [`PaginatedList::filters_in_memory`] reports.
+    fn keep(query: &Self::Query, item: &Self::Item) -> bool {
+        let _ = (query, item);
+        true
+    }
+}
+
 /// An entity whose list is paged, sorted, grouped and counted on the server.
 #[async_trait]
-pub trait PaginatedList: CrudHandlers + 'static
+pub trait PaginatedList:
+    CrudHandlers
+    + ListRows<
+        Field = <Self as CrudHandlers>::OrderField,
+        Query = <Self as CrudHandlers>::FilterQuery,
+    > + 'static
 where
     Self: Display + ChangeTriggersTopologyStaleness<Self> + Default,
     EntityEnum: From<Self>,
 {
-    /// What one row of the list is sent as.
-    type Item: Serialize + Send;
-
-    /// How `query` orders the list.
-    fn ordering(query: &Self::FilterQuery) -> ListOrdering<Self::OrderField>;
-
     /// The order of a list nobody sorted or grouped.
     fn default_order() -> String {
         format!("{}.created_at ASC", Self::table_name())
@@ -123,31 +157,11 @@ where
         Ok(HashMap::new())
     }
 
-    /// Whether only code can derive `field` (a daemon's status, a subnet's utilization), so a list
-    /// sorted or grouped by it is ordered here rather than in SQL. Its `to_sql` is then unused.
-    fn is_computed(field: &Self::OrderField) -> bool {
-        let _ = field;
-        false
-    }
-
-    /// The value of a computed `field` for one row. Called only for a field
-    /// [`Self::is_computed`] accepts.
-    fn computed(field: &Self::OrderField, item: &Self::Item) -> Option<Computed> {
-        let _ = (field, item);
-        None
-    }
-
     /// Whether `query` filters on something only code can derive, so every matching row is
-    /// loaded and [`Self::keep`] decides.
+    /// loaded and [`ListRows::keep`] decides.
     fn filters_in_memory(query: &Self::FilterQuery) -> bool {
         let _ = query;
         false
-    }
-
-    /// Whether a row passes the filters [`Self::filters_in_memory`] reports.
-    fn keep(query: &Self::FilterQuery, item: &Self::Item) -> bool {
-        let _ = (query, item);
-        true
     }
 }
 
@@ -213,12 +227,10 @@ where
         } else {
             memory_page::<T>(state, filter, ordering, query, limit, offset).await?
         };
-        let response =
-            PaginatedApiResponse::success(items, total_count, limit.unwrap_or(0), offset);
-        return Ok(match group_counts {
-            Some(counts) => response.with_group_counts(counts),
-            None => response,
-        });
+        return Ok(
+            PaginatedApiResponse::success(items, total_count, limit.unwrap_or(0), offset)
+                .with_optional_group_counts(group_counts),
+        );
     }
 
     let (rows, total_count, group_counts) = if tree_grouped {
@@ -238,11 +250,35 @@ where
     };
 
     let items = T::items(state, rows, query).await?;
-    let response = PaginatedApiResponse::success(items, total_count, limit.unwrap_or(0), offset);
-    Ok(match group_counts {
-        Some(counts) => response.with_group_counts(counts),
-        None => response,
-    })
+    Ok(
+        PaginatedApiResponse::success(items, total_count, limit.unwrap_or(0), offset)
+            .with_optional_group_counts(group_counts),
+    )
+}
+
+/// One page of a list built in code, for this query. `rows` arrive in the order kept wherever
+/// the ordering ties. Every field is computed, since there is no SQL to order by.
+pub fn computed_page<L: ListRows>(
+    rows: Vec<L::Item>,
+    query: &L::Query,
+    pagination: PaginationParams,
+) -> PaginatedApiResponse<L::Item> {
+    let rows = rows
+        .into_iter()
+        .filter(|row| L::keep(query, row))
+        .map(|row| (None, row))
+        .collect();
+    let (limit, offset) = (pagination.effective_limit(), pagination.effective_offset());
+    let (items, total_count, group_counts) = page_in_memory(
+        rows,
+        &L::ordering(query),
+        |_| true,
+        L::computed,
+        limit,
+        offset,
+    );
+    PaginatedApiResponse::success(items, total_count, limit.unwrap_or(0), offset)
+        .with_optional_group_counts(group_counts)
 }
 
 /// A page of a list grouped by tree. SQL can't place a row under a parent it hasn't read, so

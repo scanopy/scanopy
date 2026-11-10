@@ -4,7 +4,7 @@ use crate::server::{
     config::AppState,
     shared::{
         handlers::{
-            list::{Computed, ComputedValue, ListOrdering, PaginatedList},
+            list::{Computed, ComputedValue, ListOrdering, ListRows, PaginatedList},
             ordering::{OrderField, TagGroupOrdering},
             query::narrow_by_tags_and_search,
             traits::{CrudHandlers, ListScope, base_list_filter},
@@ -72,9 +72,10 @@ impl CrudHandlers for Subnet {
     }
 }
 
-#[async_trait]
-impl PaginatedList for Subnet {
+impl ListRows for Subnet {
     type Item = SubnetResponse;
+    type Field = SubnetOrderField;
+    type Query = SubnetFilterQuery;
 
     fn ordering(query: &SubnetFilterQuery) -> ListOrdering<SubnetOrderField> {
         ListOrdering {
@@ -88,6 +89,25 @@ impl PaginatedList for Subnet {
         }
     }
 
+    fn is_computed(field: &SubnetOrderField) -> bool {
+        matches!(field, SubnetOrderField::Utilization)
+    }
+
+    fn computed(field: &SubnetOrderField, item: &SubnetResponse) -> Option<Computed> {
+        match field {
+            SubnetOrderField::Utilization => Some(Computed {
+                value: (item.usable_addresses > 0).then(|| {
+                    ComputedValue::Number(item.used_addresses as f64 / item.usable_addresses as f64)
+                }),
+                group: None,
+            }),
+            _ => None,
+        }
+    }
+}
+
+#[async_trait]
+impl PaginatedList for Subnet {
     /// Address order, which is also the order a range sits before the ranges inside it.
     fn default_order() -> String {
         format!("{} ASC, subnets.id ASC", SubnetOrderField::Cidr.to_sql())
@@ -115,21 +135,5 @@ impl PaginatedList for Subnet {
         ids: &[Uuid],
     ) -> ApiResult<HashMap<Uuid, TreePosition>> {
         Ok(state.services.subnet_service.tree_positions_of(ids).await?)
-    }
-
-    fn is_computed(field: &SubnetOrderField) -> bool {
-        matches!(field, SubnetOrderField::Utilization)
-    }
-
-    fn computed(field: &SubnetOrderField, item: &SubnetResponse) -> Option<Computed> {
-        match field {
-            SubnetOrderField::Utilization => Some(Computed {
-                value: (item.usable_addresses > 0).then(|| {
-                    ComputedValue::Number(item.used_addresses as f64 / item.usable_addresses as f64)
-                }),
-                group: None,
-            }),
-            _ => None,
-        }
     }
 }

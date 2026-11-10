@@ -290,6 +290,12 @@ impl<T> PaginatedApiResponse<T> {
         self.meta.pagination.group_counts = Some(group_counts);
         self
     }
+
+    /// Attach per-group totals when the list is grouped.
+    pub fn with_optional_group_counts(mut self, group_counts: Option<Vec<GroupCount>>) -> Self {
+        self.meta.pagination.group_counts = group_counts;
+        self
+    }
 }
 
 use crate::server::shared::storage::traits::Entity;

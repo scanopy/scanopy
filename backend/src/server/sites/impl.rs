@@ -5,7 +5,7 @@ use crate::server::{
     shared::{
         entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants},
         handlers::{
-            list::{ListOrdering, PaginatedList},
+            list::{ListOrdering, ListRows, PaginatedList},
             ordering::TagGroupOrdering,
             query::narrow_by_tags_and_search,
             traits::{CrudHandlers, ListScope, base_list_filter},
@@ -193,9 +193,10 @@ impl CrudHandlers for Site {
     }
 }
 
-#[async_trait::async_trait]
-impl PaginatedList for Site {
+impl ListRows for Site {
     type Item = Site;
+    type Field = SiteOrderField;
+    type Query = SiteListQuery;
 
     fn ordering(query: &SiteListQuery) -> ListOrdering<SiteOrderField> {
         ListOrdering {
@@ -208,7 +209,10 @@ impl PaginatedList for Site {
             },
         }
     }
+}
 
+#[async_trait::async_trait]
+impl PaginatedList for Site {
     /// Each site with the credentials assigned to it.
     async fn items(
         state: &AppState,

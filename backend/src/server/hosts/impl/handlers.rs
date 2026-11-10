@@ -9,7 +9,7 @@ use crate::server::{
     },
     shared::{
         handlers::{
-            list::{ListOrdering, PaginatedList},
+            list::{ListOrdering, ListRows, PaginatedList},
             ordering::TagGroupOrdering,
             traits::{CrudHandlers, ListScope},
             tree::TreePosition,
@@ -60,9 +60,10 @@ impl CrudHandlers for Host {
     }
 }
 
-#[async_trait]
-impl PaginatedList for Host {
+impl ListRows for Host {
     type Item = HostResponse;
+    type Field = HostOrderField;
+    type Query = HostFilterQuery;
 
     fn ordering(query: &HostFilterQuery) -> ListOrdering<HostOrderField> {
         ListOrdering {
@@ -75,7 +76,10 @@ impl PaginatedList for Host {
             },
         }
     }
+}
 
+#[async_trait]
+impl PaginatedList for Host {
     /// Each host with its children, tags, tree placement and credential assignments.
     async fn items(
         state: &AppState,

@@ -14,11 +14,8 @@ use super::types::{
     SetupOperation,
 };
 use crate::server::shared::{
-    handlers::{
-        list::{Computed, ComputedValue, ListOrdering, page_in_memory},
-        query::PaginationParams,
-    },
-    types::{api::PaginatedApiResponse, metadata::HasId},
+    handlers::list::{Computed, ComputedValue, ListOrdering, ListRows},
+    types::metadata::HasId,
 };
 use crate::server::{
     auth::{
@@ -284,47 +281,62 @@ impl SetupService {
     }
 }
 
-/// One page of `issues`, grouped by category in category order, each group in list order. An
-/// Issue about the whole organization passes every site filter.
-pub fn issues_page(
-    issues: Vec<SetupListEntry>,
-    query: &IssueFilterQuery,
-) -> PaginatedApiResponse<SetupListEntry> {
-    let rows: Vec<(Option<String>, SetupListEntry)> = issues
-        .into_iter()
-        .filter(|entry| match &query.site_ids {
+/// Home's Issues list, paged with [`computed_page`](crate::server::shared::handlers::list::computed_page):
+/// categories and types sort in declaration order, and ties keep the order the list gave.
+pub struct IssueList;
+
+impl ListRows for IssueList {
+    type Item = SetupListEntry;
+    type Field = IssueOrderField;
+    type Query = IssueFilterQuery;
+
+    fn ordering(query: &IssueFilterQuery) -> ListOrdering<IssueOrderField> {
+        ListOrdering {
+            group_by: query.group_by,
+            order_by: query.order_by,
+            direction: query.order_direction,
+            tag_group: Default::default(),
+        }
+    }
+
+    fn computed(field: &IssueOrderField, entry: &SetupListEntry) -> Option<Computed> {
+        let rank =
+            |position: Option<usize>| position.map(|rank| ComputedValue::Number(rank as f64));
+        match field {
+            IssueOrderField::Category => entry.item.issue_category().map(|category| Computed {
+                value: rank(IssueCategory::iter().position(|c| c == category)),
+                group: Some(category.id().to_string()),
+            }),
+            IssueOrderField::Type => {
+                let item_type = entry.item.discriminant();
+                Some(Computed {
+                    value: rank(SetupItemDiscriminants::iter().position(|t| t == item_type)),
+                    group: Some(<&str>::from(item_type).to_string()),
+                })
+            }
+        }
+    }
+
+    /// An Issue about the whole organization passes every site filter.
+    fn keep(query: &IssueFilterQuery, entry: &SetupListEntry) -> bool {
+        let on_sites = match &query.site_ids {
             Some(wanted) if !wanted.is_empty() => {
                 entry.site_ids.is_empty() || entry.site_ids.iter().any(|id| wanted.contains(id))
             }
             _ => true,
-        })
-        .map(|entry| (None, entry))
-        .collect();
-    let ordering = ListOrdering {
-        group_by: Some(query.group_by.unwrap_or_default()),
-        order_by: None,
-        direction: None,
-        tag_group: Default::default(),
-    };
-    let pagination = PaginationParams {
-        limit: query.limit,
-        offset: query.offset,
-    };
-    let (limit, offset) = (pagination.effective_limit(), pagination.effective_offset());
-    let category_of = |field: &IssueOrderField, entry: &SetupListEntry| match field {
-        IssueOrderField::Category => entry.item.issue_category().map(|category| Computed {
-            value: IssueCategory::iter()
-                .position(|c| c == category)
-                .map(|rank| ComputedValue::Number(rank as f64)),
-            group: Some(category.id().to_string()),
-        }),
-    };
-    let (items, total_count, group_counts) =
-        page_in_memory(rows, &ordering, |_| true, category_of, limit, offset);
-    let response = PaginatedApiResponse::success(items, total_count, limit.unwrap_or(0), offset);
-    match group_counts {
-        Some(counts) => response.with_group_counts(counts),
-        None => response,
+        };
+        let in_categories = match &query.categories {
+            Some(wanted) if !wanted.is_empty() => entry
+                .item
+                .issue_category()
+                .is_some_and(|c| wanted.contains(&c)),
+            _ => true,
+        };
+        let of_types = match &query.types {
+            Some(wanted) if !wanted.is_empty() => wanted.contains(&entry.item.discriminant()),
+            _ => true,
+        };
+        on_sites && in_categories && of_types
     }
 }
 
@@ -356,6 +368,10 @@ mod tests {
     use crate::server::{
         daemons::r#impl::api::DaemonHealth,
         setup::types::{SetupItem, SetupItemState},
+        shared::{
+            handlers::{list::computed_page, query::OrderDirection},
+            types::api::PaginatedApiResponse,
+        },
         users::r#impl::permissions::UserOrgPermissions,
     };
     use email_address::EmailAddress;
@@ -395,16 +411,62 @@ mod tests {
         limit: u32,
         offset: u32,
     ) -> PaginatedApiResponse<SetupListEntry> {
-        let entries = issues.iter().cloned().map(entry).collect();
-        issues_page(
-            entries,
-            &IssueFilterQuery {
+        page_for(
+            issues,
+            IssueFilterQuery {
                 site_ids,
+                group_by: Some(IssueOrderField::Category),
                 limit: Some(limit),
                 offset: Some(offset),
                 ..Default::default()
             },
         )
+    }
+
+    fn page_for(
+        issues: &[SetupItem],
+        query: IssueFilterQuery,
+    ) -> PaginatedApiResponse<SetupListEntry> {
+        let entries = issues.iter().cloned().map(entry).collect();
+        computed_page::<IssueList>(entries, &query, query.pagination())
+    }
+
+    /// Sorting by type descending puts later-declared types first; a category filter drops
+    /// every other category.
+    #[test]
+    fn issues_sort_by_type_and_filter_by_category() {
+        let site = Uuid::new_v4();
+        let issues = [daemon_issue(site), unconfirmed_hosts(), daemon_issue(site)];
+        let sorted: Vec<SetupItemDiscriminants> = page_for(
+            &issues,
+            IssueFilterQuery {
+                order_by: Some(IssueOrderField::Type),
+                order_direction: Some(OrderDirection::Desc),
+                ..Default::default()
+            },
+        )
+        .data
+        .iter()
+        .map(|e| e.item.discriminant())
+        .collect();
+        assert_eq!(
+            sorted,
+            [
+                SetupItemDiscriminants::UnconfirmedHosts,
+                SetupItemDiscriminants::DaemonHealth,
+                SetupItemDiscriminants::DaemonHealth,
+            ]
+        );
+
+        let review = page_for(
+            &issues,
+            IssueFilterQuery {
+                categories: Some(vec![IssueCategory::Review]),
+                ..Default::default()
+            },
+        );
+        assert_eq!(review.meta.pagination.total_count, 1);
+        assert!(review.meta.pagination.group_counts.is_none());
     }
 
     /// Groups come out in category order, whatever order the list gave, and a group a page cuts
