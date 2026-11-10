@@ -67,7 +67,7 @@ impl OsFamily {
     pub const OPTIONS: &'static [SelectOption] = &[
         SelectOption {
             value: "Unix",
-            label: "Linux, macOS, BSD",
+            label: "Linux, macOS or BSD",
         },
         SelectOption {
             value: "Windows",

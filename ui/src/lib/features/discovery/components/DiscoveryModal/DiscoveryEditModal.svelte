@@ -823,10 +823,7 @@
 					{#if activeTab === 'scan'}
 						<WarningReport payload={discovery.run_type.results} />
 					{:else if activeTab === 'credentials'}
-						<CredentialResults
-							payload={discovery.run_type.results}
-							daemonName={daemon?.name ?? null}
-						/>
+						<CredentialResults payload={discovery.run_type.results} daemon={daemon ?? null} />
 					{:else}
 						<DiscoveryHistoricalSummary payload={discovery.run_type.results} />
 					{/if}

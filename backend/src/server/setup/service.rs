@@ -366,7 +366,7 @@ fn group_by_integration(found: Vec<FoundIntegration>) -> Vec<UncoveredIntegratio
 mod tests {
     use super::*;
     use crate::server::{
-        credentials::r#impl::types::integration::CredentialIntegration,
+        credentials::r#impl::types::CredentialIntegration,
         daemons::r#impl::api::DaemonHealth,
         setup::types::{SetupItem, SetupItemState},
         shared::{

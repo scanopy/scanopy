@@ -121,6 +121,25 @@ describe('discovery warning rendering', () => {
 		for (const sentence of rendered) expect(sentence).not.toMatch(/\{\w+\}/);
 	});
 
+	/**
+	 * A run recorded before daemons sent their OS carries only the family. The daemon's own
+	 * reported OS names it then, and the family is the last resort.
+	 */
+	it("names the daemon's own OS where the warning carries only its family", () => {
+		const mismatch = {
+			...sample('CredentialDaemonOsMismatch'),
+			actual_os: null
+		} as DiscoveryWarning;
+		const named = (os: 'linux' | null) =>
+			buildWarningReport([mismatch], undefined, { name: 'HQ Daemon', os })
+				.flatMap((section) => section.entries)
+				.flatMap((entry) => entry.details)
+				.map((statement) => statement.sentence)[0];
+
+		expect(named('linux')).toContain('HQ Daemon runs Linux,');
+		expect(named(null)).toContain('HQ Daemon runs Linux, macOS or BSD,');
+	});
+
 	it('renders every code the backend can send, with no slot left unfilled', () => {
 		const unfilled: string[] = [];
 

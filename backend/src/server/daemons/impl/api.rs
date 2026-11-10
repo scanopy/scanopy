@@ -708,7 +708,9 @@ impl TypeMetadataProvider for DaemonHealth {
                 "The daemon's version has a sunset date. Upgrade before then to keep it running."
             }
             Self::Outdated => "A newer daemon version is available.",
-            Self::Unknown => "The server has no record of the daemon's version.",
+            Self::Unknown => {
+                "The daemon hasn't reported its version. Upgrade it to the current release."
+            }
             Self::Healthy => "The daemon is connected and on the current version.",
         }
     }

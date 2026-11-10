@@ -28,7 +28,7 @@ import { metaDescription, metaDescriptionWith, metaName, metaNameWith } from '$l
 import { joinList } from '$lib/i18n/list';
 import { snmpCheckOf, type CredentialLookup, type SnmpCheckOutcome } from './snmpCheck';
 import { toColor, type Color } from '$lib/shared/utils/styling';
-import { osLabel } from '$lib/features/daemons/utils';
+import { osLabel, type DaemonOS } from '$lib/features/daemons/utils';
 import { credentialIntegrations } from '$lib/shared/stores/metadata';
 import {
 	common_host,
@@ -176,8 +176,15 @@ type WarningOf<C extends DiscoveryWarningCode> = Extract<DiscoveryWarning, { cod
  */
 export type HostNameLookup = (hostId: string) => string | null | undefined;
 
-/** What a sentence needs beyond its warnings: the run's daemon, named by the mismatch warning. */
-type ParamContext = { daemonName: string };
+/** The daemon that ran a scan, as its warnings name it. */
+export interface WarningDaemon {
+	name: string;
+	/** The OS it reported, which names what it runs where a warning carries only the family. */
+	os?: DaemonOS | null;
+}
+
+/** What a sentence needs beyond its warnings: the run's daemon, named by several warnings. */
+type ParamContext = { daemonName: string; daemonOs: DaemonOS | null };
 
 /**
  * Resolve any entity a warning names to its display name, or `undefined` when it cannot be.
@@ -260,7 +267,7 @@ const consequence = (id: string) =>
 export const integration = (id: string) =>
 	nameOf(discoveryIntegrations, 'discovery_integrations', id);
 
-/** An `OsFamily`'s display name ("Linux, macOS, BSD", "Windows"). */
+/** An `OsFamily`'s display name ("Linux, macOS or BSD", "Windows"). */
 const osFamily = (id: string) => nameOf(osFamilies, 'os_families', id);
 
 const addressesOf = (group_: { address: string }[]) =>
@@ -407,7 +414,8 @@ const WARNING_PARAMS = {
 	}),
 	CredentialRejected: attemptParams,
 	CredentialMalformed: attemptParams,
-	CredentialTlsFailed: attemptParams,
+	// The daemon names whose configuration accepts a self-signed certificate.
+	CredentialTlsFailed: (w, { daemonName }) => ({ ...attemptParams(w), daemon: daemonName }),
 	CredentialNotThisService: attemptParams,
 	CredentialCollectionFailed: attemptParams,
 	CredentialCollectionTimedOut: attemptParams,
@@ -415,13 +423,17 @@ const WARNING_PARAMS = {
 	CredentialTimedOut: attemptParams,
 	// The two OS slots identify the statement: a credential declared for Windows and skipped by a
 	// Unix daemon is a different sentence from the reverse.
-	CredentialDaemonOsMismatch: (w, { daemonName }) => ({
-		credential: integration(w[0].integration),
-		declared: osFamily(w[0].declared),
-		daemon: daemonName,
-		// The daemon's own OS where it sent one; runs recorded before that name its family.
-		actual: w[0].actual_os ? osLabel(w[0].actual_os) : osFamily(w[0].actual)
-	}),
+	CredentialDaemonOsMismatch: (w, { daemonName, daemonOs }) => {
+		// The OS the warning recorded, else the one the daemon reports now; only a run recorded
+		// before daemons sent it, from a daemon that never reported one, falls back to the family.
+		const actualOs = w[0].actual_os ?? daemonOs;
+		return {
+			credential: integration(w[0].integration),
+			declared: osFamily(w[0].declared),
+			daemon: daemonName,
+			actual: actualOs ? osLabel(actualOs) : osFamily(w[0].actual)
+		};
+	},
 	// Server-raised, for the one daemon that ran the scan, so its name is the session's. A daemon that
 	// never reported a version still has to read as a sentence.
 	// The gap identifies the statement: a credential withheld whole and one that lost only its
@@ -563,6 +575,12 @@ type CredentialIntegration = components['schemas']['CredentialIntegration'];
  * The slots of `IntegrationWithoutCredential`'s sentence. Exported because the home nudge says the
  * same thing in the same words, from the latest scans rather than one run.
  */
+/** A sentence as a clause to end another: first letter lower-cased, final period dropped. */
+function asClause(sentence: string): string {
+	const trimmed = sentence.trim().replace(/\.$/, '');
+	return trimmed.charAt(0).toLowerCase() + trimmed.slice(1);
+}
+
 export function integrationWithoutCredentialParams(
 	id: CredentialIntegration,
 	hosts: number
@@ -570,7 +588,9 @@ export function integrationWithoutCredentialParams(
 	return {
 		integration: credentialIntegrations.getName(id),
 		count: hosts,
-		discovers: credentialIntegrations.getDescription(id)
+		// The integration's description ("Discover Docker containers…") as the end of the
+		// sentence's "to …" clause: lower-cased at its first letter, without its final period.
+		discovers: asClause(credentialIntegrations.getDescription(id))
 	};
 }
 
@@ -1031,10 +1051,13 @@ function byTitle(
 export function buildWarningReport(
 	warnings: DiscoveryWarning[],
 	nameOfEntity: EntityNameLookup = NO_ENTITY_NAMES,
-	daemonName: string | null = null,
+	daemon: WarningDaemon | null = null,
 	credentialOf: CredentialLookup = () => undefined
 ): WarningSection[] {
-	const context: ParamContext = { daemonName: daemonName ?? discovery_warningUnknownDaemon() };
+	const context: ParamContext = {
+		daemonName: daemon?.name ?? discovery_warningUnknownDaemon(),
+		daemonOs: daemon?.os ?? null
+	};
 	// The example and sentence builders below only ever name hosts, so they keep taking the
 	// narrower lookup rather than every one of them growing an entity-type argument it would
 	// always pass the same value for.

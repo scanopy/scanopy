@@ -52,14 +52,13 @@
 		});
 	}
 
-	/** One action per Issue: its fix, named on the row, which a click on the row also runs. */
+	/** One action per Issue: its fix, named on the row. Only the button runs it. */
 	function issueActions(entry: SetupListEntry): RowAction[] {
 		const fix = viewOf(entry).fix;
 		return [
 			{
 				label: fix.label,
 				icon: ArrowRight,
-				isOpen: true,
 				showLabel: true,
 				onClick: () => {
 					trackEvent('setup_item_action_clicked', { item_type: entry.item.type });

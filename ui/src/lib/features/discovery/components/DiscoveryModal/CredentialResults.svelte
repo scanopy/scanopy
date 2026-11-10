@@ -28,16 +28,16 @@
 	import type { EntityDiscriminants } from '$lib/api/entities';
 	import type { DiscoveryUpdatePayload } from '../../types/api';
 	import { credentialResultRows } from '../../utils/credentialResults';
-	import { buildWarningReport, integration } from '../../utils/warnings';
+	import { buildWarningReport, integration, type WarningDaemon } from '../../utils/warnings';
 	import SshScriptRuns from './SshScriptRuns.svelte';
 
 	interface Props {
 		payload: DiscoveryUpdatePayload;
-		/** The daemon that ran the scan, named by the daemon-OS warning. */
-		daemonName: string | null;
+		/** The daemon that ran the scan, which the daemon-OS and TLS warnings name. */
+		daemon: WarningDaemon | null;
 	}
 
-	let { payload, daemonName }: Props = $props();
+	let { payload, daemon }: Props = $props();
 
 	/** Addresses shown on a collapsed row before the rest fold into "+N more". */
 	const MAX_ADDRESSES = 5;
@@ -119,7 +119,7 @@
 
 				{#if open}
 					<div class="space-y-2 pb-2 pl-6">
-						{#each buildWarningReport(row.warnings, nameOfEntity, daemonName) as section (section.remedy)}
+						{#each buildWarningReport(row.warnings, nameOfEntity, daemon) as section (section.remedy)}
 							{#each section.entries as entry (entry.code)}
 								<div class="space-y-1">
 									<p class="text-sm text-primary">{entry.title}</p>

@@ -62,10 +62,7 @@ export interface RowAction {
 	tone?: ActionTone;
 	/** This action deletes the row: it takes the Delete key, and running it clears the selection. */
 	isDelete?: boolean;
-	/**
-	 * This action opens the row: double-clicking the row runs it, or a single click on a row that
-	 * can't be selected.
-	 */
+	/** This action opens the row's modal: double-clicking the row runs it. */
 	isOpen?: boolean;
 	/** The row shows the label beside the icon, rather than in a tooltip. */
 	showLabel?: boolean;

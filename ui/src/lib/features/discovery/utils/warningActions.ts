@@ -11,7 +11,7 @@ import {
 	credentials_sshLoginRequired,
 	daemons_upgradeDaemon,
 	discovery_fixAddSubnetToScan,
-	discovery_fixAllowInvalidCerts,
+	discovery_fixDaemonConfigGuide,
 	discovery_fixChangeCredentialTarget,
 	discovery_fixCheckAddressAndPort,
 	discovery_fixCheckCredentialPort,
@@ -62,11 +62,12 @@ const SCAN_SETTING_FIXES = new Map<WarningEntry['code'], { tab: string; label: (
 	['ScanTimeLimit', { tab: 'detection', label: () => discovery_fixRaiseTimeLimit() }],
 	['ScanTimeLimitWithEstimate', { tab: 'detection', label: () => discovery_fixRaiseTimeLimit() }],
 	['WarningsTruncated', { tab: 'targets', label: () => discovery_fixNarrowScan() }],
+	// Not CredentialCollectionTimedOut: its limit is the integration's own, per host, which no
+	// scan setting moves.
 	// The guests' subnet is added to the scan's targets.
 	['GuestOutsideScan', { tab: 'targets', label: () => discovery_fixAddSubnetToScan() }],
 	['NeighbourResolutionIncomplete', { tab: 'targets', label: () => discovery_fixNarrowScan() }],
-	['FdbResolutionIncomplete', { tab: 'targets', label: () => discovery_fixNarrowScan() }],
-	['CredentialCollectionTimedOut', { tab: 'targets', label: () => discovery_fixNarrowScan() }]
+	['FdbResolutionIncomplete', { tab: 'targets', label: () => discovery_fixNarrowScan() }]
 ]);
 
 /**
@@ -80,6 +81,9 @@ const NEW_DAEMON_FIXES = new Map<WarningEntry['code'], () => string>([
 	['DaemonInDesktopVm', () => discovery_fixDaemonOnHost()],
 	['ConnectionsWithoutProtocolResponse', () => discovery_fixDaemonOnSubnet()]
 ]);
+
+/** The daemon configuration reference, which names each setting and how to set it. */
+const DAEMON_CONFIGURATION_GUIDE = 'https://scanopy.net/docs/reference/daemon-configuration/';
 
 /** Credential editor tab ids (`CredentialEditModal.svelte`). */
 type CredentialTab = 'details' | 'credential' | 'assignments';
@@ -238,13 +242,13 @@ export function actionFor(entry: WarningEntry, run: WarningRunContext): WarningA
 		};
 	}
 
-	// Accepting a self-signed certificate is a setting of the daemon that scans, not of the
-	// credential.
+	// Accepting a self-signed certificate is the scanning daemon's own configuration, which only
+	// its host can change, so the guide is the destination.
 	if (entry.code === 'CredentialTlsFailed') {
 		return {
-			label: discovery_fixAllowInvalidCerts(),
-			icon: entities.getIconComponent('Daemon'),
-			run: () => navigateToEntity('Daemon', run.daemonId)
+			label: discovery_fixDaemonConfigGuide(),
+			icon: createIconComponent('book-open'),
+			run: () => window.open(DAEMON_CONFIGURATION_GUIDE, '_blank', 'noopener,noreferrer')
 		};
 	}
 
