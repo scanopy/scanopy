@@ -546,9 +546,6 @@
 	 */
 	const LONG_RUN_MS = 400;
 
-	/** How long the zoom must hold still before cards replace boxes: see `detailHidden`. */
-	const ZOOM_STILL_MS = 150;
-
 	/**
 	 * Whether the label layer also names a sparse sample of the boxes too small to hold a name
 	 * (`label-placement.ts`): guide words over a dense grid. Off until it has been judged on
@@ -603,38 +600,18 @@
 	 */
 	let widestNodeWidth = $derived(widestWidthOf($nodes));
 
-	// The zoom has changed within the last moment: a wheel or pinch gesture, or an animated fit.
-	let zoomMoving = $state(false);
-	const noteZoomStill = throttle(() => (zoomMoving = false), ZOOM_STILL_MS, {
-		leading: false,
-		trailing: true
-	});
-	$effect(() => {
-		void viewerViewport.current.zoom;
-		zoomMoving = true;
-		noteZoomStill();
-		return () => noteZoomStill.cancel();
-	});
-
-	// What the last evaluation below returned. Plain, not state: it is the derived's own memory.
-	let boxesWereShown = false;
-	let detailHidden = $derived.by(() => {
-		const conditions = {
+	// Switched the moment the zoom crosses the threshold, mid-gesture included. Holding boxes until
+	// the zoom came to rest was tried, to keep the mount of the on-screen cards out of the gesture,
+	// and read as detail failing to appear: Maya zooms past the threshold and keeps going.
+	let detailHidden = $derived(
+		shouldSimplify({
 			zoom: viewerViewport.current.zoom,
 			nodeCount: $nodes.length,
 			widestNodeWidth,
 			measuring: measurePassActive,
 			exporting: $isExporting
-		};
-		// Zooming in across the threshold mounts every card on screen in one frame, a quarter of a
-		// second on a few dozen cards, in the middle of the gesture. Boxes stay until the zoom has
-		// come to rest, and the cards arrive then. Going the other way is not held: dropping to
-		// boxes is cheap. A measure pass and an export still get full cards at once.
-		const held =
-			boxesWereShown && zoomMoving && shouldSimplify({ ...conditions, zoom: 0 });
-		boxesWereShown = shouldSimplify(conditions) || held;
-		return boxesWereShown;
-	});
+		})
+	);
 
 	// Container names are drawn on their own layer wherever a header cannot be read: at reduced
 	// detail, where it is not mounted, and on a small graph that keeps full cards, below the zoom
