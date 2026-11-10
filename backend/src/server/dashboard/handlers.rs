@@ -14,6 +14,13 @@ use crate::server::{
 };
 
 use super::types::{DashboardSummary, PlanUsage, SiteSummary};
+use crate::server::{
+    setup::{
+        service::issues_page,
+        types::{IssueFilterQuery, SetupItemTier, SetupListEntry},
+    },
+    shared::{extractors::Query, types::api::PaginatedApiResponse},
+};
 
 use axum::{extract::State, response::Json};
 use std::sync::Arc;
@@ -21,7 +28,9 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
-    OpenApiRouter::new().routes(routes!(get_dashboard_summary))
+    OpenApiRouter::new()
+        .routes(routes!(get_dashboard_summary))
+        .routes(routes!(get_dashboard_issues))
 }
 
 /// Get dashboard summary
@@ -127,12 +136,20 @@ async fn get_dashboard_summary(
         .await
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
-    let setup_items = state
+    let (issues, setup_items): (Vec<SetupListEntry>, Vec<SetupListEntry>) = state
         .services
         .setup_service
         .for_user(&organization, &auth.entity)
         .await
-        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?
+        .into_iter()
+        .partition(|entry| entry.tier == SetupItemTier::Issue);
+    let mut issue_site_ids: Vec<Uuid> = Vec::new();
+    for site_id in issues.iter().flat_map(|entry| &entry.site_ids) {
+        if !issue_site_ids.contains(site_id) {
+            issue_site_ids.push(*site_id);
+        }
+    }
 
     let plan_usage = PlanUsage {
         host_limit,
@@ -147,5 +164,49 @@ async fn get_dashboard_summary(
         sites: site_summaries,
         plan_usage,
         setup_items,
+        issue_count: issues.len() as u64,
+        issue_site_ids,
     })))
+}
+
+/// List the dashboard's Issues
+///
+/// One page of the Issues the caller sees, grouped by category. The Setup steps come with the
+/// summary.
+#[utoipa::path(
+    get,
+    path = "/issues",
+    tags = [api_tags::INTERNAL],
+    params(IssueFilterQuery),
+    responses(
+        (status = 200, description = "Issues, grouped by category", body = PaginatedApiResponse<SetupListEntry>),
+    ),
+    security(("user_api_key" = []), ("session" = []))
+)]
+async fn get_dashboard_issues(
+    State(state): State<Arc<AppState>>,
+    auth: Authorized<InOrganization>,
+    Query(query): Query<IssueFilterQuery>,
+) -> ApiResult<Json<PaginatedApiResponse<SetupListEntry>>> {
+    let organization_id = auth
+        .organization_id()
+        .ok_or_else(|| ApiError::forbidden("Organization context required"))?;
+    let organization = state
+        .services
+        .organization_service
+        .get_by_id(&organization_id)
+        .await?
+        .ok_or_else(|| ApiError::not_found("Organization not found".to_string()))?;
+    // Already cut to what the caller may read, so `site_ids` only narrows it: a site the caller
+    // can't read matches nothing.
+    let issues: Vec<SetupListEntry> = state
+        .services
+        .setup_service
+        .for_user(&organization, &auth.entity)
+        .await
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?
+        .into_iter()
+        .filter(|entry| entry.tier == SetupItemTier::Issue)
+        .collect();
+    Ok(Json(issues_page(issues, &query)))
 }

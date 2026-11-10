@@ -236,7 +236,8 @@ export const queryKeys = {
 	},
 	dashboard: {
 		all: ['dashboard'] as const,
-		summary: () => [...queryKeys.dashboard.all, 'summary'] as const
+		summary: () => [...queryKeys.dashboard.all, 'summary'] as const,
+		issues: () => [...queryKeys.dashboard.all, 'issues'] as const
 	},
 	globalSearch: {
 		all: ['global-search'] as const,

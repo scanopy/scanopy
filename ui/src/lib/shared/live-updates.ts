@@ -20,7 +20,7 @@ class LiveUpdatesSSEManager extends BaseSSEManager<LiveUpdate> {
 						await discoveryStream.handleUpdate(update.data);
 						// A finished run can record the first scan and raise or clear Setup items.
 						if (update.data.phase === 'Complete') {
-							queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.summary() });
+							queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
 							queryClient.invalidateQueries({ queryKey: queryKeys.organizations.current() });
 						}
 						break;
@@ -30,7 +30,7 @@ class LiveUpdatesSSEManager extends BaseSSEManager<LiveUpdate> {
 					// A daemon checked in on a new version or health: its row, its upgrade modal and Home.
 					case 'Daemon':
 						queryClient.invalidateQueries({ queryKey: queryKeys.daemons.all });
-						queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.summary() });
+						queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
 						queryClient.invalidateQueries({ queryKey: queryKeys.organizations.current() });
 						break;
 				}
@@ -48,7 +48,7 @@ class LiveUpdatesSSEManager extends BaseSSEManager<LiveUpdate> {
 			queryKeys.services.all,
 			queryKeys.subnets.all,
 			queryKeys.daemons.all,
-			queryKeys.dashboard.summary(),
+			queryKeys.dashboard.all,
 			queryKeys.organizations.current()
 		]) {
 			queryClient.invalidateQueries({ queryKey });

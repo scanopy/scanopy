@@ -108,6 +108,7 @@ export const COVERED_FIXTURES = [
 	// The Setup list's item types and tiers, keyed by `SetupItemDiscriminants` and `SetupItemTier`.
 	{ file: 'setup-items.json', key: 'setup_items', kind: 'typeMetadata' },
 	{ file: 'setup-item-tiers.json', key: 'setup_item_tiers', kind: 'typeMetadata' },
+	{ file: 'issue-categories.json', key: 'issue_categories', kind: 'typeMetadata' },
 	{ file: 'device-types.json', key: 'device_types', kind: 'typeMetadata' },
 	// Scan warnings. Descriptions here are templates with `{named}` slots, unlike every other
 	// entry above: the values are copied through verbatim, paraglide compiles them into functions

@@ -196,6 +196,80 @@ pub enum SetupItemTier {
     Setup,
 }
 
+/// What an Issue's fix is about, which groups the Issues list, in display order.
+#[derive(
+    Serialize,
+    Deserialize,
+    ToSchema,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    EnumIter,
+    IntoStaticStr,
+)]
+pub enum IssueCategory {
+    Daemons,
+    Credentials,
+    Devices,
+    Scans,
+    Review,
+}
+
+impl IssueCategory {
+    /// The entity whose icon and color the category takes.
+    fn subject(&self) -> EntityDiscriminants {
+        match self {
+            Self::Daemons => EntityDiscriminants::Daemon,
+            Self::Credentials => EntityDiscriminants::Credential,
+            Self::Devices | Self::Review => EntityDiscriminants::Host,
+            Self::Scans => EntityDiscriminants::Discovery,
+        }
+    }
+}
+
+impl HasId for IssueCategory {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for IssueCategory {
+    fn color(&self) -> Color {
+        self.subject().color()
+    }
+
+    fn icon(&self) -> Icon {
+        self.subject().icon()
+    }
+}
+
+impl TypeMetadataProvider for IssueCategory {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::Daemons => "Daemons",
+            Self::Credentials => "Credentials",
+            Self::Devices => "Devices",
+            Self::Scans => "Scans",
+            Self::Review => "Review",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        match self {
+            Self::Daemons => "Daemons to fix, upgrade or install.",
+            Self::Credentials => "Credentials that failed, or that no scan uses.",
+            Self::Devices => "Devices that answered a scan with less than they hold.",
+            Self::Scans => "Scans that stopped early or couldn't reach part of the network.",
+            Self::Review => "Hosts and subnets other devices reported, to confirm or dismiss.",
+        }
+    }
+}
+
 /// One item's identity across sweeps and page loads.
 #[derive(
     Serialize,
@@ -337,6 +411,15 @@ impl SetupItem {
 
     /// The sites this item is about. Empty for one about the whole org: a credential with no
     /// target, the unconfirmed counts (summed across the reader's sites), and every Setup item.
+    /// What this Issue's fix is about, which the Issues list groups by: a run warning's code's
+    /// category, else its type's. `None` for a Setup step.
+    pub fn issue_category(&self) -> Option<IssueCategory> {
+        match self {
+            Self::RunWarnings { code, .. } => code.issue_category(),
+            _ => SetupItemDiscriminants::from(self).issue_category(),
+        }
+    }
+
     pub fn site_ids(&self) -> Vec<Uuid> {
         match self {
             Self::DaemonHealth { site_id, .. }
@@ -436,6 +519,32 @@ impl SetupItemDiscriminants {
             | Self::ApiKeys
             | Self::Share => SetupItemTier::Setup,
         }
+    }
+
+    /// What an Issue type's fix is about. `None` for a Setup step. RunWarnings' own value is a
+    /// fallback: each of its rows takes its code's category ([`SetupItem::issue_category`]).
+    pub fn issue_category(self) -> Option<IssueCategory> {
+        Some(match self {
+            Self::DaemonHealth | Self::SiteWithoutDaemon => IssueCategory::Daemons,
+            Self::UncoveredIntegration | Self::TargetlessCredential => IssueCategory::Credentials,
+            Self::RunWarnings => IssueCategory::Scans,
+            Self::UnconfirmedHosts | Self::UnconfirmedSubnets => IssueCategory::Review,
+            Self::InstallDaemon
+            | Self::RunFirstScan
+            | Self::OpenTopology
+            | Self::AnswerReferralSource
+            | Self::AnswerProfile
+            | Self::ExploreViews
+            | Self::ApplicationTags
+            | Self::DependencyTutorial
+            | Self::Dependencies
+            | Self::InterfaceCredential
+            | Self::Tags
+            | Self::InviteTeam
+            | Self::MultiSite
+            | Self::ApiKeys
+            | Self::Share => return None,
+        })
     }
 
     /// Whether finishing this item is stored in `organizations.setup`: every Setup item is, the
@@ -639,8 +748,13 @@ impl TypeMetadataProvider for SetupItemDiscriminants {
         }
     }
 
+    /// An Issue type's category, or the tier for a Setup step. A RunWarnings row groups by its
+    /// code's `issue_category`, so this one is only the type's fallback.
     fn category(&self) -> &'static str {
-        self.tier().id()
+        match self.issue_category() {
+            Some(category) => category.id(),
+            None => self.tier().id(),
+        }
     }
 }
 
@@ -869,4 +983,36 @@ mod tests {
         let values: Vec<serde_json::Value> = serde_json::from_value(stored).unwrap();
         assert_eq!(SetupItemDiscriminants::parse_recorded(values), all);
     }
+}
+
+/// What the Issues list groups by. Derived in Rust, so its `to_sql` is never read.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Default, ToSchema, EnumIter)]
+#[serde(rename_all = "snake_case")]
+pub enum IssueOrderField {
+    /// The Issue's [`IssueCategory`].
+    #[default]
+    Category,
+}
+
+impl crate::server::shared::handlers::ordering::OrderField for IssueOrderField {
+    /// Never read: the list is ordered in memory.
+    fn to_sql(&self) -> &'static str {
+        "id"
+    }
+}
+
+/// Query parameters for paging the Issues list.
+#[derive(Deserialize, Default, Debug, Clone, utoipa::IntoParams)]
+pub struct IssueFilterQuery {
+    /// Only Issues on one of these sites, plus the Issues about the whole organization. Repeat
+    /// for several. Unset returns every site's.
+    pub site_ids: Option<Vec<Uuid>>,
+    /// What the list is grouped by. Default: `category`.
+    pub group_by: Option<IssueOrderField>,
+    /// Maximum number of results to return (1-1000, default: 50). Use 0 for no limit.
+    #[param(minimum = 0, maximum = 1000)]
+    pub limit: Option<u32>,
+    /// Number of results to skip. Default: 0.
+    #[param(minimum = 0)]
+    pub offset: Option<u32>,
 }

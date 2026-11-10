@@ -1,4 +1,6 @@
 import type { components } from '$lib/api/schema';
+import warningCodes from '$lib/data/warning-codes.json';
+import { setupItems } from '$lib/shared/stores/metadata';
 
 export type SetupItem = components['schemas']['SetupItem'];
 export type SetupItemType = components['schemas']['SetupItemDiscriminants'];
@@ -7,14 +9,16 @@ export type SetupItemState = components['schemas']['SetupItemState'];
 /** One Setup list row as the server serves it: the item, its key, its tier and its state. */
 export type SetupListEntry = components['schemas']['SetupListEntry'];
 
-/** The Issues among `entries`, in the order the server listed them. */
-export function issueEntries(entries: SetupListEntry[]): SetupListEntry[] {
-	return entries.filter((entry) => entry.tier === 'Issue');
-}
-
-/** The Issues among `entries`: the Home nav badge and the Issues heading badge. */
-export function setupIssueCount(entries: SetupListEntry[]): number {
-	return issueEntries(entries).length;
+/**
+ * The category an Issue groups under, from type metadata: a run warning's code's
+ * `issue_category`, else its type's `category`. The server groups the Issues list by the same.
+ */
+export function issueCategoryOf(item: SetupItem): string {
+	if (item.type === 'RunWarnings') {
+		const code = warningCodes.find((c) => c.id === item.code);
+		return code?.metadata.issue_category ?? '';
+	}
+	return setupItems.getCategory(item.type);
 }
 
 /** The Setup items still to do, in the order the server listed them, so the first steps lead. */
@@ -36,21 +40,6 @@ export function doneEntries(entries: SetupListEntry[]): SetupListEntry[] {
 export function setupProgress(entries: SetupListEntry[]): { done: number; total: number } {
 	const setup = entries.filter((entry) => entry.tier === 'Setup');
 	return { done: doneEntries(setup).length, total: setup.length };
-}
-
-/** The sites `issues` are about, in first-seen order. An org-wide Issue names none. */
-export function issueSiteIds(issues: SetupListEntry[]): string[] {
-	return [...new Set(issues.flatMap((entry) => entry.site_ids))];
-}
-
-/**
- * The `issues` to show with `picked` sites on: an org-wide Issue always, and one about a site
- * when any of its sites is picked.
- */
-export function issuesOnSites(issues: SetupListEntry[], picked: Set<string>): SetupListEntry[] {
-	return issues.filter(
-		(entry) => entry.site_ids.length === 0 || entry.site_ids.some((id) => picked.has(id))
-	);
 }
 
 /** The server's key as a string, to key the list and the once-per-key `setup_issue_shown` event. */

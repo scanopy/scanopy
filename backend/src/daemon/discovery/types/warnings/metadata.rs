@@ -18,6 +18,7 @@
 use serde_json::json;
 
 use super::{DiscoveryWarningCode, SnmpCheck, SnmpWalkGroup, WarningRemedy};
+use crate::server::setup::types::IssueCategory;
 use crate::server::shared::types::{
     Color, Icon,
     metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider},
@@ -343,23 +344,22 @@ impl DiscoveryWarningCode {
         }
     }
 
-    /// Whether a daemon's latest run carrying this code is an Issue on the Setup list: the scan
-    /// left data missing and a person can act on it.
-    ///
-    /// Exhaustive, so a new code has to say whether it belongs on Home.
+    /// Whether a daemon's latest run carrying this code is an Issue on the Setup list.
     pub fn is_setup_issue(&self) -> bool {
-        match self {
-            // Not actionable by its remedy, but a silent SNMP device has no interfaces or
-            // neighbours, and the issue leads to its credential.
-            Self::SnmpWalkNoAnswer
-            | Self::SnmpWalkFailed
-            | Self::ClaimedCountUnderRead
-            | Self::ClaimedCapabilityEmpty
-            | Self::SnmpCollectedNothing
-            | Self::CredentialTargetNotScanned
+        self.issue_category().is_some()
+    }
+
+    /// Where a daemon's latest run carrying this code groups on the Setup list, or `None` when it
+    /// is no Issue there: an Issue is a scan that left data missing that a person can act on.
+    ///
+    /// Exhaustive, so a new code has to say whether it belongs on Home, and under what.
+    pub fn issue_category(&self) -> Option<IssueCategory> {
+        Some(match self {
+            Self::CredentialNeedsNewerDaemon | Self::DaemonInDesktopVm => IssueCategory::Daemons,
+
+            Self::CredentialTargetNotScanned
             | Self::CredentialTargetNotResponding
             | Self::CredentialDaemonOsMismatch
-            | Self::CredentialNeedsNewerDaemon
             | Self::CredentialLoginUnavailable
             | Self::CredentialGateClosed
             | Self::CredentialRejected
@@ -369,16 +369,24 @@ impl DiscoveryWarningCode {
             | Self::CredentialCollectionFailed
             | Self::CredentialCollectionTimedOut
             | Self::CredentialUnreachable
-            | Self::CredentialTimedOut
-            | Self::GuestOutsideScan
+            | Self::CredentialTimedOut => IssueCategory::Credentials,
+
+            // Not actionable by its remedy, but a silent SNMP device has no interfaces or
+            // neighbours, and the issue leads to its credential.
+            Self::SnmpWalkNoAnswer
+            | Self::SnmpWalkFailed
+            | Self::ClaimedCountUnderRead
+            | Self::ClaimedCapabilityEmpty
+            | Self::SnmpCollectedNothing => IssueCategory::Devices,
+
+            Self::GuestOutsideScan
             | Self::GuestBehindHypervisor
             | Self::GuestIsolated
             | Self::ConnectionsWithoutProtocolResponse
             | Self::ScanTimeLimit
             | Self::ScanTimeLimitWithEstimate
             | Self::NeighbourResolutionIncomplete
-            | Self::FdbResolutionIncomplete
-            | Self::DaemonInDesktopVm => true,
+            | Self::FdbResolutionIncomplete => IssueCategory::Scans,
 
             // Live Setup items cover these: TargetlessCredential, UncoveredIntegration,
             // ReviewUnconfirmed and the daemon's Outdated health.
@@ -418,8 +426,8 @@ impl DiscoveryWarningCode {
             | Self::LldpPortNoStrategy
             | Self::LldpPortNotFound
             | Self::LldpPortAmbiguous
-            | Self::Unknown => false,
-        }
+            | Self::Unknown => return None,
+        })
     }
 }
 
@@ -726,6 +734,7 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             "slots": self.slots(),
             "concerns_credential": self.concerns_credential(),
             "is_setup_issue": self.is_setup_issue(),
+            "issue_category": self.issue_category().map(|c| c.id()),
             "snmp_check": self.snmp_check(),
             "snmp_check_group": self.snmp_check_group(),
         })

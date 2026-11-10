@@ -38,6 +38,7 @@ import guestStatesJson from '$lib/data/guest-states.json';
 import daemonHealthsJson from '$lib/data/daemon-healths.json';
 import setupItemsJson from '$lib/data/setup-items.json';
 import setupItemTiersJson from '$lib/data/setup-item-tiers.json';
+import issueCategoriesJson from '$lib/data/issue-categories.json';
 import deviceTypesJson from '$lib/data/device-types.json';
 import {
 	createColorHelper,
@@ -159,6 +160,7 @@ export interface MetadataRegistry {
 	daemon_healths: TypeMetadata[];
 	setup_items: TypeMetadata[];
 	setup_item_tiers: TypeMetadata[];
+	issue_categories: TypeMetadata[];
 	device_types: TypeMetadata[];
 }
 
@@ -396,6 +398,7 @@ export const metadata = writable<MetadataRegistry>({
 	daemon_healths: daemonHealthsJson,
 	setup_items: setupItemsJson,
 	setup_item_tiers: setupItemTiersJson,
+	issue_categories: issueCategoriesJson,
 	device_types: deviceTypesJson
 } as unknown as MetadataRegistry);
 
@@ -634,11 +637,15 @@ export const guestStates = createTypeMetadataHelpers<'guest_states', object>('gu
 /** A daemon's health, the most severe status that applies, keyed by `DaemonHealth`. Fixture order
  *  is severity order, most severe first. */
 export const daemonHealths = createTypeMetadataHelpers<'daemon_healths', object>('daemon_healths');
-/** The Setup list's item types (copy, icon, tier as `category`), keyed by `SetupItemDiscriminants`. */
+/** The Setup list's item types (copy, icon, category: an Issue's `IssueCategory`, a step's tier), keyed by `SetupItemDiscriminants`. */
 export const setupItems = createTypeMetadataHelpers<'setup_items', object>('setup_items');
 /** The Setup list's tiers, in display order, keyed by `SetupItemTier`. */
 export const setupItemTiers = createTypeMetadataHelpers<'setup_item_tiers', object>(
 	'setup_item_tiers'
+);
+/** What an Issue's fix is about, in display order, keyed by `IssueCategory`. */
+export const issueCategories = createTypeMetadataHelpers<'issue_categories', object>(
+	'issue_categories'
 );
 export const deviceTypes = createTypeMetadataHelpers<'device_types', object>('device_types');
 export const discoveryTypes = createTypeMetadataHelpers<'discovery_types', DiscoveryTypeMetadata>(
