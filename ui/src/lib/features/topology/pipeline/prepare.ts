@@ -268,6 +268,14 @@ function applyAutoCollapse(
 		);
 	});
 
+	// A candidate that is collapsed now has had its shot, whoever collapsed it. `collapsedContainers`
+	// is restored from `localStorage` on load while the seen set starts empty, so without this the
+	// first expand of each container after a reload was put straight back, and only the second
+	// press opened it.
+	for (const candidate of allCandidates) {
+		if (collapsed.has(candidate.id)) state.seenAutoCollapseIds.add(candidate.id);
+	}
+
 	const userExplicitlyExpandedAll = currentLevel >= 4 && state.collapseLevelInferred;
 	const autoCollapseIds = userExplicitlyExpandedAll
 		? []
