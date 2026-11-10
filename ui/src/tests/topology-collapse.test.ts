@@ -2,7 +2,7 @@ import { get } from 'svelte/store';
 import { describe, it, expect } from 'vitest';
 import {
 	computeCollapsedForLevel,
-	collapsedForReloadIntoOtherScope,
+	collapsedForEntryFromOtherScope,
 	inferCurrentLevel,
 	scaleCollapseCandidates,
 	nextEffectiveLevel,
@@ -98,7 +98,7 @@ describe('computeCollapsedForLevel — scale collapse', () => {
 	it('opens a reload into another view collapsed, and leaves a reload of the same view alone', () => {
 		// Stored ids belong to the view they were saved in. A reload into another view strips them
 		// all, and the empty set that remains would otherwise read as "expanded by hand".
-		const other = collapsedForReloadIntoOtherScope(
+		const other = collapsedForEntryFromOtherScope(
 			't|L2Physical',
 			't|Workloads',
 			atScale,
@@ -108,10 +108,10 @@ describe('computeCollapsedForLevel — scale collapse', () => {
 		expect(inferCurrentLevel(other!, atScale, containerTypes, null)).toBe(1);
 
 		expect(
-			collapsedForReloadIntoOtherScope('t|Workloads', 't|Workloads', atScale, containerTypes)
+			collapsedForEntryFromOtherScope('t|Workloads', 't|Workloads', atScale, containerTypes)
 		).toBeNull();
 		expect(
-			collapsedForReloadIntoOtherScope('t|L2Physical', 't|Workloads', belowScale, containerTypes)
+			collapsedForEntryFromOtherScope('t|L2Physical', 't|Workloads', belowScale, containerTypes)
 		).toBeNull();
 	});
 

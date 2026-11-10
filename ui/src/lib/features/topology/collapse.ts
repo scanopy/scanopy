@@ -146,18 +146,26 @@ function loadScopeFromStorage(): string | null {
 	}
 }
 
-/**
- * The scope the persisted collapse state belonged to when the tab opened. `null` when none was
- * recorded, which includes state saved before the scope was persisted.
- */
-export const storedCollapseScopeOnLoad = loadScopeFromStorage();
+let savedScope = loadScopeFromStorage();
 
-let savedScope = storedCollapseScopeOnLoad;
+/**
+ * The scope the collapse state describes now: the one it was persisted with until a topology has
+ * rendered in this tab, then the last one rendered. `null` when none was recorded, which includes
+ * state saved before the scope was persisted.
+ *
+ * Read live, not once at load. The viewer is unmounted while another site's topology is fetched
+ * and mounts again with no memory of what it drew, so "which topology and view is this state
+ * for" has to be answerable on any mount, not only the tab's first.
+ */
+export function currentCollapseScope(): string | null {
+	return savedScope;
+}
 
 /** Record the topology and view the persisted collapse state now describes. */
 export function saveCollapseScope(scope: string): void {
-	if (!browser || scope === savedScope) return;
+	if (scope === savedScope) return;
 	savedScope = scope;
+	if (!browser) return;
 	try {
 		localStorage.setItem(SCOPE_STORAGE_KEY, scope);
 	} catch {
@@ -181,24 +189,30 @@ function loadOpenCandidatesFromStorage(): Set<string> {
 	return new Set();
 }
 
+let openCandidates = loadOpenCandidatesFromStorage();
+let savedOpenCandidates = [...openCandidates].sort().join(',');
+
 /**
- * The auto-collapse candidates that were open when the tab last saved its collapse state: the
+ * The auto-collapse candidates that were open when the collapse state was last saved: the
  * containers the user opened by hand, or that a chosen level leaves open.
  *
  * The persisted collapsed set cannot say this by itself. A candidate missing from it is either one
  * the user opened or one that did not exist yet, and auto-collapse must leave the first alone and
- * collapse the second. Without this record a reload put every hand-opened container back.
+ * collapse the second. Without this record a reload, or a remount of the viewer, put every
+ * hand-opened container back.
  */
-export const storedOpenCandidatesOnLoad = loadOpenCandidatesFromStorage();
-
-let savedOpenCandidates = [...storedOpenCandidatesOnLoad].sort().join(',');
+export function currentOpenCandidates(): ReadonlySet<string> {
+	return openCandidates;
+}
 
 /** Record the auto-collapse candidates that are open now. Writes only when the set changed. */
 export function saveOpenCandidates(ids: Iterable<string>): void {
 	const list = [...ids].sort();
 	const joined = list.join(',');
-	if (!browser || joined === savedOpenCandidates) return;
+	if (joined === savedOpenCandidates) return;
 	savedOpenCandidates = joined;
+	openCandidates = new Set(list);
+	if (!browser) return;
 	try {
 		localStorage.setItem(OPEN_CANDIDATES_STORAGE_KEY, JSON.stringify(list));
 	} catch {
@@ -304,16 +318,16 @@ export function scaleCollapseCandidates(
 }
 
 /**
- * The collapsed set to open with when a tab loads a graph at scale-collapse size and the
- * persisted collapse state was saved for another topology or view. `null` when the persisted
- * state applies as it stands.
+ * The collapsed set to open with when the viewer mounts on a graph at scale-collapse size and the
+ * collapse state describes another topology or view. `null` when the state applies as it stands.
  *
- * Container ids are per view, so a set saved in one view names nothing in another. Stripped of
- * those ids it is empty, and an empty set reads as "everything expanded": a reload or a shared
- * link into Workloads after viewing L2 mounted every node of a 4,000-host site. A view switch
- * inside a session opens a view of this size at level 1, and a reload into it does the same.
+ * Container ids are per topology and view, so a set saved in one names nothing in another.
+ * Stripped of those ids it is empty, and an empty set reads as "everything expanded": a reload or
+ * a shared link into Workloads after viewing L2, or a switch from a small site to a 4,000-host
+ * one, mounted every node. A view switch inside a session opens a view of this size at level 1,
+ * and every other way into it does the same.
  */
-export function collapsedForReloadIntoOtherScope(
+export function collapsedForEntryFromOtherScope(
 	storedScope: string | null,
 	scope: string,
 	allNodes: TopologyNode[],

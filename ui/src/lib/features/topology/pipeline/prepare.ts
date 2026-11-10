@@ -15,11 +15,11 @@ import {
 	expandedInlineGroups,
 	allInlineGroupKeys,
 	collapseScope,
-	collapsedForReloadIntoOtherScope,
+	collapsedForEntryFromOtherScope,
+	currentCollapseScope,
+	currentOpenCandidates,
 	saveCollapseScope,
-	saveOpenCandidates,
-	storedCollapseScopeOnLoad,
-	storedOpenCandidatesOnLoad
+	saveOpenCandidates
 } from '../collapse';
 import { elevateEdgesToContainers } from '../layout/edge-elevation';
 import { containerTypes, views } from '$lib/shared/stores/metadata';
@@ -294,7 +294,7 @@ function applyAutoCollapse(
 	}
 
 	// Every candidate still open is open by the user's doing. Saved so a reload can tell it from a
-	// container that is new since, which is collapsed; see `storedOpenCandidatesOnLoad`.
+	// container that is new since, which is collapsed; see `currentOpenCandidates`.
 	saveOpenCandidates(allCandidates.filter((n) => !next.has(n.id)).map((n) => n.id));
 
 	// Re-infer the level from what auto-collapse actually produced.
@@ -437,8 +437,11 @@ export function prepareTopologyData(
 	const scope = collapseScope(topology.id ?? '', currentView);
 	if (!state.collapseLevelInferred) {
 		state.collapseLevelInferred = true;
-		const otherScopeCollapsed = collapsedForReloadIntoOtherScope(
-			storedCollapseScopeOnLoad,
+		// Asked of the scope the state describes now, not the one it had when the tab opened: the
+		// viewer mounts afresh whenever a site's topology has to be fetched, and that mount is a
+		// first render too.
+		const otherScopeCollapsed = collapsedForEntryFromOtherScope(
+			currentCollapseScope(),
 			scope,
 			topology.nodes,
 			containerTypes
@@ -454,16 +457,18 @@ export function prepareTopologyData(
 			collapsedContainers.set(defaultCollapsed);
 			collapsed = defaultCollapsed;
 			collapseLevel.set(defaultLevel);
-		} else if (!defaultsAppliedThisSession && otherScopeCollapsed) {
-			// The stored state describes another topology or view, and this graph is large enough
-			// to scale-collapse: open it at level 1, as a view switch into it does.
+		} else if (otherScopeCollapsed) {
+			// The collapse state describes another topology or view, and this graph is large enough
+			// to scale-collapse: open it at level 1, as a view switch into it does. Inferring a
+			// level here instead reads the stripped, empty set as "everything expanded" and mounts
+			// the whole site, which is what a switch from a small site to a large one did.
 			collapsedContainers.set(otherScopeCollapsed);
 			collapsed = otherScopeCollapsed;
 			collapseLevel.set(1);
 		} else {
-			// The stored state applies as it stands, and so does its record of what the user had
+			// The collapse state applies as it stands, and so does its record of what the user had
 			// open: auto-collapse leaves those containers alone.
-			for (const id of storedOpenCandidatesOnLoad) state.seenAutoCollapseIds.add(id);
+			for (const id of currentOpenCandidates()) state.seenAutoCollapseIds.add(id);
 			const inferred = inferCurrentLevel(
 				collapsed,
 				topology.nodes,
