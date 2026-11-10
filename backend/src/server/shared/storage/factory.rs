@@ -107,9 +107,19 @@ pub async fn create_session_store(
         .with_same_site(tower_sessions::cookie::SameSite::Lax))
 }
 
+/// sqlx gives each persistent query its own named prepared statement and closes it only when
+/// the statement cache evicts it, so the cache stays at sqlx's bounded default. With the cache
+/// off, every query left a prepared statement on its connection until the connection retired,
+/// and a few thousand hosts of discovery grew Postgres by gigabytes. The dynamic `SELECT *`
+/// queries, whose result type a migration can change (SQLSTATE 0A000), run non-persistent in
+/// `GenericPostgresStorage` and `ChildStorage` instead.
+pub(crate) fn connect_options(database_url: &str) -> Result<PgConnectOptions> {
+    Ok(PgConnectOptions::from_str(database_url)?)
+}
+
 impl StorageFactory {
     pub async fn new(database_url: &str, use_secure_session_cookies: bool) -> Result<Self> {
-        let connect_options = PgConnectOptions::from_str(database_url)?.statement_cache_capacity(0);
+        let connect_options = connect_options(database_url)?;
         // `acquire_time_level` only makes sqlx emit an event per acquire, which
         // `metrics::db::DbTimingLayer` turns into the acquire-time metrics. Pool size and
         // timeouts stay at sqlx's defaults. It takes sqlx's `log::LevelFilter`, which the
