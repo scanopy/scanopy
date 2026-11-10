@@ -454,7 +454,10 @@
 
 	// URL params: read once on init for topology/view deep-linking
 	const urlParams = topologyParamsFrom(takeInitialParams('topology'));
-	let urlViewConsumed = false;
+	// Applied here, before the data query's first fetch. The query is keyed by view, so applying
+	// it once the first response had arrived fetched the default view's whole bundle first and
+	// then the linked view's: two site-sized requests in a row for every link to another view.
+	if (urlParams.view) activeView.set(urlParams.view);
 
 	// Initialize/validate the selected site against the accessible list.
 	// Runs whenever sitesData changes so a stale persisted id (deleted site,
@@ -505,10 +508,6 @@
 		if (currentTopology && currentTopology.id !== lastHydratedId) {
 			lastHydratedId = currentTopology.id;
 			hydrateStoresFromTopology(currentTopology, isFirstHydration);
-			if (!urlViewConsumed && urlParams.view) {
-				urlViewConsumed = true;
-				activeView.set(urlParams.view);
-			}
 			isFirstHydration = false;
 		}
 	});
