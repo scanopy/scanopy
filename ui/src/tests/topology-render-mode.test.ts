@@ -124,7 +124,7 @@ describe('shouldSimplify', () => {
 	});
 
 	it('draws detail from the zoom where card text reaches the legible size', () => {
-		// 12px card text is 10px on screen at this zoom, and under it below.
+		// Card text is at the legible size on screen at this zoom, and under it below.
 		expect(DETAIL_ZOOM).toBeCloseTo(LEGIBLE_TEXT_PX / CARD_TEXT_PX);
 		expect(CARD_TEXT_PX * DETAIL_ZOOM).toBeCloseTo(LEGIBLE_TEXT_PX);
 		expect(shouldSimplify({ ...big, zoom: DETAIL_ZOOM - 0.01 })).toBe(true);
