@@ -893,6 +893,8 @@ pub(crate) fn apply_host_assignment(
         &credential.base.credential_type,
     );
     mapping.daemon_os = dispatch.daemon_os;
+    // A local socket answers only on its own host's loopback.
+    let loopback_only = credential.base.credential_type.targets() == [Target::DaemonHost];
 
     let relevant_interfaces = ip_addresses.iter().filter(|i| {
         if i.base.host_id != host_id {
@@ -903,6 +905,11 @@ pub(crate) fn apply_host_assignment(
             // is how a promoted Docker/Podman socket credential comes back out on the daemon
             // host's `127.0.0.1` — see `promoted_socket_credential_is_dispatched_over_loopback`.
             Some(ids) => ids.contains(&i.id),
+            // Host-wide, for a credential reached only over loopback (a Docker or Podman socket):
+            // the host's loopback alone. Its other addresses cannot reach the socket, and the
+            // daemon's localhost phase selects on the loopback override. Another daemon's
+            // copy of it is dropped by `retain_reachable_overrides`.
+            None if loopback_only => i.base.ip_address.is_loopback(),
             // Host-wide: every address the host holds, except a loopback one. A remote device's
             // own `127.0.0.1` is an interface it reports, not a way to reach it — and it is not
             // even unique, since every device reports the same one. Swept up here it produced a
@@ -1482,6 +1489,43 @@ mod integration_target_tests {
              localhost override, or the localhost phase will not select it"
         );
         assert_eq!(mapping.ip_overrides[0].credential_id, cred_id);
+    }
+
+    /// A local socket is reached only over its host's loopback, so a socket credential attached
+    /// to the daemon host as a whole dispatches there. Attaching one in the host editor saves it
+    /// host-wide, and before this it dispatched on the host's other addresses only, so the
+    /// localhost phase found no socket and the daemon scanned its container bridges.
+    #[test]
+    fn a_host_wide_socket_credential_is_dispatched_over_loopback() {
+        let cred_id = Uuid::new_v4();
+        let daemon_host_id = Uuid::new_v4();
+        let cred = credential(
+            cred_id,
+            CredentialTypeDiscriminants::DockerSocket.to_credential_type(),
+        );
+        let assignment = CredentialAssignment {
+            credential_id: cred_id,
+            ip_address_ids: None,
+        };
+        let ip_addresses = vec![
+            ip_address(Uuid::new_v4(), daemon_host_id, localhost()),
+            ip_address(Uuid::new_v4(), daemon_host_id, "10.0.0.4".parse().unwrap()),
+        ];
+
+        let mut map: Mappings = Mappings::new();
+        apply_host_assignment_standalone(
+            &mut map,
+            daemon_host_id,
+            &assignment,
+            &cred,
+            &ip_addresses,
+        );
+
+        let overrides = &only(&map).ip_overrides;
+        assert_eq!(
+            overrides.iter().map(|o| o.ip).collect::<Vec<_>>(),
+            vec![localhost()]
+        );
     }
 
     /// A host-wide assignment (`ip_address_ids: None`) covers every address on its host and
