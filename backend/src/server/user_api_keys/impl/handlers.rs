@@ -2,7 +2,7 @@ use crate::server::{
     config::AppState,
     shared::{
         handlers::{
-            list::{ListOrdering, PaginatedList},
+            list::{ListOrdering, ListRows, PaginatedList},
             ordering::TagGroupOrdering,
             query::narrow_by_tags_and_search,
             traits::{CrudHandlers, ListScope, base_list_filter},
@@ -76,9 +76,10 @@ impl CrudHandlers for UserApiKey {
     }
 }
 
-#[async_trait]
-impl PaginatedList for UserApiKey {
+impl ListRows for UserApiKey {
     type Item = UserApiKey;
+    type Field = UserApiKeyOrderField;
+    type Query = UserApiKeyFilterQuery;
 
     fn ordering(query: &UserApiKeyFilterQuery) -> ListOrdering<UserApiKeyOrderField> {
         ListOrdering {
@@ -91,7 +92,10 @@ impl PaginatedList for UserApiKey {
             },
         }
     }
+}
 
+#[async_trait]
+impl PaginatedList for UserApiKey {
     /// Each key with the sites it may reach.
     async fn items(
         state: &AppState,

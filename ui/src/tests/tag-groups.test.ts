@@ -203,7 +203,7 @@ describe('tag-group filters as tag_sets', () => {
 				search: ''
 			},
 			fields,
-			{ tags: true, stale: true }
+			{ tags: true, stale: true, search: true }
 		);
 		expect(request.getAll('tag_sets')).toEqual(['planned,active', 'production']);
 

@@ -363,6 +363,7 @@
 	"common_ipAddress": "IP Address",
 	"common_ipAddressBindings": "IP Address Bindings",
 	"common_ipAddresses": "IP Addresses",
+	"common_issue": "Issue",
 	"common_item": "item",
 	"common_items": "items",
 	"common_itemsSelected": "{count} selected",

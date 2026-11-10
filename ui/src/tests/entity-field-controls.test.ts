@@ -314,6 +314,14 @@ const DECISIONS: Record<string, TabDecisions> = {
 			email_verified: server('email_verified')
 		}
 	},
+	'home/components/IssuesTable.svelte': {
+		listPath: '/api/v1/dashboard/issues',
+		columns: {
+			type: server('types'),
+			category: server('categories'),
+			site_ids: { ...SHARED_ARRAY, filter: { param: 'site_ids' } }
+		}
+	},
 	'user_api_keys/components/UserApiKeyTab.svelte': {
 		listPath: '/api/v1/user-api-keys',
 		columns: {

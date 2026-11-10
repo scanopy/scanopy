@@ -9,7 +9,7 @@ use crate::server::credentials::r#impl::types::{
 use crate::server::credentials::service::{CredentialService, check_type_in_plan};
 use crate::server::daemons::r#impl::base::Daemon;
 use crate::server::services::r#impl::definitions::ServiceDefinition;
-use crate::server::shared::handlers::list::{ListOrdering, PaginatedList, list_page};
+use crate::server::shared::handlers::list::{ListOrdering, ListRows, PaginatedList, list_page};
 use crate::server::shared::handlers::ordering::{OrderField, TagGroupOrdering, case_sql, in_sql};
 use crate::server::shared::handlers::query::{
     FilterQueryExtractor, OrderDirection, PaginationParams, deserialize_bool_values,
@@ -305,9 +305,10 @@ impl CrudHandlers for Credential {
     }
 }
 
-#[async_trait]
-impl PaginatedList for Credential {
+impl ListRows for Credential {
     type Item = Credential;
+    type Field = CredentialOrderField;
+    type Query = CredentialFilterQuery;
 
     fn ordering(query: &CredentialFilterQuery) -> ListOrdering<CredentialOrderField> {
         ListOrdering {
@@ -320,7 +321,10 @@ impl PaginatedList for Credential {
             },
         }
     }
+}
 
+#[async_trait]
+impl PaginatedList for Credential {
     /// Each credential with its site and host assignments.
     async fn items(
         state: &AppState,

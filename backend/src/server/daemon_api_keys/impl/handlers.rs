@@ -7,7 +7,7 @@ use crate::server::{
     },
     shared::{
         handlers::{
-            list::{ListOrdering, PaginatedList},
+            list::{ListOrdering, ListRows, PaginatedList},
             ordering::TagGroupOrdering,
             query::narrow_by_tags_and_search,
             traits::{CrudHandlers, ListScope, base_list_filter},
@@ -50,9 +50,10 @@ impl CrudHandlers for DaemonApiKey {
     }
 }
 
-#[async_trait]
-impl PaginatedList for DaemonApiKey {
+impl ListRows for DaemonApiKey {
     type Item = DaemonApiKey;
+    type Field = DaemonApiKeyOrderField;
+    type Query = DaemonApiKeyFilterQuery;
 
     fn ordering(query: &DaemonApiKeyFilterQuery) -> ListOrdering<DaemonApiKeyOrderField> {
         ListOrdering {
@@ -65,7 +66,10 @@ impl PaginatedList for DaemonApiKey {
             },
         }
     }
+}
 
+#[async_trait]
+impl PaginatedList for DaemonApiKey {
     async fn items(
         _state: &AppState,
         rows: Vec<DaemonApiKey>,

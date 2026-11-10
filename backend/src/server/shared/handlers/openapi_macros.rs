@@ -392,7 +392,7 @@ macro_rules! crud_list_page_handler {
     ($entity:ty) => {
         type __ListFilterQuery = <$entity as $crate::server::shared::handlers::traits::CrudHandlers>::FilterQuery;
         type __ListPageResponse = $crate::server::shared::types::api::PaginatedApiResponse<
-            <$entity as $crate::server::shared::handlers::list::PaginatedList>::Item,
+            <$entity as $crate::server::shared::handlers::list::ListRows>::Item,
         >;
         const __LIST_TAG: &str = <$entity as $crate::server::shared::storage::traits::Entity>::ENTITY_NAME_PLURAL;
         const __LIST_OP_ID: &str = const_format::concatcp!("list_", <$entity as $crate::server::shared::storage::traits::Entity>::ENTITY_NAME_PLURAL);

@@ -11,7 +11,7 @@ use crate::server::{
     },
     shared::{
         handlers::{
-            list::{Computed, ComputedValue, ListOrdering, PaginatedList},
+            list::{Computed, ComputedValue, ListOrdering, ListRows, PaginatedList},
             ordering::TagGroupOrdering,
             traits::{CrudHandlers, ListScope},
         },
@@ -46,9 +46,10 @@ impl CrudHandlers for Daemon {
     }
 }
 
-#[async_trait]
-impl PaginatedList for Daemon {
+impl ListRows for Daemon {
     type Item = DaemonResponse;
+    type Field = DaemonOrderField;
+    type Query = DaemonFilterQuery;
 
     fn ordering(query: &DaemonFilterQuery) -> ListOrdering<DaemonOrderField> {
         ListOrdering {
@@ -60,29 +61,6 @@ impl PaginatedList for Daemon {
                 order_by: query.order_by_tag_group,
             },
         }
-    }
-
-    /// Each daemon with its version status, health and interfaced subnets.
-    async fn items(
-        state: &AppState,
-        rows: Vec<Daemon>,
-        _query: &DaemonFilterQuery,
-    ) -> ApiResult<Vec<DaemonResponse>> {
-        let ids: Vec<Uuid> = rows.iter().map(|d| d.id).collect();
-        let mut subnets = state
-            .services
-            .daemon_service
-            .get_interfaced_subnet_ids_batch(&ids)
-            .await;
-        let policy = DaemonVersionPolicy::default();
-        Ok(rows
-            .into_iter()
-            .map(|daemon| {
-                let version_status = policy.evaluate(daemon.base.version.as_ref());
-                let interfaced = subnets.remove(&daemon.id).unwrap_or_default();
-                DaemonResponse::new(daemon, version_status, interfaced)
-            })
-            .collect())
     }
 
     fn is_computed(field: &DaemonOrderField) -> bool {
@@ -110,14 +88,40 @@ impl PaginatedList for Daemon {
         }
     }
 
-    fn filters_in_memory(query: &DaemonFilterQuery) -> bool {
-        query.statuses.as_ref().is_some_and(|s| !s.is_empty())
-    }
-
     fn keep(query: &DaemonFilterQuery, item: &DaemonResponse) -> bool {
         query
             .statuses
             .as_ref()
             .is_none_or(|statuses| statuses.is_empty() || statuses.contains(&item.health))
+    }
+}
+
+#[async_trait]
+impl PaginatedList for Daemon {
+    /// Each daemon with its version status, health and interfaced subnets.
+    async fn items(
+        state: &AppState,
+        rows: Vec<Daemon>,
+        _query: &DaemonFilterQuery,
+    ) -> ApiResult<Vec<DaemonResponse>> {
+        let ids: Vec<Uuid> = rows.iter().map(|d| d.id).collect();
+        let mut subnets = state
+            .services
+            .daemon_service
+            .get_interfaced_subnet_ids_batch(&ids)
+            .await;
+        let policy = DaemonVersionPolicy::default();
+        Ok(rows
+            .into_iter()
+            .map(|daemon| {
+                let version_status = policy.evaluate(daemon.base.version.as_ref());
+                let interfaced = subnets.remove(&daemon.id).unwrap_or_default();
+                DaemonResponse::new(daemon, version_status, interfaced)
+            })
+            .collect())
+    }
+
+    fn filters_in_memory(query: &DaemonFilterQuery) -> bool {
+        query.statuses.as_ref().is_some_and(|s| !s.is_empty())
     }
 }

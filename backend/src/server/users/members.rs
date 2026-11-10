@@ -3,7 +3,7 @@
 //!
 //! Two tables feed it and most of its columns are derived (a user's status depends on who is
 //! looking, their sign-in method on two fields), so it is built in Rust from the rows the caller may
-//! see and ordered with [`page_in_memory`]. An organization's users and invites are few.
+//! see and ordered with [`computed_page`]. An organization's users and invites are few.
 
 use std::sync::Arc;
 
@@ -23,7 +23,7 @@ use crate::server::{
     shared::{
         extractors::Query,
         handlers::{
-            list::{Computed, ComputedValue, ListOrdering, page_in_memory},
+            list::{Computed, ComputedValue, ListOrdering, ListRows, computed_page},
             ordering::OrderField,
             query::{OrderDirection, PaginationParams, deserialize_bool_values},
             traits::CrudHandlers,
@@ -208,36 +208,11 @@ pub struct MemberFilterQuery {
 }
 
 impl MemberFilterQuery {
-    /// Whether `member` passes every filter.
-    fn keep(&self, member: &Member) -> bool {
-        let search = self
-            .search
-            .as_deref()
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-            .map(str::to_lowercase);
-
-        search.is_none_or(|s| {
-            member
-                .email()
-                .is_some_and(|e| e.to_lowercase().contains(&s))
-        }) && any_of(&self.statuses, |s| *s == member.status())
-            && any_of(&self.permissions, |p| *p == member.permissions())
-            && self.matches_sites(member)
-            && any_of(&self.auth_methods, |m| match member {
-                Member::User { auth_method, .. } => auth_method == m,
-                Member::Invite { .. } => false,
-            })
-            && any_of(&self.invited_by, |id| {
-                member
-                    .invite_data()
-                    .is_some_and(|i| i.base.created_by == *id)
-            })
-            && self.email_verified.as_ref().is_none_or(|values| {
-                member
-                    .user_data()
-                    .is_some_and(|u| values.contains(&u.base.email_verified))
-            })
+    fn pagination(&self) -> PaginationParams {
+        PaginationParams {
+            limit: self.limit,
+            offset: self.offset,
+        }
     }
 
     /// The site filter: users assigned a requested site, and with `all_sites`, the admins and
@@ -268,45 +243,95 @@ fn any_of<V>(values: &Option<Vec<V>>, test: impl Fn(&V) -> bool) -> bool {
         .is_none_or(|values| values.is_empty() || values.iter().any(test))
 }
 
-/// The value a member sorts and groups by on `field`.
-fn computed(field: &MemberOrderField, member: &Member) -> Option<Computed> {
-    let text = |value: Option<String>| Computed {
-        value: value.clone().map(ComputedValue::Text),
-        group: value,
-    };
-    let time = |value: Option<DateTime<Utc>>| Computed {
-        value: value.map(|t| ComputedValue::Number(t.timestamp_millis() as f64)),
-        group: value.map(|t| t.to_rfc3339()),
-    };
-    Some(match field {
-        MemberOrderField::Email => text(member.email().map(|e| e.to_lowercase())),
-        MemberOrderField::InviteStatus => text(Some(<&str>::from(member.status()).to_string())),
-        MemberOrderField::Permissions => text(Some(member.permissions().to_string())),
-        MemberOrderField::OidcProvider => text(match member {
-            Member::User { auth_method, .. } => Some(auth_method.clone()),
-            Member::Invite { .. } => None,
-        }),
-        MemberOrderField::InvitedBy => {
-            text(member.invite_data().map(|i| i.base.created_by.to_string()))
+/// The members list's rows: users and invites, ordered and filtered in code.
+pub struct MemberList;
+
+impl ListRows for MemberList {
+    type Item = Member;
+    type Field = MemberOrderField;
+    type Query = MemberFilterQuery;
+
+    fn ordering(query: &MemberFilterQuery) -> ListOrdering<MemberOrderField> {
+        ListOrdering {
+            group_by: query.group_by,
+            order_by: query.order_by,
+            direction: query.order_direction,
+            tag_group: Default::default(),
         }
-        MemberOrderField::EmailVerified => text(
+    }
+
+    /// Whether `member` passes every filter.
+    fn keep(query: &MemberFilterQuery, member: &Member) -> bool {
+        let search = query
+            .search
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_lowercase);
+
+        search.is_none_or(|s| {
             member
-                .user_data()
-                .map(|u| u.base.email_verified.to_string()),
-        ),
-        MemberOrderField::CreatedAt => time(Some(match member {
-            Member::User { data, .. } => data.created_at,
-            Member::Invite { data, .. } => data.created_at,
-        })),
-        MemberOrderField::UpdatedAt => time(Some(match member {
-            Member::User { data, .. } => data.updated_at,
-            Member::Invite { data, .. } => data.updated_at,
-        })),
-        MemberOrderField::ExpiresAt => time(member.invite_data().map(|i| i.base.expires_at)),
-        MemberOrderField::OidcLinkedAt => {
-            time(member.user_data().and_then(|u| u.base.oidc_linked_at))
-        }
-    })
+                .email()
+                .is_some_and(|e| e.to_lowercase().contains(&s))
+        }) && any_of(&query.statuses, |s| *s == member.status())
+            && any_of(&query.permissions, |p| *p == member.permissions())
+            && query.matches_sites(member)
+            && any_of(&query.auth_methods, |m| match member {
+                Member::User { auth_method, .. } => auth_method == m,
+                Member::Invite { .. } => false,
+            })
+            && any_of(&query.invited_by, |id| {
+                member
+                    .invite_data()
+                    .is_some_and(|i| i.base.created_by == *id)
+            })
+            && query.email_verified.as_ref().is_none_or(|values| {
+                member
+                    .user_data()
+                    .is_some_and(|u| values.contains(&u.base.email_verified))
+            })
+    }
+
+    /// The value a member sorts and groups by on `field`.
+    fn computed(field: &MemberOrderField, member: &Member) -> Option<Computed> {
+        let text = |value: Option<String>| Computed {
+            value: value.clone().map(ComputedValue::Text),
+            group: value,
+        };
+        let time = |value: Option<DateTime<Utc>>| Computed {
+            value: value.map(|t| ComputedValue::Number(t.timestamp_millis() as f64)),
+            group: value.map(|t| t.to_rfc3339()),
+        };
+        Some(match field {
+            MemberOrderField::Email => text(member.email().map(|e| e.to_lowercase())),
+            MemberOrderField::InviteStatus => text(Some(<&str>::from(member.status()).to_string())),
+            MemberOrderField::Permissions => text(Some(member.permissions().to_string())),
+            MemberOrderField::OidcProvider => text(match member {
+                Member::User { auth_method, .. } => Some(auth_method.clone()),
+                Member::Invite { .. } => None,
+            }),
+            MemberOrderField::InvitedBy => {
+                text(member.invite_data().map(|i| i.base.created_by.to_string()))
+            }
+            MemberOrderField::EmailVerified => text(
+                member
+                    .user_data()
+                    .map(|u| u.base.email_verified.to_string()),
+            ),
+            MemberOrderField::CreatedAt => time(Some(match member {
+                Member::User { data, .. } => data.created_at,
+                Member::Invite { data, .. } => data.created_at,
+            })),
+            MemberOrderField::UpdatedAt => time(Some(match member {
+                Member::User { data, .. } => data.updated_at,
+                Member::Invite { data, .. } => data.updated_at,
+            })),
+            MemberOrderField::ExpiresAt => time(member.invite_data().map(|i| i.base.expires_at)),
+            MemberOrderField::OidcLinkedAt => {
+                time(member.user_data().and_then(|u| u.base.oidc_linked_at))
+            }
+        })
+    }
 }
 
 /// List members
@@ -369,28 +394,9 @@ pub async fn members_page(
         .filter(|i| i.is_listed_for(viewer_grants, viewer_id))
         .map(Member::invite);
 
-    let rows: Vec<(Option<String>, Member)> = users
-        .chain(invites)
-        .filter(|member| query.keep(member))
-        .map(|member| (None, member))
-        .collect();
-    let ordering = ListOrdering {
-        group_by: query.group_by,
-        order_by: query.order_by,
-        direction: query.order_direction,
-        tag_group: Default::default(),
-    };
-    let pagination = PaginationParams {
-        limit: query.limit,
-        offset: query.offset,
-    };
-    let (limit, offset) = (pagination.effective_limit(), pagination.effective_offset());
-    let (items, total_count, group_counts) =
-        page_in_memory(rows, &ordering, |_| true, computed, limit, offset);
-
-    let response = PaginatedApiResponse::success(items, total_count, limit.unwrap_or(0), offset);
-    Ok(match group_counts {
-        Some(counts) => response.with_group_counts(counts),
-        None => response,
-    })
+    Ok(computed_page::<MemberList>(
+        users.chain(invites).collect(),
+        query,
+        query.pagination(),
+    ))
 }

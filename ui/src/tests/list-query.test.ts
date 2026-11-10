@@ -61,7 +61,7 @@ const name: FieldConfig<Row> = { key: 'name', label: 'Name', type: 'string' };
 const FIELDS = [site, ports, enabled, virtualizedBy, tags, name];
 const FIELD_KEYS = new Set(FIELDS.map(getFieldKey));
 
-const SERVER: ServerQuery = { tags: true, stale: true };
+const SERVER: ServerQuery = { tags: true, stale: true, search: true };
 const DEFAULTS: TableDefaults = { sort: { field: 'name', direction: 'asc' } };
 
 function state(overrides: Partial<ListQueryState> = {}): ListQueryState {
@@ -175,6 +175,14 @@ describe('listParams defaults and the server split', () => {
 		});
 		expect(url.get('stale')).toBe('true');
 		expect(request.has('stale')).toBe(false);
+	});
+
+	it('keeps a search out of the request for an endpoint that takes none', () => {
+		const { request } = listParams(state({ search: 'edge' }), FIELDS, {
+			...SERVER,
+			search: false
+		});
+		expect(request.has('search')).toBe(false);
 	});
 });
 

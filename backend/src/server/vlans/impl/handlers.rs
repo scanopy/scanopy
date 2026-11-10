@@ -2,7 +2,7 @@ use crate::server::{
     config::AppState,
     shared::{
         handlers::{
-            list::{ListOrdering, PaginatedList},
+            list::{ListOrdering, ListRows, PaginatedList},
             ordering::TagGroupOrdering,
             query::narrow_by_tags_and_search,
             traits::{CrudHandlers, ListScope, base_list_filter},
@@ -66,9 +66,10 @@ impl CrudHandlers for Vlan {
     }
 }
 
-#[async_trait]
-impl PaginatedList for Vlan {
+impl ListRows for Vlan {
     type Item = Vlan;
+    type Field = VlanOrderField;
+    type Query = VlanFilterQuery;
 
     fn ordering(query: &VlanFilterQuery) -> ListOrdering<VlanOrderField> {
         ListOrdering {
@@ -81,7 +82,10 @@ impl PaginatedList for Vlan {
             },
         }
     }
+}
 
+#[async_trait]
+impl PaginatedList for Vlan {
     fn default_order() -> String {
         "vlans.vlan_number ASC".to_string()
     }

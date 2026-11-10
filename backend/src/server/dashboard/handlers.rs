@@ -16,10 +16,10 @@ use crate::server::{
 use super::types::{DashboardSummary, PlanUsage, SiteSummary};
 use crate::server::{
     setup::{
-        service::issues_page,
+        service::IssueList,
         types::{IssueFilterQuery, SetupItemTier, SetupListEntry},
     },
-    shared::{extractors::Query, types::api::PaginatedApiResponse},
+    shared::{extractors::Query, handlers::list::computed_page, types::api::PaginatedApiResponse},
 };
 
 use axum::{extract::State, response::Json};
@@ -171,7 +171,7 @@ async fn get_dashboard_summary(
 
 /// List the dashboard's Issues
 ///
-/// One page of the Issues the caller sees, grouped by category. The Setup steps come with the
+/// One page of the Issues the caller sees, sorted, grouped and filtered as asked. The Setup steps come with the
 /// summary.
 #[utoipa::path(
     get,
@@ -179,7 +179,7 @@ async fn get_dashboard_summary(
     tags = [api_tags::INTERNAL],
     params(IssueFilterQuery),
     responses(
-        (status = 200, description = "Issues, grouped by category", body = PaginatedApiResponse<SetupListEntry>),
+        (status = 200, description = "Issues", body = PaginatedApiResponse<SetupListEntry>),
     ),
     security(("user_api_key" = []), ("session" = []))
 )]
@@ -208,5 +208,9 @@ async fn get_dashboard_issues(
         .into_iter()
         .filter(|entry| entry.tier == SetupItemTier::Issue)
         .collect();
-    Ok(Json(issues_page(issues, &query)))
+    Ok(Json(computed_page::<IssueList>(
+        issues,
+        &query,
+        query.pagination(),
+    )))
 }

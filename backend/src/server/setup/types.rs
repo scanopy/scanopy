@@ -20,7 +20,11 @@ use crate::{
             Color, Icon,
             metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider},
         },
-        shared::{concepts::Concept, entities::EntityDiscriminants},
+        shared::{
+            concepts::Concept,
+            entities::EntityDiscriminants,
+            handlers::query::{OrderDirection, PaginationParams},
+        },
     },
 };
 
@@ -985,13 +989,15 @@ mod tests {
     }
 }
 
-/// What the Issues list groups by. Derived in Rust, so its `to_sql` is never read.
+/// What the Issues list sorts and groups by. Derived in Rust, so its `to_sql` is never read.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Default, ToSchema, EnumIter)]
 #[serde(rename_all = "snake_case")]
 pub enum IssueOrderField {
     /// The Issue's [`IssueCategory`].
     #[default]
     Category,
+    /// The Issue's type.
+    Type,
 }
 
 impl crate::server::shared::handlers::ordering::OrderField for IssueOrderField {
@@ -1007,12 +1013,29 @@ pub struct IssueFilterQuery {
     /// Only Issues on one of these sites, plus the Issues about the whole organization. Repeat
     /// for several. Unset returns every site's.
     pub site_ids: Option<Vec<Uuid>>,
-    /// What the list is grouped by. Default: `category`.
+    /// Only Issues in one of these categories. Repeat for several.
+    pub categories: Option<Vec<IssueCategory>>,
+    /// Only Issues of one of these types. Repeat for several.
+    pub types: Option<Vec<SetupItemDiscriminants>>,
+    /// What the list is grouped by.
     pub group_by: Option<IssueOrderField>,
+    /// What the list sorts by, inside its groups.
+    pub order_by: Option<IssueOrderField>,
+    /// Direction for `order_by` (`group_by` always sorts ascending).
+    pub order_direction: Option<OrderDirection>,
     /// Maximum number of results to return (1-1000, default: 50). Use 0 for no limit.
     #[param(minimum = 0, maximum = 1000)]
     pub limit: Option<u32>,
     /// Number of results to skip. Default: 0.
     #[param(minimum = 0)]
     pub offset: Option<u32>,
+}
+
+impl IssueFilterQuery {
+    pub fn pagination(&self) -> PaginationParams {
+        PaginationParams {
+            limit: self.limit,
+            offset: self.offset,
+        }
+    }
 }

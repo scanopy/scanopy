@@ -4,7 +4,7 @@ use crate::server::{
     discovery::{r#impl::base::Discovery, service::DiscoveryService},
     shared::{
         handlers::{
-            list::{ListOrdering, PaginatedList},
+            list::{ListOrdering, ListRows, PaginatedList},
             ordering::{OrderField, TagGroupOrdering},
             query::narrow_by_tags_and_search,
             traits::{CrudHandlers, ListScope, base_list_filter},
@@ -67,11 +67,12 @@ impl CrudHandlers for Discovery {
     }
 }
 
-#[async_trait]
-impl PaginatedList for Discovery {
+impl ListRows for Discovery {
     type Item = Discovery;
+    type Field = crate::server::discovery::handlers::DiscoveryOrderField;
+    type Query = DiscoveryFilterQuery;
 
-    fn ordering(query: &DiscoveryFilterQuery) -> ListOrdering<Self::OrderField> {
+    fn ordering(query: &DiscoveryFilterQuery) -> ListOrdering<Self::Field> {
         ListOrdering {
             group_by: query.group_by,
             order_by: query.order_by,
@@ -82,7 +83,10 @@ impl PaginatedList for Discovery {
             },
         }
     }
+}
 
+#[async_trait]
+impl PaginatedList for Discovery {
     fn default_order() -> String {
         "discovery.created_at DESC".to_string()
     }

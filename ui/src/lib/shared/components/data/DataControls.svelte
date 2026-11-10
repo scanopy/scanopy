@@ -239,7 +239,7 @@
 	]);
 
 	/** What the server applies from the query. */
-	let server = $derived<ServerQuery>({ tags: true, stale: true, ...serverQuery });
+	let server = $derived<ServerQuery>({ tags: true, stale: true, search: true, ...serverQuery });
 
 	// Bulk tag mutations
 	const bulkAddTagMutation = useBulkAddTagMutation();
@@ -1182,6 +1182,7 @@
 	>
 		<ControlsBar
 			bind:searchQuery
+			search={server.search}
 			onSearchFocusChange={(focused) => (searchFocused = focused)}
 			onClearSearch={clearSearch}
 			{entityLabel}

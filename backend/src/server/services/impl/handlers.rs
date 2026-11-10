@@ -3,7 +3,7 @@ use crate::server::{
     services::{handlers::ServiceFilterQuery, r#impl::base::Service, service::ServiceService},
     shared::{
         handlers::{
-            list::{ListOrdering, PaginatedList},
+            list::{ListOrdering, ListRows, PaginatedList},
             ordering::TagGroupOrdering,
             traits::{CrudHandlers, ListScope},
         },
@@ -52,11 +52,12 @@ impl CrudHandlers for Service {
     }
 }
 
-#[async_trait]
-impl PaginatedList for Service {
+impl ListRows for Service {
     type Item = Service;
+    type Field = crate::server::services::handlers::ServiceOrderField;
+    type Query = ServiceFilterQuery;
 
-    fn ordering(query: &ServiceFilterQuery) -> ListOrdering<Self::OrderField> {
+    fn ordering(query: &ServiceFilterQuery) -> ListOrdering<Self::Field> {
         ListOrdering {
             group_by: query.group_by,
             order_by: query.order_by,
@@ -67,7 +68,10 @@ impl PaginatedList for Service {
             },
         }
     }
+}
 
+#[async_trait]
+impl PaginatedList for Service {
     async fn items(
         _state: &AppState,
         rows: Vec<Service>,
