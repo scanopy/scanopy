@@ -46,6 +46,7 @@
 	const TILE_PX = 48;
 	const CARD_INNER_PX = ICON_ELEMENT_WIDTH_PX - 16;
 	import { stateFill as markedStateFill, type MarkValue } from '../../element-marks';
+	import { useDetailStaging } from '../../detail-staging.svelte';
 
 	let { id, data, width }: NodeProps = $props();
 
@@ -63,7 +64,22 @@
 	 * See `detailSimplified`: the decision needs the size of the whole graph, which a card cannot
 	 * see, and one refcounted subscription is cheaper than a viewport read per node.
 	 */
-	let simplified = $derived(sharedStores.simplified.current);
+	// Detail is staged on a large graph: this card asks for its full markup when it mounts and
+	// draws as a box until it is granted. See `detail-staging.svelte.ts`.
+	const detailStaging = useDetailStaging();
+	let rootElement = $state<HTMLElement>();
+	$effect(() => {
+		const nodeId = id;
+		detailStaging?.request(nodeId, rootElement);
+		return () => detailStaging?.release(nodeId);
+	});
+	let simplified = $derived(
+		detailStaging
+			? !detailStaging.hasDetail(id, sharedStores.simplified.current)
+			: sharedStores.simplified.current
+	);
+	// Full markup that is not shown yet: mounted ahead of the detail zoom, drawn as the box.
+	let veiled = $derived(!simplified && sharedStores.simplified.current);
 
 	/**
 	 * The height a simplified card has to hold, taken from what SvelteFlow measured.
@@ -314,7 +330,7 @@
 	);
 
 	let cardClass = $derived(
-		`card ${isNodeSelected ? 'card-selected' : ''} ${simplified ? 'lod-card' : ''}`
+		`card ${isNodeSelected ? 'card-selected' : ''} ${simplified || veiled ? 'lod-card' : ''} ${veiled ? 'lod-veil' : ''}`
 	);
 
 	// A service definition's logo, or its glyph when it has none.
@@ -396,8 +412,9 @@
 
 {#if nodeRenderData}
 	<div
-		class={`${cardClass} ${isNewNode ? 'animate-pulse-highlight' : ''} ${serviceHoverShadowStyle ? 'animate-pulse-highlight-once' : ''} ${isEntityTypeHover ? 'entity-type-hover-active' : ''}`}
-		style={`width: ${effectiveWidth}px; height: ${simplified && pinnedHeight !== undefined ? `${pinnedHeight}px` : '100%'}; ${simplified ? `background: ${stateFill};` : ''} display: flex; flex-direction: column; padding: 0; opacity: ${nodeOpacity}; transition: opacity 0.2s ease-in-out, box-shadow 0.15s ease-in-out; ${isNewNode ? `--pulse-color: ${discoveryColorHelper.rgb};` : ''} ${serviceHoverShadowStyle} ${tagHoverRingStyle}`}
+		bind:this={rootElement}
+		class={`${cardClass}${isNewNode ? 'animate-pulse-highlight' : ''} ${serviceHoverShadowStyle ? 'animate-pulse-highlight-once' : ''} ${isEntityTypeHover ? 'entity-type-hover-active' : ''}`}
+		style={`width: ${effectiveWidth}px; height: ${simplified && pinnedHeight !== undefined ? `${pinnedHeight}px` : '100%'}; ${simplified || veiled ? `background: ${stateFill};` : ''} display: flex; flex-direction: column; padding: 0; opacity: ${nodeOpacity}; transition: opacity 0.2s ease-in-out, box-shadow 0.15s ease-in-out; ${isNewNode ? `--pulse-color: ${discoveryColorHelper.rgb};` : ''} ${serviceHoverShadowStyle} ${tagHoverRingStyle}`}
 	>
 		<!--
 			Below the zoom threshold the card is its own box and nothing else — see `shouldSimplify`.

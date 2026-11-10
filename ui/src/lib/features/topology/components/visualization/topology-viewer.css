@@ -214,3 +214,27 @@
 	align-items: center;
 	gap: 5px;
 }
+
+/*
+ * A node whose full markup is mounted ahead of the zoom where it shows (`detail-staging.svelte.ts`).
+ * It has to look like the box it is about to replace, so that mounting it changes nothing on
+ * screen and showing it is a repaint: everything inside is hidden, and the node draws the box
+ * itself. Hidden with `visibility`, which keeps the layout, so handles stay where edges expect
+ * them and the card keeps the height the layout was built around.
+ */
+.lod-veil > * {
+	visibility: hidden !important;
+}
+
+/* A container draws its box as a layer of its own: its root has no surface to recolour. The fill,
+ * outline and coloured top edge are the ones `.lod-box` draws (`ContainerNode.svelte`). */
+.svelte-flow__node-Container .lod-veil::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: 0.5rem;
+	border-top: 2px solid var(--lod-veil-edge, var(--color-topology-lod-stroke));
+	background: var(--color-topology-lod-container);
+	outline: 1px solid var(--color-topology-lod-stroke);
+	outline-offset: -1px;
+}

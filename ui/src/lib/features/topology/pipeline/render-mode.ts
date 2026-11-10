@@ -168,6 +168,28 @@ export function shouldSimplify(conditions: SimplifyConditions): boolean {
 	return everyNodeTooSmallToRead(conditions);
 }
 
+/**
+ * Zoom from which card detail is prepared ahead of `DETAIL_ZOOM`, as a share of it. See
+ * `detail-staging.svelte.ts`: the cards on screen are mounted a few per frame through this
+ * stretch, so that reaching the threshold only has to reveal them.
+ */
+export const PREWARM_ZOOM = DETAIL_ZOOM * 0.65;
+
+/**
+ * Zoom below which prepared detail is dropped again. Under `PREWARM_ZOOM`, so a zoom resting
+ * near it does not mount and unmount the same cards.
+ */
+export const PREWARM_RELEASE_ZOOM = PREWARM_ZOOM * 0.9;
+
+/**
+ * Whether a graph's card detail is staged: it is one `shouldSimplify` reduces by zoom, and
+ * nothing needs every card in full at this moment.
+ */
+export function detailIsStaged(conditions: Omit<SimplifyConditions, 'zoom' | 'widestNodeWidth'>): boolean {
+	if (conditions.measuring || conditions.exporting || cullingDisabledForTooling()) return false;
+	return conditions.nodeCount >= LOD_MIN_NODES;
+}
+
 /** The suspensions every reduction shares: a measure pass, an export, or tooling. */
 function reducedDetailSuspended({ measuring, exporting }: SimplifyConditions): boolean {
 	return measuring || exporting || cullingDisabledForTooling();

@@ -29,7 +29,14 @@
 	} from '$lib/paraglide/messages';
 	import { type Node, type Edge } from '@xyflow/svelte';
 	import { getViewportForBounds, type Rect } from '@xyflow/system';
-	import { FULL_CARD_NAMES_ZOOM, shouldSimplify } from '../../pipeline/render-mode';
+	import {
+		FULL_CARD_NAMES_ZOOM,
+		PREWARM_RELEASE_ZOOM,
+		PREWARM_ZOOM,
+		detailIsStaged,
+		shouldSimplify
+	} from '../../pipeline/render-mode';
+	import { provideDetailStaging } from '../../detail-staging.svelte';
 	import {
 		ABSOLUTE_MIN_ZOOM,
 		DEFAULT_MIN_ZOOM,
@@ -628,6 +635,25 @@
 	// Publish rather than let each node decide: the size term above is not visible to a node, and
 	// one refcounted subscription beats a viewport read per node. See `detailSimplified`.
 	$effect(() => detailSimplified.set(detailHidden));
+
+	// Card detail is prepared a few cards a frame from a little under the detail zoom, so that
+	// reaching it only has to reveal them: see `detail-staging.svelte.ts`. The two zooms differ so
+	// that resting near the lower one does not mount and unmount the same cards.
+	let detailStaged = $derived(
+		detailIsStaged({
+			nodeCount: $nodes.length,
+			measuring: measurePassActive,
+			exporting: $isExporting
+		})
+	);
+	let wasPrewarming = false;
+	let detailPrewarming = $derived.by(() => {
+		const zoom = viewerViewport.current.zoom;
+		wasPrewarming = zoom >= PREWARM_ZOOM || (wasPrewarming && zoom >= PREWARM_RELEASE_ZOOM);
+		return wasPrewarming;
+	});
+	const detailStaging = provideDetailStaging();
+	$effect(() => detailStaging.set(detailStaged, detailPrewarming));
 	$effect(() => viewportZoom.set(viewerViewport.current.zoom));
 
 	let cullOffscreen = $derived(

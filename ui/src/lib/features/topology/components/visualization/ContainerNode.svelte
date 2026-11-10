@@ -41,6 +41,7 @@
 	import ContainerHeader, { type GroupPill, type SubgroupRow } from './ContainerHeader.svelte';
 	import { CONTAINER_HANDLE_SIZE_PX } from '../../pipeline/build-flow-nodes';
 	import { nodeDetail } from '../../pipeline/render-mode';
+	import { useDetailStaging } from '../../detail-staging.svelte';
 
 	// Shared, refcounted views over the module-level stores — see
 	// `reactive-stores.svelte.ts`. One subscription serves every node component.
@@ -219,14 +220,30 @@
 	 * Nothing is named below full detail — see `nodeDetail` for why a container cannot draw its own
 	 * label inside its box. Names return with the real header at `DETAIL_ZOOM`.
 	 */
+	// Detail is staged on a large graph: this container asks for its full markup when it mounts and
+	// draws as a box until it is granted. See `detail-staging.svelte.ts`.
+	const detailStaging = useDetailStaging();
+	let rootElement = $state<HTMLElement>();
+	$effect(() => {
+		const nodeId = id;
+		detailStaging?.request(nodeId, rootElement);
+		return () => detailStaging?.release(nodeId);
+	});
+	let detailMounted = $derived(
+		detailStaging
+			? detailStaging.hasDetail(id, sharedStores.simplified.current)
+			: !sharedStores.simplified.current
+	);
 	let detailTier = $derived(
 		nodeDetail({
-			detail: !sharedStores.simplified.current,
+			detail: detailMounted,
 			screenWidth: (width ?? 0) * sharedStores.zoom.current,
 			isSubcontainer
 		})
 	);
 	let simplified = $derived(detailTier !== 'full');
+	// Full markup that is not shown yet: mounted ahead of the detail zoom, drawn as the box.
+	let veiled = $derived(!simplified && sharedStores.simplified.current);
 
 	// Icon and color: from node fields, falling back to ContainerType fixture icon when fillIcon
 	let nodeIcon = $derived((data as Record<string, unknown>)?.icon as string | undefined);
@@ -452,7 +469,9 @@
 <div
 	class="relative"
 	class:entity-type-hover-active={isEntityTypeHover}
-	style="{nodeStyle} opacity: {nodeOpacity};"
+	class:lod-veil={veiled}
+	bind:this={rootElement}
+	style="{nodeStyle} opacity: {nodeOpacity}; --lod-veil-edge: {colorHelper.rgb};"
 >
 	<!-- TITLE: External (card/pill above container) -->
 	<!-- Rendered in both states: the pill is where a root container is named, collapsed or not. -->
