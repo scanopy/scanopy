@@ -17,7 +17,9 @@ import {
 	collapseScope,
 	collapsedForReloadIntoOtherScope,
 	saveCollapseScope,
-	storedCollapseScopeOnLoad
+	saveOpenCandidates,
+	storedCollapseScopeOnLoad,
+	storedOpenCandidatesOnLoad
 } from '../collapse';
 import { elevateEdgesToContainers } from '../layout/edge-elevation';
 import { containerTypes, views } from '$lib/shared/stores/metadata';
@@ -291,6 +293,10 @@ function applyAutoCollapse(
 		collapsedContainers.set(next);
 	}
 
+	// Every candidate still open is open by the user's doing. Saved so a reload can tell it from a
+	// container that is new since, which is collapsed; see `storedOpenCandidatesOnLoad`.
+	saveOpenCandidates(allCandidates.filter((n) => !next.has(n.id)).map((n) => n.id));
+
 	// Re-infer the level from what auto-collapse actually produced.
 	//
 	// Gated on its own flag, not `collapseLevelInferred`. The seeding step upstream consumes
@@ -455,6 +461,9 @@ export function prepareTopologyData(
 			collapsed = otherScopeCollapsed;
 			collapseLevel.set(1);
 		} else {
+			// The stored state applies as it stands, and so does its record of what the user had
+			// open: auto-collapse leaves those containers alone.
+			for (const id of storedOpenCandidatesOnLoad) state.seenAutoCollapseIds.add(id);
 			const inferred = inferCurrentLevel(
 				collapsed,
 				topology.nodes,
