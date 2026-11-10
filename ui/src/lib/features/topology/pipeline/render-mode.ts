@@ -60,7 +60,7 @@ export function shouldCull({ renderedCount, measuring, exporting }: CullingCondi
 }
 
 /**
- * Size on screen, in CSS pixels, below which a card's text is not legible.
+ * Size on screen, in CSS pixels, a card's text must reach before the card is drawn in full.
  *
  * WCAG 2.2 sets no minimum text size: no success criterion gives one. The nearest published floor
  * is the APCA Readability Criterion, the contrast work drafted for WCAG 3 (not a ratified
@@ -68,16 +68,17 @@ export function shouldCull({ renderedCount, measuring, exporting }: CullingCondi
  * 10px and body text at 13 to 14px:
  * https://a11yreadtech.github.io/ARC/tests/visual-readability-contrast
  *
- * Set one pixel under that floor, at Maya's request after using 10: cards arrived a little late
- * when zooming in. 9px text is the size a card's text has just before the published floor, and
- * the cards it brings in earlier are ones the operator is already leaning in to read.
+ * Set to 6px, well under that floor, by Maya's choice after using 10 and then 9: at those the
+ * cards arrived too late when zooming in. 6px is about where glyphs still resolve as letters on
+ * a high-density display. It is a judgement of when a card is worth drawing, not a claim that
+ * 6px text is legible by any published criterion.
  *
  * A CSS pixel is a visual angle (about 0.0213 degrees: 1/96 inch at 28 inches) that each device
  * maps to whole device pixels, so this holds across screen resolutions and pixel densities with
  * no correction. Browser zoom and viewing distance do change the real size, and a page can read
  * neither.
  */
-export const LEGIBLE_TEXT_PX = 9;
+export const MIN_CARD_TEXT_PX = 6;
 
 /**
  * Font size of the text a card is made of.
@@ -90,7 +91,7 @@ export const CARD_TEXT_PX = 12;
 
 /**
  * Zoom below which a node stops rendering its contents: where the text a card is made of drops
- * under the legible size. 9 / 12, which is 0.75.
+ * under `MIN_CARD_TEXT_PX`. 6 / 12, which is 0.5.
  *
  * This was 0.35, picked by eye as the point where titles were "still shaped like words" at about
  * 5px. Nothing on a card can be read there, and drawing it cost 125 ms a frame while zooming a
@@ -100,7 +101,7 @@ export const CARD_TEXT_PX = 12;
  * It is the only zoom transition: a card goes from its state-coloured box straight to full detail,
  * its status dot and badges included.
  */
-export const DETAIL_ZOOM = LEGIBLE_TEXT_PX / CARD_TEXT_PX;
+export const DETAIL_ZOOM = MIN_CARD_TEXT_PX / CARD_TEXT_PX;
 
 /**
  * Zoom below which a graph that keeps full cards (one under `LOD_MIN_NODES`) also gets its

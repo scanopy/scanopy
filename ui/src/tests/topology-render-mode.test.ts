@@ -6,7 +6,7 @@ import {
 	BOX_MIN_PX,
 	LOD_MIN_NODES,
 	DETAIL_ZOOM,
-	LEGIBLE_TEXT_PX,
+	MIN_CARD_TEXT_PX,
 	CARD_TEXT_PX
 } from '$lib/features/topology/pipeline/render-mode';
 
@@ -115,18 +115,18 @@ describe('shouldSimplify', () => {
 		// 252 collapsed switches drew every card in full from zoom 0.04 up, at 125 ms a frame.
 		const switches = { ...big, nodeCount: 252, widestNodeWidth: 353 };
 		expect(shouldSimplify({ ...switches, zoom: 0.1 })).toBe(true);
-		expect(shouldSimplify({ ...switches, zoom: 0.5 })).toBe(true);
-		expect(shouldSimplify({ ...switches, zoom: 0.9 })).toBe(false);
+		expect(shouldSimplify({ ...switches, zoom: 0.4 })).toBe(true);
+		expect(shouldSimplify({ ...switches, zoom: 0.6 })).toBe(false);
 	});
 
 	it('leaves a large graph alone while it is zoomed in', () => {
 		expect(shouldSimplify({ ...big, zoom: DETAIL_ZOOM })).toBe(false);
 	});
 
-	it('draws detail from the zoom where card text reaches the legible size', () => {
-		// Card text is at the legible size on screen at this zoom, and under it below.
-		expect(DETAIL_ZOOM).toBeCloseTo(LEGIBLE_TEXT_PX / CARD_TEXT_PX);
-		expect(CARD_TEXT_PX * DETAIL_ZOOM).toBeCloseTo(LEGIBLE_TEXT_PX);
+	it('draws detail from the zoom where card text reaches its minimum size on screen', () => {
+		// Card text is at the minimum size on screen at this zoom, and under it below.
+		expect(DETAIL_ZOOM).toBeCloseTo(MIN_CARD_TEXT_PX / CARD_TEXT_PX);
+		expect(CARD_TEXT_PX * DETAIL_ZOOM).toBeCloseTo(MIN_CARD_TEXT_PX);
 		expect(shouldSimplify({ ...big, zoom: DETAIL_ZOOM - 0.01 })).toBe(true);
 	});
 
