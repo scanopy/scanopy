@@ -90,64 +90,23 @@
 		});
 	});
 
-	let boxById = $derived(new Map(nodes.map((node) => [node.id, node])));
-
-	// The whole name of whatever box the pointer is over, at any zoom, on that box's corner. It is
-	// how a name cut short to its box is read in full (the labels take no pointer events, so the
-	// pointer over a label is over its box), and the only name there is where boxes are too small
-	// to carry one.
+	// The label the pointer is on, widened to its whole name. Only the width changes.
 	//
-	// A box that carries a label keeps that label: it only grows to the name's full width, and
-	// nothing else about it changes. A box with none (too small, or a card inside a container)
-	// gets one for as long as the pointer is on it.
-	interface Hovered {
-		id: string;
-		text: string;
-		color: string;
-		x: number;
-		y: number;
-		/** Width of the box's own label showing its whole name, when it has one. */
-		fullWidth: number | null;
-	}
-	let hovered = $state<Hovered | null>(null);
+	// Nothing else answers a hover while zoomed out. A boxed card or group shows no tooltip: the
+	// way to learn about one is to zoom in to it, where the cards and their own tooltips are. A
+	// name pieced together for a box a few pixels across was cryptic, and attaching the real
+	// tooltip to thousands of boxes was not worth the risk to panning.
+	let hovered = $state<{ id: string; fullWidth: number } | null>(null);
 	let layer = $state<HTMLElement>();
-
-	function describe(id: string): Hovered | null {
-		const names: string[] = [];
-		let x = 0;
-		let y = 0;
-		let root: Node | undefined;
-		for (let node = boxById.get(id); node; node = boxById.get(node.parentId ?? '')) {
-			const header = (node.data as Record<string, unknown>).header as string | undefined;
-			if (header) names.unshift(header);
-			// Positions are relative to the parent, so the chain sums to the absolute one.
-			x += node.position.x;
-			y += node.position.y;
-			root = node;
-		}
-		if (names.length === 0 || !root) return null;
-		const own = layer?.querySelector<HTMLElement>(`[data-label-for="${CSS.escape(id)}"]`);
-		return {
-			id,
-			text: names.join(' › '),
-			color: colorOf(root),
-			x,
-			y,
-			// `scrollWidth` is the text and padding, rounded down; the left border is outside it. The
-			// spare pixels keep a name that just fits from being cut again by that rounding.
-			fullWidth: own ? own.scrollWidth + LABEL_BORDER_PX + 3 : null
-		};
-	}
 
 	$effect(() => {
 		if (!active || !pane) {
 			hovered = null;
 			return;
 		}
-		let hoveredId: string | null = null;
 		// A label takes no pointer events, so the pane and the nodes under it still pan, select and
 		// click. Whether the pointer is on one is read from its rectangle.
-		const labelUnder = (event: PointerEvent): string | null => {
+		const labelUnder = (event: PointerEvent): HTMLElement | null => {
 			for (const label of layer?.querySelectorAll<HTMLElement>('[data-label-for]') ?? []) {
 				const rect = label.getBoundingClientRect();
 				if (
@@ -156,21 +115,20 @@
 					event.clientY >= rect.top &&
 					event.clientY <= rect.bottom
 				) {
-					return label.dataset.labelFor ?? null;
+					return label;
 				}
 			}
 			return null;
 		};
 		const onMove = (event: PointerEvent) => {
-			const element = (event.target as Element | null)?.closest?.('.svelte-flow__node');
-			// On a label, the label's own container; otherwise whatever node is under the pointer.
-			const id = labelUnder(event) ?? (element as HTMLElement | null)?.dataset.id ?? null;
-			if (id === hoveredId) return;
-			hoveredId = id;
-			hovered = id ? describe(id) : null;
+			const label = labelUnder(event);
+			const id = label?.dataset.labelFor ?? null;
+			if (id === (hovered?.id ?? null)) return;
+			// `scrollWidth` is the text and padding, rounded down; the left border is outside it. The
+			// spare pixels keep a name that just fits from being cut again by that rounding.
+			hovered = label && id ? { id, fullWidth: label.scrollWidth + LABEL_BORDER_PX + 3 } : null;
 		};
 		const onLeave = () => {
-			hoveredId = null;
 			hovered = null;
 		};
 		pane.addEventListener('pointermove', onMove);
@@ -187,7 +145,7 @@
 	<ViewportPortal target="front">
 		<div class="container-labels" style:--inv-zoom={inverseZoom} bind:this={layer}>
 			{#each placed as label (label.id)}
-				{@const open = hovered?.id === label.id && hovered.fullWidth !== null}
+				{@const open = hovered?.id === label.id}
 				<div
 					class="container-label"
 					class:open
@@ -199,15 +157,6 @@
 					{label.text}
 				</div>
 			{/each}
-			{#if hovered && hovered.fullWidth === null}
-				<div
-					class="container-label open"
-					style:--label-color={hovered.color}
-					style:transform="translate({hovered.x}px, {hovered.y}px) scale(var(--inv-zoom))"
-				>
-					{hovered.text}
-				</div>
-			{/if}
 		</div>
 	</ViewportPortal>
 {/if}
