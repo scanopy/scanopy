@@ -24,7 +24,7 @@
 		common_perPage,
 		common_clearFilter,
 		common_clearFilters,
-		common_clearGroup,
+		common_ungroupColumn,
 		common_clearSelection,
 		common_itemsSelected,
 		common_shortcutsPausedInSearch,
@@ -41,6 +41,7 @@
 		canGoPrev,
 		canGoNext,
 		groupCount,
+		groupLabel = null,
 		onPrevPage,
 		onNextPage,
 		onPageSizeChange,
@@ -63,6 +64,8 @@
 		canGoPrev: boolean;
 		canGoNext: boolean;
 		groupCount: number | null;
+		/** The column the list groups by, which the ungroup button names. */
+		groupLabel?: string | null;
 		onPrevPage: () => void;
 		onNextPage: () => void;
 		onPageSizeChange: (size: PageSizeOption) => void;
@@ -240,7 +243,7 @@
 		{#if groupCount !== null && onClearGrouping}
 			{@render clearButton(
 				onClearGrouping,
-				common_clearGroup(),
+				common_ungroupColumn({ column: groupLabel ?? '' }),
 				clearShortcuts.grouping,
 				groupIcon
 			)}

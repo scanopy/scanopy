@@ -47,7 +47,8 @@ export interface EntityUIConfig {
 
 /** Tab ID → display label. Single source of truth for sidebar and back navigation. */
 export const TAB_LABELS: Record<string, string> = {
-	home: 'Home',
+	setup: 'Setup',
+	issues: 'Issues',
 	topology: 'Topology',
 	discovery: 'Scans',
 	'discovery-scans': 'Scans',

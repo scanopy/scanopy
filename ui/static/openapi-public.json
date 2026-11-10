@@ -15880,19 +15880,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-11-10T19:09:07.118140Z",
+              "created_at": "2026-11-10T20:26:48.180398Z",
               "first_discovery_id": null,
-              "id": "04c95969-10b9-49f9-aed9-a3b164739428",
+              "id": "d9e9c6af-55fe-4465-ae0b-27294bed8a8a",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-10T19:09:07.118140Z",
+              "last_seen_at": "2026-11-10T20:26:48.180398Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-10T19:09:07.118140Z",
-              "valid_from": "2026-11-10T19:09:07.118140Z",
+              "updated_at": "2026-11-10T20:26:48.180398Z",
+              "valid_from": "2026-11-10T20:26:48.180398Z",
               "valid_to": null
             }
           },
@@ -16588,7 +16588,7 @@
                 "items": {
                   "$ref": "#/components/schemas/SiteSummary"
                 },
-                "description": "Per-site counts for every site the caller can see."
+                "description": "Per-site counts for every site the caller can see, which a site's tooltip shows."
               }
             }
           },
@@ -17750,19 +17750,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-11-10T19:09:07.088456Z",
+                      "created_at": "2026-11-10T20:26:48.149202Z",
                       "first_discovery_id": null,
-                      "id": "fa803e35-dede-43e0-90f9-369eca8f0f60",
+                      "id": "ea8c982c-77b4-48c4-a86b-524fdbfefba2",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-11-10T19:09:07.088456Z",
+                      "last_seen_at": "2026-11-10T20:26:48.149202Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-11-10T19:09:07.088456Z",
-                      "valid_from": "2026-11-10T19:09:07.088456Z",
+                      "updated_at": "2026-11-10T20:26:48.149202Z",
+                      "valid_from": "2026-11-10T20:26:48.149202Z",
                       "valid_to": null
                     }
                   ],
@@ -17775,7 +17775,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "Actual Budget",
+                  "service_definition": "phpMyAdmin",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -19269,19 +19269,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-11-10T19:09:07.113194Z",
+                  "created_at": "2026-11-10T20:26:48.175231Z",
                   "first_discovery_id": null,
-                  "id": "27b361b6-4c48-4e09-9c7e-616d74f234e8",
+                  "id": "14ffd3cb-de31-40d3-8fb0-c399efe67bda",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-10T19:09:07.113194Z",
+                  "last_seen_at": "2026-11-10T20:26:48.175231Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-10T19:09:07.113194Z",
-                  "valid_from": "2026-11-10T19:09:07.113194Z",
+                  "updated_at": "2026-11-10T20:26:48.175231Z",
+                  "valid_from": "2026-11-10T20:26:48.175231Z",
                   "valid_to": null
                 }
               ],
@@ -19294,7 +19294,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Actual Budget",
+              "service_definition": "phpMyAdmin",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -22580,19 +22580,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-11-10T19:09:07.089075Z",
+          "created_at": "2026-11-10T20:26:48.149830Z",
           "first_discovery_id": null,
-          "id": "afea49bd-ab53-42b6-bda9-acc62eacfa14",
+          "id": "e4fe73e5-cb4a-4ce6-bafb-12b3b82a28d4",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-11-10T19:09:07.089075Z",
+          "last_seen_at": "2026-11-10T20:26:48.149830Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-11-10T19:09:07.089075Z",
-          "valid_from": "2026-11-10T19:09:07.089075Z",
+          "updated_at": "2026-11-10T20:26:48.149830Z",
+          "valid_from": "2026-11-10T20:26:48.149830Z",
           "valid_to": null
         }
       },
@@ -23505,7 +23505,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Actual Budget",
+              "service_definition": "phpMyAdmin",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -25388,7 +25388,7 @@
             "items": {
               "$ref": "#/components/schemas/SiteSummary"
             },
-            "description": "Per-site counts for every site the caller can see."
+            "description": "Per-site counts for every site the caller can see, which a site's tooltip shows."
           }
         }
       },
@@ -31893,19 +31893,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-11-10T19:09:07.087724Z",
+                  "created_at": "2026-11-10T20:26:48.148456Z",
                   "first_discovery_id": null,
-                  "id": "f36e165b-8438-4267-af83-1a2cf1836ef0",
+                  "id": "9da1e647-0da5-4bd6-bf20-0ee36f8f1561",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-10T19:09:07.087724Z",
+                  "last_seen_at": "2026-11-10T20:26:48.148456Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-10T19:09:07.087724Z",
-                  "valid_from": "2026-11-10T19:09:07.087724Z",
+                  "updated_at": "2026-11-10T20:26:48.148456Z",
+                  "valid_from": "2026-11-10T20:26:48.148456Z",
                   "valid_to": null
                 }
               ],
@@ -31918,7 +31918,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "Actual Budget",
+              "service_definition": "phpMyAdmin",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -36412,19 +36412,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-11-10T19:09:07.073340Z",
+                        "created_at": "2026-11-10T20:26:48.133731Z",
                         "first_discovery_id": null,
-                        "id": "9c123771-e5de-4d25-afe7-758135912ca6",
+                        "id": "605b9f59-8d4c-40bc-aa85-9ae5446adcbe",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-11-10T19:09:07.073340Z",
+                        "last_seen_at": "2026-11-10T20:26:48.133731Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-11-10T19:09:07.073340Z",
-                        "valid_from": "2026-11-10T19:09:07.073340Z",
+                        "updated_at": "2026-11-10T20:26:48.133731Z",
+                        "valid_from": "2026-11-10T20:26:48.133731Z",
                         "valid_to": null
                       }
                     ],
@@ -36437,7 +36437,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "Actual Budget",
+                    "service_definition": "phpMyAdmin",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -36684,19 +36684,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-11-10T19:09:07.112447Z",
+                    "created_at": "2026-11-10T20:26:48.174455Z",
                     "first_discovery_id": null,
-                    "id": "420d4cb1-b06a-493e-9695-3d2f38b5aa05",
+                    "id": "8f26f9fa-2f95-4419-b8a3-5d3bf2f79e0b",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-11-10T19:09:07.112447Z",
+                    "last_seen_at": "2026-11-10T20:26:48.174455Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-11-10T19:09:07.112447Z",
-                    "valid_from": "2026-11-10T19:09:07.112447Z",
+                    "updated_at": "2026-11-10T20:26:48.174455Z",
+                    "valid_from": "2026-11-10T20:26:48.174455Z",
                     "valid_to": null
                   }
                 ],
@@ -36709,7 +36709,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "Actual Budget",
+                "service_definition": "phpMyAdmin",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -39471,19 +39471,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-11-10T19:09:07.088865Z",
+              "created_at": "2026-11-10T20:26:48.149617Z",
               "first_discovery_id": null,
-              "id": "8f03384a-a009-4c1b-9407-eafe624b7f69",
+              "id": "58c38649-65a3-4f7c-9f29-ec90ee44ebbb",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-10T19:09:07.088865Z",
+              "last_seen_at": "2026-11-10T20:26:48.149617Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-10T19:09:07.088865Z",
-              "valid_from": "2026-11-10T19:09:07.088865Z",
+              "updated_at": "2026-11-10T20:26:48.149617Z",
+              "valid_from": "2026-11-10T20:26:48.149617Z",
               "valid_to": null
             }
           ],
@@ -39496,7 +39496,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "Actual Budget",
+          "service_definition": "phpMyAdmin",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -40002,6 +40002,7 @@
             "title": "UnconfirmedHosts",
             "description": "Hosts known only from other devices' reports, which the user may review.",
             "required": [
+              "site_id",
               "count",
               "type"
             ],
@@ -40009,8 +40010,13 @@
               "count": {
                 "type": "integer",
                 "format": "int64",
-                "description": "The unconfirmed hosts on the sites the user reads.",
+                "description": "The unconfirmed hosts on the site.",
                 "minimum": 0
+              },
+              "site_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The site the hosts are on."
               },
               "type": {
                 "type": "string",
@@ -40025,6 +40031,7 @@
             "title": "UnconfirmedSubnets",
             "description": "Subnets known only from other devices' reports, which the user may review.",
             "required": [
+              "site_id",
               "count",
               "type"
             ],
@@ -40032,8 +40039,13 @@
               "count": {
                 "type": "integer",
                 "format": "int64",
-                "description": "The unconfirmed subnets on the sites the user reads.",
+                "description": "The unconfirmed subnets on the site.",
                 "minimum": 0
+              },
+              "site_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The site the subnets are on."
               },
               "type": {
                 "type": "string",
@@ -42583,7 +42595,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "81884389-ecb1-4ce4-9b9c-3e9e595d7aaf",
+                  "id": "8bb15a7c-ff72-43d9-99c8-e5fe2ea68740",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -42593,23 +42605,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "4f891720-f3e4-4a09-8936-cb62c0038399",
+                  "id": "9af33665-d9c0-4a99-9b4b-2355e5149614",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "19092c17-8244-426c-a7b6-4827f488e29f",
+                  "id": "0f1f8f0f-3af1-479e-acf4-6992a2d4fe6f",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "1d71660b-591d-4e3e-b0a6-7ef7538badb0",
+                  "id": "8f3ba7e7-5c5d-4dab-8624-24fa4da24e78",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "4f891720-f3e4-4a09-8936-cb62c0038399",
+                  "id": "9af33665-d9c0-4a99-9b4b-2355e5149614",
                   "rule": "ByHost"
                 }
               ]
@@ -42639,19 +42651,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "fb492dec-c6ab-42aa-8067-a899280e1c8c",
+                "id": "9c3f702a-7054-4977-ac65-32ec4072c069",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "0b2664c2-dcfb-4194-9044-71c618093f23",
+                "id": "512f47b9-8b5e-4aa1-b753-00630d677396",
                 "rule": "ByVLAN"
               },
               {
-                "id": "0d1ff606-b322-4f63-8b01-7eb991d5cdac",
+                "id": "366c822c-84e5-45a8-8ae1-d15ed99f81ff",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "f22f7aa4-75a3-4860-babe-65765b8aa9be",
+                "id": "c75dce43-dbb7-4192-8400-5540e8fcf3fc",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -42672,7 +42684,7 @@
                 }
               },
               {
-                "id": "f8ee0f30-72cd-4650-b998-a886192c7498",
+                "id": "388e7698-5532-4dd0-9b32-4a69c6fae1b2",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -42681,19 +42693,19 @@
                 }
               },
               {
-                "id": "904fbde3-4174-49f5-99a4-ab0f9bd01f2e",
+                "id": "71efb4e4-9647-40f6-b83e-17df77d05dc0",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "650961aa-641e-4a33-881f-7055aa824ef9",
+                "id": "ff88b7e1-b8b6-47e9-b831-7748a439814d",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "cc99f853-b443-46a1-9d24-8927bd5e9ccd",
+                "id": "9900987a-f710-42f4-bec3-acb2a0f6c904",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "bae6b162-9262-4b75-bd10-24ef0e77a893",
+                "id": "5616d9e0-0909-4663-b02f-06c8cc686536",
                 "rule": "ByStack"
               }
             ]

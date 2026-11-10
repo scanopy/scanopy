@@ -83,8 +83,10 @@ pub struct SetupContext {
     pub run_warnings: Vec<DaemonRunWarnings>,
     /// The first daemon to connect, which runs the first scan.
     pub first_scan_daemon_id: Option<Uuid>,
-    pub unconfirmed_hosts: u64,
-    pub unconfirmed_subnets: u64,
+    /// Unconfirmed hosts per site, on the sites the user reads hosts on. Sites with none are absent.
+    pub unconfirmed_hosts: Vec<(Uuid, u64)>,
+    /// Unconfirmed subnets per site, on the sites the user reads subnets on.
+    pub unconfirmed_subnets: Vec<(Uuid, u64)>,
     pub counts: SetupCounts,
     /// Some entity in the org holds a tag.
     pub has_tag_assignment: bool,
@@ -190,18 +192,18 @@ impl SetupItemDiscriminants {
                 })
                 .collect(),
             T::RunWarnings => run_warning_items(ctx).into_iter().map(issue).collect(),
-            T::UnconfirmedHosts if ctx.can_write(Resource::Host) && ctx.unconfirmed_hosts > 0 => {
-                vec![issue(SetupItem::UnconfirmedHosts {
-                    count: ctx.unconfirmed_hosts,
-                })]
-            }
-            T::UnconfirmedSubnets
-                if ctx.can_write(Resource::Subnet) && ctx.unconfirmed_subnets > 0 =>
-            {
-                vec![issue(SetupItem::UnconfirmedSubnets {
-                    count: ctx.unconfirmed_subnets,
-                })]
-            }
+            T::UnconfirmedHosts if ctx.can_write(Resource::Host) => ctx
+                .unconfirmed_hosts
+                .iter()
+                .filter(|(_, count)| *count > 0)
+                .map(|&(site_id, count)| issue(SetupItem::UnconfirmedHosts { site_id, count }))
+                .collect(),
+            T::UnconfirmedSubnets if ctx.can_write(Resource::Subnet) => ctx
+                .unconfirmed_subnets
+                .iter()
+                .filter(|(_, count)| *count > 0)
+                .map(|&(site_id, count)| issue(SetupItem::UnconfirmedSubnets { site_id, count }))
+                .collect(),
             T::UnconfirmedHosts | T::UnconfirmedSubnets => Vec::new(),
             // A daemon created and never connected is an AwaitingConnection Issue, which waits
             // in this step's place.
@@ -416,8 +418,8 @@ mod tests {
             uncovered_integrations: Vec::new(),
             run_warnings: Vec::new(),
             first_scan_daemon_id: None,
-            unconfirmed_hosts: 0,
-            unconfirmed_subnets: 0,
+            unconfirmed_hosts: Vec::new(),
+            unconfirmed_subnets: Vec::new(),
             counts: SetupCounts {
                 members: 1,
                 ..Default::default()
@@ -792,20 +794,25 @@ mod tests {
         assert_eq!(count(T::AnswerProfile, &self_hosted), 0);
     }
 
-    /// Counts only what the user may review, one Issue per kind of row.
+    /// Counts only what the user may review, one Issue per kind of row per site that has some.
     #[test]
-    fn unconfirmed_rows_are_issues_the_user_can_write() {
+    fn unconfirmed_rows_are_issues_per_site_the_user_can_write() {
         let mut ctx = ctx();
         assert_eq!(count(T::UnconfirmedHosts, &ctx), 0);
-        ctx.unconfirmed_hosts = 3;
-        ctx.unconfirmed_subnets = 1;
-        assert!(matches!(
-            items(T::UnconfirmedHosts, &ctx).as_slice(),
-            [SetupItem::UnconfirmedHosts { count: 3 }]
-        ));
+        let (hq, branch) = (ctx.sites[0].id, Uuid::new_v4());
+        ctx.unconfirmed_hosts = vec![(hq, 3), (branch, 2)];
+        ctx.unconfirmed_subnets = vec![(hq, 1)];
+        let hosts: Vec<(Uuid, u64)> = items(T::UnconfirmedHosts, &ctx)
+            .into_iter()
+            .map(|item| match item {
+                SetupItem::UnconfirmedHosts { site_id, count } => (site_id, count),
+                other => panic!("unexpected item {other:?}"),
+            })
+            .collect();
+        assert_eq!(hosts, [(hq, 3), (branch, 2)]);
         let read_only = without_write(ctx, Resource::Subnet);
         assert_eq!(count(T::UnconfirmedSubnets, &read_only), 0);
-        assert_eq!(count(T::UnconfirmedHosts, &read_only), 1);
+        assert_eq!(count(T::UnconfirmedHosts, &read_only), 2);
     }
 
     /// The sweep reports Issues and Open first steps only: a first step Locked or Done, and every
@@ -813,7 +820,7 @@ mod tests {
     #[test]
     fn only_issues_and_open_first_steps_alert_when_stuck() {
         let mut ctx = ctx();
-        ctx.unconfirmed_hosts = 2;
+        ctx.unconfirmed_hosts = vec![(ctx.sites[0].id, 2)];
         let alerting = |ctx: &SetupContext| -> Vec<T> {
             T::iter()
                 .flat_map(|t| t.items(ctx))

@@ -123,9 +123,12 @@ function firstOf(
 	];
 }
 
-/** Opens a list filtered to the Inferred source, which is exactly its unconfirmed rows. */
-function reviewInferred(tab: string) {
-	return () => openTab(tab, new URLSearchParams({ sources: 'Inferred' }));
+/**
+ * Opens a list filtered to the Inferred source on one site, which is exactly that site's
+ * unconfirmed rows.
+ */
+function reviewInferred(tab: string, siteId: string) {
+	return () => openTab(tab, new URLSearchParams({ sources: 'Inferred', site_ids: siteId }));
 }
 
 /** What the row for `item` says and does, by item type. */
@@ -259,14 +262,20 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 				title,
 				sentence: home_nudges_unconfirmedHostsDescription({ count: item.count }),
 				subjects: [],
-				fix: { label: home_nudges_unconfirmedReviewHosts(), run: reviewInferred('hosts') }
+				fix: {
+					label: home_nudges_unconfirmedReviewHosts(),
+					run: reviewInferred('hosts', item.site_id)
+				}
 			};
 		case 'UnconfirmedSubnets':
 			return {
 				title,
 				sentence: home_nudges_unconfirmedSubnetsDescription({ count: item.count }),
 				subjects: [],
-				fix: { label: home_nudges_unconfirmedReviewSubnets(), run: reviewInferred('subnets') }
+				fix: {
+					label: home_nudges_unconfirmedReviewSubnets(),
+					run: reviewInferred('subnets', item.site_id)
+				}
 			};
 		case 'InstallDaemon':
 			return plain({

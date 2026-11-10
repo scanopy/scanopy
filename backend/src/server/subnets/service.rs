@@ -682,15 +682,25 @@ pub enum Placement {
 }
 
 impl SubnetService {
-    /// Live subnets on these sites whose range was assumed and not yet confirmed.
-    pub async fn unconfirmed_count_for_sites(&self, site_ids: &[Uuid]) -> Result<u64, Error> {
-        self.storage
-            .count(
+    /// Live subnets whose range was assumed and not yet confirmed, counted per site of these. A
+    /// site with none is absent.
+    pub async fn unconfirmed_count_by_site(
+        &self,
+        site_ids: &[Uuid],
+    ) -> Result<Vec<(Uuid, u64)>, Error> {
+        let groups = self
+            .storage
+            .count_by_group(
                 StorableFilter::<Subnet>::new_from_site_ids(site_ids)
                     .live()
                     .unconfirmed(true),
+                "subnets.site_id",
             )
-            .await
+            .await?;
+        Ok(groups
+            .into_iter()
+            .filter_map(|(site_id, count)| Some((site_id?.parse().ok()?, count)))
+            .collect())
     }
 
     /// Place an address, inferring a range for it when nothing this site holds contains it.

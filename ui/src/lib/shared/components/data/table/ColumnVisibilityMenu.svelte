@@ -16,6 +16,7 @@
 		common_dragToReorderColumn,
 		common_columnPinnedFirst,
 		common_columnPinnedLast,
+		common_columnHiddenWhileGrouped,
 		common_columnSectionPinned,
 		common_columns,
 		common_moveColumnDown,
@@ -33,6 +34,7 @@
 		order,
 		groupOrder,
 		visibility,
+		groupedColumnId = null,
 		onToggle,
 		onReorder,
 		onReorderGroups,
@@ -44,6 +46,8 @@
 		/** The headings in the user's order; columns sort by heading first. */
 		groupOrder: string[];
 		visibility: Record<string, boolean>;
+		/** The column the list groups by, which the table leaves out until it is ungrouped. */
+		groupedColumnId?: string | null;
 		onToggle: (id: string) => void;
 		onReorder: (order: string[]) => void;
 		onReorderGroups: (groupOrder: string[]) => void;
@@ -329,6 +333,7 @@
 								: common_columnPinnedLast({ column: column.label })}
 						{@const index = movable.indexOf(column.id)}
 						{@const isTarget = dropTarget?.id === column.id && draggingId !== column.id}
+						{@const grouped = column.id === groupedColumnId}
 						<li
 							class="flex items-center gap-1 rounded border-y-2 border-transparent px-1 py-0.5 {draggingId ===
 							column.id
@@ -351,10 +356,17 @@
 							>
 								<GripVertical class="h-4 w-4" />
 							</span>
-							<label class="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+							<label
+								class="flex min-w-0 flex-1 items-center gap-2 {grouped
+									? 'cursor-not-allowed opacity-50'
+									: 'cursor-pointer'}"
+								data-tooltip={grouped ? common_columnHiddenWhileGrouped() : undefined}
+								use:tooltip
+							>
 								<input
 									type="checkbox"
-									checked={visibility[column.id] !== false}
+									checked={!grouped && visibility[column.id] !== false}
+									disabled={grouped}
 									onchange={() => onToggle(column.id)}
 									class="checkbox-card h-4 w-4 rounded-sm"
 								/>

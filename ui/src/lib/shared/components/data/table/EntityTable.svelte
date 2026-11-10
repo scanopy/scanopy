@@ -737,12 +737,17 @@
 			}
 		}}
 		onclick={(e) => {
+			// A row with nothing to select opens on one click, since the click has no other job.
+			if (!selectable) {
+				if (openAction && e.detail === 1 && isRowSelectClick(e)) openAction.onClick();
+				return;
+			}
 			// The second click of a double-click opens the row; it doesn't undo the first's selection.
 			if (openAction && e.detail > 1) return;
-			if (selectable && isRowSelectClick(e)) onClickRow(itemId, e.shiftKey);
+			if (isRowSelectClick(e)) onClickRow(itemId, e.shiftKey);
 		}}
 		ondblclick={(e) => {
-			if (openAction && isRowSelectClick(e)) openAction.onClick();
+			if (selectable && openAction && isRowSelectClick(e)) openAction.onClick();
 		}}
 	>
 		{#if selectable}

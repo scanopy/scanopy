@@ -371,6 +371,18 @@ export function movableIds<T>(order: string[], columns: EntityColumn<T>[]): stri
 	});
 }
 
+/**
+ * The columns a table draws while grouped by `groupField`: all but that one, since every group
+ * heading states its value. The primary column stays, as the row's identity. Ungrouped, all.
+ */
+export function columnsWhileGrouped<T>(
+	columns: EntityColumn<T>[],
+	groupField: string | null
+): EntityColumn<T>[] {
+	if (!groupField) return columns;
+	return columns.filter((c) => c.primary || c.id !== groupField);
+}
+
 /** Columns to render, in persisted order, minus the hidden ones. */
 export function visibleColumns<T>(
 	columns: EntityColumn<T>[],

@@ -41,7 +41,7 @@ pub struct PlanUsage {
 /// Dashboard summary response
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct DashboardSummary {
-    /// Per-site counts for every site the caller can see.
+    /// Per-site counts for every site the caller can see, which a site's tooltip shows.
     pub sites: Vec<SiteSummary>,
     /// Current usage against the organization's plan allowances.
     pub plan_usage: PlanUsage,

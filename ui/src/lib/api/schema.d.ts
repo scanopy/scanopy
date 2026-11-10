@@ -4264,19 +4264,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-10T19:09:07.030069Z",
+             *       "created_at": "2026-11-10T20:26:48.087744Z",
              *       "first_discovery_id": null,
-             *       "id": "300985f5-9fba-4cc7-938e-77e59c25e360",
+             *       "id": "67e845bd-2487-48a6-a795-9b056d5a3941",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-10T19:09:07.030069Z",
+             *       "last_seen_at": "2026-11-10T20:26:48.087744Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-10T19:09:07.030069Z",
-             *       "valid_from": "2026-11-10T19:09:07.030069Z",
+             *       "updated_at": "2026-11-10T20:26:48.087744Z",
+             *       "valid_from": "2026-11-10T20:26:48.087744Z",
              *       "valid_to": null
              *     }
              */
@@ -4702,7 +4702,7 @@ export interface components {
                  *     `/dashboard/issues`.
                  */
                 setup_items: components["schemas"]["SetupListEntry"][];
-                /** @description Per-site counts for every site the caller can see. */
+                /** @description Per-site counts for every site the caller can see, which a site's tooltip shows. */
                 sites: components["schemas"]["SiteSummary"][];
             };
             /**
@@ -5186,19 +5186,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-10T19:09:06.995943Z",
+             *               "created_at": "2026-11-10T20:26:48.048506Z",
              *               "first_discovery_id": null,
-             *               "id": "9065972d-786e-44f6-a2ec-3b892ca87f91",
+             *               "id": "cd0ff542-7578-4905-9314-40be434f9e65",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-10T19:09:06.995943Z",
+             *               "last_seen_at": "2026-11-10T20:26:48.048506Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-10T19:09:06.995943Z",
-             *               "valid_from": "2026-11-10T19:09:06.995943Z",
+             *               "updated_at": "2026-11-10T20:26:48.048506Z",
+             *               "valid_from": "2026-11-10T20:26:48.048506Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5211,7 +5211,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "Actual Budget",
+             *           "service_definition": "phpMyAdmin",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6234,19 +6234,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-10T19:09:07.024516Z",
+             *           "created_at": "2026-11-10T20:26:48.081588Z",
              *           "first_discovery_id": null,
-             *           "id": "ef4cd9f1-4942-4ecd-b8fa-c072ba1a6a02",
+             *           "id": "94d1d3fe-811b-4698-a3f7-1677a5086706",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-10T19:09:07.024516Z",
+             *           "last_seen_at": "2026-11-10T20:26:48.081588Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-10T19:09:07.024516Z",
-             *           "valid_from": "2026-11-10T19:09:07.024516Z",
+             *           "updated_at": "2026-11-10T20:26:48.081588Z",
+             *           "valid_from": "2026-11-10T20:26:48.081588Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6259,7 +6259,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "Actual Budget",
+             *       "service_definition": "phpMyAdmin",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7731,19 +7731,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-10T19:09:06.996591Z",
+         *       "created_at": "2026-11-10T20:26:48.049220Z",
          *       "first_discovery_id": null,
-         *       "id": "f9760e00-0b82-49a1-8854-22e8fcf721da",
+         *       "id": "a4a1528a-a4d6-4044-8868-37696416628b",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-10T19:09:06.996591Z",
+         *       "last_seen_at": "2026-11-10T20:26:48.049220Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-10T19:09:06.996591Z",
-         *       "valid_from": "2026-11-10T19:09:06.996591Z",
+         *       "updated_at": "2026-11-10T20:26:48.049220Z",
+         *       "valid_from": "2026-11-10T20:26:48.049220Z",
          *       "valid_to": null
          *     }
          */
@@ -8133,7 +8133,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Actual Budget",
+         *           "service_definition": "phpMyAdmin",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9004,7 +9004,7 @@ export interface components {
              *     `/dashboard/issues`.
              */
             setup_items: components["schemas"]["SetupListEntry"][];
-            /** @description Per-site counts for every site the caller can see. */
+            /** @description Per-site counts for every site the caller can see, which a site's tooltip shows. */
             sites: components["schemas"]["SiteSummary"][];
         };
         /** @enum {string} */
@@ -11324,19 +11324,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-10T19:09:06.995141Z",
+         *               "created_at": "2026-11-10T20:26:48.047628Z",
          *               "first_discovery_id": null,
-         *               "id": "c803f834-623c-42fd-8957-f7e103697115",
+         *               "id": "72460c6b-108a-4fae-b68d-1e57de33be69",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-10T19:09:06.995141Z",
+         *               "last_seen_at": "2026-11-10T20:26:48.047628Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-10T19:09:06.995141Z",
-         *               "valid_from": "2026-11-10T19:09:06.995141Z",
+         *               "updated_at": "2026-11-10T20:26:48.047628Z",
+         *               "valid_from": "2026-11-10T20:26:48.047628Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11349,7 +11349,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Actual Budget",
+         *           "service_definition": "phpMyAdmin",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -15052,19 +15052,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-10T19:09:06.996378Z",
+         *           "created_at": "2026-11-10T20:26:48.048986Z",
          *           "first_discovery_id": null,
-         *           "id": "623b32ab-0f8d-4e34-b5b1-e7f89af02bd6",
+         *           "id": "9fbbc314-5054-47b4-be80-e535c67a3a59",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-10T19:09:06.996378Z",
+         *           "last_seen_at": "2026-11-10T20:26:48.048986Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-10T19:09:06.996378Z",
-         *           "valid_from": "2026-11-10T19:09:06.996378Z",
+         *           "updated_at": "2026-11-10T20:26:48.048986Z",
+         *           "valid_from": "2026-11-10T20:26:48.048986Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -15077,7 +15077,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "Actual Budget",
+         *       "service_definition": "phpMyAdmin",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -15333,17 +15333,27 @@ export interface components {
         } | {
             /**
              * Format: int64
-             * @description The unconfirmed hosts on the sites the user reads.
+             * @description The unconfirmed hosts on the site.
              */
             count: number;
+            /**
+             * Format: uuid
+             * @description The site the hosts are on.
+             */
+            site_id: string;
             /** @enum {string} */
             type: "UnconfirmedHosts";
         } | {
             /**
              * Format: int64
-             * @description The unconfirmed subnets on the sites the user reads.
+             * @description The unconfirmed subnets on the site.
              */
             count: number;
+            /**
+             * Format: uuid
+             * @description The site the subnets are on.
+             */
+            site_id: string;
             /** @enum {string} */
             type: "UnconfirmedSubnets";
         } | {
@@ -16505,7 +16515,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "6cc430fd-070f-4a51-a296-7d03e13a5bbe",
+             *           "id": "e48715d0-a76a-4f6e-949c-3c6b6877968e",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16515,23 +16525,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "4543e766-0235-4ac0-b100-1e062c7e0f8a",
+             *           "id": "dedc91cb-92e7-46a8-bdcd-4e267a3dc182",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "df79bb3a-3205-4748-a233-b2c82601b83b",
+             *           "id": "4c9c2819-2d6c-457d-ac74-e097e019d03d",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "200dab2f-1f43-4ce0-b42c-368cf6b45a37",
+             *           "id": "eee9ff87-4c61-4f6b-a09d-beebbdb9683d",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "4543e766-0235-4ac0-b100-1e062c7e0f8a",
+             *           "id": "dedc91cb-92e7-46a8-bdcd-4e267a3dc182",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16545,19 +16555,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "456c6153-85c7-43e9-aa12-d4de8ff26438",
+             *         "id": "fa89f49c-5fb4-4867-b8e2-1a849b4fcad2",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "fae9b44f-f44f-4d7a-8a73-82c0a8cb686a",
+             *         "id": "58ccb9ba-6256-4820-9a92-15accdc7463c",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "750ab1a8-3ca7-4d95-aba2-b5e51758f6dd",
+             *         "id": "5a77eccb-cf3d-43a5-9e5d-3043037350ba",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "9cf81352-fa43-4a44-9465-8e06bb12aee8",
+             *         "id": "e5d7ba77-8aad-4808-b369-580d66f066c5",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16578,7 +16588,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "b4c38e9e-a757-4b38-baaf-03a266257100",
+             *         "id": "aec6e2ef-8442-4eca-b04b-6230fae67a13",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16587,19 +16597,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "46968548-b6ab-4e28-99d4-b00b756074cb",
+             *         "id": "08729bc6-3667-4459-b08c-efee709f7411",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "039f34d9-a695-45ad-8882-23fcc15d5d13",
+             *         "id": "823dd228-bb8c-418b-a2e5-eaa7f3a03349",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "f72ff2a7-4354-4cae-afbc-3bd501d22c5a",
+             *         "id": "015a9f5c-14a8-443f-b3f9-37b034a7917b",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "f4a9d49b-7f3f-4429-be86-2cdefe957b79",
+             *         "id": "efe94435-763e-44c1-9d04-01ba5b8e7af0",
              *         "rule": "ByStack"
              *       }
              *     ]

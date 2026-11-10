@@ -111,13 +111,17 @@ pub enum SetupItem {
     /// Hosts known only from other devices' reports, which the user may review.
     #[schema(title = "UnconfirmedHosts")]
     UnconfirmedHosts {
-        /// The unconfirmed hosts on the sites the user reads.
+        /// The site the hosts are on.
+        site_id: Uuid,
+        /// The unconfirmed hosts on the site.
         count: u64,
     },
     /// Subnets known only from other devices' reports, which the user may review.
     #[schema(title = "UnconfirmedSubnets")]
     UnconfirmedSubnets {
-        /// The unconfirmed subnets on the sites the user reads.
+        /// The site the subnets are on.
+        site_id: Uuid,
+        /// The unconfirmed subnets on the site.
         count: u64,
     },
     // Setup, first steps first. The aliases read the onboarding milestones they replace, which
@@ -386,16 +390,16 @@ impl SetupItem {
                 None => SetupItemKey::Org { item_type },
             },
             Self::TargetlessCredential { credential_id, .. } => entity(*credential_id),
-            Self::SiteWithoutDaemon { site_id, .. } => entity(*site_id),
+            Self::SiteWithoutDaemon { site_id, .. }
+            | Self::UnconfirmedHosts { site_id, .. }
+            | Self::UnconfirmedSubnets { site_id, .. } => entity(*site_id),
             Self::RunWarnings {
                 daemon_id, code, ..
             } => SetupItemKey::RunWarning {
                 daemon_id: *daemon_id,
                 code: *code,
             },
-            Self::UnconfirmedHosts { .. }
-            | Self::UnconfirmedSubnets { .. }
-            | Self::InstallDaemon
+            Self::InstallDaemon
             | Self::RunFirstScan { .. }
             | Self::OpenTopology
             | Self::AnswerReferralSource
@@ -413,8 +417,6 @@ impl SetupItem {
         }
     }
 
-    /// The sites this item is about. Empty for one about the whole org: a credential with no
-    /// target, the unconfirmed counts (summed across the reader's sites), and every Setup item.
     /// What this Issue's fix is about, which the Issues list groups by: a run warning's code's
     /// category, else its type's. `None` for a Setup step.
     pub fn issue_category(&self) -> Option<IssueCategory> {
@@ -424,15 +426,17 @@ impl SetupItem {
         }
     }
 
+    /// The sites this item is about. Empty for one about the whole org: a credential with no
+    /// target, and every Setup item.
     pub fn site_ids(&self) -> Vec<Uuid> {
         match self {
             Self::DaemonHealth { site_id, .. }
             | Self::SiteWithoutDaemon { site_id, .. }
-            | Self::RunWarnings { site_id, .. } => vec![*site_id],
+            | Self::RunWarnings { site_id, .. }
+            | Self::UnconfirmedHosts { site_id, .. }
+            | Self::UnconfirmedSubnets { site_id, .. } => vec![*site_id],
             Self::UncoveredIntegration { site_ids, .. } => site_ids.clone(),
             Self::TargetlessCredential { .. }
-            | Self::UnconfirmedHosts { .. }
-            | Self::UnconfirmedSubnets { .. }
             | Self::InstallDaemon
             | Self::RunFirstScan { .. }
             | Self::OpenTopology
@@ -452,9 +456,8 @@ impl SetupItem {
     }
 
     /// Whether `entity` may read what this item is about. An Issue names a daemon, a site, a run
-    /// or a credential, so it shows only to a reader of that resource on that item's site. The
-    /// unconfirmed counts are already cut to the sites the reader reads. Setup items are about
-    /// the org, and every member sees them.
+    /// or a credential, so it shows only to a reader of that resource on that item's site. Setup
+    /// items are about the org, and every member sees them.
     pub fn readable_by(&self, entity: &AuthenticatedEntity) -> bool {
         let on_site = |resource, site_id: &Uuid| {
             entity
@@ -476,9 +479,9 @@ impl SetupItem {
                         .iter()
                         .any(|site_id| on_site(Resource::Host, site_id))
             }
-            Self::UnconfirmedHosts { .. }
-            | Self::UnconfirmedSubnets { .. }
-            | Self::InstallDaemon
+            Self::UnconfirmedHosts { site_id, .. } => on_site(Resource::Host, site_id),
+            Self::UnconfirmedSubnets { site_id, .. } => on_site(Resource::Subnet, site_id),
+            Self::InstallDaemon
             | Self::RunFirstScan { .. }
             | Self::OpenTopology
             | Self::AnswerReferralSource

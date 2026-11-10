@@ -338,10 +338,10 @@
 
 	function handleCloseCreateDaemon() {
 		showCreateDaemonModal = false;
-		// Only redirect to home if no daemons AND we're still on the daemons tab
+		// Only redirect to Setup if no daemons AND we're still on the daemons tab
 		// (user may have navigated away via "View Topology" button)
 		if (daemonsData.length === 0 && window.location.hash === '#daemons') {
-			window.location.hash = 'home';
+			window.location.hash = 'setup';
 		}
 	}
 
