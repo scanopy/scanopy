@@ -38,6 +38,10 @@ required-features = ["snmp-sim"]
 name = "license"
 path = "src/bin/license.rs"
 
+[[bin]]
+name = "estate-replay"
+path = "src/bin/estate-replay.rs"
+
 [lib]
 name = "scanopy"
 path = "src/lib.rs"

@@ -85,6 +85,7 @@ pub mod lldp_resolution;
 pub mod org_provisioning;
 pub mod org_reset;
 pub mod organization_writes;
+pub mod prepared_statements;
 pub mod provision_eligibility;
 pub mod self_hosted_license_emails;
 pub mod self_hosted_licensing;

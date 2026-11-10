@@ -106,6 +106,7 @@ impl<T: ChildStorableEntity + Display> GenericChildStorage<T> {
         );
 
         let rows = sqlx::query(&query_str)
+            .persistent(false)
             .bind(parent_id)
             .fetch_all(&self.pool)
             .await?;
@@ -129,6 +130,7 @@ impl<T: ChildStorableEntity + Display> GenericChildStorage<T> {
         );
 
         let rows = sqlx::query(&query_str)
+            .persistent(false)
             .bind(parent_ids)
             .fetch_all(&self.pool)
             .await?;

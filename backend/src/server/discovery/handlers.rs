@@ -39,7 +39,7 @@ use crate::server::{
 };
 use axum::http::StatusCode;
 use axum::{
-    extract::{Path, State},
+    extract::{DefaultBodyLimit, Path, State},
     response::{
         Json, Sse,
         sse::{Event, KeepAlive},
@@ -319,6 +319,12 @@ pub(super) fn session_starting_error() -> ApiError {
     ApiError::conflict("The session is starting on its daemon. Try again in a moment.")
 }
 
+/// The terminal update lists every entity id the scan touched, about 39 bytes each. A scan of
+/// 15,000 hosts sends around 100,000 ids, past axum's 2 MB default, and a rejected terminal update
+/// leaves the discovery unfinished. 32 MiB holds about 850,000 ids. The daemon key is checked
+/// before the body is read.
+const DISCOVERY_UPDATE_BODY_LIMIT: usize = 32 * 1024 * 1024;
+
 pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
     OpenApiRouter::new()
         .routes(routes!(get_all_discoveries, create_discovery))
@@ -335,7 +341,11 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         .routes(routes!(cancel_discovery))
         .merge(super::bulk::create_router())
         // Internal daemon endpoints
-        .routes(routes!(receive_discovery_update))
+        .merge(
+            OpenApiRouter::new()
+                .routes(routes!(receive_discovery_update))
+                .layer(DefaultBodyLimit::max(DISCOVERY_UPDATE_BODY_LIMIT)),
+        )
         // SSE endpoint (internal - not well-supported by OpenAPI). Superseded by
         // `/api/v1/live-updates/stream`; kept one release for API-key clients that read it.
         .route("/stream", get(discovery_stream))

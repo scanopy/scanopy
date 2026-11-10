@@ -220,7 +220,7 @@ where
         let (columns, values) = entity.to_params()?;
         let query_str = Self::build_insert_query(&columns);
 
-        let mut query = sqlx::query(&query_str);
+        let mut query = sqlx::query(&query_str).persistent(false);
         for value in &values {
             query = Self::bind_value(query, value)?;
         }
@@ -277,7 +277,7 @@ where
                 .collect::<Result<_, _>>()?;
 
             let query_str = Self::build_bulk_insert_query(&all_params[0].0, chunk.len());
-            let mut query = sqlx::query(&query_str);
+            let mut query = sqlx::query(&query_str).persistent(false);
 
             for (_, values) in &all_params {
                 for value in values {
@@ -343,7 +343,7 @@ where
             filter.to_where_clause()
         );
 
-        let mut query = sqlx::query(&query_str);
+        let mut query = sqlx::query(&query_str).persistent(false);
         for value in filter.values() {
             query = Self::bind_value(query, value)?;
         }
@@ -424,7 +424,7 @@ where
             pagination_clause
         );
 
-        let mut query = sqlx::query(&query_str);
+        let mut query = sqlx::query(&query_str).persistent(false);
         for value in filter.values() {
             query = Self::bind_value(query, value)?;
         }
@@ -456,7 +456,7 @@ where
                 .collect::<Result<_, _>>()?;
 
             let query_str = Self::build_bulk_insert_query(&all_params[0].0, chunk.len());
-            let mut query = sqlx::query(&query_str);
+            let mut query = sqlx::query(&query_str).persistent(false);
 
             for (_, values) in &all_params {
                 for value in values {
@@ -493,6 +493,7 @@ where
             T::table_name()
         );
         sqlx::query(&query_str)
+            .persistent(false)
             .bind(snapshot_id)
             .bind(ids)
             .execute(&mut **tx)
@@ -515,7 +516,7 @@ where
         for entity in entities {
             let (columns, values) = entity.to_params()?;
             let query_str = Self::build_update_query(&columns);
-            let mut query = sqlx::query(&query_str);
+            let mut query = sqlx::query(&query_str).persistent(false);
             for value in &values {
                 query = Self::bind_value(query, value)?;
             }
@@ -552,7 +553,7 @@ where
             T::table_name(),
             filter.to_where_clause()
         );
-        let mut query = sqlx::query(&query_str);
+        let mut query = sqlx::query(&query_str).persistent(false);
         for value in filter.values() {
             query = GenericPostgresStorage::<T>::bind_value(query, value)?;
         }
@@ -572,7 +573,7 @@ where
             T::table_name(),
             filter.to_where_clause()
         );
-        let mut query = sqlx::query(&query_str);
+        let mut query = sqlx::query(&query_str).persistent(false);
         for value in filter.values() {
             query = GenericPostgresStorage::<T>::bind_value(query, value)?;
         }
@@ -600,7 +601,7 @@ where
     pub async fn update(&mut self, entity: &mut T) -> Result<T, anyhow::Error> {
         let (columns, values) = entity.to_params()?;
         let query_str = GenericPostgresStorage::<T>::build_update_query(&columns);
-        let mut query = sqlx::query(&query_str);
+        let mut query = sqlx::query(&query_str).persistent(false);
         for value in &values {
             query = GenericPostgresStorage::<T>::bind_value(query, value)?;
         }
@@ -654,7 +655,7 @@ where
         for entity in entities {
             let (columns, values) = entity.to_params()?;
             let query_str = Self::build_update_query(&columns);
-            let mut query = sqlx::query(&query_str);
+            let mut query = sqlx::query(&query_str).persistent(false);
             for value in &values {
                 query = Self::bind_value(query, value)?;
             }
@@ -692,7 +693,7 @@ where
             filter.to_where_clause()
         );
 
-        let mut query = sqlx::query(&query_str);
+        let mut query = sqlx::query(&query_str).persistent(false);
 
         for value in filter.values() {
             query = Self::bind_value(query, value)?;
@@ -738,7 +739,7 @@ where
             pagination_clause
         );
 
-        let mut query = sqlx::query(&query_str);
+        let mut query = sqlx::query(&query_str).persistent(false);
         for value in filter.values() {
             query = Self::bind_value(query, value)?;
         }
@@ -755,7 +756,7 @@ where
             filter.to_join_clause(),
             filter.to_where_clause()
         );
-        let mut count_query = sqlx::query(&count_query_str);
+        let mut count_query = sqlx::query(&count_query_str).persistent(false);
         for value in filter.values() {
             count_query = Self::bind_value(count_query, value)?;
         }
@@ -780,7 +781,7 @@ where
             filter = filter.to_where_clause(),
         );
 
-        let mut query = sqlx::query(&query_str);
+        let mut query = sqlx::query(&query_str).persistent(false);
         for value in filter.values() {
             query = Self::bind_value(query, value)?;
         }
@@ -817,7 +818,7 @@ where
             filter = filter.to_where_clause(),
         );
 
-        let mut query = sqlx::query(&query_str);
+        let mut query = sqlx::query(&query_str).persistent(false);
         for value in filter.values() {
             query = Self::bind_value(query, value)?;
         }
@@ -850,7 +851,7 @@ where
             filter = filter.to_where_clause(),
         );
 
-        let mut query = sqlx::query(&query_str);
+        let mut query = sqlx::query(&query_str).persistent(false);
         for value in filter.values() {
             query = Self::bind_value(query, value)?;
         }
@@ -884,7 +885,7 @@ where
             filter.to_where_clause()
         );
 
-        let mut count_query = sqlx::query(&count_query_str);
+        let mut count_query = sqlx::query(&count_query_str).persistent(false);
         for value in filter.values() {
             count_query = Self::bind_value(count_query, value)?;
         }
@@ -913,7 +914,7 @@ where
             pagination_clause
         );
 
-        let mut query = sqlx::query(&query_str);
+        let mut query = sqlx::query(&query_str).persistent(false);
         for value in filter.values() {
             query = Self::bind_value(query, value)?;
         }
@@ -933,7 +934,7 @@ where
         let (columns, values) = entity.to_params()?;
         let query_str = Self::build_update_query(&columns);
 
-        let mut query = sqlx::query(&query_str);
+        let mut query = sqlx::query(&query_str).persistent(false);
         for value in &values {
             query = Self::bind_value(query, value)?;
         }
@@ -947,7 +948,11 @@ where
     async fn delete(&self, id: &Uuid) -> Result<(), anyhow::Error> {
         let query_str = format!("DELETE FROM {} WHERE id = $1", T::table_name());
 
-        sqlx::query(&query_str).bind(id).execute(&self.pool).await?;
+        sqlx::query(&query_str)
+            .persistent(false)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
 
         tracing::trace!("Deleted {} with id: {}", T::table_name(), id);
 
@@ -962,6 +967,7 @@ where
         let query_str = format!("DELETE FROM {} WHERE id = ANY($1)", T::table_name());
 
         let result = sqlx::query(&query_str)
+            .persistent(false)
             .bind(ids)
             .execute(&self.pool)
             .await?;
