@@ -48,7 +48,6 @@ mod owners;
 
 use owners::{hoist_virtualization_owners, write_owner_layers};
 
-
 /// Collect EntityTag records from tagged entities into the accumulator.
 fn collect_entity_tags<T: Entity>(entities: &[T], out: &mut Vec<EntityTag>) {
     use crate::server::tags::entity_tags::EntityTagBase;
