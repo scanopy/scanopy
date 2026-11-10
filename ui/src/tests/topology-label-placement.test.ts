@@ -3,6 +3,7 @@ import {
 	LABEL_HEIGHT,
 	MAX_LABELS,
 	MIN_LABEL_WIDTH,
+	ROOMY_LABEL_WIDTH,
 	placeLabels,
 	type LabelCandidate,
 	type LabelViewport
@@ -43,30 +44,77 @@ describe('placeLabels', () => {
 	});
 
 	it('keeps a long name on a box too narrow for it, to be cut by the layer', () => {
-		// 60px on screen for a name of about 190px: it stays on the box, capped at the box.
-		const [label] = placeLabels(
-			[box('bridge', 0, 0, 600, 400, { text: 'Docker Bridge: (172.17.0.0/16)' })],
+		// 60px on screen for a name of about 190px, with a neighbour 5px to its right: the name
+		// stays on the box, capped at the box.
+		const [, label] = placeLabels(
+			[
+				box('subnet', 650, 0, 4000, 1500),
+				box('bridge', 0, 0, 600, 400, { text: 'Docker Bridge: (172.17.0.0/16)' })
+			],
 			pane(0.1)
 		);
 
-		expect(label.maxWidth).toBe(60);
+		expect(label).toMatchObject({ id: 'bridge', maxWidth: 60 });
 	});
 
-	it('leaves out a box narrower than a few characters, or shorter than a label', () => {
-		const narrow = box('narrow', 0, 0, (MIN_LABEL_WIDTH - 1) / 0.1, 2000);
-		const short = box('short', 3000, 0, 2000, (LABEL_HEIGHT - 1) / 0.1);
-		const enough = box('enough', 6000, 0, MIN_LABEL_WIDTH / 0.1, LABEL_HEIGHT / 0.1);
+	it('lets a name on a narrow box run onto empty canvas beside it', () => {
+		const [label] = placeLabels([box('bridge', 0, 0, 600, 400)], pane(0.1));
 
-		expect(placeLabels([narrow, short, enough], pane(0.1)).map((label) => label.id)).toEqual([
-			'enough'
+		expect(label.maxWidth).toBe(ROOMY_LABEL_WIDTH);
+	});
+
+	it('names a box too small for a name when the canvas beside it is empty', () => {
+		// 10×9px on screen, alone: Docker Bridge beside the large subnets of an expanded L3.
+		const subnet = box('subnet', 0, 0, 4000, 1500);
+		const bridge = box('bridge', 6000, 0, 100, 90);
+
+		const placed = placeLabels([subnet, bridge], pane(0.1));
+
+		expect(placed.map((label) => label.id)).toEqual(['subnet', 'bridge']);
+		expect(placed[1].maxWidth).toBe(ROOMY_LABEL_WIDTH);
+	});
+
+	it('cuts a small box’s name shorter when only that much canvas is empty', () => {
+		// 10px wide with a neighbour 60px to its right: no room for the wide name, room for the short.
+		const boxes = [box('subnet', 700, 0, 4000, 1500), box('bridge', 0, 0, 100, 90)];
+
+		expect(placeLabels(boxes, pane(0.1))[1]).toMatchObject({
+			id: 'bridge',
+			maxWidth: MIN_LABEL_WIDTH
+		});
+	});
+
+	it('names a box shorter than a label when the canvas under it is empty', () => {
+		const flat = box('flat', 0, 0, 2000, (LABEL_HEIGHT - 1) / 0.1);
+
+		expect(placeLabels([flat], pane(0.1))).toMatchObject([{ id: 'flat', maxWidth: 200 }]);
+	});
+
+	it('names no small box when one of them has no room, the rim of a packed row included', () => {
+		// Two switches 33px wide, 5px apart. A name on the first would cover the second; the second
+		// has empty canvas beside it and stays bare with the first.
+		const packed = [box('acc-sw-058', 0, 0, 330, 430), box('acc-sw-059', 380, 0, 330, 430)];
+		const subnet = box('subnet', 0, 2000, 4000, 1500);
+
+		expect(placeLabels([...packed, subnet], pane(0.1)).map((label) => label.id)).toEqual([
+			'subnet'
 		]);
+		// With room for a name on each box, all are named.
+		expect(placeLabels([...packed, subnet], pane(0.2))).toHaveLength(3);
 	});
 
-	it('names more boxes as the zoom rises', () => {
-		const switches = [box('acc-sw-058', 0, 0, 330, 430), box('acc-sw-059', 0, 600, 330, 430)];
+	it('treats two small boxes whose names would cross as having no room', () => {
+		// The second sits up and to the right of the first. Each name clears the other box, and the
+		// two names would cross.
+		const pair = [box('first', 0, 100, 200, 100), box('second', 300, 0, 100, 50)];
 
-		expect(placeLabels(switches, pane(0.1))).toHaveLength(0);
-		expect(placeLabels(switches, pane(0.2))).toHaveLength(2);
+		expect(placeLabels(pair, pane(0.1))).toHaveLength(0);
+	});
+
+	it('keeps a small box’s name off a box with no name', () => {
+		const boxes = [box('bridge', 0, 0, 100, 90), box('unnamed', 200, 0, 2000, 2000, { text: '' })];
+
+		expect(placeLabels(boxes, pane(0.1))).toHaveLength(0);
 	});
 
 	it('skips boxes that are off the pane, and boxes with no name', () => {
