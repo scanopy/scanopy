@@ -28,7 +28,7 @@
 	} from '$lib/paraglide/messages';
 	import { type Node, type Edge } from '@xyflow/svelte';
 	import { getViewportForBounds, type Rect } from '@xyflow/system';
-	import { DETAIL_ZOOM, shouldSimplify } from '../../pipeline/render-mode';
+	import { FULL_CARD_NAMES_ZOOM, shouldSimplify } from '../../pipeline/render-mode';
 	import {
 		ABSOLUTE_MIN_ZOOM,
 		DEFAULT_MIN_ZOOM,
@@ -545,6 +545,9 @@
 	 */
 	const LONG_RUN_MS = 400;
 
+	/** How long the zoom must hold still before cards replace boxes: see `detailHidden`. */
+	const ZOOM_STILL_MS = 150;
+
 	/**
 	 * Whether the label layer also names a sparse sample of the boxes too small to hold a name
 	 * (`label-placement.ts`): guide words over a dense grid. Off until it has been judged on
@@ -587,24 +590,47 @@
 	 * badge appears and disappears on threshold crossings rather than on every pan frame.
 	 */
 	let widestNodeWidth = $derived(widestWidthOf($nodes));
-	let detailHidden = $derived(
-		shouldSimplify({
+
+	// The zoom has changed within the last moment: a wheel or pinch gesture, or an animated fit.
+	let zoomMoving = $state(false);
+	const noteZoomStill = throttle(() => (zoomMoving = false), ZOOM_STILL_MS, {
+		leading: false,
+		trailing: true
+	});
+	$effect(() => {
+		void viewerViewport.current.zoom;
+		zoomMoving = true;
+		noteZoomStill();
+		return () => noteZoomStill.cancel();
+	});
+
+	// What the last evaluation below returned. Plain, not state: it is the derived's own memory.
+	let boxesWereShown = false;
+	let detailHidden = $derived.by(() => {
+		const conditions = {
 			zoom: viewerViewport.current.zoom,
 			nodeCount: $nodes.length,
 			widestNodeWidth,
 			measuring: measurePassActive,
 			exporting: $isExporting
-		})
-	);
+		};
+		// Zooming in across the threshold mounts every card on screen in one frame, a quarter of a
+		// second on a few dozen cards, in the middle of the gesture. Boxes stay until the zoom has
+		// come to rest, and the cards arrive then. Going the other way is not held: dropping to
+		// boxes is cheap. A measure pass and an export still get full cards at once.
+		const held =
+			boxesWereShown && zoomMoving && shouldSimplify({ ...conditions, zoom: 0 });
+		boxesWereShown = shouldSimplify(conditions) || held;
+		return boxesWereShown;
+	});
 
 	// Container names are drawn on their own layer wherever a header cannot be read: at reduced
-	// detail, where it is not mounted, and below the zoom where its text is a few pixels tall. A
-	// graph under the reduced-detail node count keeps full cards down to a very low zoom, so the
-	// second condition is most of the range on a site of a few hundred switches.
+	// detail, where it is not mounted, and on a small graph that keeps full cards, below the zoom
+	// where its titles are a few pixels tall.
 	let namesUnreadable = $derived(
 		!measurePassActive &&
 			!$isExporting &&
-			(detailHidden || viewerViewport.current.zoom < DETAIL_ZOOM)
+			(detailHidden || viewerViewport.current.zoom < FULL_CARD_NAMES_ZOOM)
 	);
 
 	// The running scan changed this site and the layout is held (see `heldTopologySites`).
