@@ -1,9 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
-	LABEL_MAX_CHARS,
-	MAX_LANDMARKS,
-	labelText,
-	labelWidth,
+	LABEL_HEIGHT,
+	MAX_LABELS,
+	MIN_LABEL_WIDTH,
 	placeLabels,
 	type LabelCandidate,
 	type LabelViewport
@@ -31,95 +30,66 @@ const box = (
 /** A 1000×800 pane showing flow coordinates from the origin at `zoom`. */
 const pane = (zoom: number): LabelViewport => ({ x: 0, y: 0, width: 1000, height: 800, zoom });
 
-const placedIds = (candidates: LabelCandidate[], zoom: number, landmarks = false) =>
-	placeLabels(candidates, pane(zoom), { landmarks }).map((label) => `${label.id}:${label.placement}`);
-
+/**
+ * A name sits on its own box and is never wider than it. The layer cuts the text to `maxWidth`;
+ * what is decided here is which boxes get a name and how wide it may be.
+ */
 describe('placeLabels', () => {
-	it('names a box whose name covers nothing else, even past its own right edge', () => {
-		// 50px wide on screen, a name of about 76px, and empty canvas to its right.
-		expect(placedIds([box('acc-sw-058', 0, 0, 500, 600)], 0.1)).toEqual(['acc-sw-058:onBox']);
+	it('gives a name the width of its box on screen, and the whole text', () => {
+		const name = 'Plant Engineering: 10.40.45.0/24';
+		const [label] = placeLabels([box('subnet', 100, 50, 4000, 1500, { text: name })], pane(0.1));
+
+		expect(label).toMatchObject({ id: 'subnet', text: name, x: 100, y: 50, maxWidth: 400 });
 	});
 
-	it('leaves out a name that would cover the next box', () => {
-		// Two boxes 10px apart on screen: the left name would run over the right box.
-		const boxes = [box('left-host', 0, 0, 400, 200), box('right-host', 500, 0, 400, 200)];
-		expect(placedIds(boxes, 0.1)).toEqual(['right-host:onBox']);
+	it('keeps a long name on a box too narrow for it, to be cut by the layer', () => {
+		// 60px on screen for a name of about 190px: it stays on the box, capped at the box.
+		const [label] = placeLabels(
+			[box('bridge', 0, 0, 600, 400, { text: 'Docker Bridge: (172.17.0.0/16)' })],
+			pane(0.1)
+		);
+
+		expect(label.maxWidth).toBe(60);
 	});
 
-	it('names every box once each is larger than its name', () => {
-		const boxes = [box('left-host', 0, 0, 400, 200), box('right-host', 500, 0, 400, 200)];
-		expect(placedIds(boxes, 0.3).sort()).toEqual(['left-host:onBox', 'right-host:onBox']);
+	it('leaves out a box narrower than a few characters, or shorter than a label', () => {
+		const narrow = box('narrow', 0, 0, (MIN_LABEL_WIDTH - 1) / 0.1, 2000);
+		const short = box('short', 3000, 0, 2000, (LABEL_HEIGHT - 1) / 0.1);
+		const enough = box('enough', 6000, 0, MIN_LABEL_WIDTH / 0.1, LABEL_HEIGHT / 0.1);
+
+		expect(placeLabels([narrow, short, enough], pane(0.1)).map((label) => label.id)).toEqual([
+			'enough'
+		]);
 	});
 
-	it('skips boxes that are off the pane', () => {
-		const boxes = [box('seen', 100, 100, 2000, 2000), box('away', 50_000, 100, 2000, 2000)];
-		expect(placedIds(boxes, 0.1)).toEqual(['seen:onBox']);
+	it('names more boxes as the zoom rises', () => {
+		const switches = [box('acc-sw-058', 0, 0, 330, 430), box('acc-sw-059', 0, 600, 330, 430)];
+
+		expect(placeLabels(switches, pane(0.1))).toHaveLength(0);
+		expect(placeLabels(switches, pane(0.2))).toHaveLength(2);
 	});
 
-	describe('over a dense grid', () => {
-		// 40 columns × 30 rows of small boxes with no room between them for a name.
-		const grid: LabelCandidate[] = [];
-		for (let row = 0; row < 30; row++) {
-			for (let column = 0; column < 40; column++) {
-				grid.push(
-					box(`host-${String(row * 40 + column).padStart(4, '0')}`, column * 240, row * 200, 200, 80)
-				);
-			}
-		}
-
-		it('names almost nothing without landmarks', () => {
-			// Only boxes at the right-hand end of a row have empty canvas beside them.
-			const placed = placeLabels(grid, pane(0.1), { landmarks: false });
-			expect(placed.length).toBeLessThanOrEqual(30);
-			expect(placed.every((label) => label.placement === 'onBox')).toBe(true);
-		});
-
-		it('adds a sparse sample with landmarks, spread over the pane and within the limit', () => {
-			const placed = placeLabels(grid, pane(0.1), { landmarks: true });
-			const landmarks = placed.filter((label) => label.placement === 'landmark');
-
-			expect(landmarks.length).toBeGreaterThan(10);
-			expect(landmarks.length).toBeLessThanOrEqual(MAX_LANDMARKS);
-			// Not all from the first rows: the sample reaches the lower half of the pane.
-			const lowest = Math.max(...landmarks.map((label) => label.y * 0.1));
-			expect(lowest).toBeGreaterThan(300);
-		});
-
-		it('makes a landmark of the highest priority first, such as a search match', () => {
-			const wanted = 'host-0617';
-			const withMatch = grid.map((candidate) =>
-				candidate.id === wanted ? { ...candidate, priority: 1e12 } : candidate
-			);
-			const before = placeLabels(grid, pane(0.1), { landmarks: true }).map((label) => label.id);
-			const after = placeLabels(withMatch, pane(0.1), { landmarks: true }).map((label) => label.id);
-
-			expect(before).not.toContain(wanted);
-			expect(after).toContain(wanted);
-		});
-
-		it('keeps landmarks clear of each other', () => {
-			const landmarks = placeLabels(grid, pane(0.1), { landmarks: true }).filter(
-				(label) => label.placement === 'landmark'
-			);
-			for (let i = 0; i < landmarks.length; i++) {
-				for (let j = i + 1; j < landmarks.length; j++) {
-					const a = landmarks[i];
-					const b = landmarks[j];
-					const apartX =
-						Math.abs(a.x - b.x) * 0.1 >= Math.min(labelWidth(a.text), labelWidth(b.text)) + 24;
-					const apartY = Math.abs(a.y - b.y) * 0.1 >= 16 + 24;
-					expect(apartX || apartY, `${a.id} / ${b.id}`).toBe(true);
-				}
-			}
-		});
+	it('skips boxes that are off the pane, and boxes with no name', () => {
+		const boxes = [
+			box('seen', 100, 100, 2000, 2000),
+			box('away', 50_000, 100, 2000, 2000),
+			box('unnamed', 3000, 100, 2000, 2000, { text: '' })
+		];
+		expect(placeLabels(boxes, pane(0.1)).map((label) => label.id)).toEqual(['seen']);
 	});
-});
 
-describe('labelText', () => {
-	it('shortens a long name and leaves a short one alone', () => {
-		expect(labelText('acc-sw-058')).toBe('acc-sw-058');
-		const long = labelText('Plant Wireless Infrastructure: 10.40.26.0/23');
-		expect(long.length).toBe(LABEL_MAX_CHARS);
-		expect(long.endsWith('…')).toBe(true);
+	it('keeps the highest priority when there are more names than the limit', () => {
+		const many = Array.from({ length: MAX_LABELS + 20 }, (_, i) =>
+			box(`host-${String(i).padStart(4, '0')}`, (i % 40) * 20, Math.floor(i / 40) * 20, 600, 200)
+		);
+		const wanted = many[MAX_LABELS + 10];
+		const withMatch = many.map((candidate) =>
+			candidate === wanted ? { ...candidate, priority: 1e12 } : candidate
+		);
+
+		const placed = placeLabels(withMatch, pane(0.1));
+
+		expect(placed).toHaveLength(MAX_LABELS);
+		expect(placed[0].id).toBe(wanted.id);
 	});
 });

@@ -553,12 +553,6 @@
 	 */
 	const LONG_RUN_MS = 400;
 
-	/**
-	 * Whether the label layer also names a sparse sample of the boxes too small to hold a name
-	 * (`label-placement.ts`): guide words over a dense grid. Off until it has been judged on
-	 * real sites.
-	 */
-	const LABEL_LANDMARKS = false;
 	let runIsLong = $state(false);
 	let longRunTimer: ReturnType<typeof setTimeout> | undefined;
 	let loadProgressShown = $derived(runIsLong && $loadProgress !== null);
@@ -1885,11 +1879,7 @@
 			size={1}
 		/>
 
-		<ContainerLabelLayer
-			nodes={$nodes}
-			active={namesUnreadable}
-			landmarks={LABEL_LANDMARKS}
-		/>
+		<ContainerLabelLayer nodes={$nodes} active={namesUnreadable} />
 
 		{#if showControls}
 			<TopologySidebarControls

@@ -5,12 +5,7 @@
 	import { containerTypes } from '$lib/shared/stores/metadata';
 	import { createColorHelper } from '$lib/shared/utils/styling';
 	import { searchMatchContainerMap, searchMatchNodeIds } from '../../interactions';
-	import {
-		labelText,
-		placeLabels,
-		type LabelCandidate,
-		type PlacedLabel
-	} from '../../pipeline/label-placement';
+	import { placeLabels, type LabelCandidate, type PlacedLabel } from '../../pipeline/label-placement';
 
 	/**
 	 * Container names over a zoomed-out canvas: see `label-placement.ts` for which are drawn and
@@ -23,13 +18,11 @@
 	 */
 	let {
 		nodes,
-		active,
-		landmarks
+		active
 	}: {
 		nodes: Node[];
 		/** Container headers cannot be read at this zoom, and nothing is being exported. */
 		active: boolean;
-		landmarks: boolean;
 	} = $props();
 
 	// The canvas this layer belongs to, found from a marker left where the layer is declared: the
@@ -53,6 +46,8 @@
 	});
 
 	const SEARCH_PRIORITY = 1e12;
+	/** Width of a label's coloured left border, in pixels. Matches the style below. */
+	const LABEL_BORDER_PX = 2;
 
 	function colorOf(node: Node): string {
 		const data = node.data as Record<string, unknown>;
@@ -86,43 +81,90 @@
 			});
 		}
 		const { x, y, zoom } = untrack(() => viewport.current);
-		return placeLabels(
-			candidates,
-			{ x: -x / zoom, y: -y / zoom, width: pane.clientWidth, height: pane.clientHeight, zoom },
-			{ landmarks }
-		);
+		return placeLabels(candidates, {
+			x: -x / zoom,
+			y: -y / zoom,
+			width: pane.clientWidth,
+			height: pane.clientHeight,
+			zoom
+		});
 	});
 
 	let boxById = $derived(new Map(nodes.map((node) => [node.id, node])));
 
-	// The name of whatever box the pointer is over, at any zoom: the cheapest answer to "what is
-	// this one", and the only one where boxes are too dense for any name to be drawn.
-	let hovered = $state<{ text: string; x: number; y: number } | null>(null);
-	let hoveredId: string | null = null;
+	// The whole name of whatever box the pointer is over, at any zoom, on that box's corner. It is
+	// how a name cut short to its box is read in full (the labels take no pointer events, so the
+	// pointer over a label is over its box), and the only name there is where boxes are too small
+	// to carry one.
+	//
+	// A box that carries a label keeps that label: it only grows to the name's full width, and
+	// nothing else about it changes. A box with none (too small, or a card inside a container)
+	// gets one for as long as the pointer is on it.
+	interface Hovered {
+		id: string;
+		text: string;
+		color: string;
+		x: number;
+		y: number;
+		/** Width of the box's own label showing its whole name, when it has one. */
+		fullWidth: number | null;
+	}
+	let hovered = $state<Hovered | null>(null);
+	let layer = $state<HTMLElement>();
 
-	function describe(id: string): { text: string; x: number; y: number } | null {
+	function describe(id: string): Hovered | null {
 		const names: string[] = [];
 		let x = 0;
 		let y = 0;
+		let root: Node | undefined;
 		for (let node = boxById.get(id); node; node = boxById.get(node.parentId ?? '')) {
 			const header = (node.data as Record<string, unknown>).header as string | undefined;
-			if (header) names.unshift(labelText(header));
+			if (header) names.unshift(header);
 			// Positions are relative to the parent, so the chain sums to the absolute one.
 			x += node.position.x;
 			y += node.position.y;
+			root = node;
 		}
-		return names.length > 0 ? { text: names.join(' › '), x, y } : null;
+		if (names.length === 0 || !root) return null;
+		const own = layer?.querySelector<HTMLElement>(`[data-label-for="${CSS.escape(id)}"]`);
+		return {
+			id,
+			text: names.join(' › '),
+			color: colorOf(root),
+			x,
+			y,
+			// `scrollWidth` is the text and padding, rounded down; the left border is outside it. The
+			// spare pixels keep a name that just fits from being cut again by that rounding.
+			fullWidth: own ? own.scrollWidth + LABEL_BORDER_PX + 3 : null
+		};
 	}
 
 	$effect(() => {
 		if (!active || !pane) {
 			hovered = null;
-			hoveredId = null;
 			return;
 		}
+		let hoveredId: string | null = null;
+		// A label takes no pointer events, so the pane and the nodes under it still pan, select and
+		// click. Whether the pointer is on one is read from its rectangle.
+		const labelUnder = (event: PointerEvent): string | null => {
+			for (const label of layer?.querySelectorAll<HTMLElement>('[data-label-for]') ?? []) {
+				const rect = label.getBoundingClientRect();
+				if (
+					event.clientX >= rect.left &&
+					event.clientX <= rect.right &&
+					event.clientY >= rect.top &&
+					event.clientY <= rect.bottom
+				) {
+					return label.dataset.labelFor ?? null;
+				}
+			}
+			return null;
+		};
 		const onMove = (event: PointerEvent) => {
 			const element = (event.target as Element | null)?.closest?.('.svelte-flow__node');
-			const id = (element as HTMLElement | null)?.dataset.id ?? null;
+			// On a label, the label's own container; otherwise whatever node is under the pointer.
+			const id = labelUnder(event) ?? (element as HTMLElement | null)?.dataset.id ?? null;
 			if (id === hoveredId) return;
 			hoveredId = id;
 			hovered = id ? describe(id) : null;
@@ -143,24 +185,25 @@
 <span bind:this={marker} hidden></span>
 {#if active}
 	<ViewportPortal target="front">
-		<div class="container-labels" style:--inv-zoom={inverseZoom}>
+		<div class="container-labels" style:--inv-zoom={inverseZoom} bind:this={layer}>
 			{#each placed as label (label.id)}
+				{@const open = hovered?.id === label.id && hovered.fullWidth !== null}
 				<div
 					class="container-label"
-					class:landmark={label.placement === 'landmark'}
+					class:open
+					data-label-for={label.id}
 					style:--label-color={label.color}
-					style:transform="translate({label.x}px, {label.y}px) scale(var(--inv-zoom)){label.placement ===
-					'landmark'
-						? ' translateY(-100%)'
-						: ''}"
+					style:max-width="{open ? Math.max(hovered?.fullWidth ?? 0, label.maxWidth) : label.maxWidth}px"
+					style:transform="translate({label.x}px, {label.y}px) scale(var(--inv-zoom))"
 				>
 					{label.text}
 				</div>
 			{/each}
-			{#if hovered}
+			{#if hovered && hovered.fullWidth === null}
 				<div
-					class="container-label hover"
-					style:transform="translate({hovered.x}px, {hovered.y}px) scale(var(--inv-zoom)) translateY(-100%)"
+					class="container-label open"
+					style:--label-color={hovered.color}
+					style:transform="translate({hovered.x}px, {hovered.y}px) scale(var(--inv-zoom))"
 				>
 					{hovered.text}
 				</div>
@@ -180,11 +223,17 @@
 		pointer-events: none;
 	}
 
-	/* 16px tall and about 6.2px a character: `label-placement.ts` plans with the same figures. */
+	/* 16px tall, as `label-placement.ts` plans for. Never wider than its box (`max-width`, set per
+	 * label): a longer name is cut with an ellipsis. On hover the width alone grows to the whole
+	 * name, and eases there; colour, weight and size stay as they are. */
 	.container-label {
 		position: absolute;
 		top: 0;
 		left: 0;
+		box-sizing: border-box;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		transition: max-width 0.15s ease-out;
 		transform-origin: 0 0;
 		height: 16px;
 		padding: 0 6px;
@@ -198,9 +247,8 @@
 		box-shadow: 0 0 0 1px var(--color-border, #e2e8f0);
 	}
 
-	.container-label.hover {
+	/* Above its neighbours while it is wider than its box. */
+	.container-label.open {
 		z-index: 1;
-		font-weight: 600;
-		border-left-color: var(--color-text-primary, #0f172a);
 	}
 </style>
