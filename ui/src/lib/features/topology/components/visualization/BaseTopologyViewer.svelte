@@ -403,7 +403,22 @@
 	export async function triggerFitView() {
 		const bounds = getLayoutBounds();
 		if (!bounds) return;
-		await setViewport(viewportFor(bounds, derivedMinZoom));
+		const target = viewportFor(bounds, derivedMinZoom);
+		// Publish the detail state for the zoom the fit is about to set, before it sets it. A fit
+		// brings every node into view at once. Left to the effects below, the nodes mount first in
+		// full detail and are then redrawn as boxes when the effect catches up: 252 collapsed
+		// switch cards took 5.7 s of script that way.
+		viewportZoom.set(target.zoom);
+		detailSimplified.set(
+			shouldSimplify({
+				zoom: target.zoom,
+				nodeCount: $nodes.length,
+				widestNodeWidth,
+				measuring: measurePassActive,
+				exporting: $isExporting
+			})
+		);
+		await setViewport(target);
 	}
 
 	export function fitViewToNodes(nodeIds: string[]) {
