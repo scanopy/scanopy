@@ -313,7 +313,9 @@
 		hoveredRelationship === 'element' && currentHoveredTag?.tagId === null
 	);
 
-	let cardClass = $derived(`card ${isNodeSelected ? 'card-selected' : ''}`);
+	let cardClass = $derived(
+		`card ${isNodeSelected ? 'card-selected' : ''} ${simplified ? 'lod-card' : ''}`
+	);
 
 	// A service definition's logo, or its glyph when it has none.
 	const serviceGlyph = (definition: string) =>

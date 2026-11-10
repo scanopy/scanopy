@@ -165,3 +165,14 @@
 	border-radius: 9999px;
 	background: var(--dot);
 }
+
+/* Reduced detail. A boxed element card is a flat state colour a few pixels across, so its drop
+ * shadow and backdrop blur draw nothing visible, and each one is a blur pass per card per pan
+ * frame: 4,315 boxed cards painted in about 480 ms a frame with them and 19 ms without. Either
+ * effect alone keeps the slow path. `--tw-shadow` drops the drop shadow only, so the selection
+ * and hover rings, which share `box-shadow`, still draw. */
+.svelte-flow__node .card.lod-card {
+	--tw-shadow: 0 0 #0000;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
