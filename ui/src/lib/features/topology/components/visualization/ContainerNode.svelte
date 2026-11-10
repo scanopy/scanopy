@@ -1,10 +1,5 @@
 <script lang="ts">
-	import {
-		type NodeProps,
-		type ResizeDragEvent,
-		type ResizeParams,
-		useViewport
-	} from '@xyflow/svelte';
+	import { type NodeProps, type ResizeDragEvent, type ResizeParams } from '@xyflow/svelte';
 	import NodeHandles from './NodeHandles.svelte';
 	// NodeResizeControl — unused while the resize controls below are commented out.
 	// import { NodeResizeControl } from '@xyflow/svelte';
@@ -61,11 +56,11 @@
 	 * container, or padding-area text inside it, and neither is what ELK sized.
 	 *
 	 * Note the comment further down about resize controls, which once tested `viewport.zoom > 0.5`
-	 * and were changed because it "subscribed every container node to every pan/zoom frame". The
-	 * difference here is that this derives a *boolean*: it recomputes per frame but only propagates
-	 * when the threshold is crossed, so no DOM work happens in between. Measured before relying on it.
+	 * and were changed because it "subscribed every container node to every pan/zoom frame". This
+	 * reads the shared zoom instead of the viewport: a pan changes x and y only, so it reaches no
+	 * container, and a zoom recomputes each tier once. Reading `useViewport()` here recomputed
+	 * every mounted container on every pan frame, 39 ms per frame at 3,532 containers.
 	 */
-	const viewport = useViewport();
 	let searchHiddenNodes = $derived(sharedStores.searchHiddenNodes.current);
 	let searchContainerMap = $derived(sharedStores.searchContainerMatches.current);
 	let currentHoveredTag = $derived(sharedStores.currentHoveredTag.current);
@@ -227,7 +222,7 @@
 	let detailTier = $derived(
 		nodeDetail({
 			detail: !sharedStores.simplified.current,
-			screenWidth: (width ?? 0) * viewport.current.zoom,
+			screenWidth: (width ?? 0) * sharedStores.zoom.current,
 			isSubcontainer
 		})
 	);

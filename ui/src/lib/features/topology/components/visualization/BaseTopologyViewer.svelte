@@ -68,6 +68,7 @@
 		isExporting,
 		isMeasuring,
 		detailSimplified,
+		viewportZoom,
 		isRenderingTopology
 	} from '../../interactions';
 
@@ -532,6 +533,7 @@
 	// Publish rather than let each node decide: the size term above is not visible to a node, and
 	// one refcounted subscription beats a viewport read per node. See `detailSimplified`.
 	$effect(() => detailSimplified.set(detailHidden));
+	$effect(() => viewportZoom.set(viewerViewport.current.zoom));
 
 	let cullOffscreen = $derived(
 		shouldCull({

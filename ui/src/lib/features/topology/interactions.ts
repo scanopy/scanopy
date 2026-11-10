@@ -68,6 +68,15 @@ export const isMeasuring = writable(false);
 export const detailSimplified = writable(false);
 
 /**
+ * The viewport's zoom, published by the viewer.
+ *
+ * A node that needs the zoom reads this, never `useViewport()`: the viewport object changes on
+ * every pan frame, and a per-node read of it re-runs that node's derived state per frame. A
+ * writable only notifies when its value changes, so panning notifies nobody.
+ */
+export const viewportZoom = writable(1);
+
+/**
  * A pipeline run is in flight — layout, measurement, the lot.
  *
  * Surfaced so the viewer can say so. On a large estate a collapse press costs eighteen to
