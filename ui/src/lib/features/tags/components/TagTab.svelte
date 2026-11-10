@@ -73,14 +73,12 @@
 	const tagsQuery = useTagsQuery();
 	const page = listPageState(() => isActive);
 	const tagsPageQuery = useTagsListQuery(() => page.params());
-	const TAG_FIELD_VALUES = '/api/v1/tags/field-values/{field}';
-	const colorValuesQuery = useFieldValuesQuery(
-		TAG_FIELD_VALUES,
-		'color',
+	const fieldValuesQuery = useFieldValuesQuery(
+		'/api/v1/tags/field-values',
+		['color', 'icon'],
 		undefined,
 		() => isActive
 	);
-	const iconValuesQuery = useFieldValuesQuery(TAG_FIELD_VALUES, 'icon', undefined, () => isActive);
 	const tagGroupsQuery = useTagGroupsQuery();
 	let tagGroups = $derived(tagGroupsQuery.data ?? []);
 	let applicationGroup = $derived(applicationGroupId(tagGroups));
@@ -172,8 +170,8 @@
 			lookup: () => lookup,
 			tagGroups: () => tagGroups,
 			applicationGroup: () => applicationGroup,
-			colorValues: () => colorValuesQuery.data,
-			iconValues: () => iconValuesQuery.data
+			colorValues: () => fieldValuesQuery.data?.color,
+			iconValues: () => fieldValuesQuery.data?.icon
 		})
 	);
 </script>

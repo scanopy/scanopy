@@ -62,9 +62,9 @@
 	const sitesQuery = useSitesQuery();
 	const page = listPageState(() => isActive);
 	const sitesPageQuery = useSitesListQuery(() => page.params());
-	const staleWindowValuesQuery = useFieldValuesQuery(
-		'/api/v1/sites/field-values/{field}',
-		'effective_stale_after_hours',
+	const fieldValuesQuery = useFieldValuesQuery(
+		'/api/v1/sites/field-values',
+		['effective_stale_after_hours'],
 		undefined,
 		() => isActive
 	);
@@ -214,7 +214,7 @@
 			subnets: () => subnetsData,
 			vlans: () => vlansData,
 			credentials: () => credentialsData,
-			staleWindowValues: () => staleWindowValuesQuery.data
+			staleWindowValues: () => fieldValuesQuery.data?.effective_stale_after_hours
 		})
 	);
 </script>

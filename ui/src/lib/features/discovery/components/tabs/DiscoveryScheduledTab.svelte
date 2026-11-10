@@ -89,30 +89,10 @@
 	const page = listPageState(() => isActive);
 	const discoveriesQuery = useScheduledDiscoveriesQuery(() => page.params());
 	// Filter options: the values the scan configurations hold, scoped the way the list is.
-	const DISCOVERY_FIELD_VALUES = '/api/v1/discoveries/field-values/{field}';
-	const configScope = () => ({ historical: false });
-	const daemonValuesQuery = useFieldValuesQuery(
-		DISCOVERY_FIELD_VALUES,
-		'daemon_id',
-		configScope,
-		() => isActive
-	);
-	const siteValuesQuery = useFieldValuesQuery(
-		DISCOVERY_FIELD_VALUES,
-		'site_id',
-		configScope,
-		() => isActive
-	);
-	const typeValuesQuery = useFieldValuesQuery(
-		DISCOVERY_FIELD_VALUES,
-		'discovery_type',
-		configScope,
-		() => isActive
-	);
-	const runTypeValuesQuery = useFieldValuesQuery(
-		DISCOVERY_FIELD_VALUES,
-		'run_type',
-		configScope,
+	const fieldValuesQuery = useFieldValuesQuery(
+		'/api/v1/discoveries/field-values',
+		['daemon_id', 'site_id', 'discovery_type', 'run_type'],
+		() => ({ historical: false }),
 		() => isActive
 	);
 	const daemonsQuery = useDaemonsQuery();
@@ -378,10 +358,10 @@
 			schedulePaused: () => schedulePaused,
 			getActiveSession,
 			progressCell: () => progressCell,
-			daemonValues: () => daemonValuesQuery.data,
-			siteValues: () => siteValuesQuery.data,
-			typeValues: () => typeValuesQuery.data,
-			runTypeValues: () => runTypeValuesQuery.data
+			daemonValues: () => fieldValuesQuery.data?.daemon_id,
+			siteValues: () => fieldValuesQuery.data?.site_id,
+			typeValues: () => fieldValuesQuery.data?.discovery_type,
+			runTypeValues: () => fieldValuesQuery.data?.run_type
 		})
 	);
 </script>

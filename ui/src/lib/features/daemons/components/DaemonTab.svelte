@@ -85,28 +85,9 @@
 	const page = listPageState(() => isActive);
 	const daemonsPageQuery = useDaemonsListQuery(() => page.params());
 	// Filter options: the values the caller's daemons hold, counted by the server.
-	const DAEMON_FIELD_VALUES = '/api/v1/daemons/field-values/{field}';
-	const siteValuesQuery = useFieldValuesQuery(
-		DAEMON_FIELD_VALUES,
-		'site_id',
-		undefined,
-		() => isActive
-	);
-	const modeValuesQuery = useFieldValuesQuery(
-		DAEMON_FIELD_VALUES,
-		'mode',
-		undefined,
-		() => isActive
-	);
-	const maintainerValuesQuery = useFieldValuesQuery(
-		DAEMON_FIELD_VALUES,
-		'maintainer',
-		undefined,
-		() => isActive
-	);
-	const versionValuesQuery = useFieldValuesQuery(
-		DAEMON_FIELD_VALUES,
-		'version',
+	const fieldValuesQuery = useFieldValuesQuery(
+		'/api/v1/daemons/field-values',
+		['site_id', 'mode', 'maintainer', 'version'],
 		undefined,
 		() => isActive
 	);
@@ -143,7 +124,7 @@
 			? [
 					...new Set([
 						...pageDaemons.map((d) => d.user_id).filter((id): id is string => !!id),
-						...fieldValueOptions(maintainerValuesQuery.data)
+						...fieldValueOptions(fieldValuesQuery.data?.maintainer)
 					])
 				]
 			: []
@@ -387,10 +368,10 @@
 			interfacedSubnets,
 			subnets: () => subnetsData,
 			osCell: () => osCell,
-			siteValues: () => siteValuesQuery.data,
-			modeValues: () => modeValuesQuery.data,
-			maintainerValues: () => maintainerValuesQuery.data,
-			versionValues: () => versionValuesQuery.data
+			siteValues: () => fieldValuesQuery.data?.site_id,
+			modeValues: () => fieldValuesQuery.data?.mode,
+			maintainerValues: () => fieldValuesQuery.data?.maintainer,
+			versionValues: () => fieldValuesQuery.data?.version
 		})
 	);
 </script>

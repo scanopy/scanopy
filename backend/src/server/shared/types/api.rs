@@ -65,6 +65,16 @@ impl From<(Option<String>, u64)> for GroupCount {
     }
 }
 
+/// The distinct values of one field, with how many rows hold each. `F` is the entity's order
+/// field.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct FieldValues<F> {
+    /// The field these values belong to, as the request named it.
+    pub field: F,
+    /// Each distinct value of the field and how many rows hold it.
+    pub values: Vec<GroupCount>,
+}
+
 /// Pagination metadata returned with paginated responses.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct PaginationMeta {

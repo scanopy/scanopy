@@ -84,9 +84,6 @@
 
 	type HostOrderField = components['schemas']['HostOrderField'];
 
-	const HOST_FIELD_VALUES = '/api/v1/hosts/field-values/{field}';
-	const SERVICE_FIELD_VALUES = '/api/v1/services/field-values/{field}';
-
 	// Pagination state
 	let pageSize = $state(20);
 	let currentPage = $state(1);
@@ -139,52 +136,16 @@
 	// loaded page would only offer the values on it, and the fixtures and caches would offer values
 	// no host holds. None of these takes the tab's active filters, so the options do not shrink as
 	// the user filters.
-	const siteValuesQuery = useFieldValuesQuery(
-		HOST_FIELD_VALUES,
-		'site_id',
-		undefined,
-		() => isActive
-	);
-	const virtualizedByValuesQuery = useFieldValuesQuery(
-		HOST_FIELD_VALUES,
-		'virtualized_by',
-		undefined,
-		() => isActive
-	);
-	const sourceValuesQuery = useFieldValuesQuery(
-		HOST_FIELD_VALUES,
-		'source',
-		undefined,
-		() => isActive
-	);
-	const osFamilyValuesQuery = useFieldValuesQuery(
-		HOST_FIELD_VALUES,
-		'os_family',
-		undefined,
-		() => isActive
-	);
-	const manufacturerValuesQuery = useFieldValuesQuery(
-		HOST_FIELD_VALUES,
-		'manufacturer',
-		undefined,
-		() => isActive
-	);
-	const modelValuesQuery = useFieldValuesQuery(
-		HOST_FIELD_VALUES,
-		'model',
-		undefined,
-		() => isActive
-	);
-	const sysLocationValuesQuery = useFieldValuesQuery(
-		HOST_FIELD_VALUES,
-		'sys_location',
+	const hostValuesQuery = useFieldValuesQuery(
+		'/api/v1/hosts/field-values',
+		['site_id', 'virtualized_by', 'source', 'os_family', 'manufacturer', 'model', 'sys_location'],
 		undefined,
 		() => isActive
 	);
 	// Every service belongs to a host, so the services' names are the names some host runs.
-	const serviceNameValuesQuery = useFieldValuesQuery(
-		SERVICE_FIELD_VALUES,
-		'name',
+	const serviceValuesQuery = useFieldValuesQuery(
+		'/api/v1/services/field-values',
+		['name'],
 		undefined,
 		() => isActive
 	);
@@ -356,14 +317,14 @@
 			discoveryRuns: () => discoveryRunsData,
 			virtualizationRoots: () => virtualizationRoots,
 			hostIPAddresses,
-			siteValues: () => siteValuesQuery.data,
-			virtualizedByValues: () => virtualizedByValuesQuery.data,
-			sourceValues: () => sourceValuesQuery.data,
-			osFamilyValues: () => osFamilyValuesQuery.data,
-			manufacturerValues: () => manufacturerValuesQuery.data,
-			modelValues: () => modelValuesQuery.data,
-			sysLocationValues: () => sysLocationValuesQuery.data,
-			serviceNameValues: () => serviceNameValuesQuery.data,
+			siteValues: () => hostValuesQuery.data?.site_id,
+			virtualizedByValues: () => hostValuesQuery.data?.virtualized_by,
+			sourceValues: () => hostValuesQuery.data?.source,
+			osFamilyValues: () => hostValuesQuery.data?.os_family,
+			manufacturerValues: () => hostValuesQuery.data?.manufacturer,
+			modelValues: () => hostValuesQuery.data?.model,
+			sysLocationValues: () => hostValuesQuery.data?.sys_location,
+			serviceNameValues: () => serviceValuesQuery.data?.name,
 			osCell
 		})
 	);

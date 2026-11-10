@@ -52,7 +52,7 @@
 
 	type DiscoveryOrderField = components['schemas']['DiscoveryOrderField'];
 
-	const DISCOVERY_FIELD_VALUES = '/api/v1/discoveries/field-values/{field}';
+	const DISCOVERY_FIELD_VALUES = '/api/v1/discoveries/field-values';
 
 	import { refusedUnless, useCan } from '$lib/features/auth/access';
 
@@ -89,29 +89,10 @@
 	// Filter options: the values the run history actually holds. Scoped to history rows the way
 	// the list is, so scheduled configurations add none, and never narrowed by the active filters,
 	// so the options do not shrink as the user filters. Gated like the list.
-	const historyScope = () => ({ historical: true });
-	const daemonValuesQuery = useFieldValuesQuery(
+	const fieldValuesQuery = useFieldValuesQuery(
 		DISCOVERY_FIELD_VALUES,
-		'daemon_id',
-		historyScope,
-		() => isActive
-	);
-	const siteValuesQuery = useFieldValuesQuery(
-		DISCOVERY_FIELD_VALUES,
-		'site_id',
-		historyScope,
-		() => isActive
-	);
-	const typeValuesQuery = useFieldValuesQuery(
-		DISCOVERY_FIELD_VALUES,
-		'discovery_type',
-		historyScope,
-		() => isActive
-	);
-	const phaseValuesQuery = useFieldValuesQuery(
-		DISCOVERY_FIELD_VALUES,
-		'phase',
-		historyScope,
+		['daemon_id', 'site_id', 'discovery_type', 'phase'],
+		() => ({ historical: true }),
 		() => isActive
 	);
 	const tagsQuery = useTagsQuery();
@@ -270,10 +251,10 @@
 			sites: () => sitesData,
 			tags: () => tagsData,
 			tagGroups: () => tagGroupsQuery.data,
-			daemonValues: () => daemonValuesQuery.data,
-			siteValues: () => siteValuesQuery.data,
-			typeValues: () => typeValuesQuery.data,
-			phaseValues: () => phaseValuesQuery.data,
+			daemonValues: () => fieldValuesQuery.data?.daemon_id,
+			siteValues: () => fieldValuesQuery.data?.site_id,
+			typeValues: () => fieldValuesQuery.data?.discovery_type,
+			phaseValues: () => fieldValuesQuery.data?.phase,
 			resultsOf,
 			outcomeTag,
 			warningsOf,

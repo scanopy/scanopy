@@ -54,9 +54,9 @@
 	// a daemon is managed from the daemon record, not this tab.
 	const page = listPageState(() => isActive);
 	const keysPageQuery = useUnboundApiKeysListQuery(() => page.params());
-	const siteValuesQuery = useFieldValuesQuery(
-		'/api/v1/daemon-api-keys/field-values/{field}',
-		'site_id',
+	const fieldValuesQuery = useFieldValuesQuery(
+		'/api/v1/daemon-api-keys/field-values',
+		['site_id'],
 		() => ({
 			unbound: true
 		}),
@@ -187,7 +187,7 @@
 			lookup: () => lookup,
 			sites: () => sitesData,
 			tags: () => tagsData,
-			siteValues: () => siteValuesQuery.data
+			siteValues: () => fieldValuesQuery.data?.site_id
 		})
 	);
 </script>

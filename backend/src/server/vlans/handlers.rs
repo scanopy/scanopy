@@ -31,6 +31,7 @@ use uuid::Uuid;
 // Vlan Ordering
 // ============================================================================
 
+/// Fields that VLANs can be ordered/grouped by.
 #[derive(
     Serialize, Deserialize, Debug, Clone, Copy, Default, utoipa::ToSchema, strum::EnumIter,
 )]
