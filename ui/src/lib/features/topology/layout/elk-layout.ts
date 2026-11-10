@@ -167,7 +167,11 @@ const ROOT_OPTIONS_BY_ALGORITHM: Record<ViewLayoutConfig['algorithm'], Record<st
 		...ROOT_LAYOUT_OPTIONS,
 		'elk.layered.crossingMinimization.forceNodeModelOrder': 'true',
 		'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-		'elk.layered.considerModelOrder.components': 'MODEL_ORDER'
+		'elk.layered.considerModelOrder.components': 'MODEL_ORDER',
+		// Hosts with no layout edge between them are each their own component. Compacting
+		// components stacks thousands of them into one strip a few hosts wide; without it they
+		// fill rows to the root aspect ratio.
+		'elk.layered.compaction.connectedComponents': 'false'
 	},
 	// For mostly independent container groups (Application's Customer Portal, CI/CD, Wiki,
 	// Monitoring, Ungrouped, …) with only a few cross-group flow edges. Layered layout strings the
