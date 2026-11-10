@@ -151,19 +151,19 @@ fn apply(
     let last_activity_at = update.last_activity_at.or(session.last_activity_at);
     *session = update.clone();
     session.last_activity_at = last_activity_at;
+    // A client that opens the stream mid-run times the session's silence from this, not from
+    // when it happened to connect. A server-ended session was last heard from before this update.
+    session.last_update_at = match origin {
+        Origin::Daemon => Some(now),
+        Origin::Server => last_heard,
+    };
 
     if !session.phase.is_terminal() {
         return UpdateOutcome::Progress;
     }
 
-    match origin {
-        Origin::Daemon => {
-            session.reason = reason_for_daemon_terminal(session.phase, update.reason);
-            session.last_update_at = Some(now);
-        }
-        // The server is ending the session on the daemon's behalf, so the daemon was last heard
-        // from before this update, not by it.
-        Origin::Server => session.last_update_at = last_heard,
+    if origin == Origin::Daemon {
+        session.reason = reason_for_daemon_terminal(session.phase, update.reason);
     }
     let session = session.clone();
     let parent_discovery_id = maps
@@ -887,6 +887,23 @@ mod tests {
 
         assert!(!maps.discovery_sessions.contains_key(&orphaned_discovery));
         assert!(maps.discovery_sessions.contains_key(&finishing_discovery));
+    }
+
+    /// The session list and the stream carry when the daemon last reported a running session, so
+    /// a client that connects after it went quiet can tell how long it has been silent.
+    #[test]
+    fn a_running_session_records_when_its_daemon_last_reported() {
+        let mut maps = Maps::default();
+        let running = maps.start(Uuid::new_v4(), DiscoveryPhase::Scanning);
+        let heard = Utc::now() - Duration::seconds(120);
+
+        let outcome = apply_update(&mut maps.borrow(), &running, heard);
+
+        assert!(matches!(outcome, UpdateOutcome::Progress));
+        assert_eq!(
+            maps.sessions[&running.session_id].last_update_at,
+            Some(heard)
+        );
     }
 
     #[test]
