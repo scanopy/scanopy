@@ -513,10 +513,14 @@
 	 * Reading the viewport reactively costs one component here, and the value is a boolean, so the
 	 * badge appears and disappears on threshold crossings rather than on every pan frame.
 	 */
+	let widestNodeWidth = $derived(
+		$nodes.reduce((widest, node) => Math.max(widest, node.measured?.width ?? node.width ?? 0), 0)
+	);
 	let detailHidden = $derived(
 		shouldSimplify({
 			zoom: viewerViewport.current.zoom,
 			nodeCount: $nodes.length,
+			widestNodeWidth,
 			measuring: measurePassActive,
 			exporting: $isExporting
 		})

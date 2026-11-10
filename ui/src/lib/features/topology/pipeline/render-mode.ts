@@ -107,6 +107,11 @@ export interface SimplifyConditions {
 	zoom: number;
 	/** Nodes in the store. Below `LOD_MIN_NODES` nothing is simplified at any zoom. */
 	nodeCount: number;
+	/**
+	 * Layout width of the widest node drawn, in flow pixels. Once even that node is narrower than
+	 * `BOX_MIN_PX` on screen, no card has anything legible on it, whatever the graph's size.
+	 */
+	widestNodeWidth: number;
 	/** A DOM measurement pass is in progress. */
 	measuring: boolean;
 	/** An export is capturing the flow element. */
@@ -132,13 +137,25 @@ export interface SimplifyConditions {
  * of the DOM wants it whole and detailed, which is the same thing that switch already means.
  */
 export function shouldSimplify(conditions: SimplifyConditions): boolean {
-	return reducedDetailAllowed(conditions) && conditions.zoom < DETAIL_ZOOM;
+	if (reducedDetailSuspended(conditions)) return false;
+	if (conditions.nodeCount >= LOD_MIN_NODES && conditions.zoom < DETAIL_ZOOM) return true;
+	return everyNodeTooSmallToRead(conditions);
 }
 
-/** The gates every reduction shares: no measure pass, export or tooling, and a large graph. */
-function reducedDetailAllowed({ nodeCount, measuring, exporting }: SimplifyConditions): boolean {
-	if (measuring || exporting || cullingDisabledForTooling()) return false;
-	return nodeCount >= LOD_MIN_NODES;
+/** The suspensions every reduction shares: a measure pass, an export, or tooling. */
+function reducedDetailSuspended({ measuring, exporting }: SimplifyConditions): boolean {
+	return measuring || exporting || cullingDisabledForTooling();
+}
+
+/**
+ * Every node is under `BOX_MIN_PX` wide on screen, so full cards show nothing and still cost a
+ * repaint per pan frame. Measured on 252 collapsed switch cards (13,460 DOM elements) at the
+ * zoom they fit at, 0.015: 11 fps drawn in full, 46 fps as boxes. Not gated on `LOD_MIN_NODES`,
+ * because there is no detail left to lose. A small site reaches it only by zooming far out past
+ * its fit zoom.
+ */
+function everyNodeTooSmallToRead({ zoom, widestNodeWidth }: SimplifyConditions): boolean {
+	return widestNodeWidth > 0 && widestNodeWidth * zoom < BOX_MIN_PX;
 }
 
 /**

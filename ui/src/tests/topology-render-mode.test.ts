@@ -84,7 +84,15 @@ describe('nodeDetail', () => {
  * purely worse, which is why this is gated on the graph and not on the zoom alone.
  */
 describe('shouldSimplify', () => {
-	const big = { zoom: 0.01, nodeCount: LOD_MIN_NODES, measuring: false, exporting: false };
+	// The widest node is a 5,000px root container, 50px on screen at this zoom, so the size gate
+	// is what decides these cases.
+	const big = {
+		zoom: 0.01,
+		nodeCount: LOD_MIN_NODES,
+		widestNodeWidth: 5_000,
+		measuring: false,
+		exporting: false
+	};
 
 	it('simplifies a large graph once it is zoomed out past the detail threshold', () => {
 		expect(shouldSimplify(big)).toBe(true);
@@ -105,5 +113,28 @@ describe('shouldSimplify', () => {
 		// pinned heights, and an export would rasterise a page of empty boxes.
 		expect(shouldSimplify({ ...big, measuring: true })).toBe(false);
 		expect(shouldSimplify({ ...big, exporting: true })).toBe(false);
+	});
+
+	describe('when every node is too small to read', () => {
+		// 252 collapsed switch cards, the widest 353px: below the node-count gate, and 5.3px wide
+		// at the zoom the site fits at.
+		const collapsed = { ...big, nodeCount: 252, widestNodeWidth: 353, zoom: 0.015 };
+
+		it('simplifies a graph below the size gate', () => {
+			expect(shouldSimplify(collapsed)).toBe(true);
+		});
+
+		it('draws in full once the widest node reaches the minimum box width', () => {
+			expect(shouldSimplify({ ...collapsed, zoom: BOX_MIN_PX / 353 })).toBe(false);
+		});
+
+		it('still suspends for the measure pass and for export', () => {
+			expect(shouldSimplify({ ...collapsed, measuring: true })).toBe(false);
+			expect(shouldSimplify({ ...collapsed, exporting: true })).toBe(false);
+		});
+
+		it('does not simplify before any node has a width', () => {
+			expect(shouldSimplify({ ...collapsed, widestNodeWidth: 0 })).toBe(false);
+		});
 	});
 });
