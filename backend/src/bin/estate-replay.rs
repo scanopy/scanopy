@@ -149,6 +149,12 @@ impl Daemon {
             daemon_version: Some(self.version.clone()),
             last_activity_at: Some(now),
         };
+        if terminal {
+            println!(
+                "terminal update {} bytes",
+                serde_json::to_vec(&payload)?.len()
+            );
+        }
         self.post(
             &format!("/api/v1/discoveries/{}/update", session.session_id),
             &payload,
