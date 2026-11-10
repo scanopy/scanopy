@@ -20,7 +20,7 @@
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
 	import type { IconComponent } from '$lib/shared/utils/types';
-	import { Menu, ChevronDown, History, Settings, Clock, Search } from '@lucide/svelte';
+	import { Bell, Menu, ChevronDown, History, Settings, Clock, Search } from '@lucide/svelte';
 	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
 	import PaidCrown from '$lib/shared/components/PaidCrown.svelte';
 	import NavBadge from '$lib/shared/components/layout/NavBadge.svelte';
@@ -245,6 +245,8 @@
 		entityType?: EntityDiscriminants; // Links this nav item to an entity type via entityUIConfig
 		component?: Component;
 		position?: 'main' | 'bottom';
+		/** A bottom item drawn as an icon button, in one row with the others, its label the tooltip. */
+		iconOnly?: boolean;
 		onClick?: () => void | Promise<void>;
 		requires?: Resource; // The resource a user has to be able to read to see this item.
 		requiresBilling?: boolean; // Whether this requires billing to be enabled
@@ -422,18 +424,21 @@
 			icon: setupItemTiers.getIconComponent('Setup'),
 			component: SetupTab
 		},
+		...entitySections,
 		{
 			id: 'issues',
 			label: TAB_LABELS['issues'],
-			icon: setupItemTiers.getIconComponent('Issue'),
-			component: IssuesTab
+			icon: Bell as IconComponent,
+			component: IssuesTab,
+			position: 'bottom',
+			iconOnly: true
 		},
-		...entitySections,
 		{
 			id: 'settings',
 			label: common_settings(),
 			icon: Settings as IconComponent,
 			position: 'bottom',
+			iconOnly: true,
 			onClick: async () => {
 				showSettings = true;
 			}
@@ -589,7 +594,11 @@
 	let mainNavItems = $derived(
 		mainAppLocked && !showLockedMainNav ? [] : filterByPosition(navConfig, 'main')
 	);
-	let bottomNavItems = $derived(filterByPosition(navConfig, 'bottom'));
+	let bottomNavItems = $derived(
+		filterByPosition(navConfig, 'bottom').filter((item): item is NavItem => !isSection(item))
+	);
+	let labelledBottomItems = $derived(bottomNavItems.filter((item) => !item.iconOnly));
+	let iconBottomItems = $derived(bottomNavItems.filter((item) => item.iconOnly));
 
 	onMount(() => {
 		if (typeof window !== 'undefined') {
@@ -694,10 +703,37 @@
 		'text-secondary hover:text-primary flex w-full items-center rounded-lg text-xs font-semibold uppercase tracking-wide transition-colors hover:bg-gray-100/50 dark:hover:bg-gray-800/50';
 
 	const baseClasses = 'flex w-full items-center rounded-lg font-medium transition-colors';
+	const iconButtonClasses =
+		'flex items-center justify-center rounded-lg font-medium transition-colors';
 
 	/** The palette's shortcut as this platform spells it. */
 	const searchShortcut = GLOBAL_SEARCH_KEY;
 </script>
+
+<!-- A bottom entry: a labelled row, or an icon button whose label is its tooltip. -->
+{#snippet bottomButton(item: NavItem, iconOnly: boolean)}
+	{@const badge = itemBadge(item)}
+	<button
+		onclick={() => handleItemClick(item)}
+		class="{iconOnly ? iconButtonClasses : baseClasses} {activeTab === item.id ||
+		(item.id === 'settings' && showSettings)
+			? 'border border-blue-500/30 bg-blue-100 text-primary dark:border-blue-600 dark:bg-blue-700'
+			: inactiveButtonClass}"
+		style="height: 2rem; padding: 0.375rem 0.75rem;"
+		title={iconOnly || collapsed ? item.label : ''}
+		aria-label={item.label}
+	>
+		<span class="relative">
+			<item.icon class="h-5 w-5 shrink-0" />
+			{#if badge}
+				<NavBadge {...badge} class="absolute -top-1.5 -right-1.5" />
+			{/if}
+		</span>
+		{#if !iconOnly && !collapsed}
+			<span class="ml-3 truncate">{item.label}</span>
+		{/if}
+	</button>
+{/snippet}
 
 <div
 	class="sidebar flex shrink-0 flex-col transition-all duration-300"
@@ -907,32 +943,19 @@
 					</button>
 				</li>
 			{/if}
-			{#each bottomNavItems as item (item.id)}
-				{#if !isSection(item)}
-					{@const badge = itemBadge(item)}
-					<li>
-						<button
-							onclick={() => handleItemClick(item)}
-							class="{baseClasses} {activeTab === item.id ||
-							(item.id === 'settings' && showSettings)
-								? 'border border-blue-500/30 bg-blue-100 text-primary dark:border-blue-600 dark:bg-blue-700'
-								: inactiveButtonClass}"
-							style="height: 2rem; padding: 0.375rem 0.75rem;"
-							title={collapsed ? item.label : ''}
-						>
-							<span class="relative">
-								<item.icon class="h-5 w-5 shrink-0" />
-								{#if badge}
-									<NavBadge {...badge} class="absolute -top-1.5 -right-1.5" />
-								{/if}
-							</span>
-							{#if !collapsed}
-								<span class="ml-3 truncate">{item.label}</span>
-							{/if}
-						</button>
-					</li>
-				{/if}
+			{#each labelledBottomItems as item (item.id)}
+				<li>
+					{@render bottomButton(item, false)}
+				</li>
 			{/each}
+			{#if iconBottomItems.length > 0}
+				<!-- Icon buttons share one row (a column when collapsed), each label its tooltip. -->
+				<li class="flex gap-1 {collapsed ? 'flex-col' : ''}">
+					{#each iconBottomItems as item (item.id)}
+						{@render bottomButton(item, true)}
+					{/each}
+				</li>
+			{/if}
 		</ul>
 	</div>
 </div>
