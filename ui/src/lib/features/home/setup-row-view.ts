@@ -1,5 +1,6 @@
 import type { EntityDiscriminants } from '$lib/api/entities';
 import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+import type { Daemon } from '$lib/features/daemons/types/base';
 import {
 	buildWarningReport,
 	credentialIdsOf,
@@ -48,11 +49,12 @@ import {
 	home_nudges_unconfirmedSubnetsDescription,
 	home_setup_installDaemonOnSite,
 	home_setup_openDaemon,
+	home_setup_scheduleScan,
 	home_setup_troubleshootConnection
 } from '$lib/paraglide/messages';
 import type { SetupItem, SetupItemType } from './setup-list';
 
-/** A row's fix: what clicking the row does, and its label. */
+/** A row's fix: what its button does, and its label. */
 export interface SetupFix {
 	label: string;
 	run: () => void;
@@ -60,7 +62,7 @@ export interface SetupFix {
 
 /** The loaded entities a row names or opens. */
 export interface SetupLookups {
-	daemon: (id: string) => Record<string, unknown> | undefined;
+	daemon: (id: string) => Daemon | undefined;
 	host: (
 		id: string
 	) => (Record<string, unknown> & Parameters<typeof hostDisplayName>[0]) | undefined;
@@ -152,19 +154,25 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 		case 'DaemonHealth': {
 			const { daemon_id: id, name, health } = item;
 			// A daemon that isn't talking to the server gets the connection help; one on an
-			// old release gets the upgrade; an unknown version opens the daemon itself.
+			// old release, or one that never reported its version, gets the upgrade; one on
+			// standby has had no scan in 30 days, so it gets a scan to schedule.
 			const fix: SetupFix =
-				health === 'awaiting_connection' || health === 'unreachable' || health === 'standby'
+				health === 'awaiting_connection' || health === 'unreachable'
 					? { label: home_setup_troubleshootConnection(), run: onTroubleshoot }
-					: health === 'outdated' || health === 'deprecated' || health === 'unsupported'
-						? {
-								label: daemons_upgradeDaemon(),
-								run: () => go('daemons', 'upgrade-daemon', { id })
-							}
-						: {
-								label: home_setup_openDaemon(),
-								run: () => navigateToEntity('Daemon', id, lookups.daemon(id))
-							};
+					: health === 'standby'
+						? { label: home_setup_scheduleScan(), run: () => go('discovery-scans') }
+						: health === 'outdated' ||
+							  health === 'deprecated' ||
+							  health === 'unsupported' ||
+							  health === 'unknown'
+							? {
+									label: daemons_upgradeDaemon(),
+									run: () => go('daemons', 'upgrade-daemon', { id })
+								}
+							: {
+									label: home_setup_openDaemon(),
+									run: () => navigateToEntity('Daemon', id, lookups.daemon(id))
+								};
 			return {
 				title,
 				sentence: daemonHealths.getDescription(health),
@@ -213,7 +221,7 @@ export function setupRowView(item: SetupItem, ctx: SetupRowContext): SetupRowVie
 			const report = buildWarningReport(
 				item.warnings,
 				(type, id) => (type === 'Credential' ? lookups.credential(id)?.name : undefined),
-				item.daemon_name,
+				{ name: item.daemon_name, os: lookups.daemon(item.daemon_id)?.os },
 				lookups.credential
 			)[0]?.entries[0];
 			const action = report

@@ -185,7 +185,11 @@
 		return loaded ?? { id: entity.id, name: label };
 	}
 
-	let sections = $derived(buildWarningReport(warnings, nameOfEntity, null, credentialOf));
+	// The run's daemon, which the Docker Desktop warning names. One deleted since names none.
+	let runDaemon = $derived(
+		(daemonsQuery.data ?? []).find((d) => d.id === payload.daemon_id) ?? null
+	);
+	let sections = $derived(buildWarningReport(warnings, nameOfEntity, runDaemon, credentialOf));
 
 	/** Which rows are showing their explanation, by `WarningEntry.key`. */
 	const openRows = new SvelteSet<string>();

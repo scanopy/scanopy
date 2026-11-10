@@ -280,7 +280,8 @@ fn render_attention_section(payload: &DiscoveryDigestPayload, run: &RunLinks) ->
     )
 }
 
-/// "Proxmox VE answers on 3 hosts that no credential works on. Create a Proxmox VE credential",
+/// "Scans found Proxmox VE on 3 hosts, and no Proxmox VE credential has connected to them. Create
+/// a Proxmox VE credential",
 /// the link opening the credential create flow with the integration chosen and where it applies
 /// already assigned: the
 /// run's site for an integration whose credentials can cover a site, the hosts otherwise. The same
@@ -292,9 +293,9 @@ fn integration_without_credential_line(
 ) -> String {
     let name = e.integration.name();
     let text = format!(
-        "<strong>{}</strong> answers on {} that no credential targets.",
-        html_escape(name),
-        plural(e.host_ids.len() as u32, "host", "hosts"),
+        "Scans found <strong>{name}</strong> on {hosts}, and no {name} credential has connected to them.",
+        name = html_escape(name),
+        hosts = plural(e.host_ids.len() as u32, "host", "hosts"),
     );
     let scope = if e.integration.applies_to_sites() {
         format!("sites={site_id}")

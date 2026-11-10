@@ -100,9 +100,10 @@ impl DiscoveryWarningCode {
             }
             Self::CredentialWithoutTarget => &["credential"],
             Self::CredentialLoginUnavailable => &["credential"],
+            // The daemon names whose configuration accepts a self-signed certificate.
+            Self::CredentialTlsFailed => &["credential", "addresses", "daemon", "detail"],
             Self::CredentialRejected
             | Self::CredentialMalformed
-            | Self::CredentialTlsFailed
             | Self::CredentialNotThisService
             | Self::CredentialCollectionFailed
             | Self::CredentialCollectionTimedOut
@@ -263,7 +264,6 @@ impl DiscoveryWarningCode {
             | Self::CredentialTlsFailed
             | Self::CredentialNotThisService
             | Self::CredentialCollectionFailed
-            | Self::CredentialCollectionTimedOut
             | Self::CredentialUnreachable
             | Self::CredentialTimedOut
             // Adding the credential is the fix, and the create flow opens pre-filled from the row.
@@ -318,7 +318,10 @@ impl DiscoveryWarningCode {
             | Self::LldpLocalPortDroppedReadCutShort
             | Self::MalformedNeighboursWalkCutShort
             | Self::VlanRecordingFailed
-            // A sweep or lookup that did not answer in time, so the run went on without it.
+            // A sweep or lookup that did not answer in time, so the run went on without it. A
+            // collection that ran past its integration's fixed per-host limit is the same: no
+            // setting moves that limit, and the next scan tries again.
+            | Self::CredentialCollectionTimedOut
             | Self::DcpSweepTimedOut
             | Self::IcmpSweepTimedOut
             | Self::ReverseDnsTimedOut => WarningRemedy::ClearsOnTheNextScan,
@@ -367,7 +370,6 @@ impl DiscoveryWarningCode {
             | Self::CredentialTlsFailed
             | Self::CredentialNotThisService
             | Self::CredentialCollectionFailed
-            | Self::CredentialCollectionTimedOut
             | Self::CredentialUnreachable
             | Self::CredentialTimedOut => IssueCategory::Credentials,
 
@@ -399,6 +401,7 @@ impl DiscoveryWarningCode {
             | Self::LldpNeighbourAmbiguous
             | Self::WarningsTruncated
             // Each clears on the next scan or needs no action.
+            | Self::CredentialCollectionTimedOut
             | Self::InterfaceSetCutShort
             | Self::InterfaceDetailsCutShort
             | Self::SnmpWalkEntryCap
@@ -555,10 +558,10 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "{addresses} did not answer for {groups}, which these switches commonly do not implement. Their MAC-address-table and VLAN membership cannot be read over SNMP; a UniFi controller integration reports the same data where one manages the device."
             }
             Self::SnmpWalkNoAnswer => {
-                "{addresses} returned no {groups} data, and the read did not record how it ended. Previously discovered values were kept rather than overwritten and refresh on the next complete scan."
+                "{addresses} returned no {groups} data. Check that the SNMP credential's view includes these tables; earlier values stay until a scan reads them."
             }
             Self::SnmpWalkFailed => {
-                "The read of {groups} from {addresses} returned nothing: its last request {cause} after retries. Previously discovered values were kept rather than overwritten."
+                "The read of {groups} from {addresses} returned nothing: its last request {cause} after retries. Earlier values stay until a scan reads them."
             }
             Self::ClaimedCountReadCutShort => {
                 "{addresses} reported {source} as {expected}, and the read ended at {observed} without finishing. That is how much of the table is missing — the incomplete-walk line for each device says why it ended. What was read is recorded."
@@ -606,7 +609,7 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "{addresses} answered both {first} and {second}, and both integrations reported a full interface table. Scanopy merged the two sets. On a port both describe, {first} answered first, so Scanopy used its row and its neighbours. Running both is supported."
             }
             Self::CredentialTargetNotScanned => {
-                "The {credential} credential for {addresses} was never contacted, because no subnet this scan covers reaches there — add the subnet to the discovery, or move the credential to a host inside it."
+                "The {credential} credential for {addresses} was not tried: no subnet this scan covers contains that address. Point the credential at a host this scan reaches, or add the address's subnet to the scan's targets."
             }
             Self::CredentialTargetNotResponding => {
                 "The {credential} credential for {addresses} was not tried, because nothing answered there during the scan — check the address is right and the host is online."
@@ -615,7 +618,7 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "The {credential} credential for {addresses} was not tried, because port {ports} was not open there — check the port configured on the credential."
             }
             Self::CredentialDaemonOsMismatch => {
-                "The {credential} credential reads files on a {declared} daemon, and {daemon} runs {actual}, so it was not used. Set the credential's daemon OS to match, or scan with a {declared} daemon."
+                "The {credential} credential is set to read files on {declared} daemons, and {daemon} runs {actual}, so it skipped the credential. Change the credential's Daemon OS, or scan with a {declared} daemon."
             }
             Self::CredentialNeedsNewerDaemon => {
                 "The {credential} credential {gap}. That needs a daemon newer than {required}, and {daemon} runs {version}. Upgrade the daemon to use it."
@@ -633,25 +636,25 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "The {credential} credential for {addresses} is incomplete and could not be used — re-enter it. ({detail})"
             }
             Self::CredentialTlsFailed => {
-                "The {credential} credential for {addresses} could not negotiate TLS — if the appliance serves a self-signed certificate, turn on \"accept invalid certificates\" in the daemon's scan settings. ({detail})"
+                "The {credential} credential for {addresses} could not negotiate TLS. If the appliance serves a self-signed certificate, turn on Accept Invalid Scan Certificates in {daemon}'s configuration and restart it. ({detail})"
             }
             Self::CredentialNotThisService => {
                 "The {credential} credential for {addresses} reached something that is not the expected service — check the port on the credential. ({detail})"
             }
             Self::CredentialCollectionFailed => {
-                "The {credential} credential for {addresses} authenticated and then failed while collecting, so that data is missing rather than out of date. ({detail})"
+                "The {credential} credential for {addresses} signed in, then failed while collecting, so this scan recorded nothing from it. The error names the cause; a credential without permission to read everything is the usual one. ({detail})"
             }
             Self::CredentialCollectionTimedOut => {
-                "The {credential} credential for {addresses} authenticated and then ran out of time before it finished collecting — rescan separately, or narrow what the scan covers. ({detail})"
+                "The {credential} credential for {addresses} signed in, then ran past this integration's time limit on one host before it finished, so this scan recorded nothing from it. The next scan tries again. ({detail})"
             }
             Self::CredentialUnreachable => {
-                "The {credential} credential for {addresses} could not be reached — check the address, port and that the service is listening. ({detail})"
+                "The {credential} credential for {addresses} could not be reached. Check the credential's address and port, and that the service is running on that host. ({detail})"
             }
             Self::CredentialTimedOut => {
-                "The {credential} credential for {addresses} timed out before anything answered — check the address and port, and that the service is listening rather than dropping the connection. ({detail})"
+                "The {credential} credential for {addresses} got no answer before it timed out. Check the credential's address and port, and that the service is running on that host. ({detail})"
             }
             Self::IntegrationWithoutCredential => {
-                "{integration} answers on {count} host(s) that no {integration} credential works on. Add one to collect more: {discovers}"
+                "Scans found {integration} on {count} host(s), and no {integration} credential has connected to them. Create one for these hosts to {discovers}."
             }
             Self::GuestOutsideScan => {
                 "{addresses} run on {integration} at addresses no subnet this scan covers, so they were recorded without ports or services. Add their subnet to the discovery, or scan it from a daemon on that network."
@@ -663,7 +666,7 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "{addresses} run on {integration} on {bridge}, a bridge with no uplink and no hypervisor address, so no daemon outside it reaches them and they were recorded without ports or services. Install a daemon on a guest attached to {bridge} to scan them."
             }
             Self::ConnectionsWithoutProtocolResponse => {
-                "{declined} address(es) in {cidr} completed a TCP connection on {ports} and then answered nothing, so no host was recorded at any of them. Something in the path — a firewall session helper, a load balancer, a scrubbing appliance — answers for addresses that hold no device, and a bare handshake cannot tell one from the other. If those addresses really do hold devices, scan the subnet from a daemon with an interface on it; if they are empty, nothing here needs fixing."
+                "{declined} address(es) in {cidr} completed a TCP connection on {ports} and then answered nothing, so no host was recorded at any of them. Something in the path — a firewall session helper, a load balancer, a scrubbing appliance — answers for addresses that hold no device, and a bare handshake cannot tell one from the other. If those addresses hold devices, install a daemon on {cidr} to scan them from inside it."
             }
             Self::ScanTimeLimitWithEstimate => {
                 "Scan hit its time limit ({hours}h) — {hosts_not_scanned} host(s) not scanned (~{minutes_remaining} min of estimated work remaining). Raise Max Discovery Duration or rescan."
@@ -702,16 +705,16 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "{count} host(s) on this site are known only because another device reported them: an LLDP/CDP neighbour advertised them, or a switch learned their MAC on one of its ports. No scan has reached them. Confirm and label, merge or dismiss each one on the host. They are reported on every scan until confirmed."
             }
             Self::NeighbourResolutionIncomplete => {
-                "Matching LLDP/CDP neighbours to the devices and ports they name was stopped after {budget_seconds}s, with {neighbours} interface(s) advertising a neighbour on this site. Physical Topology is missing links this scan would otherwise have drawn; the next scan retries from scratch. Narrow what the scan covers, or split the network across daemons, if it keeps happening."
+                "Matching LLDP/CDP neighbours to the devices and ports they name was stopped after {budget_seconds}s, with {neighbours} interface(s) advertising a neighbour on this site. Physical Topology is missing links this scan would otherwise have drawn; the next scan retries from scratch. If it keeps happening, remove subnets from this scan's targets, or move some of them to a scan on another daemon."
             }
             Self::FdbResolutionIncomplete => {
-                "Matching single-MAC forwarding-table entries to the devices they name was stopped after {budget_seconds}s, with {interfaces} interface(s) still carrying one. Physical Topology is missing links this scan would otherwise have drawn; the next scan retries from scratch. Narrow what the scan covers, or split the network across daemons, if it keeps happening."
+                "Matching single-MAC forwarding-table entries to the devices they name was stopped after {budget_seconds}s, with {interfaces} interface(s) still carrying one. Physical Topology is missing links this scan would otherwise have drawn; the next scan retries from scratch. If it keeps happening, remove subnets from this scan's targets, or move some of them to a scan on another daemon."
             }
             Self::OutdatedDaemonFormat => {
                 "The daemon that ran this scan is on {daemon_version}. Upgrade it."
             }
             Self::DaemonInDesktopVm => {
-                "{daemon} runs inside {vm}, whose virtual network hides your LAN from ARP, mDNS and LLDP. Install the daemon directly on the host."
+                "{daemon} runs inside {vm}'s virtual machine, so it can't see ARP, mDNS or LLDP traffic on your network: hosts get no MAC addresses or mDNS names, and switches no LLDP links. Install a daemon directly on the machine, outside {vm}, then delete this one."
             }
             Self::WarningsTruncated => {
                 "{elided} further warnings from this scan were not recorded, because it produced more than the scan record holds. Narrow what the scan covers to see the rest."
