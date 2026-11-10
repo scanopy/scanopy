@@ -225,17 +225,9 @@ impl SetupItemDiscriminants {
                 !ctx.has(T::RunFirstScan),
                 SetupItem::OpenTopology,
             ),
-            // Cloud only.
-            T::AnswerReferralSource => step(
-                ctx.cloud,
-                !ctx.has(T::InstallDaemon),
-                SetupItem::AnswerReferralSource,
-            ),
-            T::AnswerProfile => step(
-                ctx.cloud,
-                !ctx.has(T::RunFirstScan),
-                SetupItem::AnswerProfile,
-            ),
+            // Cloud only. Questions are never locked: they can be answered from the start.
+            T::AnswerReferralSource => step(ctx.cloud, false, SetupItem::AnswerReferralSource),
+            T::AnswerProfile => step(ctx.cloud, false, SetupItem::AnswerProfile),
             T::ExploreViews => step(
                 features.includes_topology(),
                 !ctx.has(T::OpenTopology),
@@ -646,8 +638,8 @@ mod tests {
             (T::InstallDaemon, None, None),
             (T::RunFirstScan, Some(T::InstallDaemon), None),
             (T::OpenTopology, Some(T::RunFirstScan), None),
-            (T::AnswerReferralSource, Some(T::InstallDaemon), None),
-            (T::AnswerProfile, Some(T::RunFirstScan), None),
+            (T::AnswerReferralSource, None, None),
+            (T::AnswerProfile, None, None),
             (T::ExploreViews, Some(T::OpenTopology), None),
             (
                 T::ApplicationTags,

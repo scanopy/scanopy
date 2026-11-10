@@ -72,7 +72,7 @@
 		common_viewTopology,
 		credentials_createCredential,
 		daemons_upgradeDaemon,
-		discovery_fixSeeDeviceChecks,
+		common_troubleshoot,
 		gettingStarted_emailNotification,
 		gettingStarted_stepDaemonLabel,
 		home_setup_installDaemonOnSite,
@@ -286,7 +286,7 @@
 							: {
 									label:
 										remedyOf(item.code) === 'CheckTheDevice'
-											? discovery_fixSeeDeviceChecks()
+											? common_troubleshoot()
 											: common_openScanThatFoundIt(),
 									run: () =>
 										go('discovery-history', 'discovery-history-detail', { id: discoveryId })

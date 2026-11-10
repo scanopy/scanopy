@@ -1,6 +1,8 @@
 //! `SetupService`: the Setup list read back from stored rows, for the conditions that live in
 //! storage rather than in the pure arms (`setup/items.rs`).
 
+use std::collections::HashSet;
+
 use chrono::Duration;
 use email_address::EmailAddress;
 use semver::Version;
@@ -357,10 +359,12 @@ async fn an_application_tag_on_a_host_completes_application_tags() {
     );
 }
 
-/// The demo is a product tour of a set-up network: nothing to fix. Its unconfirmed hosts and
-/// subnet are there to show the review flow, so they are its only Issues.
+/// The demo shows an Issue of each kind a set-up network still runs into, on both sites: an
+/// outdated daemon, scan warnings, and unconfirmed hosts and subnets to review. Nothing it
+/// shows is a setup gap (a site with no daemon, a credential with no target or an integration
+/// with no credential).
 #[tokio::test]
-async fn the_demo_orgs_only_issues_are_its_unconfirmed_rows() {
+async fn the_demo_orgs_issues_span_both_sites_and_no_setup_gaps() {
     let (storage, services, _container) = test_services().await;
     let mut org = organization();
     org.base.setup = vec![
@@ -391,14 +395,21 @@ async fn the_demo_orgs_only_issues_are_its_unconfirmed_rows() {
         .into_iter()
         .filter(|e| e.tier == SetupItemTier::Issue)
         .map(|e| e.item)
-        .filter(|item| {
-            !matches!(
-                item,
-                SetupItem::UnconfirmedHosts { .. } | SetupItem::UnconfirmedSubnets { .. }
-            )
-        })
         .collect();
-    assert!(issues.is_empty(), "{issues:#?}");
+    let types: HashSet<SetupItemDiscriminants> =
+        issues.iter().map(SetupItemDiscriminants::from).collect();
+    assert_eq!(
+        types,
+        HashSet::from([
+            SetupItemDiscriminants::DaemonHealth,
+            SetupItemDiscriminants::RunWarnings,
+            SetupItemDiscriminants::UnconfirmedHosts,
+            SetupItemDiscriminants::UnconfirmedSubnets,
+        ]),
+        "{issues:#?}"
+    );
+    let sites: HashSet<Uuid> = issues.iter().flat_map(|i| i.site_ids()).collect();
+    assert_eq!(sites, site_ids.iter().copied().collect(), "{issues:#?}");
 }
 
 /// The trial sweep reports a step left open a day on a trialing org, once, and leaves an org
