@@ -1126,7 +1126,11 @@ mod tests {
         let advanced = crate::server::shared::clock::now() - Duration::minutes(3);
         let mut progress = with_phase(&running, DiscoveryPhase::Scanning);
         progress.last_activity_at = Some(advanced);
-        apply_update(&mut maps.borrow(), &progress, crate::server::shared::clock::now());
+        apply_update(
+            &mut maps.borrow(),
+            &progress,
+            crate::server::shared::clock::now(),
+        );
 
         apply_update(
             &mut maps.borrow(),
@@ -1155,7 +1159,11 @@ mod tests {
         cancelled.phase = DiscoveryPhase::Cancelled;
         let daemon = cancelled.daemon_id;
 
-        let outcome = apply_update(&mut maps.borrow(), &cancelled, crate::server::shared::clock::now());
+        let outcome = apply_update(
+            &mut maps.borrow(),
+            &cancelled,
+            crate::server::shared::clock::now(),
+        );
 
         assert!(matches!(outcome, UpdateOutcome::Terminal(_)));
         assert!(maps.sessions.is_empty());

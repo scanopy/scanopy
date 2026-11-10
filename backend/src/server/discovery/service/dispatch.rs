@@ -149,7 +149,10 @@ impl DiscoveryService {
         }
 
         // Update last_run on the discovery (covers all code paths: handler, scheduler, registration)
-        discovery.base.run_type.set_last_run(crate::server::shared::clock::now());
+        discovery
+            .base
+            .run_type
+            .set_last_run(crate::server::shared::clock::now());
         discovery.updated_at = crate::server::shared::clock::now();
         if let Err(e) = self.discovery_storage.update(&mut discovery).await {
             tracing::error!(
@@ -622,7 +625,9 @@ impl DiscoveryService {
 
             let historical_discovery = Discovery {
                 id: Uuid::new_v4(),
-                created_at: session.started_at.unwrap_or(crate::server::shared::clock::now()),
+                created_at: session
+                    .started_at
+                    .unwrap_or(crate::server::shared::clock::now()),
                 updated_at: crate::server::shared::clock::now(),
                 base: DiscoveryBase {
                     daemon_id: session.daemon_id,
