@@ -171,7 +171,12 @@ fn apply(
         .iter()
         .find(|(_, sid)| **sid == session_id)
         .map(|(did, _)| *did);
-    maps.pull_cancellations.remove(&session.daemon_id);
+    // A daemon that reported the end has stopped. A session the server ended can still be running
+    // on its daemon, and its cancel is how that daemon learns to stop, as for a reaped session: it
+    // stays, and is sent once (see `cancellation_to_deliver`).
+    if origin == Origin::Daemon {
+        maps.pull_cancellations.remove(&session.daemon_id);
+    }
     let promoted = remove_from_queue_and_promote_head(maps, session.daemon_id, session_id, now);
     maps.sessions.remove(&session_id);
 
@@ -293,8 +298,9 @@ pub(crate) fn cancellation_to_deliver(
 
 /// End, as cancelled by the user, every running session whose cancel was requested at least
 /// `deadline` ago and that its daemon has not ended. Each leaves the maps as any finished session
-/// does: its stamp stays as a tombstone, so the daemon's later updates for it are ignored, its
-/// cancel is no longer sent, and a `Queued` session behind it is promoted.
+/// does: its stamp stays as a tombstone, so the daemon's later updates for it are ignored, and a
+/// `Queued` session behind it is promoted. Its cancel is sent once more, so a daemon that was
+/// frozen through the deadline stops the session when it next polls instead of resuming it.
 pub(crate) fn end_overdue_cancels(
     maps: &mut SessionMaps,
     now: DateTime<Utc>,
@@ -1087,6 +1093,8 @@ mod tests {
             Some(DiscoveryTerminalReason::UserCancelled)
         );
         assert!(!maps.sessions.contains_key(&running.session_id));
+        // A daemon frozen through the deadline still has the session; its next poll tells it to stop.
+        assert_eq!(deliver(&mut maps, daemon), Some(running.session_id));
         assert_eq!(deliver(&mut maps, daemon), None);
         // The daemon's heartbeats for it, should they continue, do not bring it back.
         let heartbeat = apply_update(
