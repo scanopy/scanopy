@@ -48,7 +48,7 @@
 	let { isActive = false }: TabProps = $props();
 	const can = useCan();
 
-	const VLAN_FIELD_VALUES = '/api/v1/vlans/field-values/{field}';
+	const VLAN_FIELD_VALUES = '/api/v1/vlans/field-values';
 
 	let showVlanEditor = $state(false);
 	let editingVlan: Vlan | null = $state(null);
@@ -76,15 +76,9 @@
 	const page = listPageState(() => isActive);
 	const vlansQuery = useVlansListQuery(() => page.params());
 	// Filter options: the values the caller's VLANs hold, counted by the server.
-	const siteValuesQuery = useFieldValuesQuery(
+	const fieldValuesQuery = useFieldValuesQuery(
 		VLAN_FIELD_VALUES,
-		'site_id',
-		undefined,
-		() => isActive
-	);
-	const sourceValuesQuery = useFieldValuesQuery(
-		VLAN_FIELD_VALUES,
-		'source',
+		['site_id', 'source'],
 		undefined,
 		() => isActive
 	);
@@ -203,8 +197,8 @@
 			subnets: () => [...subnetsById.values()],
 			tags: () => tagsData,
 			discoveryRuns: () => discoveryRunsData,
-			siteValues: () => siteValuesQuery.data,
-			sourceValues: () => sourceValuesQuery.data
+			siteValues: () => fieldValuesQuery.data?.site_id,
+			sourceValues: () => fieldValuesQuery.data?.source
 		})
 	);
 </script>

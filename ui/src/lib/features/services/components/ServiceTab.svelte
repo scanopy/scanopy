@@ -64,7 +64,7 @@
 
 	type ServiceOrderField = components['schemas']['ServiceOrderField'];
 
-	const SERVICE_FIELD_VALUES = '/api/v1/services/field-values/{field}';
+	const SERVICE_FIELD_VALUES = '/api/v1/services/field-values';
 
 	// Well-known port numbers for the filter panel. People look for 443, not
 	// "HTTPS", so the options are the numbers themselves. Deduplicated because
@@ -125,39 +125,9 @@
 	// Filter options: the values the caller's services actually hold, counted by the server.
 	// None of these takes the tab's active filters, so the options do not shrink as the user
 	// filters.
-	const hostValuesQuery = useFieldValuesQuery(
+	const fieldValuesQuery = useFieldValuesQuery(
 		SERVICE_FIELD_VALUES,
-		'host',
-		undefined,
-		() => isActive
-	);
-	const siteValuesQuery = useFieldValuesQuery(
-		SERVICE_FIELD_VALUES,
-		'site_id',
-		undefined,
-		() => isActive
-	);
-	const definitionValuesQuery = useFieldValuesQuery(
-		SERVICE_FIELD_VALUES,
-		'service_definition',
-		undefined,
-		() => isActive
-	);
-	const containerizedByValuesQuery = useFieldValuesQuery(
-		SERVICE_FIELD_VALUES,
-		'containerized_by',
-		undefined,
-		() => isActive
-	);
-	const matchConfidenceValuesQuery = useFieldValuesQuery(
-		SERVICE_FIELD_VALUES,
-		'match_confidence',
-		undefined,
-		() => isActive
-	);
-	const sourceValuesQuery = useFieldValuesQuery(
-		SERVICE_FIELD_VALUES,
-		'source',
+		['host', 'site_id', 'service_definition', 'containerized_by', 'match_confidence', 'source'],
 		undefined,
 		() => isActive
 	);
@@ -400,7 +370,7 @@
 	// holds stays selected and excludes nothing.
 	let serviceCategories = $derived([
 		...new Set(
-			fieldValueOptions(definitionValuesQuery.data)
+			fieldValueOptions(fieldValuesQuery.data?.service_definition)
 				.map((id) => serviceDefinitions.getCategory(id))
 				.filter((category): category is string => !!category)
 		)
@@ -409,7 +379,7 @@
 	// The hosts some service runs on: the server counts their titles, the same ladder
 	// `hostDisplayName` renders, and the full host list gives each title's ids.
 	let hostOptions = $derived.by(() => {
-		const titles = new Set(fieldValueOptions(hostValuesQuery.data));
+		const titles = new Set(fieldValueOptions(fieldValuesQuery.data?.host));
 		return allHostsData.filter((host) => titles.has(hostDisplayName(host))).map((host) => host.id);
 	});
 
@@ -440,11 +410,11 @@
 			runtimes: () => runtimesData,
 			hostOptions: () => hostOptions,
 			hostLabel,
-			siteValues: () => siteValuesQuery.data,
-			definitionValues: () => definitionValuesQuery.data,
-			containerizedByValues: () => containerizedByValuesQuery.data,
-			matchConfidenceValues: () => matchConfidenceValuesQuery.data,
-			sourceValues: () => sourceValuesQuery.data,
+			siteValues: () => fieldValuesQuery.data?.site_id,
+			definitionValues: () => fieldValuesQuery.data?.service_definition,
+			containerizedByValues: () => fieldValuesQuery.data?.containerized_by,
+			matchConfidenceValues: () => fieldValuesQuery.data?.match_confidence,
+			sourceValues: () => fieldValuesQuery.data?.source,
 			wellKnownPortNumbers: () => wellKnownPortNumbers,
 			serviceCategories: () => serviceCategories,
 			portBindingItems,

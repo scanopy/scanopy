@@ -73,7 +73,7 @@
 
 	// Queries
 	const tagsQuery = useTagsQuery();
-	const SUBNET_FIELD_VALUES = '/api/v1/subnets/field-values/{field}';
+	const SUBNET_FIELD_VALUES = '/api/v1/subnets/field-values';
 	// The filter options count only the ranges the list shows.
 	const listedOnly = () => LISTED_SUBNETS;
 
@@ -84,27 +84,9 @@
 	// created, so a later declaration throws "Cannot access 'subnetsData' before initialization".
 	let subnetsData = $derived(subnetsQuery.data?.items ?? []);
 	// Filter options: the values the listed subnets hold, counted by the server.
-	const siteValuesQuery = useFieldValuesQuery(
+	const fieldValuesQuery = useFieldValuesQuery(
 		SUBNET_FIELD_VALUES,
-		'site_id',
-		listedOnly,
-		() => isActive
-	);
-	const typeValuesQuery = useFieldValuesQuery(
-		SUBNET_FIELD_VALUES,
-		'subnet_type',
-		listedOnly,
-		() => isActive
-	);
-	const sourceValuesQuery = useFieldValuesQuery(
-		SUBNET_FIELD_VALUES,
-		'source',
-		listedOnly,
-		() => isActive
-	);
-	const managedByValuesQuery = useFieldValuesQuery(
-		SUBNET_FIELD_VALUES,
-		'managed_by',
+		['site_id', 'subnet_type', 'source', 'managed_by'],
 		listedOnly,
 		() => isActive
 	);
@@ -118,7 +100,7 @@
 			...subnetsData
 				.map((s) => s.virtualization_service_id)
 				.filter((id): id is string => id != null),
-			...fieldValueOptions(managedByValuesQuery.data)
+			...fieldValueOptions(fieldValuesQuery.data?.managed_by)
 		])
 	]);
 	const discoveryRunsQuery = useDiscoveriesByIds(() => discoveryRunIds(subnetsData));
@@ -404,10 +386,10 @@
 			runtimeOf,
 			runtimes: () => runtimesData,
 			utilizationCell,
-			siteValues: () => siteValuesQuery.data,
-			typeValues: () => typeValuesQuery.data,
-			sourceValues: () => sourceValuesQuery.data,
-			managedByValues: () => managedByValuesQuery.data
+			siteValues: () => fieldValuesQuery.data?.site_id,
+			typeValues: () => fieldValuesQuery.data?.subnet_type,
+			sourceValues: () => fieldValuesQuery.data?.source,
+			managedByValues: () => fieldValuesQuery.data?.managed_by
 		})
 	);
 </script>

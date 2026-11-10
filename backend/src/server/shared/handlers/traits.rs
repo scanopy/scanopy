@@ -16,7 +16,9 @@ use crate::server::{
             traits::{CrudService, EventBusService},
         },
         storage::{filter::StorableFilter, traits::Entity},
-        types::api::{ApiError, ApiJson, ApiResponse, ApiResult, GroupCount, PaginatedApiResponse},
+        types::api::{
+            ApiError, ApiJson, ApiResponse, ApiResult, FieldValues, PaginatedApiResponse,
+        },
         types::entities::EntitySource,
         validation::{
             validate_bulk_delete_access, validate_create_access, validate_delete_access,
@@ -29,8 +31,10 @@ use axum::{
     extract::{Path, State},
     response::Json,
 };
+use futures::stream::{self, StreamExt, TryStreamExt};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::fmt::Display;
 use std::sync::Arc;
 use utoipa::ToSchema;
@@ -82,7 +86,7 @@ where
 
     /// The fields `get_all` can sort and group by, and `field-values` can count.
     /// Use `NoOrderField` for entities without server-side ordering.
-    type OrderField: OrderField + DeserializeOwned + ToSchema;
+    type OrderField: OrderField + Serialize + DeserializeOwned + ToSchema;
 
     /// The order global search lists this entity's matches in. `None` lists them in creation
     /// order.
@@ -215,8 +219,8 @@ where
 /// The filter every list-shaped read of `T` starts from: the caller's site or organization
 /// scope, the SCD2 live/as-of narrowing, and the entity's own query filters.
 ///
-/// Shared by `get_all_handler` and `get_field_values_handler`, so the values offered for a field
-/// can never come from rows the list itself would not show.
+/// Shared by `get_all_handler` and `field_values`, so the values offered for a field can never
+/// come from rows the list itself would not show.
 pub fn base_list_filter<T>(scope: &ListScope, query: &T::FilterQuery) -> StorableFilter<T>
 where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
@@ -235,30 +239,67 @@ where
     query.apply_to_filter(base_filter, &scope.site_ids, scope.organization_id)
 }
 
-/// Every distinct value of one order field across the rows the caller can list, with how many
-/// rows hold each. Feeds a filter's options for a free-valued column, which a paginated list
-/// cannot collect from the page it has loaded.
+/// The fields a field-values request counts. Repeat `fields` to name several.
+#[derive(Deserialize, Debug)]
+#[serde(bound(deserialize = "F: DeserializeOwned"))]
+pub struct FieldValuesQuery<F> {
+    #[serde(default)]
+    pub fields: Vec<F>,
+}
+
+/// How many of one request's fields are counted at once. Each count holds a pool connection.
+const FIELD_VALUES_CONCURRENCY: usize = 4;
+
+/// Every distinct value of each named order field across the rows the caller can list, with how
+/// many rows hold each. Feeds the filter options of a tab's free-valued columns in one request,
+/// which a paginated list cannot collect from the page it has loaded.
 pub async fn get_field_values_handler<T>(
     State(state): State<Arc<AppState>>,
     auth: Authorized<impl Proves<T, Read>>,
-    Path(field): Path<T::OrderField>,
+    Query(FieldValuesQuery { fields }): Query<FieldValuesQuery<T::OrderField>>,
     Query(query): Query<T::FilterQuery>,
-) -> ApiResult<Json<ApiResponse<Vec<GroupCount>>>>
+) -> ApiResult<Json<ApiResponse<Vec<FieldValues<T::OrderField>>>>>
 where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
     EntityEnum: From<T>,
 {
     let scope = ListScope::of(&auth)?;
-    let filter = field_values_filter::<T>(&scope, &query, field);
-
-    let counts = T::get_service(&state)
-        .count_by_group(filter, field.to_sql())
-        .await?;
-
+    let counts = field_values::<T>(T::get_service(&state), &scope, &query, fields).await?;
     Ok(Json(ApiResponse::success(counts)))
 }
 
-/// The filter `get_field_values_handler` counts under: the list's base filter plus the JOIN the
+/// Each field's distinct values and counts, in the order the fields were named. Every field
+/// counts under its own [`field_values_filter`], so one field's JOIN never changes another's
+/// counts. A field named twice is counted once.
+pub async fn field_values<T>(
+    service: &T::Service,
+    scope: &ListScope,
+    query: &T::FilterQuery,
+    mut fields: Vec<T::OrderField>,
+) -> Result<Vec<FieldValues<T::OrderField>>, anyhow::Error>
+where
+    T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
+    EntityEnum: From<T>,
+{
+    let mut seen = HashSet::new();
+    fields.retain(|field| seen.insert(serde_json::to_string(field).ok()));
+
+    stream::iter(fields)
+        .map(|field| async move {
+            let values = service
+                .count_by_group(
+                    field_values_filter::<T>(scope, query, field),
+                    field.to_sql(),
+                )
+                .await?;
+            Ok(FieldValues { field, values })
+        })
+        .buffered(FIELD_VALUES_CONCURRENCY)
+        .try_collect()
+        .await
+}
+
+/// The filter a field's values are counted under: the list's base filter plus the JOIN the
 /// field's expression reads from.
 pub fn field_values_filter<T>(
     scope: &ListScope,

@@ -219,7 +219,7 @@ fn crud_operation_id(
     match op.method {
         "post" if path.ends_with("/bulk-delete") => Some(format!("bulk_delete_{p}")),
         "get" if path.ends_with("/export/csv") => Some(format!("export_{p}_csv")),
-        "get" if path.ends_with("/field-values/{field}") => Some(format!("get_{s}_field_values")),
+        "get" if path.ends_with("/field-values") => Some(format!("get_{s}_field_values")),
         _ => None,
     }
 }

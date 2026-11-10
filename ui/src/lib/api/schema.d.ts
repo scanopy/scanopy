@@ -1183,7 +1183,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/daemon-api-keys/field-values/{field}": {
+    "/api/v1/daemon-api-keys/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -1192,7 +1192,7 @@ export interface paths {
         };
         /**
          * List daemon API key field values
-         * @description Every distinct value of one Daemon API Key field across the Daemon API Keys the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named Daemon API Key field across the Daemon API Keys the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_daemon_api_key_field_values"];
         put?: never;
@@ -1350,7 +1350,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/daemons/field-values/{field}": {
+    "/api/v1/daemons/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -1359,7 +1359,7 @@ export interface paths {
         };
         /**
          * List daemon field values
-         * @description Every distinct value of one Daemon field across the Daemons the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named Daemon field across the Daemons the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_daemon_field_values"];
         put?: never;
@@ -1787,7 +1787,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/discoveries/field-values/{field}": {
+    "/api/v1/discoveries/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -1796,7 +1796,7 @@ export interface paths {
         };
         /**
          * List discovery field values
-         * @description Every distinct value of one Discovery field across the Discoveries the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named Discovery field across the Discoveries the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_discovery_field_values"];
         put?: never;
@@ -2029,7 +2029,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/hosts/field-values/{field}": {
+    "/api/v1/hosts/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -2038,7 +2038,7 @@ export interface paths {
         };
         /**
          * List host field values
-         * @description Every distinct value of one Host field across the Hosts the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named Host field across the Hosts the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_host_field_values"];
         put?: never;
@@ -2643,8 +2643,9 @@ export interface paths {
         put?: never;
         /**
          * Record Setup item
-         * @description Marks done a Setup item that is finished in the app with no other request to record it on,
-         *     such as the dependency tutorial. Recording an item already done changes nothing.
+         * @description Marks done a Setup item that is finished in the app with no other request to record it on: the
+         *     dependency tutorial, or a question dismissed unanswered. Recording an item already done changes
+         *     nothing.
          */
         post: operations["record_setup_item"];
         delete?: never;
@@ -2950,7 +2951,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/services/field-values/{field}": {
+    "/api/v1/services/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -2959,7 +2960,7 @@ export interface paths {
         };
         /**
          * List service field values
-         * @description Every distinct value of one Service field across the Services the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named Service field across the Services the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_service_field_values"];
         put?: never;
@@ -3191,7 +3192,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/sites/field-values/{field}": {
+    "/api/v1/sites/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -3200,7 +3201,7 @@ export interface paths {
         };
         /**
          * List site field values
-         * @description Every distinct value of one Site field across the Sites the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named Site field across the Sites the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_site_field_values"];
         put?: never;
@@ -3334,7 +3335,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/subnets/field-values/{field}": {
+    "/api/v1/subnets/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -3343,7 +3344,7 @@ export interface paths {
         };
         /**
          * List subnet field values
-         * @description Every distinct value of one Subnet field across the Subnets the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named Subnet field across the Subnets the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_subnet_field_values"];
         put?: never;
@@ -3629,7 +3630,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/tags/field-values/{field}": {
+    "/api/v1/tags/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -3638,7 +3639,7 @@ export interface paths {
         };
         /**
          * List tag field values
-         * @description Every distinct value of one Tag field across the Tags the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named Tag field across the Tags the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_tag_field_values"];
         put?: never;
@@ -3849,7 +3850,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/user-api-keys/field-values/{field}": {
+    "/api/v1/user-api-keys/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -3858,7 +3859,7 @@ export interface paths {
         };
         /**
          * List user API key field values
-         * @description Every distinct value of one User API Key field across the User API Keys the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named User API Key field across the User API Keys the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_user_api_key_field_values"];
         put?: never;
@@ -4102,7 +4103,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/vlans/field-values/{field}": {
+    "/api/v1/vlans/field-values": {
         parameters: {
             query?: never;
             header?: never;
@@ -4111,7 +4112,7 @@ export interface paths {
         };
         /**
          * List VLAN field values
-         * @description Every distinct value of one VLAN field across the VLANs the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         * @description Every distinct value of each named VLAN field across the VLANs the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
          */
         get: operations["get_vlan_field_values"];
         put?: never;
@@ -7408,19 +7409,241 @@ export interface components {
          * @description Envelope for a successful response. Failures are sent with a non-2xx status
          *     and an `ApiErrorResponse` body instead.
          */
-        ApiResponse_Vec_GroupCount: {
+        ApiResponse_Vec_FieldValues_DaemonApiKeyOrderField: {
             /** @description The result payload. Omitted on failure. */
             data?: {
                 /**
-                 * Format: int64
-                 * @description How many rows fall in this group in total, not just on this page.
+                 * @description Fields the daemon API key list can be ordered and grouped by.
+                 * @enum {string}
                  */
-                count: number;
+                field: "created_at" | "name" | "updated_at" | "site_id" | "is_enabled" | "last_used" | "expires_at";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_DaemonOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
                 /**
-                 * @description The group's value, rendered as text. `null` for rows whose group key is
-                 *     NULL (the "ungrouped" bucket).
+                 * @description Fields that daemons can be ordered/grouped by.
+                 * @enum {string}
                  */
-                value?: string | null;
+                field: "created_at" | "name" | "last_seen" | "updated_at" | "site_id" | "os" | "mode" | "maintainer" | "version" | "status";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_DiscoveryOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * @description Fields that discoveries can be ordered/grouped by.
+                 * @enum {string}
+                 */
+                field: "created_at" | "name" | "updated_at" | "daemon_id" | "site_id" | "discovery_type" | "phase" | "started_at" | "finished_at" | "duration" | "warnings" | "run_type" | "last_run" | "scan_count" | "force_full_scan" | "legacy";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_HostOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * @description Fields that hosts can be ordered/grouped by.
+                 * @enum {string}
+                 */
+                field: "created_at" | "name" | "hostname" | "updated_at" | "virtualized_by" | "site_id" | "interface_ip" | "last_seen_at" | "mac_address" | "source" | "manufacturer" | "model" | "sys_location" | "os_family";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_ServiceOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * @description Fields that services can be ordered/grouped by.
+                 * @enum {string}
+                 */
+                field: "created_at" | "name" | "updated_at" | "host" | "site_id" | "position" | "service_definition" | "last_seen_at" | "containerized_by" | "match_confidence" | "source";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_SiteOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * @description Fields the sites list can be ordered and grouped by.
+                 * @enum {string}
+                 */
+                field: "created_at" | "name" | "updated_at" | "effective_stale_after_hours";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_SubnetOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * @description Fields that subnets can be ordered/grouped by.
+                 * @enum {string}
+                 */
+                field: "created_at" | "name" | "cidr" | "subnet_type" | "updated_at" | "site_id" | "last_seen_at" | "source" | "managed_by" | "utilization";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_TagOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * @description Fields that tags can be ordered/grouped by.
+                 * @enum {string}
+                 */
+                field: "created_at" | "name" | "color" | "updated_at" | "tag_group" | "icon";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_UserApiKeyOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * @description Fields the user API key list can be ordered and grouped by.
+                 * @enum {string}
+                 */
+                field: "created_at" | "name" | "updated_at" | "permissions" | "is_enabled" | "last_used" | "expires_at";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_Vec_FieldValues_VlanOrderField: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * @description Fields that VLANs can be ordered/grouped by.
+                 * @enum {string}
+                 */
+                field: "created_at" | "name" | "vlan_number" | "updated_at" | "site_id" | "source" | "last_seen_at";
+                /** @description Each distinct value of the field and how many rows hold it. */
+                values: components["schemas"]["GroupCount"][];
             }[];
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -14607,7 +14830,10 @@ export interface components {
         };
         /** @description The Setup item a client finished. */
         RecordSetupRequest: {
-            /** @description The item, which must be one the app records itself, such as the dependency tutorial. */
+            /**
+             * @description The item, which must be one the app records itself: the dependency tutorial, or a question
+             *     dismissed unanswered.
+             */
             item: components["schemas"]["SetupItemDiscriminants"];
         };
         /**
@@ -17353,7 +17579,10 @@ export interface components {
             name: string;
             name_source?: components["schemas"]["AttributeSource"];
         };
-        /** @enum {string} */
+        /**
+         * @description Fields that VLANs can be ordered/grouped by.
+         * @enum {string}
+         */
         VlanOrderField: "created_at" | "name" | "vlan_number" | "updated_at" | "site_id" | "source" | "last_seen_at";
         /** @description Whether one address woke: whether the scan found it after the magic packets went out. */
         WakeOnLanResult: {
@@ -19750,7 +19979,9 @@ export interface operations {
     };
     get_daemon_api_key_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["DaemonApiKeyOrderField"][];
                 /** @description Filter by site ID. Repeat the parameter to pass several. */
                 site_ids?: string[] | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
@@ -19793,10 +20024,7 @@ export interface operations {
                 offset?: number | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["DaemonApiKeyOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -19807,7 +20035,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_DaemonApiKeyOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -20223,7 +20451,9 @@ export interface operations {
     };
     get_daemon_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["DaemonOrderField"][];
                 /** @description Filter by site ID. Repeat the parameter to pass several. */
                 site_ids?: string[] | null;
                 /** @description Only daemons in one of these statuses. Repeat for several. */
@@ -20266,10 +20496,7 @@ export interface operations {
                 offset?: number | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["DaemonOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -20280,7 +20507,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_DaemonOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -21322,7 +21549,9 @@ export interface operations {
     };
     get_discovery_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["DiscoveryOrderField"][];
                 /** @description Filter by site ID. Repeat the parameter to pass several. */
                 site_ids?: string[] | null;
                 /** @description Filter by daemon ID. Repeat the parameter to pass several. */
@@ -21387,10 +21616,7 @@ export interface operations {
                 offset?: number | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["DiscoveryOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -21401,7 +21627,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_DiscoveryOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -22106,7 +22332,9 @@ export interface operations {
     };
     get_host_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["HostOrderField"][];
                 /** @description Filter by site ID. Repeat the parameter to pass several. */
                 site_ids?: string[] | null;
                 /** @description Filter by specific entity IDs (for selective loading) */
@@ -22200,10 +22428,7 @@ export interface operations {
                 include_children?: boolean | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["HostOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -22214,7 +22439,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_HostOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -24369,7 +24594,9 @@ export interface operations {
     };
     get_service_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["ServiceOrderField"][];
                 /** @description Filter by site ID. Repeat the parameter to pass several. */
                 site_ids?: string[] | null;
                 /** @description Filter by host ID. Repeat the parameter to pass several. */
@@ -24449,10 +24676,7 @@ export interface operations {
                 stale?: boolean | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["ServiceOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -24463,7 +24687,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_ServiceOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -25217,7 +25441,9 @@ export interface operations {
     };
     get_site_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["SiteOrderField"][];
                 /** @description Only sites with one of these credentials assigned. Repeat for several. */
                 credential_ids?: string[] | null;
                 /**
@@ -25256,10 +25482,7 @@ export interface operations {
                 offset?: number | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["SiteOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -25270,7 +25493,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_SiteOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -25768,7 +25991,9 @@ export interface operations {
     };
     get_subnet_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["SubnetOrderField"][];
                 /** @description Filter by specific entity IDs (for selective loading) */
                 ids?: string[] | null;
                 /** @description Filter by site ID. Repeat the parameter to pass several. */
@@ -25831,10 +26056,7 @@ export interface operations {
                 search?: string | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["SubnetOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -25845,7 +26067,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_SubnetOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -26567,7 +26789,9 @@ export interface operations {
     };
     get_tag_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["TagOrderField"][];
                 /** @description Only tags of one of these colours. Repeat for several. */
                 colors?: string[] | null;
                 /** @description Only tags in one of these groups. Repeat for several. */
@@ -26593,10 +26817,7 @@ export interface operations {
                 at?: string | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["TagOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -26607,7 +26828,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_TagOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -27219,7 +27440,9 @@ export interface operations {
     };
     get_user_api_key_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["UserApiKeyOrderField"][];
                 /** @description Only keys limited to one of these roles. Repeat for several. */
                 permissions?: components["schemas"]["UserOrgPermissions"][] | null;
                 /** @description Only keys with access to one of these sites. Repeat for several. */
@@ -27257,10 +27480,7 @@ export interface operations {
                 offset?: number | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["UserApiKeyOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -27271,7 +27491,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_UserApiKeyOrderField"];
                 };
             };
             /** @description Unknown field */
@@ -27980,7 +28200,9 @@ export interface operations {
     };
     get_vlan_field_values: {
         parameters: {
-            query?: {
+            query: {
+                /** @description The fields whose values to count. Repeat the parameter to pass several. */
+                fields: components["schemas"]["VlanOrderField"][];
                 /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
                 group_by?: components["schemas"]["VlanOrderField"] | null;
                 /** @description Secondary ordering field (sorting within groups or standalone sort). */
@@ -28023,10 +28245,7 @@ export interface operations {
                 search?: string | null;
             };
             header?: never;
-            path: {
-                /** @description The field whose values to count */
-                field: components["schemas"]["VlanOrderField"];
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -28037,7 +28256,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                    "application/json": components["schemas"]["ApiResponse_Vec_FieldValues_VlanOrderField"];
                 };
             };
             /** @description Unknown field */

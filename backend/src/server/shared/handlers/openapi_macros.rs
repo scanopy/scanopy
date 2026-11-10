@@ -427,8 +427,8 @@ macro_rules! crud_list_page_handler {
 }
 
 /// Generates an OpenAPI-annotated field-values handler that delegates to
-/// `get_field_values_handler::<T>`: every distinct value of one of the entity's order fields,
-/// with its row count, under the same filters the list takes.
+/// `get_field_values_handler::<T>`: every distinct value of each named order field of the
+/// entity, with its row count, under the same filters the list takes.
 ///
 /// # Example
 /// ```ignore
@@ -439,29 +439,29 @@ macro_rules! crud_get_field_values_handler {
     ($entity:ty) => {
         type __FieldValuesFilterQuery = <$entity as $crate::server::shared::handlers::traits::CrudHandlers>::FilterQuery;
         type __FieldValuesOrderField = <$entity as $crate::server::shared::handlers::traits::CrudHandlers>::OrderField;
-        type __FieldValuesResponse = $crate::server::shared::types::api::ApiResponse<Vec<$crate::server::shared::types::api::GroupCount>>;
+        type __FieldValuesResponse = $crate::server::shared::types::api::ApiResponse<Vec<$crate::server::shared::types::api::FieldValues<__FieldValuesOrderField>>>;
 
         const __FIELD_VALUES_TAG: &str = <$entity as $crate::server::shared::storage::traits::Entity>::ENTITY_NAME_PLURAL;
         const __FIELD_VALUES_OP_ID: &str = const_format::concatcp!("get_", <$entity as $crate::server::shared::storage::traits::Entity>::ENTITY_NAME_SINGULAR, "_field_values");
         const __FIELD_VALUES_NAME: &str = $crate::api_text_name!(<$entity as $crate::server::shared::storage::traits::Entity>::ENTITY_NAME_SINGULAR);
         const __FIELD_VALUES_INTERNAL: &str = $crate::server::openapi::tags::INTERNAL;
         const __FIELD_VALUES_SUMMARY: &str = const_format::concatcp!("List ", __FIELD_VALUES_NAME, " field values");
-        const __FIELD_VALUES_DESC: &str = const_format::concatcp!("Every distinct value of one ", <$entity as $crate::server::shared::storage::traits::Entity>::ENTITY_NAME_SINGULAR, " field across the ", <$entity as $crate::server::shared::storage::traits::Entity>::ENTITY_NAME_PLURAL, " the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.");
+        const __FIELD_VALUES_DESC: &str = const_format::concatcp!("Every distinct value of each named ", <$entity as $crate::server::shared::storage::traits::Entity>::ENTITY_NAME_SINGULAR, " field across the ", <$entity as $crate::server::shared::storage::traits::Entity>::ENTITY_NAME_PLURAL, " the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.");
         const __FIELD_VALUES_RESP_DESC: &str = const_format::concatcp!("Distinct values and their ", <$entity as $crate::server::shared::storage::traits::Entity>::ENTITY_NAME_SINGULAR, " counts");
 
         #[utoipa::path(
             get,
-            path = "/field-values/{field}",
+            path = "/field-values",
             tags = [__FIELD_VALUES_TAG, __FIELD_VALUES_INTERNAL],
             operation_id = __FIELD_VALUES_OP_ID,
             summary = __FIELD_VALUES_SUMMARY,
             description = __FIELD_VALUES_DESC,
             params(
-                ("field" = __FieldValuesOrderField, Path, description = "The field whose values to count"),
+                ("fields" = Vec<__FieldValuesOrderField>, Query, description = "The fields whose values to count. Repeat the parameter to pass several."),
                 __FieldValuesFilterQuery
             ),
             responses(
-                (status = 200, description = __FIELD_VALUES_RESP_DESC, body = $crate::server::shared::types::api::ApiResponse<Vec<$crate::server::shared::types::api::GroupCount>>),
+                (status = 200, description = __FIELD_VALUES_RESP_DESC, body = $crate::server::shared::types::api::ApiResponse<Vec<$crate::server::shared::types::api::FieldValues<__FieldValuesOrderField>>>),
                 (status = 400, description = "Unknown field", body = $crate::server::shared::types::api::ApiErrorResponse),
             ),
             security(("user_api_key" = []), ("session" = []))
@@ -469,13 +469,13 @@ macro_rules! crud_get_field_values_handler {
         pub async fn get_field_values(
             state: axum::extract::State<std::sync::Arc<$crate::server::config::AppState>>,
             auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Can<$entity, $crate::server::auth::middleware::permissions::Read>>,
-            path: axum::extract::Path<__FieldValuesOrderField>,
+            fields: $crate::server::shared::extractors::Query<$crate::server::shared::handlers::traits::FieldValuesQuery<__FieldValuesOrderField>>,
             query: $crate::server::shared::extractors::Query<__FieldValuesFilterQuery>,
         ) -> $crate::server::shared::types::api::ApiResult<
             axum::response::Json<__FieldValuesResponse>,
         > {
             $crate::server::shared::handlers::traits::get_field_values_handler::<$entity>(
-                state, auth, path, query,
+                state, auth, fields, query,
             )
             .await
         }

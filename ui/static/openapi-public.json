@@ -21463,7 +21463,7 @@
           }
         }
       },
-      "ApiResponse_Vec_GroupCount": {
+      "ApiResponse_Vec_FieldValues_DaemonApiKeyOrderField": {
         "type": "object",
         "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
@@ -21475,23 +21475,584 @@
             "type": "array",
             "items": {
               "type": "object",
-              "description": "Size of one group in a grouped list, across every page.",
+              "description": "The distinct values of one field, with how many rows hold each. `F` is the entity's order\nfield.",
               "required": [
-                "count"
+                "field",
+                "values"
               ],
               "properties": {
-                "count": {
-                  "type": "integer",
-                  "format": "int64",
-                  "description": "How many rows fall in this group in total, not just on this page.",
-                  "minimum": 0
+                "field": {
+                  "type": "string",
+                  "description": "Fields the daemon API key list can be ordered and grouped by.",
+                  "enum": [
+                    "created_at",
+                    "name",
+                    "updated_at",
+                    "site_id",
+                    "is_enabled",
+                    "last_used",
+                    "expires_at"
+                  ]
                 },
-                "value": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "description": "The group's value, rendered as text. `null` for rows whose group key is\nNULL (the \"ungrouped\" bucket)."
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupCount"
+                  },
+                  "description": "Each distinct value of the field and how many rows hold it."
+                }
+              }
+            },
+            "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_Vec_FieldValues_DaemonOrderField": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "The distinct values of one field, with how many rows hold each. `F` is the entity's order\nfield.",
+              "required": [
+                "field",
+                "values"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "Fields that daemons can be ordered/grouped by.",
+                  "enum": [
+                    "created_at",
+                    "name",
+                    "last_seen",
+                    "updated_at",
+                    "site_id",
+                    "os",
+                    "mode",
+                    "maintainer",
+                    "version",
+                    "status"
+                  ]
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupCount"
+                  },
+                  "description": "Each distinct value of the field and how many rows hold it."
+                }
+              }
+            },
+            "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_Vec_FieldValues_DiscoveryOrderField": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "The distinct values of one field, with how many rows hold each. `F` is the entity's order\nfield.",
+              "required": [
+                "field",
+                "values"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "Fields that discoveries can be ordered/grouped by.",
+                  "enum": [
+                    "created_at",
+                    "name",
+                    "updated_at",
+                    "daemon_id",
+                    "site_id",
+                    "discovery_type",
+                    "phase",
+                    "started_at",
+                    "finished_at",
+                    "duration",
+                    "warnings",
+                    "run_type",
+                    "last_run",
+                    "scan_count",
+                    "force_full_scan",
+                    "legacy"
+                  ]
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupCount"
+                  },
+                  "description": "Each distinct value of the field and how many rows hold it."
+                }
+              }
+            },
+            "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_Vec_FieldValues_HostOrderField": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "The distinct values of one field, with how many rows hold each. `F` is the entity's order\nfield.",
+              "required": [
+                "field",
+                "values"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "Fields that hosts can be ordered/grouped by.",
+                  "enum": [
+                    "created_at",
+                    "name",
+                    "hostname",
+                    "updated_at",
+                    "virtualized_by",
+                    "site_id",
+                    "interface_ip",
+                    "last_seen_at",
+                    "mac_address",
+                    "source",
+                    "manufacturer",
+                    "model",
+                    "sys_location",
+                    "os_family"
+                  ]
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupCount"
+                  },
+                  "description": "Each distinct value of the field and how many rows hold it."
+                }
+              }
+            },
+            "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_Vec_FieldValues_ServiceOrderField": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "The distinct values of one field, with how many rows hold each. `F` is the entity's order\nfield.",
+              "required": [
+                "field",
+                "values"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "Fields that services can be ordered/grouped by.",
+                  "enum": [
+                    "created_at",
+                    "name",
+                    "updated_at",
+                    "host",
+                    "site_id",
+                    "position",
+                    "service_definition",
+                    "last_seen_at",
+                    "containerized_by",
+                    "match_confidence",
+                    "source"
+                  ]
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupCount"
+                  },
+                  "description": "Each distinct value of the field and how many rows hold it."
+                }
+              }
+            },
+            "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_Vec_FieldValues_SiteOrderField": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "The distinct values of one field, with how many rows hold each. `F` is the entity's order\nfield.",
+              "required": [
+                "field",
+                "values"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "Fields the sites list can be ordered and grouped by.",
+                  "enum": [
+                    "created_at",
+                    "name",
+                    "updated_at",
+                    "effective_stale_after_hours"
+                  ]
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupCount"
+                  },
+                  "description": "Each distinct value of the field and how many rows hold it."
+                }
+              }
+            },
+            "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_Vec_FieldValues_SubnetOrderField": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "The distinct values of one field, with how many rows hold each. `F` is the entity's order\nfield.",
+              "required": [
+                "field",
+                "values"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "Fields that subnets can be ordered/grouped by.",
+                  "enum": [
+                    "created_at",
+                    "name",
+                    "cidr",
+                    "subnet_type",
+                    "updated_at",
+                    "site_id",
+                    "last_seen_at",
+                    "source",
+                    "managed_by",
+                    "utilization"
+                  ]
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupCount"
+                  },
+                  "description": "Each distinct value of the field and how many rows hold it."
+                }
+              }
+            },
+            "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_Vec_FieldValues_TagOrderField": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "The distinct values of one field, with how many rows hold each. `F` is the entity's order\nfield.",
+              "required": [
+                "field",
+                "values"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "Fields that tags can be ordered/grouped by.",
+                  "enum": [
+                    "created_at",
+                    "name",
+                    "color",
+                    "updated_at",
+                    "tag_group",
+                    "icon"
+                  ]
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupCount"
+                  },
+                  "description": "Each distinct value of the field and how many rows hold it."
+                }
+              }
+            },
+            "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_Vec_FieldValues_UserApiKeyOrderField": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "The distinct values of one field, with how many rows hold each. `F` is the entity's order\nfield.",
+              "required": [
+                "field",
+                "values"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "Fields the user API key list can be ordered and grouped by.",
+                  "enum": [
+                    "created_at",
+                    "name",
+                    "updated_at",
+                    "permissions",
+                    "is_enabled",
+                    "last_used",
+                    "expires_at"
+                  ]
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupCount"
+                  },
+                  "description": "Each distinct value of the field and how many rows hold it."
+                }
+              }
+            },
+            "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_Vec_FieldValues_VlanOrderField": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "The distinct values of one field, with how many rows hold each. `F` is the entity's order\nfield.",
+              "required": [
+                "field",
+                "values"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "Fields that VLANs can be ordered/grouped by.",
+                  "enum": [
+                    "created_at",
+                    "name",
+                    "vlan_number",
+                    "updated_at",
+                    "site_id",
+                    "source",
+                    "last_seen_at"
+                  ]
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupCount"
+                  },
+                  "description": "Each distinct value of the field and how many rows hold it."
                 }
               }
             },
@@ -38385,7 +38946,7 @@
         "properties": {
           "item": {
             "$ref": "#/components/schemas/SetupItemDiscriminants",
-            "description": "The item, which must be one the app records itself, such as the dependency tutorial."
+            "description": "The item, which must be one the app records itself: the dependency tutorial, or a question\ndismissed unanswered."
           }
         }
       },
@@ -44268,6 +44829,7 @@
       },
       "VlanOrderField": {
         "type": "string",
+        "description": "Fields that VLANs can be ordered/grouped by.",
         "enum": [
           "created_at",
           "name",
