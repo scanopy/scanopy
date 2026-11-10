@@ -9,7 +9,17 @@ use uuid::Uuid;
 use super::items::{
     SetupContext, SetupCounts, SetupDaemon, SetupSite, TargetlessCredential, UncoveredIntegration,
 };
-use super::types::{SetupItemDiscriminants, SetupListEntry, SetupOperation};
+use super::types::{
+    IssueCategory, IssueFilterQuery, IssueOrderField, SetupItemDiscriminants, SetupListEntry,
+    SetupOperation,
+};
+use crate::server::shared::{
+    handlers::{
+        list::{Computed, ComputedValue, ListOrdering, page_in_memory},
+        query::PaginationParams,
+    },
+    types::{api::PaginatedApiResponse, metadata::HasId},
+};
 use crate::server::{
     auth::{
         access::{Action, Resource},
@@ -274,6 +284,50 @@ impl SetupService {
     }
 }
 
+/// One page of `issues`, grouped by category in category order, each group in list order. An
+/// Issue about the whole organization passes every site filter.
+pub fn issues_page(
+    issues: Vec<SetupListEntry>,
+    query: &IssueFilterQuery,
+) -> PaginatedApiResponse<SetupListEntry> {
+    let rows: Vec<(Option<String>, SetupListEntry)> = issues
+        .into_iter()
+        .filter(|entry| match &query.site_ids {
+            Some(wanted) if !wanted.is_empty() => {
+                entry.site_ids.is_empty() || entry.site_ids.iter().any(|id| wanted.contains(id))
+            }
+            _ => true,
+        })
+        .map(|entry| (None, entry))
+        .collect();
+    let ordering = ListOrdering {
+        group_by: Some(query.group_by.unwrap_or_default()),
+        order_by: None,
+        direction: None,
+        tag_group: Default::default(),
+    };
+    let pagination = PaginationParams {
+        limit: query.limit,
+        offset: query.offset,
+    };
+    let (limit, offset) = (pagination.effective_limit(), pagination.effective_offset());
+    let category_of = |field: &IssueOrderField, entry: &SetupListEntry| match field {
+        IssueOrderField::Category => entry.item.issue_category().map(|category| Computed {
+            value: IssueCategory::iter()
+                .position(|c| c == category)
+                .map(|rank| ComputedValue::Number(rank as f64)),
+            group: Some(category.id().to_string()),
+        }),
+    };
+    let (items, total_count, group_counts) =
+        page_in_memory(rows, &ordering, |_| true, category_of, limit, offset);
+    let response = PaginatedApiResponse::success(items, total_count, limit.unwrap_or(0), offset);
+    match group_counts {
+        Some(counts) => response.with_group_counts(counts),
+        None => response,
+    }
+}
+
 /// One entry per integration, naming every host it was found on, most hosts first.
 fn group_by_integration(found: Vec<FoundIntegration>) -> Vec<UncoveredIntegration> {
     let mut grouped: Vec<UncoveredIntegration> = Vec::new();
@@ -329,6 +383,81 @@ mod tests {
             site_id,
             health: DaemonHealth::Outdated,
         }
+    }
+
+    fn unconfirmed_hosts() -> SetupItem {
+        SetupItem::UnconfirmedHosts { count: 3 }
+    }
+
+    fn page(
+        issues: &[SetupItem],
+        site_ids: Option<Vec<Uuid>>,
+        limit: u32,
+        offset: u32,
+    ) -> PaginatedApiResponse<SetupListEntry> {
+        let entries = issues.iter().cloned().map(entry).collect();
+        issues_page(
+            entries,
+            &IssueFilterQuery {
+                site_ids,
+                limit: Some(limit),
+                offset: Some(offset),
+                ..Default::default()
+            },
+        )
+    }
+
+    /// Groups come out in category order, whatever order the list gave, and a group a page cuts
+    /// still reports its full count.
+    #[test]
+    fn a_page_groups_by_category_and_counts_whole_groups() {
+        let site = Uuid::new_v4();
+        let issues = [
+            unconfirmed_hosts(),
+            daemon_issue(site),
+            daemon_issue(site),
+            daemon_issue(site),
+        ];
+        let first = page(&issues, None, 2, 0);
+        let categories: Vec<Option<IssueCategory>> =
+            first.data.iter().map(|e| e.item.issue_category()).collect();
+        assert_eq!(categories, [Some(IssueCategory::Daemons); 2]);
+        let counts = first.meta.pagination.group_counts.expect("grouped");
+        let counts: Vec<(Option<String>, u64)> =
+            counts.into_iter().map(|g| (g.value, g.count)).collect();
+        assert_eq!(
+            counts,
+            [
+                (Some(IssueCategory::Daemons.id().to_string()), 3),
+                (Some(IssueCategory::Review.id().to_string()), 1),
+            ]
+        );
+        assert_eq!(first.meta.pagination.total_count, 4);
+
+        let second = page(&issues, None, 2, 2);
+        let categories: Vec<Option<IssueCategory>> = second
+            .data
+            .iter()
+            .map(|e| e.item.issue_category())
+            .collect();
+        assert_eq!(
+            categories,
+            [Some(IssueCategory::Daemons), Some(IssueCategory::Review)]
+        );
+    }
+
+    /// Narrowing to a site keeps that site's Issues and the ones about the whole org.
+    #[test]
+    fn a_site_filter_keeps_org_wide_issues() {
+        let (mine, other) = (Uuid::new_v4(), Uuid::new_v4());
+        let issues = [daemon_issue(mine), daemon_issue(other), unconfirmed_hosts()];
+        let kept: Vec<Vec<Uuid>> = page(&issues, Some(vec![mine]), 50, 0)
+            .data
+            .into_iter()
+            .map(|e| e.site_ids)
+            .collect();
+        assert_eq!(kept, [vec![mine], vec![]]);
+        assert_eq!(page(&issues, Some(vec![]), 50, 0).data.len(), 3);
     }
 
     /// A member sees Issues on its own sites only, and every Setup item.

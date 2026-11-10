@@ -33,7 +33,7 @@
 	import { queryKeys } from '$lib/api/query-client';
 	import DaemonTroubleshootingModal from '$lib/shared/components/layout/DaemonTroubleshootingModal.svelte';
 	import { SvelteSet } from 'svelte/reactivity';
-	import { entities, setupItemTiers } from '$lib/shared/stores/metadata';
+	import { entities, issueCategories, setupItemTiers } from '$lib/shared/stores/metadata';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import { trackEvent } from '$lib/shared/utils/analytics';
@@ -45,6 +45,17 @@
 	import { useCredentialsQuery } from '$lib/features/credentials/queries';
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import GroupHeading from '$lib/shared/components/data/table/GroupHeading.svelte';
+	import PaginationBar from '$lib/shared/components/data/controls/PaginationBar.svelte';
+	import { paginationView } from '$lib/shared/components/data/controls/pagination';
+	import { computeGroupOffsets } from '$lib/shared/components/data/controls/grouping';
+	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
+	import {
+		groupPageSlice,
+		PAGE_SIZE_OPTIONS,
+		type PageSizeOption
+	} from '$lib/shared/components/data/types';
+	import { useIssuesListQuery } from '../queries';
 	import NavBadge from '$lib/shared/components/layout/NavBadge.svelte';
 	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
 	import {
@@ -58,9 +69,7 @@
 	import {
 		doneEntries,
 		entryId,
-		issueEntries,
-		issueSiteIds,
-		issuesOnSites,
+		issueCategoryOf,
 		lockedEntries,
 		openEntries,
 		setupProgress,
@@ -71,10 +80,19 @@
 
 	let {
 		entries,
+		issueCount,
+		issueSites,
+		isActive,
 		setup
 	}: {
-		/** The Setup list the server computed for this user. */
+		/** The Setup steps the server computed for this user. */
 		entries: SetupListEntry[];
+		/** The Issues the user sees, on every site. */
+		issueCount: number;
+		/** The sites those Issues are on. */
+		issueSites: string[];
+		/** Whether Home is on screen, which holds the Issues page until it is. */
+		isActive: boolean;
 		/** The org's done Setup item types. */
 		setup: SetupItemType[];
 	} = $props();
@@ -85,18 +103,54 @@
 	const daemonsQuery = useDaemonsQuery();
 	const credentialsQuery = useCredentialsQuery();
 	const sessionsQuery = useActiveSessionsQuery();
-	let allIssues = $derived(issueEntries(entries));
 	// With Issues on more than one site, a chip per site narrows the list to the sites picked.
-	// Every site starts picked; a site whose Issues all clear drops out of the chips.
-	let issueSites = $derived(issueSiteIds(allIssues));
+	// Every site starts picked; a site whose Issues all clear drops out of the chips. The last
+	// picked chip stays on, so the list always names a site to show.
 	let unpickedSites = new SvelteSet<string>();
 	let pickedSites = $derived(new Set(issueSites.filter((id) => !unpickedSites.has(id))));
-	let issues = $derived(issueSites.length > 1 ? issuesOnSites(allIssues, pickedSites) : allIssues);
 	const siteColor = entities.getColorHelper('Site').color;
 	const SiteIcon = entities.getIconComponent('Site');
+
+	// The Issues are paged and grouped by category on the server, like every entity list.
+	const issuesPage = listPageState(() => isActive && issueCount > 0, PAGE_SIZE_OPTIONS[0]);
+	let siteQuery = $derived.by(() => {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- rebuilt on every change, never mutated
+		const query = new URLSearchParams();
+		if (pickedSites.size < issueSites.length) {
+			for (const id of pickedSites) query.append('site_ids', id);
+		}
+		return query;
+	});
+	const issuesQuery = useIssuesListQuery(() => ({ ...issuesPage.params(), list: siteQuery }));
+	let issues = $derived(issuesQuery.data?.items ?? []);
+	let pagination = $derived(issuesQuery.data?.pagination ?? null);
+	let pageSize = $derived(issuesPage.params().limit as PageSizeOption);
+	let page = $derived(paginationView(pagination, pageSize, issues.length));
+	let groupOffsets = $derived(computeGroupOffsets(pagination?.group_counts ?? null));
+	// The page's rows by category, in the order the server listed them, which is category order.
+	let issueGroups = $derived.by(() => {
+		const groups: { category: string; entries: SetupListEntry[] }[] = [];
+		for (const entry of issues) {
+			const category = issueCategoryOf(entry.item);
+			const last = groups.at(-1);
+			if (last?.category === category) last.entries.push(entry);
+			else groups.push({ category, entries: [entry] });
+		}
+		return groups;
+	});
+	let collapsedCategories = new SvelteSet<string>();
+	function toggleCategory(category: string) {
+		if (collapsedCategories.has(category)) collapsedCategories.delete(category);
+		else collapsedCategories.add(category);
+	}
+	function goToPage(next: number, size: PageSizeOption = pageSize) {
+		issuesPage.onPageChange(next, size);
+	}
+
 	function toggleSite(id: string) {
 		if (unpickedSites.has(id)) unpickedSites.delete(id);
-		else unpickedSites.add(id);
+		else if (pickedSites.size > 1) unpickedSites.add(id);
+		goToPage(1);
 	}
 	let open = $derived(openEntries(entries));
 	let locked = $derived(lockedEntries(entries));
@@ -110,7 +164,7 @@
 	// hosts a scan warning concerns.
 	let hostIds = $derived([
 		...new Set(
-			entries.flatMap(({ item }) =>
+			issues.flatMap(({ item }) =>
 				item.type === 'UncoveredIntegration'
 					? item.host_ids.slice(0, 1)
 					: item.type === 'RunWarnings'
@@ -148,7 +202,7 @@
 
 	// Issues and Open first steps (what the trial sweep reports) report once per item per page load.
 	$effect(() => {
-		for (const entry of entries) {
+		for (const entry of [...issues, ...entries]) {
 			if (!entry.alerts_when_stuck) continue;
 			const key = entryId(entry);
 			if (shownKeys.has(key)) continue;
@@ -197,13 +251,13 @@
 {/snippet}
 
 <section class="space-y-6">
-	{#if allIssues.length > 0}
+	{#if issueCount > 0}
 		<div>
 			<div class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
 				<!-- The badge counts every Issue, as the Home badge in the sidebar does. -->
 				<h3 class="flex items-center gap-2 text-base font-semibold text-primary">
 					<span>{setupItemTiers.getName('Issue')}</span>
-					<NavBadge color={issueColor} count={allIssues.length} />
+					<NavBadge color={issueColor} count={issueCount} />
 				</h3>
 				{#if issueSites.length > 1}
 					<div class="flex flex-wrap items-center gap-1.5">
@@ -225,11 +279,47 @@
 					</div>
 				{/if}
 			</div>
-			<ul class="space-y-2">
-				{#each issues as entry (entryId(entry))}
-					{@render row(entry)}
+			<div class="space-y-4">
+				{#each issueGroups as group (group.category)}
+					{@const position = groupOffsets.get(group.category)}
+					{@const collapsed = collapsedCategories.has(group.category)}
+					<div class="space-y-2">
+						<GroupHeading
+							name={issueCategories.getName(group.category)}
+							count={position?.count ?? group.entries.length}
+							range={position
+								? groupPageSlice(position, pagination?.offset ?? 0, issues.length)
+								: null}
+							{collapsed}
+							onToggle={() => toggleCategory(group.category)}
+						/>
+						{#if !collapsed}
+							<ul class="space-y-2">
+								{#each group.entries as entry (entryId(entry))}
+									{@render row(entry)}
+								{/each}
+							</ul>
+						{/if}
+					</div>
 				{/each}
-			</ul>
+			</div>
+			{#if page.totalCount > PAGE_SIZE_OPTIONS[0]}
+				<div class="mt-3">
+					<PaginationBar
+						totalCount={page.totalCount}
+						totalPages={page.totalPages}
+						{pageSize}
+						showingStart={page.showingStart}
+						showingEnd={page.showingEnd}
+						canGoPrev={page.canGoPrev}
+						canGoNext={page.canGoNext}
+						groupCount={pagination?.group_counts?.length ?? null}
+						onPrevPage={() => goToPage(page.currentPage - 1)}
+						onNextPage={() => goToPage(page.currentPage + 1)}
+						onPageSizeChange={(size) => goToPage(1, size)}
+					/>
+				</div>
+			{/if}
 		</div>
 	{/if}
 	<!-- Locked items show disabled after the open ones. Once every item is done, the section goes. -->

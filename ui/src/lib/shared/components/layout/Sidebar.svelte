@@ -49,7 +49,6 @@
 	} from '$lib/shared/utils/trial';
 	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
 	import { useDashboardQuery } from '$lib/features/home/queries';
-	import { setupIssueCount } from '$lib/features/home/setup-list';
 
 	// Import tab components
 	import TopologyTab from '$lib/features/topology/components/TopologyTab.svelte';
@@ -210,9 +209,9 @@
 		return true;
 	}
 
-	// The Home badge counts the Issues on the Setup list, from the array Home lists them from.
+	// The Home badge counts the Issues the summary reports, which Home's Issues list pages through.
 	const dashboardQuery = useDashboardQuery({ enabled: () => mainAppAvailable });
-	let setupIssues = $derived(setupIssueCount(dashboardQuery.data?.setup_items ?? []));
+	let setupIssues = $derived(dashboardQuery.data?.issue_count ?? 0);
 
 	// Sync settings modal state from modal registry (for deep-link opens)
 	$effect(() => {

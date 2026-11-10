@@ -45,7 +45,11 @@ pub struct DashboardSummary {
     pub sites: Vec<SiteSummary>,
     /// Current usage against the organization's plan allowances.
     pub plan_usage: PlanUsage,
-    /// The organization's Setup list as the caller sees it: Issues, then Next steps, then
-    /// Suggestions.
+    /// The organization's Setup steps as the caller sees them. Issues are paged from
+    /// `/dashboard/issues`.
     pub setup_items: Vec<SetupListEntry>,
+    /// The Issues the caller sees, on every site.
+    pub issue_count: u64,
+    /// The sites those Issues are on, which the Issues list can be narrowed to.
+    pub issue_site_ids: Vec<Uuid>,
 }

@@ -333,6 +333,10 @@ pub fn generate_ui_data_fixtures(output_dir: &Path, force_logos: bool) {
         .map(|t| t.to_metadata())
         .collect();
     write_fixture(&setup_item_tiers, output_dir, "setup-item-tiers.json");
+    let issue_categories: Vec<TypeMetadata> = crate::server::setup::types::IssueCategory::iter()
+        .map(|c| c.to_metadata())
+        .collect();
+    write_fixture(&issue_categories, output_dir, "issue-categories.json");
 
     // A port's ifOperStatus, keyed by `IfOperStatus`: the inspector's status tag colour.
     let if_oper_statuses: Vec<TypeMetadata> =

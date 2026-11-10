@@ -32,9 +32,7 @@
 	// A lapsed org keeps its plan's feature flags but can act on none of them, so it gets only its
 	// Issues.
 	let setupItems = $derived(
-		(dashboard?.setup_items ?? []).filter(
-			(entry) => !(organization && isPlanLapsed(organization)) || entry.tier === 'Issue'
-		)
+		organization && isPlanLapsed(organization) ? [] : (dashboard?.setup_items ?? [])
 	);
 	let configData = $derived(configQuery.data);
 
@@ -70,8 +68,14 @@
 	{:else if dashboardQuery.isPending || organizationQuery.isPending}
 		<Loading />
 	{:else if dashboard && organization}
-		{#if setupItems.length > 0}
-			<SetupList entries={setupItems} {setup} />
+		{#if setupItems.length > 0 || dashboard.issue_count > 0}
+			<SetupList
+				entries={setupItems}
+				issueCount={dashboard.issue_count}
+				issueSites={dashboard.issue_site_ids}
+				{isActive}
+				{setup}
+			/>
 		{/if}
 
 		<!-- Demo Topology Embed — shown until the first scan finishes -->
