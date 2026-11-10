@@ -8,6 +8,7 @@
 		BackgroundVariant,
 		useNodesInitialized,
 		useViewport,
+		useStore,
 		type Connection,
 		useSvelteFlow
 	} from '@xyflow/svelte';
@@ -575,6 +576,17 @@
 	 * the store changes, since the graph a collapse press produces is a different size.
 	 */
 	let derivedMinZoom = $derived(minZoomFor(boundsOfNodes($nodes)));
+
+	// SvelteFlow reads `minZoom` into the pan-zoom engine once, when it mounts, and the prop
+	// changing afterwards does not reach it. The viewer mounts before it has nodes, so the engine
+	// kept the default floor of 0.1: a fit could go below it, and the wheel then could not zoom
+	// back out to where the fit had been. Hand the engine the floor whenever it changes.
+	// Derived, as `useSvelteFlow` does it: the provider's store is replaced when `<SvelteFlow>`
+	// mounts, and a store read once here would be the provider's empty one.
+	const flowStore = $derived(useStore());
+	$effect(() => {
+		flowStore.panZoom?.setScaleExtent([derivedMinZoom, MAX_ZOOM]);
+	});
 
 	// Cull off-screen nodes once the graph is big enough — see
 	// `pipeline/render-mode.ts` for why measuring and exporting must suspend it.
