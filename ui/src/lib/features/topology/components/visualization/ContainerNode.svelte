@@ -518,6 +518,7 @@
 		-->
 		<div
 			class="lod-box rounded-lg"
+			class:lod-search-match={hasSearchMatches}
 			style="width: 100%; height: 100%; border-top: 2px solid {colorHelper.rgb};"
 		></div>
 	{:else if isCollapsed}
@@ -704,6 +705,12 @@
 		outline: 1px solid var(--color-topology-lod-stroke);
 		outline-offset: -1px;
 		box-shadow: none !important;
+	}
+
+	/* A search match inside a boxed container: the ring the full-detail card draws with a shadow,
+	 * drawn as the outline the box already has. */
+	.lod-box.lod-search-match {
+		outline: 2px solid rgb(59 130 246);
 	}
 
 	div {

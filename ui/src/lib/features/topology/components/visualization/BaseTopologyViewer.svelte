@@ -28,7 +28,7 @@
 	} from '$lib/paraglide/messages';
 	import { type Node, type Edge } from '@xyflow/svelte';
 	import { getViewportForBounds, type Rect } from '@xyflow/system';
-	import { shouldSimplify } from '../../pipeline/render-mode';
+	import { DETAIL_ZOOM, shouldSimplify } from '../../pipeline/render-mode';
 	import {
 		ABSOLUTE_MIN_ZOOM,
 		DEFAULT_MIN_ZOOM,
@@ -77,6 +77,7 @@
 	import CustomEdge from './CustomEdge.svelte';
 	import TopologySidebarControls from './TopologySidebarControls.svelte';
 	import TopologyLoadProgress from './TopologyLoadProgress.svelte';
+	import ContainerLabelLayer from './ContainerLabelLayer.svelte';
 	import {
 		beginLoad,
 		endLoad,
@@ -543,6 +544,13 @@
 	 * and vanishes for each of them is noise.
 	 */
 	const LONG_RUN_MS = 400;
+
+	/**
+	 * Whether the label layer also names a sparse sample of the boxes too small to hold a name
+	 * (`label-placement.ts`): guide words over a dense grid. Off until it has been judged on
+	 * real sites.
+	 */
+	const LABEL_LANDMARKS = false;
 	let runIsLong = $state(false);
 	let longRunTimer: ReturnType<typeof setTimeout> | undefined;
 	let loadProgressShown = $derived(runIsLong && $loadProgress !== null);
@@ -587,6 +595,16 @@
 			measuring: measurePassActive,
 			exporting: $isExporting
 		})
+	);
+
+	// Container names are drawn on their own layer wherever a header cannot be read: at reduced
+	// detail, where it is not mounted, and below the zoom where its text is a few pixels tall. A
+	// graph under the reduced-detail node count keeps full cards down to a very low zoom, so the
+	// second condition is most of the range on a site of a few hundred switches.
+	let namesUnreadable = $derived(
+		!measurePassActive &&
+			!$isExporting &&
+			(detailHidden || viewerViewport.current.zoom < DETAIL_ZOOM)
 	);
 
 	// The running scan changed this site and the layout is held (see `heldTopologySites`).
@@ -1824,6 +1842,12 @@
 			bgColor="var(--color-topology-bg)"
 			gap={50}
 			size={1}
+		/>
+
+		<ContainerLabelLayer
+			nodes={$nodes}
+			active={namesUnreadable}
+			landmarks={LABEL_LANDMARKS}
 		/>
 
 		{#if showControls}
