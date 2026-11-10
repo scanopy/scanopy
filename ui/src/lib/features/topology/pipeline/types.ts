@@ -23,6 +23,12 @@ export interface LayoutState {
 	driftCorrectedIds: Set<string>;
 	sessionStructureKey: string;
 	sessionBaseKey: string;
+	/**
+	 * The collapsed set of the layout on screen, when the layout engine or a local expand produced
+	 * it. Null before the first layout and after a force-directed one, whose positions a local
+	 * expand must not build on.
+	 */
+	sessionCollapsed: Set<string> | null;
 	seenAutoCollapseIds: Set<string>;
 	collapseLevelInferred: boolean;
 	/**
@@ -72,6 +78,12 @@ export interface PrepareResult {
 	topologyId: string;
 	needsElk: boolean;
 	isViewTransition: boolean;
+	/**
+	 * Set when this run differs from the layout on screen by one container opening, on a site large
+	 * enough that a full layout is slow. `previousSize` is that container's size on screen. See
+	 * `executeLocalExpand`.
+	 */
+	localExpand?: { containerId: string; previousSize: { width: number; height: number } };
 }
 
 export function createInitialState(): LayoutState {
@@ -82,6 +94,7 @@ export function createInitialState(): LayoutState {
 		driftCorrectedIds: new Set(),
 		sessionStructureKey: '',
 		sessionBaseKey: '',
+		sessionCollapsed: null,
 		seenAutoCollapseIds: new Set(),
 		collapseLevelInferred: false,
 		collapseLevelReconciled: false,

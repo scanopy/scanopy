@@ -23,7 +23,7 @@ import { elevateEdgesToContainers } from '../layout/edge-elevation';
 import { containerTypes, views } from '$lib/shared/stores/metadata';
 import { activeView, hiddenEdgeTypes as hiddenEdgeTypesStore, topologyOptions } from '../queries';
 import { tagHiddenNodeIds, hiddenEntityIdsByType } from '../interactions';
-import { changedCardIds } from './execute-layout';
+import { changedCardIds, localExpandTarget } from './execute-layout';
 import { buildTopologyParentIndex } from '../topology-parent-index';
 import { ENTITY_COLLECTIONS } from '../resolvers';
 import { noteRunDetail } from '../diagnostics';
@@ -664,9 +664,33 @@ export function prepareTopologyData(
 		}
 	}
 
+	// One container opening on a large site is laid out locally instead of by a full layout run;
+	// see `executeLocalExpand`. Decided before the sync below, which restacks the opened container's
+	// surroundings and would lose the positions the local path builds on. A manager box toggled in
+	// the same run changes a card's height, so that goes to the full layout.
+	const localExpandId =
+		!deferCollapse &&
+		!isNewBaseStructure &&
+		!viewChanged &&
+		isScaleCollapsed(topology.nodes) &&
+		changedCardIds(state.prevExpandedInlineGroups, get(expandedInlineGroups)).size === 0
+			? localExpandTarget(state.layoutGraph, state.sessionCollapsed, collapsed)
+			: undefined;
+	const localExpandContainer = localExpandId
+		? state.layoutGraph.containers.get(localExpandId)
+		: undefined;
+	const localExpand = localExpandContainer
+		? { containerId: localExpandContainer.id, previousSize: localExpandContainer.collapsedSize }
+		: undefined;
+
 	// Sync collapse state from store -> graph
 	let collapseChanged = false;
-	if (!deferCollapse) {
+	if (localExpand) {
+		for (const id of state.sessionCollapsed ?? []) {
+			if (!collapsed.has(id)) state.layoutGraph.openInPlace(id);
+		}
+		collapseChanged = true;
+	} else if (!deferCollapse) {
 		collapseChanged = state.layoutGraph.syncCollapseState(collapsed);
 	}
 
@@ -741,6 +765,7 @@ export function prepareTopologyData(
 		currentView,
 		topologyId: topology.id ?? '',
 		needsElk,
-		isViewTransition
+		isViewTransition,
+		localExpand
 	};
 }
