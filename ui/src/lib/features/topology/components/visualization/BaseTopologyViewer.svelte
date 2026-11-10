@@ -120,6 +120,15 @@
 	import { prepareTopologyData, hiddenMetadataKey } from '../../pipeline/prepare';
 	import { resolveNodeSizes } from '../../pipeline/measure';
 	import { executeLayout } from '../../pipeline/execute-layout';
+	import {
+		adoptStoredSizes,
+		containerSizesFor,
+		deleteStoredLayout,
+		layoutStoreKey,
+		readStoredLayout,
+		writeStoredLayout
+	} from '../../pipeline/layout-store';
+	import type { LayoutResult } from '../../layout/engine';
 	import { preloadElk } from '../../layout/elk-layout';
 	import { buildFlowNodes, sortFlowNodes, stripSizeSeed } from '../../pipeline/build-flow-nodes';
 	import { buildFlowEdges } from '../../pipeline/build-flow-edges';
@@ -231,16 +240,6 @@
 		useSvelteFlow();
 	const viewerViewport = useViewport();
 	let containerElement: HTMLDivElement;
-
-	/**
-	 * Bounds of the graph the pipeline last wrote, in graph coordinates.
-	 *
-	 * Read from `$nodes` rather than `getNodes()`: on a view switch SvelteFlow has not adopted the
-	 * new set yet, and the bounds are wanted exactly then.
-	 */
-	function getLayoutBounds(): Rect | null {
-		return boundsOfNodes($nodes);
-	}
 
 	/**
 	 * The viewport that frames `bounds`, at a given zoom floor.
@@ -401,24 +400,59 @@
 	 * know the bounds — the pipeline just laid them out.
 	 */
 	export async function triggerFitView() {
-		const bounds = getLayoutBounds();
-		if (!bounds) return;
-		const target = viewportFor(bounds, derivedMinZoom);
-		// Publish the detail state for the zoom the fit is about to set, before it sets it. A fit
-		// brings every node into view at once. Left to the effects below, the nodes mount first in
-		// full detail and are then redrawn as boxes when the effect catches up: 252 collapsed
-		// switch cards took 5.7 s of script that way.
-		viewportZoom.set(target.zoom);
+		await fitToNodes($nodes);
+	}
+
+	/**
+	 * Fit the viewport to `fitNodes`, which need not be in the store yet.
+	 *
+	 * The pipeline calls this with the nodes it is about to write. Fitting first means they mount
+	 * once, at the zoom and detail they will be shown at. Written at the previous viewport, every
+	 * node mounted there in full detail (SvelteFlow renders a node once regardless of culling) and
+	 * was redrawn as a box when the fit followed: 3 s of script for 4,358 nodes.
+	 */
+	async function fitToNodes(fitNodes: readonly Node[]): Promise<number | null> {
+		const bounds = boundsOfNodes(fitNodes);
+		if (!bounds) return null;
+		const target = viewportFor(bounds, minZoomFor(bounds));
+		publishDetailFor(fitNodes, target.zoom);
+		await setViewport(target);
+		return target.zoom;
+	}
+
+	/**
+	 * Publish the zoom and the reduced-detail state for `detailNodes` drawn at `zoom`.
+	 *
+	 * Called before the write or the viewport move that brings nodes into view. The effects that
+	 * keep both stores current run after the DOM has updated, which is after those nodes have
+	 * mounted: left to them, a node mounts in full detail and is redrawn as a box one flush later.
+	 * 252 collapsed switch cards took 5.7 s of script that way.
+	 */
+	function publishDetailFor(detailNodes: readonly Node[], zoom: number) {
+		viewportZoom.set(zoom);
 		detailSimplified.set(
 			shouldSimplify({
-				zoom: target.zoom,
-				nodeCount: $nodes.length,
-				widestNodeWidth,
+				zoom,
+				nodeCount: detailNodes.length,
+				widestNodeWidth: widestWidthOf(detailNodes),
 				measuring: measurePassActive,
 				exporting: $isExporting
 			})
 		);
-		await setViewport(target);
+	}
+
+	function widestWidthOf(widthNodes: readonly Node[]): number {
+		return widthNodes.reduce(
+			(widest, node) => Math.max(widest, node.measured?.width ?? node.width ?? 0),
+			0
+		);
+	}
+
+	/** The zoom floor that lets a graph with these bounds be fitted. */
+	function minZoomFor(bounds: Rect | null): number {
+		if (!bounds) return DEFAULT_MIN_ZOOM;
+		const required = requiredFitZoom(bounds);
+		return required === null ? DEFAULT_MIN_ZOOM : zoomFloorFor(required);
 	}
 
 	export function fitViewToNodes(nodeIds: string[]) {
@@ -465,6 +499,8 @@
 
 	// Pipeline state
 	const layoutState = createInitialState();
+	/** Stored-layout keys whose sizes the DOM contradicted in this session. */
+	const distrustedLayoutKeys = new Set<string>();
 
 	/**
 	 * A DOM measurement pass is running.
@@ -509,12 +545,7 @@
 	 * to do nothing and the canvas showed a fraction of the graph at a tenth scale. Recomputed as
 	 * the store changes, since the graph a collapse press produces is a different size.
 	 */
-	let derivedMinZoom = $derived.by(() => {
-		const bounds = boundsOfNodes($nodes);
-		if (!bounds) return DEFAULT_MIN_ZOOM;
-		const required = requiredFitZoom(bounds);
-		return required === null ? DEFAULT_MIN_ZOOM : zoomFloorFor(required);
-	});
+	let derivedMinZoom = $derived(minZoomFor(boundsOfNodes($nodes)));
 
 	// Cull off-screen nodes once the graph is big enough — see
 	// `pipeline/render-mode.ts` for why measuring and exporting must suspend it.
@@ -529,9 +560,7 @@
 	 * Reading the viewport reactively costs one component here, and the value is a boolean, so the
 	 * badge appears and disappears on threshold crossings rather than on every pan frame.
 	 */
-	let widestNodeWidth = $derived(
-		$nodes.reduce((widest, node) => Math.max(widest, node.measured?.width ?? node.width ?? 0), 0)
-	);
+	let widestNodeWidth = $derived(widestWidthOf($nodes));
 	let detailHidden = $derived(
 		shouldSimplify({
 			zoom: viewerViewport.current.zoom,
@@ -954,9 +983,34 @@
 				})
 			);
 
+		// A layout kept from an earlier run with the same inputs replaces the measure pass and the
+		// layout engine — see `layout-store.ts`. `distrustedLayoutKeys` holds keys whose stored
+		// sizes disagreed with what rendered, so the re-layout that follows runs for real.
+		let layoutKey: string | null = null;
+		let layoutFromStore = false;
+		let layoutToStore: { sizes: Map<string, XY>; result: LayoutResult } | null = null;
+
 		if (needsElk) {
+			const storeLookupDone = perf.stage('layout-store.lookup');
+			layoutKey = layoutStoreKey({
+				structureKey: prep.structureKey,
+				deferCollapse: prep.deferCollapse,
+				hiddenEdgeTypes: prep.hiddenEdgeTypes,
+				edges: prep.elevatedEdges,
+				nodes: prep.layoutNodes
+			});
+			const storedLayout = distrustedLayoutKeys.has(layoutKey)
+				? undefined
+				: await readStoredLayout(layoutKey);
+			storeLookupDone();
+			if (isStale()) return;
+			layoutFromStore = storedLayout !== undefined;
+			perf.count(layoutFromStore ? 'layout-store:hit' : 'layout-store:miss');
+
 			const measureDone = perf.stage('measure');
-			const elementNodeSizes = await resolveNodeSizes(
+			const elementNodeSizes = storedLayout
+				? adoptStoredSizes(layoutState, viewCacheKey, storedLayout)
+				: await resolveNodeSizes(
 				layoutState,
 				prep,
 				topology,
@@ -1084,7 +1138,8 @@
 				layoutState,
 				prep,
 				elementNodeSizes,
-				isStale
+				isStale,
+				storedLayout?.result
 			);
 			layoutDone();
 			if (!layoutResult) {
@@ -1092,6 +1147,9 @@
 				return;
 			}
 			visibleNodes = layoutResult.visibleNodes;
+			if (!layoutFromStore && layoutResult.engineResult) {
+				layoutToStore = { sizes: elementNodeSizes, result: layoutResult.engineResult };
+			}
 		}
 
 		// Build final nodes and edges. Edge handles are computed inside
@@ -1138,6 +1196,23 @@
 		const handlesDone = perf.stage('render.publish-handles');
 		edgeHandlesByNode.set(realHandles);
 		handlesDone();
+
+		// When this run ends in a fit, move the viewport there before the nodes are written, so
+		// they mount once at the zoom and detail they will be shown at — see `fitToNodes`. The fit
+		// after the render still runs: it is what lands a view whose pane changed size meanwhile.
+		const fitFollows =
+			prep.viewChanged ||
+			prep.topologyChanged ||
+			layoutState.lastRenderedTopoKey === '' ||
+			layoutState.fitViewPending;
+		const fitZoom = fitFollows && needsLayout ? await fitToNodes(allNodes) : null;
+		if (isStale()) {
+			endMeasurePass();
+			return;
+		}
+		// Same turn as the write below, so the nodes it mounts read the detail state for this
+		// graph and not the previous one's.
+		publishDetailFor(allNodes, fitZoom ?? viewerViewport.current.zoom);
 
 		// Render
 		//
@@ -1276,6 +1351,13 @@
 				// self-heal fires every time, and each recursion is a full pipeline
 				// run including two more elk.layout() calls.
 				perf.count('post-render-relayout');
+				// A stored layout whose sizes the DOM just contradicted is wrong for this content.
+				// Drop it, and keep the re-layout below from reading it back.
+				if (layoutFromStore && layoutKey) {
+					perf.count('layout-store:invalidated');
+					deleteStoredLayout(layoutKey);
+					distrustedLayoutKeys.add(layoutKey);
+				}
 				// Invalidate structureKey to force ELK re-run. Do NOT
 				// invalidate baseKey — base structure hasn't changed, and
 				// clearing it would delete viewSizeCache (element sizes).
@@ -1298,6 +1380,16 @@
 				await loadTopologyData();
 				return;
 			}
+		}
+
+		// Kept only now: the layout rendered and the post-render check found nothing to correct.
+		if (layoutKey && layoutToStore && !isStale()) {
+			writeStoredLayout(layoutKey, {
+				sizes: layoutToStore.sizes,
+				containerSizes: containerSizesFor(layoutState, layoutToStore.sizes),
+				result: layoutToStore.result
+			});
+			distrustedLayoutKeys.delete(layoutKey);
 		}
 
 		const isFirstRender = layoutState.lastRenderedTopoKey === '';

@@ -1,7 +1,7 @@
 import type { RenderableTopology, TopologyNode, TopologyEdge } from '../types/base';
 import type { LayoutState, PrepareResult, XY } from './types';
 import { LayoutGraph } from '../layout/layout-graph';
-import { ElkLayoutEngine } from '../layout/engine';
+import { ElkLayoutEngine, type LayoutResult } from '../layout/engine';
 import { getViewLayout } from '../layout/view-layout';
 import { computeForceLayout, type ForceNode, type ForceLink } from '../layout/force-layout';
 import { containerTypes } from '$lib/shared/stores/metadata';
@@ -17,15 +17,20 @@ const layoutEngine = new ElkLayoutEngine();
  * Mutates state.layoutGraph, state.sessionStructureKey, state.sessionBaseKey,
  * state.seenAutoCollapseIds, state.viewSizeCache, state.containerSizeCache.
  *
- * @returns Updated visible nodes, or null if stale.
+ * `stored` is a layout engine result kept from an earlier run with the same inputs (see
+ * `layout-store.ts`). Given one, the ELK path applies it and does not run the engine.
+ *
+ * @returns Updated visible nodes and, on the ELK path, the engine result that was applied; or
+ * null if stale.
  */
 export async function executeLayout(
 	topology: RenderableTopology,
 	state: LayoutState,
 	prep: PrepareResult,
 	elementNodeSizes: Map<string, XY>,
-	isStale: () => boolean
-): Promise<{ visibleNodes: TopologyNode[] } | null> {
+	isStale: () => boolean,
+	stored?: LayoutResult
+): Promise<{ visibleNodes: TopologyNode[]; engineResult?: LayoutResult } | null> {
 	const {
 		layoutNodes,
 		collapsed,
@@ -39,6 +44,7 @@ export async function executeLayout(
 		hiddenEdgeTypes
 	} = prep;
 	let { visibleNodes } = prep;
+	let engineResult: LayoutResult | undefined;
 
 	// Detect if all root containers are collapsed -> use force layout
 	const rootContainerNodes = visibleNodes.filter(
@@ -91,21 +97,25 @@ export async function executeLayout(
 		}
 
 		const elkComputeDone = perf.stage('layout.elk-compute');
-		const elkResult = await layoutEngine.compute({
-			nodes: elkNodes,
-			edges: elevatedEdges,
-			topology: topology,
-			view: currentView,
-			parentIndex: prep.parentIndex,
-			collapsedContainers: elkCollapsed,
-			expandedContainerSizes: prevExpandedSizes,
-			elementNodeSizes,
-			hiddenEdgeTypes,
-			// Read from the options these nodes were built with, so the flag always matches their order.
-			preserveChildOrder:
-				effectiveElementSort(topology.options?.request, currentView) !== 'Automatic'
-		});
+		const elkResult =
+			stored ??
+			(await layoutEngine.compute({
+				nodes: elkNodes,
+				edges: elevatedEdges,
+				topology: topology,
+				view: currentView,
+				parentIndex: prep.parentIndex,
+				collapsedContainers: elkCollapsed,
+				expandedContainerSizes: prevExpandedSizes,
+				elementNodeSizes,
+				hiddenEdgeTypes,
+				// Read from the options these nodes were built with, so the flag always matches their
+				// order.
+				preserveChildOrder:
+					effectiveElementSort(topology.options?.request, currentView) !== 'Automatic'
+			}));
 		elkComputeDone();
+		engineResult = elkResult;
 		// Superseded, but too late for the check above to have saved anything: this layout ran in
 		// full and is now thrown away. Counted separately from `runsSuperseded`, which records the
 		// signal rather than the saving — read together they say whether cancellation is firing
@@ -175,7 +185,7 @@ export async function executeLayout(
 		cacheDone();
 	}
 
-	return { visibleNodes };
+	return { visibleNodes, engineResult };
 }
 
 function executeForceLayout(
