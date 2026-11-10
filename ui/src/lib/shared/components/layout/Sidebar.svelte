@@ -2,7 +2,7 @@
 	import daemonVersionGates from '$lib/data/daemon-version-gates.json';
 	import { useCan, type Resource } from '$lib/features/auth/access';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { isBillingPlanActive } from '$lib/features/organizations/types';
+	import { isBillingPlanActive, isPlanLapsed } from '$lib/features/organizations/types';
 	import SettingsModal from '$lib/features/settings/SettingsModal.svelte';
 	import {
 		billingPlans,
@@ -20,7 +20,7 @@
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
 	import type { IconComponent } from '$lib/shared/utils/types';
-	import { Menu, ChevronDown, History, Settings, Clock, Home, Search } from '@lucide/svelte';
+	import { Menu, ChevronDown, History, Settings, Clock, Search } from '@lucide/svelte';
 	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
 	import PaidCrown from '$lib/shared/components/PaidCrown.svelte';
 	import NavBadge from '$lib/shared/components/layout/NavBadge.svelte';
@@ -67,7 +67,9 @@
 	import TagGroupTab from '$lib/features/tags/components/TagGroupTab.svelte';
 	import CredentialsTab from '$lib/features/credentials/components/CredentialsTab.svelte';
 
-	import HomeTab from '$lib/features/home/components/HomeTab.svelte';
+	import IssuesTab from '$lib/features/home/components/IssuesTab.svelte';
+	import SetupTab from '$lib/features/home/components/SetupTab.svelte';
+	import { setupStepsLeft } from '$lib/features/home/setup-list';
 
 	let {
 		activeTab = $bindable('topology'),
@@ -209,9 +211,24 @@
 		return true;
 	}
 
-	// The Home badge counts the Issues the summary reports, which Home's Issues list pages through.
+	// The Issues badge counts the Issues the summary reports, which the Issues tab pages through;
+	// the Setup badge counts the steps left. Each entry shows while it has any, and while it is
+	// the open tab, so clearing the last one doesn't take the page away.
 	const dashboardQuery = useDashboardQuery({ enabled: () => mainAppAvailable });
 	let setupIssues = $derived(dashboardQuery.data?.issue_count ?? 0);
+	let setupStepsRemaining = $derived(
+		setupStepsLeft(
+			dashboardQuery.data?.setup_items ?? [],
+			organization ? isPlanLapsed(organization) : false
+		)
+	);
+
+	/** Whether the Issues or Setup entry shows: while it has something in it, or is open. */
+	function isHomeTabVisible(id: string): boolean {
+		if (id === 'issues') return setupIssues > 0 || activeTab === 'issues';
+		if (id === 'setup') return setupStepsRemaining > 0 || activeTab === 'setup';
+		return true;
+	}
 
 	// Sync settings modal state from modal registry (for deep-link opens)
 	$effect(() => {
@@ -400,10 +417,16 @@
 
 	const baseNavConfig: NavConfig = [
 		{
-			id: 'home',
-			label: TAB_LABELS['home'],
-			icon: Home as IconComponent,
-			component: HomeTab
+			id: 'setup',
+			label: TAB_LABELS['setup'],
+			icon: setupItemTiers.getIconComponent('Setup'),
+			component: SetupTab
+		},
+		{
+			id: 'issues',
+			label: TAB_LABELS['issues'],
+			icon: setupItemTiers.getIconComponent('Issue'),
+			component: IssuesTab
 		},
 		...entitySections,
 		{
@@ -486,7 +509,11 @@
 
 	// Helper to check if item should be visible
 	function isItemVisible(item: NavItem): boolean {
-		return (!item.requires || can(item.requires, 'Read')) && meetsBillingRequirement(item);
+		return (
+			(!item.requires || can(item.requires, 'Read')) &&
+			meetsBillingRequirement(item) &&
+			isHomeTabVisible(item.id)
+		);
 	}
 
 	// Helper to filter an item and its children/subTabs
@@ -639,8 +666,8 @@
 	}
 
 	// The badge on a nav item, or null for none: one place that maps an item to its badge (Scans →
-	// active sessions; Daemons → a daemon that isn't Healthy; Home → its Issues, counted;
-	// Settings → a billing action).
+	// active sessions; Daemons → a daemon that isn't Healthy; Issues → its Issues, counted;
+	// Setup → its steps left, counted; Settings → a billing action).
 	function itemBadge(item: NavItem): { color: string; count?: number } | null {
 		if (item.id === 'discovery' && hasActiveSessions) {
 			return { color: entities.getColorHelper('Discovery').rgb };
@@ -648,8 +675,11 @@
 		if (item.id === 'daemons-group' && worstDaemonHealth) {
 			return { color: daemonHealths.getColorHelper(worstDaemonHealth).rgb };
 		}
-		if (item.id === 'home' && setupIssues > 0) {
+		if (item.id === 'issues' && setupIssues > 0) {
 			return { color: setupItemTiers.getColorHelper('Issue').rgb, count: setupIssues };
+		}
+		if (item.id === 'setup' && setupStepsRemaining > 0) {
+			return { color: setupItemTiers.getColorHelper('Setup').rgb, count: setupStepsRemaining };
 		}
 		if (item.id === 'settings' && showBillingNotification) {
 			return { color: createColorHelper('Amber').rgb };

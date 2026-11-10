@@ -42,6 +42,16 @@ export function setupProgress(entries: SetupListEntry[]): { done: number; total:
 	return { done: doneEntries(setup).length, total: setup.length };
 }
 
+/**
+ * The Setup steps an org has left, which the Setup tab shows while there are any. A lapsed org
+ * has none: it keeps its plan's feature flags but can act on none of them.
+ */
+export function setupStepsLeft(entries: SetupListEntry[], lapsed: boolean): number {
+	if (lapsed) return 0;
+	const { done, total } = setupProgress(entries);
+	return total - done;
+}
+
 /** The server's key as a string, to key the list and the once-per-key `setup_issue_shown` event. */
 export function entryId(entry: SetupListEntry): string {
 	return JSON.stringify(entry.key);

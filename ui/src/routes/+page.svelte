@@ -16,7 +16,9 @@
 	import BillingPlanModal from '$lib/features/billing/BillingPlanModal.svelte';
 	import CloudPlanRequired from '$lib/features/billing/CloudPlanRequired.svelte';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
-	import { TAB_LABELS } from '$lib/shared/entity-ui-config';
+	import { entityUIConfig, TAB_LABELS } from '$lib/shared/entity-ui-config';
+	import { useDashboardQuery } from '$lib/features/home/queries';
+	import { setupStepsLeft } from '$lib/features/home/setup-list';
 	import ReleaseNotesModal from '$lib/features/release-notes/ReleaseNotesModal.svelte';
 	import TermsAcceptanceModal from '$lib/features/auth/components/TermsAcceptanceModal.svelte';
 	import EmailVerificationGate from '$lib/features/auth/components/EmailVerificationGate.svelte';
@@ -37,6 +39,7 @@
 		hasLicensedPlan,
 		hasTopologyAccess,
 		isBillingPlanActive,
+		isPlanLapsed,
 		isPlanUnchosen,
 		isSelfHostedPlanLocked as isSelfHostedPlanLockedFor
 	} from '$lib/features/organizations/types';
@@ -62,7 +65,10 @@
 	import type { SubTab } from '$lib/shared/components/layout/ContentSubTabs.svelte';
 
 	// Read hash immediately during script initialization, before onMount
-	const initialHash = typeof window !== 'undefined' ? window.location.hash.substring(1) : '';
+	// `#home` names the tab Setup and Issues replaced, so a bookmark of it opens the landing tab.
+	const RETIRED_HOME_HASH = 'home';
+	const loadedHash = typeof window !== 'undefined' ? window.location.hash.substring(1) : '';
+	const initialHash = loadedHash === RETIRED_HOME_HASH ? '' : loadedHash;
 	// Before any tab mounts, so each hydrates from the params this page loaded with.
 	const detachUrlState = typeof window !== 'undefined' ? attachUrlState() : null;
 
@@ -181,7 +187,8 @@
 				$modalState.name === 'billing-plan')
 	);
 
-	let activeTab = $state(initialHash || 'home');
+	// Empty until the landing tab is known, unless the URL named one.
+	let activeTab = $state(initialHash);
 	let appInitialized = $state(false);
 	let sidebarCollapsed = $state(false);
 	let dataLoadingStarted = $state(false);
@@ -236,13 +243,32 @@
 		if (activeTab) setActiveTab(activeTab);
 	});
 
-	// Set initial tab based on daemons (only if no hash was specified in URL)
-	// Suppress while the plan picker is showing
+	// The tab a load with no hash opens on: Setup while steps remain, else Issues while there are
+	// any, else Topology. The sidebar shows the Setup and Issues entries on the same counts.
+	const dashboardQuery = useDashboardQuery({
+		enabled: () => isAuthenticated && mainAppAvailable
+	});
+	let landingTab = $derived.by(() => {
+		const dashboard = dashboardQuery.data;
+		if (!dashboard || !organization) return null;
+		if (setupStepsLeft(dashboard.setup_items, isPlanLapsed(organization)) > 0) return 'setup';
+		if (dashboard.issue_count > 0) return 'issues';
+		return entityUIConfig.Topology!.tabId;
+	});
+
+	// Set the initial tab (only if no hash was specified in URL). Suppress while the plan picker
+	// is showing.
 	let initialTabSet = $state(false);
 	$effect(() => {
-		if (!initialHash && !initialTabSet && daemonsQuery.isSuccess && !showBillingModal) {
+		if (
+			!initialHash &&
+			!initialTabSet &&
+			daemonsQuery.isSuccess &&
+			landingTab &&
+			!showBillingModal
+		) {
 			const wantsDaemonSetup = $modalState.name === 'create-daemon';
-			activeTab = wantsDaemonSetup ? 'daemons' : 'home';
+			activeTab = wantsDaemonSetup ? 'daemons' : landingTab;
 			initialTabSet = true;
 		}
 	});
@@ -377,7 +403,9 @@
 	function handleHashChange() {
 		if (typeof window !== 'undefined') {
 			const hash = window.location.hash.substring(1);
-			if (hash && hash !== activeTab) {
+			if (hash === RETIRED_HOME_HASH) {
+				if (landingTab) activeTab = landingTab;
+			} else if (hash && hash !== activeTab) {
 				activeTab = hash;
 			}
 		}
@@ -534,7 +562,7 @@
 							{/if}
 						{/each}
 					{:else if isSelfHostedPlanLocked}
-						<CloudPlanRequired page={TAB_LABELS[activeTab] ?? TAB_LABELS.home} />
+						<CloudPlanRequired page={TAB_LABELS[activeTab] ?? TAB_LABELS.topology} />
 					{/if}
 				</div>
 			</main>

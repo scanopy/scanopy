@@ -82,6 +82,7 @@
 		reconcileColumnState,
 		toggledColumnVisibility,
 		visibleColumns,
+		columnsWhileGrouped,
 		buildTagColumn,
 		withTagColumn,
 		type EntityColumn
@@ -508,6 +509,14 @@
 		sortableFields.some((f) => getFieldKey(f) === sortState.field)
 			? sortState
 			: { field: null, direction: sortState.direction }
+	);
+
+	// The table leaves out the column it groups by, which still counts as rendered, so its filter,
+	// sort and group stand. Ungrouping brings it back.
+	let tableColumns = $derived(columnsWhileGrouped(renderedColumns, activeGroupField));
+	/** The label of the column the list groups by, which the ungroup button names. */
+	let activeGroupLabel = $derived(
+		activeGroupField ? (allColumns.find((c) => c.id === activeGroupField)?.label ?? null) : null
 	);
 
 	// Per-group totals across every page, when the server supplied them.
@@ -1205,6 +1214,7 @@
 				canGoPrev={page.canGoPrev}
 				canGoNext={page.canGoNext}
 				groupCount={hasActiveGrouping ? groupedItems.size : null}
+				groupLabel={activeGroupLabel}
 				filterCount={activeFilterCount}
 				onClearFilters={filters.clearAll}
 				onClearGrouping={() => (ordering = { ...ordering, group: null })}
@@ -1224,6 +1234,7 @@
 						order={columnState.order}
 						groupOrder={columnState.groupOrder}
 						visibility={columnState.visibility}
+						groupedColumnId={activeGroupField}
 						onToggle={toggleColumn}
 						onReorder={reorderColumns}
 						onReorderGroups={reorderColumnGroups}
@@ -1360,7 +1371,7 @@
 		groups={rows ? null : groupList}
 		collapsed={collapsedSections}
 		onToggleCollapse={toggleSection}
-		columns={renderedColumns}
+		columns={tableColumns}
 		columnSizing={columnState.sizing}
 		onColumnSizingChange={resizeColumns}
 		sortState={activeSort}

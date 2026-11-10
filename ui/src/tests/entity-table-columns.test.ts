@@ -6,6 +6,7 @@ import {
 	reconcileColumnState,
 	toggledColumnVisibility,
 	visibleColumns,
+	columnsWhileGrouped,
 	moveColumn,
 	moveColumnTo,
 	movableIds,
@@ -207,6 +208,23 @@ describe('visibleColumns', () => {
 		state.visibility.name = false;
 
 		expect(visibleColumns(columns, state).map((c) => c.id)).not.toContain('name');
+	});
+});
+
+describe('columnsWhileGrouped', () => {
+	it('leaves out the grouped column until the table is ungrouped', () => {
+		const columns = fieldsToColumns(fields());
+		const ids = (cols: typeof columns) => cols.map((c) => c.id);
+
+		expect(ids(columnsWhileGrouped(columns, 'site_id'))).toEqual(
+			ids(columns).filter((id) => id !== 'site_id')
+		);
+		expect(ids(columnsWhileGrouped(columns, null))).toEqual(ids(columns));
+	});
+
+	it('keeps the primary column, which identifies the row', () => {
+		const columns = fieldsToColumns(fields());
+		expect(columnsWhileGrouped(columns, 'name').map((c) => c.id)).toContain('name');
 	});
 });
 

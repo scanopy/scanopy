@@ -25,22 +25,31 @@
 </script>
 
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import { queryKeys } from '$lib/api/query-client';
+	import Loading from '$lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
+	import PageTitle from '$lib/shared/components/layout/PageTitle.svelte';
+	import { loadFailure } from '$lib/shared/utils/load-failure';
 	import { setupItemTiers } from '$lib/shared/stores/metadata';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
+	import { useConfigQuery, isCloud } from '$lib/shared/stores/config-query';
+	import type { TabProps } from '$lib/shared/types';
 	import { daemonSetupState } from '$lib/features/daemons/stores/daemon-setup';
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
+	import { isPlanLapsed } from '$lib/features/organizations/types';
+	import { useDashboardQuery } from '$lib/features/home/queries';
 	import {
+		common_dismiss,
+		home_demoEmbedSubtitle,
+		home_demoEmbedTitle,
+		home_demoNetworkTopology,
 		home_setup_hideCompleted,
 		home_setup_progress,
 		home_setup_showCompleted
 	} from '$lib/paraglide/messages';
 	import SetupListRow from './SetupListRow.svelte';
-	import IssuesTable from './IssuesTable.svelte';
 	import ReferralSourceModal from './ReferralSourceModal.svelte';
 	import ProfileModal from './ProfileModal.svelte';
 	import { reportShown, setupLookups } from '../setup-lookups.svelte';
@@ -51,33 +60,24 @@
 		openEntries,
 		setupProgress,
 		type SetupItem,
-		type SetupItemType,
 		type SetupListEntry
 	} from '../setup-list';
 
-	let {
-		entries,
-		issueCount,
-		issueSites,
-		isActive,
-		setup
-	}: {
-		/** The Setup steps the server computed for this user. */
-		entries: SetupListEntry[];
-		/** The Issues the user sees, on every site. */
-		issueCount: number;
-		/** The sites those Issues are on. */
-		issueSites: string[];
-		/** Whether Home is on screen, which holds the Issues page until it is. */
-		isActive: boolean;
-		/** The org's done Setup item types. */
-		setup: SetupItemType[];
-	} = $props();
+	let { isActive = false }: TabProps = $props();
 
 	const queryClient = useQueryClient();
-	const configQuery = useConfigQuery();
+	const dashboardQuery = useDashboardQuery();
 	const organizationQuery = useOrganizationQuery();
+	const configQuery = useConfigQuery();
 	const sessionsQuery = useActiveSessionsQuery();
+
+	let organization = $derived(organizationQuery.data);
+	let pageLoad = $derived(loadFailure(dashboardQuery, organizationQuery));
+	let setup = $derived(organization?.setup ?? []);
+	// A lapsed org keeps its plan's feature flags but can act on none of them, so it gets no steps.
+	let entries = $derived(
+		organization && isPlanLapsed(organization) ? [] : (dashboardQuery.data?.setup_items ?? [])
+	);
 	let open = $derived(openEntries(entries));
 	let locked = $derived(lockedEntries(entries));
 	let done = $derived(doneEntries(entries));
@@ -85,6 +85,8 @@
 	let showCompleted = $state(false);
 	let hasEmail = $derived(configQuery.data?.has_email_service ?? false);
 	const lookups = setupLookups(() => entries);
+
+	let answering = $state<'AnswerReferralSource' | 'AnswerProfile' | null>(null);
 
 	/**
 	 * The running scan a RunFirstScan item shows: its daemon's, or else any network scan in the
@@ -98,12 +100,37 @@
 		return scans.find((s) => s.daemon_id === item.daemon_id) ?? scans[0] ?? null;
 	}
 
-	let answering = $state<'AnswerReferralSource' | 'AnswerProfile' | null>(null);
+	let demoTopologyDismissed = $state(false);
+	onMount(() => {
+		clearRetiredStorageKeys();
+		try {
+			demoTopologyDismissed = localStorage.getItem('home-demo-topology-dismissed') === 'true';
+		} catch {
+			// Storage blocked: the embed shows.
+		}
+	});
 
-	onMount(clearRetiredStorageKeys);
+	function dismissDemoTopology() {
+		demoTopologyDismissed = true;
+		try {
+			localStorage.setItem('home-demo-topology-dismissed', 'true');
+		} catch {
+			// Storage blocked: the embed comes back on the next load.
+		}
+	}
 
-	// Open first steps (what the trial sweep reports) report once per item per page load. The
-	// Issues table reports its own rows.
+	// Refetch when the tab opens. Untracked: reading `refetch` off a query subscribes to every
+	// change of its result, and each refetch changes it, so the effect would refetch in a loop.
+	$effect(() => {
+		if (isActive) {
+			untrack(() => {
+				organizationQuery.refetch();
+				dashboardQuery.refetch();
+			});
+		}
+	});
+
+	// Open first steps (what the trial sweep reports) report once per item per page load.
 	$effect(() => reportShown(entries));
 
 	// While the create-daemon wizard waits for a daemon, poll until the org records its first
@@ -142,25 +169,26 @@
 		{hasEmail}
 		onAnswer={(type) => (answering = type)}
 		onTroubleshoot={() => {
-			// Only a daemon Issue troubleshoots, and the Issues table opens that help itself.
+			// Only a daemon Issue troubleshoots, and the Issues tab opens that help itself.
 		}}
 	/>
 {/snippet}
 
-<section class="space-y-6">
-	{#if issueCount > 0}
-		<IssuesTable {issueSites} {isActive} {setup} />
-	{/if}
-	<!-- Locked items show disabled after the open ones. Once every item is done, the section goes. -->
-	{#if progress.done < progress.total}
-		<div>
-			<div class="mb-3 flex items-center gap-3">
-				<h3 class="text-base font-semibold text-primary">{setupItemTiers.getName('Setup')}</h3>
-				<ProgressTrack progress={(progress.done / progress.total) * 100} size="sm" class="w-32" />
-				<span class="text-sm text-tertiary">
-					{home_setup_progress({ done: progress.done, total: progress.total })}
-				</span>
-			</div>
+<div class="space-y-6">
+	<PageTitle
+		title={setupItemTiers.getName('Setup')}
+		aside={progress.total > 0
+			? home_setup_progress({ done: progress.done, total: progress.total })
+			: null}
+	/>
+
+	{#if pageLoad.failed}
+		<LoadFailedState onRetry={pageLoad.retry} />
+	{:else if dashboardQuery.isPending || organizationQuery.isPending}
+		<Loading />
+	{:else}
+		<!-- Locked steps show disabled after the open ones. -->
+		<section>
 			<ul class="space-y-2">
 				{#each open as entry (entryId(entry))}
 					{@render row(entry)}
@@ -185,9 +213,49 @@
 						: home_setup_showCompleted({ count: done.length })}
 				</button>
 			{/if}
-		</div>
+		</section>
+
+		<!-- Demo topology, shown until the first scan finishes. -->
+		{#if configQuery.data && isCloud(configQuery.data) && !setup.includes('RunFirstScan') && !demoTopologyDismissed}
+			<section>
+				<div class="card-static card overflow-hidden p-0!">
+					<div class="flex items-center justify-between px-4 pt-3">
+						<h3 class="text-base font-semibold text-primary">{home_demoEmbedTitle()}</h3>
+						<div class="flex items-center gap-3">
+							<a
+								href="https://demo.scanopy.net/share/a1b2c3d4-e5f6-7890-abcd-ef1234567890?utm_source=app&utm_medium=in_app&utm_campaign=demo_embed&utm_content=home_link"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="text-sm text-link hover:underline"
+							>
+								View full screen
+							</a>
+							<button
+								onclick={dismissDemoTopology}
+								class="text-sm text-tertiary hover:text-secondary"
+							>
+								{common_dismiss()}
+							</button>
+						</div>
+					</div>
+					<p class="px-4 pb-2 text-sm text-secondary">
+						{home_demoEmbedSubtitle()}
+					</p>
+					<div class="h-[400px] w-full">
+						<iframe
+							src="https://demo.scanopy.net/share/a1b2c3d4-e5f6-7890-abcd-ef1234567890/embed?utm_source=app&utm_medium=in_app&utm_campaign=demo_embed&utm_content=home_embed"
+							width="100%"
+							height="100%"
+							frameborder="0"
+							style="border: none;"
+							title={home_demoNetworkTopology()}
+						></iframe>
+					</div>
+				</div>
+			</section>
+		{/if}
 	{/if}
-</section>
+</div>
 
 <ReferralSourceModal
 	isOpen={answering === 'AnswerReferralSource'}

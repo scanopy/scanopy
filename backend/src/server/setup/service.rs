@@ -146,11 +146,11 @@ impl SetupService {
         };
         let unconfirmed_hosts = self
             .host_service
-            .unconfirmed_count_for_sites(&host_sites)
+            .unconfirmed_count_by_site(&host_sites)
             .await?;
         let unconfirmed_subnets = self
             .subnet_service
-            .unconfirmed_count_for_sites(&subnet_sites)
+            .unconfirmed_count_by_site(&subnet_sites)
             .await?;
 
         let now = crate::server::shared::clock::now();
@@ -366,6 +366,7 @@ fn group_by_integration(found: Vec<FoundIntegration>) -> Vec<UncoveredIntegratio
 mod tests {
     use super::*;
     use crate::server::{
+        credentials::r#impl::types::integration::CredentialIntegration,
         daemons::r#impl::api::DaemonHealth,
         setup::types::{SetupItem, SetupItemState},
         shared::{
@@ -401,8 +402,16 @@ mod tests {
         }
     }
 
-    fn unconfirmed_hosts() -> SetupItem {
-        SetupItem::UnconfirmedHosts { count: 3 }
+    fn unconfirmed_hosts(site_id: Uuid) -> SetupItem {
+        SetupItem::UnconfirmedHosts { site_id, count: 3 }
+    }
+
+    fn targetless_credential() -> SetupItem {
+        SetupItem::TargetlessCredential {
+            credential_id: Uuid::new_v4(),
+            name: "Warehouse switches".to_string(),
+            integration: CredentialIntegration::Snmp,
+        }
     }
 
     fn page(
@@ -436,7 +445,11 @@ mod tests {
     #[test]
     fn issues_sort_by_type_and_filter_by_category() {
         let site = Uuid::new_v4();
-        let issues = [daemon_issue(site), unconfirmed_hosts(), daemon_issue(site)];
+        let issues = [
+            daemon_issue(site),
+            unconfirmed_hosts(site),
+            daemon_issue(site),
+        ];
         let sorted: Vec<SetupItemDiscriminants> = page_for(
             &issues,
             IssueFilterQuery {
@@ -475,7 +488,7 @@ mod tests {
     fn a_page_groups_by_category_and_counts_whole_groups() {
         let site = Uuid::new_v4();
         let issues = [
-            unconfirmed_hosts(),
+            unconfirmed_hosts(site),
             daemon_issue(site),
             daemon_issue(site),
             daemon_issue(site),
@@ -508,18 +521,32 @@ mod tests {
         );
     }
 
-    /// Narrowing to a site keeps that site's Issues and the ones about the whole org.
+    /// Narrowing to a site keeps that site's Issues, its unconfirmed rows among them, and the
+    /// ones about the whole org.
     #[test]
-    fn a_site_filter_keeps_org_wide_issues() {
+    fn a_site_filter_keeps_that_sites_and_org_wide_issues() {
         let (mine, other) = (Uuid::new_v4(), Uuid::new_v4());
-        let issues = [daemon_issue(mine), daemon_issue(other), unconfirmed_hosts()];
-        let kept: Vec<Vec<Uuid>> = page(&issues, Some(vec![mine]), 50, 0)
+        let issues = [
+            daemon_issue(mine),
+            daemon_issue(other),
+            unconfirmed_hosts(mine),
+            unconfirmed_hosts(other),
+            targetless_credential(),
+        ];
+        let kept: Vec<(SetupItemDiscriminants, Vec<Uuid>)> = page(&issues, Some(vec![mine]), 50, 0)
             .data
             .into_iter()
-            .map(|e| e.site_ids)
+            .map(|e| (e.item.discriminant(), e.site_ids))
             .collect();
-        assert_eq!(kept, [vec![mine], vec![]]);
-        assert_eq!(page(&issues, Some(vec![]), 50, 0).data.len(), 3);
+        assert_eq!(
+            kept,
+            [
+                (SetupItemDiscriminants::DaemonHealth, vec![mine]),
+                (SetupItemDiscriminants::TargetlessCredential, vec![]),
+                (SetupItemDiscriminants::UnconfirmedHosts, vec![mine]),
+            ]
+        );
+        assert_eq!(page(&issues, Some(vec![]), 50, 0).data.len(), 5);
     }
 
     /// A member sees Issues on its own sites only, and every Setup item.
