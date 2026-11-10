@@ -176,3 +176,41 @@
 	backdrop-filter: none;
 	-webkit-backdrop-filter: none;
 }
+
+/*
+ * One pill for what the view is doing to itself: loading, drawing boxes in place of contents, or
+ * holding an update. In canvas chrome, not in the graph, so it belongs to the view and not to any
+ * node.
+ *
+ * Bottom-centre: out of the way of the minimap (bottom-left), the sidebar controls (right) and
+ * the branding badge, and in the one place nothing else claims. Non-interactive: it reports a
+ * state, and it must not take pointer events over the graph. Shared by the viewer and the
+ * placeholder shown before the viewer can mount.
+ */
+.topology-status-pill {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	position: absolute;
+	bottom: 12px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 5;
+	padding: 4px 10px;
+	border-radius: 9999px;
+	font-size: 0.75rem;
+	line-height: 1.2;
+	white-space: nowrap;
+	pointer-events: none;
+	color: var(--color-text-tertiary, #64748b);
+	background: var(--color-topology-node-bg, #fff);
+	border: 1px solid var(--color-border, #e2e8f0);
+	box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+.topology-status-row {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}

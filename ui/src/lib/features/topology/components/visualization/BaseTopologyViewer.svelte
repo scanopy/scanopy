@@ -23,7 +23,6 @@
 		topology_detailSimplified,
 		topology_updatedDuringScan,
 		common_refresh,
-		common_rendering,
 		topology_minimizeMinimap,
 		topology_expandMinimap
 	} from '$lib/paraglide/messages';
@@ -77,10 +76,19 @@
 	import ElementNode from './ElementNode.svelte';
 	import CustomEdge from './CustomEdge.svelte';
 	import TopologySidebarControls from './TopologySidebarControls.svelte';
+	import TopologyLoadProgress from './TopologyLoadProgress.svelte';
+	import {
+		beginLoad,
+		endLoad,
+		enterLoadStage,
+		loadProgress,
+		paintBeforeLongStage
+	} from '../../pipeline/load-progress';
 	import type { RenderableTopology } from '../../types/base';
 	import {
 		collapsedContainers,
 		collapseLevel,
+		collapseScope,
 		expandedInlineGroups,
 		stepExpand,
 		stepCollapse,
@@ -529,6 +537,16 @@
 	let coldLoadMeasure = $state(false);
 	let animatingCollapse = $state(false);
 
+	/**
+	 * A run shows its progress when it is expected to take this long, or has. Most runs are a
+	 * filter toggle or a return to a stored layout and finish in a few frames; a bar that appears
+	 * and vanishes for each of them is noise.
+	 */
+	const LONG_RUN_MS = 400;
+	let runIsLong = $state(false);
+	let longRunTimer: ReturnType<typeof setTimeout> | undefined;
+	let loadProgressShown = $derived(runIsLong && $loadProgress !== null);
+
 	/** Minimum gap between collapsed-size refreshes while panning. */
 	const COLLAPSED_SIZE_REFRESH_MS = 500;
 
@@ -757,6 +775,9 @@
 		noteRunStart(source);
 		setLoadInProgress(true);
 		pendingReload = false;
+		// A run that was not expected to be long, and is: show its progress from here on.
+		clearTimeout(longRunTimer);
+		longRunTimer = setTimeout(() => (runIsLong = true), LONG_RUN_MS);
 		// Give the browser one frame to draw the indicator before the run starts.
 		//
 		// Svelte flushes the DOM on a microtask, but painting needs a frame, and a run reaches its
@@ -782,6 +803,9 @@
 			.finally(() => {
 				noteRunEnd();
 				setLoadInProgress(false);
+				endLoad();
+				clearTimeout(longRunTimer);
+				runIsLong = false;
 				if (pendingReload) {
 					pendingReload = false;
 					// Only re-run if an input actually differs from what the run
@@ -949,6 +973,17 @@
 		if (!prep) return;
 		const { needsElk, collapsed, visibleNodes: initialVisibleNodes } = prep;
 		let visibleNodes = initialVisibleNodes;
+
+		// Plan the progress bar for this run: see `load-progress.ts`. The first draw of a topology
+		// always shows it, continuing the bar the download started.
+		const planned = beginLoad(
+			collapseScope(prep.topologyId, prep.currentView),
+			needsElk ? ['measure', 'layout', 'layoutRefine', 'draw'] : ['draw'],
+			visibleNodes.length
+		);
+		if (layoutState.lastRenderedTopoKey === '' || (planned?.remainingMs ?? 0) >= LONG_RUN_MS) {
+			runIsLong = true;
+		}
 
 		// Sizes measured by *this* run, once it has measured. Preferred over the view cache so the
 		// same frame that lays a node out can also size it — which is what lets culling work on
@@ -1132,6 +1167,17 @@
 			}
 			runSizes = elementNodeSizes;
 
+			// The layout engine is the long, blocking part, in two passes. Each gets a stage, and a
+			// frame to start its animation in when it is expected to block for long. A stored layout
+			// and a local expand run no full pass and go straight to drawing.
+			const runsEngine = !storedLayout && !prep.localExpand;
+			if (runsEngine) {
+				await paintBeforeLongStage(enterLoadStage('layout'));
+				if (isStale()) {
+					endMeasurePass();
+					return;
+				}
+			}
 			const layoutDone = perf.stage('layout');
 			const layoutResult = await executeLayout(
 				topology,
@@ -1139,7 +1185,8 @@
 				prep,
 				elementNodeSizes,
 				isStale,
-				storedLayout?.result
+				storedLayout?.result,
+				runsEngine ? () => paintBeforeLongStage(enterLoadStage('layoutRefine')) : undefined
 			);
 			layoutDone();
 			if (!layoutResult) {
@@ -1156,6 +1203,12 @@
 		// buildFlowEdges against final post-layout positions (from layoutGraph)
 		// rather than being precomputed by the layout engines.
 		const needsLayout = needsElk || prep.collapseChanged;
+
+		await paintBeforeLongStage(enterLoadStage('draw'));
+		if (isStale()) {
+			endMeasurePass();
+			return;
+		}
 
 		// Edges first, then nodes.
 		//
@@ -1733,7 +1786,7 @@
 	class:card={!isEmbed}
 	class:card-static={!isEmbed}
 	class:collapse-transition={animatingCollapse}
-	style:visibility={coldLoadMeasure ? 'hidden' : 'visible'}
+	class:cold-measure={coldLoadMeasure}
 	bind:this={containerElement}
 >
 	<SvelteFlow
@@ -1832,29 +1885,25 @@
 			</Panel>
 		{/if}
 
-		{#if $isRenderingTopology || detailHidden || heldUpdatePending}
+		{#if loadProgressShown || detailHidden || heldUpdatePending}
 			<!--
-				One pill for what the view is doing to itself, in flow chrome rather than in the graph
-				so it belongs to the view and not to any node.
+				One pill for what the view is doing to itself (styles in `topology-viewer.css`).
 
 				Both lines can be true at once — a large graph is usually the reason a run is slow and
 				the reason detail is off — so they stack rather than compete. Absent during export,
 				because `shouldSimplify` suspends there and a run is never in flight mid-capture.
 			-->
-			<div class="detail-hidden-badge">
-				{#if $isRenderingTopology}
-					<span class="detail-hidden-row">
-						<span class="lod-spinner" aria-hidden="true"></span>
-						{common_rendering()}
-					</span>
+			<div class="topology-status-pill">
+				{#if loadProgressShown}
+					<span class="topology-status-row"><TopologyLoadProgress /></span>
 				{/if}
 				{#if detailHidden}
-					<span class="detail-hidden-row">
+					<span class="topology-status-row">
 						{topology_detailSimplified()}
 					</span>
 				{/if}
 				{#if heldUpdatePending && !$isRenderingTopology}
-					<span class="detail-hidden-row">
+					<span class="topology-status-row">
 						{topology_updatedDuringScan()}
 						<button
 							type="button"
@@ -1886,38 +1935,18 @@
 
 <style>
 	/*
-	 * Says the canvas is drawing boxes rather than contents.
+	 * The first measure pass mounts every node at a throwaway position to read its size. Hide what
+	 * it draws, and the minimap that mirrors it, and nothing else: the background, the controls and
+	 * the progress pill stay, so the canvas is there from the start. Sizes are read with
+	 * `offsetWidth` and `offsetHeight`, which a transparent element still reports.
 	 *
-	 * Bottom-centre: out of the way of the minimap (bottom-left), the sidebar controls (right) and
-	 * the branding badge, and in the one place nothing else claims. Non-interactive — it reports a
-	 * state, it is not a control, and it must not eat pointer events over the graph.
+	 * Opacity, not `visibility`: SvelteFlow sets `visibility: visible` on each node once it is
+	 * initialised, and a child's own `visible` shows through a hidden parent.
 	 */
-	.detail-hidden-badge {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 2px;
-		position: absolute;
-		bottom: 12px;
-		left: 50%;
-		transform: translateX(-50%);
-		z-index: 5;
-		padding: 4px 10px;
-		border-radius: 9999px;
-		font-size: 0.75rem;
-		line-height: 1.2;
-		white-space: nowrap;
+	.cold-measure :global(.svelte-flow__viewport),
+	.cold-measure :global(.svelte-flow__minimap) {
+		opacity: 0;
 		pointer-events: none;
-		color: var(--color-text-tertiary, #64748b);
-		background: var(--color-topology-node-bg, #fff);
-		border: 1px solid var(--color-border, #e2e8f0);
-		box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
-	}
-
-	.detail-hidden-row {
-		display: flex;
-		align-items: center;
-		gap: 5px;
 	}
 
 	/* The pill ignores the pointer so the graph under it stays usable; this one control takes it. */
@@ -1927,40 +1956,6 @@
 		color: var(--color-text-primary, #0f172a);
 		text-decoration: underline;
 		text-underline-offset: 2px;
-	}
-
-	/*
-	 * A ring drawn in CSS, not an icon.
-	 *
-	 * The whole point of this indicator is to stay alive while the main thread is not: ELK is the
-	 * bundled build and runs in-process, so for the eighteen to twenty-two seconds of a layout on a
-	 * large estate, no frame callback fires and nothing scripted can advance. A transform animation
-	 * can still run, but only from the compositor, and only if the element was promoted — and an
-	 * inline SVG generally is not, which is why the lucide spinner rendered and then sat there.
-	 *
-	 * A single element with a border and a radius is the shape most reliably promoted, so the ring
-	 * is borders rather than an icon. `will-change` asks for the layer explicitly; the animation is
-	 * pure `transform`, which is the one property the compositor can drive on its own.
-	 *
-	 * This also matches what the caret did for the same reason — see `ContainerHeader` — and costs
-	 * one element instead of the five a lucide icon brings.
-	 */
-	.lod-spinner {
-		display: block;
-		width: 11px;
-		height: 11px;
-		flex-shrink: 0;
-		border-radius: 9999px;
-		border: 1.5px solid var(--color-topology-lod-stroke);
-		border-top-color: transparent;
-		will-change: transform;
-		animation: lod-spin 0.7s linear infinite;
-	}
-
-	@keyframes lod-spin {
-		to {
-			transform: rotate(360deg);
-		}
 	}
 
 	.branding-badge {

@@ -1741,6 +1741,8 @@ export async function computeElkLayout(input: ElkLayoutInput): Promise<ElkLayout
 	// eslint-disable-next-line no-useless-assignment -- releases the pass-1 tree for collection
 	pass1Children = null;
 
+	await input.onFirstPassDone?.();
+
 	// Pass 2: rebuild graph with FIXED_POS ports at actual element positions
 	const build2Done = perf.stage('elk.build-graph.pass2');
 	const { graph: graph2, containerIds: cids2 } = buildElkGraph(

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { applicationGroupId, isApplicationTag } from '$lib/features/tags/groups';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
+	import TopologyCanvasPlaceholder from './TopologyCanvasPlaceholder.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
 	import { loadFailure } from '$lib/shared/utils/load-failure';
@@ -21,7 +21,7 @@
 	import { takeInitialParams } from '$lib/shared/stores/url-state';
 	import { preloadElk } from '$lib/features/topology/layout/elk-layout';
 	import { get, writable } from 'svelte/store';
-	import { isScaleCollapsed } from '../collapse';
+	import { collapseScope, isScaleCollapsed } from '../collapse';
 	import {
 		useTopologiesQuery,
 		useTopologyDataQuery,
@@ -245,6 +245,10 @@
 	});
 
 	// Enriched topology: graph row + entity bundle for the selected view.
+	// What the load-progress bar keys its recorded stage times by, known as soon as the site is.
+	// The same form the viewer uses once it has the topology.
+	let loadScope = $derived(collapseScope(currentTopologyRow?.id ?? '', $activeView));
+
 	// Live view → live entities; snapshot view → entities as-of the snapshot's
 	// `taken_at` (single backend endpoint serves both).
 	let currentTopology = $derived.by(() => {
@@ -880,7 +884,7 @@
 			{#if topologyLoad.failed}
 				<LoadFailedState onRetry={topologyLoad.retry} />
 			{:else if sitesQuery.isPending || topologiesQuery.isPending}
-				<Loading />
+				<TopologyCanvasPlaceholder scope={loadScope} />
 			{:else if sitesData.length === 0}
 				<div class="card-static card text-secondary">
 					{can('NewSite', 'Write') ? topology_noSites() : topology_noSiteAccess()}
@@ -945,7 +949,7 @@
 				</div>
 			{:else}
 				<!-- A site is being selected, or the selected view's data is on its way. -->
-				<Loading />
+				<TopologyCanvasPlaceholder scope={loadScope} />
 			{/if}
 		</div>
 

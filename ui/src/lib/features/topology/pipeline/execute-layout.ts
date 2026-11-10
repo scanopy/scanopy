@@ -19,6 +19,7 @@ const layoutEngine = new ElkLayoutEngine();
  *
  * `stored` is a layout engine result kept from an earlier run with the same inputs (see
  * `layout-store.ts`). Given one, the ELK path applies it and does not run the engine.
+ * `onFirstPassDone` is handed to the engine; see `LayoutInput`.
  *
  * @returns Updated visible nodes and, on the ELK path, the engine result that was applied; or
  * null if stale.
@@ -29,7 +30,8 @@ export async function executeLayout(
 	prep: PrepareResult,
 	elementNodeSizes: Map<string, XY>,
 	isStale: () => boolean,
-	stored?: LayoutResult
+	stored?: LayoutResult,
+	onFirstPassDone?: () => Promise<void>
 ): Promise<{ visibleNodes: TopologyNode[]; engineResult?: LayoutResult } | null> {
 	const {
 		layoutNodes,
@@ -122,7 +124,8 @@ export async function executeLayout(
 				// Read from the options these nodes were built with, so the flag always matches their
 				// order.
 				preserveChildOrder:
-					effectiveElementSort(topology.options?.request, currentView) !== 'Automatic'
+					effectiveElementSort(topology.options?.request, currentView) !== 'Automatic',
+				onFirstPassDone
 			}));
 		elkComputeDone();
 		engineResult = elkResult;
