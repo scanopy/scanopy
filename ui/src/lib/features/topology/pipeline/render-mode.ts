@@ -68,17 +68,16 @@ export function shouldCull({ renderedCount, measuring, exporting }: CullingCondi
  * 10px and body text at 13 to 14px:
  * https://a11yreadtech.github.io/ARC/tests/visual-readability-contrast
  *
- * Set to 6px, well under that floor, by Maya's choice after using 10 and then 9: at those the
- * cards arrived too late when zooming in. 6px is about where glyphs still resolve as letters on
- * a high-density display. It is a judgement of when a card is worth drawing, not a claim that
- * 6px text is legible by any published criterion.
+ * Set to 5.4px, well under that floor, by Maya's choice after using 10, 9 and 6: at those the
+ * cards arrived too late when zooming in. It is a judgement of when a card is worth drawing, not
+ * a claim that text this size is legible by any published criterion.
  *
  * A CSS pixel is a visual angle (about 0.0213 degrees: 1/96 inch at 28 inches) that each device
  * maps to whole device pixels, so this holds across screen resolutions and pixel densities with
  * no correction. Browser zoom and viewing distance do change the real size, and a page can read
  * neither.
  */
-export const MIN_CARD_TEXT_PX = 6;
+export const MIN_CARD_TEXT_PX = 5.4;
 
 /**
  * Font size of the text a card is made of.
@@ -91,7 +90,7 @@ export const CARD_TEXT_PX = 12;
 
 /**
  * Zoom below which a node stops rendering its contents: where the text a card is made of drops
- * under `MIN_CARD_TEXT_PX`. 6 / 12, which is 0.5.
+ * under `MIN_CARD_TEXT_PX`. 5.4 / 12, which is 0.45.
  *
  * This was 0.35, picked by eye as the point where titles were "still shaped like words" at about
  * 5px. Nothing on a card can be read there, and drawing it cost 125 ms a frame while zooming a

@@ -116,7 +116,7 @@ describe('shouldSimplify', () => {
 		const switches = { ...big, nodeCount: 252, widestNodeWidth: 353 };
 		expect(shouldSimplify({ ...switches, zoom: 0.1 })).toBe(true);
 		expect(shouldSimplify({ ...switches, zoom: 0.4 })).toBe(true);
-		expect(shouldSimplify({ ...switches, zoom: 0.6 })).toBe(false);
+		expect(shouldSimplify({ ...switches, zoom: 0.5 })).toBe(false);
 	});
 
 	it('leaves a large graph alone while it is zoomed in', () => {
