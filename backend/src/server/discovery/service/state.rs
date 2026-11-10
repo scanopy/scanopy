@@ -924,7 +924,7 @@ mod tests {
     fn a_running_session_records_when_its_daemon_last_reported() {
         let mut maps = Maps::default();
         let running = maps.start(Uuid::new_v4(), DiscoveryPhase::Scanning);
-        let heard = Utc::now() - Duration::seconds(120);
+        let heard = crate::server::shared::clock::now() - Duration::seconds(120);
 
         let outcome = apply_update(&mut maps.borrow(), &running, heard);
 

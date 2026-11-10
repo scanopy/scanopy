@@ -127,7 +127,7 @@ impl Daemon {
         scanned: Option<ScannedEntityIds>,
     ) -> Result<()> {
         let terminal = phase == DiscoveryPhase::Complete;
-        let now = Utc::now();
+        let now = scanopy::server::shared::clock::now();
         let payload = DiscoveryUpdatePayload {
             session_id: session.session_id,
             daemon_id: self.id,
@@ -281,7 +281,7 @@ fn collect_ids(host: &Value, scanned: &mut ScannedEntityIds) {
 
 async fn run_pass(daemon: &Daemon, estate: &LargeEstate, pass: u32) -> Result<Uuid> {
     let session = daemon.wait_for_session().await?;
-    let started_at = Utc::now();
+    let started_at = scanopy::server::shared::clock::now();
     let clock = Instant::now();
     println!("pass {pass} start {}", started_at.to_rfc3339());
     daemon
@@ -417,7 +417,7 @@ async fn run_pass(daemon: &Daemon, estate: &LargeEstate, pass: u32) -> Result<Uu
     let pct = |p: usize| latencies[(latencies.len() * p / 100).min(latencies.len() - 1)];
     println!(
         "pass {pass} end {} hosts={total} host_phase={:.0}s complete_request={:.1}s submit_ms p50={} p95={} max={}",
-        Utc::now().to_rfc3339(),
+        scanopy::server::shared::clock::now().to_rfc3339(),
         hosts_done.as_secs_f64(),
         completion.as_secs_f64(),
         pct(50).as_millis(),
@@ -472,7 +472,7 @@ async fn main() -> Result<()> {
     println!("daemon {} provisioned", daemon.id);
 
     let params = params(args.size);
-    let now = Utc::now();
+    let now = scanopy::server::shared::clock::now();
     let mut site = plant_site(Uuid::nil(), now);
     site.id = args.site_id;
     let mut estate = generate_large_estate(&params, &site, Uuid::nil(), now);
