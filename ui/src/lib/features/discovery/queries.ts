@@ -562,10 +562,7 @@ export function useActiveSessionsQuery(getEnabled: () => boolean = () => true) {
 			const sessions = unwrapData(
 				await apiClient.GET('/api/v1/discoveries/active-sessions', {})
 			) as DiscoveryUpdatePayload[];
-			observeSessions(
-				sessions.map((s) => s.session_id),
-				Date.now()
-			);
+			observeSessions(sessions, Date.now());
 			sessions.forEach(recordSessionActivity);
 			return sessions;
 		},
@@ -687,6 +684,8 @@ const INVALIDATION_THROTTLE_MS = 1000; // At most 1 invalidation per second
 
 /** Discovery events on the live-update stream (`liveUpdatesSSEManager`). */
 class DiscoveryStream {
+	/** When the stream last closed. A session list fetched before then is out of date. */
+	private closedAt = 0;
 	private invalidationPending = false;
 	private invalidationTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -730,25 +729,27 @@ class DiscoveryStream {
 		sessionLastMessageAt.set(new Map());
 		sessionLastActivityAt.set(new Map());
 		discoveryStreamConnected.set(false);
+		this.closedAt = Date.now();
 	}
 
 	/** The stream dropped. Toasts once per lost connection, not on every reconnect attempt. */
 	lost() {
 		if (get(discoveryStreamConnected)) pushError(m.discovery_lostConnection());
 		discoveryStreamConnected.set(false);
+		this.closedAt = Date.now();
 	}
 
 	opened() {
-		// Silence while the stream was down says nothing about the daemon, so every session
-		// starts a fresh clock from the reconnect.
+		// Every session's clock restarts from when the server last heard from its daemon. A
+		// session list fetched before the stream closed holds older times than the server's, so
+		// it is left to the refetch that follows a reconnect.
 		sessionLastMessageAt.set(new Map());
-		const sessions = queryClient.getQueryData<DiscoveryUpdatePayload[]>(
+		const cached = queryClient.getQueryState<DiscoveryUpdatePayload[]>(
 			queryKeys.discovery.sessions()
 		);
-		observeSessions(
-			(sessions ?? []).map((s) => s.session_id),
-			Date.now()
-		);
+		if (cached?.data && cached.dataUpdatedAt > this.closedAt) {
+			observeSessions(cached.data, Date.now());
+		}
 		discoveryStreamConnected.set(true);
 	}
 

@@ -80,15 +80,44 @@ describe('session clocks', () => {
 	});
 
 	it('starts a clock for a session first seen in the session list', () => {
-		observeSessions(['a'], T0);
+		observeSessions([{ session_id: 'a', last_update_at: null }], T0);
 		expect(get(sessionLastMessageAt).get('a')).toBe(T0);
 	});
 
 	it('keeps the arrival time of a session the stream already reported', () => {
 		recordSessionMessage('a', T0 + 500);
-		observeSessions(['a', 'b'], T0 + 1_000);
+		observeSessions(
+			[
+				{ session_id: 'a', last_update_at: null },
+				{ session_id: 'b', last_update_at: null }
+			],
+			T0 + 1_000
+		);
 		expect(get(sessionLastMessageAt).get('a')).toBe(T0 + 500);
 		expect(get(sessionLastMessageAt).get('b')).toBe(T0 + 1_000);
+	});
+
+	it('flags a session that went quiet before the page saw it, timed from when the server last heard from it', () => {
+		const heard = T0 - 2 * 60_000;
+		observeSessions([{ session_id: 'a', last_update_at: new Date(heard).toISOString() }], T0);
+
+		const stall = sessionStallOf(
+			'Scanning',
+			get(sessionLastMessageAt).get('a'),
+			undefined,
+			true,
+			T0
+		);
+		expect(stall).toEqual({ minutes: 2, source: 'messages' });
+	});
+
+	it('keeps a later message the stream recorded over an older server time', () => {
+		recordSessionMessage('a', T0);
+		observeSessions(
+			[{ session_id: 'a', last_update_at: new Date(T0 - 60_000).toISOString() }],
+			T0 + 1_000
+		);
+		expect(get(sessionLastMessageAt).get('a')).toBe(T0);
 	});
 
 	it('records activity from the payload and keeps it when a later payload has none', () => {

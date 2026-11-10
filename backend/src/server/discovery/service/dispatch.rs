@@ -23,7 +23,37 @@ impl DiscoveryService {
         {
             return discovery.integration_targets;
         }
-        vec![]
+
+        // An interface refresh has no config of its own. Before the daemon's first scan, its
+        // container socket credentials exist only as `DaemonHost` targets on its configs, so the
+        // refresh takes those; afterwards they are host assignments and the configs hold none.
+        let refreshing_daemon = self
+            .sessions
+            .read()
+            .await
+            .get(session_id)
+            .filter(|s| matches!(s.discovery_type, DiscoveryType::InterfaceRefresh { .. }))
+            .map(|s| s.daemon_id);
+        let Some(daemon_id) = refreshing_daemon else {
+            return vec![];
+        };
+        let filter = StorableFilter::<Discovery>::new_from_uuid_column("daemon_id", &daemon_id)
+            .live_configs();
+        let mut targets = Vec::new();
+        for target in self
+            .discovery_storage
+            .get_all(filter)
+            .await
+            .unwrap_or_default()
+            .into_iter()
+            .flat_map(|config| config.integration_targets)
+        {
+            if matches!(target, IntegrationTarget::DaemonHost { .. }) && !targets.contains(&target)
+            {
+                targets.push(target);
+            }
+        }
+        targets
     }
 
     /// Reverse-lookup the discovery_id for a given session_id from the discovery_sessions map.

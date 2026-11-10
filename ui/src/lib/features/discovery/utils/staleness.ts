@@ -60,16 +60,25 @@ export function recordSessionActivity(
 
 /**
  * Starts the clock for sessions the page learned about from the session list rather than the
- * stream, so a session already silent when the page loads is still flagged. Leaves any session
- * with a recorded message alone.
+ * stream, from when the server last heard from the daemon (`last_update_at`). A session that went
+ * quiet while the page was closed or the tab hidden is flagged as soon as it is seen. A session
+ * without that time starts at `at`. A later message the stream already recorded is kept.
  */
-export function observeSessions(sessionIds: string[], at: number): void {
+export function observeSessions(
+	sessions: Pick<DiscoveryUpdatePayload, 'session_id' | 'last_update_at'>[],
+	at: number
+): void {
 	sessionLastMessageAt.update((m) => {
-		const missing = sessionIds.filter((id) => !m.has(id));
-		if (missing.length === 0) return m;
-		const next = new Map(m);
-		for (const id of missing) next.set(id, at);
-		return next;
+		let next: Map<string, number> | null = null;
+		for (const { session_id, last_update_at } of sessions) {
+			const heard = last_update_at ? Date.parse(last_update_at) : NaN;
+			const known = m.get(session_id);
+			const value = Number.isNaN(heard) ? (known ?? at) : Math.max(known ?? heard, heard);
+			if (value === known) continue;
+			next ??= new Map(m);
+			next.set(session_id, value);
+		}
+		return next ?? m;
 	});
 }
 
