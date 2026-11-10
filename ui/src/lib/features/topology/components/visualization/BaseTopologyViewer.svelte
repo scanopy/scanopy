@@ -1311,7 +1311,12 @@
 		// every branch; the animation branch above awaits phase 2 so new
 		// nodes are in the DOM by the time we measure.
 		if (containerElement && layoutState.layoutGraph) {
+			// Timed because this is where the node write is actually paid for. `nodes.set()`
+			// returns in a millisecond; SvelteFlow adopts the set and Svelte mounts or updates
+			// every node component in the flush this awaits.
+			const flushDone = perf.stage('render.flush');
 			await tick();
+			flushDone();
 			const cacheSizesDone = perf.stage('post-render.cache-collapsed');
 			const newEntries = cacheCollapsedSizes(
 				containerElement,
