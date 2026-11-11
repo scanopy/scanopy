@@ -2,207 +2,242 @@
 // Run `make generate-types` to regenerate.
 
 export const ERROR_CODES = {
-  validation_required: "Field '{field}' is required",
-  validation_empty: "Field '{field}' cannot be empty",
-  validation_invalid_email: "Invalid email address",
-  validation_email_domain_undeliverable: "This email domain can't receive mail. Please use a valid email address.",
-  validation_email_undeliverable: "We couldn't confirm this address can receive mail. Check it for typos or use a different address.",
-  validation_email_disposable: "Temporary email addresses can't be used. Please sign up with a permanent address.",
-  validation_invalid_ip: "Invalid IP address format",
-  validation_min_length: "Field '{field}' must be at least {min} characters",
-  validation_max_length: "Field '{field}' must be at most {max} characters",
-  validation_invalid_format: "Invalid format for field '{field}'",
-  validation_bulk_empty: "No IDs provided for bulk operation",
-  auth_invalid_credentials: "Invalid email or password",
-  auth_session_expired: "Your session has expired. Please log in again.",
-  auth_permission_denied: "You don't have permission to perform this action",
-  auth_organization_required: "This operation requires an organization context",
-  auth_user_context_required: "User context required",
-  auth_api_key_required: "API key required",
-  auth_daemon_required: "Daemon context required",
-  auth_password_required: "Password required",
-  auth_password_invalid: "Invalid password",
-  auth_not_authenticated: "Not authenticated",
-  auth_oidc_not_configured: "OIDC not configured for this organization",
-  auth_oidc_provider_error: "Failed to authenticate with {provider}",
-  auth_user_not_found: "User with ID '{id}' not found",
-  auth_daemon_key_not_created: "Daemon is trying to register with an API key that has not yet been created",
-  auth_daemon_not_provisioned: "This daemon must be provisioned before it can register. Provision it in the Scanopy UI and re-run the install command.",
-  auth_demo_mode: "This action is disabled in demo mode",
-  auth_password_login_disabled: "Password login is disabled",
-  auth_registration_disabled: "User registration is disabled",
-  auth_org_limit_reached: "This server has reached its maximum number of organizations. Ask an admin to invite you to an existing organization.",
-  auth_email_verification_required: "Please verify your email to access this feature",
-  auth_terms_acceptance_required: "Please accept the updated terms of service to continue",
-  auth_verification_token_invalid: "This verification link is invalid or has expired. Request a new one.",
-  auth_verification_email_cooldown: "A link was just sent to this address. Try again in {seconds} seconds.",
-  license_locked: "Your license is not active. The server is in read-only mode.",
-  license_instance_limit_reached: "This license key is in use on {active} servers and your plan covers {limit}, so this server is in read-only mode. Delete a server you no longer run under License in Scanopy Cloud, then restart this one.",
-  license_plan_has_no_key: "This organization's plan has no license key. License keys come with the Self-Hosted Standard and Plus plans.",
-  license_key_regenerated: "This license key was regenerated. Copy the current key from Scanopy Cloud.",
-  license_organization_missing: "This license key's organization no longer exists",
-  entity_not_found: "{entity} with ID '{id}' not found",
-  entity_already_exists: "{entity} '{name}' already exists",
-  entity_in_use: "Cannot delete {entity} '{name}' because it's used by {used_by}",
-  entity_reference_invalid: "Referenced {entity} in field '{field}' does not exist",
-  entity_access_denied: "You don't have access to this {entity}",
-  entity_expired: "This {entity} has expired",
-  entity_disabled: "This {entity} is disabled",
-  entity_required: "At least one {entity} is required",
-  entity_delete_forbidden: "Cannot delete this {entity}: {reason}",
-  entity_update_forbidden: "Cannot update this {entity}",
-  entity_site_mismatch: "{entity} is on a different site",
-  hosts_merge_failed: "Failed to merge hosts: {reason}",
-  sites_access_denied: "You don't have access to site '{site}'",
-  share_password_required: "Password required for this share",
-  share_password_incorrect: "Incorrect password",
-  share_token_invalid: "Access token is invalid or expired",
-  invite_already_accepted: "This invite has already been accepted",
-  invite_email_mismatch: "Invite email doesn't match your account",
-  email_delivery_failed: "Scanopy could not send this email. Ask an administrator to check the server logs for the mail server's response.",
-  email_feedback_rejected: "Not an authentic message for the configured topic",
-  credential_default_exists: "This credential is identical to the default credential '{name}'. Use that one instead.",
-  credential_default_delete_forbidden: "'{name}' is a default credential and can't be deleted. Unassign it from sites and hosts instead.",
-  credential_default_settings_locked: "'{name}' is a default credential. Its name, description and tags can change, but its settings can't.",
-  credential_login_required: "Choose the SSH login this credential runs over.",
-  credential_login_invalid: "The chosen login is not an SSH login of this organization. Choose another.",
-  credential_login_not_used: "This type of credential runs over no login. Clear the login and save again.",
-  credential_login_daemon_os_mismatch: "This credential and its login '{login}' read files on daemons of different OSes. Set both to the same Daemon OS.",
-  credential_login_in_use: "'{name}' is the login for {users}. Choose another login for them before deleting it.",
-  credential_login_not_assignable: "'{name}' is a login and is not assigned to sites or hosts. Assign a credential that uses it instead.",
-  entity_reference_refused: "'{field}' isn't available here",
-  discovery_historical_read_only: "Historical discovery cannot be modified via API",
-  discovery_subnet_site_mismatch: "Subnet '{subnet}' is on a different site",
-  discovery_session_not_found: "Discovery session '{id}' not found",
-  ip_address_out_of_range: "IP address '{ip}' is not within subnet '{subnet}' range",
-  subnet_type_seeded_per_site: "Every site already has its own {subnet_type} subnet, so a new one can't be created",
-  daemon_site_mismatch: "Cannot send updates for a different site",
-  daemon_identity_mismatch: "Cannot send updates for a different daemon",
-  daemon_standby: "The daemon is on standby because it has not completed a discovery in over 30 days. Restart the daemon or start a discovery to resume.",
-  daemon_not_registered: "Daemon not found on server. It may have been deleted or the database was reset. Reinstall or reconfigure the daemon.",
-  daemon_plan_required: "Your plan includes one daemon. Choose a plan to add more.",
-  daemon_version_too_old: "Daemon version {daemon_version} is no longer supported. This server accepts daemons newer than {last_unsupported_version}. Update the daemon.",
-  daemon_os_mismatch: "This daemon was created for {expected} but is running on {actual}. Create a new daemon for this OS, or install this one on the OS it was created for.",
-  user_email_in_use: "Email '{email}' is already in use",
-  organization_has_active_subscription: "Cancel your subscription before deleting your organization",
-  billing_payment_required: "Payment is required to continue",
-  billing_plan_limit_reached: "You've reached the limit of {limit} {resource} on your current plan",
-  billing_subscription_required: "Active subscription required",
-  billing_setup_incomplete: "Billing setup is incomplete",
-  billing_webhook_signature_invalid: "The Stripe webhook signature is invalid",
-  billing_host_limit_reached: "You've reached the limit of {limit} hosts on your current plan. Upgrade for unlimited hosts.",
-  billing_feature_not_available: "Your current plan does not include {feature}. Upgrade your plan to access this feature.",
-  billing_self_hosted_plan_locked: "This organization is on a self-hosted plan. Manage its license in Settings, or switch to a cloud plan to use the app.",
-  billing_plan_lapsed: "Your plan has lapsed. Choose a paid plan in Settings to make changes again.",
-  billing_plan_required: "Choose a plan in Settings to use Scanopy.",
-  billing_air_gapped_key_still_current: "Your air-gapped key is still valid. You can switch back to an online key once the current license period ends.",
-  billing_air_gapped_plan_change_blocked: "Your air-gapped key covers the plan you have until {date}. You can cancel or move to a cloud plan now, or change license plan from that date.",
-  rate_limit_exceeded: "Too many requests, please try again later",
-  external_service_error: "Error from {service}: {reason}",
-  database_error: "A database error occurred",
-  database_duplicate_entry: "A record with this {field} already exists",
+	validation_required: "Field '{field}' is required",
+	validation_empty: "Field '{field}' cannot be empty",
+	validation_invalid_email: 'Invalid email address',
+	validation_email_domain_undeliverable:
+		"This email domain can't receive mail. Please use a valid email address.",
+	validation_email_undeliverable:
+		"We couldn't confirm this address can receive mail. Check it for typos or use a different address.",
+	validation_email_disposable:
+		"Temporary email addresses can't be used. Please sign up with a permanent address.",
+	validation_invalid_ip: 'Invalid IP address format',
+	validation_min_length: "Field '{field}' must be at least {min} characters",
+	validation_max_length: "Field '{field}' must be at most {max} characters",
+	validation_invalid_format: "Invalid format for field '{field}'",
+	validation_bulk_empty: 'No IDs provided for bulk operation',
+	auth_invalid_credentials: 'Invalid email or password',
+	auth_session_expired: 'Your session has expired. Please log in again.',
+	auth_permission_denied: "You don't have permission to perform this action",
+	auth_organization_required: 'This operation requires an organization context',
+	auth_user_context_required: 'User context required',
+	auth_api_key_required: 'API key required',
+	auth_daemon_required: 'Daemon context required',
+	auth_password_required: 'Password required',
+	auth_password_invalid: 'Invalid password',
+	auth_not_authenticated: 'Not authenticated',
+	auth_oidc_not_configured: 'OIDC not configured for this organization',
+	auth_oidc_provider_error: 'Failed to authenticate with {provider}',
+	auth_user_not_found: "User with ID '{id}' not found",
+	auth_daemon_key_not_created:
+		'Daemon is trying to register with an API key that has not yet been created',
+	auth_daemon_not_provisioned:
+		'This daemon must be provisioned before it can register. Provision it in the Scanopy UI and re-run the install command.',
+	auth_demo_mode: 'This action is disabled in demo mode',
+	auth_password_login_disabled: 'Password login is disabled',
+	auth_registration_disabled: 'User registration is disabled',
+	auth_org_limit_reached:
+		'This server has reached its maximum number of organizations. Ask an admin to invite you to an existing organization.',
+	auth_email_verification_required: 'Please verify your email to access this feature',
+	auth_terms_acceptance_required: 'Please accept the updated terms of service to continue',
+	auth_verification_token_invalid:
+		'This verification link is invalid or has expired. Request a new one.',
+	auth_verification_email_cooldown:
+		'A link was just sent to this address. Try again in {seconds} seconds.',
+	license_locked: 'Your license is not active. The server is in read-only mode.',
+	license_instance_limit_reached:
+		'This license key is in use on {active} servers and your plan covers {limit}, so this server is in read-only mode. Delete a server you no longer run under License in Scanopy Cloud, then restart this one.',
+	license_plan_has_no_key:
+		"This organization's plan has no license key. License keys come with the Self-Hosted Standard and Plus plans.",
+	license_key_regenerated:
+		'This license key was regenerated. Copy the current key from Scanopy Cloud.',
+	license_organization_missing: "This license key's organization no longer exists",
+	entity_not_found: "{entity} with ID '{id}' not found",
+	entity_already_exists: "{entity} '{name}' already exists",
+	entity_in_use: "Cannot delete {entity} '{name}' because it's used by {used_by}",
+	entity_reference_invalid: "Referenced {entity} in field '{field}' does not exist",
+	entity_access_denied: "You don't have access to this {entity}",
+	entity_expired: 'This {entity} has expired',
+	entity_disabled: 'This {entity} is disabled',
+	entity_required: 'At least one {entity} is required',
+	entity_delete_forbidden: 'Cannot delete this {entity}: {reason}',
+	entity_update_forbidden: 'Cannot update this {entity}',
+	entity_site_mismatch: '{entity} is on a different site',
+	hosts_merge_failed: 'Failed to merge hosts: {reason}',
+	sites_access_denied: "You don't have access to site '{site}'",
+	share_password_required: 'Password required for this share',
+	share_password_incorrect: 'Incorrect password',
+	share_token_invalid: 'Access token is invalid or expired',
+	invite_already_accepted: 'This invite has already been accepted',
+	invite_email_mismatch: "Invite email doesn't match your account",
+	email_delivery_failed:
+		"Scanopy could not send this email. Ask an administrator to check the server logs for the mail server's response.",
+	email_feedback_rejected: 'Not an authentic message for the configured topic',
+	credential_default_exists:
+		"This credential is identical to the default credential '{name}'. Use that one instead.",
+	credential_default_delete_forbidden:
+		"'{name}' is a default credential and can't be deleted. Unassign it from sites and hosts instead.",
+	credential_default_settings_locked:
+		"'{name}' is a default credential. Its name, description and tags can change, but its settings can't.",
+	credential_login_required: 'Choose the SSH login this credential runs over.',
+	credential_login_invalid:
+		'The chosen login is not an SSH login of this organization. Choose another.',
+	credential_login_not_used:
+		'This type of credential runs over no login. Clear the login and save again.',
+	credential_login_daemon_os_mismatch:
+		"This credential and its login '{login}' read files on daemons of different OSes. Set both to the same Daemon OS.",
+	credential_login_in_use:
+		"'{name}' is the login for {users}. Choose another login for them before deleting it.",
+	credential_login_not_assignable:
+		"'{name}' is a login and is not assigned to sites or hosts. Assign a credential that uses it instead.",
+	entity_reference_refused: "'{field}' isn't available here",
+	discovery_historical_read_only: 'Historical discovery cannot be modified via API',
+	discovery_subnet_site_mismatch: "Subnet '{subnet}' is on a different site",
+	discovery_session_not_found: "Discovery session '{id}' not found",
+	ip_address_out_of_range: "IP address '{ip}' is not within subnet '{subnet}' range",
+	subnet_type_seeded_per_site:
+		"Every site already has its own {subnet_type} subnet, so a new one can't be created",
+	daemon_site_mismatch: 'Cannot send updates for a different site',
+	daemon_identity_mismatch: 'Cannot send updates for a different daemon',
+	daemon_standby:
+		'The daemon is on standby because it has not completed a discovery in over 30 days. Restart the daemon or start a discovery to resume.',
+	daemon_not_registered:
+		'Daemon not found on server. It may have been deleted or the database was reset. Reinstall or reconfigure the daemon.',
+	daemon_plan_required: 'Your plan includes one daemon. Choose a plan to add more.',
+	daemon_version_too_old:
+		'Daemon version {daemon_version} is no longer supported. This server accepts daemons newer than {last_unsupported_version}. Update the daemon.',
+	daemon_os_mismatch:
+		'This daemon was created for {expected} but is running on {actual}. Create a new daemon for this OS, or install this one on the OS it was created for.',
+	user_email_in_use: "Email '{email}' is already in use",
+	organization_has_active_subscription:
+		'Cancel your subscription before deleting your organization',
+	billing_payment_required: 'Payment is required to continue',
+	billing_plan_limit_reached: "You've reached the limit of {limit} {resource} on your current plan",
+	billing_subscription_required: 'Active subscription required',
+	billing_setup_incomplete: 'Billing setup is incomplete',
+	billing_webhook_signature_invalid: 'The Stripe webhook signature is invalid',
+	billing_host_limit_reached:
+		"You've reached the limit of {limit} hosts on your current plan. Upgrade for unlimited hosts.",
+	billing_feature_not_available:
+		'Your current plan does not include {feature}. Upgrade your plan to access this feature.',
+	billing_self_hosted_plan_locked:
+		'This organization is on a self-hosted plan. Manage its license in Settings, or switch to a cloud plan to use the app.',
+	billing_plan_lapsed:
+		'Your plan has lapsed. Choose a paid plan in Settings to make changes again.',
+	billing_plan_required: 'Choose a plan in Settings to use Scanopy.',
+	billing_air_gapped_key_still_current:
+		'Your air-gapped key is still valid. You can switch back to an online key once the current license period ends.',
+	billing_air_gapped_plan_change_blocked:
+		'Your air-gapped key covers the plan you have until {date}. You can cancel or move to a cloud plan now, or change license plan from that date.',
+	rate_limit_exceeded: 'Too many requests, please try again later',
+	external_service_error: 'Error from {service}: {reason}',
+	database_error: 'A database error occurred',
+	database_duplicate_entry: 'A record with this {field} already exists'
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CODES;
 
 export interface ErrorParams {
-  validation_required: { field: string | number };
-  validation_empty: { field: string | number };
-  validation_invalid_email: Record<string, never>;
-  validation_email_domain_undeliverable: Record<string, never>;
-  validation_email_undeliverable: Record<string, never>;
-  validation_email_disposable: Record<string, never>;
-  validation_invalid_ip: Record<string, never>;
-  validation_min_length: { field: string | number; min: string | number };
-  validation_max_length: { field: string | number; max: string | number };
-  validation_invalid_format: { field: string | number };
-  validation_bulk_empty: Record<string, never>;
-  auth_invalid_credentials: Record<string, never>;
-  auth_session_expired: Record<string, never>;
-  auth_permission_denied: Record<string, never>;
-  auth_organization_required: Record<string, never>;
-  auth_user_context_required: Record<string, never>;
-  auth_api_key_required: Record<string, never>;
-  auth_daemon_required: Record<string, never>;
-  auth_password_required: Record<string, never>;
-  auth_password_invalid: Record<string, never>;
-  auth_not_authenticated: Record<string, never>;
-  auth_oidc_not_configured: Record<string, never>;
-  auth_oidc_provider_error: { provider: string | number };
-  auth_user_not_found: { id: string | number };
-  auth_daemon_key_not_created: Record<string, never>;
-  auth_daemon_not_provisioned: Record<string, never>;
-  auth_demo_mode: Record<string, never>;
-  auth_password_login_disabled: Record<string, never>;
-  auth_registration_disabled: Record<string, never>;
-  auth_org_limit_reached: Record<string, never>;
-  auth_email_verification_required: Record<string, never>;
-  auth_terms_acceptance_required: Record<string, never>;
-  auth_verification_token_invalid: Record<string, never>;
-  auth_verification_email_cooldown: { seconds: string | number };
-  license_locked: Record<string, never>;
-  license_instance_limit_reached: { active: string | number; limit: string | number };
-  license_plan_has_no_key: Record<string, never>;
-  license_key_regenerated: Record<string, never>;
-  license_organization_missing: Record<string, never>;
-  entity_not_found: { entity: string | number; id: string | number };
-  entity_already_exists: { entity: string | number; name: string | number };
-  entity_in_use: { entity: string | number; name: string | number; used_by: string | number };
-  entity_reference_invalid: { entity: string | number; field: string | number };
-  entity_access_denied: { entity: string | number };
-  entity_expired: { entity: string | number };
-  entity_disabled: { entity: string | number };
-  entity_required: { entity: string | number };
-  entity_delete_forbidden: { entity: string | number; reason: string | number };
-  entity_update_forbidden: { entity: string | number };
-  entity_site_mismatch: { entity: string | number };
-  hosts_merge_failed: { reason: string | number };
-  sites_access_denied: { site: string | number };
-  share_password_required: Record<string, never>;
-  share_password_incorrect: Record<string, never>;
-  share_token_invalid: Record<string, never>;
-  invite_already_accepted: Record<string, never>;
-  invite_email_mismatch: Record<string, never>;
-  email_delivery_failed: Record<string, never>;
-  email_feedback_rejected: Record<string, never>;
-  credential_default_exists: { name: string | number };
-  credential_default_delete_forbidden: { name: string | number };
-  credential_default_settings_locked: { name: string | number };
-  credential_login_required: Record<string, never>;
-  credential_login_invalid: Record<string, never>;
-  credential_login_not_used: Record<string, never>;
-  credential_login_daemon_os_mismatch: { login: string | number };
-  credential_login_in_use: { name: string | number; users: string | number };
-  credential_login_not_assignable: { name: string | number };
-  entity_reference_refused: { field: string | number };
-  discovery_historical_read_only: Record<string, never>;
-  discovery_subnet_site_mismatch: { subnet: string | number };
-  discovery_session_not_found: { id: string | number };
-  ip_address_out_of_range: { ip: string | number; subnet: string | number };
-  subnet_type_seeded_per_site: { subnet_type: string | number };
-  daemon_site_mismatch: Record<string, never>;
-  daemon_identity_mismatch: Record<string, never>;
-  daemon_standby: Record<string, never>;
-  daemon_not_registered: Record<string, never>;
-  daemon_plan_required: Record<string, never>;
-  daemon_version_too_old: { daemon_version: string | number; last_unsupported_version: string | number };
-  daemon_os_mismatch: { expected: string | number; actual: string | number };
-  user_email_in_use: { email: string | number };
-  organization_has_active_subscription: Record<string, never>;
-  billing_payment_required: Record<string, never>;
-  billing_plan_limit_reached: { limit: string | number; resource: string | number };
-  billing_subscription_required: Record<string, never>;
-  billing_setup_incomplete: Record<string, never>;
-  billing_webhook_signature_invalid: Record<string, never>;
-  billing_host_limit_reached: { limit: string | number };
-  billing_feature_not_available: { feature: string | number };
-  billing_self_hosted_plan_locked: Record<string, never>;
-  billing_plan_lapsed: Record<string, never>;
-  billing_plan_required: Record<string, never>;
-  billing_air_gapped_key_still_current: Record<string, never>;
-  billing_air_gapped_plan_change_blocked: { date: string | number };
-  rate_limit_exceeded: Record<string, never>;
-  external_service_error: { service: string | number; reason: string | number };
-  database_error: Record<string, never>;
-  database_duplicate_entry: { field: string | number };
+	validation_required: { field: string | number };
+	validation_empty: { field: string | number };
+	validation_invalid_email: Record<string, never>;
+	validation_email_domain_undeliverable: Record<string, never>;
+	validation_email_undeliverable: Record<string, never>;
+	validation_email_disposable: Record<string, never>;
+	validation_invalid_ip: Record<string, never>;
+	validation_min_length: { field: string | number; min: string | number };
+	validation_max_length: { field: string | number; max: string | number };
+	validation_invalid_format: { field: string | number };
+	validation_bulk_empty: Record<string, never>;
+	auth_invalid_credentials: Record<string, never>;
+	auth_session_expired: Record<string, never>;
+	auth_permission_denied: Record<string, never>;
+	auth_organization_required: Record<string, never>;
+	auth_user_context_required: Record<string, never>;
+	auth_api_key_required: Record<string, never>;
+	auth_daemon_required: Record<string, never>;
+	auth_password_required: Record<string, never>;
+	auth_password_invalid: Record<string, never>;
+	auth_not_authenticated: Record<string, never>;
+	auth_oidc_not_configured: Record<string, never>;
+	auth_oidc_provider_error: { provider: string | number };
+	auth_user_not_found: { id: string | number };
+	auth_daemon_key_not_created: Record<string, never>;
+	auth_daemon_not_provisioned: Record<string, never>;
+	auth_demo_mode: Record<string, never>;
+	auth_password_login_disabled: Record<string, never>;
+	auth_registration_disabled: Record<string, never>;
+	auth_org_limit_reached: Record<string, never>;
+	auth_email_verification_required: Record<string, never>;
+	auth_terms_acceptance_required: Record<string, never>;
+	auth_verification_token_invalid: Record<string, never>;
+	auth_verification_email_cooldown: { seconds: string | number };
+	license_locked: Record<string, never>;
+	license_instance_limit_reached: { active: string | number; limit: string | number };
+	license_plan_has_no_key: Record<string, never>;
+	license_key_regenerated: Record<string, never>;
+	license_organization_missing: Record<string, never>;
+	entity_not_found: { entity: string | number; id: string | number };
+	entity_already_exists: { entity: string | number; name: string | number };
+	entity_in_use: { entity: string | number; name: string | number; used_by: string | number };
+	entity_reference_invalid: { entity: string | number; field: string | number };
+	entity_access_denied: { entity: string | number };
+	entity_expired: { entity: string | number };
+	entity_disabled: { entity: string | number };
+	entity_required: { entity: string | number };
+	entity_delete_forbidden: { entity: string | number; reason: string | number };
+	entity_update_forbidden: { entity: string | number };
+	entity_site_mismatch: { entity: string | number };
+	hosts_merge_failed: { reason: string | number };
+	sites_access_denied: { site: string | number };
+	share_password_required: Record<string, never>;
+	share_password_incorrect: Record<string, never>;
+	share_token_invalid: Record<string, never>;
+	invite_already_accepted: Record<string, never>;
+	invite_email_mismatch: Record<string, never>;
+	email_delivery_failed: Record<string, never>;
+	email_feedback_rejected: Record<string, never>;
+	credential_default_exists: { name: string | number };
+	credential_default_delete_forbidden: { name: string | number };
+	credential_default_settings_locked: { name: string | number };
+	credential_login_required: Record<string, never>;
+	credential_login_invalid: Record<string, never>;
+	credential_login_not_used: Record<string, never>;
+	credential_login_daemon_os_mismatch: { login: string | number };
+	credential_login_in_use: { name: string | number; users: string | number };
+	credential_login_not_assignable: { name: string | number };
+	entity_reference_refused: { field: string | number };
+	discovery_historical_read_only: Record<string, never>;
+	discovery_subnet_site_mismatch: { subnet: string | number };
+	discovery_session_not_found: { id: string | number };
+	ip_address_out_of_range: { ip: string | number; subnet: string | number };
+	subnet_type_seeded_per_site: { subnet_type: string | number };
+	daemon_site_mismatch: Record<string, never>;
+	daemon_identity_mismatch: Record<string, never>;
+	daemon_standby: Record<string, never>;
+	daemon_not_registered: Record<string, never>;
+	daemon_plan_required: Record<string, never>;
+	daemon_version_too_old: {
+		daemon_version: string | number;
+		last_unsupported_version: string | number;
+	};
+	daemon_os_mismatch: { expected: string | number; actual: string | number };
+	user_email_in_use: { email: string | number };
+	organization_has_active_subscription: Record<string, never>;
+	billing_payment_required: Record<string, never>;
+	billing_plan_limit_reached: { limit: string | number; resource: string | number };
+	billing_subscription_required: Record<string, never>;
+	billing_setup_incomplete: Record<string, never>;
+	billing_webhook_signature_invalid: Record<string, never>;
+	billing_host_limit_reached: { limit: string | number };
+	billing_feature_not_available: { feature: string | number };
+	billing_self_hosted_plan_locked: Record<string, never>;
+	billing_plan_lapsed: Record<string, never>;
+	billing_plan_required: Record<string, never>;
+	billing_air_gapped_key_still_current: Record<string, never>;
+	billing_air_gapped_plan_change_blocked: { date: string | number };
+	rate_limit_exceeded: Record<string, never>;
+	external_service_error: { service: string | number; reason: string | number };
+	database_error: Record<string, never>;
+	database_duplicate_entry: { field: string | number };
 }
