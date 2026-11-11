@@ -234,6 +234,16 @@ describe('stacked modals', () => {
 		expect(isStackedModal(get(openModalStack), payment)).toBe(false);
 		closePayment();
 	});
+
+	it('shrouds a modal over one that darkens only its own area', () => {
+		const prompt = Symbol('anchored prompt');
+		const plans = Symbol('plans');
+		const closePrompt = registerOpenModal(prompt, false);
+		const closePlans = registerOpenModal(plans);
+		expect(isStackedModal(get(openModalStack), plans)).toBe(false);
+		closePlans();
+		closePrompt();
+	});
 });
 
 describe('chips that dim while typing', () => {

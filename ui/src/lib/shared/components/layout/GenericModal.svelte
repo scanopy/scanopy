@@ -256,7 +256,7 @@
 	let stacked = $derived(isStackedModal($openModalStack, stackToken));
 	$effect(() => {
 		if (!isOpen) return;
-		return registerOpenModal(stackToken);
+		return registerOpenModal(stackToken, showBackdrop && anchor !== 'container');
 	});
 
 	function isTopmost(): boolean {
