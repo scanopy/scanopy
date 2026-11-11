@@ -223,8 +223,12 @@
 		)
 	);
 
-	/** Whether the Issues or Setup entry shows: while it has something in it, or is open. */
+	/**
+	 * Whether the Issues or Setup entry shows: while it has something in it, or is open. Never on
+	 * a licensed self-hosted plan, whose pages say to open them on its own server.
+	 */
 	function isHomeTabVisible(id: string): boolean {
+		if ((id === 'issues' || id === 'setup') && showLockedMainNav) return false;
 		if (id === 'issues') return setupIssues > 0 || activeTab === 'issues';
 		if (id === 'setup') return setupStepsRemaining > 0 || activeTab === 'setup';
 		return true;
