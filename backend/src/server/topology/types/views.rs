@@ -888,9 +888,10 @@ impl TopologyView {
 
     /// The colours this view paints on element cards, in priority order per channel.
     ///
-    /// Every view fills a zoomed-out card amber when its element is stale. L2 adds port status
-    /// (down above stale, up below it, so a dead link is never hidden behind a quiet one) and puts
-    /// a status dot on each port's row in its oper-status colour. Workloads and Application put a
+    /// Every view fills a zoomed-out card amber when its element is stale, and nothing else: a
+    /// zoomed-out card looks the same in every view. L2 used to fill a port by its oper status as
+    /// well, which made it the one view whose boxes were green and red. L2 puts a status dot on
+    /// each port's row in its oper-status colour, shown at full detail. Workloads and Application put a
     /// status dot on a guest's or container's icon card in its run-state colour. L3 marks no run
     /// state: it declares no guest state filter to explain one.
     fn element_marks(&self, config: &ViewElementConfig) -> Vec<ElementMark> {
@@ -909,15 +910,10 @@ impl TopologyView {
         };
 
         match self {
-            Self::L2Physical => [
-                status(StateFill, IfOperStatus::Down),
-                status(StateFill, IfOperStatus::LowerLayerDown),
-            ]
-            .into_iter()
-            .chain(stale_fill)
-            .chain([status(StateFill, IfOperStatus::Up)])
-            .chain(IfOperStatus::iter().map(|s| status(Status, s)))
-            .collect(),
+            Self::L2Physical => stale_fill
+                .into_iter()
+                .chain(IfOperStatus::iter().map(|s| status(Status, s)))
+                .collect(),
             // A guest's run state, as a status dot on its icon card: a container's own (a bridge
             // container is a Service card), then a guest host's. Service first, so a container card
             // shows its own state over its host's. Anything with no run state (bare metal, a vCenter or

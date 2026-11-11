@@ -81,26 +81,8 @@
           {
             "channel": "StateFill",
             "entity": "Interface",
-            "filter_type": "OperStatus",
-            "value": "Down"
-          },
-          {
-            "channel": "StateFill",
-            "entity": "Interface",
-            "filter_type": "OperStatus",
-            "value": "LowerLayerDown"
-          },
-          {
-            "channel": "StateFill",
-            "entity": "Interface",
             "filter_type": "Staleness",
             "value": "stale"
-          },
-          {
-            "channel": "StateFill",
-            "entity": "Interface",
-            "filter_type": "OperStatus",
-            "value": "Up"
           },
           {
             "channel": "Status",
