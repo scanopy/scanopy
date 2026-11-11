@@ -176,6 +176,24 @@ export function endLoad(): void {
 	loadProgress.set(null);
 }
 
+/**
+ * A viewer run for `scope` is over. Ends the load, except when the bar is a download for another
+ * scope: a view switch downloads the next view while the current one can still finish a run, and
+ * that run ending must not take the download's bar down with it.
+ */
+export function endLoadOfRun(scope: string): void {
+	if (get(loadProgress)?.stage === 'data' && scope !== scopeOfRun) return;
+	endLoad();
+}
+
+/**
+ * The download failed: clear its bar and record nothing. A bar that has moved past the download
+ * belongs to a run in the viewer, which ends it.
+ */
+export function cancelDownload(): void {
+	if (get(loadProgress)?.stage === 'data') loadProgress.set(null);
+}
+
 /** A stage shorter than this is not worth a frame of delay to start its animation. */
 const WORTH_A_FRAME_MS = 250;
 

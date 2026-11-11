@@ -23,6 +23,12 @@
 	import { get, writable } from 'svelte/store';
 	import { collapseScope, isScaleCollapsed } from '../collapse';
 	import {
+		beginLoad,
+		cancelDownload,
+		LOAD_STAGES,
+		loadProgress
+	} from '../pipeline/load-progress';
+	import {
 		useTopologiesQuery,
 		useTopologyDataQuery,
 		markTopologyViewed,
@@ -636,15 +642,30 @@
 	// next one before switching: the current graph stays on screen in the meantime instead of the
 	// viewer unmounting behind a loading screen. A failed load leaves the current view in place
 	// (the API client has already shown the error).
+	//
+	// The current graph staying put says nothing about the pick having registered, so the
+	// viewer's progress bar starts with the download and runs on through the new view's layout
+	// and draw. A view already in the cache resolves before the delay and shows no bar.
+	const VIEW_SWITCH_BAR_DELAY_MS = 150;
 	let viewSwitchRequest = 0;
 	async function handleViewChange(value: string) {
 		const view = value as TopologyView;
 		const siteId = $selectedSiteId;
 		const request = ++viewSwitchRequest;
+		const scope = collapseScope(currentTopologyRow?.id ?? '', view);
+		const barTimer = setTimeout(() => {
+			// A run still drawing the current view owns the bar until it ends.
+			const current = get(loadProgress);
+			if (!current || current.stage === 'data') beginLoad(scope, LOAD_STAGES);
+		}, VIEW_SWITCH_BAR_DELAY_MS);
 		try {
 			if (siteId) await loadTopologyData(siteId, $selectedSnapshotId ?? undefined, view);
 		} catch {
+			// A later pick still loading keeps the bar.
+			if (request === viewSwitchRequest) cancelDownload();
 			return;
+		} finally {
+			clearTimeout(barTimer);
 		}
 		// A later pick superseded this one while it loaded.
 		if (request !== viewSwitchRequest) return;

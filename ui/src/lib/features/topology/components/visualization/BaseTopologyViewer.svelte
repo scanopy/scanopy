@@ -89,7 +89,7 @@
 	import ContainerLabelLayer from './ContainerLabelLayer.svelte';
 	import {
 		beginLoad,
-		endLoad,
+		endLoadOfRun,
 		enterLoadStage,
 		loadProgress,
 		paintBeforeLongStage
@@ -556,7 +556,11 @@
 
 	let runIsLong = $state(false);
 	let longRunTimer: ReturnType<typeof setTimeout> | undefined;
-	let loadProgressShown = $derived(runIsLong && $loadProgress !== null);
+	// A download in progress always shows: it is a view switch waiting on the next view's data,
+	// with the current graph still on screen and nothing else to say the pick registered.
+	let loadProgressShown = $derived(
+		$loadProgress !== null && (runIsLong || $loadProgress.stage === 'data')
+	);
 
 	/** Minimum gap between collapsed-size refreshes while panning. */
 	const COLLAPSED_SIZE_REFRESH_MS = 500;
@@ -853,6 +857,8 @@
 	}
 
 	function runPipeline(): Promise<void> {
+		// What this run draws, as `prepareTopologyData` reads it at the start of the run.
+		const scope = collapseScope(topology.id ?? '', get(activeView));
 		return loadTopologyData()
 			.catch((err) => {
 				endMeasurePass();
@@ -861,7 +867,7 @@
 			.finally(() => {
 				noteRunEnd();
 				setLoadInProgress(false);
-				endLoad();
+				endLoadOfRun(scope);
 				clearTimeout(longRunTimer);
 				runIsLong = false;
 				if (pendingReload) {
@@ -1033,13 +1039,19 @@
 		let visibleNodes = initialVisibleNodes;
 
 		// Plan the progress bar for this run: see `load-progress.ts`. The first draw of a topology
-		// always shows it, continuing the bar the download started.
+		// always shows it, continuing the bar the download started, and so does a run that follows
+		// a download whose bar is already up (a view switch).
+		const continuesDownload = get(loadProgress)?.stage === 'data';
 		const planned = beginLoad(
 			collapseScope(prep.topologyId, prep.currentView),
 			needsElk ? ['measure', 'layout', 'layoutRefine', 'draw'] : ['draw'],
 			visibleNodes.length
 		);
-		if (layoutState.lastRenderedTopoKey === '' || (planned?.remainingMs ?? 0) >= LONG_RUN_MS) {
+		if (
+			continuesDownload ||
+			layoutState.lastRenderedTopoKey === '' ||
+			(planned?.remainingMs ?? 0) >= LONG_RUN_MS
+		) {
 			runIsLong = true;
 		}
 

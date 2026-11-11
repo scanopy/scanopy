@@ -3,7 +3,9 @@ import { get } from 'svelte/store';
 import {
 	LOAD_STAGES,
 	beginLoad,
+	cancelDownload,
 	endLoad,
+	endLoadOfRun,
 	enterLoadStage,
 	estimateStageTimes,
 	loadProgress,
@@ -97,6 +99,27 @@ describe('a load', () => {
 		const second = beginLoad('topology|L2Physical', LOAD_STAGES)!;
 
 		expect(second).toBe(first);
+	});
+
+	it('clears a failed download and leaves a run past the download alone', () => {
+		beginLoad('scope', LOAD_STAGES);
+		cancelDownload();
+		expect(get(loadProgress)).toBeNull();
+
+		beginLoad('scope', ['layout', 'draw'], 100);
+		cancelDownload();
+		expect(get(loadProgress)?.stage).toBe('layout');
+		endLoad();
+	});
+
+	it('keeps a download up when a run for another view ends, and ends with its own run', () => {
+		beginLoad('topology|Workloads', LOAD_STAGES);
+
+		endLoadOfRun('topology|L3Logical');
+		expect(get(loadProgress)?.stage).toBe('data');
+
+		endLoadOfRun('topology|Workloads');
+		expect(get(loadProgress)).toBeNull();
 	});
 
 	it('starts a later run from zero', () => {
