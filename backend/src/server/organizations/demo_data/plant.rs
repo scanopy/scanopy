@@ -4,6 +4,8 @@
 use super::large_estate::{EstateParams, generate_large_estate, plant_site};
 use super::*;
 use crate::daemon::discovery::types::base::DiscoveryTerminalReason;
+use crate::daemon::discovery::types::warnings::DiscoveryWarning;
+use crate::server::credentials::r#impl::mapping::CredentialQueryPayloadDiscriminants;
 use crate::server::credentials::r#impl::run_results::{CredentialRunOutcome, CredentialRunResult};
 use crate::server::credentials::r#impl::types::CredentialTypeDiscriminants;
 
@@ -95,6 +97,22 @@ pub(super) fn add_plant_site(
         },
     ];
 
+    // Plant's one Issue: the first access switch didn't answer SNMP on the last scan, so Home
+    // lists it on this site too. The run collected from every other switch and firewall.
+    let unanswered: Vec<DiscoveryWarning> = estate
+        .hosts_with_services
+        .iter()
+        .find(|h| h.host.base.name.value().as_str().starts_with("acc-sw-"))
+        .and_then(|h| h.ip_addresses.first())
+        .map(|ip| DiscoveryWarning::CredentialTargetNotResponding {
+            address: ip.base.ip_address,
+            integration: CredentialQueryPayloadDiscriminants::Snmp,
+            credential_id: Some(network_snmp),
+        })
+        .into_iter()
+        .collect();
+    let collected_hosts = (params.switch_count() + params.firewalls - unanswered.len()) as u32;
+
     let subnet_ids: Vec<Uuid> = estate.subnets.iter().map(|s| s.id).collect();
     let unified = DiscoveryType::Unified {
         host_id: daemon.base.host_id,
@@ -140,11 +158,11 @@ pub(super) fn add_plant_site(
                         discovery_type: unified,
                         progress: 100,
                         error: None,
-                        warnings: Vec::new(),
+                        warnings: unanswered,
                         credential_results: vec![CredentialRunResult {
                             credential_id: network_snmp,
                             outcome: CredentialRunOutcome::Collected {
-                                hosts: (params.switch_count() + params.firewalls) as u32,
+                                hosts: collected_hosts,
                                 hosts_with_guests_listed: vec![],
                             },
                         }],
