@@ -465,7 +465,7 @@ $(FIXTURE_STAMP): $(FIXTURE_INPUTS)
 	@mv $@.next $@
 
 refresh-vendored-data:
-	@echo "Refreshing vendored data assets (IEEE MAC registries)..."
+	@echo "Refreshing vendored data assets (IEEE MAC registries, disposable email domains)..."
 	backend/scripts/refresh-vendored-data.sh
 	@echo "✅ Vendored data refreshed. Rebuild to embed new data."
 

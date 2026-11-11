@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Refresh the vendored data files embedded into the server binary:
 #   backend/assets/{oui,mam,oui36,iab}.csv       IEEE MAC-address registries
+#   backend/assets/disposable-email-domains.txt  sign-up disposable-domain list
 #
-# Curl-only file drop: all parsing happens at load time in
-# backend/src/server/shared/oui.rs.
+# File drop only: all parsing happens at load time in
+# backend/src/server/shared/oui.rs and backend/src/server/auth/disposable_email.rs.
 #
 # Invoked by `make refresh-vendored-data` and by the release workflow
 # (.github/workflows/release.yml, test-and-update-fixtures job), which
@@ -13,7 +14,7 @@
 # sanity floor keeps the committed copy and warns; the script only exits
 # non-zero on environment errors (missing curl).
 #
-# Requires: curl.
+# Requires: curl, jq.
 
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -22,6 +23,7 @@ CURL=(curl -sfL --max-time 300 --retry 5 --retry-delay 70)
 UA="ScanopyVendoredDataRefresh/1.0 (release workflow)"
 
 command -v curl >/dev/null || { echo "ERROR: curl is required" >&2; exit 1; }
+command -v jq >/dev/null || { echo "ERROR: jq is required" >&2; exit 1; }
 
 # install <tmp-file> <dest> <line-floor> — move tmp into place if it clears
 # the sanity floor, else keep the committed copy.
@@ -68,5 +70,38 @@ refresh_registry oui/oui.csv assets/oui.csv 20000
 refresh_registry oui28/mam.csv assets/mam.csv 4000
 refresh_registry oui36/oui36.csv assets/oui36.csv 4000
 refresh_registry iab/iab.csv assets/iab.csv 3000
+
+# --- Disposable email domains (sign-up check) ---
+# Pinned to upstream's current commit, which the file header records. A domain
+# flagged by mistake goes in assets/disposable-email-allowlist.txt, which this
+# script never touches.
+refresh_disposable_domains() {
+    local upstream="disposable/disposable-email-domains"
+    local dest="assets/disposable-email-domains.txt"
+    local commit sha date tmp
+    if ! commit=$("${CURL[@]}" -A "$UA" "https://api.github.com/repos/$upstream/commits/master") \
+        || ! sha=$(jq -er .sha <<<"$commit") \
+        || ! date=$(jq -er .commit.committer.date <<<"$commit"); then
+        echo "WARN: $dest upstream commit lookup failed — keeping committed copy" >&2
+        return
+    fi
+    tmp=$(mktemp)
+    {
+        echo "# Disposable email domains, refused at Scanopy Cloud sign-up alongside the mailchecker crate."
+        echo "# Source: https://github.com/$upstream (domains.txt)"
+        echo "# Upstream commit: $sha ($date)"
+        echo "# License: MIT. Copyright (c) 2017 Andrei Simionescu; Copyright (c) 2017 Stefan Meinecke, greenSec GmbH."
+        echo "# backend/scripts/refresh-vendored-data.sh rewrites this file at each release. Add a domain"
+        echo "# flagged by mistake to disposable-email-allowlist.txt instead of editing it here."
+    } > "$tmp"
+    if ! "${CURL[@]}" -A "$UA" "https://raw.githubusercontent.com/$upstream/$sha/domains.txt" >> "$tmp"; then
+        echo "WARN: $dest download failed — keeping committed copy" >&2
+        rm -f "$tmp"
+        return
+    fi
+    install_if_sane "$tmp" "$dest" 50000
+}
+
+refresh_disposable_domains
 
 echo "done"

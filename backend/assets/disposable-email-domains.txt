@@ -2,7 +2,7 @@
 # Source: https://github.com/disposable/disposable-email-domains (domains.txt)
 # Upstream commit: 62ef048e660f00b789c053ca5e144c247bf3163e (2026-11-02T10:08:56Z)
 # License: MIT. Copyright (c) 2017 Andrei Simionescu; Copyright (c) 2017 Stefan Meinecke, greenSec GmbH.
-# .github/workflows/disposable-domains-refresh.yml rewrites this file weekly. Add a domain
+# backend/scripts/refresh-vendored-data.sh rewrites this file at each release. Add a domain
 # flagged by mistake to disposable-email-allowlist.txt instead of editing it here.
 0-00.usa.cc
 0-30-24.com
