@@ -257,9 +257,11 @@ impl SetupItemDiscriminants {
                 false,
                 SetupItem::Dependencies,
             ),
-            // The Create Daemon wizard offers credentials, so this needs no step first.
+            // Left out until the first scan, so the list leads with daemon, scan, topology. A
+            // credential added before then (the Create Daemon wizard offers one) shows it done.
             T::InterfaceCredential => step(
-                ctx.can_write(Resource::Credential),
+                ctx.can_write(Resource::Credential)
+                    && (ctx.has(T::RunFirstScan) || ctx.has(self) || self.live_done(ctx)),
                 false,
                 SetupItem::InterfaceCredential,
             ),
@@ -654,11 +656,6 @@ mod tests {
                 with(&|c| c.has_application_tag_assignment = true),
             ),
             (
-                T::InterfaceCredential,
-                None,
-                with(&|c| c.has_manual_interface_credential = true),
-            ),
-            (
                 T::Tags,
                 Some(T::RunFirstScan),
                 with(&|c| c.has_tag_assignment = true),
@@ -680,7 +677,8 @@ mod tests {
 
     /// Every Setup type is Locked until its prerequisite is recorded, then Open, then Done once
     /// recorded or once the rows show it done, whatever its prerequisite. The dependency pair,
-    /// one row between them, has its own test.
+    /// one row between them, and the credential step, left out rather than locked, have their
+    /// own tests.
     #[test]
     fn a_setup_item_is_locked_then_open_then_done() {
         let cases = setup_cases();
@@ -688,7 +686,12 @@ mod tests {
             cases.iter().map(|(t, ..)| *t).collect::<Vec<_>>(),
             T::iter()
                 .filter(|t| t.tier() == SetupItemTier::Setup)
-                .filter(|t| !matches!(t, T::DependencyTutorial | T::Dependencies))
+                .filter(|t| {
+                    !matches!(
+                        t,
+                        T::DependencyTutorial | T::Dependencies | T::InterfaceCredential
+                    )
+                })
                 .collect::<Vec<_>>(),
             "every Setup type has a case"
         );
@@ -751,6 +754,34 @@ mod tests {
         }
     }
 
+    /// The credential step is left out until the first scan, so the list leads with daemon, scan
+    /// and topology. Then it is Open, and Done once recorded or once a manual credential exists,
+    /// which shows it done before the first scan too.
+    #[test]
+    fn the_credential_step_appears_after_the_first_scan() {
+        assert_eq!(state(T::InterfaceCredential, &ctx()), None);
+
+        let scanned = recorded(ctx(), &[T::RunFirstScan]);
+        assert_eq!(
+            state(T::InterfaceCredential, &scanned),
+            Some(SetupItemState::Open)
+        );
+        assert_eq!(
+            state(
+                T::InterfaceCredential,
+                &recorded(scanned, &[T::InterfaceCredential])
+            ),
+            Some(SetupItemState::Done)
+        );
+
+        let mut early = ctx();
+        early.has_manual_interface_credential = true;
+        assert_eq!(
+            state(T::InterfaceCredential, &early),
+            Some(SetupItemState::Done)
+        );
+    }
+
     /// A Setup item that needs a write is left out for a user without it. The sweep, with no
     /// user, passes every write check.
     #[test]
@@ -764,12 +795,13 @@ mod tests {
             (T::MultiSite, Resource::NewSite),
             (T::Share, Resource::Share),
         ] {
+            let scanned = recorded(ctx(), &[T::RunFirstScan]);
             assert_eq!(
-                count(item_type, &without_write(ctx(), resource)),
+                count(item_type, &without_write(scanned.clone(), resource)),
                 0,
                 "{item_type:?}"
             );
-            let mut sweep = ctx();
+            let mut sweep = scanned;
             sweep.can_write = None;
             assert_eq!(count(item_type, &sweep), 1, "{item_type:?} in the sweep");
         }
