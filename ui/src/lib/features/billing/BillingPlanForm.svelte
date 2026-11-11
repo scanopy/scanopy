@@ -1102,6 +1102,10 @@
 	/* Individual plan card. Its six sections (name, price, description, action, limits, features)
 	   share the grid's rows with the cards beside it, so each section starts level across them. */
 	.plan-card {
+		/* The surface over the opaque elevated color, so the modal behind doesn't show through
+		   the dark theme's translucent surface. The light theme's surface is opaque already. */
+		background:
+			linear-gradient(var(--color-bg-surface), var(--color-bg-surface)), var(--color-bg-elevated);
 		padding: 1.25rem;
 		position: relative;
 		display: grid;
