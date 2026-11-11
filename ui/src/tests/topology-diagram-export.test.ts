@@ -16,7 +16,8 @@ import {
 	createDescriber,
 	type DescriberInput
 } from '$lib/features/topology/diagram-export/describe';
-import { base64DataUri } from '$lib/features/topology/diagram-export/collect';
+import { base64DataUri, fitInside } from '$lib/features/topology/diagram-export/collect';
+import { iconBadgeFanOffsetPx } from '$lib/features/topology/pipeline/build-flow-nodes';
 import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
 import { activeView } from '$lib/features/topology/queries';
 import { expandedInlineGroups, inlineGroupKey } from '$lib/features/topology/collapse';
@@ -60,16 +61,18 @@ const EDGES: DiagramSourceEdge[] = [
 const plainDescriber = (hiddenEdgeIds: Set<string> = new Set(['e-hidden'])): DiagramDescriber => ({
 	node: (n) => ({
 		box: { outline: 'rect', radius: 8, fill: '#ffffff', stroke: '#94a3b8', strokeWidth: 1 },
-		label: {
-			top: 8,
-			lines: [
-				{ value: n.id, color: '#1f2937', size: 12 },
-				...(n.type === 'Element' ? [{ value: '10.0.0.1', color: '#64748b', size: 12 }] : [])
-			]
-		},
 		parts:
 			n.id === 'web'
 				? [
+						{
+							role: 'label',
+							outline: 'rect',
+							x: 8,
+							y: 60,
+							width: 100,
+							height: 15,
+							text: { value: n.id, color: '#1f2937', size: 12 }
+						},
 						{ role: 'tile', outline: 'rect', x: 10, y: 10, width: 48, height: 48, fill: '#e5e7eb' },
 						{
 							role: 'glyph',
@@ -338,6 +341,7 @@ describe('canvas styling in the export', () => {
 	const SITE = { id: 'site', effective_stale_after_hours: 24 } as unknown as Site;
 	const NOW = new Date().toISOString();
 	const LONG_AGO = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+	const LONG_HOSTNAME = 'gitlab-runner-production.acme.local';
 	const base = { site_id: SITE.id, tags: [], last_seen_at: NOW, source: { type: 'Discovery' } };
 	const element = (fields: Record<string, unknown>) =>
 		({ node_type: 'Element', ...fields }) as unknown as TopologyNode;
@@ -364,6 +368,13 @@ describe('canvas styling in the export', () => {
 			ip_address_id: 'ip',
 			subnet_id: 'lan'
 		}),
+		busy: element({
+			element_type: 'IPAddress',
+			host_id: 'busy',
+			entity_id: 'busy-ip',
+			ip_address_id: 'busy-ip',
+			subnet_id: 'lan'
+		}),
 		guest: element({
 			element_type: 'Host',
 			host_id: 'guest',
@@ -388,15 +399,31 @@ describe('canvas styling in the export', () => {
 		site_id: SITE.id,
 		options: { request: { element_rules: [] } },
 		hosts: [
-			{ ...base, id: 'guest', name: 'guest', display_name: 'guest' },
+			{ ...base, id: 'guest', name: 'guest', display_name: 'guest', os: { family: 'Linux' } },
 			{ ...base, id: 'switch', name: 'switch', display_name: 'switch' },
-			{ ...base, id: 'old-switch', name: 'old-switch', last_seen_at: LONG_AGO }
+			{ ...base, id: 'old-switch', name: 'old-switch', last_seen_at: LONG_AGO },
+			{
+				...base,
+				id: 'busy',
+				name: 'busy',
+				hostname: LONG_HOSTNAME,
+				os: { family: 'Linux' }
+			}
 		],
 		subnets: [{ ...base, id: 'lan', cidr: '10.0.0.0/24', vlan_ids: ['vlan-10'] }],
 		ip_addresses: [
-			{ ...base, id: 'ip', host_id: 'guest', subnet_id: 'lan', ip_address: '10.0.0.5' }
+			{ ...base, id: 'ip', host_id: 'guest', subnet_id: 'lan', ip_address: '10.0.0.5' },
+			{ ...base, id: 'busy-ip', host_id: 'busy', subnet_id: 'lan', ip_address: '10.0.0.9' }
 		],
 		services: [
+			...['Nginx', 'Docker', 'PostgreSQL'].map((definition) => ({
+				...base,
+				id: `busy-${definition}`,
+				host_id: 'busy',
+				name: definition,
+				service_definition: definition,
+				bindings: [{ type: 'Port', port_id: 'p80', ip_address_id: 'busy-ip' }]
+			})),
 			{
 				...base,
 				id: 'web',
@@ -512,10 +539,40 @@ describe('canvas styling in the export', () => {
 		const port = card(describerFor('L2Physical'), 'up');
 		const [tile] = withRole(port, 'tile');
 		expect(tile.x + tile.width / 2).toBe(CARD.width / 2);
-		expect(port.label!.top).toBeGreaterThanOrEqual(tile.y + tile.height);
-		expect(port.label!.lines[0].value).toBe('Gi1');
+		const [label] = withRole(port, 'label');
+		expect(label.text?.value).toBe('Gi1');
+		expect(label.y).toBeGreaterThanOrEqual(tile.y + tile.height);
 		// The glyph sits inside the tile.
 		expect(encloses(tile, withRole(port, 'glyph')[0])).toBe(true);
+	});
+
+	it('centres the label and the hostname under it, and cuts a hostname that is too long', () => {
+		const address = card(describerFor('L3Logical'), 'busy');
+		const [label, sublabel] = withRole(address, 'label');
+		expect(label.text?.value).toBe('10.0.0.9');
+		for (const part of [label, sublabel]) {
+			expect(part.text?.align).toBe('center');
+			expect(part.x + part.width / 2).toBe(CARD.width / 2);
+			expect(encloses(CARD, part)).toBe(true);
+		}
+		expect(sublabel.y).toBeGreaterThanOrEqual(label.y + label.height);
+		expect(sublabel.text?.value.endsWith('…')).toBe(true);
+		expect(LONG_HOSTNAME.startsWith(sublabel.text!.value.slice(0, -1))).toBe(true);
+	});
+
+	it('fans several service badges into a row where the canvas fans them on hover', () => {
+		const address = card(describerFor('L3Logical'), 'busy');
+		const badges = withRole(address, 'badge').sort((a, b) => a.x - b.x);
+		expect(badges).toHaveLength(3);
+		const offsets = [0, 1, 2].map((i) => CARD.width / 2 + iconBadgeFanOffsetPx(i, 3));
+		expect(badges.map((b) => b.x)).toEqual(offsets);
+		for (const [i, badge] of badges.entries()) {
+			expect(encloses(CARD, badge)).toBe(true);
+			// No badge hides the one before it.
+			if (i > 0) expect(badge.x).toBeGreaterThanOrEqual(badges[i - 1].x + badges[i - 1].width);
+		}
+		// The fan covers the corner the OS badge sits on, so it gives way, as it does on hover.
+		expect(withRole(address, 'os')).toHaveLength(0);
 	});
 
 	it("draws a port's link state as a dot in the colour of the view's Status mark", () => {
@@ -529,14 +586,19 @@ describe('canvas styling in the export', () => {
 		expect(dot('up')?.fill).not.toBe(dot('down')?.fill);
 	});
 
-	it('draws one badge for each service the card stacks on its tile', () => {
+	it('keeps a lone service badge on the tile corner, with the OS badge on the other', () => {
 		const describer = describerFor('L3Logical');
 		const address = card(describer, 'address');
+		const [tile] = withRole(address, 'tile');
 		const badges = withRole(address, 'badge');
 		expect(badges).toHaveLength(1);
 		expect(badges[0].outline).toBe('ellipse');
 		// A logo with a background colour fills its frame with it.
 		expect(badges[0].fill).toBe(NGINX_FILL);
+		// Centred on the tile's bottom-right corner, the OS badge on its bottom-left.
+		expect(badges[0].x + badges[0].width / 2).toBe(tile.x + tile.width);
+		const [os] = withRole(address, 'os');
+		expect(os.x + os.width / 2).toBe(tile.x);
 	});
 
 	it("draws a guest's containers as rows, a device square and software round", () => {
@@ -666,6 +728,51 @@ describe('canvas styling in the export', () => {
 			expect(drawn(role)).toHaveLength(parts.filter((p) => !p.iconKey && p.role === role).length);
 		}
 		expect(drawn('Icon')).toHaveLength(parts.filter((p) => p.iconKey).length);
+	});
+
+	it('gives every Visio ellipse the size of its shape, as values a reader can draw from', () => {
+		const describer = describerFor('L2Physical');
+		const model = buildDiagramModel({
+			name: 'x',
+			nodes: [{ id: 'up', type: 'Element', ...CARD }],
+			edges: [],
+			describe: describer,
+			background: '#f8fafc'
+		});
+		const page = strFromU8(unzipSync(zipVsdx(buildVsdxParts(model)))['visio/pages/page1.xml']);
+		const value = (xml: string, name: string) =>
+			Number(xml.match(new RegExp(`<Cell N="${name}" V="([^"]+)"`))?.[1]);
+		const ellipses = [...page.matchAll(/<Shape [^>]*>(.*?)<\/Shape>/g)]
+			.map((m) => m[1])
+			.filter((xml) => xml.includes('T="Ellipse"'));
+		expect(ellipses.length).toBeGreaterThan(0);
+		for (const xml of ellipses) {
+			const row = xml.slice(xml.indexOf('T="Ellipse"'));
+			expect(value(xml, 'Width')).toBeGreaterThan(0);
+			expect(value(row, 'A')).toBeCloseTo(value(xml, 'Width'));
+			expect(value(row, 'D')).toBeCloseTo(value(xml, 'Height'));
+			expect(value(row, 'X')).toBeCloseTo(value(xml, 'Width') / 2);
+		}
+	});
+
+	it("tells draw.io to leave the file's colours alone in its own dark mode", () => {
+		expect(serializeDrawio(sampleModel())).toMatch(/<mxGraphModel [^>]*adaptiveColors="none"/);
+	});
+
+	it('fits a wide or tall icon inside its square bitmap without stretching it', () => {
+		for (const [width, height] of [
+			[200, 50],
+			[50, 200],
+			[64, 64]
+		]) {
+			const box = fitInside(width, height, 128);
+			expect(box.width / box.height).toBeCloseTo(width / height);
+			expect(Math.max(box.width, box.height)).toBe(128);
+			expect(box.x + box.width / 2).toBe(64);
+			expect(box.y + box.height / 2).toBe(64);
+		}
+		// An SVG with no size of its own fills the square.
+		expect(fitInside(0, 0, 128)).toEqual({ x: 0, y: 0, width: 128, height: 128 });
 	});
 
 	it('keeps an image usable in a draw.io style, whatever form its data URI takes', () => {

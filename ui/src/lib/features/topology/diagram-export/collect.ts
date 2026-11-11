@@ -75,7 +75,24 @@ async function fetchImageDataUri(src: string): Promise<string | null> {
 	}
 }
 
-const RASTER_SIZE = 64;
+/** Edge of the square bitmap an icon is drawn into: sharp for a 48px tile logo at 2x zoom. */
+const RASTER_SIZE = 128;
+
+/**
+ * Where an image of `width` by `height` sits in a square of `edge`: scaled to fit, centred, its
+ * proportions kept. The part that shows the bitmap is square, so a bitmap filled edge to edge
+ * would stretch a wide or tall logo. An image with no size of its own fills the square.
+ */
+export function fitInside(
+	width: number,
+	height: number,
+	edge: number
+): { x: number; y: number; width: number; height: number } {
+	if (!(width > 0) || !(height > 0)) return { x: 0, y: 0, width: edge, height: edge };
+	const scale = edge / Math.max(width, height);
+	const fitted = { width: width * scale, height: height * scale };
+	return { x: (edge - fitted.width) / 2, y: (edge - fitted.height) / 2, ...fitted };
+}
 
 async function rasterizeToPng(dataUri: string): Promise<Uint8Array | undefined> {
 	try {
@@ -85,7 +102,8 @@ async function rasterizeToPng(dataUri: string): Promise<Uint8Array | undefined> 
 		const canvas = document.createElement('canvas');
 		canvas.width = RASTER_SIZE;
 		canvas.height = RASTER_SIZE;
-		canvas.getContext('2d')?.drawImage(image, 0, 0, RASTER_SIZE, RASTER_SIZE);
+		const box = fitInside(image.naturalWidth, image.naturalHeight, RASTER_SIZE);
+		canvas.getContext('2d')?.drawImage(image, box.x, box.y, box.width, box.height);
 		const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
 		return blob ? new Uint8Array(await blob.arrayBuffer()) : undefined;
 	} catch {

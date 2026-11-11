@@ -39,13 +39,9 @@
 	import { ChevronDown, ChevronRight } from '@lucide/svelte';
 	import {
 		ELEMENT_HANDLE_SIZE_PX,
-		ICON_BADGE_PX as BADGE_PX,
-		ICON_ELEMENT_WIDTH_PX,
-		ICON_TILE_PX as TILE_PX
+		ICON_BADGE_PILE_OFFSET_PX,
+		iconBadgeFanOffsetPx
 	} from '../../pipeline/build-flow-nodes';
-
-	// The icon card's width inside its px-2 padding: the badge fan spreads within it.
-	const CARD_INNER_PX = ICON_ELEMENT_WIDTH_PX - 16;
 	import { stateFill as markedStateFill, type MarkValue } from '../../element-marks';
 	import { useDetailStaging } from '../../detail-staging.svelte';
 
@@ -496,18 +492,17 @@
 						     Offsets are from the tile's centre to each badge's left edge; a lone badge has
 						     nothing to fan out from and stays on the corner. -->
 						{@const count = iconCard.badgeDefinitions.length}
-						{@const pileX = TILE_PX / 2 - BADGE_PX / 2}
-						{@const fanStep =
-							count > 1 ? Math.min(BADGE_PX + 2, (CARD_INNER_PX - BADGE_PX) / (count - 1)) : 0}
+						{@const pileX = ICON_BADGE_PILE_OFFSET_PX}
 						{#each iconCard.badgeDefinitions as definition, i (definition)}
 							{@const layer = Math.min(i, 2) * 3}
 							{@render glyph(
 								serviceGlyph(definition),
 								17,
 								'absolute top-[calc(100%-12px+var(--stack-y))] left-[calc(50%+var(--stack-x))] h-6 w-6 overflow-hidden rounded-full border border-gray-300 text-primary transition-[left,top] duration-150 group-hover/icon-card:top-[calc(100%-12px)] group-hover/icon-card:left-[calc(50%+var(--fan-x))] dark:border-gray-600',
-								`background: var(--color-topology-node-bg); --stack-x: ${pileX - layer}px; --stack-y: ${-layer}px; --fan-x: ${
-									count > 1 ? (i - (count - 1) / 2) * fanStep - BADGE_PX / 2 : pileX
-								}px; z-index: ${count - i};`,
+								`background: var(--color-topology-node-bg); --stack-x: ${pileX - layer}px; --stack-y: ${-layer}px; --fan-x: ${iconBadgeFanOffsetPx(
+									i,
+									count
+								)}px; z-index: ${count - i};`,
 								22
 							)}
 						{/each}

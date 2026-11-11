@@ -37,7 +37,7 @@ export interface DiagramSourceEdge {
 	targetHandle?: string | null;
 }
 
-/** One run of text: a line of a shape's label, or the text in a part. */
+/** The text in a part: one run, in one colour and size. */
 export interface DiagramText {
 	value: string;
 	color: string;
@@ -47,6 +47,8 @@ export interface DiagramText {
 	align?: 'left' | 'center' | 'right';
 	/** Space before the text on its aligned side, e.g. past a pill's icon. */
 	inset?: number;
+	/** Break onto further lines at the part's width. Otherwise the text is one line. */
+	wrap?: boolean;
 }
 
 /** How a shape's or a part's outline is drawn. A missing `fill` or `stroke` leaves it undrawn. */
@@ -67,8 +69,10 @@ export type DiagramPartRole =
 	| 'glyph'
 	| 'status'
 	| 'badge'
+	| 'os'
 	| 'freshness'
 	| 'title'
+	| 'label'
 	| 'tag'
 	| 'text'
 	| 'group'
@@ -90,12 +94,6 @@ export interface DiagramPart extends DiagramBox {
 	text?: DiagramText;
 }
 
-/** A shape's own text: lines stacked from `top` (below the shape's top edge), centred. */
-export interface DiagramLabel {
-	top: number;
-	lines: DiagramText[];
-}
-
 /** A named fact about the entity a shape stands for, written as Visio Shape Data and draw.io properties. */
 export interface DiagramField {
 	label: string;
@@ -104,7 +102,6 @@ export interface DiagramField {
 
 export interface DiagramNodeDescription {
 	box: DiagramBox;
-	label?: DiagramLabel;
 	parts: DiagramPart[];
 	data?: DiagramField[];
 }
@@ -144,7 +141,6 @@ export interface DiagramShape {
 	width: number;
 	height: number;
 	box: DiagramBox;
-	label?: DiagramLabel;
 	parts: DiagramPart[];
 	data: DiagramField[];
 }
@@ -254,7 +250,6 @@ export function buildDiagramModel(input: DiagramModelInput): DiagramModel {
 			width: node.width,
 			height: node.height,
 			box: description.box,
-			label: description.label,
 			parts: description.parts,
 			data: description.data ?? []
 		};

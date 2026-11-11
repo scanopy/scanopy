@@ -127,22 +127,24 @@ function propertySection(fields: DiagramField[]): string {
 /** Points per diagram unit: a 12px label is 9pt. */
 const POINTS_PER_UNIT = 72 / UNITS_PER_INCH;
 
-/** One character row per line, switched with `cp` markers, so each line keeps its own colour. */
-function textBlock(lines: DiagramText[]): { character: string; text: string } {
-	if (lines.length === 0) return { character: '', text: '' };
-	const rows = lines
-		.map(
-			(line, i) =>
-				`<Row IX="${i}">${cell('Color', hexColor(line.color))}${cell('Size', line.size * POINTS_PER_UNIT * POINT, undefined, 'PT')}${cell('Style', line.bold ? 1 : 0)}</Row>`
-		)
-		.join('');
-	const body = lines.map((line, i) => `<cp IX="${i}"/>${escapeXml(line.value)}`).join('\n');
-	return { character: `<Section N="Character">${rows}</Section>`, text: `<Text>${body}</Text>` };
+/** A shape's text as one run: its character row and its `Text` element. */
+function textBlock(text: DiagramText | undefined): { character: string; text: string } {
+	if (!text) return { character: '', text: '' };
+	return {
+		character: `<Section N="Character"><Row IX="0">${cell('Color', hexColor(text.color))}${cell('Size', text.size * POINTS_PER_UNIT * POINT, undefined, 'PT')}${cell('Style', text.bold ? 1 : 0)}</Row></Section>`,
+		text: `<Text>${escapeXml(text.value)}</Text>`
+	};
 }
 
-/** An ellipse filling the shape's box: centre, then a point on each axis. */
-function ellipseGeometry(noFill: boolean, noLine: boolean): string {
-	return `<Section N="Geometry" IX="0">${cell('NoFill', noFill ? 1 : 0)}${cell('NoLine', noLine ? 1 : 0)}${cell('NoShow', 0)}${cell('NoSnap', 0)}<Row T="Ellipse" IX="1">${cell('X', 0, 'Width*0.5')}${cell('Y', 0, 'Height*0.5')}${cell('A', 0, 'Width*1')}${cell('B', 0, 'Height*0.5')}${cell('C', 0, 'Width*0.5')}${cell('D', 0, 'Height*1')}</Row></Section>`;
+/**
+ * An ellipse filling a box of `width` by `height` diagram units: its centre, then a point on each
+ * axis. Each cell carries its value beside its formula, since a reader that does not evaluate
+ * formulas draws from the values.
+ */
+function ellipseGeometry(width: number, height: number, noFill: boolean, noLine: boolean): string {
+	const w = inches(width);
+	const h = inches(height);
+	return `<Section N="Geometry" IX="0">${cell('NoFill', noFill ? 1 : 0)}${cell('NoLine', noLine ? 1 : 0)}${cell('NoShow', 0)}${cell('NoSnap', 0)}<Row T="Ellipse" IX="1">${cell('X', w / 2, 'Width*0.5')}${cell('Y', h / 2, 'Height*0.5')}${cell('A', w, 'Width*1')}${cell('B', h / 2, 'Height*0.5')}${cell('C', w / 2, 'Width*0.5')}${cell('D', h, 'Height*1')}</Row></Section>`;
 }
 
 /** Fill, line and corner cells for an outline; an undrawn fill or line is pattern 0. */
@@ -158,9 +160,9 @@ function boxCells(box: DiagramBox): string {
 	].join('');
 }
 
-const boxGeometry = (box: DiagramBox) =>
+const boxGeometry = (box: DiagramBox, size: { width: number; height: number }) =>
 	box.outline === 'ellipse'
-		? ellipseGeometry(!box.fill, !box.stroke)
+		? ellipseGeometry(size.width, size.height, !box.fill, !box.stroke)
 		: rectangleGeometry(!box.fill, !box.stroke);
 
 interface Ids {
@@ -205,34 +207,23 @@ function boxShapeXml(
 	].filter(Boolean);
 	const isGroup = childXml.length > 0;
 
-	const lines = shape.label?.lines ?? [];
-	const { character, text } = textBlock(lines);
-	const margin = inches(STYLE.card.padding);
-
+	// The shape is its box alone. Everything drawn on it, its name included, is a part.
 	const cells = [
 		transformCells(shape, frame),
 		boxCells(shape.box),
-		cell('VerticalAlign', 0),
-		cell('LeftMargin', margin),
-		cell('RightMargin', margin),
-		cell('TopMargin', inches(shape.label?.top ?? 0)),
-		cell('BottomMargin', 0),
 		// 1 draws the group's own box behind its members. 2 draws it in front and, filled, hides a
 		// container's cards and a card's icon in Visio (draw.io's importer ignores the cell).
 		isGroup ? cell('SelectMode', 1) : '',
 		isGroup ? cell('DisplayMode', 1) : ''
 	].join('');
 
-	const paragraph = `<Section N="Paragraph"><Row IX="0">${cell('HorzAlign', 1)}</Row></Section>`;
 	const sections =
-		boxGeometry(shape.box) +
+		boxGeometry(shape.box, shape) +
 		connectionSection(shape.width, shape.height) +
-		character +
-		paragraph +
 		propertySection(shape.data);
 
 	const name = `${isContainer ? 'Container' : 'Element'}.${id}`;
-	return `<Shape ID="${id}" NameU="${name}" Name="${name}" Type="${isGroup ? 'Group' : 'Shape'}" LineStyle="0" FillStyle="0" TextStyle="0">${cells}${sections}${text}${
+	return `<Shape ID="${id}" NameU="${name}" Name="${name}" Type="${isGroup ? 'Group' : 'Shape'}" LineStyle="0" FillStyle="0" TextStyle="0">${cells}${sections}${
 		isGroup ? `<Shapes>${childXml.join('')}</Shapes>` : ''
 	}</Shape>`;
 }
@@ -267,11 +258,12 @@ function partShapeXml(
 	const id = ids.next++;
 	const text = part.text;
 	const align = text?.align ?? 'center';
-	const { character, text: textXml } = textBlock(text ? [text] : []);
+	const { character, text: textXml } = textBlock(text);
 	const cells = [
 		transformCells(box, frame),
 		boxCells(part),
-		cell('VerticalAlign', 1),
+		// Wrapped text starts at the top of its box; one line sits in the middle of it.
+		cell('VerticalAlign', text?.wrap ? 0 : 1),
 		cell('LeftMargin', inches(align === 'left' ? (text?.inset ?? 0) : 0)),
 		cell('RightMargin', inches(align === 'right' ? (text?.inset ?? 0) : 0)),
 		cell('TopMargin', 0),
@@ -281,7 +273,7 @@ function partShapeXml(
 		? `<Section N="Paragraph"><Row IX="0">${cell('HorzAlign', HORZ_ALIGN[align])}</Row></Section>`
 		: '';
 	const name = `${part.role}.${id}`;
-	return `<Shape ID="${id}" NameU="${name}" Name="${name}" Type="Shape" LineStyle="0" FillStyle="0" TextStyle="0">${cells}${boxGeometry(part)}${character}${paragraph}${textXml}</Shape>`;
+	return `<Shape ID="${id}" NameU="${name}" Name="${name}" Type="Shape" LineStyle="0" FillStyle="0" TextStyle="0">${cells}${boxGeometry(part, part)}${character}${paragraph}${textXml}</Shape>`;
 }
 
 /** A side's connection point in page inches (y up). */
@@ -342,14 +334,12 @@ function connectorXml(
 	const geometry = `<Section N="Geometry" IX="0">${cell('NoFill', 1)}${cell('NoLine', 0)}${cell('NoShow', 0)}${cell('NoSnap', 0)}<Row T="MoveTo" IX="1">${cell('X', 0, 'Width*0')}${cell('Y', 0, 'Height*0.5')}</Row><Row T="LineTo" IX="2">${cell('X', length, 'Width*1')}${cell('Y', 0, 'Height*0.5')}</Row></Section>`;
 	const { character, text } = textBlock(
 		connector.label
-			? [
-					{
-						value: connector.label,
-						color: connector.labelStyle?.color ?? connector.color,
-						size: connector.labelStyle?.size ?? STYLE.edge.labelText
-					}
-				]
-			: []
+			? {
+					value: connector.label,
+					color: connector.labelStyle?.color ?? connector.color,
+					size: connector.labelStyle?.size ?? STYLE.edge.labelText
+				}
+			: undefined
 	);
 	const name = `Dynamic connector.${id}`;
 

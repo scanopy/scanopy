@@ -7,9 +7,10 @@
  * a change to the canvas layout is made here once.
  */
 
-import type { DiagramBox, DiagramLabel, DiagramPart, DiagramPartRole, DiagramText } from './model';
+import type { DiagramBox, DiagramPart, DiagramPartRole, DiagramText } from './model';
 import { EXTERNAL_TITLE_OFFSET } from '../container-render-data';
-import { STYLE, textWidth, type DiagramPalette } from './style';
+import { iconBadgeFanOffsetPx } from '../pipeline/build-flow-nodes';
+import { STYLE, textWidth, truncateText, type DiagramPalette } from './style';
 
 /** An icon ready to draw: its key in the model's icons, its drawn size, the colour behind it. */
 export interface GlyphDraw {
@@ -130,6 +131,15 @@ const textPart = (
 	height: number,
 	text: DiagramText
 ): DiagramPart => ({ role: 'text', outline: 'rect', x, y, width, height, text });
+
+/** A card's own name: one run of text in its own box, so both formats centre it the same way. */
+const labelPart = (
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+	text: DiagramText
+): DiagramPart => ({ role: 'label', outline: 'rect', x, y, width, height, text });
 
 /** A `Tag` at a point, no wider than `maxWidth`. Returns its parts and the width it took. */
 function tagParts(
@@ -266,13 +276,13 @@ function groupParts(
 
 /**
  * An icon card: the tile with its glyph, the status dot and badges on its corners, the status
- * pill, and the group boxes at the bottom. The label is the shape's own text, under the tile.
+ * pill, the label and sublabel under the tile, and the group boxes at the bottom.
  */
 export function iconCardShape(
 	card: IconCardDraw,
 	size: Size,
 	palette: DiagramPalette
-): { label: DiagramLabel; parts: DiagramPart[] } {
+): { parts: DiagramPart[] } {
 	const { padding, gap } = STYLE.card;
 	const tile = STYLE.tile;
 	const badge = STYLE.badge.size;
@@ -305,26 +315,31 @@ export function iconCardShape(
 		);
 	}
 
-	const corner = (x: number, y: number, fill: string, glyph: GlyphDraw): DiagramPart[] => [
-		ellipse('badge', x, y, badge, {
+	const corner = (
+		role: DiagramPartRole,
+		x: number,
+		y: number,
+		fill: string,
+		glyph: GlyphDraw
+	): DiagramPart[] => [
+		ellipse(role, x, y, badge, {
 			fill: glyph.fill ?? fill,
 			stroke: palette.ring,
 			strokeWidth: 1
 		}),
 		...glyphAt(glyph, x + badge / 2, y + badge / 2)
 	];
-	if (card.os) {
-		// Centred on the tile's bottom-left corner.
-		parts.push(
-			...corner(tileX - badge / 2, tileY + tile.size - badge / 2, card.os.fill, card.os.glyph)
-		);
+	// The badges as the canvas fans them on hover: a row centred under the tile, so every one
+	// shows. The fan covers the tile's bottom-left corner, so the OS badge gives way to it, as it
+	// does on hover; a lone service badge stays on its corner and leaves the OS badge in place.
+	const badgeY = tileY + tile.size - badge / 2;
+	if (card.os && card.badges.length <= 1) {
+		parts.push(...corner('os', tileX - badge / 2, badgeY, card.os.fill, card.os.glyph));
 	}
-	// Centred on the bottom-right corner; each one behind the top steps up and left. Drawn back
-	// to front, so the first badge ends on top as it does on the canvas.
+	// Drawn back to front, so the first badge ends on top as it does on the canvas.
 	for (let i = card.badges.length - 1; i >= 0; i--) {
-		const layer = Math.min(i, 2) * STYLE.badge.layerStep;
-		const at = tile.size - badge / 2 - layer;
-		parts.push(...corner(tileX + at, tileY + at, card.badges[i].fill, card.badges[i].glyph));
+		const x = size.width / 2 + iconBadgeFanOffsetPx(i, card.badges.length);
+		parts.push(...corner('badge', x, badgeY, card.badges[i].fill, card.badges[i].glyph));
 	}
 
 	let top = tileY + tile.size + tile.margin + gap;
@@ -344,11 +359,30 @@ export function iconCardShape(
 		groupY -= gap;
 	}
 
-	const lines: DiagramText[] = [{ value: card.label, color: palette.text, size: STYLE.text }];
+	// The label wraps to two lines at most; the sublabel is one line, cut with an ellipsis, 2px
+	// under it (`-mt-1` against the card's gap).
+	const inner = size.width - padding * 2;
+	const labelLines = Math.min(2, Math.max(1, Math.ceil(textWidth(card.label, STYLE.text) / inner)));
+	parts.push(
+		labelPart(padding, top, inner, labelLines * STYLE.lineHeight, {
+			value: card.label,
+			color: palette.text,
+			size: STYLE.text,
+			align: 'center',
+			wrap: true
+		})
+	);
 	if (card.sublabel) {
-		lines.push({ value: card.sublabel, color: palette.textTertiary, size: STYLE.text });
+		parts.push(
+			labelPart(padding, top + labelLines * STYLE.lineHeight + 2, inner, STYLE.lineHeight, {
+				value: truncateText(card.sublabel, STYLE.text, inner),
+				color: palette.textTertiary,
+				size: STYLE.text,
+				align: 'center'
+			})
+		);
 	}
-	return { label: { top, lines }, parts };
+	return { parts };
 }
 
 /** An element that did not resolve to an icon card: its status pill, header and body line. */
@@ -356,9 +390,11 @@ export function textCardShape(
 	card: TextCardDraw,
 	size: Size,
 	palette: DiagramPalette
-): { label: DiagramLabel; parts: DiagramPart[] } {
+): { parts: DiagramPart[] } {
+	const { padding } = STYLE.card;
+	const inner = size.width - padding * 2;
 	const parts: DiagramPart[] = [];
-	let top = STYLE.card.padding;
+	let top = padding;
 	if (card.freshness) {
 		const width = tagParts(card.freshness, 'freshness', 0, 0, size.width).width;
 		parts.push(
@@ -366,12 +402,20 @@ export function textCardShape(
 		);
 		top += STYLE.tag.height;
 	}
-	const lines: DiagramText[] = [];
-	if (card.header) {
-		lines.push({ value: card.header, color: palette.textTertiary, size: STYLE.text });
-	}
-	if (card.body) lines.push({ value: card.body, color: palette.textSecondary, size: STYLE.text });
-	return { label: { top, lines }, parts };
+	const line = (value: string, color: string) => {
+		parts.push(
+			labelPart(padding, top, inner, STYLE.lineHeight, {
+				value: truncateText(value, STYLE.text, inner),
+				color,
+				size: STYLE.text,
+				align: 'center'
+			})
+		);
+		top += STYLE.lineHeight + padding;
+	};
+	if (card.header) line(card.header, palette.textTertiary);
+	if (card.body) line(card.body, palette.textSecondary);
+	return { parts };
 }
 
 /**

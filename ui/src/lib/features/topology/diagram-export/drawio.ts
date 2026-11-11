@@ -17,8 +17,7 @@ import {
 	type DiagramField,
 	type DiagramModel,
 	type DiagramPart,
-	type DiagramShape,
-	type DiagramText
+	type DiagramShape
 } from './model';
 import { overlayDashArray } from '../layout/edge-classification';
 import { STYLE } from './style';
@@ -81,44 +80,23 @@ function boxStyle(box: DiagramBox): StyleEntries {
 	};
 }
 
-/** HTML label: one line per run, each in its own colour and size. */
-function htmlLines(lines: DiagramText[]): string {
-	return lines
-		.map(
-			(line) =>
-				`<font color="${hexColor(line.color)}" style="font-size: ${num(line.size)}px">${
-					line.bold ? `<b>${escapeXml(line.value)}</b>` : escapeXml(line.value)
-				}</font>`
-		)
-		.join('<br>');
-}
-
+/** A shape's own box. Everything it draws on it, its name included, is a part. */
 function shapeCell(shape: DiagramShape, byId: Map<string, DiagramShape>): DrawioCell {
 	const parent = shape.parentId ? byId.get(shape.parentId) : undefined;
 	const isContainer = shape.type === 'container';
-	const lines = shape.label?.lines ?? [];
 
 	return {
 		id: shapeCellId(shape.id),
 		parent: parent ? shapeCellId(parent.id) : LAYER_ID,
-		value: htmlLines(lines),
+		value: '',
 		vertex: true,
 		data: cellData(shape.data),
 		style: style({
 			...boxStyle(shape.box),
-			whiteSpace: 'wrap',
 			html: 1,
 			container: isContainer ? 1 : undefined,
 			collapsible: isContainer ? 0 : undefined,
-			recursiveResize: isContainer ? 0 : undefined,
-			fontColor: lines[0] ? hexColor(lines[0].color) : undefined,
-			fontSize: lines[0]?.size,
-			align: 'center',
-			verticalAlign: 'top',
-			spacing: 0,
-			spacingTop: shape.label?.top,
-			spacingLeft: STYLE.card.padding,
-			spacingRight: STYLE.card.padding
+			recursiveResize: isContainer ? 0 : undefined
 		}),
 		geometry: {
 			x: shape.x - (parent?.x ?? 0),
@@ -166,12 +144,14 @@ function partCell(
 			...boxStyle(part),
 			html: 1,
 			connectable: 0,
-			overflow: text ? 'hidden' : undefined,
+			// One line clipped to the part, or wrapped at its width from the top.
+			whiteSpace: text?.wrap ? 'wrap' : undefined,
+			overflow: text && !text.wrap ? 'hidden' : undefined,
 			fontColor: text ? hexColor(text.color) : undefined,
 			fontSize: text?.size,
 			fontStyle: text ? (text.bold ? 1 : 0) : undefined,
 			align: text ? align : undefined,
-			verticalAlign: text ? 'middle' : undefined,
+			verticalAlign: text ? (text.wrap ? 'top' : 'middle') : undefined,
 			spacing: text ? 0 : undefined,
 			spacingLeft: text && align === 'left' ? (text.inset ?? 0) : undefined,
 			spacingRight: text && align === 'right' ? (text.inset ?? 0) : undefined
@@ -302,7 +282,9 @@ export function serializeDrawio(model: DiagramModel): string {
 		'<?xml version="1.0" encoding="UTF-8"?>',
 		'<mxfile host="Scanopy" type="device">',
 		`<diagram id="scanopy-topology" name="${escapeXml(model.name)}">`,
-		`<mxGraphModel dx="0" dy="0" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${num(model.width)}" pageHeight="${num(model.height)}" background="${hexColor(model.background)}" math="0" shadow="0">`,
+		// `adaptiveColors="none"`: draw.io otherwise recolours a diagram for its own light or dark
+		// mode, which shows a dark export in light colours in a dark editor.
+		`<mxGraphModel adaptiveColors="none" dx="0" dy="0" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${num(model.width)}" pageHeight="${num(model.height)}" background="${hexColor(model.background)}" math="0" shadow="0">`,
 		'<root>',
 		body,
 		'</root>',
