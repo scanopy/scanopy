@@ -934,8 +934,8 @@
 				</li>
 			{/each}
 			{#if iconBottomItems.length > 0 || (!showTrialPill && showFreeUpgradeButton)}
-				<!-- Icon buttons share one centered row (a column when collapsed), each label its tooltip. -->
-				<li class="flex items-center justify-center gap-1 {collapsed ? 'flex-col' : ''}">
+				<!-- Icon buttons spread evenly across one row (a centered column when collapsed), each label its tooltip. -->
+				<li class="flex items-center justify-evenly gap-1 {collapsed ? 'flex-col' : ''}">
 					{#if !showTrialPill && showFreeUpgradeButton}
 						<!-- The way to the plans, marked with the paid crown. -->
 						<button
