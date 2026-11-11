@@ -51,6 +51,12 @@ export const ELEMENT_WIDTH_PX = 250;
 /** Width of an icon card. */
 export const ICON_ELEMENT_WIDTH_PX = 120;
 
+/** The icon card's large tile. The top service badge is centred on its bottom-right corner. */
+export const ICON_TILE_PX = 48;
+
+/** A service or OS badge on the tile's corner. */
+export const ICON_BADGE_PX = 24;
+
 /**
  * Width of an icon card that lists a guest's containers in rows. Each row holds a glyph, a name and
  * a status dot, and at 120px a name kept six characters before truncating.

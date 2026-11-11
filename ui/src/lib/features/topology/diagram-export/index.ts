@@ -4,11 +4,13 @@
  */
 
 import type { Edge, InternalNode, Node } from '@xyflow/svelte';
+import { cardGlyph } from '../card-glyph';
 import type { RenderableTopology, TopologyNode } from '../types/base';
-import { captureNodeIcons, collectSourceNodes } from './collect';
-import { createDescriber, diagramHeader, DIAGRAM_PALETTE, type DiagramTheme } from './describe';
+import { collectSourceNodes, loadIcons } from './collect';
+import { createDescriber, diagramHeader } from './describe';
 import { serializeDrawio } from './drawio';
 import { buildDiagramModel } from './model';
+import { DIAGRAM_PALETTE, type DiagramTheme } from './style';
 import { buildVsdxParts, zipVsdx } from './vsdx';
 
 export type DiagramFormat = 'drawio' | 'vsdx';
@@ -19,7 +21,6 @@ export interface DiagramExportInput {
 	nodes: Node[];
 	edges: Edge[];
 	getInternalNode: (id: string) => InternalNode | undefined;
-	flowElement: HTMLElement;
 	topology: RenderableTopology;
 	hiddenEdgeTypes: readonly string[];
 	theme: DiagramTheme;
@@ -27,31 +28,26 @@ export interface DiagramExportInput {
 }
 
 export async function buildDiagramExport(input: DiagramExportInput): Promise<Blob> {
-	const sourceNodes = collectSourceNodes(input.nodes, input.getInternalNode);
-	const { icons, iconKeys } = await captureNodeIcons(
-		input.flowElement,
-		new Set(sourceNodes.map((n) => n.id)),
-		{ png: input.format === 'vsdx', theme: input.theme }
-	);
-
+	const describe = createDescriber({
+		topology: input.topology,
+		nodeData: new Map(input.nodes.map((n) => [n.id, n.data as unknown as TopologyNode])),
+		edges: new Map(input.edges.map((e) => [e.id, e])),
+		hiddenEdgeTypes: input.hiddenEdgeTypes,
+		theme: input.theme,
+		glyph: cardGlyph
+	});
 	const model = buildDiagramModel({
 		name: input.name,
-		nodes: sourceNodes,
+		nodes: collectSourceNodes(input.nodes, input.getInternalNode),
 		edges: input.edges,
 		background: DIAGRAM_PALETTE[input.theme].canvas,
 		header: input.header
 			? diagramHeader(input.theme, input.header.title, input.header.subtitle)
 			: null,
-		icons,
-		describe: createDescriber({
-			topology: input.topology,
-			nodeData: new Map(input.nodes.map((n) => [n.id, n.data as unknown as TopologyNode])),
-			edges: new Map(input.edges.map((e) => [e.id, e])),
-			hiddenEdgeTypes: input.hiddenEdgeTypes,
-			theme: input.theme,
-			iconKeys
-		})
+		describe
 	});
+	// The descriptions name their icons as they are built, so the images load after the model.
+	model.icons = await loadIcons(describe.icons, { png: input.format === 'vsdx' });
 
 	if (input.format === 'drawio') {
 		return new Blob([serializeDrawio(model)], { type: 'application/vnd.jgraph.mxfile' });

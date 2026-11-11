@@ -1,8 +1,3 @@
-<script lang="ts" module>
-	/** Flow units the External title pill sits above its container's top edge. */
-	export const EXTERNAL_TITLE_OFFSET = 40;
-</script>
-
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Search } from '@lucide/svelte';
@@ -23,26 +18,13 @@
 		topology_ungroupedCount,
 		topology_searchContainerMatches
 	} from '$lib/paraglide/messages';
+	import { tooltip as tooltipAction, type TooltipOptions } from '$lib/shared/actions/tooltip';
+
 	import {
-		tooltip as tooltipAction,
-		type TooltipContent,
-		type TooltipOptions
-	} from '$lib/shared/actions/tooltip';
-
-	/** A group container's pill: a category or tag the group collects, with its tooltip. */
-	export type GroupPill = { label: string; color: Color; title?: string | TooltipContent };
-
-	export type SubgroupRow = {
-		/** Service definition whose logo marks the subgroup, drawn round as software. */
-		logoDefinition: string | null;
-		headerText: string;
-		labels: GroupPill[];
-		childCount: number;
-		/** Pre-formatted entity-count summary, e.g. "5 services" or "3 services, 2 hosts". */
-		childSummary: string;
-		hideCount?: boolean;
-		countOnly?: boolean;
-	};
+		EXTERNAL_TITLE_OFFSET,
+		type GroupPill,
+		type SubgroupRow
+	} from '../../container-render-data';
 
 	let {
 		isCollapsed,

@@ -4,10 +4,8 @@
 	// NodeResizeControl — unused while the resize controls below are commented out.
 	// import { NodeResizeControl } from '@xyflow/svelte';
 	import { createColorHelper } from '$lib/shared/utils/styling';
-	import type { Color, ColorStyle } from '$lib/shared/utils/styling';
-	import { serviceCategories, containerTypes } from '$lib/shared/stores/metadata';
-	import { findInfraRuleId, getInfrastructureRuleIdForTopology } from '../../queries';
-	import { formatElementSummary, tallyContainerElements, tallyDirectElements } from '../../labels';
+	import type { ColorStyle } from '$lib/shared/utils/styling';
+	import { containerTypes } from '$lib/shared/stores/metadata';
 	import {
 		// useUpdateNodeResizeMutation — DISABLED (container resize is not persisted)
 		topologyOptions,
@@ -17,18 +15,11 @@
 	} from '../../queries';
 	import { useTopology, selectedTopologyId } from '../../context';
 	import type { RenderableTopology, TopologyNode } from '../../types/base';
-	import { entityGlyph } from '../../entity-glyph';
-	import { containerEntity, resolveContainerNode, topologyLookup } from '../../resolvers';
+	import { buildContainerRender } from '../../container-render-data';
+	import { topologyLookup } from '../../resolvers';
 	import { entityTooltip } from '$lib/shared/entity-tooltip';
 	import type { TooltipOptions } from '$lib/shared/actions/tooltip';
 	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { getFreshnessTag } from '$lib/shared/utils/freshness';
-	import { getConfirmationTag } from '$lib/shared/utils/confirmation';
-	import { entities } from '$lib/shared/stores/metadata';
-	import { entityUIConfig } from '$lib/shared/entity-ui-config';
-	import { queryClient, queryKeys } from '$lib/api/query-client';
-	import type { Tag, TagGroup } from '$lib/features/tags/types/base';
-	import { tagTooltip } from '$lib/features/tags/groups';
 	import type { Writable } from 'svelte/store';
 	import { getContext } from 'svelte';
 	import { editModeEnabled } from '../../state';
@@ -36,9 +27,8 @@
 	import * as sharedStores from '../../reactive-stores.svelte';
 	import { toggleCollapse } from '../../collapse';
 	import type { Node, Edge } from '@xyflow/svelte';
-	import { createIconComponent } from '$lib/shared/utils/styling';
 	import type { IconComponent } from '$lib/shared/utils/types';
-	import ContainerHeader, { type GroupPill, type SubgroupRow } from './ContainerHeader.svelte';
+	import ContainerHeader from './ContainerHeader.svelte';
 	import { CONTAINER_HANDLE_SIZE_PX } from '../../pipeline/build-flow-nodes';
 	import { nodeDetail } from '../../pipeline/render-mode';
 	import { useDetailStaging } from '../../detail-staging.svelte';
@@ -123,65 +113,46 @@
 	let isCollapsible = $derived(containerMeta.is_collapsible && !$editModeEnabled);
 	let hasBorder = $derived(containerMeta.has_border);
 
-	// Resolve container data
-	let resolved = $derived(
-		topology ? resolveContainerNode(id, data as TopologyNode, topology) : null
-	);
-	let containerTags = $derived(resolved?.tags ?? []);
-
-	// The entity this container stands for (a host box, a subnet box, a VLAN box, a hypervisor's
-	// service), and its type. Grouping containers (categories, tags, stacks) have none, so they get
-	// no stale pill and no filter-hover ring.
-	const sitesQuery = useSitesQuery();
-	let containerSubject = $derived(
-		topology ? containerEntity(data as TopologyNode, topology) : null
-	);
-	let entity = $derived(containerSubject?.entity);
-	let entityType = $derived(containerSubject?.entityType);
-	let entitySite = $derived((sitesQuery.data ?? []).find((n) => n.id === entity?.site_id));
-	// A subcontainer standing for an entity titles itself as that entity's pill.
-	let entityColor = $derived(entityType ? entities.getColorHelper(entityType).color : null);
-	// Its icon is the one every chip for that entity draws (a host's device type), so the title is
-	// the same chip as any other reference to it.
-	let chipIcon = $derived(
-		entity && entityType
-			? (entityUIConfig[entityType]?.displayComponent?.getChipIcon?.(entity as never) ??
-					entities.getIconComponent(entityType))
-			: null
-	);
-
-	// The status pill, judged on that entity alone with the helpers element cards and inventory
-	// badges use: Unconfirmed (a subnet whose range was assumed, a device another one reported)
-	// ahead of Stale, as on element cards.
-	let staleTag = $derived(
-		entity && entityType
-			? (getConfirmationTag(entity) ??
-					getFreshnessTag(entity, entitySite, {
-						entityTypeLabel: entities.getName(entityType) || undefined
-					}))
-			: null
-	);
-
-	let childSummary = $derived(
-		topology
-			? formatElementSummary(
-					tallyContainerElements(id, topology, getInfrastructureRuleIdForTopology(topology)),
-					$activeView
-				)
-			: ''
-	);
-	let ungroupedSummary = $derived(
-		topology ? formatElementSummary(tallyDirectElements(id, topology), $activeView) : ''
-	);
-
 	let isCollapsed = $derived(collapsedNodes.has(id));
 	let childCount = $derived(((data as Record<string, unknown>)?.childCount as number) ?? 0);
-	let subgroupSummaries = $derived(
-		((data as Record<string, unknown>)?.subgroupSummaries as Array<{
-			groupId: string;
-			childCount: number;
-		}>) ?? []
+
+	// Everything the header shows is computed by one function in `container-render-data.ts`,
+	// shared with the diagram exports. Do not derive header content locally; add to that function.
+	const sitesQuery = useSitesQuery();
+	let render = $derived(
+		topology
+			? buildContainerRender({
+					nodeId: id,
+					node: data as TopologyNode,
+					topology,
+					activeView: $activeView,
+					options: $topologyOptions,
+					sites: sitesQuery.data ?? [],
+					isCollapsed
+				})
+			: null
 	);
+	let containerTags = $derived(render?.tags ?? []);
+	// The entity this container stands for. Grouping containers (categories, tags, stacks) have
+	// none, so they get no stale pill and no filter-hover ring.
+	let entity = $derived(render?.entity);
+	let entityType = $derived(render?.entityType);
+	let entitySite = $derived(render?.entitySite);
+	let entityColor = $derived(render?.entityColor ?? null);
+	let chipIcon = $derived(render?.chipIcon ?? null);
+	let staleTag = $derived(render?.staleTag ?? null);
+	let childSummary = $derived(render?.childSummary ?? '');
+	let ungroupedSummary = $derived(render?.ungroupedSummary ?? '');
+	let headerText = $derived(render?.headerText ?? '');
+	let iconComponent: IconComponent | null = $derived(render?.iconComponent ?? null);
+	let serviceDefId = $derived(render?.serviceDefinition ?? undefined);
+	let deviceType = $derived(render?.deviceType ?? null);
+	let colorHelper: ColorStyle = $derived(
+		render?.colorHelper ?? containerTypes.getColorHelper(containerType)
+	);
+	let isInfraRule = $derived(render?.isInfraRule ?? false);
+	let groupLabels = $derived(render?.groupLabels ?? []);
+	let resolvedSubgroups = $derived(render?.subgroups ?? []);
 
 	let nodeStyle = $derived.by(() => {
 		const parts = [
@@ -191,17 +162,14 @@
 		return parts.length > 0 ? parts.join('; ') + ';' : '';
 	});
 
-	// Title text: from node header (set by backend graph builder)
-	let headerText = $derived((data as TopologyNode).header ?? '');
-
 	// Hover text for the header: the entity the container stands for, through the same tooltip
 	// its card would show; a grouping container with no entity names itself and what it holds.
 	let headerTooltip: TooltipOptions['content'] = $derived.by(() => {
-		if (topology && containerSubject) {
-			const { entityType, entity } = containerSubject;
+		if (topology && entity && entityType) {
+			const subject = { entityType, entity };
 			const lookup = topologyLookup(topology);
 			const name = headerText || undefined;
-			return () => entityTooltip(entityType, entity, { lookup, name });
+			return () => entityTooltip(subject.entityType, subject.entity, { lookup, name });
 		}
 		if (!headerText) return null;
 		return { title: headerText, sections: childSummary ? [{ text: childSummary }] : [] };
@@ -244,86 +212,6 @@
 	let simplified = $derived(detailTier !== 'full');
 	// Full markup that is not shown yet: mounted ahead of the detail zoom, drawn as the box.
 	let veiled = $derived(!simplified && sharedStores.simplified.current);
-
-	// Icon and color: from node fields, falling back to ContainerType fixture icon when fillIcon
-	let nodeIcon = $derived((data as Record<string, unknown>)?.icon as string | undefined);
-	let nodeColor = $derived((data as Record<string, unknown>)?.color as string | undefined);
-	let iconComponent: IconComponent | null = $derived.by(() => {
-		if (nodeIcon) return createIconComponent(nodeIcon);
-		if (fillIcon) return containerTypes.getIconComponent(containerType);
-		return null;
-	});
-
-	// Service logo: from associated_service_definition (for Hypervisor/ContainerRuntime/Stack subcontainers)
-	let serviceDefId = $derived(
-		(data as Record<string, unknown>)?.associated_service_definition as string | undefined
-	);
-	// A container standing for a device (a host) draws its device-type tile in place of its icon. The rule is
-	// the entity type's `glyph` metadata, the same one element cards follow.
-	let containerGlyph = $derived(
-		topology && containerSubject
-			? entityGlyph(containerSubject.entityType, containerSubject.entity, topology)
-			: null
-	);
-	let deviceType = $derived(containerGlyph?.type === 'device' ? containerGlyph.deviceType : null);
-	let colorHelper: ColorStyle = $derived(
-		nodeColor
-			? createColorHelper(nodeColor as Parameters<typeof createColorHelper>[0])
-			: containerTypes.getColorHelper(containerType)
-	);
-
-	// Element rule header + tag pills (for subcontainers created by element rules)
-	let elementRuleId = $derived(
-		(data as Record<string, unknown>)?.element_rule_id as string | undefined
-	);
-	// Reactive to $topologyOptions so a site switch (which re-hydrates the
-	// options store) re-derives the infra rule id, unlike a non-reactive get().
-	let infraRuleId = $derived(findInfraRuleId($topologyOptions.request.element_rules));
-	let isInfraRule = $derived(elementRuleId != null && elementRuleId === infraRuleId);
-	let elementRule = $derived.by(() => {
-		if (!elementRuleId) return null;
-		const rules = $topologyOptions.request.element_rules ?? [];
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		return (rules as any[]).find((r: { id: string }) => r.id === elementRuleId) ?? null;
-	});
-
-	// Resolve a tag's name/color for a grouping pill. Prefer the app's tags cache
-	// (holds every org tag, so a just-added rule tag resolves instantly with no
-	// id→name flicker while the bundle catches up); fall back to the topology
-	// bundle, which is the only source in the unauthenticated share viewer (no
-	// cache there — the backend ships rule tags on the bundle for that case).
-	function resolveTagPill(tagId: string): GroupPill {
-		const tag =
-			queryClient.getQueryData<Tag[]>(queryKeys.tags.all)?.find((t) => t.id === tagId) ??
-			topology?.entity_tags?.find((t) => t.id === tagId);
-		return {
-			label: tag?.name ?? tagId,
-			color: (tag?.color as Color) ?? 'Gray',
-			title:
-				tagTooltip(tag, queryClient.getQueryData<TagGroup[]>(queryKeys.tagGroups.all) ?? []) ??
-				undefined
-		};
-	}
-
-	// A category group's pill: the category's name and colour, and its description as the tooltip.
-	function categoryPill(category: string): GroupPill {
-		const { label, color, title } = serviceCategories.getTag(category);
-		return { label, color: color ?? 'Gray', title };
-	}
-
-	let groupLabels = $derived.by((): GroupPill[] => {
-		if (isInfraRule) return [];
-		if (!elementRule?.rule) return [];
-		const rule = elementRule.rule;
-		if (typeof rule === 'string') return [];
-		if ('ByServiceCategory' in rule) {
-			return (rule.ByServiceCategory.categories ?? []).map(categoryPill);
-		}
-		if ('ByTag' in rule) {
-			return (rule.ByTag.tag_ids ?? []).map((tagId: string) => resolveTagPill(tagId));
-		}
-		return [];
-	});
 
 	let tagHoverRingStyle = $derived.by(() => {
 		// Filter-value hover: ring the box when the entity it stands for carries the hovered value,
@@ -375,56 +263,6 @@
 	let isEntityTypeHover = $derived(
 		currentHoveredTag?.tagId === null && currentHoveredTag?.entityType === containerType
 	);
-
-	// Pre-compute resolved subgroup rows for collapsed-root variant
-	let resolvedSubgroups: SubgroupRow[] = $derived.by(() => {
-		if (!isSubcontainer && isCollapsed && subgroupSummaries.length > 0) {
-			return subgroupSummaries.map((summary) => {
-				const groupNode = topology?.nodes.find((n) => n.id === summary.groupId);
-				const sHeader = groupNode?.header ?? '';
-				const ruleId = (groupNode as Record<string, unknown>)?.element_rule_id as
-					string | undefined;
-				const rule = ruleId
-					? ($topologyOptions.request.element_rules ?? []).find(
-							(r) => (r as { id: string }).id === ruleId
-						)
-					: null;
-				const groupServiceDef = (groupNode as Record<string, unknown>)
-					?.associated_service_definition as string | undefined;
-
-				const labels: GroupPill[] = (() => {
-					if (!rule) return [];
-					const r = (rule as { rule: Record<string, unknown> }).rule;
-					if (typeof r === 'string') return [];
-					if ('ByServiceCategory' in r) {
-						return ((r.ByServiceCategory as { categories?: string[] }).categories ?? []).map(
-							categoryPill
-						);
-					}
-					if ('ByTag' in r) {
-						return ((r.ByTag as { tag_ids?: string[] }).tag_ids ?? []).map((tagId) =>
-							resolveTagPill(tagId)
-						);
-					}
-					return [];
-				})();
-
-				const isInfra = !!(infraRuleId && ruleId === infraRuleId);
-				const subgroupSummary = topology
-					? formatElementSummary(tallyContainerElements(summary.groupId, topology), $activeView)
-					: '';
-				return {
-					logoDefinition: groupServiceDef ?? null,
-					headerText: sHeader,
-					labels: isInfra ? [] : labels,
-					childCount: summary.childCount,
-					childSummary: subgroupSummary,
-					countOnly: isInfra
-				};
-			});
-		}
-		return [];
-	});
 
 	// Only the commented-out resize controls used this.
 	// const grayColorHelper = createColorHelper('Gray');

@@ -37,13 +37,14 @@
 	import { tooltip } from '$lib/shared/actions/tooltip';
 	import { hostOsIcon } from '$lib/features/hosts/host-os';
 	import { ChevronDown, ChevronRight } from '@lucide/svelte';
-	import { ELEMENT_HANDLE_SIZE_PX, ICON_ELEMENT_WIDTH_PX } from '../../pipeline/build-flow-nodes';
+	import {
+		ELEMENT_HANDLE_SIZE_PX,
+		ICON_BADGE_PX as BADGE_PX,
+		ICON_ELEMENT_WIDTH_PX,
+		ICON_TILE_PX as TILE_PX
+	} from '../../pipeline/build-flow-nodes';
 
-	// A service badge's size, and the icon card's width inside its px-2 padding: the badge fan
-	// spreads within it.
-	const BADGE_PX = 24;
-	// The large device tile. The top service badge is centred on its bottom-right corner.
-	const TILE_PX = 48;
+	// The icon card's width inside its px-2 padding: the badge fan spreads within it.
 	const CARD_INNER_PX = ICON_ELEMENT_WIDTH_PX - 16;
 	import { stateFill as markedStateFill, type MarkValue } from '../../element-marks';
 	import { useDetailStaging } from '../../detail-staging.svelte';
@@ -423,8 +424,8 @@
 			would make the graph reflow as you zoom.
 		-->
 		{#if !simplified && iconCard}
-			<!-- Icon card. The glyph comes first in DOM order: the diagram exports take each
-			     node's first icon as its shape icon. -->
+			<!-- Icon card. The diagram exports redraw it from the same `iconCard`
+			     (`diagram-export/parts.ts`): a change to this layout is made there too. -->
 			<!-- The card's tooltip shows above the whole card, so it never covers the status dot. A
 			     group member row below carries its own, which wins as the nearer one. -->
 			<div
