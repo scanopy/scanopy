@@ -497,8 +497,10 @@ impl TypeMetadataProvider for SnmpV3PrivProtocol {
         self.label()
     }
 
-    /// The name net-snmp's `-x` takes for this protocol. The daemon extends AES-256 keys the
-    /// Blumenthal way, which is what net-snmp's `AES-256` does (`AES-256C` is the Reeder way).
+    /// The name net-snmp's `-x` takes for this protocol. An AES-256 key under MD5 or SHA-1 is
+    /// extended one of two ways, and the daemon tries both: Blumenthal, net-snmp's `AES-256`,
+    /// then Reeder, net-snmp's `AES-256-C` and Cisco IOS's `aes 256`. The name here is the
+    /// first, so a check command built from it reads a net-snmp agent and not a Cisco one.
     fn metadata(&self) -> serde_json::Value {
         let net_snmp_name = match self {
             Self::Aes128 => "AES",

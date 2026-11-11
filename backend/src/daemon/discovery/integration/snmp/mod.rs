@@ -97,6 +97,10 @@ use queries::FailedQuery;
 pub struct SnmpProbeHandle {
     pub credential: SnmpQueryCredential,
     pub port: u16,
+    /// The AES-256 key extension the probe's session ended on (GH #846), which the collection's
+    /// sessions open with. A Cisco agent costs the probe one refused handshake; without this it
+    /// would cost every later session the same.
+    pub key_extension: Option<snmp2::v3::KeyExtension>,
 }
 
 /// Run one SNMP query under `SNMP_WALK_TIMEOUT`, collapsing both a query error and a
@@ -169,14 +173,18 @@ async fn attempt_on_port(
     ip: IpAddr,
     credential: SnmpQueryCredential,
     port: u16,
-) -> Result<SnmpQueryCredential, PortFailure> {
+) -> Result<SnmpProbeHandle, PortFailure> {
     match timeout(
         SNMP_PROBE_TIMEOUT,
         try_snmp_with_credential_on_port(ip, &credential, port),
     )
     .await
     {
-        Ok(SnmpProbeOutcome::Answered(_)) => Ok(credential),
+        Ok(SnmpProbeOutcome::Answered(port, key_extension)) => Ok(SnmpProbeHandle {
+            credential,
+            port,
+            key_extension,
+        }),
         Ok(SnmpProbeOutcome::Failed(outcome, message)) => Err((outcome, message)),
         Err(_) => Err((
             AttemptOutcome::TimedOut,
@@ -197,7 +205,7 @@ async fn probe_port(
     ip: IpAddr,
     credential: &SnmpQueryCredential,
     port: u16,
-) -> Result<SnmpQueryCredential, PortFailure> {
+) -> Result<SnmpProbeHandle, PortFailure> {
     if matches!(credential.version, SnmpVersion::V3) {
         return attempt_on_port(ip, credential.clone(), port).await;
     }
@@ -277,14 +285,16 @@ impl DiscoveryIntegration for SnmpIntegration {
 
             match probe_port(ctx.ip, snmp_cred, port).await {
                 Ok(answered) => {
-                    debug!(ip = %ctx.ip, port, version = %answered.version, "SNMP answered");
+                    debug!(
+                        ip = %ctx.ip,
+                        port,
+                        version = %answered.credential.version,
+                        "SNMP answered"
+                    );
                     return Ok(ProbeSuccess {
                         client_probe: Some(ClientProbe::Snmp),
                         ports: vec![PortType::new_udp(port)],
-                        handle: Some(Box::new(SnmpProbeHandle {
-                            credential: answered,
-                            port,
-                        })),
+                        handle: Some(Box::new(answered)),
                     });
                 }
                 Err((outcome, message)) => {
@@ -328,23 +338,25 @@ impl DiscoveryIntegration for SnmpIntegration {
 
         let credential = &handle.credential;
         let port = handle.port;
+        let key_extension = handle.key_extension;
         let ip = ctx.ip;
 
         // Open one SNMP session per host and reuse it across every query below.
         // Previously each of the ~12 queries opened its own session — and for v3 each
         // repeated the full engine-discovery handshake — so a single collection did
         // ~12 session setups. Reusing one session removes that per-query cost.
-        let mut session = match create_session(ip, credential, port, SnmpContext::Default).await {
-            Ok(s) => s,
-            Err(e) => {
-                tracing::warn!(
-                    ip = %ip,
-                    error = %e,
-                    "Failed to open SNMP session; skipping SNMP collection"
-                );
-                return Ok(Completeness::Complete);
-            }
-        };
+        let mut session =
+            match create_session(ip, credential, port, SnmpContext::Default, key_extension).await {
+                Ok(s) => s,
+                Err(e) => {
+                    tracing::warn!(
+                        ip = %ip,
+                        error = %e,
+                        "Failed to open SNMP session; skipping SNMP collection"
+                    );
+                    return Ok(Completeness::Complete);
+                }
+            };
         session.watch_cancel(ctx.cancel.clone());
 
         // Query system info
@@ -680,7 +692,15 @@ impl DiscoveryIntegration for SnmpIntegration {
         // losing its bridge data outright.
         let mut context_session = match bridge_context(credential) {
             Some(name) => {
-                match create_session(ip, credential, port, SnmpContext::FromCredential).await {
+                match create_session(
+                    ip,
+                    credential,
+                    port,
+                    SnmpContext::FromCredential,
+                    key_extension,
+                )
+                .await
+                {
                     Ok(mut s) => {
                         tracing::debug!(ip = %ip, context = name, "Opened bridge-context session");
                         s.watch_cancel(ctx.cancel.clone());
@@ -1323,7 +1343,7 @@ pub async fn poll_device(
 )> {
     debug!("Starting SNMP poll of {}", ip);
 
-    let mut session = create_session(ip, credential, port, SnmpContext::Default).await?;
+    let mut session = create_session(ip, credential, port, SnmpContext::Default, None).await?;
 
     let system_info = timeout(SNMP_WALK_TIMEOUT, query_system_info(&mut session, ip))
         .await

@@ -129,6 +129,15 @@ impl AsyncSession {
 
     #[cfg(feature = "v3")]
     pub async fn init(&mut self) -> Result<()> {
+        self.discover_engine().await?;
+        self.synchronize_time().await
+    }
+
+    /// SCANOPY LOCAL PATCH (GH #846): RFC 3414 §4's first step, split out of `init` so a caller
+    /// can time the two steps apart. This one is unauthenticated: any SNMPv3 engine answers it,
+    /// whatever the user or keys. See vendor/snmp2/README.md.
+    #[cfg(feature = "v3")]
+    pub async fn discover_engine(&mut self) -> Result<()> {
         if let Some(ref mut security) = self.security {
             security.reset_engine_id();
             security.reset_engine_counters();
@@ -146,6 +155,16 @@ impl AsyncSession {
             if security.need_init() {
                 return Err(Error::AuthFailure(v3::AuthErrorKind::NotAuthenticated));
             }
+        }
+        Ok(())
+    }
+
+    /// The second step of `init`: the first request that uses the user's keys, encrypted when
+    /// the user has a privacy key. A no-op for a user without authentication, or once the clock
+    /// is synchronized.
+    #[cfg(feature = "v3")]
+    pub async fn synchronize_time(&mut self) -> Result<()> {
+        if let Some(ref mut security) = self.security {
             // SCANOPY LOCAL PATCH (GH #813): RFC 3414 §4's second step. The discovery Report is
             // unauthenticated, so its boots and time are only a hint; an agent that sends none
             // answers the first authenticated request with a notInTimeWindow Report, and the

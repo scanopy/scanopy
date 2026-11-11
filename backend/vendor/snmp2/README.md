@@ -38,6 +38,13 @@ Local patches (all marked in-source with `SCANOPY LOCAL PATCH`):
     time-synchronized even when the agent's discovery Report carried no clock.
     Without it the caller's first request drew a notInTimeWindow Report and an
     `AuthUpdated` error, which the daemon does not repeat.
+  * src/v3.rs `parse_v3`, src/asyncsession.rs `init` — GH #846. A plaintext Report
+    naming `usmStatsDecryptionErrors` returns `AuthErrorKind::DecryptionError`
+    rather than the `NotAuthenticated` a wrong auth password gets, and `init` is
+    split into `discover_engine` and `synchronize_time` (async session only).
+    AES-256 under MD5 or SHA-1 has two key derivations (Blumenthal, Reeder); the
+    daemon tries the second when an engine answers discovery and then cannot read
+    the first encrypted request, which needs the two steps timed apart.
 
 The first is the only one that blocks compilation. The others are behaviour
 upstream does not offer, so returning to crates.io means re-applying them or

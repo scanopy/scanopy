@@ -19,6 +19,7 @@ pub mod secure_switch_01;
 pub mod secure_switch_02;
 pub mod secure_switch_03;
 pub mod secure_switch_04;
+pub mod secure_switch_05;
 pub mod switch_access_01;
 pub mod switch_aruba_01;
 pub mod switch_bulkdrop_01;
@@ -114,5 +115,7 @@ pub fn all() -> Vec<SimDevice> {
         switch_silent_01::device(),
         switch_generr_01::device(),
         switch_bulkdrop_01::device(),
+        // GH #846: AES-256 with the Reeder key extension, as Cisco IOS `aes 256` derives it.
+        secure_switch_05::device(),
     ]
 }

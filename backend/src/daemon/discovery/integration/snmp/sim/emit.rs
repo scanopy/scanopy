@@ -7,6 +7,7 @@
 //! can drift from the structs.
 
 use secrecy::ExposeSecret;
+use snmp2::v3::KeyExtension;
 
 use super::transport::{Handler, Registration};
 use super::{CommunityVersions, SimDevice, VLAN20};
@@ -131,7 +132,7 @@ fn access_lines(device: &SimDevice) -> Vec<String> {
                         "{security_name} {} \"{}\" {} \"{}\"",
                         net_snmp_auth(*auth_protocol),
                         expose(auth_password),
-                        net_snmp_priv(*priv_protocol),
+                        net_snmp_priv(*priv_protocol, device.agent_key_extension()),
                         expose(priv_password)
                     ),
                     "priv",
@@ -162,12 +163,12 @@ fn access_lines(device: &SimDevice) -> Vec<String> {
 }
 
 /// `snmpget`/`snmpwalk` flags that authenticate as a v3 device's user; empty for any other.
-fn net_snmp_client_args(credential: &CredentialType) -> String {
+fn net_snmp_client_args(device: &SimDevice) -> String {
     let CredentialType::SnmpV3 {
         security_name,
         security,
         ..
-    } = credential
+    } = &device.credential
     else {
         return String::new();
     };
@@ -190,7 +191,7 @@ fn net_snmp_client_args(credential: &CredentialType) -> String {
             "-l authPriv -u {security_name} -a {} -A {} -x {} -X {}",
             net_snmp_auth(*auth_protocol),
             expose(auth_password),
-            net_snmp_priv(*priv_protocol),
+            net_snmp_priv(*priv_protocol, device.agent_key_extension()),
             expose(priv_password)
         ),
     }
@@ -205,11 +206,13 @@ fn net_snmp_auth(protocol: SnmpV3AuthProtocol) -> &'static str {
     }
 }
 
-/// net-snmp's `createUser` keyword for a privacy protocol.
-fn net_snmp_priv(protocol: SnmpV3PrivProtocol) -> &'static str {
-    match protocol {
-        SnmpV3PrivProtocol::Aes128 => "AES",
-        SnmpV3PrivProtocol::Aes256 => "AES-256",
+/// net-snmp's `createUser` keyword for a privacy protocol, on an agent that extends a short key
+/// with `key_extension`. AES-128 keys are never extended, so it has one keyword.
+fn net_snmp_priv(protocol: SnmpV3PrivProtocol, key_extension: KeyExtension) -> &'static str {
+    match (protocol, key_extension) {
+        (SnmpV3PrivProtocol::Aes128, _) => "AES",
+        (SnmpV3PrivProtocol::Aes256, KeyExtension::Blumenthal) => "AES-256",
+        (SnmpV3PrivProtocol::Aes256, KeyExtension::Reeder) => "AES-256-C",
     }
 }
 
@@ -401,7 +404,7 @@ pub fn lab_env(devices: &[SimDevice]) -> String {
     // v1/v2c devices. Words split on spaces, which no lab user or password contains.
     out.push_str(&format!(
         "V3_ARGS=({})\n",
-        field(&|d| format!("\"{}\"", net_snmp_client_args(&d.credential)))
+        field(&|d| format!("\"{}\"", net_snmp_client_args(d)))
     ));
     // One entry per device needing `snmp-bulk-refuser.py` in front of it, empty for the rest:
     // `unit|listen-ip|upstream-port|shim-args`. Everything the unit needs is here rather than in

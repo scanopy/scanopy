@@ -13,13 +13,17 @@
 //! What this does hold is everything Scanopy decides: which version a community credential is
 //! tried over, which level a v3 credential maps to, which fields it carries, and that a request
 //! over a version the device refuses, at the wrong level or with the wrong key is not answered.
+//! Silence for a wrong privacy key is what net-snmp 5.9.4 does on the lab VM: it answers engine
+//! discovery, then drops the encrypted request it cannot read (GH #846).
 //!
 //! [`create_session`]: crate::daemon::discovery::integration::snmp::session::create_session
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use secrecy::ExposeSecret;
-use snmp2::v3::{Auth, KeyExtension, Security};
+use snmp2::v3::{Auth, Security};
 use snmp2::{AsnReader, MessageType, Pdu, Value, Varbinds, Version};
 use tokio::net::UdpSocket;
 use tokio::task::JoinHandle;
@@ -61,6 +65,7 @@ const LAB_CLOCK: EngineClock = EngineClock {
 pub struct UdpAgent {
     addr: SocketAddr,
     task: JoinHandle<()>,
+    discoveries: Arc<AtomicUsize>,
 }
 
 impl Drop for UdpAgent {
@@ -95,15 +100,30 @@ impl UdpAgent {
             agent: device.agent(),
             device: device.clone(),
         };
+        let discoveries = Arc::new(AtomicUsize::new(0));
+        let counted = discoveries.clone();
         let task = tokio::spawn(async move {
             let mut buf = vec![0u8; 65_535];
             while let Ok((len, peer)) = socket.recv_from(&mut buf).await {
+                if request_engine(&buf[..len]).is_some_and(|(engine_id, ..)| engine_id.is_empty()) {
+                    counted.fetch_add(1, Ordering::Relaxed);
+                }
                 if let Some(reply) = responder.respond(&buf[..len]) {
                     let _ = socket.send_to(&reply, peer).await;
                 }
             }
         });
-        Self { addr, task }
+        Self {
+            addr,
+            task,
+            discoveries,
+        }
+    }
+
+    /// How many engine-discovery requests the agent has received: one per v3 handshake a client
+    /// started. A client that tries a second key extension starts a second handshake.
+    pub fn discoveries(&self) -> usize {
+        self.discoveries.load(Ordering::Relaxed)
     }
 
     pub fn ip(&self) -> IpAddr {
@@ -148,7 +168,7 @@ fn agent_security(device: &SimDevice, clock: EngineClock) -> Security {
                 cipher: (*priv_protocol).into(),
                 privacy_password: exposed(priv_password).into_bytes(),
             })
-            .with_key_extension_method(KeyExtension::Blumenthal),
+            .with_key_extension_method(device.agent_key_extension()),
     };
     user.with_engine_id(ENGINE_ID)
         .expect("localize the device's keys")
@@ -537,7 +557,7 @@ mod tests {
         // short deadline.
         let mut session = tokio::time::timeout(
             Duration::from_secs(2),
-            create_session(agent.ip(), &snmp, agent.port(), SnmpContext::Default),
+            create_session(agent.ip(), &snmp, agent.port(), SnmpContext::Default, None),
         )
         .await
         .map_err(silence)??;
@@ -707,7 +727,7 @@ mod tests {
             let agent = UdpAgent::start_with_clock(&device, clock).await;
 
             match try_snmp_with_credential_on_port(agent.ip(), &snmp, agent.port()).await {
-                SnmpProbeOutcome::Answered(_) => {}
+                SnmpProbeOutcome::Answered(..) => {}
                 SnmpProbeOutcome::Failed(outcome, message) => panic!(
                     "probe with the clock in discovery = {discovery_carries_clock}: \
                      {outcome:?} {message}"

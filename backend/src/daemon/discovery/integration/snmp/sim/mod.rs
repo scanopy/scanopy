@@ -600,6 +600,20 @@ impl SimDevice {
         }
     }
 
+    /// How this device's agent stretches a privacy key too short for its cipher (AES-256 under
+    /// MD5 or SHA-1).
+    ///
+    /// The agent's choice, which no credential field records: one `AES-256` credential has to
+    /// read both. Blumenthal is net-snmp's `AES-256`; Reeder is Cisco IOS's `aes 256` and
+    /// net-snmp's `AES-256-C`.
+    pub fn agent_key_extension(&self) -> snmp2::v3::KeyExtension {
+        match self.name {
+            // GH #846's Catalyst 2960.
+            "secure-switch-05" => snmp2::v3::KeyExtension::Reeder,
+            _ => snmp2::v3::KeyExtension::Blumenthal,
+        }
+    }
+
     /// `ifNumber.0` as this device publishes it, or `None` where it serves no ifTable.
     pub fn declared_if_number(&self) -> Option<i32> {
         self.tables
