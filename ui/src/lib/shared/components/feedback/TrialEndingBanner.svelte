@@ -90,7 +90,7 @@
 				<button
 					onclick={extendTrial.extend}
 					disabled={extendTrial.isPending}
-					class="ml-2 rounded-sm px-2 py-0.5 text-xs underline opacity-80 hover:no-underline hover:opacity-100 disabled:opacity-50"
+					class="ml-2 rounded-sm px-2 py-0.5 text-xs font-medium underline hover:no-underline disabled:opacity-50"
 				>
 					{billing_trialBannerExtend()}
 				</button>
