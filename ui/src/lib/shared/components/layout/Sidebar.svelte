@@ -927,30 +927,27 @@
 							})
 					})}
 				</li>
-			{:else if showFreeUpgradeButton}
-				<!-- The way to the plans: a nav entry like the others, marked with the paid crown. -->
-				<li>
-					<button
-						class="{baseClasses} {inactiveButtonClass}"
-						style="height: 2rem; padding: 0.375rem 0.75rem;"
-						title={collapsed ? common_plans() : ''}
-						onclick={() => triggerUpgrade({ source: 'sidebar', surface: 'sidebar' })}
-					>
-						<PaidCrown size={20} />
-						{#if !collapsed}
-							<span class="ml-3 truncate">{common_plans()}</span>
-						{/if}
-					</button>
-				</li>
 			{/if}
 			{#each labelledBottomItems as item (item.id)}
 				<li>
 					{@render bottomButton(item, false)}
 				</li>
 			{/each}
-			{#if iconBottomItems.length > 0}
+			{#if iconBottomItems.length > 0 || (!showTrialPill && showFreeUpgradeButton)}
 				<!-- Icon buttons share one row (a column when collapsed), each label its tooltip. -->
 				<li class="flex gap-1 {collapsed ? 'flex-col' : ''}">
+					{#if !showTrialPill && showFreeUpgradeButton}
+						<!-- The way to the plans, marked with the paid crown. -->
+						<button
+							class="{iconButtonClasses} {inactiveButtonClass}"
+							style="height: 2rem; padding: 0.375rem 0.75rem;"
+							title={common_plans()}
+							aria-label={common_plans()}
+							onclick={() => triggerUpgrade({ source: 'sidebar', surface: 'sidebar' })}
+						>
+							<PaidCrown size={20} />
+						</button>
+					{/if}
 					{#each iconBottomItems as item (item.id)}
 						{@render bottomButton(item, true)}
 					{/each}
