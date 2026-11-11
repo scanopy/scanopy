@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { columnSectionKey, fieldsToColumns } from '$lib/shared/components/data/table/columns';
+import { columnSectionKey, fieldsToColumns } from '#lib/shared/components/data/table/columns.ts';
 import { dataControlsTabs, tabColumns } from './entity-tabs';
 
 /**

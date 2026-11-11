@@ -5,7 +5,7 @@ import {
 	containerTypes,
 	getIrrelevantServiceCategories,
 	getServiceDefinitionCategory
-} from '$lib/shared/stores/metadata';
+} from '#lib/shared/stores/metadata.ts';
 import type { LayoutInput, LayoutResult } from './engine';
 import { getOrgUseCase } from '../queries';
 import { getTopologyIndex } from '../entity-index';

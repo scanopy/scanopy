@@ -1,34 +1,34 @@
 <script lang="ts">
 	import { SlidersHorizontal } from '@lucide/svelte';
-	import type { components } from '$lib/api/schema';
-	import type { Site } from '$lib/features/sites/types';
-	import type { HostWithAddresses, IPAddress } from '$lib/features/hosts/types/base';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useHostSummariesQuery } from '$lib/features/hosts/queries';
+	import type { components } from '#lib/api/schema';
+	import type { Site } from '#lib/features/sites/types.ts';
+	import type { HostWithAddresses, IPAddress } from '#lib/features/hosts/types/base.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useHostSummariesQuery } from '#lib/features/hosts/queries.ts';
 	import {
 		hostDisplayContext,
 		useHostPicker,
 		useHostServices
-	} from '$lib/features/hosts/host-picker.svelte';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { useCredentialsQuery } from '$lib/features/credentials/queries';
+	} from '#lib/features/hosts/host-picker.svelte.ts';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import { useCredentialsQuery } from '#lib/features/credentials/queries.ts';
 	import {
 		claimedIntegrationsForHost,
 		daemonHostBlockReason
-	} from '$lib/features/credentials/utils/daemonHostBlocking';
-	import { useSubnetsQuery } from '$lib/features/subnets/queries';
-	import { credentialTypes } from '$lib/shared/stores/metadata';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import { SiteDisplay } from '$lib/shared/components/forms/selection/display/SiteDisplay.svelte';
+	} from '#lib/features/credentials/utils/daemonHostBlocking.ts';
+	import { useSubnetsQuery } from '#lib/features/subnets/queries.ts';
+	import { credentialTypes } from '#lib/shared/stores/metadata.ts';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import { SiteDisplay } from '#lib/shared/components/forms/selection/display/SiteDisplay.svelte';
 	import {
 		HostDisplay,
 		type HostDisplayContext
-	} from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	} from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
 	import {
 		IPAddressDisplay,
 		type IPAddressDisplayContext
-	} from '$lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
+	} from '#lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
 	import {
 		common_alreadyAdded,
 		common_hosts,
@@ -43,7 +43,7 @@
 		credentials_ipTargetLabel,
 		credentials_ipTargetPlaceholder,
 		credentials_unassignedNotice
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type CredentialHostAssignment = components['schemas']['CredentialHostAssignment'];
 

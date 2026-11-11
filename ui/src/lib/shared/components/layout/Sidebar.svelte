@@ -1,35 +1,35 @@
 <script lang="ts">
-	import daemonVersionGates from '$lib/data/daemon-version-gates.json';
-	import { useCan, type Resource } from '$lib/features/auth/access';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { isBillingPlanActive, isPlanLapsed } from '$lib/features/organizations/types';
-	import SettingsModal from '$lib/features/settings/SettingsModal.svelte';
+	import daemonVersionGates from '#lib/data/daemon-version-gates.json';
+	import { useCan, type Resource } from '#lib/features/auth/access.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { isBillingPlanActive, isPlanLapsed } from '#lib/features/organizations/types.ts';
+	import SettingsModal from '#lib/features/settings/SettingsModal.svelte';
 	import {
 		billingPlans,
 		daemonHealths,
 		entities,
 		productAreas,
 		setupItemTiers
-	} from '$lib/shared/stores/metadata';
-	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
-	import { useApiKeysQuery } from '$lib/features/daemon_api_keys/queries';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { modalState } from '$lib/shared/stores/modal-registry';
-	import { entityUIConfig, TAB_LABELS } from '$lib/shared/entity-ui-config';
-	import type { EntityDiscriminants } from '$lib/api/entities';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
-	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
-	import type { IconComponent } from '$lib/shared/utils/types';
+	} from '#lib/shared/stores/metadata.ts';
+	import { useActiveSessionsQuery } from '#lib/features/discovery/queries.ts';
+	import { useApiKeysQuery } from '#lib/features/daemon_api_keys/queries.ts';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import { modalState } from '#lib/shared/stores/modal-registry.ts';
+	import { entityUIConfig, TAB_LABELS } from '#lib/shared/entity-ui-config.ts';
+	import type { EntityDiscriminants } from '#lib/api/entities.ts';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
+	import { startSetupPayment } from '#lib/shared/billing/setup-payment.ts';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
 	import { Bell, Menu, ChevronDown, History, Settings, Clock, Search } from '@lucide/svelte';
-	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
-	import PaidCrown from '$lib/shared/components/PaidCrown.svelte';
-	import NavBadge from '$lib/shared/components/layout/NavBadge.svelte';
-	import { createColorHelper } from '$lib/shared/utils/styling';
-	import { GLOBAL_SEARCH_KEY, globalSearchOpen } from '$lib/features/search/results';
-	import { tableSearchFocused } from '$lib/shared/components/data/controls/listShortcuts';
+	import KbdKey from '#lib/shared/components/feedback/KbdKey.svelte';
+	import PaidCrown from '#lib/shared/components/PaidCrown.svelte';
+	import NavBadge from '#lib/shared/components/layout/NavBadge.svelte';
+	import { createColorHelper } from '#lib/shared/utils/styling.ts';
+	import { GLOBAL_SEARCH_KEY, globalSearchOpen } from '#lib/features/search/results.ts';
+	import { tableSearchFocused } from '#lib/shared/components/data/controls/listShortcuts.ts';
 	import { onMount } from 'svelte';
 	import type { Component } from 'svelte';
-	import type { SubTab } from '$lib/shared/components/layout/ContentSubTabs.svelte';
+	import type { SubTab } from '#lib/shared/components/layout/ContentSubTabs.svelte';
 	import {
 		common_plans,
 		billing_trialPill,
@@ -41,35 +41,35 @@
 		daemons_legacyKeyHelp,
 		common_settings,
 		common_shortcutsPausedInSearch
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import {
 		getTrialDaysLeft,
 		isTrialingWithoutPayment,
 		isMissingPaymentMethod
-	} from '$lib/shared/utils/trial';
-	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
-	import { useDashboardQuery } from '$lib/features/home/queries';
+	} from '#lib/shared/utils/trial.ts';
+	import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import { useDashboardQuery } from '#lib/features/home/queries.ts';
 
 	// Import tab components
-	import TopologyTab from '$lib/features/topology/components/TopologyTab.svelte';
-	import DiscoveryScheduledTab from '$lib/features/discovery/components/tabs/DiscoveryScheduledTab.svelte';
-	import DiscoveryHistoryTab from '$lib/features/discovery/components/tabs/DiscoveryHistoryTab.svelte';
-	import SitesTab from '$lib/features/sites/components/SitesTab.svelte';
-	import SubnetTab from '$lib/features/subnets/components/SubnetTab.svelte';
-	import VlanTab from '$lib/features/vlans/components/VlanTab.svelte';
-	import HostTab from '$lib/features/hosts/components/HostTab.svelte';
-	import ServiceTab from '$lib/features/services/components/ServiceTab.svelte';
-	import DaemonTab from '$lib/features/daemons/components/DaemonTab.svelte';
-	import ApiKeyTab from '$lib/features/daemon_api_keys/components/ApiKeyTab.svelte';
-	import UserTab from '$lib/features/users/components/UserTab.svelte';
-	import UserApiKeyTab from '$lib/features/user_api_keys/components/UserApiKeyTab.svelte';
-	import TagTab from '$lib/features/tags/components/TagTab.svelte';
-	import TagGroupTab from '$lib/features/tags/components/TagGroupTab.svelte';
-	import CredentialsTab from '$lib/features/credentials/components/CredentialsTab.svelte';
+	import TopologyTab from '#lib/features/topology/components/TopologyTab.svelte';
+	import DiscoveryScheduledTab from '#lib/features/discovery/components/tabs/DiscoveryScheduledTab.svelte';
+	import DiscoveryHistoryTab from '#lib/features/discovery/components/tabs/DiscoveryHistoryTab.svelte';
+	import SitesTab from '#lib/features/sites/components/SitesTab.svelte';
+	import SubnetTab from '#lib/features/subnets/components/SubnetTab.svelte';
+	import VlanTab from '#lib/features/vlans/components/VlanTab.svelte';
+	import HostTab from '#lib/features/hosts/components/HostTab.svelte';
+	import ServiceTab from '#lib/features/services/components/ServiceTab.svelte';
+	import DaemonTab from '#lib/features/daemons/components/DaemonTab.svelte';
+	import ApiKeyTab from '#lib/features/daemon_api_keys/components/ApiKeyTab.svelte';
+	import UserTab from '#lib/features/users/components/UserTab.svelte';
+	import UserApiKeyTab from '#lib/features/user_api_keys/components/UserApiKeyTab.svelte';
+	import TagTab from '#lib/features/tags/components/TagTab.svelte';
+	import TagGroupTab from '#lib/features/tags/components/TagGroupTab.svelte';
+	import CredentialsTab from '#lib/features/credentials/components/CredentialsTab.svelte';
 
-	import IssuesTab from '$lib/features/home/components/IssuesTab.svelte';
-	import SetupTab from '$lib/features/home/components/SetupTab.svelte';
-	import { setupStepsLeft } from '$lib/features/home/setup-list';
+	import IssuesTab from '#lib/features/home/components/IssuesTab.svelte';
+	import SetupTab from '#lib/features/home/components/SetupTab.svelte';
+	import { setupStepsLeft } from '#lib/features/home/setup-list.ts';
 
 	let {
 		activeTab = $bindable('topology'),

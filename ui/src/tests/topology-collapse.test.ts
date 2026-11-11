@@ -13,12 +13,12 @@ import {
 	stepCollapse,
 	expandedInlineGroups,
 	inlineGroupKey
-} from '$lib/features/topology/collapse';
-import { LayoutGraph } from '$lib/features/topology/layout/layout-graph';
-import type { components } from '$lib/api/schema';
+} from '#lib/features/topology/collapse.ts';
+import { LayoutGraph } from '#lib/features/topology/layout/layout-graph.ts';
+import type { components } from '#lib/api/schema';
 
 type TopologyNode = components['schemas']['Node'];
-type ContainerTypeMetadata = import('$lib/shared/stores/metadata').ContainerTypeMetadata;
+type ContainerTypeMetadata = import('#lib/shared/stores/metadata.ts').ContainerTypeMetadata;
 
 const container = (
 	id: string,

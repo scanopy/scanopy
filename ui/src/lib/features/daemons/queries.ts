@@ -8,14 +8,14 @@ import {
 	useQueryClient,
 	type QueryClient
 } from '@tanstack/svelte-query';
-import { queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
-import type { components, paths } from '$lib/api/schema';
+import { queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
+import type { components, paths } from '#lib/api/schema';
 import type { Daemon } from './types/base';
 import type { DiscoveryUpdatePayload } from '../discovery/types/api';
 import type { ProvisionDaemonRequest, ProvisionDaemonResponse } from './types/base';
-import { invalidateListPages, useListPageQuery, type ListPageParams } from '$lib/api/list-page';
+import { invalidateListPages, useListPageQuery, type ListPageParams } from '#lib/api/list-page.ts';
 /**
  * Query hook for fetching all daemons
  * @param options.enabled - Optional getter function to control when query is enabled

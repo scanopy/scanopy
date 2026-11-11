@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Node } from '@xyflow/svelte';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
-	import type { ElementRenderContext } from '$lib/features/topology/resolvers';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+	import type { ElementRenderContext } from '#lib/features/topology/resolvers.ts';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	/* eslint-disable @typescript-eslint/no-unused-vars -- component contract props */

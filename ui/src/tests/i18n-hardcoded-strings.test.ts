@@ -104,7 +104,7 @@ describe('i18n hard-coded strings', () => {
 		if (violations.length > 0) {
 			expect.fail(
 				`Found ${violations.length} hard-coded string(s) in label-ish attributes:\n\n${violations.join('\n')}\n\n` +
-					`Replace with a paraglide message (import from '$lib/paraglide/messages'), ` +
+					`Replace with a paraglide message (import from '#lib/paraglide/messages.js'), ` +
 					`or add the exact value to ALLOWED_ATTRIBUTE_VALUES if it is a brand/technical token.`
 			);
 		}
@@ -130,7 +130,7 @@ describe('i18n hard-coded strings', () => {
 		if (violations.length > 0) {
 			expect.fail(
 				`Found ${violations.length} toast call(s) with a literal string argument:\n\n${violations.join('\n')}\n\n` +
-					`Pass a paraglide message instead (import from '$lib/paraglide/messages').`
+					`Pass a paraglide message instead (import from '#lib/paraglide/messages.js').`
 			);
 		}
 	});

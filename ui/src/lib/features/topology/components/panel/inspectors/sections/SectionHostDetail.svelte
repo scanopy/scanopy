@@ -1,12 +1,12 @@
 <script lang="ts">
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
-	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
-	import type { TopologyEditState } from '$lib/features/topology/state';
-	import type { ElementRenderContext } from '$lib/features/topology/resolvers';
-	import { useUpdateHostDescriptionMutation } from '$lib/features/hosts/queries';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import { HostDisplay } from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+	import type { TopologyEditState } from '#lib/features/topology/state.ts';
+	import type { ElementRenderContext } from '#lib/features/topology/resolvers.ts';
+	import { useUpdateHostDescriptionMutation } from '#lib/features/hosts/queries.ts';
 	import InspectorSection from '../shared/InspectorSection.svelte';
-	import HostInspectorActions from '$lib/features/hosts/components/HostInspectorActions.svelte';
+	import HostInspectorActions from '#lib/features/hosts/components/HostInspectorActions.svelte';
 
 	let {
 		topology,

@@ -3,8 +3,8 @@
 <script lang="ts" generics="T, C">
 	import { onMount, getContext } from 'svelte';
 	import Tag from '../../data/Tag.svelte';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
-	import InlineDescription from '$lib/features/topology/components/panel/inspectors/InlineDescription.svelte';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
+	import InlineDescription from '#lib/features/topology/components/panel/inspectors/InlineDescription.svelte';
 	import type { EntityDisplayComponent } from './types';
 	import { displayTags, fitTags, HIDDEN_TAGS_CHIP_WIDTH } from './display-tags';
 	import DisplayTag from './DisplayTag.svelte';

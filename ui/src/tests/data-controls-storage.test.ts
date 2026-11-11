@@ -5,7 +5,7 @@ import {
 	serializeState,
 	STORED_STATE_VERSION,
 	type StoredState
-} from '$lib/shared/components/data/controls/dataControlsStorage';
+} from '#lib/shared/components/data/controls/dataControlsStorage.ts';
 
 function baseState(overrides: Partial<StoredState> = {}): StoredState {
 	return {

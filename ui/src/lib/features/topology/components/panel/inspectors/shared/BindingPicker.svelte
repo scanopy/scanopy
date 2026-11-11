@@ -1,26 +1,26 @@
 <script lang="ts">
 	import { SvelteMap } from 'svelte/reactivity';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import { entityRef } from '$lib/shared/components/data/types';
-	import { entities } from '$lib/shared/stores/metadata';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import EntityTagSelect, {
 		type EntityTagOption
-	} from '$lib/shared/components/forms/selection/EntityTagSelect.svelte';
+	} from '#lib/shared/components/forms/selection/EntityTagSelect.svelte';
 	import {
 		BindingDisplay,
 		type BindingDisplayContext
-	} from '$lib/shared/components/forms/selection/display/BindingDisplay.svelte';
-	import { useSubnetsQuery, isContainerSubnet } from '$lib/features/subnets/queries';
+	} from '#lib/shared/components/forms/selection/display/BindingDisplay.svelte';
+	import { useSubnetsQuery, isContainerSubnet } from '#lib/features/subnets/queries.ts';
 	import {
 		dependencies_selectPort,
 		dependencies_noOpenPortsError,
 		topology_multiSelectNoBindings
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import type { RenderableTopology } from '../../../../types/base';
-	import type { Binding } from '$lib/features/services/types/base';
-	import type { IPAddress } from '$lib/features/hosts/types/base';
+	import type { Binding } from '#lib/features/services/types/base.ts';
+	import type { IPAddress } from '#lib/features/hosts/types/base.ts';
 
 	let {
 		form,

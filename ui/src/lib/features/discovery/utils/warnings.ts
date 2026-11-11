@@ -13,23 +13,28 @@
  * without a renderer for it.
  */
 
-import type { components } from '$lib/api/schema';
-import type { EntityDiscriminants } from '$lib/api/entities';
-import claimSources from '$lib/data/claim-sources.json';
-import desktopVms from '$lib/data/desktop-vms.json';
-import discoveryIntegrations from '$lib/data/discovery-integrations.json';
-import malformedNeighbourConsequences from '$lib/data/malformed-neighbour-consequences.json';
-import osFamilies from '$lib/data/os-families.json';
-import snmpWalkCauses from '$lib/data/snmp-walk-causes.json';
-import snmpWalkGroups from '$lib/data/snmp-walk-groups.json';
-import warningCodes from '$lib/data/warning-codes.json';
-import warningRemedies from '$lib/data/warning-remedies.json';
-import { metaDescription, metaDescriptionWith, metaName, metaNameWith } from '$lib/i18n/metadata';
-import { joinList } from '$lib/i18n/list';
+import type { components } from '#lib/api/schema';
+import type { EntityDiscriminants } from '#lib/api/entities.ts';
+import claimSources from '#lib/data/claim-sources.json';
+import desktopVms from '#lib/data/desktop-vms.json';
+import discoveryIntegrations from '#lib/data/discovery-integrations.json';
+import malformedNeighbourConsequences from '#lib/data/malformed-neighbour-consequences.json';
+import osFamilies from '#lib/data/os-families.json';
+import snmpWalkCauses from '#lib/data/snmp-walk-causes.json';
+import snmpWalkGroups from '#lib/data/snmp-walk-groups.json';
+import warningCodes from '#lib/data/warning-codes.json';
+import warningRemedies from '#lib/data/warning-remedies.json';
+import {
+	metaDescription,
+	metaDescriptionWith,
+	metaName,
+	metaNameWith
+} from '#lib/i18n/metadata.ts';
+import { joinList } from '#lib/i18n/list.ts';
 import { snmpCheckOf, type CredentialLookup, type SnmpCheckOutcome } from './snmpCheck';
-import { toColor, type Color } from '$lib/shared/utils/styling';
-import { osLabel, type DaemonOS } from '$lib/features/daemons/utils';
-import { credentialIntegrations } from '$lib/shared/stores/metadata';
+import { toColor, type Color } from '#lib/shared/utils/styling.ts';
+import { osLabel, type DaemonOS } from '#lib/features/daemons/utils.ts';
+import { credentialIntegrations } from '#lib/shared/stores/metadata.ts';
 import {
 	common_host,
 	common_unknown,
@@ -50,7 +55,7 @@ import {
 	discovery_warningNoWalkFailed,
 	discovery_warningWalkFailures,
 	discovery_warningWalkFailuresUnrecorded
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 export type DiscoveryWarning = components['schemas']['DiscoveryWarning'];
 export type DiscoveryWarningCode = DiscoveryWarning['code'];

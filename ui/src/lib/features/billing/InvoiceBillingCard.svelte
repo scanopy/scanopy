@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { formatLongDate } from '$lib/shared/utils/formatting';
+	import { formatLongDate } from '#lib/shared/utils/formatting.ts';
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import { max } from '$lib/shared/components/forms/validators';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import { max } from '#lib/shared/components/forms/validators.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
 	import { useUpdatePoNumberMutation } from './queries';
-	import { pushSuccess } from '$lib/shared/stores/feedback';
-	import type { components } from '$lib/api/schema';
+	import { pushSuccess } from '#lib/shared/stores/feedback.ts';
+	import type { components } from '#lib/api/schema';
 	import {
 		billing_invoice_poNumber,
 		billing_invoice_poNumberHelp,
@@ -18,7 +18,7 @@
 		common_edit,
 		common_processing,
 		common_save
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type InvoiceBillingStatus = components['schemas']['InvoiceBillingStatus'];
 

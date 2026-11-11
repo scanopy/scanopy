@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	isRateLimited: () => false,
 	getRateLimitDelay: () => 0
 }));
 
-import { BaseSSEManager, HIDDEN_GRACE_MS, type SSEConfig } from '$lib/shared/utils/sse';
+import { BaseSSEManager, HIDDEN_GRACE_MS, type SSEConfig } from '#lib/shared/utils/sse.ts';
 
 class FakeEventSource {
 	static CONNECTING = 0;

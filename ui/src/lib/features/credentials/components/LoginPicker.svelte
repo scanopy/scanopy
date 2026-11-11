@@ -1,6 +1,6 @@
 <script lang="ts">
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
-	import { CredentialDisplay } from '$lib/shared/components/forms/selection/display/CredentialDisplay.svelte';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
+	import { CredentialDisplay } from '#lib/shared/components/forms/selection/display/CredentialDisplay.svelte';
 	import { Plus } from '@lucide/svelte';
 	import type { Credential } from '../types/base';
 	import { isLoginType } from '../types/base';
@@ -11,7 +11,7 @@
 		credentials_sshLogin,
 		credentials_sshLoginHelp,
 		credentials_sshLoginPlaceholder
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		selectedId,

@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
 	credentialFieldValues,
 	parseScriptSource
-} from '$lib/features/credentials/utils/fieldValues';
-import type { CredentialType } from '$lib/features/credentials/types/base';
-import type { FieldDefinition } from '$lib/shared/stores/metadata';
+} from '#lib/features/credentials/utils/fieldValues.ts';
+import type { CredentialType } from '#lib/features/credentials/types/base.ts';
+import type { FieldDefinition } from '#lib/shared/stores/metadata.ts';
 
 const field = (id: string, field_type: string) => ({ id, field_type }) as FieldDefinition;
 

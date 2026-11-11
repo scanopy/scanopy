@@ -39,7 +39,7 @@ use crate::server::{
 use anyhow::{Result, anyhow};
 use argon2::{
     Argon2,
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
+    password_hash::{PasswordHasher, PasswordVerifier, phc::PasswordHash},
 };
 use axum::http::StatusCode;
 use base64ct::{Base64UrlUnpadded, Encoding};
@@ -1079,15 +1079,12 @@ impl AuthService {
 
 /// Hash a password using Argon2id
 pub fn hash_password(password: &str) -> Result<String> {
-    let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
+    // `hash_password` draws a fresh random salt from the system RNG.
+    let hash: PasswordHash = Argon2::default()
+        .hash_password(password.as_bytes())
+        .map_err(|e| anyhow!("Password hashing failed: {}", e))?;
 
-    let hash = argon2
-        .hash_password(password.as_bytes(), &salt)
-        .map_err(|e| anyhow!("Password hashing failed: {}", e))?
-        .to_string();
-
-    Ok(hash)
+    Ok(hash.to_string())
 }
 
 /// Verify a password against a hash
@@ -1098,4 +1095,35 @@ pub fn verify_password(password: &str, hash: &str) -> Result<()> {
     Argon2::default()
         .verify_password(password.as_bytes(), &parsed_hash)
         .map_err(|_| anyhow!("Invalid username or password"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Produced by `hash_password` on argon2 0.5.3 / password-hash 0.5.0, the versions that wrote
+    /// every hash stored before the 0.6 upgrade.
+    const HASH_FROM_PASSWORD_HASH_0_5: &str = "$argon2id$v=19$m=19456,t=2,p=1$eoSyx2BJoFLPSMz8gGkxwQ$5yGrW5pib17d+D/Rrn9OggnTPpKtTmajQo1AQauRoEU";
+    const PASSWORD: &str = "correct horse battery staple";
+
+    #[test]
+    fn verifies_a_hash_stored_by_password_hash_0_5() {
+        verify_password(PASSWORD, HASH_FROM_PASSWORD_HASH_0_5).unwrap();
+        assert!(verify_password("wrong password", HASH_FROM_PASSWORD_HASH_0_5).is_err());
+    }
+
+    #[test]
+    fn a_new_hash_verifies_only_its_own_password() {
+        let hash = hash_password(PASSWORD).unwrap();
+
+        verify_password(PASSWORD, &hash).unwrap();
+        assert!(verify_password("wrong password", &hash).is_err());
+        // A fresh salt per call: the same password never hashes to the same string twice.
+        assert_ne!(hash, hash_password(PASSWORD).unwrap());
+    }
+
+    #[test]
+    fn a_malformed_stored_hash_is_refused() {
+        assert!(verify_password(PASSWORD, "not a phc string").is_err());
+    }
 }

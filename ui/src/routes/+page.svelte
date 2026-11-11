@@ -1,40 +1,40 @@
 <script lang="ts">
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import Toast from '$lib/shared/components/feedback/Toast.svelte';
-	import AppBanners from '$lib/shared/components/feedback/AppBanners.svelte';
-	import ServerUnreachableBanner from '$lib/shared/components/feedback/ServerUnreachableBanner.svelte';
-	import TrialExpiryModal from '$lib/shared/components/feedback/TrialExpiryModal.svelte';
-	import Sidebar from '$lib/shared/components/layout/Sidebar.svelte';
-	import GlobalSearch from '$lib/shared/components/layout/GlobalSearch.svelte';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import Toast from '#lib/shared/components/feedback/Toast.svelte';
+	import AppBanners from '#lib/shared/components/feedback/AppBanners.svelte';
+	import ServerUnreachableBanner from '#lib/shared/components/feedback/ServerUnreachableBanner.svelte';
+	import TrialExpiryModal from '#lib/shared/components/feedback/TrialExpiryModal.svelte';
+	import Sidebar from '#lib/shared/components/layout/Sidebar.svelte';
+	import GlobalSearch from '#lib/shared/components/layout/GlobalSearch.svelte';
 	import { onDestroy, onMount } from 'svelte';
-	import { liveUpdatesSSEManager } from '$lib/shared/live-updates';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { useCan } from '$lib/features/auth/access';
+	import { liveUpdatesSSEManager } from '#lib/shared/live-updates.ts';
+	import { useCurrentUserQuery } from '#lib/features/auth/queries.ts';
+	import { useCan } from '#lib/features/auth/access.ts';
 
-	import { attachUrlState, setActiveTab } from '$lib/shared/stores/url-state';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import BillingPlanModal from '$lib/features/billing/BillingPlanModal.svelte';
-	import CloudPlanRequired from '$lib/features/billing/CloudPlanRequired.svelte';
-	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
-	import { entityUIConfig, TAB_LABELS } from '$lib/shared/entity-ui-config';
-	import { useDashboardQuery } from '$lib/features/home/queries';
-	import { setupStepsLeft } from '$lib/features/home/setup-list';
-	import ReleaseNotesModal from '$lib/features/release-notes/ReleaseNotesModal.svelte';
-	import TermsAcceptanceModal from '$lib/features/auth/components/TermsAcceptanceModal.svelte';
-	import EmailVerificationGate from '$lib/features/auth/components/EmailVerificationGate.svelte';
-	import AuthBackground from '$lib/shared/components/layout/AuthBackground.svelte';
+	import { attachUrlState, setActiveTab } from '#lib/shared/stores/url-state.ts';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import BillingPlanModal from '#lib/features/billing/BillingPlanModal.svelte';
+	import CloudPlanRequired from '#lib/features/billing/CloudPlanRequired.svelte';
+	import { waitForOrgUpdate } from '#lib/shared/billing/wait-for-org-update.ts';
+	import { entityUIConfig, TAB_LABELS } from '#lib/shared/entity-ui-config.ts';
+	import { useDashboardQuery } from '#lib/features/home/queries.ts';
+	import { setupStepsLeft } from '#lib/features/home/setup-list.ts';
+	import ReleaseNotesModal from '#lib/features/release-notes/ReleaseNotesModal.svelte';
+	import TermsAcceptanceModal from '#lib/features/auth/components/TermsAcceptanceModal.svelte';
+	import EmailVerificationGate from '#lib/features/auth/components/EmailVerificationGate.svelte';
+	import AuthBackground from '#lib/shared/components/layout/AuthBackground.svelte';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import { queryKeys } from '$lib/api/query-client';
+	import { queryKeys } from '#lib/api/query-client.ts';
 	import {
 		useUnseenReleaseNotesQuery,
 		useMarkReleaseNotesSeenMutation
-	} from '$lib/features/release-notes/queries';
+	} from '#lib/features/release-notes/queries.ts';
 	import {
 		useConfigQuery,
 		isCloud,
 		isLicenseSigningAvailable
-	} from '$lib/shared/stores/config-query';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	} from '#lib/shared/stores/config-query.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
 	import {
 		hasLicensedPlan,
 		hasTopologyAccess,
@@ -42,27 +42,27 @@
 		isPlanLapsed,
 		isPlanUnchosen,
 		isSelfHostedPlanLocked as isSelfHostedPlanLockedFor
-	} from '$lib/features/organizations/types';
+	} from '#lib/features/organizations/types.ts';
 	import {
 		isShellReady,
 		shouldCloseBillingPlanLink,
 		shouldOpenLicenseSettings
-	} from '$lib/features/organizations/onload-gates';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { licenseTabVisible } from '$lib/features/settings/license-tab';
+	} from '#lib/features/organizations/onload-gates.ts';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import { licenseTabVisible } from '#lib/features/settings/license-tab.ts';
 	import {
 		licenseSettingsOpenedFor as storedLicenseSettingsOpenedFor,
 		markLicenseSettingsOpened
-	} from '$lib/features/settings/license-settings-opened';
-	import { billingOverModal, reopenSettingsAfterBilling } from '$lib/features/billing/stores';
+	} from '#lib/features/settings/license-settings-opened.ts';
+	import { billingOverModal, reopenSettingsAfterBilling } from '#lib/features/billing/stores.ts';
 	import {
 		modalState,
 		openModal,
 		closeModal,
 		initModalFromUrl
-	} from '$lib/shared/stores/modal-registry';
-	import ContentSubTabs from '$lib/shared/components/layout/ContentSubTabs.svelte';
-	import type { SubTab } from '$lib/shared/components/layout/ContentSubTabs.svelte';
+	} from '#lib/shared/stores/modal-registry.ts';
+	import ContentSubTabs from '#lib/shared/components/layout/ContentSubTabs.svelte';
+	import type { SubTab } from '#lib/shared/components/layout/ContentSubTabs.svelte';
 
 	// Read hash immediately during script initialization, before onMount
 	// `#home` names the tab Setup and Issues replaced, so a bookmark of it opens the landing tab.

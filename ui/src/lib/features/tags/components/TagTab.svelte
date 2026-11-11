@@ -1,5 +1,5 @@
 <script lang="ts">
-	import CreateButton from '$lib/shared/components/data/controls/CreateButton.svelte';
+	import CreateButton from '#lib/shared/components/data/controls/CreateButton.svelte';
 	import {
 		useTagsQuery,
 		useTagsListQuery,
@@ -10,25 +10,25 @@
 		useBulkDeleteTagsMutation
 	} from '../queries';
 	import TagEditModal from './TagEditModal.svelte';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
 	import type { Tag } from '../types/base';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
-	import type { RowAction } from '$lib/shared/components/data/types';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
+	import type { RowAction } from '#lib/shared/components/data/types.ts';
 	import { tagColumns } from './TagTab.columns';
-	import { collectionLookup } from '$lib/shared/entity-fields';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
 	import { Trash2, Edit } from '@lucide/svelte';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import type { TabProps } from '$lib/shared/types';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
 	import { applicationGroupId } from '../groups';
-	import type { components } from '$lib/api/schema';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
-	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
-	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
+	import type { components } from '#lib/api/schema';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
+	import { useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
+	import { modalState, resolveModalDeepLink } from '#lib/shared/stores/modal-registry.ts';
 	import {
 		common_confirmBulkDelete,
 		common_confirmDeleteName,
@@ -39,11 +39,11 @@
 		common_tags,
 		tags_noTagsHelp,
 		tags_subtitle
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type TagOrderField = components['schemas']['TagOrderField'];
 
-	import { refusedUnless, useCan } from '$lib/features/auth/access';
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
 
 	let { isActive = false }: TabProps = $props();
 	const can = useCan();

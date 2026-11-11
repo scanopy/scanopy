@@ -1,25 +1,25 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { createForm } from '@tanstack/svelte-form';
-	import { validateForm } from '$lib/shared/components/forms/form-context';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import { serviceDefinitions } from '$lib/shared/stores/metadata';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
+	import { validateForm } from '#lib/shared/components/forms/form-context.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import { serviceDefinitions } from '#lib/shared/stores/metadata.ts';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
 	import type { Service } from '../types/base';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import ServiceConfigPanel from '$lib/features/hosts/components/HostEditModal/Services/ServiceConfigPanel.svelte';
-	import type { Host, HostFormData } from '$lib/features/hosts/types/base';
-	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
-	import { usePortsQuery } from '$lib/features/ports/queries';
-	import { useServicesCacheQuery } from '$lib/features/services/queries';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import ServiceConfigPanel from '#lib/features/hosts/components/HostEditModal/Services/ServiceConfigPanel.svelte';
+	import type { Host, HostFormData } from '#lib/features/hosts/types/base.ts';
+	import { useIPAddressesQuery } from '#lib/features/ip-addresses/queries.ts';
+	import { usePortsQuery } from '#lib/features/ports/queries.ts';
+	import { useServicesCacheQuery } from '#lib/features/services/queries.ts';
 	import {
 		common_cancel,
 		common_delete,
 		common_deleting,
 		common_updating,
 		services_updateService
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	// TanStack Query hooks to get child entities for hydrating host form data
 	const ipAddressesQuery = useIPAddressesQuery();

@@ -1,12 +1,12 @@
 <script lang="ts">
 	import type { Node } from '@xyflow/svelte';
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
-	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
-	import type { TopologyEditState } from '$lib/features/topology/state';
-	import type { ElementRenderContext } from '$lib/features/topology/resolvers';
-	import { common_hypervisor, common_presentedBy } from '$lib/paraglide/messages';
-	import { containerTypes, serviceDefinitions } from '$lib/shared/stores/metadata';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import { HostDisplay } from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+	import type { TopologyEditState } from '#lib/features/topology/state.ts';
+	import type { ElementRenderContext } from '#lib/features/topology/resolvers.ts';
+	import { common_hypervisor, common_presentedBy } from '#lib/paraglide/messages.js';
+	import { containerTypes, serviceDefinitions } from '#lib/shared/stores/metadata.ts';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	/* eslint-disable @typescript-eslint/no-unused-vars -- component contract props */

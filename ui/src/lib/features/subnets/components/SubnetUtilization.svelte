@@ -1,13 +1,13 @@
 <script lang="ts">
-	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
-	import { tooltip } from '$lib/shared/actions/tooltip';
+	import ProgressTrack from '#lib/shared/components/data/ProgressTrack.svelte';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
 	import {
 		common_utilization,
 		subnets_utilizationInUse,
 		subnets_utilizationNested,
 		common_usable,
 		subnets_utilizationValue
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import type { SubnetResponse } from '../types/base';
 	import { utilizationRatio } from '../nesting';
 

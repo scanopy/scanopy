@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { ChevronRight, CircleCheck, Lock, X } from '@lucide/svelte';
-	import { useRecordSetupItemMutation } from '$lib/features/organizations/queries';
-	import type { components } from '$lib/api/schema';
-	import DiscoveryEstimation from '$lib/features/discovery/components/DiscoveryEstimation.svelte';
-	import SessionProgress from '$lib/features/discovery/components/cards/SessionProgress.svelte';
-	import { isFullScan } from '$lib/features/discovery/utils/fullScan';
-	import { setupItems } from '$lib/shared/stores/metadata';
-	import { trackEvent } from '$lib/shared/utils/analytics';
-	import { common_dismiss, gettingStarted_emailNotification } from '$lib/paraglide/messages';
+	import { useRecordSetupItemMutation } from '#lib/features/organizations/queries.ts';
+	import type { components } from '#lib/api/schema';
+	import DiscoveryEstimation from '#lib/features/discovery/components/DiscoveryEstimation.svelte';
+	import SessionProgress from '#lib/features/discovery/components/cards/SessionProgress.svelte';
+	import { isFullScan } from '#lib/features/discovery/utils/fullScan.ts';
+	import { setupItems } from '#lib/shared/stores/metadata.ts';
+	import { trackEvent } from '#lib/shared/utils/analytics.ts';
+	import { common_dismiss, gettingStarted_emailNotification } from '#lib/paraglide/messages.js';
 	import type { SetupItemType, SetupListEntry } from '../setup-list';
 	import { setupRowView, type SetupLookups } from '../setup-row-view';
 	import SetupItemSummary from './SetupItemSummary.svelte';

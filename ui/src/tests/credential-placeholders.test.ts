@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolvePlaceholder } from '$lib/features/credentials/utils/placeholders';
+import { resolvePlaceholder } from '#lib/features/credentials/utils/placeholders.ts';
 
 describe('resolvePlaceholder', () => {
 	const script = {

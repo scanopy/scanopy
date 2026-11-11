@@ -11,26 +11,26 @@
 	import throttle from 'just-throttle';
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
-	import { registerUrlOwner, syncUrl, takeInitialParams } from '$lib/shared/stores/url-state';
+	import { registerUrlOwner, syncUrl, takeInitialParams } from '#lib/shared/stores/url-state.ts';
 	import { createForm } from '@tanstack/svelte-form';
 	import GenericModal from './GenericModal.svelte';
-	import SearchInput from '$lib/shared/components/forms/input/SearchInput.svelte';
-	import SearchHint from '$lib/shared/components/forms/input/SearchHint.svelte';
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { entityUIConfig } from '$lib/shared/entity-ui-config';
-	import { navigateToEntity } from '$lib/shared/stores/modal-registry';
-	import { entities } from '$lib/shared/stores/metadata';
-	import type { EntityDiscriminants } from '$lib/api/entities';
-	import { useTagsQuery, useTagGroupsQuery } from '$lib/features/tags/queries';
+	import SearchInput from '#lib/shared/components/forms/input/SearchInput.svelte';
+	import SearchHint from '#lib/shared/components/forms/input/SearchHint.svelte';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import { entityUIConfig } from '#lib/shared/entity-ui-config.ts';
+	import { navigateToEntity } from '#lib/shared/stores/modal-registry.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import type { EntityDiscriminants } from '#lib/api/entities.ts';
+	import { useTagsQuery, useTagGroupsQuery } from '#lib/features/tags/queries.ts';
 	import {
 		applicationGroupId,
 		isApplicationTag,
 		tagIcon,
 		tagTooltip
-	} from '$lib/features/tags/groups';
-	import TagCompletionGhost from '$lib/features/tags/components/TagCompletionGhost.svelte';
-	import { tagCompletion } from '$lib/features/tags/completion';
+	} from '#lib/features/tags/groups.ts';
+	import TagCompletionGhost from '#lib/features/tags/components/TagCompletionGhost.svelte';
+	import { tagCompletion } from '#lib/features/tags/completion.ts';
 	import {
 		acceptCompletion,
 		addChip,
@@ -53,12 +53,12 @@
 		type GlobalSearchState,
 		type SearchItem,
 		type SearchRow
-	} from '$lib/features/search/results';
+	} from '#lib/features/search/results.ts';
 	import {
 		fetchMoreMatches,
 		GLOBAL_SEARCH_MORE_PAGE,
 		useGlobalSearch
-	} from '$lib/features/search/queries';
+	} from '#lib/features/search/queries.ts';
 	import {
 		common_loading,
 		common_search,
@@ -67,7 +67,7 @@
 		globalSearch_placeholder,
 		globalSearch_resultCount,
 		globalSearch_showMore
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	/** Same pause RichSelect gives a server-side search, so a burst of keystrokes costs one request. */
 	const SEARCH_THROTTLE_MS = 300;

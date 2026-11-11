@@ -1,10 +1,10 @@
 <script lang="ts" module>
-	import { entities } from '$lib/shared/stores/metadata';
-	import type { Binding } from '$lib/features/services/types/base';
-	import type { IPAddress, Port } from '$lib/features/hosts/types/base';
-	import { ALL_IP_ADDRESSES } from '$lib/features/hosts/types/base';
-	import { formatIPAddress, formatPortBinding } from '$lib/features/hosts/address-labels';
-	import { hosts_bindings_unknownIPAddress } from '$lib/paraglide/messages';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import type { Binding } from '#lib/features/services/types/base.ts';
+	import type { IPAddress, Port } from '#lib/features/hosts/types/base.ts';
+	import { ALL_IP_ADDRESSES } from '#lib/features/hosts/types/base.ts';
+	import { formatIPAddress, formatPortBinding } from '#lib/features/hosts/address-labels.ts';
+	import { hosts_bindings_unknownIPAddress } from '#lib/paraglide/messages.js';
 
 	// Binding-only display — does NOT include service info, since the service is shown
 	// separately in the caller (e.g. in the dep-builder card). For a display that

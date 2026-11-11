@@ -1,11 +1,11 @@
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import { siteItems } from '$lib/features/sites/columns';
-import type { components, operations } from '$lib/api/schema';
-import type { FieldValueCount } from '$lib/shared/api/field-values';
-import { fieldValueOptions } from '$lib/shared/api/field-values';
-import type { Site } from '$lib/features/sites/types';
-import type { Tag } from '$lib/features/tags/types/base';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import { siteItems } from '#lib/features/sites/columns.ts';
+import type { components, operations } from '#lib/api/schema';
+import type { FieldValueCount } from '#lib/shared/api/field-values.ts';
+import { fieldValueOptions } from '#lib/shared/api/field-values.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
 import type { ApiKey } from '../types/base';
 import {
 	common_enabled,
@@ -17,7 +17,7 @@ import {
 	common_site,
 	common_tags,
 	common_unknownSite
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 type DaemonApiKeyOrderField = components['schemas']['DaemonApiKeyOrderField'];
 /** The daemon API key list endpoint's query params, which the filters are sent and linked as. */

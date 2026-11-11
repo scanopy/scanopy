@@ -1,15 +1,15 @@
 <script lang="ts">
 	import EmptyState from './EmptyState.svelte';
 	import { Server } from '@lucide/svelte';
-	import { openModal } from '$lib/shared/stores/modal-registry';
-	import type { IconComponent } from '$lib/shared/utils/types';
-	import { useCan } from '$lib/features/auth/access';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { isPlanLapsed } from '$lib/features/organizations/types';
+	import { openModal } from '#lib/shared/stores/modal-registry.ts';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { isPlanLapsed } from '#lib/features/organizations/types.ts';
 	import {
 		daemons_installPromptViewer,
 		gettingStarted_stepDaemonLabel
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let { title }: { title: string } = $props();
 

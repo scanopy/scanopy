@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { ChevronDown, ChevronRight } from '@lucide/svelte';
-	import type { IconComponent } from '$lib/shared/utils/types';
-	import { inspectorSections } from '$lib/shared/stores/metadata';
-	import { common_collapse, common_expand } from '$lib/paraglide/messages';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
+	import { inspectorSections } from '#lib/shared/stores/metadata.ts';
+	import { common_collapse, common_expand } from '#lib/paraglide/messages.js';
 	import { collapsedInspectorSections, toggleInspectorSection } from './section-collapse';
 
 	/**

@@ -1,7 +1,7 @@
-import { deviceTypes } from '$lib/shared/stores/metadata';
-import type { IconComponent } from '$lib/shared/utils/types';
+import { deviceTypes } from '#lib/shared/stores/metadata.ts';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
 import type { Host } from './types/base';
-import DeviceGlyph from '$lib/features/hosts/components/DeviceGlyph.svelte';
+import DeviceGlyph from '#lib/features/hosts/components/DeviceGlyph.svelte';
 
 /**
  * The icon for a specific host: its device type's glyph, in the Host colour every device type shares.

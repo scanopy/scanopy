@@ -1,40 +1,43 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import { validateForm } from '$lib/shared/components/forms/form-context';
-	import ListConfigEditor from '$lib/shared/components/forms/selection/ListConfigEditor.svelte';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import { CredentialTypeDisplay } from '$lib/shared/components/forms/selection/display/CredentialTypeDisplay.svelte';
-	import { CredentialDisplay } from '$lib/shared/components/forms/selection/display/CredentialDisplay.svelte';
-	import CredentialForm from '$lib/features/credentials/components/CredentialForm.svelte';
-	import { slugifySiteName } from '$lib/features/daemons/utils';
-	import EntityConfigEmpty from '$lib/shared/components/forms/EntityConfigEmpty.svelte';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import { credentialTypes, entities } from '$lib/shared/stores/metadata';
-	import type { TypedTypeMetadata, CredentialTypeMetadata } from '$lib/shared/stores/metadata';
-	import type { Credential, CredentialType } from '$lib/features/credentials/types/base';
-	import { osFamilyOf, type DaemonOS } from '$lib/features/daemons/utils';
-	import type { Host } from '$lib/features/hosts/types/base';
+	import { validateForm } from '#lib/shared/components/forms/form-context.ts';
+	import ListConfigEditor from '#lib/shared/components/forms/selection/ListConfigEditor.svelte';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import { CredentialTypeDisplay } from '#lib/shared/components/forms/selection/display/CredentialTypeDisplay.svelte';
+	import { CredentialDisplay } from '#lib/shared/components/forms/selection/display/CredentialDisplay.svelte';
+	import CredentialForm from '#lib/features/credentials/components/CredentialForm.svelte';
+	import { slugifySiteName } from '#lib/features/daemons/utils.ts';
+	import EntityConfigEmpty from '#lib/shared/components/forms/EntityConfigEmpty.svelte';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import { credentialTypes, entities } from '#lib/shared/stores/metadata.ts';
+	import type { TypedTypeMetadata, CredentialTypeMetadata } from '#lib/shared/stores/metadata.ts';
+	import type { Credential, CredentialType } from '#lib/features/credentials/types/base.ts';
+	import { osFamilyOf, type DaemonOS } from '#lib/features/daemons/utils.ts';
+	import type { Host } from '#lib/features/hosts/types/base.ts';
 	import {
 		createDefaultCredential,
 		credentialTypeUpgradeFeature,
 		isDaemonHostOnly as isDaemonHostOnlyTargets,
 		isLoginType
-	} from '$lib/features/credentials/types/base';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useCredentialsQuery } from '$lib/features/credentials/queries';
-	import { daemonOsRefusal } from '$lib/features/credentials/utils/versionGate';
-	import { daemonVersionAtOrBelow } from '$lib/features/daemons/utils';
+	} from '#lib/features/credentials/types/base.ts';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useCredentialsQuery } from '#lib/features/credentials/queries.ts';
+	import { daemonOsRefusal } from '#lib/features/credentials/utils/versionGate.ts';
+	import { daemonVersionAtOrBelow } from '#lib/features/daemons/utils.ts';
 	import {
 		credentialFieldValues,
 		defaultFieldValue
-	} from '$lib/features/credentials/utils/fieldValues';
-	import { DAEMON_HOST_IP, isLockedOnly } from '$lib/features/credentials/utils/credentialTargets';
+	} from '#lib/features/credentials/utils/fieldValues.ts';
+	import {
+		DAEMON_HOST_IP,
+		isLockedOnly
+	} from '#lib/features/credentials/utils/credentialTargets.ts';
 	import { v4 as uuidv4 } from 'uuid';
-	import { disabledWhen } from '$lib/shared/components/data/types';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
-	import { pushError } from '$lib/shared/stores/feedback';
+	import { disabledWhen } from '#lib/shared/components/data/types.ts';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
+	import { pushError } from '#lib/shared/stores/feedback.ts';
 	import {
 		common_name,
 		common_ipAddress,
@@ -52,7 +55,7 @@
 		daemons_credentialWizardExistingFieldsReadOnly,
 		daemons_credentialWizardAssignedElsewhere,
 		credentials_requiresDaemonVersion
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	export interface PendingCredential {
 		credential: Credential;

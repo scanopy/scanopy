@@ -10,7 +10,7 @@ import {
 	estimateStageTimes,
 	loadProgress,
 	planStages
-} from '$lib/features/topology/pipeline/load-progress';
+} from '#lib/features/topology/pipeline/load-progress.ts';
 
 /**
  * The bar's one promise: it reaches the end of a stage's slice when that stage ends and not

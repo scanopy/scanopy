@@ -3,8 +3,8 @@ import type { Node } from '@xyflow/svelte';
 import { searchOpen, clearSearch } from './interactions';
 import { clearSelection, type SelectionStores } from './selection';
 import type BaseTopologyViewer from './components/visualization/BaseTopologyViewer.svelte';
-import { isFindShortcut } from '$lib/features/search/results';
-import { isEditableTarget } from '$lib/shared/utils/shortcuts';
+import { isFindShortcut } from '#lib/features/search/results.ts';
+import { isEditableTarget } from '#lib/shared/utils/shortcuts.ts';
 
 export interface KeyboardShortcutHandlers {
 	getBaseViewer: () => BaseTopologyViewer | null;

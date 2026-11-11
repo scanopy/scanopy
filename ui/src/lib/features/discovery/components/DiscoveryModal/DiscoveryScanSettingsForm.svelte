@@ -1,19 +1,19 @@
 <script lang="ts">
-	import scanSettingsFields from '$lib/data/scan-settings.json';
-	import type { FieldDefinition } from '$lib/shared/stores/metadata';
+	import scanSettingsFields from '#lib/data/scan-settings.json';
+	import type { FieldDefinition } from '#lib/shared/stores/metadata.ts';
 	import type { Discovery } from '../../types/base';
-	import type { Daemon } from '$lib/features/daemons/types/base';
-	import { useSubnetsQuery } from '$lib/features/subnets/queries';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import { formatDurationHuman } from '$lib/shared/utils/formatting';
-	import { translateFieldDefinitions } from '$lib/i18n/metadata';
+	import type { Daemon } from '#lib/features/daemons/types/base.ts';
+	import { useSubnetsQuery } from '#lib/features/subnets/queries.ts';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import { formatDurationHuman } from '#lib/shared/utils/formatting.ts';
+	import { translateFieldDefinitions } from '#lib/i18n/metadata.ts';
 	import {
 		discovery_docsScanSettings,
 		discovery_docsScanSettingsLinkText,
 		discovery_arpScanCutoffWarning,
 		discovery_arpScanCutoffWarningSlow
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		formData: Discovery;

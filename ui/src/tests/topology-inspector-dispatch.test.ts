@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import viewsJson from '$lib/data/views.json';
-import { getSectionComponent } from '$lib/features/topology/components/panel/inspectors/view-config';
-import { aggregatedDisplay } from '$lib/features/topology/components/panel/inspectors/edges/aggregated-display';
-import type { RenderableTopology, TopologyEdge } from '$lib/features/topology/types/base';
+import viewsJson from '#lib/data/views.json';
+import { getSectionComponent } from '#lib/features/topology/components/panel/inspectors/view-config.ts';
+import { aggregatedDisplay } from '#lib/features/topology/components/panel/inspectors/edges/aggregated-display.ts';
+import type { RenderableTopology, TopologyEdge } from '#lib/features/topology/types/base.ts';
 
 describe('inspector dispatch', () => {
 	it('has a component for every section a view lists', () => {

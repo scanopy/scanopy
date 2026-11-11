@@ -1,11 +1,11 @@
-import { apiClient } from '$lib/api/client';
-import { unwrapEnvelope } from '$lib/api/query-helpers';
-import { serviceDefinitions } from '$lib/shared/stores/metadata';
+import { apiClient } from '#lib/api/client.ts';
+import { unwrapEnvelope } from '#lib/api/query-helpers.ts';
+import { serviceDefinitions } from '#lib/shared/stores/metadata.ts';
 import {
 	hosts_virtualization_identityCount,
 	hosts_virtualization_vmCount,
 	topology_containerCount
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 import type { Service } from './types/base';
 
 /**

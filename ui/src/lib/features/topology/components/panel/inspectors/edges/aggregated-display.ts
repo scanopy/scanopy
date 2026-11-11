@@ -1,10 +1,10 @@
-import type { components } from '$lib/api/schema';
-import type { RenderableTopology, TopologyEdge } from '$lib/features/topology/types/base';
-import type { EntityDisplayComponent } from '$lib/shared/components/forms/selection/types';
-import { SameHostEdgeDisplay } from '$lib/shared/components/forms/selection/display/SameHostEdgeDisplay.svelte';
-import { PhysicalLinkEdgeDisplay } from '$lib/shared/components/forms/selection/display/PhysicalLinkEdgeDisplay.svelte';
-import { HypervisorEdgeDisplay } from '$lib/shared/components/forms/selection/display/HypervisorEdgeDisplay.svelte';
-import { ContainerRuntimeEdgeDisplay } from '$lib/shared/components/forms/selection/display/ContainerRuntimeEdgeDisplay.svelte';
+import type { components } from '#lib/api/schema';
+import type { RenderableTopology, TopologyEdge } from '#lib/features/topology/types/base.ts';
+import type { EntityDisplayComponent } from '#lib/shared/components/forms/selection/types.ts';
+import { SameHostEdgeDisplay } from '#lib/shared/components/forms/selection/display/SameHostEdgeDisplay.svelte';
+import { PhysicalLinkEdgeDisplay } from '#lib/shared/components/forms/selection/display/PhysicalLinkEdgeDisplay.svelte';
+import { HypervisorEdgeDisplay } from '#lib/shared/components/forms/selection/display/HypervisorEdgeDisplay.svelte';
+import { ContainerRuntimeEdgeDisplay } from '#lib/shared/components/forms/selection/display/ContainerRuntimeEdgeDisplay.svelte';
 
 type EdgeType = components['schemas']['EdgeTypeDiscriminants'];
 export type AggregatedEdgeDisplay = EntityDisplayComponent<

@@ -1,5 +1,5 @@
-import type { components } from '$lib/api/schema';
-import elementSortsJson from '$lib/data/element-sorts.json';
+import type { components } from '#lib/api/schema';
+import elementSortsJson from '#lib/data/element-sorts.json';
 import type { TopologyOptions } from './types/base';
 
 export type ElementSort = components['schemas']['ElementSort'];

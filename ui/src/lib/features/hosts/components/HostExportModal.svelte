@@ -1,7 +1,11 @@
 <script lang="ts">
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
 	import { FileSpreadsheet, FileArchive } from '@lucide/svelte';
-	import { downloadCsv, downloadHostsZip, type CsvExportParams } from '$lib/shared/utils/csvExport';
+	import {
+		downloadCsv,
+		downloadHostsZip,
+		type CsvExportParams
+	} from '#lib/shared/utils/csvExport.ts';
 	import {
 		hosts_exportChooseFormat,
 		hosts_exportCsvDesc,
@@ -9,7 +13,7 @@
 		hosts_exportTitle,
 		hosts_exportZipDesc,
 		hosts_exportZipTitle
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		isOpen = false,

@@ -1,4 +1,4 @@
-import type { FieldDefinition } from '$lib/shared/stores/metadata';
+import type { FieldDefinition } from '#lib/shared/stores/metadata.ts';
 
 /**
  * Lay a group's fields out in rows: two adjacent half-width fields share a row, every other field

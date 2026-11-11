@@ -1,15 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { resolve } from '$app/paths';
 
 	onMount(() => {
 		// Get URL params
-		const invitedBy = $page.url.searchParams.get('invited_by');
-		const token = $page.url.searchParams.get('token');
-		const orgName = $page.url.searchParams.get('org_name');
+		const invitedBy = page.url.searchParams.get('invited_by');
+
+		const token = page.url.searchParams.get('token');
+		const orgName = page.url.searchParams.get('org_name');
 
 		// Build redirect URL with params
 		if (invitedBy) {
@@ -18,14 +19,14 @@
 			if (orgName) params.set('org_name', orgName);
 			params.set('invited_by', invitedBy);
 			// eslint-disable-next-line svelte/no-navigation-without-resolve
-			goto(`/onboarding?${params.toString()}`, { replaceState: true });
+			goto(`${resolve('onboarding')}?${params.toString()}`, { replace: true });
 		} else if (token) {
 			// Password reset flow: redirect to login with token
 			// eslint-disable-next-line svelte/no-navigation-without-resolve
-			goto(`/login?token=${token}`, { replaceState: true });
+			goto(`${resolve('login')}?token=${token}`, { replace: true });
 		} else {
 			// Default: redirect to login
-			goto(resolve('/login'), { replaceState: true });
+			goto(resolve('login'), { replace: true });
 		}
 	});
 </script>

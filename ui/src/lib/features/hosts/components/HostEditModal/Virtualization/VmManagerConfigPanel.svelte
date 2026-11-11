@@ -1,18 +1,18 @@
 <script lang="ts">
-	import type { Service } from '$lib/features/services/types/base';
-	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import { hostDisplayContext, useHostPicker } from '$lib/features/hosts/host-picker.svelte';
-	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
-	import { serviceDefinitions } from '$lib/shared/stores/metadata';
-	import type { Host, HostVirtualization } from '$lib/features/hosts/types/base';
+	import type { Service } from '#lib/features/services/types/base.ts';
+	import { HostDisplay } from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import { hostDisplayContext, useHostPicker } from '#lib/features/hosts/host-picker.svelte.ts';
+	import { useIPAddressesQuery } from '#lib/features/ip-addresses/queries.ts';
+	import { serviceDefinitions } from '#lib/shared/stores/metadata.ts';
+	import type { Host, HostVirtualization } from '#lib/features/hosts/types/base.ts';
 	import {
 		common_alreadyAdded,
 		hosts_virtualization_addVmHost,
 		hosts_virtualization_noVmsYet,
 		hosts_virtualization_virtualMachines,
 		hosts_virtualization_vmHelp
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		service: Service;

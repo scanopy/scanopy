@@ -1,5 +1,5 @@
-import type { Port } from '$lib/features/hosts/types/base';
-import { displaySettings } from '$lib/shared/stores/display-settings.svelte';
+import type { Port } from '#lib/features/hosts/types/base.ts';
+import { displaySettings } from '#lib/shared/stores/display-settings.svelte.ts';
 import { formatDateTime, formatRelative } from './date-format';
 
 /**

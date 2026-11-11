@@ -5,9 +5,9 @@
 		serviceDefinitions,
 		serviceVirtualizations,
 		guestStates
-	} from '$lib/shared/stores/metadata';
-	import type { Port } from '$lib/features/hosts/types/base';
-	import { services_bindingCount } from '$lib/paraglide/messages';
+	} from '#lib/shared/stores/metadata.ts';
+	import type { Port } from '#lib/features/hosts/types/base.ts';
+	import { services_bindingCount } from '#lib/paraglide/messages.js';
 
 	export type ServiceTagRole = 'category' | 'virtualization';
 
@@ -16,7 +16,7 @@
 		ports?: Port[];
 		showEntityTagPicker?: boolean;
 		tagPickerDisabled?: boolean;
-		entityTags?: import('$lib/features/tags/types/base').Tag[];
+		entityTags?: import('#lib/features/tags/types/base.ts').Tag[];
 		allowTagCreate?: boolean;
 	}
 
@@ -118,11 +118,11 @@
 </script>
 
 <script lang="ts">
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
-	import type { Service } from '$lib/features/services/types/base';
-	import type { TagProps } from '$lib/shared/components/data/types';
-	import { formatPort } from '$lib/shared/utils/formatting';
+	import type { Service } from '#lib/features/services/types/base.ts';
+	import type { TagProps } from '#lib/shared/components/data/types.ts';
+	import { formatPort } from '#lib/shared/utils/formatting.ts';
 
 	interface Props {
 		item: Service;

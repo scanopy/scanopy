@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { FileText, LogOut } from '@lucide/svelte';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import { useAcceptTermsMutation, useLogoutMutation } from '$lib/features/auth/queries';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import { useAcceptTermsMutation, useLogoutMutation } from '#lib/features/auth/queries.ts';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		auth_termsAccept,
 		auth_termsUpdatedBody,
 		auth_termsUpdatedTitle,
 		common_logout
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	// No onClose: the server refuses this user's requests until they accept, so
 	// the only ways out are accepting and logging out.

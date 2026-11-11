@@ -1,7 +1,7 @@
-import { entityRef, type CardFieldItem } from '$lib/shared/components/data/types';
-import { entities } from '$lib/shared/stores/metadata';
-import { formatDate } from '$lib/shared/utils/formatting';
-import { discovery_runLabel } from '$lib/paraglide/messages';
+import { entityRef, type CardFieldItem } from '#lib/shared/components/data/types.ts';
+import { entities } from '#lib/shared/stores/metadata.ts';
+import { formatDate } from '#lib/shared/utils/formatting.ts';
+import { discovery_runLabel } from '#lib/paraglide/messages.js';
 import type { Discovery } from './types/base';
 
 /**

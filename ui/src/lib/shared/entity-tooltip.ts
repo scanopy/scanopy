@@ -5,25 +5,25 @@
  * lacks leaves its row out, or falls back to the metadata name where one exists.
  */
 
-import type { components } from '$lib/api/schema';
-import type { Daemon } from '$lib/features/daemons/types/base';
-import { runOutcomeTag } from '$lib/features/discovery/utils/outcome';
-import type { Host, HostVirtualization, IPAddress, Port } from '$lib/features/hosts/types/base';
-import type { Service, ServiceVirtualization } from '$lib/features/services/types/base';
-import type { Site } from '$lib/features/sites/types';
-import type { Tag, TagGroup } from '$lib/features/tags/types/base';
-import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-import { hostOsIcon, hostOsLabel } from '$lib/features/hosts/host-os';
-import { applicationGroupId, tagIcon } from '$lib/features/tags/groups';
-import { cachedEntities, queryClient, queryKeys } from '$lib/api/query-client';
+import type { components } from '#lib/api/schema';
+import type { Daemon } from '#lib/features/daemons/types/base.ts';
+import { runOutcomeTag } from '#lib/features/discovery/utils/outcome.ts';
+import type { Host, HostVirtualization, IPAddress, Port } from '#lib/features/hosts/types/base.ts';
+import type { Service, ServiceVirtualization } from '#lib/features/services/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Tag, TagGroup } from '#lib/features/tags/types/base.ts';
+import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+import { hostOsIcon, hostOsLabel } from '#lib/features/hosts/host-os.ts';
+import { applicationGroupId, tagIcon } from '#lib/features/tags/groups.ts';
+import { cachedEntities, queryClient, queryKeys } from '#lib/api/query-client.ts';
 import type {
 	TooltipChip,
 	TooltipContent,
 	TooltipItem,
 	TooltipRow,
 	TooltipSection
-} from '$lib/shared/actions/tooltip';
-import { entityRef, type EntityRef } from '$lib/shared/components/data/types';
+} from '#lib/shared/actions/tooltip.ts';
+import { entityRef, type EntityRef } from '#lib/shared/components/data/types.ts';
 import {
 	collectionLookup,
 	entityDisplayText,
@@ -36,7 +36,7 @@ import {
 	type EntityField,
 	type EntityLookup,
 	type EntityType
-} from '$lib/shared/entity-fields';
+} from '#lib/shared/entity-fields/index.ts';
 import {
 	containerNetworkTypes,
 	deviceTypes,
@@ -48,9 +48,9 @@ import {
 	serviceCategories,
 	serviceDefinitions,
 	serviceVirtualizations
-} from '$lib/shared/stores/metadata';
-import { formatPort, formatTimestamp } from '$lib/shared/utils/formatting';
-import type { Color } from '$lib/shared/utils/styling';
+} from '#lib/shared/stores/metadata.ts';
+import { formatPort, formatTimestamp } from '#lib/shared/utils/formatting.ts';
+import type { Color } from '#lib/shared/utils/styling.ts';
 import {
 	common_category,
 	common_created,
@@ -76,7 +76,7 @@ import {
 	hosts_deviceFacts_networkType,
 	hosts_deviceType,
 	sites_staleAfter
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 type DashboardSummary = components['schemas']['DashboardSummary'];
 type Dependency = components['schemas']['Dependency'];

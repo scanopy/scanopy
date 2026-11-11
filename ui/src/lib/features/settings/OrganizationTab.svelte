@@ -1,10 +1,10 @@
 <script lang="ts">
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import { useCan } from '$lib/features/auth/access';
-	import { pushError, pushSuccess } from '$lib/shared/stores/feedback';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import InfoRow from '$lib/shared/components/data/InfoRow.svelte';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import { pushError, pushSuccess } from '#lib/shared/stores/feedback.ts';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
+	import InfoRow from '#lib/shared/components/data/InfoRow.svelte';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
 	import { licenseProblemMessage } from './license-problem';
 	import {
 		useOrganizationQuery,
@@ -13,19 +13,19 @@
 		usePopulateDemoDataMutation,
 		useDeleteOrganizationMutation,
 		fetchDemoPopulateStatus
-	} from '$lib/features/organizations/queries';
-	import { queryClient } from '$lib/api/query-client';
-	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { hasLicensedPlan } from '$lib/features/organizations/types';
+	} from '#lib/features/organizations/queries.ts';
+	import { queryClient } from '#lib/api/query-client.ts';
+	import ConfirmationDialog from '#lib/shared/components/feedback/ConfirmationDialog.svelte';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import { hasLicensedPlan } from '#lib/features/organizations/types.ts';
 	import { resolve } from '$app/paths';
-	import { formatLongDate, formatTimestamp } from '$lib/shared/utils/formatting';
+	import { formatLongDate, formatTimestamp } from '#lib/shared/utils/formatting.ts';
 	import { createForm } from '@tanstack/svelte-form';
-	import { required, max } from '$lib/shared/components/forms/validators';
+	import { required, max } from '#lib/shared/components/forms/validators.ts';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import { useModalActions } from '$lib/shared/components/layout/modalActionsContext.svelte';
+	import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import { useModalActions } from '#lib/shared/components/layout/modalActionsContext.svelte.ts';
 	import {
 		common_back,
 		common_created,
@@ -71,7 +71,7 @@
 		settings_org_unableToLoad,
 		settings_org_updateName,
 		settings_org_updated
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		subView = $bindable<'main' | 'edit'>('main')
@@ -168,7 +168,7 @@
 			// A full load, as logout does: `queryClient.clear()` orphans the queries of
 			// components that stay mounted across a client-side navigation (AppShell's
 			// banners and payment dialog), which would keep showing the deleted org.
-			window.location.assign(resolve('/onboarding'));
+			window.location.assign(resolve('onboarding'));
 		} catch {
 			// API client middleware auto-toasts the translated error message
 			// (e.g. "Cancel your subscription before deleting your organization").

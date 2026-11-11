@@ -8,7 +8,7 @@
 		common_exe,
 		common_msi,
 		daemons_operatingSystem
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type LinuxMethod = 'binary' | 'docker';
 	type WindowsMethod = 'exe' | 'msi';

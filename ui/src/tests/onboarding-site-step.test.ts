@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { asksForSite, onboardingSteps } from '$lib/features/auth/stores/onboarding';
+import { asksForSite, onboardingSteps } from '#lib/features/auth/stores/onboarding.ts';
 
 describe('asksForSite', () => {
 	it('skips the site step only for a self-hosted license buyer on cloud', () => {

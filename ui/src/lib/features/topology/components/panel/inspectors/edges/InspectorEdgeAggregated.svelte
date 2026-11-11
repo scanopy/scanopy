@@ -1,9 +1,13 @@
 <script lang="ts">
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-	import type { TopologyEdge, RenderableTopology } from '$lib/features/topology/types/base';
-	import { useTopology, selectedTopologyId } from '$lib/features/topology/context';
-	import { edgeTypes, hostVirtualizations, serviceDefinitions } from '$lib/shared/stores/metadata';
-	import { containerHostsOfEdge, identityHostsOfEdge } from '$lib/features/topology/resolvers';
+	import type { TopologyEdge, RenderableTopology } from '#lib/features/topology/types/base.ts';
+	import { useTopology, selectedTopologyId } from '#lib/features/topology/context.ts';
+	import {
+		edgeTypes,
+		hostVirtualizations,
+		serviceDefinitions
+	} from '#lib/shared/stores/metadata.ts';
+	import { containerHostsOfEdge, identityHostsOfEdge } from '#lib/features/topology/resolvers.ts';
 	import {
 		topology_connectionsCount,
 		topology_containerCount,
@@ -12,23 +16,23 @@
 		common_presentedBy,
 		hosts_virtualization_containerHosts,
 		topology_containerService
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 	import InspectorSubsection from '../shared/InspectorSubsection.svelte';
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
 	import { aggregatedDisplay } from './aggregated-display';
-	import { DependencyDisplay } from '$lib/shared/components/forms/selection/display/DependencyDisplay.svelte';
+	import { DependencyDisplay } from '#lib/shared/components/forms/selection/display/DependencyDisplay.svelte';
 	import {
 		ServiceDisplay,
 		type ServiceDisplayContext
-	} from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
+	} from '#lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
 	import {
 		HostDisplay,
 		type HostDisplayContext,
 		type HostTagRole
-	} from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import type { Dependency } from '$lib/features/dependencies/types/base';
+	} from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import type { Dependency } from '#lib/features/dependencies/types/base.ts';
 
 	let { edges }: { edges: TopologyEdge[] } = $props();
 

@@ -19,8 +19,8 @@
  * this function's inputs will not be visible to the shape key.
  */
 
-import type { components } from '$lib/api/schema';
-import type { Service } from '$lib/features/services/types/base';
+import type { components } from '#lib/api/schema';
+import type { Service } from '#lib/features/services/types/base.ts';
 import type {
 	ElementInlineGroup,
 	ElementRenderData,
@@ -31,26 +31,26 @@ import type {
 import { elementEntity, nodeEntity, resolveElementNode, topologyLookup } from './resolvers';
 import { entityGlyph, type EntityGlyph } from './entity-glyph';
 import { elementMarks, entityMark, type ElementMarks, type MarkValue } from './element-marks';
-import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-import type { HostOs } from '$lib/features/hosts/host-os';
+import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+import type { HostOs } from '#lib/features/hosts/host-os.ts';
 import { getTopologyIndex } from './entity-index';
-import { entities, serviceDefinitions, views } from '$lib/shared/stores/metadata';
-import { getFreshnessTag } from '$lib/shared/utils/freshness';
-import { getConfirmationTag } from '$lib/shared/utils/confirmation';
-import type { TooltipContent } from '$lib/shared/actions/tooltip';
+import { entities, serviceDefinitions, views } from '#lib/shared/stores/metadata.ts';
+import { getFreshnessTag } from '#lib/shared/utils/freshness.ts';
+import { getConfirmationTag } from '#lib/shared/utils/confirmation.ts';
+import type { TooltipContent } from '#lib/shared/actions/tooltip.ts';
 import {
 	hostTooltip,
 	interfaceTooltip,
 	ipAddressTooltip,
 	serviceTooltip
-} from '$lib/shared/entity-tooltip';
-import type { Site } from '$lib/features/sites/types';
+} from '#lib/shared/entity-tooltip.ts';
+import type { Site } from '#lib/features/sites/types.ts';
 import { get } from 'svelte/store';
 import { activeView, hiddenEntityTypesIn, topologyOptions } from './queries';
 import { hiddenEntityIds } from './interactions';
 import { expandedInlineGroups, inlineGroupKey } from './collapse';
-import { queryClient, queryKeys } from '$lib/api/query-client';
-import { common_containers } from '$lib/paraglide/messages';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import { common_containers } from '#lib/paraglide/messages.js';
 
 type InlineGroup = components['schemas']['InlineGroup'];
 

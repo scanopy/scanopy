@@ -6,12 +6,12 @@
  * `getFreshnessTag`) with its label dropped; the tooltip carries the meaning.
  */
 
-import type { Site } from '$lib/features/sites/types';
-import type { TagProps } from '$lib/shared/components/data/types';
-import type { EntityDiscriminants } from '$lib/api/entities';
-import { entities } from '$lib/shared/stores/metadata';
-import { getConfirmationTag, type ConfirmationSubject } from '$lib/shared/utils/confirmation';
-import { getFreshnessTag, type FreshnessSubject } from '$lib/shared/utils/freshness';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { TagProps } from '#lib/shared/components/data/types.ts';
+import type { EntityDiscriminants } from '#lib/api/entities.ts';
+import { entities } from '#lib/shared/stores/metadata.ts';
+import { getConfirmationTag, type ConfirmationSubject } from '#lib/shared/utils/confirmation.ts';
+import { getFreshnessTag, type FreshnessSubject } from '#lib/shared/utils/freshness.ts';
 
 /** The row badges for `entity`, Unconfirmed first. */
 export function rowStatusBadges<

@@ -3,11 +3,11 @@
 	input's owner handles Tab; this handles the click. It never takes focus, so the input keeps it.
 -->
 <script lang="ts">
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
-	import { keyLabel } from '$lib/shared/utils/shortcuts';
-	import { isApplicationTag, tagIcon } from '$lib/features/tags/groups';
-	import type { Tag as TagType } from '$lib/features/tags/types/base';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import KbdKey from '#lib/shared/components/feedback/KbdKey.svelte';
+	import { keyLabel } from '#lib/shared/utils/shortcuts.ts';
+	import { isApplicationTag, tagIcon } from '#lib/features/tags/groups.ts';
+	import type { Tag as TagType } from '#lib/features/tags/types/base.ts';
 
 	let {
 		tag,

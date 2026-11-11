@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { components } from '$lib/api/schema';
-	import { deviceTypes } from '$lib/shared/stores/metadata';
+	import type { components } from '#lib/api/schema';
+	import { deviceTypes } from '#lib/shared/stores/metadata.ts';
 
 	/** A host's device type as text with its glyph: the hosts table's cell and the editor's fact. */
 	let { deviceType }: { deviceType: components['schemas']['DeviceType'] | null | undefined } =

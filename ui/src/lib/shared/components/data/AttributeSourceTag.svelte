@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Tag from './Tag.svelte';
-	import { attributeSourceTag, type AttributeSource } from '$lib/shared/utils/attribute-source';
-	import { common_noSourceRecorded } from '$lib/paraglide/messages';
+	import { attributeSourceTag, type AttributeSource } from '#lib/shared/utils/attribute-source.ts';
+	import { common_noSourceRecorded } from '#lib/paraglide/messages.js';
 
 	/**
 	 * Where one value came from. Pass `null` for a field that records no provenance (a host's

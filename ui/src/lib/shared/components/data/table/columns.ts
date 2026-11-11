@@ -1,5 +1,5 @@
 import { getFieldKey, type DisplayConfig, type FieldConfig } from '../types';
-import { fieldGroups } from '$lib/shared/stores/metadata';
+import { fieldGroups } from '#lib/shared/stores/metadata.ts';
 import { isSortableField } from '../controls/sorting';
 
 /**

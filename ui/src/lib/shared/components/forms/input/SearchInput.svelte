@@ -19,9 +19,9 @@
 	import type { Snippet } from 'svelte';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import { Search, X } from '@lucide/svelte';
-	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
+	import KbdKey from '#lib/shared/components/feedback/KbdKey.svelte';
 	import InputGhost from './InputGhost.svelte';
-	import { common_clearSearch } from '$lib/paraglide/messages';
+	import { common_clearSearch } from '#lib/paraglide/messages.js';
 
 	let {
 		field,

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { IconComponent } from '$lib/shared/utils/types';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
 	import type { Component } from 'svelte';
 	import PageTitle, { providePageTabs } from './PageTitle.svelte';
 

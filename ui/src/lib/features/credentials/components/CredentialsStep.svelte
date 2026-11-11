@@ -4,13 +4,13 @@
 
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { credentialTypes } from '$lib/shared/stores/metadata';
+	import { credentialTypes } from '#lib/shared/stores/metadata.ts';
 	import {
 		useBulkCreateCredentialsMutation,
 		useDeleteCredentialMutation
-	} from '$lib/features/credentials/queries';
-	import { type Credential } from '$lib/features/credentials/types/base';
-	import type { DaemonOS } from '$lib/features/daemons/utils';
+	} from '#lib/features/credentials/queries.ts';
+	import { type Credential } from '#lib/features/credentials/types/base.ts';
+	import type { DaemonOS } from '#lib/features/daemons/utils.ts';
 	import CredentialWizardStep, {
 		type PendingCredential as PendingCredentialType
 	} from './CredentialWizardStep.svelte';

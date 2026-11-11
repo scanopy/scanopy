@@ -1,6 +1,6 @@
-import type { components } from '$lib/api/schema';
-import warningCodes from '$lib/data/warning-codes.json';
-import { setupItems } from '$lib/shared/stores/metadata';
+import type { components } from '#lib/api/schema';
+import warningCodes from '#lib/data/warning-codes.json';
+import { setupItems } from '#lib/shared/stores/metadata.ts';
 
 export type SetupItem = components['schemas']['SetupItem'];
 export type SetupItemType = components['schemas']['SetupItemDiscriminants'];

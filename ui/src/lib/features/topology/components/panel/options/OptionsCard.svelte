@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 	import { ChevronDown, ChevronRight } from '@lucide/svelte';
-	import { common_options, topology_optionsHint } from '$lib/paraglide/messages';
+	import { common_options, topology_optionsHint } from '#lib/paraglide/messages.js';
 
 	const STORAGE_KEY = 'scanopy_topology_inspector_options_expanded';
 

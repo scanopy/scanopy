@@ -3,10 +3,10 @@
 		concepts,
 		serviceDefinitions,
 		serviceVirtualizations
-	} from '$lib/shared/stores/metadata';
-	import type { Host } from '$lib/features/hosts/types/base';
-	import type { Service } from '$lib/features/services/types/base';
-	import { guestCountLabel } from '$lib/features/services/virtualized-count';
+	} from '#lib/shared/stores/metadata.ts';
+	import type { Host } from '#lib/features/hosts/types/base.ts';
+	import type { Service } from '#lib/features/services/types/base.ts';
+	import { guestCountLabel } from '#lib/features/services/virtualized-count.ts';
 
 	// Context for virtualization manager display - needs access to hosts and services for counts
 	export interface VirtualizationManagerContext {
@@ -60,9 +60,9 @@
 </script>
 
 <script lang="ts">
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import type { EntityDisplayComponent } from '../types';
-	import type { TagProps } from '$lib/shared/components/data/types';
+	import type { TagProps } from '#lib/shared/components/data/types.ts';
 
 	export let item: Service;
 	export let context: VirtualizationManagerContext = { hosts: [], services: [] };

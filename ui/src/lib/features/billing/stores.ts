@@ -1,5 +1,5 @@
 import { get, writable } from 'svelte/store';
-import { modalState, openModal } from '$lib/shared/stores/modal-registry';
+import { modalState, openModal } from '#lib/shared/stores/modal-registry.ts';
 
 // When true, closing the billing modal should reopen the settings modal
 export const reopenSettingsAfterBilling = writable(false);

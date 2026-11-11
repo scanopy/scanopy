@@ -1,6 +1,6 @@
-import type { components } from '$lib/api/schema';
-import containerRuleTypes from '$lib/data/container-rule-types.json';
-import elementRuleTypes from '$lib/data/element-rule-types.json';
+import type { components } from '#lib/api/schema';
+import containerRuleTypes from '#lib/data/container-rule-types.json';
+import elementRuleTypes from '#lib/data/element-rule-types.json';
 import { v4 as uuidv4 } from 'uuid';
 
 export type GraphRule<T> = { id: string; rule: T };

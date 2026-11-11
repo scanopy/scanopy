@@ -1,22 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import type { Site } from '$lib/features/sites/types';
-import type { Host } from '$lib/features/hosts/types/base';
-import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
-import type { TooltipContent } from '$lib/shared/actions/tooltip';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Host } from '#lib/features/hosts/types/base.ts';
+import type { RenderableTopology, TopologyNode } from '#lib/features/topology/types/base.ts';
+import type { TooltipContent } from '#lib/shared/actions/tooltip.ts';
 import {
 	buildElementRender,
 	type ElementRenderInputs
-} from '$lib/features/topology/element-render-data';
-import { topologyLookup } from '$lib/features/topology/resolvers';
-import { entityTooltip, hostTooltip } from '$lib/shared/entity-tooltip';
-import { inlineGroupKey } from '$lib/features/topology/collapse';
-import { hiddenEntityTypesIn } from '$lib/features/topology/queries';
+} from '#lib/features/topology/element-render-data.ts';
+import { topologyLookup } from '#lib/features/topology/resolvers.ts';
+import { entityTooltip, hostTooltip } from '#lib/shared/entity-tooltip.ts';
+import { inlineGroupKey } from '#lib/features/topology/collapse.ts';
+import { hiddenEntityTypesIn } from '#lib/features/topology/queries.ts';
 import {
 	elementWidthPx,
 	ICON_ELEMENT_WIDTH_PX
-} from '$lib/features/topology/pipeline/build-flow-nodes';
-import { formatBitsPerSecond, formatPort } from '$lib/shared/utils/formatting';
-import { deviceTypes, hostVirtualizations } from '$lib/shared/stores/metadata';
+} from '#lib/features/topology/pipeline/build-flow-nodes.ts';
+import { formatBitsPerSecond, formatPort } from '#lib/shared/utils/formatting.ts';
+import { deviceTypes, hostVirtualizations } from '#lib/shared/stores/metadata.ts';
 
 /**
  * What an icon card carries now that it is the only card: a port carries its oper status, a

@@ -1,13 +1,13 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { createForm } from '@tanstack/svelte-form';
-	import PageTitle from '$lib/shared/components/layout/PageTitle.svelte';
-	import SearchInput from '$lib/shared/components/forms/input/SearchInput.svelte';
-	import { isFindShortcut } from '$lib/features/search/results';
-	import { keyLabel, shortcutLabel } from '$lib/shared/utils/shortcuts';
-	import { isOnVisiblePage } from '$lib/shared/stores/modal-registry';
-	import { lowercasePreservingAcronyms } from '$lib/shared/utils/formatting';
-	import { common_filter, common_filterEntity } from '$lib/paraglide/messages';
+	import PageTitle from '#lib/shared/components/layout/PageTitle.svelte';
+	import SearchInput from '#lib/shared/components/forms/input/SearchInput.svelte';
+	import { isFindShortcut } from '#lib/features/search/results.ts';
+	import { keyLabel, shortcutLabel } from '#lib/shared/utils/shortcuts.ts';
+	import { isOnVisiblePage } from '#lib/shared/stores/modal-registry.ts';
+	import { lowercasePreservingAcronyms } from '#lib/shared/utils/formatting.ts';
+	import { common_filter, common_filterEntity } from '#lib/paraglide/messages.js';
 
 	let {
 		searchQuery = $bindable(''),

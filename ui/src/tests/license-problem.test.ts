@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
 	licenseProblemBanner,
 	licenseProblemMessage
-} from '$lib/features/settings/license-problem';
-import { isLicenseLocked, type PublicServerConfig } from '$lib/shared/stores/config-query';
+} from '#lib/features/settings/license-problem.ts';
+import { isLicenseLocked, type PublicServerConfig } from '#lib/shared/stores/config-query.ts';
 
 const config = (license_status: PublicServerConfig['license_status']) =>
 	({ license_status }) as PublicServerConfig;

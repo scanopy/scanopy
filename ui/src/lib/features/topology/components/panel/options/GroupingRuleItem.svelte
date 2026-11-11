@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Lock } from '@lucide/svelte';
-	import { tooltip } from '$lib/shared/actions/tooltip';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
 
 	let {
 		label,

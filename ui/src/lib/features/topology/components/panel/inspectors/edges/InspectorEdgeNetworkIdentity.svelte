@@ -1,21 +1,21 @@
 <script lang="ts">
-	import { hostIcon } from '$lib/features/hosts/host-icon';
+	import { hostIcon } from '#lib/features/hosts/host-icon.ts';
 	import type { Edge } from '@xyflow/svelte';
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
 	import {
 		HostDisplay,
 		type HostDisplayContext,
 		type HostTagRole
-	} from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import { InterfaceDisplay } from '$lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
-	import { useTopology, selectedTopologyId } from '$lib/features/topology/context';
-	import { getTopologyEditState } from '$lib/features/topology/state';
-	import { topologyReadOnly } from '$lib/features/topology/queries';
-	import type { RenderableTopology, TopologyEdge } from '$lib/features/topology/types/base';
-	import { identityHostsOfEdge } from '$lib/features/topology/resolvers';
-	import type { Host } from '$lib/features/hosts/types/base';
-	import { entities, hostVirtualizations } from '$lib/shared/stores/metadata';
-	import { common_interface, common_presentedBy } from '$lib/paraglide/messages';
+	} from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import { InterfaceDisplay } from '#lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
+	import { useTopology, selectedTopologyId } from '#lib/features/topology/context.ts';
+	import { getTopologyEditState } from '#lib/features/topology/state.ts';
+	import { topologyReadOnly } from '#lib/features/topology/queries.ts';
+	import type { RenderableTopology, TopologyEdge } from '#lib/features/topology/types/base.ts';
+	import { identityHostsOfEdge } from '#lib/features/topology/resolvers.ts';
+	import type { Host } from '#lib/features/hosts/types/base.ts';
+	import { entities, hostVirtualizations } from '#lib/shared/stores/metadata.ts';
+	import { common_interface, common_presentedBy } from '#lib/paraglide/messages.js';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	let { edge, identitiesServiceId }: { edge: Edge; identitiesServiceId: string } = $props();

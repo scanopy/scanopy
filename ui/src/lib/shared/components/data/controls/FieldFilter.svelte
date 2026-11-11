@@ -2,7 +2,7 @@
 	import { getFieldKey, type FieldConfig } from '../types';
 	import type { FieldFilter } from './filtering';
 	import { filterLabelOf } from './fieldValues';
-	import type { Tag as TagType, TagGroup } from '$lib/features/tags/types/base';
+	import type { Tag as TagType, TagGroup } from '#lib/features/tags/types/base.ts';
 	import Tag from '../Tag.svelte';
 	import {
 		applicationGroupId,
@@ -10,17 +10,17 @@
 		isApplicationTag,
 		tagIcon,
 		tagTooltip
-	} from '$lib/features/tags/groups';
-	import { tagGroupIdOf } from '$lib/features/tags/groupFields';
-	import { scrollFade } from '$lib/shared/utils/scrollFade';
-	import type { Color } from '$lib/shared/utils/styling';
+	} from '#lib/features/tags/groups.ts';
+	import { tagGroupIdOf } from '#lib/features/tags/groupFields.ts';
+	import { scrollFade } from '#lib/shared/utils/scrollFade.ts';
+	import type { Color } from '#lib/shared/utils/styling.ts';
 	import {
 		common_staleOnly,
 		common_showTrue,
 		common_showFalse,
 		common_noTagsAvailable,
 		common_noValuesAvailable
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	/**
 	 * One field's filter controls, rendered in its column's header popover.

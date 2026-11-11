@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { effectiveTimeZone } from '$lib/shared/stores/display-settings.svelte';
+	import { effectiveTimeZone } from '#lib/shared/stores/display-settings.svelte.ts';
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm, validateForm } from '$lib/shared/components/forms/form-context';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import type { ModalTab } from '$lib/shared/components/layout/GenericModal.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import { entities, credentialTypes } from '$lib/shared/stores/metadata';
+	import { submitForm, validateForm } from '#lib/shared/components/forms/form-context.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalTab } from '#lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import { entities, credentialTypes } from '#lib/shared/stores/metadata.ts';
 	import {
 		DAEMON_HOST_IP,
 		hasExplicitTarget,
@@ -14,8 +14,8 @@
 		junctionHostIds,
 		junctionHostsOnSite,
 		supportsTarget
-	} from '$lib/features/credentials/utils/credentialTargets';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
+	} from '#lib/features/credentials/utils/credentialTargets.ts';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
 	import DiscoveryDetailsForm from './DiscoveryDetailsForm.svelte';
 	import DiscoveryTargetsForm from './DiscoveryTargetsForm.svelte';
 	import DiscoveryDetectionForm from './DiscoveryDetectionForm.svelte';
@@ -26,27 +26,27 @@
 	import WarningReport from './WarningReport.svelte';
 	import CredentialResults from './CredentialResults.svelte';
 	import { isCredentialWarning } from '../../utils/warnings';
-	import { uuidv4Sentinel } from '$lib/shared/utils/formatting';
+	import { uuidv4Sentinel } from '#lib/shared/utils/formatting.ts';
 	import { createEmptyDiscoveryFormData, parseDayTimeCronSchedule } from '../../queries';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
-	import { copyText } from '$lib/shared/utils/clipboard';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import { pushError, pushSuccess, pushWarning } from '#lib/shared/stores/feedback.ts';
+	import { copyText } from '#lib/shared/utils/clipboard.ts';
 	import { runDiagnostics } from '../../utils/diagnostics';
-	import type { Daemon } from '$lib/features/daemons/types/base';
-	import { isPreUnifiedDaemon } from '$lib/features/daemons/utils';
-	import type { Host } from '$lib/features/hosts/types/base';
-	import { useSubnetsQuery } from '$lib/features/subnets/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { isPlanLapsed } from '$lib/features/organizations/types';
-	import { billingPlans } from '$lib/shared/stores/metadata';
+	import type { Daemon } from '#lib/features/daemons/types/base.ts';
+	import { isPreUnifiedDaemon } from '#lib/features/daemons/utils.ts';
+	import type { Host } from '#lib/features/hosts/types/base.ts';
+	import { useSubnetsQuery } from '#lib/features/subnets/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { isPlanLapsed } from '#lib/features/organizations/types.ts';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
 	import { Info, Crosshair, ScanSearch, Gauge, Calendar, KeyRound, Copy } from '@lucide/svelte';
 	import CredentialsStep, {
 		type PendingCredential
-	} from '$lib/features/credentials/components/CredentialsStep.svelte';
-	import { useCredentialsQuery } from '$lib/features/credentials/queries';
-	import { useHostsByIds } from '$lib/features/hosts/queries';
+	} from '#lib/features/credentials/components/CredentialsStep.svelte';
+	import { useCredentialsQuery } from '#lib/features/credentials/queries.ts';
+	import { useHostsByIds } from '#lib/features/hosts/queries.ts';
 	import {
 		common_back,
 		common_cancel,
@@ -76,7 +76,7 @@
 		discovery_updateDiscovery,
 		discovery_viewRun,
 		daemons_installPromptDiscoveries
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		discovery?: Discovery | null;

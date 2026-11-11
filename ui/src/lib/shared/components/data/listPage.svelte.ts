@@ -1,4 +1,4 @@
-import { listIsEmpty, type ListPageParams, type ListPageQueryState } from '$lib/api/list-page';
+import { listIsEmpty, type ListPageParams, type ListPageQueryState } from '#lib/api/list-page.ts';
 import { narrowsList } from './controls/listQuery';
 
 /**

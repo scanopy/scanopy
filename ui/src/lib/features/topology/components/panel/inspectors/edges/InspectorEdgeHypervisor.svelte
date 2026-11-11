@@ -1,20 +1,20 @@
 <script lang="ts">
-	import { hostIcon } from '$lib/features/hosts/host-icon';
+	import { hostIcon } from '#lib/features/hosts/host-icon.ts';
 	import type { Edge } from '@xyflow/svelte';
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
-	import { ServiceDisplay } from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
-	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import { useTopology, selectedTopologyId } from '$lib/features/topology/context';
-	import { getTopologyEditState } from '$lib/features/topology/state';
-	import { topologyReadOnly } from '$lib/features/topology/queries';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import { ServiceDisplay } from '#lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
+	import { HostDisplay } from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import { useTopology, selectedTopologyId } from '#lib/features/topology/context.ts';
+	import { getTopologyEditState } from '#lib/features/topology/state.ts';
+	import { topologyReadOnly } from '#lib/features/topology/queries.ts';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
 	import {
 		hosts_virtualization_hypervisorService,
 		hosts_virtualization_virtualMachines,
 		hosts_virtualization_noVmsYet,
 		inspector_hypervisorHost
-	} from '$lib/paraglide/messages';
-	import { entities } from '$lib/shared/stores/metadata';
+	} from '#lib/paraglide/messages.js';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	let { edge, hypervisorServiceId }: { edge: Edge; hypervisorServiceId: string } = $props();

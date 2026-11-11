@@ -1,5 +1,8 @@
 <script lang="ts" module>
-	import type { ServicedDefinitionMetadata, TypedTypeMetadata } from '$lib/shared/stores/metadata';
+	import type {
+		ServicedDefinitionMetadata,
+		TypedTypeMetadata
+	} from '#lib/shared/stores/metadata.ts';
 
 	type ServiceType = TypedTypeMetadata<ServicedDefinitionMetadata>;
 
@@ -26,8 +29,8 @@
 </script>
 
 <script lang="ts">
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
-	import { serviceCategories, serviceDefinitions } from '$lib/shared/stores/metadata';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import { serviceCategories, serviceDefinitions } from '#lib/shared/stores/metadata.ts';
 	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
 
 	export let item: ServiceType;

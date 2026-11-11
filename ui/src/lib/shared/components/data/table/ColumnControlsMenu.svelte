@@ -6,13 +6,13 @@
 	import { columnControlState, type ColumnControl } from '../controls/headerControls';
 	import type { FilterState } from '../controls/filtering';
 	import type { FilterActions } from '../controls/filterActions';
-	import type { Tag as TagType, TagGroup } from '$lib/features/tags/types/base';
+	import type { Tag as TagType, TagGroup } from '#lib/features/tags/types/base.ts';
 	import {
 		common_clearFilter,
 		common_clearGrouping,
 		common_filterByColumn,
 		common_groupByColumn
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	/**
 	 * A column header's filter and group control: an icon button that opens a

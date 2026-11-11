@@ -1,19 +1,19 @@
 <script lang="ts">
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
 	import type { Host, HostWithAddresses } from '../types/base';
 	import { hostDisplayName } from '../host-display-name';
 	import { useHostPicker, useHostServices, hostDisplayContext } from '../host-picker.svelte';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import EntityDisplay from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
-	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import EntityList from '$lib/shared/components/data/EntityList.svelte';
-	import { entities } from '$lib/shared/stores/metadata';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import { useServicesCacheQuery } from '$lib/features/services/queries';
-	import { usePortsQuery } from '$lib/features/ports/queries';
-	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import EntityDisplay from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import { HostDisplay } from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import EntityList from '#lib/shared/components/data/EntityList.svelte';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import { useServicesCacheQuery } from '#lib/features/services/queries.ts';
+	import { usePortsQuery } from '#lib/features/ports/queries.ts';
+	import { useIPAddressesQuery } from '#lib/features/ip-addresses/queries.ts';
 	import {
 		common_back,
 		common_cancel,
@@ -30,7 +30,7 @@
 		hosts_mergeModal_title,
 		hosts_mergeModal_warningBody,
 		hosts_mergeModal_warningTitle
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		otherHost?: Host | null;

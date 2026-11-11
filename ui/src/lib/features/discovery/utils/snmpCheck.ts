@@ -10,12 +10,12 @@
  * the stored credential the warning names, with every secret a placeholder.
  */
 
-import type { components } from '$lib/api/schema';
-import claimSources from '$lib/data/claim-sources.json';
-import snmpAuthProtocols from '$lib/data/snmp-auth-protocols.json';
-import snmpPrivProtocols from '$lib/data/snmp-priv-protocols.json';
-import snmpWalkGroups from '$lib/data/snmp-walk-groups.json';
-import warningCodes from '$lib/data/warning-codes.json';
+import type { components } from '#lib/api/schema';
+import claimSources from '#lib/data/claim-sources.json';
+import snmpAuthProtocols from '#lib/data/snmp-auth-protocols.json';
+import snmpPrivProtocols from '#lib/data/snmp-priv-protocols.json';
+import snmpWalkGroups from '#lib/data/snmp-walk-groups.json';
+import warningCodes from '#lib/data/warning-codes.json';
 import {
 	common_snmpAuthPassphrasePlaceholder,
 	discovery_snmpCheckNoCredential,
@@ -23,7 +23,7 @@ import {
 	discovery_snmpCheckUnrecorded,
 	common_snmpCommunityPlaceholder,
 	common_snmpPrivPassphrasePlaceholder
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 import type { DiscoveryWarning } from './warnings';
 
 type SnmpCheck = components['schemas']['SnmpCheck'];

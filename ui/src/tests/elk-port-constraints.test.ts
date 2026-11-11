@@ -3,9 +3,9 @@ import {
 	computeElkLayout,
 	portConstraintFor,
 	type ElkLayoutInput
-} from '$lib/features/topology/layout/elk-layout';
-import { buildTopologyParentIndex } from '$lib/features/topology/topology-parent-index';
-import type { components } from '$lib/api/schema';
+} from '#lib/features/topology/layout/elk-layout.ts';
+import { buildTopologyParentIndex } from '#lib/features/topology/topology-parent-index.ts';
+import type { components } from '#lib/api/schema';
 
 type TopologyNode = components['schemas']['Node'];
 type TopologyEdge = components['schemas']['Edge'];

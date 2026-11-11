@@ -14,7 +14,7 @@ import {
 	boundsOfNodes,
 	zoomFloorFor,
 	type BoundableNode
-} from '$lib/features/topology/viewport-fit';
+} from '#lib/features/topology/viewport-fit.ts';
 
 /** The reporting customer's pane. */
 const PANE = { width: 2028, height: 1210 };

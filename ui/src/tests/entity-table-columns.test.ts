@@ -20,13 +20,13 @@ import {
 	MIN_COLUMN_WIDTH,
 	TAG_COLUMN_ID,
 	type ColumnState
-} from '$lib/shared/components/data/table/columns';
-import { fieldGroups } from '$lib/shared/stores/metadata';
-import { defineFields, getFieldKey, type FieldConfig } from '$lib/shared/components/data/types';
+} from '#lib/shared/components/data/table/columns.ts';
+import { fieldGroups } from '#lib/shared/stores/metadata.ts';
+import { defineFields, getFieldKey, type FieldConfig } from '#lib/shared/components/data/types.ts';
 import {
 	parseStoredState,
 	serializeState
-} from '$lib/shared/components/data/controls/dataControlsStorage';
+} from '#lib/shared/components/data/controls/dataControlsStorage.ts';
 
 interface Row {
 	name: string;

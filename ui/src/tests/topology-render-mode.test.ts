@@ -8,7 +8,7 @@ import {
 	DETAIL_ZOOM,
 	MIN_CARD_TEXT_PX,
 	CARD_TEXT_PX
-} from '$lib/features/topology/pipeline/render-mode';
+} from '#lib/features/topology/pipeline/render-mode.ts';
 
 /**
  * Culling has two hard suspensions. Both exist because something else needs

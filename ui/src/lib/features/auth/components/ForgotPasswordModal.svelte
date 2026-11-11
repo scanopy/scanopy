@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import { required, email } from '$lib/shared/components/forms/validators';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import { required, email } from '#lib/shared/components/forms/validators.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
 	import { Mail } from '@lucide/svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		auth_backToLogin,
 		auth_checkYourEmail,
@@ -19,7 +19,7 @@
 		auth_sendResetLink,
 		common_email,
 		common_sending
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		isOpen?: boolean;

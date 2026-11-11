@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { Node } from '@xyflow/svelte';
-	import { activeView, topologyReadOnly } from '$lib/features/topology/queries';
-	import type { TopologyNode, RenderableTopology } from '$lib/features/topology/types/base';
-	import { resolveElementNode } from '$lib/features/topology/resolvers';
-	import { useTopology, selectedTopologyId } from '$lib/features/topology/context';
-	import { getTopologyEditState } from '$lib/features/topology/state';
+	import { activeView, topologyReadOnly } from '#lib/features/topology/queries.ts';
+	import type { TopologyNode, RenderableTopology } from '#lib/features/topology/types/base.ts';
+	import { resolveElementNode } from '#lib/features/topology/resolvers.ts';
+	import { useTopology, selectedTopologyId } from '#lib/features/topology/context.ts';
+	import { getTopologyEditState } from '#lib/features/topology/state.ts';
 	import { getInspectorConfig, getSectionComponent } from '../view-config';
 
 	let { node }: { node: Node } = $props();

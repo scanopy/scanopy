@@ -31,8 +31,8 @@
 
 <script lang="ts">
 	import { Info } from '@lucide/svelte';
-	import { tooltip } from '$lib/shared/actions/tooltip';
-	import { common_contentTabs } from '$lib/paraglide/messages';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
+	import { common_contentTabs } from '#lib/paraglide/messages.js';
 
 	let {
 		title = null,

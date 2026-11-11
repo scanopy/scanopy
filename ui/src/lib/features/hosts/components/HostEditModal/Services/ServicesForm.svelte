@@ -1,19 +1,19 @@
 <script lang="ts">
-	import ListConfigEditor from '$lib/shared/components/forms/selection/ListConfigEditor.svelte';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import type { PortBinding, Service } from '$lib/features/services/types/base';
-	import { createDefaultService } from '$lib/features/services/queries';
-	import type { HostFormData } from '$lib/features/hosts/types/base';
-	import { serviceDefinitions } from '$lib/shared/stores/metadata';
-	import { ServiceDisplay } from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
-	import { ServiceTypeDisplay } from '$lib/shared/components/forms/selection/display/ServiceTypeDisplay.svelte';
-	import { pushError } from '$lib/shared/stores/feedback';
-	import { virtualizedSummary } from '$lib/features/services/virtualized-count';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
+	import ListConfigEditor from '#lib/shared/components/forms/selection/ListConfigEditor.svelte';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import type { PortBinding, Service } from '#lib/features/services/types/base.ts';
+	import { createDefaultService } from '#lib/features/services/queries.ts';
+	import type { HostFormData } from '#lib/features/hosts/types/base.ts';
+	import { serviceDefinitions } from '#lib/shared/stores/metadata.ts';
+	import { ServiceDisplay } from '#lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
+	import { ServiceTypeDisplay } from '#lib/shared/components/forms/selection/display/ServiceTypeDisplay.svelte';
+	import { pushError } from '#lib/shared/stores/feedback.ts';
+	import { virtualizedSummary } from '#lib/features/services/virtualized-count.ts';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
 	import ServiceConfigPanel, { validateServiceName } from './ServiceConfigPanel.svelte';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
-	import EntityConfigEmpty from '$lib/shared/components/forms/EntityConfigEmpty.svelte';
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import EntityConfigEmpty from '#lib/shared/components/forms/EntityConfigEmpty.svelte';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import { ArrowRightLeft } from '@lucide/svelte';
 	import {
 		common_confirmDeleteNameWithGuests,
@@ -28,7 +28,7 @@
 		hosts_services_selectToConfig,
 		hosts_services_transferBindingsTitle,
 		hosts_services_transferPorts
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		formData: HostFormData;

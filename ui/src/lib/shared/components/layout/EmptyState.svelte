@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { Search } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
-	import type { IconComponent as IconComponentType } from '$lib/shared/utils/types';
-	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
-	import PaidCrown from '$lib/shared/components/PaidCrown.svelte';
-	import { isOnVisiblePage } from '$lib/shared/stores/modal-registry';
-	import { isFreeKeydown, isPlainKey } from '$lib/shared/components/data/controls/listShortcuts';
-	import { triggerUpgrade, type UpgradeGate } from '$lib/features/billing/trigger-upgrade';
-	import { common_availableOnPaidPlans } from '$lib/paraglide/messages';
+	import type { IconComponent as IconComponentType } from '#lib/shared/utils/types.ts';
+	import KbdKey from '#lib/shared/components/feedback/KbdKey.svelte';
+	import PaidCrown from '#lib/shared/components/PaidCrown.svelte';
+	import { isOnVisiblePage } from '#lib/shared/stores/modal-registry.ts';
+	import { isFreeKeydown, isPlainKey } from '#lib/shared/components/data/controls/listShortcuts.ts';
+	import { triggerUpgrade, type UpgradeGate } from '#lib/features/billing/trigger-upgrade.ts';
+	import { common_availableOnPaidPlans } from '#lib/paraglide/messages.js';
 
 	let {
 		IconComponent = Search,

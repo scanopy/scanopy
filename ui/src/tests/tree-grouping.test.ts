@@ -7,10 +7,10 @@ import {
 	ROOTED_TREES_KEY,
 	type RenderGroup,
 	type TreeEntry
-} from '$lib/shared/components/data/controls/grouping';
-import type { TreeConfig } from '$lib/shared/components/data/types';
-import { subnetNesting } from '$lib/features/subnets/nesting';
-import type { SubnetResponse } from '$lib/features/subnets/types/base';
+} from '#lib/shared/components/data/controls/grouping.ts';
+import type { TreeConfig } from '#lib/shared/components/data/types.ts';
+import { subnetNesting } from '#lib/features/subnets/nesting.ts';
+import type { SubnetResponse } from '#lib/features/subnets/types/base.ts';
 
 interface Range {
 	id: string;

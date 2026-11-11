@@ -1,10 +1,13 @@
 <script lang="ts">
 	import type { Node } from '@xyflow/svelte';
-	import type { components } from '$lib/api/schema';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
-	import { activeView, getInfrastructureRuleIdForTopology } from '$lib/features/topology/queries';
-	import { views, entities } from '$lib/shared/stores/metadata';
-	import { tallyContainerElements } from '$lib/features/topology/labels';
+	import type { components } from '#lib/api/schema';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+	import {
+		activeView,
+		getInfrastructureRuleIdForTopology
+	} from '#lib/features/topology/queries.ts';
+	import { views, entities } from '#lib/shared/stores/metadata.ts';
+	import { tallyContainerElements } from '#lib/features/topology/labels.ts';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 

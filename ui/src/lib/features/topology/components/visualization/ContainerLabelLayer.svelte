@@ -2,14 +2,18 @@
 	import { untrack } from 'svelte';
 	import throttle from 'just-throttle';
 	import { ViewportPortal, useViewport, type Node } from '@xyflow/svelte';
-	import { containerTypes } from '$lib/shared/stores/metadata';
-	import { createColorHelper } from '$lib/shared/utils/styling';
+	import { containerTypes } from '#lib/shared/stores/metadata.ts';
+	import { createColorHelper } from '#lib/shared/utils/styling.ts';
 	import {
 		searchHiddenNodeIds,
 		searchMatchContainerMap,
 		searchMatchNodeIds
 	} from '../../interactions';
-	import { placeLabels, type LabelCandidate, type PlacedLabel } from '../../pipeline/label-placement';
+	import {
+		placeLabels,
+		type LabelCandidate,
+		type PlacedLabel
+	} from '../../pipeline/label-placement';
 
 	/**
 	 * Container names over a zoomed-out canvas: see `label-placement.ts` for which are drawn and
@@ -174,7 +178,9 @@
 					class:open
 					data-label-for={label.id}
 					style:--label-color={label.color}
-					style:max-width="{open ? Math.max(hovered?.fullWidth ?? 0, label.maxWidth) : label.maxWidth}px"
+					style:max-width="{open
+						? Math.max(hovered?.fullWidth ?? 0, label.maxWidth)
+						: label.maxWidth}px"
 					style:transform="translate({label.x}px, {label.y}px) scale(var(--inv-zoom))"
 				>
 					{label.text}

@@ -27,10 +27,10 @@
 		UNSIZED_COLUMN_MAX,
 		type EntityColumn
 	} from './columns';
-	import { displaySettings } from '$lib/shared/stores/display-settings.svelte';
+	import { displaySettings } from '#lib/shared/stores/display-settings.svelte.ts';
 	import FieldValue from '../FieldValue.svelte';
 	import TreeGuides from '../TreeGuides.svelte';
-	import { shortcutLabel } from '$lib/shared/utils/shortcuts';
+	import { shortcutLabel } from '#lib/shared/utils/shortcuts.ts';
 	import { getFieldValue } from '../controls/fieldValues';
 	import type { RenderGroup, TreeCell, TreeContinuation, TreeEntry } from '../controls/grouping';
 	import type { SortState } from '../controls/sorting';
@@ -46,7 +46,7 @@
 		common_resizeColumn,
 		common_expand,
 		common_collapse
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		items,

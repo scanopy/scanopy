@@ -3,7 +3,7 @@ import {
 	isPlanUnchosen,
 	isSelfHostedPlanLocked,
 	type Organization
-} from '$lib/features/organizations/types';
+} from '#lib/features/organizations/types.ts';
 
 type Plan = NonNullable<Organization['plan']>;
 

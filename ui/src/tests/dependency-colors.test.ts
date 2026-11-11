@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { dependencyColors } from '$lib/features/dependencies/utils';
-import { edgeTypes } from '$lib/shared/stores/metadata';
-import type { Color } from '$lib/shared/utils/styling';
+import { dependencyColors } from '#lib/features/dependencies/utils.ts';
+import { edgeTypes } from '#lib/shared/stores/metadata.ts';
+import type { Color } from '#lib/shared/utils/styling.ts';
 
 describe('dependencyColors', () => {
 	const offered = new Set(dependencyColors());

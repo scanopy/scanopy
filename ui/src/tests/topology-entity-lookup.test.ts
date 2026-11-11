@@ -6,10 +6,10 @@ import {
 	tagHiddenNodeIds,
 	updateSearchFilter,
 	updateTagFilter
-} from '$lib/features/topology/interactions';
-import { getNodeSelectionIds, resolveTagTarget } from '$lib/features/topology/resolvers';
-import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
-import type { Site } from '$lib/features/sites/types';
+} from '#lib/features/topology/interactions.ts';
+import { getNodeSelectionIds, resolveTagTarget } from '#lib/features/topology/resolvers.ts';
+import type { RenderableTopology, TopologyNode } from '#lib/features/topology/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
 
 /**
  * Cards whose node ids are not their entities' ids, so every lookup has to go through `entity_id`:

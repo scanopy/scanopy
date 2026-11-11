@@ -2,7 +2,7 @@
 	import type { Node } from '@xyflow/svelte';
 	import InspectorElementNode from './nodes/InspectorElementNode.svelte';
 	import InspectorContainerNode from './nodes/InspectorContainerNode.svelte';
-	import { inspector_nodeDetailsUnavailable } from '$lib/paraglide/messages';
+	import { inspector_nodeDetailsUnavailable } from '#lib/paraglide/messages.js';
 
 	let { node }: { node: Node } = $props();
 

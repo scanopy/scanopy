@@ -6,7 +6,7 @@ import {
 	type SetupItemState,
 	type SetupItemType,
 	type SetupListEntry
-} from '$lib/features/home/setup-list';
+} from '#lib/features/home/setup-list.ts';
 
 const daemonIssue: SetupListEntry = {
 	key: {

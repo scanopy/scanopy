@@ -4,14 +4,14 @@
 	 * emptied by the user's own filters gets `ViewFiltersEmptyState` instead, which names them.
 	 */
 	import TopologyOverlay from './TopologyOverlay.svelte';
-	import { openModal } from '$lib/shared/stores/modal-registry';
+	import { openModal } from '#lib/shared/stores/modal-registry.ts';
 	import { Cable } from '@lucide/svelte';
 	import {
 		topology_l2EmptyTitle,
 		topology_l2EmptyDescription,
 		topology_l2EmptyNeighborHint,
 		credentials_createCredential
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		hasInterfaceCredential = false

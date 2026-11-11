@@ -1,14 +1,17 @@
 <script lang="ts">
 	import type { Node } from '@xyflow/svelte';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
-	import { resolveInlineServiceIds } from '$lib/features/topology/resolvers';
-	import { getTopologyIndex } from '$lib/features/topology/entity-index';
-	import { containerTypes } from '$lib/shared/stores/metadata';
-	import { inspector_crossContainerDeps, inspector_noDependencies } from '$lib/paraglide/messages';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+	import { resolveInlineServiceIds } from '#lib/features/topology/resolvers.ts';
+	import { getTopologyIndex } from '#lib/features/topology/entity-index.ts';
+	import { containerTypes } from '#lib/shared/stores/metadata.ts';
+	import {
+		inspector_crossContainerDeps,
+		inspector_noDependencies
+	} from '#lib/paraglide/messages.js';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 	import InspectorSubsection from '../shared/InspectorSubsection.svelte';
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
-	import { DependencyDisplay } from '$lib/shared/components/forms/selection/display/DependencyDisplay.svelte';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import { DependencyDisplay } from '#lib/shared/components/forms/selection/display/DependencyDisplay.svelte';
 
 	let {
 		node,

@@ -1,36 +1,36 @@
 <script lang="ts">
-	import { rowStatusBadges } from '$lib/shared/utils/row-badges';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
+	import { rowStatusBadges } from '#lib/shared/utils/row-badges.ts';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
 	import { vlanColumns } from './VlanTab.columns';
-	import { collectionLookup } from '$lib/shared/entity-fields';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { isUserManagedSubnet, useSubnetsQuery } from '$lib/features/subnets/queries';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { isUserManagedSubnet, useSubnetsQuery } from '#lib/features/subnets/queries.ts';
 	import {
 		useBulkDeleteVlansMutation,
 		useDeleteVlanMutation,
 		useUpdateVlanMutation,
 		useVlansListQuery
 	} from '../queries';
-	import { listPageState } from '$lib/shared/components/data/listPage.svelte';
-	import { useFieldValuesQuery } from '$lib/shared/api/field-values';
+	import { listPageState } from '#lib/shared/components/data/listPage.svelte.ts';
+	import { useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
 	import VlanEditModal from './VlanEditModal.svelte';
 	import { Edit, Trash2 } from '@lucide/svelte';
-	import type { RowAction } from '$lib/shared/components/data/types';
-	import type { TabProps } from '$lib/shared/types';
-	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
-	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
-	import { useInterfacesByIds } from '$lib/features/interfaces/queries';
-	import { useTagsQuery } from '$lib/features/tags/queries';
-	import { discoveryRunIds } from '$lib/features/discovery/columns';
+	import type { RowAction } from '#lib/shared/components/data/types.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
+	import { modalState, resolveModalDeepLink } from '#lib/shared/stores/modal-registry.ts';
+	import { useDiscoveriesByIds } from '#lib/features/discovery/queries.ts';
+	import { useInterfacesByIds } from '#lib/features/interfaces/queries.ts';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
+	import { discoveryRunIds } from '#lib/features/discovery/columns.ts';
 	import type { Vlan, VlanOrderField } from '../types/base';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
 	import {
 		common_confirmBulkDelete,
 		common_confirmDeleteName,
@@ -41,9 +41,9 @@
 		daemons_installPromptVlans,
 		vlans_emptySubtitle,
 		vlans_vlanTitle
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
-	import { refusedUnless, useCan } from '$lib/features/auth/access';
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
 
 	let { isActive = false }: TabProps = $props();
 	const can = useCan();

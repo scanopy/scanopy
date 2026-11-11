@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import type { IconComponent } from '$lib/shared/utils/types';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
 
 	/**
 	 * Tab definition for modal header tabs
@@ -32,15 +32,15 @@
 		common_previous,
 		common_shortcutsPausedWhileTyping,
 		common_shortcutWhileTyping
-	} from '$lib/paraglide/messages';
-	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
-	import { isEditableTarget, keyLabel, shortcutLabel } from '$lib/shared/utils/shortcuts';
+	} from '#lib/paraglide/messages.js';
+	import ConfirmationDialog from '#lib/shared/components/feedback/ConfirmationDialog.svelte';
+	import { isEditableTarget, keyLabel, shortcutLabel } from '#lib/shared/utils/shortcuts.ts';
 	import ModalStepper from './ModalStepper.svelte';
-	import ServerUnreachableBanner from '$lib/shared/components/feedback/ServerUnreachableBanner.svelte';
-	import { serverUnreachable } from '$lib/api/server-reachability';
-	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
-	import { tooltip } from '$lib/shared/actions/tooltip';
-	import { toolbarButtonClass } from '$lib/shared/components/data/controls/actionShortcuts';
+	import ServerUnreachableBanner from '#lib/shared/components/feedback/ServerUnreachableBanner.svelte';
+	import { serverUnreachable } from '#lib/api/server-reachability.ts';
+	import KbdKey from '#lib/shared/components/feedback/KbdKey.svelte';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
+	import { toolbarButtonClass } from '#lib/shared/components/data/controls/actionShortcuts.ts';
 	import {
 		assignModalKeys,
 		closesModalOnEscape,
@@ -54,8 +54,8 @@
 		type ModalAction
 	} from './modalActions';
 	import { provideModalActions } from './modalActionsContext.svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { toColor } from '$lib/shared/utils/styling';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import { toColor } from '#lib/shared/utils/styling.ts';
 	import { get } from 'svelte/store';
 	import {
 		modalState,
@@ -66,7 +66,7 @@
 		restoreModal,
 		setModalTab,
 		goBack
-	} from '$lib/shared/stores/modal-registry';
+	} from '#lib/shared/stores/modal-registry.ts';
 
 	let {
 		title = common_modal(),

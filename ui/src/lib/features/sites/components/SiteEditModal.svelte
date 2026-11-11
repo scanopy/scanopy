@@ -1,28 +1,28 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import { required, max } from '$lib/shared/components/forms/validators';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import { billingPlans, entities } from '$lib/shared/stores/metadata';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import { required, max } from '#lib/shared/components/forms/validators.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import { billingPlans, entities } from '#lib/shared/stores/metadata.ts';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
 	import type { Site } from '../types';
 	import { createEmptySiteFormData } from '../queries';
-	import { pushError } from '$lib/shared/stores/feedback';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useCan } from '$lib/features/auth/access';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import DurationInput from '$lib/shared/components/forms/input/DurationInput.svelte';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
-	import { useCredentialsQuery } from '$lib/features/credentials/queries';
-	import type { Credential } from '$lib/features/credentials/types/base';
-	import { getCredentialTypeId } from '$lib/features/credentials/types/base';
-	import { credentialTypes } from '$lib/shared/stores/metadata';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import { CredentialDisplay } from '$lib/shared/components/forms/selection/display/CredentialDisplay.svelte';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import { pushError } from '#lib/shared/stores/feedback.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import DurationInput from '#lib/shared/components/forms/input/DurationInput.svelte';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
+	import { useCredentialsQuery } from '#lib/features/credentials/queries.ts';
+	import type { Credential } from '#lib/features/credentials/types/base.ts';
+	import { getCredentialTypeId } from '#lib/features/credentials/types/base.ts';
+	import { credentialTypes } from '#lib/shared/stores/metadata.ts';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import { CredentialDisplay } from '#lib/shared/components/forms/selection/display/CredentialDisplay.svelte';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		common_tags,
 		common_cancel,
@@ -44,7 +44,7 @@
 		sites_staleAfterHours,
 		sites_staleAfterHoursHelp,
 		sites_noCredentialsAssigned
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		site = null,

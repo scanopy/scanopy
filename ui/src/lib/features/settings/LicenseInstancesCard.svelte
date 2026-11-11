@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { Trash2 } from '@lucide/svelte';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
-	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
+	import ConfirmationDialog from '#lib/shared/components/feedback/ConfirmationDialog.svelte';
 	import {
 		useDeleteLicenseInstanceMutation,
 		useLicenseInstancesQuery
-	} from '$lib/features/billing/queries';
-	import { formatTimestamp } from '$lib/shared/utils/formatting';
+	} from '#lib/features/billing/queries.ts';
+	import { formatTimestamp } from '#lib/shared/utils/formatting.ts';
 	import {
 		common_delete,
 		common_inactive,
@@ -27,7 +27,7 @@
 		settings_billing_license_serverDeleteConfirm,
 		settings_billing_license_serverDeleteTitle,
 		settings_billing_license_serversHint
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let { enabled }: { enabled: boolean } = $props();
 

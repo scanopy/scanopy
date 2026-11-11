@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { nodesConnectedByEdge } from '$lib/features/topology/interactions';
-import type { TopologyEdge } from '$lib/features/topology/types/base';
+import { nodesConnectedByEdge } from '#lib/features/topology/interactions.ts';
+import type { TopologyEdge } from '#lib/features/topology/types/base.ts';
 
 /**
  * Clicking an edge highlights what the edge's own `selection_scope` says it should — the whole

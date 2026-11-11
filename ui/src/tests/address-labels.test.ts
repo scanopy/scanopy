@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { formatIPAddress, formatPortBinding } from '$lib/features/hosts/address-labels';
-import { ALL_IP_ADDRESSES, type IPAddress, type Port } from '$lib/features/hosts/types/base';
+import { formatIPAddress, formatPortBinding } from '#lib/features/hosts/address-labels.ts';
+import { ALL_IP_ADDRESSES, type IPAddress, type Port } from '#lib/features/hosts/types/base.ts';
 
 const notContainer = () => false;
 const container = () => true;

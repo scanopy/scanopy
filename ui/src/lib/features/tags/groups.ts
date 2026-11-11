@@ -1,15 +1,15 @@
-import type { components } from '$lib/api/schema';
-import type { IconComponent } from '$lib/shared/utils/types';
-import { concepts } from '$lib/shared/stores/metadata';
-import { createIconComponent } from '$lib/shared/utils/styling';
+import type { components } from '#lib/api/schema';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
+import { concepts } from '#lib/shared/stores/metadata.ts';
+import { createIconComponent } from '#lib/shared/utils/styling.ts';
 import {
 	common_application,
 	common_status,
 	common_visibility,
 	tags_tagGroup,
 	tags_tagGroupTooltip
-} from '$lib/paraglide/messages';
-import type { TooltipContent, TooltipSection } from '$lib/shared/actions/tooltip';
+} from '#lib/paraglide/messages.js';
+import type { TooltipContent, TooltipSection } from '#lib/shared/actions/tooltip.ts';
 import type { Tag, TagGroup, TagGroupType } from './types/base';
 
 export type { TagGroup };

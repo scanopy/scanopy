@@ -23,11 +23,11 @@
 		common_moveColumnUp,
 		common_resetColumns,
 		common_shortcutsPausedInSearch
-	} from '$lib/paraglide/messages';
-	import { isShiftShortcut, shiftShortcutLabel } from '$lib/shared/utils/shortcuts';
+	} from '#lib/paraglide/messages.js';
+	import { isShiftShortcut, shiftShortcutLabel } from '#lib/shared/utils/shortcuts.ts';
 	import { isFreeKeydown, useListShortcuts } from '../controls/listShortcuts';
 	import Popover from '../Popover.svelte';
-	import { tooltip } from '$lib/shared/actions/tooltip';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
 
 	let {
 		columns,

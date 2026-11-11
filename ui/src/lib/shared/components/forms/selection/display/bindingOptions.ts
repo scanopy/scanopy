@@ -7,15 +7,15 @@ import {
 	type AllIPAddresses,
 	type IPAddress,
 	type Port
-} from '$lib/features/hosts/types/base';
-import type { IPAddressBinding, PortBinding, Service } from '$lib/features/services/types/base';
+} from '#lib/features/hosts/types/base.ts';
+import type { IPAddressBinding, PortBinding, Service } from '#lib/features/services/types/base.ts';
 import {
 	hosts_bindings_boundBy,
 	hosts_bindings_hasIPAddressBindings,
 	hosts_bindings_ipAddressBindingHere,
 	hosts_bindings_portBindingOnAllIPAddresses,
 	hosts_bindings_portBindingsOnIPAddress
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 export interface BindingOption<T> {
 	item: T;

@@ -1,6 +1,6 @@
-import type { EntityRef } from '$lib/shared/components/data/types';
-import type { Color } from '$lib/shared/utils/styling';
-import type { IconComponent } from '$lib/shared/utils/types';
+import type { EntityRef } from '#lib/shared/components/data/types.ts';
+import type { Color } from '#lib/shared/utils/styling.ts';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
 import { hideTooltipPopover, showTooltipPopover } from './tooltip-popover.svelte';
 
 /**

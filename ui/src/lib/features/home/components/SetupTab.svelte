@@ -27,19 +27,19 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import { queryKeys } from '$lib/api/query-client';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import PageTitle from '$lib/shared/components/layout/PageTitle.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import { setupItemTiers } from '$lib/shared/stores/metadata';
-	import { useConfigQuery, isCloud } from '$lib/shared/stores/config-query';
-	import type { TabProps } from '$lib/shared/types';
-	import { daemonSetupState } from '$lib/features/daemons/stores/daemon-setup';
-	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { isPlanLapsed } from '$lib/features/organizations/types';
-	import { useDashboardQuery } from '$lib/features/home/queries';
+	import { queryKeys } from '#lib/api/query-client.ts';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import PageTitle from '#lib/shared/components/layout/PageTitle.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import { setupItemTiers } from '#lib/shared/stores/metadata.ts';
+	import { useConfigQuery, isCloud } from '#lib/shared/stores/config-query.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
+	import { daemonSetupState } from '#lib/features/daemons/stores/daemon-setup.ts';
+	import { useActiveSessionsQuery } from '#lib/features/discovery/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { isPlanLapsed } from '#lib/features/organizations/types.ts';
+	import { useDashboardQuery } from '#lib/features/home/queries.ts';
 	import {
 		common_dismiss,
 		home_demoEmbedSubtitle,
@@ -48,7 +48,7 @@
 		home_setup_hideCompleted,
 		home_setup_progress,
 		home_setup_showCompleted
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import SetupListRow from './SetupListRow.svelte';
 	import ReferralSourceModal from './ReferralSourceModal.svelte';
 	import ProfileModal from './ProfileModal.svelte';

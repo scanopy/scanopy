@@ -1,22 +1,22 @@
-import { entityRef, type LabelledCardFieldItem } from '$lib/shared/components/data/types';
-import { tagNames } from '$lib/features/tags/columns';
+import { entityRef, type LabelledCardFieldItem } from '#lib/shared/components/data/types.ts';
+import { tagNames } from '#lib/features/tags/columns.ts';
 import {
 	entities,
 	entitySources,
 	guestStates,
 	matchConfidences
-} from '$lib/shared/stores/metadata';
-import { entitySourceItems } from '$lib/shared/utils/entity-source';
-import { discoveryRunItems } from '$lib/features/discovery/columns';
-import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import type { components, operations } from '$lib/api/schema';
-import { NO_VALUE, valuesOrNoneCodec } from '$lib/shared/components/data/controls/listQuery';
-import type { Host } from '$lib/features/hosts/types/base';
-import type { Site } from '$lib/features/sites/types';
-import type { Tag } from '$lib/features/tags/types/base';
-import type { Discovery } from '$lib/features/discovery/types/base';
+} from '#lib/shared/stores/metadata.ts';
+import { entitySourceItems } from '#lib/shared/utils/entity-source.ts';
+import { discoveryRunItems } from '#lib/features/discovery/columns.ts';
+import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import type { components, operations } from '#lib/api/schema';
+import { NO_VALUE, valuesOrNoneCodec } from '#lib/shared/components/data/controls/listQuery.ts';
+import type { Host } from '#lib/features/hosts/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
+import type { Discovery } from '#lib/features/discovery/types/base.ts';
 import type { Service } from '../types/base';
 import {
 	common_containerizedBy,
@@ -31,17 +31,17 @@ import {
 	services_notContainerized,
 	services_notDiscovered,
 	meta_entities_Service_field_guest_state_label
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 import {
 	serviceDefinitions,
 	serviceCategories as serviceCategoryMeta,
 	concepts
-} from '$lib/shared/stores/metadata';
+} from '#lib/shared/stores/metadata.ts';
 import {
 	fieldValueOptions,
 	hasEmptyFieldValue,
 	type FieldValueCount
-} from '$lib/shared/api/field-values';
+} from '#lib/shared/api/field-values.ts';
 
 type ServiceOrderField = components['schemas']['ServiceOrderField'];
 /** The service list endpoint's query params, which the filters are sent and linked as. */

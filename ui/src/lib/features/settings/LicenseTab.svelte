@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { usePreloadStripe } from '$lib/features/billing/stripe.svelte';
+	import { usePreloadStripe } from '#lib/features/billing/stripe.svelte.ts';
 	import { Copy, RefreshCw } from '@lucide/svelte';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
-	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
-	import SegmentedControl from '$lib/shared/components/forms/SegmentedControl.svelte';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
+	import ConfirmationDialog from '#lib/shared/components/feedback/ConfirmationDialog.svelte';
+	import SegmentedControl from '#lib/shared/components/forms/SegmentedControl.svelte';
 	import LicenseInstancesCard from './LicenseInstancesCard.svelte';
 	import {
 		useCreateLicenseKeyMutation,
@@ -12,22 +12,22 @@
 		useEndTrialMutation,
 		useInvoiceBillingStatusQuery,
 		useRotateLicenseKeyMutation
-	} from '$lib/features/billing/queries';
-	import { priceToCharge } from '$lib/features/billing/pricing';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { hasLicensedPlan, isPlanLapsed } from '$lib/features/organizations/types';
-	import type { Organization } from '$lib/features/organizations/types';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
-	import { canPay, getTrialDaysLeft, isMissingPaymentMethod } from '$lib/shared/utils/trial';
-	import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
-	import { trackEvent } from '$lib/shared/utils/analytics';
-	import { copyText } from '$lib/shared/utils/clipboard';
-	import { formatLongDate, formatTimestamp } from '$lib/shared/utils/formatting';
-	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
-	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
-	import type { components } from '$lib/api/schema';
+	} from '#lib/features/billing/queries.ts';
+	import { priceToCharge } from '#lib/features/billing/pricing.ts';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { hasLicensedPlan, isPlanLapsed } from '#lib/features/organizations/types.ts';
+	import type { Organization } from '#lib/features/organizations/types.ts';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import { canPay, getTrialDaysLeft, isMissingPaymentMethod } from '#lib/shared/utils/trial.ts';
+	import { pushError, pushSuccess, pushWarning } from '#lib/shared/stores/feedback.ts';
+	import { trackEvent } from '#lib/shared/utils/analytics.ts';
+	import { copyText } from '#lib/shared/utils/clipboard.ts';
+	import { formatLongDate, formatTimestamp } from '#lib/shared/utils/formatting.ts';
+	import { startSetupPayment } from '#lib/shared/billing/setup-payment.ts';
+	import { waitForOrgUpdate } from '#lib/shared/billing/wait-for-org-update.ts';
+	import type { components } from '#lib/api/schema';
 	import {
 		apiKeys_rotateKey,
 		billing_addPaymentMethod,
@@ -67,7 +67,7 @@
 		settings_billing_license_switchOnlineConfirm,
 		settings_billing_license_switchTitle,
 		settings_billing_payInvoice
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type LicenseKeyType = components['schemas']['LicenseKeyType'];
 

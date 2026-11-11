@@ -7,7 +7,7 @@
  */
 
 import { createQuery, keepPreviousData, type QueryClient } from '@tanstack/svelte-query';
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 import { unwrapEnvelope, type FetchResult } from './query-helpers';
 import { withListParams } from './list-params';
 

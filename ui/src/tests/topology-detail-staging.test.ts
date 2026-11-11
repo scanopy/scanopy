@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { grantWithinBudget } from '$lib/features/topology/detail-staging.svelte';
+import { grantWithinBudget } from '#lib/features/topology/detail-staging.svelte.ts';
 import {
 	DETAIL_ZOOM,
 	LOD_MIN_NODES,
 	PREWARM_RELEASE_ZOOM,
 	PREWARM_ZOOM,
 	detailIsStaged
-} from '$lib/features/topology/pipeline/render-mode';
+} from '#lib/features/topology/pipeline/render-mode.ts';
 
 /**
  * Card detail is mounted a few cards a frame ahead of the zoom where it shows. The frame's share

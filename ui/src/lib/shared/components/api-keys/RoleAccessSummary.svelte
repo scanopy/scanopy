@@ -1,13 +1,13 @@
 <script lang="ts">
 	/** What `role` can do, split into what it holds per site and across the organization. */
 	import { ChevronDown, ChevronRight } from '@lucide/svelte';
-	import { resources } from '$lib/shared/stores/metadata';
-	import { roleActions, roleResources } from '$lib/features/users/role-access';
+	import { resources } from '#lib/shared/stores/metadata.ts';
+	import { roleActions, roleResources } from '#lib/features/users/role-access.ts';
 	import {
 		common_organizationWide,
 		permissions_perSite,
 		permissions_whatThisRoleCanDo
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import RoleActionIcons from './RoleActionIcons.svelte';
 
 	let { role }: { role: string } = $props();

@@ -1,23 +1,23 @@
 <script lang="ts">
-	import daemonVersionGates from '$lib/data/daemon-version-gates.json';
-	import { formatLongDate } from '$lib/shared/utils/formatting';
-	import CodeContainer from '$lib/shared/components/data/CodeContainer.svelte';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
-	import InlineDanger from '$lib/shared/components/feedback/InlineDanger.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import InlineSuccess from '$lib/shared/components/feedback/InlineSuccess.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import { entities } from '$lib/shared/stores/metadata';
+	import daemonVersionGates from '#lib/data/daemon-version-gates.json';
+	import { formatLongDate } from '#lib/shared/utils/formatting.ts';
+	import CodeContainer from '#lib/shared/components/data/CodeContainer.svelte';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
+	import InlineDanger from '#lib/shared/components/feedback/InlineDanger.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import InlineSuccess from '#lib/shared/components/feedback/InlineSuccess.svelte';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import { ArrowBigUpDash } from '@lucide/svelte';
 	import type { Daemon, UpgradeStep } from '../types/base';
-	import { VERSION } from '$lib/version';
+	import { VERSION } from '#lib/version.ts';
 	import { type DaemonOS, detectOS, isPreUnifiedDaemon } from '../utils';
 	import { useDaemonsQuery, useDaemonUpgradeCommandQuery } from '../queries';
-	import { trackEvent } from '$lib/shared/utils/analytics';
+	import { trackEvent } from '#lib/shared/utils/analytics.ts';
 	import OsSelector from './OsSelector.svelte';
 	import {
 		common_close,
@@ -49,7 +49,7 @@
 		daemons_sunsetUnsupportedTitle,
 		daemons_sunsetUnsupportedBody,
 		discovery_upgradeConsolidationWarning
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		isOpen?: boolean;

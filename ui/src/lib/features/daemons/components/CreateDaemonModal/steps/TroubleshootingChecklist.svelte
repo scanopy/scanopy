@@ -1,10 +1,10 @@
 <script lang="ts">
-	import ChecklistItem from '$lib/shared/components/data/ChecklistItem.svelte';
-	import CopyableValue from '$lib/shared/components/data/CopyableValue.svelte';
-	import SupportOptions from '$lib/features/support/SupportOptions.svelte';
-	import InlineSuccess from '$lib/shared/components/feedback/InlineSuccess.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import InlineDanger from '$lib/shared/components/feedback/InlineDanger.svelte';
+	import ChecklistItem from '#lib/shared/components/data/ChecklistItem.svelte';
+	import CopyableValue from '#lib/shared/components/data/CopyableValue.svelte';
+	import SupportOptions from '#lib/features/support/SupportOptions.svelte';
+	import InlineSuccess from '#lib/shared/components/feedback/InlineSuccess.svelte';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import InlineDanger from '#lib/shared/components/feedback/InlineDanger.svelte';
 	import { Loader2 } from '@lucide/svelte';
 	import type { DaemonOS } from '../../../utils';
 	import type { DaemonMode } from '../../../types/base';
@@ -64,7 +64,7 @@
 		common_error,
 		common_cause,
 		common_fix
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type LinuxMethod = 'binary' | 'docker';
 

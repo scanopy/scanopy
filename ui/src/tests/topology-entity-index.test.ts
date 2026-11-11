@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import type { RenderableTopology } from '$lib/features/topology/types/base';
-import { getTopologyIndex } from '$lib/features/topology/entity-index';
-import { resolveInlineServiceIds } from '$lib/features/topology/resolvers';
+import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+import { getTopologyIndex } from '#lib/features/topology/entity-index.ts';
+import { resolveInlineServiceIds } from '#lib/features/topology/resolvers.ts';
 
 /**
  * These lock the relationship rules the entity index has to preserve now that

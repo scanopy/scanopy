@@ -16,9 +16,9 @@
  */
 
 import type { RenderableTopology, TopologyNode } from './types/base';
-import type { Service } from '$lib/features/services/types/base';
-import type { Host, IPAddress, Interface, Port } from '$lib/features/hosts/types/base';
-import type { Subnet } from '$lib/features/subnets/types/base';
+import type { Service } from '#lib/features/services/types/base.ts';
+import type { Host, IPAddress, Interface, Port } from '#lib/features/hosts/types/base.ts';
+import type { Subnet } from '#lib/features/subnets/types/base.ts';
 
 /** Entities reachable from a container, including nested subcontainers. */
 export interface ContainerContents {

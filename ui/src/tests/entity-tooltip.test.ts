@@ -1,12 +1,16 @@
 import { afterEach, describe, it, expect } from 'vitest';
-import { queryClient, queryKeys } from '$lib/api/query-client';
-import type { Host, IPAddress } from '$lib/features/hosts/types/base';
-import type { Service } from '$lib/features/services/types/base';
-import type { RenderableTopology } from '$lib/features/topology/types/base';
-import { topologyLookup } from '$lib/features/topology/resolvers';
-import type { TooltipChip, TooltipContent, TooltipRow } from '$lib/shared/actions/tooltip';
-import { entityRef } from '$lib/shared/components/data/types';
-import { collectionLookup, entityFieldLabel, entityFields } from '$lib/shared/entity-fields';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import type { Host, IPAddress } from '#lib/features/hosts/types/base.ts';
+import type { Service } from '#lib/features/services/types/base.ts';
+import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+import { topologyLookup } from '#lib/features/topology/resolvers.ts';
+import type { TooltipChip, TooltipContent, TooltipRow } from '#lib/shared/actions/tooltip.ts';
+import { entityRef } from '#lib/shared/components/data/types.ts';
+import {
+	collectionLookup,
+	entityFieldLabel,
+	entityFields
+} from '#lib/shared/entity-fields/index.ts';
 import {
 	entityCacheLookup,
 	entityRefTooltip,
@@ -14,15 +18,15 @@ import {
 	hostTooltip,
 	interfaceTooltip,
 	serviceTooltip
-} from '$lib/shared/entity-tooltip';
+} from '#lib/shared/entity-tooltip.ts';
 import {
 	credentialTypes,
 	entities,
 	guestStates,
 	ifOperStatuses,
 	subnetTypes
-} from '$lib/shared/stores/metadata';
-import { formatTimestamp } from '$lib/shared/utils/formatting';
+} from '#lib/shared/stores/metadata.ts';
+import { formatTimestamp } from '#lib/shared/utils/formatting.ts';
 import {
 	common_hosts,
 	common_hoursCount,
@@ -35,7 +39,7 @@ import {
 	dependencies_memberCount,
 	hosts_deviceType,
 	sites_staleAfter
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 const rows = (content: TooltipContent): TooltipRow[] =>
 	content.sections.flatMap((s) => s.rows ?? []);

@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { Cloud, Server } from '@lucide/svelte';
 	import { onboardingStore } from '../../stores/onboarding';
-	import type { PlanPickerHosting } from '$lib/features/billing/types';
-	import { trackEvent } from '$lib/shared/utils/analytics';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
+	import type { PlanPickerHosting } from '#lib/features/billing/types.ts';
+	import { trackEvent } from '#lib/shared/utils/analytics.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
 	import {
 		auth_scanopyLogo,
 		onboarding_alreadyHaveAccount,
@@ -13,7 +13,7 @@
 		onboarding_hostingSelfHostedLabel,
 		onboarding_logInHere,
 		onboarding_whereWillScanopyRun
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		isOpen,

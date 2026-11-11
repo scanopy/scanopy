@@ -2,9 +2,9 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'svelte/compiler';
-import type { components } from '$lib/api/schema';
-import { getFieldKey, type FieldConfig } from '$lib/shared/components/data/types';
-import type { ServerQuery } from '$lib/shared/components/data/controls/listQuery';
+import type { components } from '#lib/api/schema';
+import { getFieldKey, type FieldConfig } from '#lib/shared/components/data/types.ts';
+import type { ServerQuery } from '#lib/shared/components/data/controls/listQuery.ts';
 
 /**
  * What the entity-tab tests share: the committed OpenAPI spec, the tabs that render
@@ -527,7 +527,7 @@ export function dataControlsTabs(): string[] {
 		.sort();
 }
 
-const COLUMN_MODULES = import.meta.glob<Record<string, unknown>>('$lib/features/**/*.columns.ts', {
+const COLUMN_MODULES = import.meta.glob<Record<string, unknown>>('#lib/features/**/*.columns.ts', {
 	eager: true
 });
 

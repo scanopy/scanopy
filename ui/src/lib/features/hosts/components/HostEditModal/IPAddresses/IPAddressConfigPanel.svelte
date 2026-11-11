@@ -1,21 +1,21 @@
 <script lang="ts">
-	import type { IPAddress } from '$lib/features/hosts/types/base';
+	import type { IPAddress } from '#lib/features/hosts/types/base.ts';
 	import {
 		required,
 		ipAddressFormat,
 		ipAddressInCidrFormat,
 		macFormat,
 		max
-	} from '$lib/shared/components/forms/validators';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import type { Site } from '$lib/features/sites/types';
-	import { getFreshnessTag } from '$lib/shared/utils/freshness';
-	import { entityRef } from '$lib/shared/components/data/types';
-	import type { Subnet } from '$lib/features/subnets/types/base';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import ConfigHeader from '$lib/shared/components/forms/config/ConfigHeader.svelte';
-	import { entities } from '$lib/shared/stores/metadata';
+	} from '#lib/shared/components/forms/validators.ts';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import type { Site } from '#lib/features/sites/types.ts';
+	import { getFreshnessTag } from '#lib/shared/utils/freshness.ts';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
+	import type { Subnet } from '#lib/features/subnets/types/base.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import ConfigHeader from '#lib/shared/components/forms/config/ConfigHeader.svelte';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import {
 		common_ipAddress,
@@ -26,7 +26,7 @@
 		hosts_ipAddresses_ipMustBeWithin,
 		hosts_ipAddresses_macFormat,
 		hosts_ipAddresses_macReadOnly
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		iface: IPAddress;

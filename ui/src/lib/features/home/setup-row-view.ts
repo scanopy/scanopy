@@ -1,6 +1,6 @@
-import type { EntityDiscriminants } from '$lib/api/entities';
-import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-import type { Daemon } from '$lib/features/daemons/types/base';
+import type { EntityDiscriminants } from '#lib/api/entities.ts';
+import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+import type { Daemon } from '#lib/features/daemons/types/base.ts';
 import {
 	buildWarningReport,
 	credentialIdsOf,
@@ -8,21 +8,21 @@ import {
 	integrationWithoutCredentialSentence,
 	integrationWithoutCredentialTitle,
 	remedyOf
-} from '$lib/features/discovery/utils/warnings';
-import { actionFor } from '$lib/features/discovery/utils/warningActions';
-import type { CredentialLookup } from '$lib/features/discovery/utils/snmpCheck';
+} from '#lib/features/discovery/utils/warnings.ts';
+import { actionFor } from '#lib/features/discovery/utils/warningActions.ts';
+import type { CredentialLookup } from '#lib/features/discovery/utils/snmpCheck.ts';
 import {
 	createIntegrationCredentialLabel,
 	openCredentialCreate
-} from '$lib/features/credentials/utils/prefill';
+} from '#lib/features/credentials/utils/prefill.ts';
 import {
 	activeView,
 	showDependencyTutorial,
 	showViewSwitcherHint
-} from '$lib/features/topology/queries';
-import { navigateToEntity, openModal } from '$lib/shared/stores/modal-registry';
-import { openTab } from '$lib/shared/stores/url-state';
-import { daemonHealths, setupItems } from '$lib/shared/stores/metadata';
+} from '#lib/features/topology/queries.ts';
+import { navigateToEntity, openModal } from '#lib/shared/stores/modal-registry.ts';
+import { openTab } from '#lib/shared/stores/url-state.ts';
+import { daemonHealths, setupItems } from '#lib/shared/stores/metadata.ts';
 import {
 	common_answer,
 	common_getStarted,
@@ -51,7 +51,7 @@ import {
 	home_setup_openDaemon,
 	home_setup_scheduleScan,
 	home_setup_troubleshootConnection
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 import type { SetupItem, SetupItemType } from './setup-list';
 
 /** A row's fix: what its button does, and its label. */

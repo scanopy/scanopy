@@ -1,5 +1,5 @@
 import type { TagProps } from '../../../data/types';
-import type { IconComponent } from '$lib/shared/utils/types';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
 import type { EntityDisplayComponent } from '../types';
 
 /**

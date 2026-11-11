@@ -1,5 +1,5 @@
 <script lang="ts" context="module">
-	import { entities } from '$lib/shared/stores/metadata';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 
 	export const SiteDisplay: EntityDisplayComponent<Site, object> = {
 		getId: (site: Site) => site.id,
@@ -11,9 +11,9 @@
 </script>
 
 <script lang="ts">
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import type { EntityDisplayComponent } from '../types';
-	import type { Site } from '$lib/features/sites/types';
+	import type { Site } from '#lib/features/sites/types.ts';
 
 	export let item: Site;
 	export let context: object = {};

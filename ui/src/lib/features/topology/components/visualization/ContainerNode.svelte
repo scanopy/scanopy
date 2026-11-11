@@ -3,9 +3,9 @@
 	import NodeHandles from './NodeHandles.svelte';
 	// NodeResizeControl — unused while the resize controls below are commented out.
 	// import { NodeResizeControl } from '@xyflow/svelte';
-	import { createColorHelper } from '$lib/shared/utils/styling';
-	import type { ColorStyle } from '$lib/shared/utils/styling';
-	import { containerTypes } from '$lib/shared/stores/metadata';
+	import { createColorHelper } from '#lib/shared/utils/styling.ts';
+	import type { ColorStyle } from '#lib/shared/utils/styling.ts';
+	import { containerTypes } from '#lib/shared/stores/metadata.ts';
 	import {
 		// useUpdateNodeResizeMutation — DISABLED (container resize is not persisted)
 		topologyOptions,
@@ -17,9 +17,9 @@
 	import type { RenderableTopology, TopologyNode } from '../../types/base';
 	import { buildContainerRender } from '../../container-render-data';
 	import { topologyLookup } from '../../resolvers';
-	import { entityTooltip } from '$lib/shared/entity-tooltip';
-	import type { TooltipOptions } from '$lib/shared/actions/tooltip';
-	import { useSitesQuery } from '$lib/features/sites/queries';
+	import { entityTooltip } from '#lib/shared/entity-tooltip.ts';
+	import type { TooltipOptions } from '#lib/shared/actions/tooltip.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
 	import type { Writable } from 'svelte/store';
 	import { getContext } from 'svelte';
 	import { editModeEnabled } from '../../state';
@@ -27,7 +27,7 @@
 	import * as sharedStores from '../../reactive-stores.svelte';
 	import { toggleCollapse } from '../../collapse';
 	import type { Node, Edge } from '@xyflow/svelte';
-	import type { IconComponent } from '$lib/shared/utils/types';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
 	import ContainerHeader from './ContainerHeader.svelte';
 	import { CONTAINER_HANDLE_SIZE_PX } from '../../pipeline/build-flow-nodes';
 	import { nodeDetail } from '../../pipeline/render-mode';

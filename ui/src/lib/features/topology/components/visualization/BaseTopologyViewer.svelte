@@ -26,7 +26,7 @@
 		common_refresh,
 		topology_minimizeMinimap,
 		topology_expandMinimap
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import { type Node, type Edge } from '@xyflow/svelte';
 	import { getViewportForBounds, type Rect } from '@xyflow/system';
 	import {
@@ -49,7 +49,7 @@
 	import './topology-viewer.css';
 	import { Minimize2, Map as MapIcon } from '@lucide/svelte';
 	import TopologySidebarButton from './TopologySidebarButton.svelte';
-	import { pushError } from '$lib/shared/stores/feedback';
+	import { pushError } from '#lib/shared/stores/feedback.ts';
 	import {
 		baseFlowEdges,
 		selectedNodes,
@@ -130,8 +130,8 @@
 	} from '../../selection';
 	import { onMount, tick, setContext, getContext } from 'svelte';
 	import { writable as svelteWritable } from 'svelte/store';
-	import { themeStore } from '$lib/shared/stores/theme.svelte';
-	import { containerTypes } from '$lib/shared/stores/metadata';
+	import { themeStore } from '#lib/shared/stores/theme.svelte.ts';
+	import { containerTypes } from '#lib/shared/stores/metadata.ts';
 
 	// Pipeline imports
 	import { createInitialState, type XY } from '../../pipeline/types';
@@ -1115,111 +1115,104 @@
 			const measureDone = perf.stage('measure');
 			const elementNodeSizes = storedLayout
 				? adoptStoredSizes(layoutState, viewCacheKey, storedLayout)
-				: await resolveNodeSizes(
-				layoutState,
-				prep,
-				topology,
-				containerElement,
-				isStale,
-				{
-					setMeasuring: (v) => {
-						// Culling is suspended for every measurement pass, unconditionally —
-						// the pass reads heights out of the DOM, so a culled node measures as
-						// absent and ELK gets a fallback size for it.
-						isMeasuring.set(v);
-						// Only hide viewport during measurement for initial load
-						// (no nodes on screen). For subsequent measurements (e.g.
-						// cacheMisses on collapse), nodes keep their current positions
-						// so hiding is unnecessary — and skipping it lets shouldAnimate
-						// fire normally.
-						if (layoutState.lastRenderedTopoKey === '') {
-							coldLoadMeasure = v;
-						}
-					},
-					setNodes: (n) => setStoreNodes(n),
-					setEdges: (e) => baseFlowEdges.set(e),
-					buildMeasureNodes: (onlyIds?: Set<string>) => {
-						// Strip the seeded sizes. The pass exists to learn what a card actually
-						// renders as, and a node carrying `measured` + `handles` reads as already
-						// initialised — so it would be presented at the size we guessed and could
-						// only ever confirm that guess. Dropping both also re-attaches
-						// `NodeWrapper`'s ResizeObserver, which is otherwise never reattached.
-						let measureNodes = stripSizeSeed(makeNodes(false, true));
-						if (onlyIds) {
-							// Ancestors come too, whether or not they need measuring: SvelteFlow
-							// resolves a child's position against its parent and drops a node whose
-							// `parentId` is absent from the set it was given.
-							// Not `SvelteSet`: this is a local computed inside a callback and never read
-							// reactively — the lint rule targets reactive state, and a reactive Set here
-							// would add tracking overhead for a value that is discarded on return.
-							// eslint-disable-next-line svelte/prefer-svelte-reactivity
-							const keep = new Set(onlyIds);
-							const parentOf = new Map(
-								measureNodes.map((n) => [n.id, n.parentId as string | undefined])
-							);
-							for (const id of onlyIds) {
-								let parent = parentOf.get(id);
-								while (parent && !keep.has(parent)) {
-									keep.add(parent);
-									parent = parentOf.get(parent);
-								}
+				: await resolveNodeSizes(layoutState, prep, topology, containerElement, isStale, {
+						setMeasuring: (v) => {
+							// Culling is suspended for every measurement pass, unconditionally —
+							// the pass reads heights out of the DOM, so a culled node measures as
+							// absent and ELK gets a fallback size for it.
+							isMeasuring.set(v);
+							// Only hide viewport during measurement for initial load
+							// (no nodes on screen). For subsequent measurements (e.g.
+							// cacheMisses on collapse), nodes keep their current positions
+							// so hiding is unnecessary — and skipping it lets shouldAnimate
+							// fire normally.
+							if (layoutState.lastRenderedTopoKey === '') {
+								coldLoadMeasure = v;
 							}
-							measureNodes = measureNodes.filter((n) => keep.has(n.id));
-						}
-						// Preserve current positions during measurement — DOM
-						// measurement only needs element presence, not positions.
-						// This prevents nodes from jumping to (0,0) while visible.
-						const currentPositions = new Map(getNodes().map((n) => [n.id, n.position]));
-						if (currentPositions.size === 0) return measureNodes;
-						return measureNodes.map((n) => ({
-							...n,
-							position: currentPositions.get(n.id) ?? n.position
-						}));
-					},
-					waitForNodesRendered: async (expectedIds?: Set<string>) => {
-						// Wait for SvelteFlow to render node DOM elements.
-						// We only need DOM presence for measurement, not full initialization.
-						await tick();
-						// Poll for DOM nodes with a short timeout — nodesInitialized
-						// can hang indefinitely for large topologies.
-						const start = performance.now();
-						const expectedCount = expectedIds?.size ?? 0;
-						while (performance.now() - start < 2000) {
-							const nodeEls = containerElement?.querySelectorAll('.svelte-flow__node');
-							if (nodeEls && nodeEls.length > 0) {
-								if (expectedCount === 0) break;
-								// Cheap gate first. Verifying every expected id means building
-								// a Set of all rendered ids, which is O(nodes) — doing that on
-								// every frame of a wait that can span a hundred frames is
-								// itself a meaningful cost at a thousand-plus nodes. The DOM
-								// can only hold every expected node once it holds at least
-								// that many, so the count check rules out almost every frame
-								// for the price of a property read.
-								if (nodeEls.length >= expectedCount) {
-									// Require every expected id to be present before breaking.
-									// Breaking on the first node (old-render leftovers) lets a
-									// newly-added SSE host miss measurement, so ELK falls back
-									// to metadata defaults and positions siblings too close.
-									const present = new Set(
-										Array.from(nodeEls)
-											.map((el) => (el as HTMLElement).dataset.id)
-											.filter((id): id is string => !!id)
-									);
-									let allPresent = true;
-									for (const id of expectedIds!) {
-										if (!present.has(id)) {
-											allPresent = false;
-											break;
-										}
+						},
+						setNodes: (n) => setStoreNodes(n),
+						setEdges: (e) => baseFlowEdges.set(e),
+						buildMeasureNodes: (onlyIds?: Set<string>) => {
+							// Strip the seeded sizes. The pass exists to learn what a card actually
+							// renders as, and a node carrying `measured` + `handles` reads as already
+							// initialised — so it would be presented at the size we guessed and could
+							// only ever confirm that guess. Dropping both also re-attaches
+							// `NodeWrapper`'s ResizeObserver, which is otherwise never reattached.
+							let measureNodes = stripSizeSeed(makeNodes(false, true));
+							if (onlyIds) {
+								// Ancestors come too, whether or not they need measuring: SvelteFlow
+								// resolves a child's position against its parent and drops a node whose
+								// `parentId` is absent from the set it was given.
+								// Not `SvelteSet`: this is a local computed inside a callback and never read
+								// reactively — the lint rule targets reactive state, and a reactive Set here
+								// would add tracking overhead for a value that is discarded on return.
+								// eslint-disable-next-line svelte/prefer-svelte-reactivity
+								const keep = new Set(onlyIds);
+								const parentOf = new Map(
+									measureNodes.map((n) => [n.id, n.parentId as string | undefined])
+								);
+								for (const id of onlyIds) {
+									let parent = parentOf.get(id);
+									while (parent && !keep.has(parent)) {
+										keep.add(parent);
+										parent = parentOf.get(parent);
 									}
-									if (allPresent) break;
 								}
+								measureNodes = measureNodes.filter((n) => keep.has(n.id));
 							}
-							await new Promise((r) => requestAnimationFrame(r));
+							// Preserve current positions during measurement — DOM
+							// measurement only needs element presence, not positions.
+							// This prevents nodes from jumping to (0,0) while visible.
+							const currentPositions = new Map(getNodes().map((n) => [n.id, n.position]));
+							if (currentPositions.size === 0) return measureNodes;
+							return measureNodes.map((n) => ({
+								...n,
+								position: currentPositions.get(n.id) ?? n.position
+							}));
+						},
+						waitForNodesRendered: async (expectedIds?: Set<string>) => {
+							// Wait for SvelteFlow to render node DOM elements.
+							// We only need DOM presence for measurement, not full initialization.
+							await tick();
+							// Poll for DOM nodes with a short timeout — nodesInitialized
+							// can hang indefinitely for large topologies.
+							const start = performance.now();
+							const expectedCount = expectedIds?.size ?? 0;
+							while (performance.now() - start < 2000) {
+								const nodeEls = containerElement?.querySelectorAll('.svelte-flow__node');
+								if (nodeEls && nodeEls.length > 0) {
+									if (expectedCount === 0) break;
+									// Cheap gate first. Verifying every expected id means building
+									// a Set of all rendered ids, which is O(nodes) — doing that on
+									// every frame of a wait that can span a hundred frames is
+									// itself a meaningful cost at a thousand-plus nodes. The DOM
+									// can only hold every expected node once it holds at least
+									// that many, so the count check rules out almost every frame
+									// for the price of a property read.
+									if (nodeEls.length >= expectedCount) {
+										// Require every expected id to be present before breaking.
+										// Breaking on the first node (old-render leftovers) lets a
+										// newly-added SSE host miss measurement, so ELK falls back
+										// to metadata defaults and positions siblings too close.
+										const present = new Set(
+											Array.from(nodeEls)
+												.map((el) => (el as HTMLElement).dataset.id)
+												.filter((id): id is string => !!id)
+										);
+										let allPresent = true;
+										for (const id of expectedIds!) {
+											if (!present.has(id)) {
+												allPresent = false;
+												break;
+											}
+										}
+										if (allPresent) break;
+									}
+								}
+								await new Promise((r) => requestAnimationFrame(r));
+							}
 						}
-					}
-				}
-			);
+					});
 			measureDone();
 			// The measurement pass is over the moment `resolveNodeSizes` returns — it has already
 			// read every height it needed out of the DOM — so culling resumes here rather than at

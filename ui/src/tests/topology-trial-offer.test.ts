@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { canTrialTopology, topologyTrialDays } from '$lib/shared/utils/trial';
-import type { Organization } from '$lib/features/organizations/types';
+import { canTrialTopology, topologyTrialDays } from '#lib/shared/utils/trial.ts';
+import type { Organization } from '#lib/features/organizations/types.ts';
 
 function org(overrides: Partial<Organization> = {}): Organization {
 	return {

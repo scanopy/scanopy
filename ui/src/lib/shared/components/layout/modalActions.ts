@@ -7,10 +7,13 @@
  * toolbar's actions do. Only the topmost open modal answers keys.
  */
 import { writable } from 'svelte/store';
-import type { ActionTone } from '$lib/shared/components/data/types';
-import type { IconComponent } from '$lib/shared/utils/types';
-import { assignActionKeys, DELETE_KEY } from '$lib/shared/components/data/controls/actionShortcuts';
-import { isEditableTarget } from '$lib/shared/utils/shortcuts';
+import type { ActionTone } from '#lib/shared/components/data/types.ts';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
+import {
+	assignActionKeys,
+	DELETE_KEY
+} from '#lib/shared/components/data/controls/actionShortcuts.ts';
+import { isEditableTarget } from '#lib/shared/utils/shortcuts.ts';
 
 export type ModalActionRole = 'primary' | 'secondary' | 'danger' | 'cancel';
 

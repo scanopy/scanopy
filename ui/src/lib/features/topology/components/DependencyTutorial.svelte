@@ -6,11 +6,11 @@
 	import '@xyflow/svelte/dist/style.css';
 	import './visualization/topology-viewer.css';
 	import TopologyOverlay from './TopologyOverlay.svelte';
-	import ChecklistItem from '$lib/shared/components/data/ChecklistItem.svelte';
+	import ChecklistItem from '#lib/shared/components/data/ChecklistItem.svelte';
 	import DependencyTutorialCanvas from './DependencyTutorialCanvas.svelte';
 	import { selectedNodes } from '../queries';
-	import { dependencyTypes } from '$lib/shared/stores/metadata';
-	import { keyLabel } from '$lib/shared/utils/shortcuts';
+	import { dependencyTypes } from '#lib/shared/stores/metadata.ts';
+	import { keyLabel } from '#lib/shared/utils/shortcuts.ts';
 	import {
 		TUTORIAL_SERVICES,
 		TUTORIAL_TOPOLOGY,
@@ -25,7 +25,7 @@
 		topology_tutorialStep4,
 		topology_tutorialSkip,
 		topology_tutorialExplainer
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		onDismiss,

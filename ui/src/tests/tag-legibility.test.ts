@@ -11,16 +11,16 @@ import {
 	serviceVirtualizations,
 	subnetTypes,
 	ifOperStatuses
-} from '$lib/shared/stores/metadata';
-import type { TagProps } from '$lib/shared/components/data/types';
-import { ServiceDisplay } from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
-import { ServiceTypeDisplay } from '$lib/shared/components/forms/selection/display/ServiceTypeDisplay.svelte';
-import { SubnetDisplay } from '$lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
-import type { Service } from '$lib/features/services/types/base';
-import type { Subnet } from '$lib/features/subnets/types/base';
-import { InterfaceDisplay } from '$lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
-import type { Interface } from '$lib/features/hosts/types/base';
-import { common_unknown, hosts_interfaces_operStatusNotReported } from '$lib/paraglide/messages';
+} from '#lib/shared/stores/metadata.ts';
+import type { TagProps } from '#lib/shared/components/data/types.ts';
+import { ServiceDisplay } from '#lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
+import { ServiceTypeDisplay } from '#lib/shared/components/forms/selection/display/ServiceTypeDisplay.svelte';
+import { SubnetDisplay } from '#lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
+import type { Service } from '#lib/features/services/types/base.ts';
+import type { Subnet } from '#lib/features/subnets/types/base.ts';
+import { InterfaceDisplay } from '#lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
+import type { Interface } from '#lib/features/hosts/types/base.ts';
+import { common_unknown, hosts_interfaces_operStatusNotReported } from '#lib/paraglide/messages.js';
 
 // Every store a tag is built from: the tag reads the value's display name, and its tooltip is
 // what the value means, with no "Category:"-style prefix naming the dimension.

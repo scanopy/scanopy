@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { toHostPrimitive } from '$lib/features/hosts/queries';
-import { unconfirmedEvidence } from '$lib/features/hosts/unconfirmed-evidence';
-import type { HostResponse, Interface } from '$lib/features/hosts/types/base';
+import { toHostPrimitive } from '#lib/features/hosts/queries.ts';
+import { unconfirmedEvidence } from '#lib/features/hosts/unconfirmed-evidence.ts';
+import type { HostResponse, Interface } from '#lib/features/hosts/types/base.ts';
 
 const SWITCH = 'switch-id';
 const SCAN = 'scan-id';

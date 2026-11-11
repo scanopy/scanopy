@@ -4,7 +4,7 @@ import {
 	MIN_POPOVER_HEIGHT_PX,
 	TRIGGER_GAP_PX,
 	VIEWPORT_MARGIN_PX
-} from '$lib/shared/utils/popoverPosition';
+} from '#lib/shared/utils/popoverPosition.ts';
 
 const viewport = { width: 1000, height: 800 };
 

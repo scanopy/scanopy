@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Icon, Star, type LucideIconData } from '@lucide/svelte';
 	import { onMount } from 'svelte';
-	import { apiClient } from '$lib/api/client';
+	import { apiClient } from '#lib/api/client.ts';
 
 	interface Props {
 		class?: string;

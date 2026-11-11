@@ -1,64 +1,64 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import AuthBackground from '$lib/shared/components/layout/AuthBackground.svelte';
+	import AuthBackground from '#lib/shared/components/layout/AuthBackground.svelte';
 	import { ChevronLeft } from '@lucide/svelte';
-	import Toast from '$lib/shared/components/feedback/Toast.svelte';
-	import OrgSitesModal from '$lib/features/auth/components/onboarding/OrgSitesModal.svelte';
-	import OrgLimitModal from '$lib/features/auth/components/OrgLimitModal.svelte';
-	import RegisterModal from '$lib/features/auth/components/RegisterModal.svelte';
-	import UseCaseStep from '$lib/features/auth/components/onboarding/UseCaseStep.svelte';
-	import HostingStep from '$lib/features/auth/components/onboarding/HostingStep.svelte';
-	import type { RegisterRequest, SetupRequest, UseCase } from '$lib/features/auth/types/base';
+	import Toast from '#lib/shared/components/feedback/Toast.svelte';
+	import OrgSitesModal from '#lib/features/auth/components/onboarding/OrgSitesModal.svelte';
+	import OrgLimitModal from '#lib/features/auth/components/OrgLimitModal.svelte';
+	import RegisterModal from '#lib/features/auth/components/RegisterModal.svelte';
+	import UseCaseStep from '#lib/features/auth/components/onboarding/UseCaseStep.svelte';
+	import HostingStep from '#lib/features/auth/components/onboarding/HostingStep.svelte';
+	import type { RegisterRequest, SetupRequest, UseCase } from '#lib/features/auth/types/base.ts';
 	import {
 		useSetupMutation,
 		useRegisterMutation,
 		useOnboardingStepMutation,
 		useOnboardingStateQuery,
 		useCurrentUserQuery
-	} from '$lib/features/auth/queries';
-	import { fetchOrganization } from '$lib/features/organizations/queries';
-	import { navigate } from '$lib/shared/utils/navigation';
+	} from '#lib/features/auth/queries.ts';
+	import { fetchOrganization } from '#lib/features/organizations/queries.ts';
+	import { navigate } from '#lib/shared/utils/navigation.ts';
 	import { resolve } from '$app/paths';
 	import {
 		asksForSite,
 		onboardingStore,
 		onboardingSteps,
 		type OnboardingStep
-	} from '$lib/features/auth/stores/onboarding';
-	import { trackEvent } from '$lib/shared/utils/analytics';
-	import { pushError } from '$lib/shared/stores/feedback';
+	} from '#lib/features/auth/stores/onboarding.ts';
+	import { trackEvent } from '#lib/shared/utils/analytics.ts';
+	import { pushError } from '#lib/shared/stores/feedback.ts';
 	import {
 		auth_emailAlreadyInUse,
 		common_goBack,
 		onboarding_noCreditCard,
 		onboarding_stepProgress
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import {
 		useConfigQuery,
 		isCloud,
 		isLicenseSigningAvailable
-	} from '$lib/shared/stores/config-query';
-	import { setLastLoginMethod } from '$lib/features/auth/components/LoginModal.svelte';
+	} from '#lib/shared/stores/config-query.ts';
+	import { setLastLoginMethod } from '#lib/features/auth/components/LoginModal.svelte';
 
 	// Show OIDC error from redirect if present
 	onMount(() => {
 		// `?hosting=self_hosted` preselects the hosting step and opens the
 		// post-registration plan picker on the Self-Hosted tab. Persisted so it
 		// survives registration and OIDC redirects.
-		const hosting = $page.url.searchParams.get('hosting');
+		const hosting = page.url.searchParams.get('hosting');
 		if (hosting === 'self_hosted' || hosting === 'cloud') {
 			onboardingStore.setHosting(hosting);
 		}
 
-		const error = $page.url.searchParams.get('error');
-		const errorCode = $page.url.searchParams.get('error_code');
+		const error = page.url.searchParams.get('error');
+		const errorCode = page.url.searchParams.get('error_code');
 		if (error) {
 			// If the error indicates a duplicate email, redirect to login
 			if (errorCode === 'user_email_in_use') {
 				pushError(auth_emailAlreadyInUse());
-				setTimeout(() => goto(resolve('/login')), 1500);
+				setTimeout(() => goto(resolve('login')), 1500);
 			} else {
 				pushError(error);
 			}
@@ -79,8 +79,9 @@
 	let onboardingConfigData = $derived(onboardingConfigQuery.data);
 
 	// URL params for invite flow
-	let orgName = $derived($page.url.searchParams.get('org_name'));
-	let invitedBy = $derived($page.url.searchParams.get('invited_by'));
+	let orgName = $derived(page.url.searchParams.get('org_name'));
+
+	let invitedBy = $derived(page.url.searchParams.get('invited_by'));
 
 	// Determine if this is an invite flow (skip to register)
 	let isInviteFlow = $derived(!!invitedBy);
@@ -100,7 +101,7 @@
 			currentUserQuery.isSuccess &&
 			!currentUserQuery.data
 		) {
-			goto(resolve('/login'), { replaceState: true });
+			goto(resolve('login'), { replace: true });
 		}
 	});
 
@@ -117,7 +118,7 @@
 
 	// Get initial step from URL params or default
 	function getInitialStep(): Step {
-		if ($page.url.searchParams.get('invited_by')) return 'register';
+		if (page.url.searchParams.get('invited_by')) return 'register';
 		return 'hosting';
 	}
 
@@ -259,7 +260,7 @@
 	}
 
 	function handleSwitchToLogin() {
-		goto(resolve('/login'));
+		goto(resolve('login'));
 	}
 
 	function handleClose() {

@@ -5,14 +5,14 @@ import {
 	groupableFields,
 	defaultOrderingViolations,
 	type SortState
-} from '$lib/shared/components/data/controls/sorting';
+} from '#lib/shared/components/data/controls/sorting.ts';
 import {
 	groupItems,
 	computeGroupOffsets,
 	serverGroupKey
-} from '$lib/shared/components/data/controls/grouping';
-import { fieldsToColumns } from '$lib/shared/components/data/table/columns';
-import type { FieldConfig } from '$lib/shared/components/data/types';
+} from '#lib/shared/components/data/controls/grouping.ts';
+import { fieldsToColumns } from '#lib/shared/components/data/table/columns.ts';
+import type { FieldConfig } from '#lib/shared/components/data/types.ts';
 
 interface Row {
 	name: string | null;

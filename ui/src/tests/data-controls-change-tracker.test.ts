@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createChangeTracker } from '$lib/shared/components/data/controls/changeTracker';
+import { createChangeTracker } from '#lib/shared/components/data/controls/changeTracker.ts';
 
 describe('createChangeTracker', () => {
 	it('stays quiet on the first observation', () => {

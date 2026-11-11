@@ -1,4 +1,4 @@
-import { VERSION } from '$lib/version';
+import { VERSION } from '#lib/version.ts';
 import type { DiscoveryUpdatePayload } from '../types/api';
 
 /**

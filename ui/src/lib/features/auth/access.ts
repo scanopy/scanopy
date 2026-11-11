@@ -3,12 +3,12 @@
  * that depends on a role reads it, so a control shows what the server allows.
  */
 
-import type { components } from '$lib/api/schema';
-import { useOrganizationQuery } from '$lib/features/organizations/queries';
-import { isPlanLapsed } from '$lib/features/organizations/types';
-import { common_notAllowedHere, common_notAllowedOnSelection } from '$lib/paraglide/messages';
-import { disabledWhen, type Unavailable } from '$lib/shared/components/data/types';
-import { billingPlans, resources } from '$lib/shared/stores/metadata';
+import type { components } from '#lib/api/schema';
+import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+import { isPlanLapsed } from '#lib/features/organizations/types.ts';
+import { common_notAllowedHere, common_notAllowedOnSelection } from '#lib/paraglide/messages.js';
+import { disabledWhen, type Unavailable } from '#lib/shared/components/data/types.ts';
+import { billingPlans, resources } from '#lib/shared/stores/metadata.ts';
 import { useCurrentUserQuery } from './queries';
 
 export type Resource = components['schemas']['Resource'];

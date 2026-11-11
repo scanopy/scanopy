@@ -1,5 +1,5 @@
-import type { components } from '$lib/api/schema';
-import { views } from '$lib/shared/stores/metadata';
+import type { components } from '#lib/api/schema';
+import { views } from '#lib/shared/stores/metadata.ts';
 
 export type ViewLayoutConfig = components['schemas']['ViewLayoutConfig'];
 

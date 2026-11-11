@@ -1,10 +1,10 @@
 import type { Snippet } from 'svelte';
-import type { components, operations } from '$lib/api/schema';
-import { defineFields } from '$lib/shared/components/data/types';
-import { siteItems } from '$lib/features/sites/columns';
-import type { Site } from '$lib/features/sites/types';
-import { issueCategories, setupItems } from '$lib/shared/stores/metadata';
-import { common_category, common_issue, common_sites } from '$lib/paraglide/messages';
+import type { components, operations } from '#lib/api/schema';
+import { defineFields } from '#lib/shared/components/data/types.ts';
+import { siteItems } from '#lib/features/sites/columns.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import { issueCategories, setupItems } from '#lib/shared/stores/metadata.ts';
+import { common_category, common_issue, common_sites } from '#lib/paraglide/messages.js';
 import { issueCategoryOf, type SetupListEntry } from '../setup-list';
 
 type IssueOrderField = components['schemas']['IssueOrderField'];

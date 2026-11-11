@@ -3,16 +3,16 @@
  */
 
 import { createQuery, createMutation } from '@tanstack/svelte-query';
-import { queryKeys, queryClient } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
+import { queryKeys, queryClient } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
 import type { BillingPlan, BillingRate } from './types';
-import type { components } from '$lib/api/schema';
-import { pushSuccess } from '$lib/shared/stores/feedback';
-import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
-import { useOrganizationQuery } from '$lib/features/organizations/queries';
-import { hasLicensedPlan, type Organization } from '$lib/features/organizations/types';
-import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
-import { useCan } from '$lib/features/auth/access';
+import type { components } from '#lib/api/schema';
+import { pushSuccess } from '#lib/shared/stores/feedback.ts';
+import { requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
+import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+import { hasLicensedPlan, type Organization } from '#lib/features/organizations/types.ts';
+import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
+import { useCan } from '#lib/features/auth/access.ts';
 
 type PauseDuration = components['schemas']['PauseDuration'];
 type CancelSubscriptionRequest = components['schemas']['CancelSubscriptionRequest'];

@@ -2,14 +2,14 @@
 	import { onMount } from 'svelte';
 	import { Search } from '@lucide/svelte';
 	// ChevronDown / ChevronRight replaced by the CSS `.caret` below — see the note on that rule.
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import HiddenTagsChip from '$lib/shared/components/forms/selection/HiddenTagsChip.svelte';
-	import { HIDDEN_TAGS_CHIP_WIDTH } from '$lib/shared/components/forms/selection/display-tags';
-	import type { ColorStyle, Color } from '$lib/shared/utils/styling';
-	import type { IconComponent } from '$lib/shared/utils/types';
-	import type { TagProps } from '$lib/shared/components/data/types';
-	import type { components } from '$lib/api/schema';
-	import DeviceGlyph from '$lib/features/hosts/components/DeviceGlyph.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import HiddenTagsChip from '#lib/shared/components/forms/selection/HiddenTagsChip.svelte';
+	import { HIDDEN_TAGS_CHIP_WIDTH } from '#lib/shared/components/forms/selection/display-tags.ts';
+	import type { ColorStyle, Color } from '#lib/shared/utils/styling.ts';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
+	import type { TagProps } from '#lib/shared/components/data/types.ts';
+	import type { components } from '#lib/api/schema';
+	import DeviceGlyph from '#lib/features/hosts/components/DeviceGlyph.svelte';
 	import SoftwareGlyph from './SoftwareGlyph.svelte';
 	import {
 		common_collapse,
@@ -17,8 +17,8 @@
 		topology_elementCount,
 		topology_ungroupedCount,
 		topology_searchContainerMatches
-	} from '$lib/paraglide/messages';
-	import { tooltip as tooltipAction, type TooltipOptions } from '$lib/shared/actions/tooltip';
+	} from '#lib/paraglide/messages.js';
+	import { tooltip as tooltipAction, type TooltipOptions } from '#lib/shared/actions/tooltip.ts';
 
 	import {
 		EXTERNAL_TITLE_OFFSET,

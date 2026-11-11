@@ -1,43 +1,48 @@
 <script lang="ts">
 	import type { Node } from '@xyflow/svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
-	import { focusNodes } from '$lib/features/topology/viewport-fit';
+	import { focusNodes } from '#lib/features/topology/viewport-fit.ts';
 	import { Crosshair } from '@lucide/svelte';
-	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
-	import { IPAddressDisplay } from '$lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
-	import { ServiceDisplay } from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
-	import { InterfaceDisplay } from '$lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
-	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
-	import { SubnetDisplay } from '$lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
-	import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
-	import { entityGlyph } from '$lib/features/topology/entity-glyph';
-	import DeviceGlyph from '$lib/features/hosts/components/DeviceGlyph.svelte';
-	import SoftwareGlyph from '$lib/features/topology/components/visualization/SoftwareGlyph.svelte';
-	import type { TopologyEditState } from '$lib/features/topology/state';
+	import EntityDisplayWrapper from '#lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
+	import { IPAddressDisplay } from '#lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
+	import { ServiceDisplay } from '#lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
+	import { InterfaceDisplay } from '#lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
+	import { HostDisplay } from '#lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import { SubnetDisplay } from '#lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
+	import type { RenderableTopology, TopologyNode } from '#lib/features/topology/types/base.ts';
+	import { entityGlyph } from '#lib/features/topology/entity-glyph.ts';
+	import DeviceGlyph from '#lib/features/hosts/components/DeviceGlyph.svelte';
+	import SoftwareGlyph from '#lib/features/topology/components/visualization/SoftwareGlyph.svelte';
+	import type { TopologyEditState } from '#lib/features/topology/state.ts';
 	import {
 		nodeEntity,
 		interfaceRelations,
 		type ElementRenderContext,
 		type ContainerRenderContext
-	} from '$lib/features/topology/resolvers';
+	} from '#lib/features/topology/resolvers.ts';
 	import {
 		common_utilization,
 		inspector_thisEntity,
 		subnets_resolveRange,
 		topology_focusNode
-	} from '$lib/paraglide/messages';
-	import { containerTypes, entities, inspectorSections, views } from '$lib/shared/stores/metadata';
-	import { activeView } from '$lib/features/topology/queries';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useUpdateHostDescriptionMutation } from '$lib/features/hosts/queries';
-	import { useSubnetsQuery, useUpdateSubnetMutation } from '$lib/features/subnets/queries';
-	import { nestingItems, subnetNesting } from '$lib/features/subnets/nesting';
-	import HostInspectorActions from '$lib/features/hosts/components/HostInspectorActions.svelte';
-	import InterfaceRelationRows from '$lib/features/hosts/components/InterfaceRelationRows.svelte';
-	import SubnetUtilization from '$lib/features/subnets/components/SubnetUtilization.svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import UnconfirmedNotice from '$lib/shared/components/confirmation/UnconfirmedNotice.svelte';
-	import { openModal } from '$lib/shared/stores/modal-registry';
+	} from '#lib/paraglide/messages.js';
+	import {
+		containerTypes,
+		entities,
+		inspectorSections,
+		views
+	} from '#lib/shared/stores/metadata.ts';
+	import { activeView } from '#lib/features/topology/queries.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useUpdateHostDescriptionMutation } from '#lib/features/hosts/queries.ts';
+	import { useSubnetsQuery, useUpdateSubnetMutation } from '#lib/features/subnets/queries.ts';
+	import { nestingItems, subnetNesting } from '#lib/features/subnets/nesting.ts';
+	import HostInspectorActions from '#lib/features/hosts/components/HostInspectorActions.svelte';
+	import InterfaceRelationRows from '#lib/features/hosts/components/InterfaceRelationRows.svelte';
+	import SubnetUtilization from '#lib/features/subnets/components/SubnetUtilization.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import UnconfirmedNotice from '#lib/shared/components/confirmation/UnconfirmedNotice.svelte';
+	import { openModal } from '#lib/shared/stores/modal-registry.ts';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 	import EntityDetailRows from '../shared/EntityDetailRows.svelte';
 	import { getInspectorConfig } from '../view-config';

@@ -2,23 +2,23 @@
  * TanStack Query hooks for Discovery
  */
 
-import { displaySettings, effectiveTimeZone } from '$lib/shared/stores/display-settings.svelte';
-import { formatTimeOfDay, weekdayOrder } from '$lib/shared/utils/date-format';
+import { displaySettings, effectiveTimeZone } from '#lib/shared/stores/display-settings.svelte.ts';
+import { formatTimeOfDay, weekdayOrder } from '#lib/shared/utils/date-format.ts';
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
-import { queryClient, queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
 import type { Discovery } from './types/base';
-import type { components, operations } from '$lib/api/schema';
-import { useListPageQuery, type ListPageParams } from '$lib/api/list-page';
+import type { components, operations } from '#lib/api/schema';
+import { useListPageQuery, type ListPageParams } from '#lib/api/list-page.ts';
 import type { DiscoveryUpdatePayload } from './types/api';
 import type { Organization } from '../organizations/types';
-import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
-import { discoveryTerminalReasons, discoveryTypes } from '$lib/shared/stores/metadata';
+import { pushError, pushSuccess, pushWarning } from '#lib/shared/stores/feedback.ts';
+import { discoveryTerminalReasons, discoveryTypes } from '#lib/shared/stores/metadata.ts';
 import { get, writable } from 'svelte/store';
-import * as m from '$lib/paraglide/messages';
-import { siteItems } from '$lib/features/sites/columns';
-import { daemonItems } from '$lib/features/daemons/columns';
+import * as m from '#lib/paraglide/messages.js';
+import { siteItems } from '#lib/features/sites/columns.ts';
+import { daemonItems } from '#lib/features/daemons/columns.ts';
 import {
 	discoveryStreamConnected,
 	forgetSession,
@@ -229,10 +229,10 @@ export function useBulkDeleteDiscoveriesMutation() {
 	}));
 }
 
-import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formatting';
+import { utcTimeZoneSentinel, uuidv4Sentinel } from '#lib/shared/utils/formatting.ts';
 import type { Daemon } from '../daemons/types/base';
 import type { Site } from '../sites/types';
-import type { OrderableFieldConfig } from '$lib/shared/components/data/types';
+import type { OrderableFieldConfig } from '#lib/shared/components/data/types.ts';
 
 // ============================================================================
 // Utility Functions

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { DaemonOS } from '../utils';
-	import { hostOsIcon, hostOsOfDaemonOs } from '$lib/features/hosts/host-os';
-	import { createIconComponent } from '$lib/shared/utils/styling';
+	import { hostOsIcon, hostOsOfDaemonOs } from '#lib/features/hosts/host-os.ts';
+	import { createIconComponent } from '#lib/shared/utils/styling.ts';
 
 	interface Props {
 		os: DaemonOS;

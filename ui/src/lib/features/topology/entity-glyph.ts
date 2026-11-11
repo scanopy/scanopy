@@ -1,5 +1,5 @@
-import type { components } from '$lib/api/schema';
-import { entities } from '$lib/shared/stores/metadata';
+import type { components } from '#lib/api/schema';
+import { entities } from '#lib/shared/stores/metadata.ts';
 import { getTopologyIndex } from './entity-index';
 import type { RenderableTopology, TopologyHost } from './types/base';
 

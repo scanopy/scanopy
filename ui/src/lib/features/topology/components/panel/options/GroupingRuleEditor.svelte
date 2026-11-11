@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Edit, Check, Eye, EyeOff } from '@lucide/svelte';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import { SimpleOptionDisplay } from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import { SimpleOptionDisplay } from '#lib/shared/components/forms/selection/display/SimpleOptionDisplay.ts';
 	import FilterGroup from './FilterGroup.svelte';
 	import GroupingRuleItem from './GroupingRuleItem.svelte';
 	import type {
@@ -27,7 +27,7 @@
 		getInfrastructureRuleId,
 		getOrgUseCase
 	} from '../../../queries';
-	import { getUseCases } from '$lib/features/auth/types/base';
+	import { getUseCases } from '#lib/features/auth/types/base.ts';
 	import { getTopologyEditState } from '../../../state';
 	import {
 		useTopologiesQuery,
@@ -35,14 +35,14 @@
 		selectedTopologyId,
 		sanitizeOptionsForApi
 	} from '../../../queries';
-	import type { components } from '$lib/api/schema';
+	import type { components } from '#lib/api/schema';
 	type ServiceCategory = components['schemas']['ServiceCategory'];
 	type Entity = components['schemas']['EntityDiscriminants'];
-	import { useTagsQuery } from '$lib/features/tags/queries';
-	import { entities } from '$lib/shared/stores/metadata';
-	import { formatEntityLabel, formatEntityLabelTitle } from '$lib/features/topology/labels';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { formatEntityLabel, formatEntityLabelTitle } from '#lib/features/topology/labels.ts';
 	import { SvelteSet } from 'svelte/reactivity';
-	import { type Color } from '$lib/shared/utils/styling';
+	import { type Color } from '#lib/shared/utils/styling.ts';
 	interface RuleTypeMetadata<R> {
 		id: string;
 		name: string | null;
@@ -60,8 +60,8 @@
 			default_payload: R;
 		} | null;
 	}
-	import _containerRuleTypes from '$lib/data/container-rule-types.json';
-	import _elementRuleTypes from '$lib/data/element-rule-types.json';
+	import _containerRuleTypes from '#lib/data/container-rule-types.json';
+	import _elementRuleTypes from '#lib/data/element-rule-types.json';
 	const typedContainerRuleTypes = _containerRuleTypes as RuleTypeMetadata<ContainerRule>[];
 	const typedElementRuleTypes = _elementRuleTypes as RuleTypeMetadata<ElementRule>[];
 	import {
@@ -84,11 +84,11 @@
 		topology_infraRuleDescription,
 		topology_infraRuleNote,
 		topology_groupingReadOnlySnapshot
-	} from '$lib/paraglide/messages';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import viewsJson from '$lib/data/views.json';
-	import { metaName, metaDescription } from '$lib/i18n/metadata';
-	import { disabledWhen, hiddenWhen, type Unavailable } from '$lib/shared/components/data/types';
+	} from '#lib/paraglide/messages.js';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import viewsJson from '#lib/data/views.json';
+	import { metaName, metaDescription } from '#lib/i18n/metadata.ts';
+	import { disabledWhen, hiddenWhen, type Unavailable } from '#lib/shared/components/data/types.ts';
 
 	// Topology for edit state and option-saving
 	const topologiesQuery = useTopologiesQuery();
@@ -200,7 +200,7 @@
 	let disabledCount = $derived(elementRules.filter((r) => !isElementRuleApplicable(r)).length);
 
 	// Service categories from fixture data (all categories, not just those in current topology)
-	import serviceCategoriesJson from '$lib/data/service-categories.json';
+	import serviceCategoriesJson from '#lib/data/service-categories.json';
 	let serviceCategoriesWithColors = serviceCategoriesJson
 		.map((cat) => ({
 			value: cat.id,

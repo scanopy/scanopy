@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
-	import { fitToViewport } from '$lib/shared/utils/popoverPosition';
+	import { fitToViewport } from '#lib/shared/utils/popoverPosition.ts';
 
 	let {
 		triggerElement = null,

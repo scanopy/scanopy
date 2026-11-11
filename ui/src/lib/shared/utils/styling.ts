@@ -1,9 +1,9 @@
 import * as LucideIcons from '@lucide/svelte';
 import type { IconComponent } from './types';
 import colors from 'tailwindcss/colors';
-import LogoIcon from '$lib/shared/components/data/LogoIcon.svelte';
-import type { LogoTheming } from '$lib/shared/utils/logos';
-import type { components } from '$lib/api/schema';
+import LogoIcon from '#lib/shared/components/data/LogoIcon.svelte';
+import type { LogoTheming } from '#lib/shared/utils/logos.ts';
+import type { components } from '#lib/api/schema';
 
 // Use the generated Color type from OpenAPI schema
 export type Color = components['schemas']['Color'];

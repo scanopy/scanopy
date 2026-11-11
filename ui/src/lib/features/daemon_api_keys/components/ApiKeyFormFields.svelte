@@ -7,13 +7,13 @@
 	 * the fields can. The owning component supplies the TanStack form.
 	 */
 	import type { ApiKeyForm } from '../form';
-	import { required, max } from '$lib/shared/components/forms/validators';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import DateInput from '$lib/shared/components/forms/input/DateInput.svelte';
-	import SelectSite from '$lib/features/sites/components/SelectSite.svelte';
-	import Checkbox from '$lib/shared/components/forms/input/Checkbox.svelte';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
-	import ApiKeyGenerator from '$lib/shared/components/api-keys/ApiKeyGenerator.svelte';
+	import { required, max } from '#lib/shared/components/forms/validators.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import DateInput from '#lib/shared/components/forms/input/DateInput.svelte';
+	import SelectSite from '#lib/features/sites/components/SelectSite.svelte';
+	import Checkbox from '#lib/shared/components/forms/input/Checkbox.svelte';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
+	import ApiKeyGenerator from '#lib/shared/components/api-keys/ApiKeyGenerator.svelte';
 	import {
 		common_tags,
 		common_apiKeyNameHelp,
@@ -23,7 +23,7 @@
 		common_name,
 		daemonApiKeys_enableApiKeyHelp,
 		daemonApiKeys_namePlaceholder
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		form: ApiKeyForm;

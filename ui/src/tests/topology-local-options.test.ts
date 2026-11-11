@@ -10,8 +10,8 @@ import {
 	updateActiveTagFilter,
 	updateHiddenEdgeTypes,
 	updateTopologyOptions
-} from '$lib/features/topology/queries';
-import type { Topology, TopologyOptions } from '$lib/features/topology/types/base';
+} from '#lib/features/topology/queries.ts';
+import type { Topology, TopologyOptions } from '#lib/features/topology/types/base.ts';
 
 /**
  * Local options (minimap, edge bundling, fading) are saved as one value for every view; hidden

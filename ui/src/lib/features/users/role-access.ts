@@ -1,8 +1,8 @@
 import { Eye, Pencil, Plus, Trash2 } from '@lucide/svelte';
-import type { components } from '$lib/api/schema';
-import { common_create, common_delete, common_edit, common_view } from '$lib/paraglide/messages';
-import { productAreas, resources } from '$lib/shared/stores/metadata';
-import type { IconComponent } from '$lib/shared/utils/types';
+import type { components } from '#lib/api/schema';
+import { common_create, common_delete, common_edit, common_view } from '#lib/paraglide/messages.js';
+import { productAreas, resources } from '#lib/shared/stores/metadata.ts';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
 
 type Resource = components['schemas']['Resource'];
 type DisplayAction = components['schemas']['DisplayAction'];

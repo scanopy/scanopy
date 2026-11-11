@@ -16,8 +16,8 @@
  * size, the viewer deletes the entry and lays out for real.
  */
 
-import { browser } from '$app/environment';
-import { getLocale } from '$lib/paraglide/runtime';
+import { browser } from '$app/env';
+import { getLocale } from '#lib/paraglide/runtime.js';
 import type { TopologyEdge, TopologyNode } from '../types/base';
 import type { LayoutResult } from '../layout/engine';
 import { affectsLayout, affectsLayoutWithinContainer } from '../layout/edge-classification';
@@ -179,7 +179,9 @@ export function writeStoredLayout(key: string, layout: StoredLayout): void {
 		try {
 			const store = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME);
 			store.put({ key, usedAt: Date.now(), layout } satisfies StoredRecord);
+
 			const records = (await requestDone<StoredRecord[]>(store.getAll())) ?? [];
+
 			records
 				.sort((a, b) => b.usedAt - a.usedAt)
 				.slice(MAX_ENTRIES)

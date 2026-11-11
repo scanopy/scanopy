@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { Lock } from '@lucide/svelte';
 	import AppBanner from './AppBanner.svelte';
-	import { useCan } from '$lib/features/auth/access';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { hasLicensedPlan, isPlanLapsed } from '$lib/features/organizations/types';
-	import { useWrittenOffInvoice } from '$lib/features/billing/queries';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
+	import { useCan } from '#lib/features/auth/access.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { hasLicensedPlan, isPlanLapsed } from '#lib/features/organizations/types.ts';
+	import { useWrittenOffInvoice } from '#lib/features/billing/queries.ts';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
+	import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
 	import {
 		billing_lapsedBannerAskOwner,
 		billing_lapsedBannerBody,
@@ -15,7 +15,7 @@
 		settings_billing_license_lapsed,
 		settings_billing_license_lapsedUnpaid,
 		settings_billing_payInvoice
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	// A lapsed org (subscription ended, no paid plan chosen since) keeps its
 	// plan and browses read-only. The backend refuses its writes; this banner

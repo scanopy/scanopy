@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
 	import type { Edge } from '@xyflow/svelte';
-	import type { components } from '$lib/api/schema';
-	import type { TopologyEdge } from '$lib/features/topology/types/base';
-	import { activeView, aggregatedEdgeOriginals } from '$lib/features/topology/queries';
+	import type { components } from '#lib/api/schema';
+	import type { TopologyEdge } from '#lib/features/topology/types/base.ts';
+	import { activeView, aggregatedEdgeOriginals } from '#lib/features/topology/queries.ts';
 	import InspectorEdgeDependency from './edges/InspectorEdgeDependency.svelte';
 	import InspectorEdgeIPAddress from './edges/InspectorEdgeIPAddress.svelte';
 	import InspectorEdgeHypervisor from './edges/InspectorEdgeHypervisor.svelte';
@@ -13,7 +13,7 @@
 	import InspectorEdgeNeighborLink from './edges/InspectorEdgeNeighborLink.svelte';
 	import InspectorEdgeSameContainer from './edges/InspectorEdgeSameContainer.svelte';
 	import InspectorEdgeAggregated from './edges/InspectorEdgeAggregated.svelte';
-	import { inspector_edgeDataUnavailable } from '$lib/paraglide/messages';
+	import { inspector_edgeDataUnavailable } from '#lib/paraglide/messages.js';
 
 	type EdgeType = components['schemas']['EdgeTypeDiscriminants'];
 	type EdgeOf<K extends EdgeType> = Extract<TopologyEdge, { edge_type: K }>;

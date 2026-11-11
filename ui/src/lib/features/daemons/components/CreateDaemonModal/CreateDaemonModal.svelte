@@ -2,17 +2,17 @@
 	import { untrack, tick } from 'svelte';
 	import { createForm } from '@tanstack/svelte-form';
 	import { useQueryClient } from '@tanstack/svelte-query';
-	import { queryKeys } from '$lib/api/query-client';
-	import { validateForm } from '$lib/shared/components/forms/form-context';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import type { ModalTab } from '$lib/shared/components/layout/GenericModal.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
-	import { copyText } from '$lib/shared/utils/clipboard';
-	import { common_failedToCopy } from '$lib/paraglide/messages';
-	import { trackEvent } from '$lib/shared/utils/analytics';
-	import { entities } from '$lib/shared/stores/metadata';
+	import { queryKeys } from '#lib/api/query-client.ts';
+	import { validateForm } from '#lib/shared/components/forms/form-context.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import type { ModalTab } from '#lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import { pushError, pushSuccess, pushWarning } from '#lib/shared/stores/feedback.ts';
+	import { copyText } from '#lib/shared/utils/clipboard.ts';
+	import { common_failedToCopy } from '#lib/paraglide/messages.js';
+	import { trackEvent } from '#lib/shared/utils/analytics.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import {
 		Settings,
 		Terminal,
@@ -34,8 +34,8 @@
 		useProvisionEligibilityQuery,
 		type InstallCommandParams
 	} from '../../queries';
-	import { useConfigQuery, isCloud } from '$lib/shared/stores/config-query';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { useConfigQuery, isCloud } from '#lib/shared/stores/config-query.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
 	import { useTestReachabilityMutation } from '../../queries';
 	import { getVisibleFieldIds } from '../../config';
 	import {
@@ -46,7 +46,7 @@
 		slugifySiteName,
 		type DaemonOS
 	} from '../../utils';
-	import { useSitesQuery } from '$lib/features/sites/queries';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
 	import { daemonSetupState, type DaemonConnectionStatus } from '../../stores/daemon-setup';
 	import ConfigureStep from './steps/ConfigureStep.svelte';
 	import InstallStep from './steps/InstallStep.svelte';
@@ -54,21 +54,24 @@
 	import ProvisionRefusedNotice from './ProvisionRefusedNotice.svelte';
 	import CredentialsStep, {
 		type PendingCredential
-	} from '$lib/features/credentials/components/CredentialsStep.svelte';
+	} from '#lib/features/credentials/components/CredentialsStep.svelte';
 	import {
 		isDaemonHostOnly as isDaemonHostOnlyTargets,
 		type Credential,
 		type IntegrationTarget
-	} from '$lib/features/credentials/types/base';
-	import { useCredentialsQuery } from '$lib/features/credentials/queries';
+	} from '#lib/features/credentials/types/base.ts';
+	import { useCredentialsQuery } from '#lib/features/credentials/queries.ts';
 	import {
 		integrationTargetFor,
 		isLockedOnly,
 		junctionHostIds,
 		junctionHostsOnSite
-	} from '$lib/features/credentials/utils/credentialTargets';
-	import { useHostsByIds } from '$lib/features/hosts/queries';
-	import { useDiscoveriesQuery, useUpdateDiscoveryMutation } from '$lib/features/discovery/queries';
+	} from '#lib/features/credentials/utils/credentialTargets.ts';
+	import { useHostsByIds } from '#lib/features/hosts/queries.ts';
+	import {
+		useDiscoveriesQuery,
+		useUpdateDiscoveryMutation
+	} from '#lib/features/discovery/queries.ts';
 	import {
 		common_close,
 		common_configure,
@@ -92,8 +95,8 @@
 		daemons_installBackToInstall,
 		daemons_installReturnToCommands,
 		daemons_testingConnectionTo
-	} from '$lib/paraglide/messages';
-	import { credentialTypes } from '$lib/shared/stores/metadata';
+	} from '#lib/paraglide/messages.js';
+	import { credentialTypes } from '#lib/shared/stores/metadata.ts';
 
 	interface Props {
 		isOpen?: boolean;

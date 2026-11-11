@@ -13,7 +13,7 @@
  */
 
 import { mount, unmount, type Component } from 'svelte';
-import type { IconComponent } from '$lib/shared/utils/types';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
 
 export type CardGlyph =
 	| { type: 'mask'; key: string; svg: string; css: string }

@@ -10,11 +10,11 @@
  */
 
 import { writable } from 'svelte/store';
-import type { components } from '$lib/api/schema';
-import type { EntityDiscriminants } from '$lib/api/entities';
-import type { Tag } from '$lib/features/tags/types/base';
-import { isEditableTarget } from '$lib/shared/utils/shortcuts';
-import { SEARCH_MAX_LENGTH } from '$lib/shared/components/forms/input/SearchInput.svelte';
+import type { components } from '#lib/api/schema';
+import type { EntityDiscriminants } from '#lib/api/entities.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
+import { isEditableTarget } from '#lib/shared/utils/shortcuts.ts';
+import { SEARCH_MAX_LENGTH } from '#lib/shared/components/forms/input/SearchInput.svelte';
 
 /** What the palette searches for: the typed text and the tag chips before it. */
 export interface GlobalSearchState {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import CodeContainer from '$lib/shared/components/data/CodeContainer.svelte';
+	import CodeContainer from '#lib/shared/components/data/CodeContainer.svelte';
 	import { generateEmbedCode, generateEmbedUrl } from '../queries';
 
 	export let shareId: string;

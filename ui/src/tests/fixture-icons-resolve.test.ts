@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import * as LucideIcons from '@lucide/svelte';
-import { createIconComponent } from '$lib/shared/utils/styling';
+import { createIconComponent } from '#lib/shared/utils/styling.ts';
 
 // Icon names come from the backend's `lucide-icons` crate, and the UI renders them through
 // @lucide/svelte. When the two packages are on different versions, a renamed icon falls back to
 // the `?` icon with no error. Network Identities rendered `?` this way: `fingerprint-pattern`
 // came from lucide-icons 0.562 and did not exist in lucide-svelte 0.526.
-const fixtures = import.meta.glob<unknown>('$lib/data/*.json', { eager: true, import: 'default' });
+const fixtures = import.meta.glob<unknown>('#lib/data/*.json', { eager: true, import: 'default' });
 
 function collectIcons(value: unknown, path: string, out: Array<[string, string]>) {
 	if (Array.isArray(value)) {

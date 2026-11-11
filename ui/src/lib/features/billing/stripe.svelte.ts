@@ -8,12 +8,12 @@ import type {
 	StripePaymentElement,
 	StripePaymentElementOptions
 } from '@stripe/stripe-js';
-import { buildStripeAppearance } from '$lib/shared/billing/stripe-appearance';
-import { useConfigQuery } from '$lib/shared/stores/config-query';
-import { useCurrentUserQuery } from '$lib/features/auth/queries';
-import { useCan } from '$lib/features/auth/access';
-import { useOrganizationQuery } from '$lib/features/organizations/queries';
-import { createSetupIntent } from '$lib/features/billing/queries';
+import { buildStripeAppearance } from '#lib/shared/billing/stripe-appearance.ts';
+import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
+import { useCurrentUserQuery } from '#lib/features/auth/queries.ts';
+import { useCan } from '#lib/features/auth/access.ts';
+import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+import { createSetupIntent } from '#lib/features/billing/queries.ts';
 
 let stripePromise: Promise<Stripe | null> | null = null;
 let loadedKey: string | null = null;

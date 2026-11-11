@@ -3,12 +3,12 @@
  */
 
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
-import { queryKeys, queryClient } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
-import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
+import { queryKeys, queryClient } from '#lib/api/query-client.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { requireSuccess, unwrapData } from '#lib/api/query-helpers.ts';
 import type { CreateInviteRequest, OrganizationInvite, Organization } from './types';
 import type { UserOrgPermissions, User } from '../users/types';
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 
 /**
  * Query hook for fetching current organization

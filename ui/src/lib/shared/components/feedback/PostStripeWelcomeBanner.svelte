@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { CheckCircle } from '@lucide/svelte';
 	import AppBanner from './AppBanner.svelte';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { isBillingPlanActive } from '$lib/features/organizations/types';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { isBillingPlanActive } from '#lib/features/organizations/types.ts';
 	import {
 		isPlanActivationRecent,
 		planActivatedAt
-	} from '$lib/shared/billing/plan-activation-marker';
-	import { trackOncePerSession } from '$lib/shared/utils/analytics';
-	import { billingPlans } from '$lib/shared/stores/metadata';
+	} from '#lib/shared/billing/plan-activation-marker.ts';
+	import { trackOncePerSession } from '#lib/shared/utils/analytics.ts';
+	import { billingPlans } from '#lib/shared/stores/metadata.ts';
 	import {
 		billing_welcomeBannerBody,
 		billing_welcomeBannerBodyTrialSecured
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	const organizationQuery = useOrganizationQuery();
 

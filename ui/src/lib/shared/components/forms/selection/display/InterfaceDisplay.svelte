@@ -1,13 +1,13 @@
 <script lang="ts" context="module">
-	import type { Interface } from '$lib/features/hosts/types/base';
+	import type { Interface } from '#lib/features/hosts/types/base.ts';
 	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
-	import { entities, ifOperStatuses } from '$lib/shared/stores/metadata';
+	import { entities, ifOperStatuses } from '#lib/shared/stores/metadata.ts';
 	import {
 		common_unknown,
 		hosts_interfaces_operStatusNotReported,
 		hosts_noMacAddress
-	} from '$lib/paraglide/messages';
-	import { interfaceDisplayName } from '$lib/features/hosts/interface-display-name';
+	} from '#lib/paraglide/messages.js';
+	import { interfaceDisplayName } from '#lib/features/hosts/interface-display-name.ts';
 
 	/** `linkFault` is a link reported Down; `linkStatus` is any other status, Up or unknown. */
 	export type InterfaceTagRole = 'linkStatus' | 'linkFault';
@@ -58,7 +58,7 @@
 
 <script lang="ts">
 	import ListSelectItem from '../ListSelectItem.svelte';
-	import type { TagProps } from '$lib/shared/components/data/types';
+	import type { TagProps } from '#lib/shared/components/data/types.ts';
 
 	export let item: Interface;
 	export let context: InterfaceDisplayContext = undefined;

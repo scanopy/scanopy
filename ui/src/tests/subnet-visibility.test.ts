@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isUserManagedSubnet } from '$lib/features/subnets/queries';
-import type { Subnet } from '$lib/features/subnets/types/base';
-import type { components } from '$lib/api/schema';
+import { isUserManagedSubnet } from '#lib/features/subnets/queries.ts';
+import type { Subnet } from '#lib/features/subnets/types/base.ts';
+import type { components } from '#lib/api/schema';
 
 type EntitySource = components['schemas']['EntitySource'];
 type SubnetType = Subnet['subnet_type'];

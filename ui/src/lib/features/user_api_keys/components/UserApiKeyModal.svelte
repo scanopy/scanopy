@@ -1,25 +1,25 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import { required, max } from '$lib/shared/components/forms/validators';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import { pushError } from '$lib/shared/stores/feedback';
-	import { entities } from '$lib/shared/stores/metadata';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import DateInput from '$lib/shared/components/forms/input/DateInput.svelte';
-	import Checkbox from '$lib/shared/components/forms/input/Checkbox.svelte';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
-	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import { required, max } from '#lib/shared/components/forms/validators.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import ModalHeaderIcon from '#lib/shared/components/layout/ModalHeaderIcon.svelte';
+	import { pushError } from '#lib/shared/stores/feedback.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import DateInput from '#lib/shared/components/forms/input/DateInput.svelte';
+	import Checkbox from '#lib/shared/components/forms/input/Checkbox.svelte';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
+	import EntityMetadataSection from '#lib/shared/components/forms/EntityMetadataSection.svelte';
 
 	// Shared components
-	import ApiKeyGenerator from '$lib/shared/components/api-keys/ApiKeyGenerator.svelte';
-	import PermissionSelect from '$lib/shared/components/api-keys/PermissionSelect.svelte';
-	import RoleAccessSummary from '$lib/shared/components/api-keys/RoleAccessSummary.svelte';
-	import SiteAccessSelect from '$lib/shared/components/api-keys/SiteAccessSelect.svelte';
+	import ApiKeyGenerator from '#lib/shared/components/api-keys/ApiKeyGenerator.svelte';
+	import PermissionSelect from '#lib/shared/components/api-keys/PermissionSelect.svelte';
+	import RoleAccessSummary from '#lib/shared/components/api-keys/RoleAccessSummary.svelte';
+	import SiteAccessSelect from '#lib/shared/components/api-keys/SiteAccessSelect.svelte';
 
 	import type { UserApiKey } from '../queries';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		createEmptyUserApiKeyFormData,
 		useCreateUserApiKeyMutation,
@@ -46,8 +46,8 @@
 		userApiKeys_namePlaceholder,
 		userApiKeys_permissionsHelp,
 		userApiKeys_verifyEmailToCreate
-	} from '$lib/paraglide/messages';
-	import EmailVerificationNotice from '$lib/features/auth/components/EmailVerificationNotice.svelte';
+	} from '#lib/paraglide/messages.js';
+	import EmailVerificationNotice from '#lib/features/auth/components/EmailVerificationNotice.svelte';
 
 	interface Props {
 		isOpen?: boolean;

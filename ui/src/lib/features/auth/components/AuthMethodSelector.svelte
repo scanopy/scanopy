@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { Loader2 } from '@lucide/svelte';
-	import type { OidcProviderMetadata } from '$lib/shared/stores/config-query';
+	import type { OidcProviderMetadata } from '#lib/shared/stores/config-query.ts';
 	import OidcProviderLogo from './OidcProviderLogo.svelte';
 	import {
 		auth_signInWith,
 		auth_signInWithEmail,
 		common_lastUsed,
 		common_or
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		providers: OidcProviderMetadata[];

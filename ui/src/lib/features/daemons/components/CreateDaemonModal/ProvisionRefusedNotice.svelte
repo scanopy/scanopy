@@ -2,19 +2,19 @@
 	// Shown in place of the Configure step whenever the wizard is refused. Each way forward is its
 	// own option. A daemon that never connected adds two: fix it, or delete it and set up a new one
 	// here. Meeting every requirement for another daemon is always offered.
-	import type { components } from '$lib/api/schema';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import { entityRef } from '$lib/shared/components/data/types';
-	import { formatDate } from '$lib/shared/utils/formatting';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
+	import type { components } from '#lib/api/schema';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
+	import { formatDate } from '#lib/shared/utils/formatting.ts';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
 	import {
 		useEmailVerificationPending,
 		useResendVerificationMutation
-	} from '$lib/features/auth/queries';
+	} from '#lib/features/auth/queries.ts';
 	import { useDeleteDaemonMutation } from '../../queries';
 	import { DAEMON_STATUS_DOCS_URL } from '../../utils';
-	import { daemonHealths, entities } from '$lib/shared/stores/metadata';
+	import { daemonHealths, entities } from '#lib/shared/stores/metadata.ts';
 	import {
 		daemons_unconnectedStepPlan,
 		common_confirmDeleteName,
@@ -31,7 +31,7 @@
 		daemons_unconnectedTitle,
 		daemons_unconnectedTroubleshoot,
 		verifyEmail_resend
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type ProvisionEligibility = components['schemas']['ProvisionEligibility'];
 	type UnconnectedDaemon = components['schemas']['UnconnectedDaemon'];

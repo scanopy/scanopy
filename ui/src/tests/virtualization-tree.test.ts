@@ -3,14 +3,14 @@ import {
 	buildTreeSections,
 	groupItems,
 	mergeRootedTrees
-} from '$lib/shared/components/data/controls/grouping';
-import type { FieldConfig } from '$lib/shared/components/data/types';
+} from '#lib/shared/components/data/controls/grouping.ts';
+import type { FieldConfig } from '#lib/shared/components/data/types.ts';
 import {
 	missingRootIds,
 	virtualizationGroupKey,
 	virtualizationGroupLabel,
 	virtualizationTree
-} from '$lib/features/hosts/virtualization-tree';
+} from '#lib/features/hosts/virtualization-tree.ts';
 
 interface Row {
 	id: string;

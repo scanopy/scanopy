@@ -1,19 +1,19 @@
 <script lang="ts">
-	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import InfoRow from '$lib/shared/components/data/InfoRow.svelte';
-	import InlineSuccess from '$lib/shared/components/feedback/InlineSuccess.svelte';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import InlineDanger from '$lib/shared/components/feedback/InlineDanger.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
+	import ProgressTrack from '#lib/shared/components/data/ProgressTrack.svelte';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
+	import InfoRow from '#lib/shared/components/data/InfoRow.svelte';
+	import InlineSuccess from '#lib/shared/components/feedback/InlineSuccess.svelte';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+	import InlineDanger from '#lib/shared/components/feedback/InlineDanger.svelte';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
 	import type { DiscoveryUpdatePayload } from '../../types/api';
 	import { isFullScan } from '../../utils/fullScan';
-	import { formatDuration, formatTimestamp } from '$lib/shared/utils/formatting';
-	import { useSubnetsQuery, getSubnetById } from '$lib/features/subnets/queries';
-	import { useHostsByIds } from '$lib/features/hosts/queries';
-	import scanSettingsFields from '$lib/data/scan-settings.json';
-	import type { FieldDefinition } from '$lib/shared/stores/metadata';
+	import { formatDuration, formatTimestamp } from '#lib/shared/utils/formatting.ts';
+	import { useSubnetsQuery, getSubnetById } from '#lib/features/subnets/queries.ts';
+	import { useHostsByIds } from '#lib/features/hosts/queries.ts';
+	import scanSettingsFields from '#lib/data/scan-settings.json';
+	import type { FieldDefinition } from '#lib/shared/stores/metadata.ts';
 	import {
 		discovery_runDetails,
 		discovery_hostNamingFallback,
@@ -41,7 +41,7 @@
 		common_ipAddress,
 		common_progress,
 		common_started
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		payload: DiscoveryUpdatePayload;

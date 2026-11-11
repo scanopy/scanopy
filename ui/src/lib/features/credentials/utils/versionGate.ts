@@ -1,7 +1,7 @@
-import osFamilies from '$lib/data/os-families.json';
-import { credentials_daemonOsMismatch } from '$lib/paraglide/messages';
+import osFamilies from '#lib/data/os-families.json';
+import { credentials_daemonOsMismatch } from '#lib/paraglide/messages.js';
 import type { Credential } from '../types/base';
-import { osFamilyOf, osLabel, type DaemonOS } from '$lib/features/daemons/utils';
+import { osFamilyOf, osLabel, type DaemonOS } from '#lib/features/daemons/utils.ts';
 
 /**
  * Why a daemon on `daemonOs` cannot use `credential`, or null when it can: the credential reads

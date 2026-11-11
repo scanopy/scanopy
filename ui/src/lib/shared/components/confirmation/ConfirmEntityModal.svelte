@@ -8,8 +8,8 @@
 	Unconfirmed tag (`confirmation.ts`).
 -->
 <script lang="ts" module>
-	import type { IconComponent } from '$lib/shared/utils/types';
-	import type { Color } from '$lib/shared/utils/styling';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
+	import type { Color } from '#lib/shared/utils/styling.ts';
 
 	export interface ConfirmAction {
 		id: string;
@@ -23,15 +23,15 @@
 
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import { entityRef } from '$lib/shared/components/data/types';
-	import { createColorHelper } from '$lib/shared/utils/styling';
-	import { entities } from '$lib/shared/stores/metadata';
-	import { openModal } from '$lib/shared/stores/modal-registry';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import { useHostsByIds } from '$lib/features/hosts/queries';
-	import { common_openScanThatFoundIt, common_reportedBy } from '$lib/paraglide/messages';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
+	import { createColorHelper } from '#lib/shared/utils/styling.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { openModal } from '#lib/shared/stores/modal-registry.ts';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+	import { useHostsByIds } from '#lib/features/hosts/queries.ts';
+	import { common_openScanThatFoundIt, common_reportedBy } from '#lib/paraglide/messages.js';
 
 	interface Props {
 		name: string;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { dependencyOrder } from '$lib/features/topology/layout/child-order';
+import { dependencyOrder } from '#lib/features/topology/layout/child-order.ts';
 
 const edge = (source: string, target: string) => ({ source, target });
 

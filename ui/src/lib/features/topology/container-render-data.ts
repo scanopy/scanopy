@@ -7,24 +7,24 @@
  * deriving header content in either consumer.
  */
 
-import type { components } from '$lib/api/schema';
-import { queryClient, queryKeys } from '$lib/api/query-client';
-import type { Site } from '$lib/features/sites/types';
-import { tagTooltip } from '$lib/features/tags/groups';
-import type { Tag, TagGroup } from '$lib/features/tags/types/base';
-import type { TooltipContent } from '$lib/shared/actions/tooltip';
-import type { TagProps } from '$lib/shared/components/data/types';
-import { entityUIConfig } from '$lib/shared/entity-ui-config';
-import { containerTypes, entities, serviceCategories } from '$lib/shared/stores/metadata';
-import { getConfirmationTag } from '$lib/shared/utils/confirmation';
-import { getFreshnessTag } from '$lib/shared/utils/freshness';
+import type { components } from '#lib/api/schema';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import { tagTooltip } from '#lib/features/tags/groups.ts';
+import type { Tag, TagGroup } from '#lib/features/tags/types/base.ts';
+import type { TooltipContent } from '#lib/shared/actions/tooltip.ts';
+import type { TagProps } from '#lib/shared/components/data/types.ts';
+import { entityUIConfig } from '#lib/shared/entity-ui-config.ts';
+import { containerTypes, entities, serviceCategories } from '#lib/shared/stores/metadata.ts';
+import { getConfirmationTag } from '#lib/shared/utils/confirmation.ts';
+import { getFreshnessTag } from '#lib/shared/utils/freshness.ts';
 import {
 	createColorHelper,
 	createIconComponent,
 	type Color,
 	type ColorStyle
-} from '$lib/shared/utils/styling';
-import type { IconComponent } from '$lib/shared/utils/types';
+} from '#lib/shared/utils/styling.ts';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
 import { entityGlyph } from './entity-glyph';
 import { formatElementSummary, tallyContainerElements, tallyDirectElements } from './labels';
 import { findInfraRuleId, getInfrastructureRuleIdForTopology } from './queries';

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
 	import { createForm } from '@tanstack/svelte-form';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import {
@@ -8,11 +8,11 @@
 		common_areYouSure,
 		common_confirm,
 		common_cancel
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import InlineWarning from './InlineWarning.svelte';
 	import InlineDanger from './InlineDanger.svelte';
 	import InlineInfo from './InlineInfo.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 
 	interface Props {
 		isOpen?: boolean;

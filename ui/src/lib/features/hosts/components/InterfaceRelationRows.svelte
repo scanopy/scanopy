@@ -1,6 +1,6 @@
 <script lang="ts" module>
-	import type { Interface, IPAddress, Host } from '$lib/features/hosts/types/base';
-	import type { Subnet } from '$lib/features/subnets/types/base';
+	import type { Interface, IPAddress, Host } from '#lib/features/hosts/types/base.ts';
+	import type { Subnet } from '#lib/features/subnets/types/base.ts';
 
 	export interface VlanInfo {
 		id: string;
@@ -28,18 +28,18 @@
 </script>
 
 <script lang="ts">
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import { interfaceDisplayName } from '$lib/features/hosts/interface-display-name';
-	import InfoRow from '$lib/shared/components/data/InfoRow.svelte';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import { entityRef } from '$lib/shared/components/data/types';
-	import { entities } from '$lib/shared/stores/metadata';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+	import { interfaceDisplayName } from '#lib/features/hosts/interface-display-name.ts';
+	import InfoRow from '#lib/shared/components/data/InfoRow.svelte';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import {
 		common_ipAddress,
 		hosts_interfaces_neighbor,
 		hosts_interfaces_taggedVlans,
 		vlans_vlanLabel
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	/** An interface's rows that resolve other entities: its IP and subnet, tagged VLANs, neighbours. */
 	let {

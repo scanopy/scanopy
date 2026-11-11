@@ -65,6 +65,7 @@ use uuid::Uuid;
 use validator::Validate;
 use zip::CompressionMethod;
 use zip::ZipWriter;
+use zip::result::ZipResult;
 use zip::write::SimpleFileOptions;
 
 // ============================================================================
@@ -1393,42 +1394,14 @@ async fn export_hosts_zip(
         .await
         .map_err(csv_error)?;
 
-    // Build zip archive
-    let mut buffer = Cursor::new(Vec::new());
-    {
-        let mut zip = ZipWriter::new(&mut buffer);
-        let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
-
-        zip.start_file("hosts.csv", options)
-            .map_err(|e| ApiError::internal_error(&format!("Failed to create zip: {}", e)))?;
-        zip.write_all(&hosts_csv)
-            .map_err(|e| ApiError::internal_error(&format!("Failed to write zip: {}", e)))?;
-
-        zip.start_file("ip_addresses.csv", options)
-            .map_err(|e| ApiError::internal_error(&format!("Failed to create zip: {}", e)))?;
-        zip.write_all(&ip_addresses_csv)
-            .map_err(|e| ApiError::internal_error(&format!("Failed to write zip: {}", e)))?;
-
-        zip.start_file("ports.csv", options)
-            .map_err(|e| ApiError::internal_error(&format!("Failed to create zip: {}", e)))?;
-        zip.write_all(&ports_csv)
-            .map_err(|e| ApiError::internal_error(&format!("Failed to write zip: {}", e)))?;
-
-        zip.start_file("services.csv", options)
-            .map_err(|e| ApiError::internal_error(&format!("Failed to create zip: {}", e)))?;
-        zip.write_all(&services_csv)
-            .map_err(|e| ApiError::internal_error(&format!("Failed to write zip: {}", e)))?;
-
-        zip.start_file("interfaces.csv", options)
-            .map_err(|e| ApiError::internal_error(&format!("Failed to create zip: {}", e)))?;
-        zip.write_all(&interfaces_csv)
-            .map_err(|e| ApiError::internal_error(&format!("Failed to write zip: {}", e)))?;
-
-        zip.finish()
-            .map_err(|e| ApiError::internal_error(&format!("Failed to finalize zip: {}", e)))?;
-    }
-
-    let zip_data = buffer.into_inner();
+    let zip_data = zip_archive(&[
+        ("hosts.csv", &hosts_csv),
+        ("ip_addresses.csv", &ip_addresses_csv),
+        ("ports.csv", &ports_csv),
+        ("services.csv", &services_csv),
+        ("interfaces.csv", &interfaces_csv),
+    ])
+    .map_err(|e| ApiError::internal_error(&format!("Failed to build zip: {}", e)))?;
 
     // Build response with appropriate headers
     let mut headers = HeaderMap::new();
@@ -1445,3 +1418,46 @@ async fn export_hosts_zip(
 }
 
 use crate::server::shared::legacy::rewrite_response_for_legacy_daemon;
+
+/// Writes `files` (name, contents) into a Deflate-compressed zip archive, in the order given.
+fn zip_archive(files: &[(&str, &[u8])]) -> ZipResult<Vec<u8>> {
+    let mut zip = ZipWriter::new(Cursor::new(Vec::new()));
+    let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
+
+    for (name, contents) in files {
+        zip.start_file(*name, options)?;
+        zip.write_all(contents)?;
+    }
+
+    Ok(zip.finish()?.into_inner())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Read as _;
+
+    use zip::ZipArchive;
+
+    use super::*;
+
+    #[test]
+    fn zip_archive_reads_back_every_file() {
+        let files: [(&str, &[u8]); 3] = [
+            ("hosts.csv", b"id,name\n1,router\n"),
+            ("ports.csv", b"id,number\n2,443\n"),
+            ("empty.csv", b""),
+        ];
+
+        let bytes = zip_archive(&files).unwrap();
+
+        let mut archive = ZipArchive::new(Cursor::new(bytes)).unwrap();
+        assert_eq!(archive.len(), files.len());
+        for (index, (name, contents)) in files.iter().enumerate() {
+            let mut entry = archive.by_index(index).unwrap();
+            assert_eq!(entry.name().unwrap(), *name);
+            let mut read = Vec::new();
+            entry.read_to_end(&mut read).unwrap();
+            assert_eq!(&read, contents);
+        }
+    }
+}

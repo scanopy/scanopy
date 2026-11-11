@@ -1,7 +1,7 @@
 <script lang="ts" module>
-	import { entities } from '$lib/shared/stores/metadata';
-	import { formatDate } from '$lib/shared/utils/formatting';
-	import type { Snapshot } from '$lib/features/snapshots/queries';
+	import { entities } from '#lib/shared/stores/metadata.ts';
+	import { formatDate } from '#lib/shared/utils/formatting.ts';
+	import type { Snapshot } from '#lib/features/snapshots/queries.ts';
 
 	export const SnapshotDisplay: EntityDisplayComponent<Snapshot, object> = {
 		getId: (snapshot: Snapshot) => snapshot.id,

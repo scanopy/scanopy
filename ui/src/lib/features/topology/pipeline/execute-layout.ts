@@ -4,7 +4,7 @@ import { LayoutGraph, type LayoutContainer } from '../layout/layout-graph';
 import { ElkLayoutEngine, type LayoutResult } from '../layout/engine';
 import { getViewLayout } from '../layout/view-layout';
 import { computeForceLayout, type ForceNode, type ForceLink } from '../layout/force-layout';
-import { containerTypes } from '$lib/shared/stores/metadata';
+import { containerTypes } from '#lib/shared/stores/metadata.ts';
 import * as perf from '../perf';
 import { noteRunDetail, noteElkResultDiscarded } from '../diagnostics';
 import { effectiveElementSort } from '../element-sort';

@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import { required, max } from '$lib/shared/components/forms/validators';
+	import { required, max } from '#lib/shared/components/forms/validators.ts';
 
 	/** A service name's rule, for its field here and for the hidden one an unselected service keeps. */
 	export const validateServiceName = ({ value }: { value: string }) =>
@@ -7,27 +7,31 @@
 </script>
 
 <script lang="ts">
-	import type { IPAddressBinding, PortBinding, Service } from '$lib/features/services/types/base';
-	import { serviceCategories, serviceDefinitions } from '$lib/shared/stores/metadata';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import { pushWarning } from '$lib/shared/stores/feedback';
+	import type {
+		IPAddressBinding,
+		PortBinding,
+		Service
+	} from '#lib/features/services/types/base.ts';
+	import { serviceCategories, serviceDefinitions } from '#lib/shared/stores/metadata.ts';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import { pushWarning } from '#lib/shared/stores/feedback.ts';
 	import { v4 as uuidv4 } from 'uuid';
-	import { useServicesCacheQuery } from '$lib/features/services/queries';
-	import { PortBindingDisplay } from '$lib/shared/components/forms/selection/display/PortBindingDisplay.svelte';
-	import { IPAddressBindingDisplay } from '$lib/shared/components/forms/selection/display/IPAddressBindingDisplay.svelte';
+	import { useServicesCacheQuery } from '#lib/features/services/queries.ts';
+	import { PortBindingDisplay } from '#lib/shared/components/forms/selection/display/PortBindingDisplay.svelte';
+	import { IPAddressBindingDisplay } from '#lib/shared/components/forms/selection/display/IPAddressBindingDisplay.svelte';
 	import MatchDetails from './MatchDetails.svelte';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import ConfigHeader from '$lib/shared/components/forms/config/ConfigHeader.svelte';
-	import type { HostFormData } from '$lib/features/hosts/types/base';
-	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
-	import { usePortsQuery } from '$lib/features/ports/queries';
-	import { useSubnetsQuery, isContainerSubnet } from '$lib/features/subnets/queries';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
+	import ConfigHeader from '#lib/shared/components/forms/config/ConfigHeader.svelte';
+	import type { HostFormData } from '#lib/features/hosts/types/base.ts';
+	import TagPickerInline from '#lib/features/tags/components/TagPickerInline.svelte';
+	import { usePortsQuery } from '#lib/features/ports/queries.ts';
+	import { useSubnetsQuery, isContainerSubnet } from '#lib/features/subnets/queries.ts';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
-	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
-	import CopyableValue from '$lib/shared/components/data/CopyableValue.svelte';
-	import GuestStateTag from '$lib/shared/components/virtualization/GuestStateTag.svelte';
+	import DocsHint from '#lib/shared/components/feedback/DocsHint.svelte';
+	import CopyableValue from '#lib/shared/components/data/CopyableValue.svelte';
+	import GuestStateTag from '#lib/shared/components/virtualization/GuestStateTag.svelte';
 	import {
 		common_tags,
 		common_bindings,
@@ -56,7 +60,7 @@
 		hosts_services_selectBinding,
 		hosts_services_unclaimedPortsHint,
 		hosts_services_unclaimedPortsLearnMore
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	// TanStack Query hooks
 	const servicesQuery = useServicesCacheQuery();

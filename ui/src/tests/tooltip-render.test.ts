@@ -1,8 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { renderTooltip, type TooltipChip, type TooltipContent } from '$lib/shared/actions/tooltip';
-import { hostTooltip, serviceTooltip } from '$lib/shared/entity-tooltip';
-import type { Host } from '$lib/features/hosts/types/base';
-import type { Service } from '$lib/features/services/types/base';
+import {
+	renderTooltip,
+	type TooltipChip,
+	type TooltipContent
+} from '#lib/shared/actions/tooltip.ts';
+import { hostTooltip, serviceTooltip } from '#lib/shared/entity-tooltip.ts';
+import type { Host } from '#lib/features/hosts/types/base.ts';
+import type { Service } from '#lib/features/services/types/base.ts';
 
 /**
  * The renderer builds the tooltip from strings that come from scanned devices and users. It must

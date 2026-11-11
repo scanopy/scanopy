@@ -1,12 +1,12 @@
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import { siteItems } from '$lib/features/sites/columns';
-import { entities, permissions } from '$lib/shared/stores/metadata';
-import type { LabelledCardFieldItem } from '$lib/shared/components/data/types';
-import { NO_VALUE } from '$lib/shared/components/data/controls/listQuery';
-import type { components, operations } from '$lib/api/schema';
-import type { Site } from '$lib/features/sites/types';
-import type { Tag } from '$lib/features/tags/types/base';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import { siteItems } from '#lib/features/sites/columns.ts';
+import { entities, permissions } from '#lib/shared/stores/metadata.ts';
+import type { LabelledCardFieldItem } from '#lib/shared/components/data/types.ts';
+import { NO_VALUE } from '#lib/shared/components/data/controls/listQuery.ts';
+import type { components, operations } from '#lib/api/schema';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
 import type { UserApiKey } from '../queries';
 import {
 	common_allSites,
@@ -18,7 +18,7 @@ import {
 	common_name,
 	common_permissions,
 	common_tags
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 type UserApiKeyOrderField = components['schemas']['UserApiKeyOrderField'];
 /** The user API key list endpoint's query params, which the filters are sent and linked as. */

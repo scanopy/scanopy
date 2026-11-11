@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { type NodeProps, useInternalNode } from '@xyflow/svelte';
 	import NodeHandles from './NodeHandles.svelte';
-	import { deviceTypes, entities, serviceDefinitions } from '$lib/shared/stores/metadata';
+	import { deviceTypes, entities, serviceDefinitions } from '#lib/shared/stores/metadata.ts';
 	import { cardGlyph, type CardGlyph } from '../../card-glyph';
-	import DeviceGlyph from '$lib/features/hosts/components/DeviceGlyph.svelte';
+	import DeviceGlyph from '#lib/features/hosts/components/DeviceGlyph.svelte';
 	import SoftwareGlyph from './SoftwareGlyph.svelte';
 	import PortGlyph from './PortGlyph.svelte';
 	import type { EntityGlyph } from '../../entity-glyph';
@@ -14,8 +14,8 @@
 		activeView
 	} from '../../queries';
 	import { useTopology, selectedTopologyId } from '../../context';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { useSitesQuery } from '$lib/features/sites/queries';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
 
 	const sitesQuery = useSitesQuery();
 	import type { TopologyNode, ElementRenderData, RenderableTopology } from '../../types/base';
@@ -30,12 +30,12 @@
 	} from '../../interactions';
 	import { toggleInlineGroup } from '../../collapse';
 	import * as sharedStores from '../../reactive-stores.svelte';
-	import { createColorHelper } from '$lib/shared/utils/styling';
+	import { createColorHelper } from '#lib/shared/utils/styling.ts';
 	import { getContext } from 'svelte';
 	import type { Node, Edge } from '@xyflow/svelte';
-	import { common_collapse, common_expand } from '$lib/paraglide/messages';
-	import { tooltip } from '$lib/shared/actions/tooltip';
-	import { hostOsIcon } from '$lib/features/hosts/host-os';
+	import { common_collapse, common_expand } from '#lib/paraglide/messages.js';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
+	import { hostOsIcon } from '#lib/features/hosts/host-os.ts';
 	import { ChevronDown, ChevronRight } from '@lucide/svelte';
 	import {
 		ELEMENT_HANDLE_SIZE_PX,

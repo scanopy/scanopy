@@ -1,17 +1,17 @@
 <script lang="ts" module>
-	import { credentialTypes } from '$lib/shared/stores/metadata';
+	import { credentialTypes } from '#lib/shared/stores/metadata.ts';
 	import type {
 		TypedTypeMetadata,
 		CredentialTypeMetadata,
 		FeatureId
-	} from '$lib/shared/stores/metadata';
-	import { getStabilityTagProps } from '$lib/shared/utils/stability';
+	} from '#lib/shared/stores/metadata.ts';
+	import { getStabilityTagProps } from '#lib/shared/utils/stability.ts';
 	import {
 		getScopeTagProps,
 		getUpstreamSupportTagProps
-	} from '$lib/features/credentials/types/base';
-	import { upgradeTagProps } from '$lib/features/billing/upgrade-tag';
-	import { common_availableOnPaidPlans, credentials_betaTooltip } from '$lib/paraglide/messages';
+	} from '#lib/features/credentials/types/base.ts';
+	import { upgradeTagProps } from '#lib/features/billing/upgrade-tag.ts';
+	import { common_availableOnPaidPlans, credentials_betaTooltip } from '#lib/paraglide/messages.js';
 
 	export type CredentialTypeOption = TypedTypeMetadata<CredentialTypeMetadata>;
 

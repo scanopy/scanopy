@@ -27,23 +27,23 @@
 <script lang="ts">
 	import { ChevronRight } from '@lucide/svelte';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
 
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import InlineDanger from '$lib/shared/components/feedback/InlineDanger.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
-	import CodeContainer from '$lib/shared/components/data/CodeContainer.svelte';
-	import CollapsibleCard from '$lib/shared/components/data/CollapsibleCard.svelte';
-	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import SegmentedControl from '$lib/shared/components/forms/SegmentedControl.svelte';
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
-	import { SimpleOptionDisplay } from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
-	import { entityRef } from '$lib/shared/components/data/types';
-	import { useHostsByIds } from '$lib/features/hosts/queries';
-	import { useCredentialsQuery } from '$lib/features/credentials/queries';
-	import { discoveryTerminalReasons, entities } from '$lib/shared/stores/metadata';
-	import { createColorHelper, createIconComponent } from '$lib/shared/utils/styling';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import InlineDanger from '#lib/shared/components/feedback/InlineDanger.svelte';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
+	import CodeContainer from '#lib/shared/components/data/CodeContainer.svelte';
+	import CollapsibleCard from '#lib/shared/components/data/CollapsibleCard.svelte';
+	import EntityTag from '#lib/shared/components/data/EntityTag.svelte';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import SegmentedControl from '#lib/shared/components/forms/SegmentedControl.svelte';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
+	import { SimpleOptionDisplay } from '#lib/shared/components/forms/selection/display/SimpleOptionDisplay.ts';
+	import { entityRef } from '#lib/shared/components/data/types.ts';
+	import { useHostsByIds } from '#lib/features/hosts/queries.ts';
+	import { useCredentialsQuery } from '#lib/features/credentials/queries.ts';
+	import { discoveryTerminalReasons, entities } from '#lib/shared/stores/metadata.ts';
+	import { createColorHelper, createIconComponent } from '#lib/shared/utils/styling.ts';
 	import {
 		common_warnings,
 		discovery_daemonLogsHint,
@@ -55,13 +55,13 @@
 		discovery_warningAffectsAddresses,
 		discovery_warningAffectsHosts,
 		discovery_warningAffectsSubnets
-	} from '$lib/paraglide/messages';
-	import type { EntityDiscriminants } from '$lib/api/entities';
+	} from '#lib/paraglide/messages.js';
+	import type { EntityDiscriminants } from '#lib/api/entities.ts';
 	import type { DiscoveryUpdatePayload } from '../../types/api';
 	import { runOutcomeReason } from '../../utils/outcome';
-	import daemonVersionGates from '$lib/data/daemon-version-gates.json';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
-	import { daemonVersionAtOrBelow, runLogCommand } from '$lib/features/daemons/utils';
+	import daemonVersionGates from '#lib/data/daemon-version-gates.json';
+	import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+	import { daemonVersionAtOrBelow, runLogCommand } from '#lib/features/daemons/utils.ts';
 	import {
 		buildWarningReport,
 		isCredentialWarning,

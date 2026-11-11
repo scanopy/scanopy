@@ -1,6 +1,6 @@
-import type { Organization } from '$lib/features/organizations/types';
-import { billingPlans } from '$lib/shared/stores/metadata';
-import pickablePlans from '$lib/data/billing-plans.json';
+import type { Organization } from '#lib/features/organizations/types.ts';
+import { billingPlans } from '#lib/shared/stores/metadata.ts';
+import pickablePlans from '#lib/data/billing-plans.json';
 
 export function getTrialEndDate(org: Organization | null | undefined): Date | null {
 	return org?.trial_end_date ? new Date(org.trial_end_date) : null;

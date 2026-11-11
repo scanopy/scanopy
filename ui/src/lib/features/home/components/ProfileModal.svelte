@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { useProfileUpdateMutation } from '$lib/features/auth/queries';
+	import { useProfileUpdateMutation } from '#lib/features/auth/queries.ts';
 	import { createForm } from '@tanstack/svelte-form';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
-	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
+	import { submitForm } from '#lib/shared/components/forms/form-context.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
+	import SelectInput from '#lib/shared/components/forms/input/SelectInput.svelte';
 	import {
 		common_companySize,
 		common_companySize101To250,
@@ -28,7 +28,7 @@
 		home_profileRoleSelect,
 		home_profileSubtitle,
 		home_profileTitle
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	/** The AnswerProfile item's form. Opened over Home, so it carries no registry name. */
 	let { isOpen = false, onClose }: { isOpen?: boolean; onClose: () => void } = $props();

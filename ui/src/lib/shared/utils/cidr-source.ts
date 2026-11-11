@@ -6,7 +6,7 @@
  * is what its callers ask: whether a range can nest, be merged into, or offer "Resolve range".
  */
 
-import { isUnconfirmed, type ConfirmationSubject } from '$lib/shared/utils/confirmation';
+import { isUnconfirmed, type ConfirmationSubject } from '#lib/shared/utils/confirmation.ts';
 
 /** Whether this subnet's range is a guess awaiting confirmation. */
 export function isProvisionalCidr(subnet: ConfirmationSubject): boolean {

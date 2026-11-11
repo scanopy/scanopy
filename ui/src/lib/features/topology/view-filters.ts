@@ -7,8 +7,8 @@
  * covers each (entity, filter type) pair with at most one filter, so the key is unambiguous.
  */
 
-import type { components } from '$lib/api/schema';
-import { views } from '$lib/shared/stores/metadata';
+import type { components } from '#lib/api/schema';
+import { views } from '#lib/shared/stores/metadata.ts';
 
 export type ViewElementConfig = components['schemas']['ViewElementConfig'];
 export type MetadataFilter = components['schemas']['MetadataFilter'];

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { activeViewFilters } from '$lib/features/topology/interactions';
-import { clearedHideSetFor } from '$lib/features/topology/queries';
-import type { RenderableTopology } from '$lib/features/topology/types/base';
+import { activeViewFilters } from '#lib/features/topology/interactions.ts';
+import { clearedHideSetFor } from '#lib/features/topology/queries.ts';
+import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
 
 /**
  * An L2 view whose ports are all linked — the state the live database is in, where hiding

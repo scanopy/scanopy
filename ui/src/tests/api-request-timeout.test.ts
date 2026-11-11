@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('$env/dynamic/public', () => ({
-	env: { PUBLIC_SERVER_HOSTNAME: 'scanopy.test', PUBLIC_SERVER_PROTOCOL: 'http' }
+vi.mock('$app/env/public', () => ({
+	PUBLIC_SERVER_HOSTNAME: 'scanopy.test',
+	PUBLIC_SERVER_PROTOCOL: 'http',
+	PUBLIC_SERVER_PORT: ''
 }));
-vi.mock('$lib/shared/stores/feedback', () => ({ pushError: vi.fn() }));
+vi.mock('#lib/shared/stores/feedback.ts', () => ({ pushError: vi.fn() }));
 
-const { apiClient, RequestTimeoutError } = await import('$lib/api/client');
-const { pushError } = await import('$lib/shared/stores/feedback');
+const { apiClient, RequestTimeoutError } = await import('#lib/api/client.ts');
+const { pushError } = await import('#lib/shared/stores/feedback.ts');
 
 /** A server that never answers: the request settles only when its signal aborts. */
 function hungFetch() {

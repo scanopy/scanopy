@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { collectEdgeHandles, mergeEdgeHandles } from '$lib/features/topology/interactions';
+import { collectEdgeHandles, mergeEdgeHandles } from '#lib/features/topology/interactions.ts';
 
 /**
  * Nodes render only the handles in `edgeHandles` (`reactive-stores.svelte.ts`): the real edges'

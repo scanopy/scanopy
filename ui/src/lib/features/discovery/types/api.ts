@@ -1,4 +1,4 @@
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 
 // Re-export generated types
 export type DiscoveryType = components['schemas']['DiscoveryType'];

@@ -1,5 +1,5 @@
-import type { components } from '$lib/api/schema';
-import { billingPlans } from '$lib/shared/stores/metadata';
+import type { components } from '#lib/api/schema';
+import { billingPlans } from '#lib/shared/stores/metadata.ts';
 
 // Re-export generated types
 // The signed-in user's organization, as `/api/v1/organizations/current` serves it.

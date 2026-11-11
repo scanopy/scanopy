@@ -1,33 +1,28 @@
 <script lang="ts">
-	import { applicationGroupId, isApplicationTag } from '$lib/features/tags/groups';
+	import { applicationGroupId, isApplicationTag } from '#lib/features/tags/groups.ts';
 	import TopologyCanvasPlaceholder from './TopologyCanvasPlaceholder.svelte';
-	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
+	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
 	import TopologyViewer from './visualization/TopologyViewer.svelte';
 	import TopologyOptionsPanel from './panel/TopologyOptionsPanel.svelte';
 	import { Camera, Radar, Share2, Trash2 } from '@lucide/svelte';
 	import LiveDot from './LiveDot.svelte';
-	import type { IconComponent } from '$lib/shared/utils/types';
-	import { createColorHelper } from '$lib/shared/utils/styling';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
+	import { createColorHelper } from '#lib/shared/utils/styling.ts';
 	import ExportButton from './ExportButton.svelte';
 	import ExportModal from './ExportModal.svelte';
-	import SharesModal from '$lib/features/shares/components/SharesModal.svelte';
-	import { modalState, openModal, closeModal } from '$lib/shared/stores/modal-registry';
-	import { tooltip } from '$lib/shared/actions/tooltip';
+	import SharesModal from '#lib/features/shares/components/SharesModal.svelte';
+	import { modalState, openModal, closeModal } from '#lib/shared/stores/modal-registry.ts';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
 	import { SvelteFlowProvider } from '@xyflow/svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { onMount, setContext } from 'svelte';
-	import { takeInitialParams } from '$lib/shared/stores/url-state';
-	import { preloadElk } from '$lib/features/topology/layout/elk-layout';
+	import { takeInitialParams } from '#lib/shared/stores/url-state.ts';
+	import { preloadElk } from '#lib/features/topology/layout/elk-layout.ts';
 	import { get, writable } from 'svelte/store';
 	import { collapseScope, isScaleCollapsed } from '../collapse';
-	import {
-		beginLoad,
-		cancelDownload,
-		LOAD_STAGES,
-		loadProgress
-	} from '../pipeline/load-progress';
+	import { beginLoad, cancelDownload, LOAD_STAGES, loadProgress } from '../pipeline/load-progress';
 	import {
 		useTopologiesQuery,
 		useTopologyDataQuery,
@@ -59,12 +54,12 @@
 		useTakeSnapshotMutation,
 		useDeleteSnapshotMutation,
 		type Snapshot
-	} from '$lib/features/snapshots/queries';
-	import { SnapshotDisplay } from '$lib/shared/components/forms/selection/display/SnapshotDisplay.svelte';
-	import { SiteDisplay } from '$lib/shared/components/forms/selection/display/SiteDisplay.svelte';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
+	} from '#lib/features/snapshots/queries.ts';
+	import { SnapshotDisplay } from '#lib/shared/components/forms/selection/display/SnapshotDisplay.svelte';
+	import { SiteDisplay } from '#lib/shared/components/forms/selection/display/SiteDisplay.svelte';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
 	import { makeGraphRule } from '../types/grouping';
 	import type { ContainerGraphRule } from '../types/grouping';
 	import {
@@ -74,36 +69,36 @@
 		activeViewFilters
 	} from '../interactions';
 	import { clearSelection } from '../selection';
-	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
+	import RichSelect from '#lib/shared/components/forms/selection/RichSelect.svelte';
 	import {
 		SimpleOptionDisplay,
 		type SimpleOption
-	} from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
-	import { trackEvent } from '$lib/shared/utils/analytics';
-	import { useTagGroupsQuery, useTagsQuery } from '$lib/features/tags/queries';
-	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
-	import { entityBundleFrom, toRenderableTopology } from '$lib/features/topology/enriched';
-	import type { RenderableTopology } from '$lib/features/topology/types/base';
-	import { formatDate, formatTimestamp } from '$lib/shared/utils/formatting';
+	} from '#lib/shared/components/forms/selection/display/SimpleOptionDisplay.ts';
+	import { trackEvent } from '#lib/shared/utils/analytics.ts';
+	import { useTagGroupsQuery, useTagsQuery } from '#lib/features/tags/queries.ts';
+	import { useActiveSessionsQuery } from '#lib/features/discovery/queries.ts';
+	import { entityBundleFrom, toRenderableTopology } from '#lib/features/topology/enriched.ts';
+	import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+	import { formatDate, formatTimestamp } from '#lib/shared/utils/formatting.ts';
 	import ApplicationSetupWizard from './application-wizard/ApplicationSetupWizard.svelte';
 	import L2EmptyStateOverlay from './L2EmptyStateOverlay.svelte';
 	import TopologyPlanRequiredOverlay from './TopologyPlanRequiredOverlay.svelte';
-	import { upgradeTagProps } from '$lib/features/billing/upgrade-tag';
-	import { hasTopologyAccess } from '$lib/features/organizations/types';
+	import { upgradeTagProps } from '#lib/features/billing/upgrade-tag.ts';
+	import { hasTopologyAccess } from '#lib/features/organizations/types.ts';
 	import ViewFiltersEmptyState from './ViewFiltersEmptyState.svelte';
 	import ViewSwitcherHint from './ViewSwitcherHint.svelte';
 	import DependencyTutorial from './DependencyTutorial.svelte';
 	import { TUTORIAL_TOPOLOGY } from './dependency-tutorial-data';
-	import { useUsersQuery } from '$lib/features/users/queries';
-	import { useCan } from '$lib/features/auth/access';
+	import { useUsersQuery } from '#lib/features/users/queries.ts';
+	import { useCan } from '#lib/features/auth/access.ts';
 	import {
 		useOrganizationQuery,
 		useRecordSetupItemMutation
-	} from '$lib/features/organizations/queries';
-	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
-	import { billingPlans, edgeTypes, entities, views } from '$lib/shared/stores/metadata';
+	} from '#lib/features/organizations/queries.ts';
+	import { waitForOrgUpdate } from '#lib/shared/billing/wait-for-org-update.ts';
+	import { billingPlans, edgeTypes, entities, views } from '#lib/shared/stores/metadata.ts';
 	import { getInspectorConfig } from './panel/inspectors/view-config';
-	import type { TabProps } from '$lib/shared/types';
+	import type { TabProps } from '#lib/shared/types.ts';
 	import {
 		common_delete,
 		common_firstDiscoveryEmailHint,
@@ -116,8 +111,8 @@
 		topology_siteTopologyMissing,
 		topology_snapshotDeleteConfirm,
 		topology_takeSnapshot
-	} from '$lib/paraglide/messages';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
+	} from '#lib/paraglide/messages.js';
+	import { useConfigQuery } from '#lib/shared/stores/config-query.ts';
 
 	let { isActive = false }: TabProps = $props();
 
@@ -374,7 +369,7 @@
 	});
 
 	// View selector — built from fixture data
-	import viewsJson from '$lib/data/views.json';
+	import viewsJson from '#lib/data/views.json';
 
 	const allViewOptions: SimpleOption[] = viewsJson.map((p) => ({
 		value: p.id,

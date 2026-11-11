@@ -12,7 +12,7 @@ import {
 	summarisePayload,
 	resetDiagnostics,
 	type DiagnosablePayload
-} from '$lib/features/topology/diagnostics';
+} from '#lib/features/topology/diagnostics.ts';
 
 /**
  * A payload that reports how many times its collections were walked.

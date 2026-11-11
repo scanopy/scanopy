@@ -2,8 +2,8 @@
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
 	import { X } from '@lucide/svelte';
-	import { common_dismiss } from '$lib/paraglide/messages';
-	import type { IconComponent } from '$lib/shared/utils/types';
+	import { common_dismiss } from '#lib/paraglide/messages.js';
+	import type { IconComponent } from '#lib/shared/utils/types.ts';
 
 	let {
 		variant = 'warning',

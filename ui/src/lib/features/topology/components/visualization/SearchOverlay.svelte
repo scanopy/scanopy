@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { X, ChevronUp, ChevronDown } from '@lucide/svelte';
 	import { createForm } from '@tanstack/svelte-form';
-	import SearchInput from '$lib/shared/components/forms/input/SearchInput.svelte';
-	import SearchHint from '$lib/shared/components/forms/input/SearchHint.svelte';
-	import { views } from '$lib/shared/stores/metadata';
+	import SearchInput from '#lib/shared/components/forms/input/SearchInput.svelte';
+	import SearchHint from '#lib/shared/components/forms/input/SearchHint.svelte';
+	import { views } from '#lib/shared/stores/metadata.ts';
 	import { getContext } from 'svelte';
 	import { get, type Writable } from 'svelte/store';
 	import { useSvelteFlow, type Edge, type Node } from '@xyflow/svelte';
@@ -28,7 +28,7 @@
 	import { selectNode, type SelectionStores } from '../../selection';
 	import { formatEntityLabel, viewEntityTypes } from '../../labels';
 	import { focusNodes } from '../../viewport-fit';
-	import { shortcutLabel } from '$lib/shared/utils/shortcuts';
+	import { shortcutLabel } from '#lib/shared/utils/shortcuts.ts';
 	import {
 		topology_searchPlaceholder,
 		topology_searchNoMatches,
@@ -36,7 +36,7 @@
 		common_close,
 		common_next,
 		common_previous
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	const { fitBounds, getNode, getInternalNode } = useSvelteFlow();
 

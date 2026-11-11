@@ -2,14 +2,14 @@
 	import TopologyOverlay from '../TopologyOverlay.svelte';
 	import DefineGroupsStep from './steps/DefineGroupsStep.svelte';
 	import AssignEntitiesStep from './steps/AssignEntitiesStep.svelte';
-	import type { Tag } from '$lib/features/tags/types/base';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import type { Tag } from '#lib/features/tags/types/base.ts';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		appWizard_title,
 		appWizard_complete,
 		common_back,
 		common_next
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		appTags,

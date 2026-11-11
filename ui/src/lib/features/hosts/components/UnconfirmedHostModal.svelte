@@ -11,10 +11,14 @@
 
 	import ConfirmEntityModal, {
 		type ConfirmAction
-	} from '$lib/shared/components/confirmation/ConfirmEntityModal.svelte';
-	import CopyableValue from '$lib/shared/components/data/CopyableValue.svelte';
-	import { unconfirmedReason, unconfirmedVia } from '$lib/shared/utils/confirmation';
-	import { entityFieldLabel, entityFields, type EntityType } from '$lib/shared/entity-fields';
+	} from '#lib/shared/components/confirmation/ConfirmEntityModal.svelte';
+	import CopyableValue from '#lib/shared/components/data/CopyableValue.svelte';
+	import { unconfirmedReason, unconfirmedVia } from '#lib/shared/utils/confirmation.ts';
+	import {
+		entityFieldLabel,
+		entityFields,
+		type EntityType
+	} from '#lib/shared/entity-fields/index.ts';
 	import type { Host } from '../types/base';
 	import type { UnconfirmedEvidence } from '../unconfirmed-evidence';
 	import {
@@ -25,7 +29,7 @@
 		hosts_mergeUnconfirmed,
 		hosts_mergeUnconfirmedDetail,
 		hosts_resolveUnconfirmed
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		host: Host | null;

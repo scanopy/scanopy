@@ -1,13 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryObserver } from '@tanstack/svelte-query';
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 
-vi.mock('$env/dynamic/public', () => ({
-	env: { PUBLIC_SERVER_HOSTNAME: 'scanopy.test', PUBLIC_SERVER_PROTOCOL: 'http' }
+vi.mock('$app/env/public', () => ({
+	PUBLIC_SERVER_HOSTNAME: 'scanopy.test',
+	PUBLIC_SERVER_PROTOCOL: 'http',
+	PUBLIC_SERVER_PORT: ''
 }));
 
-const { afterDaemonDeleted } = await import('$lib/features/daemons/queries');
-const { queryKeys } = await import('$lib/api/query-client');
+const { afterDaemonDeleted } = await import('#lib/features/daemons/queries.ts');
+const { queryKeys } = await import('#lib/api/query-client.ts');
 
 type ProvisionEligibility = components['schemas']['ProvisionEligibility'];
 

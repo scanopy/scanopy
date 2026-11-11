@@ -1,8 +1,12 @@
 <script lang="ts">
 	import { Rocket } from '@lucide/svelte';
 	import AppBanner from './AppBanner.svelte';
-	import { BOOK_CALL_URL } from '$lib/features/support/support';
-	import { auth_createAccount, demo_bannerBody, demo_talkToSales } from '$lib/paraglide/messages';
+	import { BOOK_CALL_URL } from '#lib/features/support/support.ts';
+	import {
+		auth_createAccount,
+		demo_bannerBody,
+		demo_talkToSales
+	} from '#lib/paraglide/messages.js';
 </script>
 
 <AppBanner variant="info" icon={Rocket} body={demo_bannerBody()}>

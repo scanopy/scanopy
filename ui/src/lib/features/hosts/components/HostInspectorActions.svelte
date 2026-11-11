@@ -5,15 +5,15 @@
 -->
 <script lang="ts">
 	import { Edit } from '@lucide/svelte';
-	import UnconfirmedNotice from '$lib/shared/components/confirmation/UnconfirmedNotice.svelte';
-	import { navigateToEntity, openModal } from '$lib/shared/stores/modal-registry';
+	import UnconfirmedNotice from '#lib/shared/components/confirmation/UnconfirmedNotice.svelte';
+	import { navigateToEntity, openModal } from '#lib/shared/stores/modal-registry.ts';
 	import type { Host } from '../types/base';
-	import { isUnconfirmed } from '$lib/shared/utils/confirmation';
+	import { isUnconfirmed } from '#lib/shared/utils/confirmation.ts';
 	import {
 		common_edit,
 		hosts_resolveFirst,
 		hosts_resolveUnconfirmed
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		host,

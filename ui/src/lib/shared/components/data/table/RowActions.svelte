@@ -8,7 +8,7 @@
 
 <script lang="ts">
 	import ActionMenu from '../controls/ActionMenu.svelte';
-	import { tooltip } from '$lib/shared/actions/tooltip';
+	import { tooltip } from '#lib/shared/actions/tooltip.ts';
 	import {
 		iconButtonClass,
 		resolveTooltip,
@@ -16,7 +16,7 @@
 		toolbarButtonClass
 	} from '../controls/actionShortcuts';
 	import type { RowAction } from '../types';
-	import { common_actions } from '$lib/paraglide/messages';
+	import { common_actions } from '#lib/paraglide/messages.js';
 
 	/**
 	 * A row's actions: icon buttons, each disabled with its reason as the tooltip when unavailable,

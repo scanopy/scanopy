@@ -1,6 +1,6 @@
-import * as m from '$lib/paraglide/messages';
-import type { components } from '$lib/api/schema';
-import { formatDate } from '$lib/shared/utils/formatting';
+import * as m from '#lib/paraglide/messages.js';
+import type { components } from '#lib/api/schema';
+import { formatDate } from '#lib/shared/utils/formatting.ts';
 
 type OrgBase = components['schemas']['OrganizationBase'];
 

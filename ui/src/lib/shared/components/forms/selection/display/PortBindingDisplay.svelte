@@ -1,13 +1,13 @@
 <script lang="ts" context="module">
-	import { entities, serviceDefinitions } from '$lib/shared/stores/metadata';
-	import { formatPortBinding } from '$lib/features/hosts/address-labels';
-	import type { PortBinding, Service } from '$lib/features/services/types/base';
+	import { entities, serviceDefinitions } from '#lib/shared/stores/metadata.ts';
+	import { formatPortBinding } from '#lib/features/hosts/address-labels.ts';
+	import type { PortBinding, Service } from '#lib/features/services/types/base.ts';
 	import {
 		ALL_IP_ADDRESSES,
 		type HostFormData,
 		type IPAddress,
 		type Port
-	} from '$lib/features/hosts/types/base';
+	} from '#lib/features/hosts/types/base.ts';
 	import type { EntityDisplayComponent } from '../types';
 	import PortBindingInlineEditor from './PortBindingInlineEditor.svelte';
 

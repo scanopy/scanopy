@@ -1,13 +1,13 @@
 import { get, writable } from 'svelte/store';
 import { SvelteSet } from 'svelte/reactivity';
-import type { EntityDiscriminants } from '$lib/api/entities';
-import { entityModalNames, entityUIConfig, TAB_LABELS } from '$lib/shared/entity-ui-config';
+import type { EntityDiscriminants } from '#lib/api/entities.ts';
+import { entityModalNames, entityUIConfig, TAB_LABELS } from '#lib/shared/entity-ui-config.ts';
 import {
 	globalSearchFromUrl,
 	globalSearchUrlParams,
 	reopenGlobalSearch,
 	type GlobalSearchState
-} from '$lib/features/search/results';
+} from '#lib/features/search/results.ts';
 import { registerUrlOwner, syncUrl, takeInitialParams, URL_SCOPES } from './url-state';
 
 export interface ModalState {

@@ -1,29 +1,29 @@
 <script lang="ts">
-	import { rowStatusBadges } from '$lib/shared/utils/row-badges';
-	import Loading from '$lib/shared/components/feedback/Loading.svelte';
-	import LoadFailedState from '$lib/shared/components/layout/LoadFailedState.svelte';
-	import { loadFailure } from '$lib/shared/utils/load-failure';
-	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
-	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
-	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import type { TableDefaults } from '$lib/shared/components/data/types';
+	import { rowStatusBadges } from '#lib/shared/utils/row-badges.ts';
+	import Loading from '#lib/shared/components/feedback/Loading.svelte';
+	import LoadFailedState from '#lib/shared/components/layout/LoadFailedState.svelte';
+	import { loadFailure } from '#lib/shared/utils/load-failure.ts';
+	import EmptyState from '#lib/shared/components/layout/EmptyState.svelte';
+	import PreDaemonEmptyState from '#lib/shared/components/layout/PreDaemonEmptyState.svelte';
+	import DataControls from '#lib/shared/components/data/DataControls.svelte';
+	import type { TableDefaults } from '#lib/shared/components/data/types.ts';
 	import {
 		entityRef,
 		type RowAction,
 		type LabelledCardFieldItem
-	} from '$lib/shared/components/data/types';
-	import { usePortsQuery } from '$lib/features/ports/queries';
-	import { virtualizedSummary } from '$lib/features/services/virtualized-count';
-	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
-	import { useSubnetsQuery, isContainerSubnet } from '$lib/features/subnets/queries';
-	import { formatIPAddress } from '$lib/features/hosts/address-labels';
-	import { formatPort } from '$lib/shared/utils/formatting';
-	import type { IPAddress, Port } from '$lib/features/hosts/types/base';
-	import { entities } from '$lib/shared/stores/metadata';
+	} from '#lib/shared/components/data/types.ts';
+	import { usePortsQuery } from '#lib/features/ports/queries.ts';
+	import { virtualizedSummary } from '#lib/features/services/virtualized-count.ts';
+	import { useIPAddressesQuery } from '#lib/features/ip-addresses/queries.ts';
+	import { useSubnetsQuery, isContainerSubnet } from '#lib/features/subnets/queries.ts';
+	import { formatIPAddress } from '#lib/features/hosts/address-labels.ts';
+	import { formatPort } from '#lib/shared/utils/formatting.ts';
+	import type { IPAddress, Port } from '#lib/features/hosts/types/base.ts';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import { Trash2, Edit } from '@lucide/svelte';
 	import type { Service } from '../types/base';
 	import ServiceEditModal from './ServiceEditModal.svelte';
-	import { useTagsQuery } from '$lib/features/tags/queries';
+	import { useTagsQuery } from '#lib/features/tags/queries.ts';
 	import {
 		useServicesQuery,
 		useUpdateServiceMutation,
@@ -32,19 +32,23 @@
 		type ServicesQueryParams,
 		useServicesByIds
 	} from '../queries';
-	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
-	import { discoveryRunIds } from '$lib/features/discovery/columns';
-	import { useHostsByIds, useHostSummariesQuery } from '$lib/features/hosts/queries';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import type { TabProps } from '$lib/shared/types';
-	import type { components } from '$lib/api/schema';
+	import { useDiscoveriesByIds } from '#lib/features/discovery/queries.ts';
+	import { discoveryRunIds } from '#lib/features/discovery/columns.ts';
+	import { useHostsByIds, useHostSummariesQuery } from '#lib/features/hosts/queries.ts';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import type { TabProps } from '#lib/shared/types.ts';
+	import type { components } from '#lib/api/schema';
 	import { serviceColumns } from './ServiceTab.columns';
-	import { collectionLookup } from '$lib/shared/entity-fields';
+	import { collectionLookup } from '#lib/shared/entity-fields/index.ts';
 	import { SvelteMap } from 'svelte/reactivity';
-	import { downloadCsv } from '$lib/shared/utils/csvExport';
-	import { closeModal, modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
+	import { downloadCsv } from '#lib/shared/utils/csvExport.ts';
+	import {
+		closeModal,
+		modalState,
+		resolveModalDeepLink
+	} from '#lib/shared/stores/modal-registry.ts';
 	import {
 		common_confirmBulkDelete,
 		common_confirmBulkDeleteWithGuests,
@@ -58,9 +62,9 @@
 		daemons_installPromptServices,
 		gettingStarted_stepDiscoveryLabel,
 		services_subtitle
-	} from '$lib/paraglide/messages';
-	import { serviceDefinitions, ports as ports_metadata } from '$lib/shared/stores/metadata';
-	import { fieldValueOptions, useFieldValuesQuery } from '$lib/shared/api/field-values';
+	} from '#lib/paraglide/messages.js';
+	import { serviceDefinitions, ports as ports_metadata } from '#lib/shared/stores/metadata.ts';
+	import { fieldValueOptions, useFieldValuesQuery } from '#lib/shared/api/field-values.ts';
 
 	type ServiceOrderField = components['schemas']['ServiceOrderField'];
 
@@ -83,7 +87,7 @@
 			.map(String)
 	);
 
-	import { refusedUnless, useCan } from '$lib/features/auth/access';
+	import { refusedUnless, useCan } from '#lib/features/auth/access.ts';
 
 	let { isActive = false }: TabProps = $props();
 	const can = useCan();

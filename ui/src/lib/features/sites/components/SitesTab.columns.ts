@@ -1,23 +1,23 @@
-import { credentialItems } from '$lib/features/credentials/columns';
-import { tagNames } from '$lib/features/tags/columns';
-import { entityRef } from '$lib/shared/components/data/types';
-import { defineRegistryFields } from '$lib/shared/entity-fields/table';
-import type { EntityLookup } from '$lib/shared/entity-fields';
-import type { components, operations } from '$lib/api/schema';
-import { fieldValueOptions, type FieldValueCount } from '$lib/shared/api/field-values';
-import { entities } from '$lib/shared/stores/metadata';
+import { credentialItems } from '#lib/features/credentials/columns.ts';
+import { tagNames } from '#lib/features/tags/columns.ts';
+import { entityRef } from '#lib/shared/components/data/types.ts';
+import { defineRegistryFields } from '#lib/shared/entity-fields/table.ts';
+import type { EntityLookup } from '#lib/shared/entity-fields/index.ts';
+import type { components, operations } from '#lib/api/schema';
+import { fieldValueOptions, type FieldValueCount } from '#lib/shared/api/field-values.ts';
+import { entities } from '#lib/shared/stores/metadata.ts';
 import type { Site } from '../types';
-import type { Credential } from '$lib/features/credentials/types/base';
-import type { Daemon } from '$lib/features/daemons/types/base';
-import type { Subnet } from '$lib/features/subnets/types/base';
-import type { Tag } from '$lib/features/tags/types/base';
-import type { Vlan } from '$lib/features/vlans/types/base';
+import type { Credential } from '#lib/features/credentials/types/base.ts';
+import type { Daemon } from '#lib/features/daemons/types/base.ts';
+import type { Subnet } from '#lib/features/subnets/types/base.ts';
+import type { Tag } from '#lib/features/tags/types/base.ts';
+import type { Vlan } from '#lib/features/vlans/types/base.ts';
 import {
 	common_name,
 	common_tags,
 	common_hoursCount,
 	sites_staleAfterDefault
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 /** What the site columns read from the tab, each as a getter so values stay live. */
 export interface SiteColumnsContext {

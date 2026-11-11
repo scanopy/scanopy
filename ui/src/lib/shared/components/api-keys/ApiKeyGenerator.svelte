@@ -3,8 +3,8 @@
 	 * Shared component for API key generation and rotation
 	 * Used by both daemon API keys and user API keys
 	 */
-	import CodeContainer from '$lib/shared/components/data/CodeContainer.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
+	import CodeContainer from '#lib/shared/components/data/CodeContainer.svelte';
+	import InlineWarning from '#lib/shared/components/feedback/InlineWarning.svelte';
 	import { RotateCcwKey } from '@lucide/svelte';
 	import {
 		apiKeys_rotateKey,
@@ -15,7 +15,7 @@
 		common_generateKey,
 		common_generating,
 		common_pressGenerateKey
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		/** The generated key string to display (null if not yet generated) */

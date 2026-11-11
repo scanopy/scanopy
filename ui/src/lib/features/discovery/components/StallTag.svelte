@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { Clock } from '@lucide/svelte';
-	import { sessionStall } from '$lib/features/discovery/utils/staleness';
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { toColor } from '$lib/shared/utils/styling';
+	import { sessionStall } from '#lib/features/discovery/utils/staleness.ts';
+	import Tag from '#lib/shared/components/data/Tag.svelte';
+	import { toColor } from '#lib/shared/utils/styling.ts';
 	import {
 		discovery_noProgressTooltip,
 		discovery_noUpdatesMinutes,
 		discovery_noUpdatesTooltip
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		session_id: string;

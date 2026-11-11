@@ -1,9 +1,9 @@
 <script lang="ts" module>
-	import { edgeTypes, serviceDefinitions } from '$lib/shared/stores/metadata';
-	import type { RenderableTopology, TopologyEdge } from '$lib/features/topology/types/base';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import { topology_containerCount } from '$lib/paraglide/messages';
-	import { containerHostsOfEdge } from '$lib/features/topology/resolvers';
+	import { edgeTypes, serviceDefinitions } from '#lib/shared/stores/metadata.ts';
+	import type { RenderableTopology, TopologyEdge } from '#lib/features/topology/types/base.ts';
+	import { hostDisplayName } from '#lib/features/hosts/host-display-name.ts';
+	import { topology_containerCount } from '#lib/paraglide/messages.js';
+	import { containerHostsOfEdge } from '#lib/features/topology/resolvers.ts';
 
 	export const ContainerRuntimeEdgeDisplay: EntityDisplayComponent<
 		TopologyEdge,

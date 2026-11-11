@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { createForm } from '@tanstack/svelte-form';
-	import Checkbox from '$lib/shared/components/forms/input/Checkbox.svelte';
-	import { billingMailto } from '$lib/features/support/support';
+	import Checkbox from '#lib/shared/components/forms/input/Checkbox.svelte';
+	import { billingMailto } from '#lib/features/support/support.ts';
 	import {
 		settings_billing_procurementDocuments,
 		settings_billing_procurementDocumentsBody,
 		settings_billing_procurementDocumentsSubject,
 		settings_billing_procurementNdaa889,
 		common_w9
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let {
 		orgName,

@@ -8,21 +8,21 @@ import {
 	valuesOrNoneCodec,
 	type ListQueryState,
 	type ServerQuery
-} from '$lib/shared/components/data/controls/listQuery';
-import { SEARCH_MAX_LENGTH } from '$lib/shared/components/forms/input/SearchInput.svelte';
-import { resolveOrdering } from '$lib/shared/components/data/controls/dataControlsStorage';
+} from '#lib/shared/components/data/controls/listQuery.ts';
+import { SEARCH_MAX_LENGTH } from '#lib/shared/components/forms/input/SearchInput.svelte';
+import { resolveOrdering } from '#lib/shared/components/data/controls/dataControlsStorage.ts';
 import {
 	blankFilterState,
 	toggleBoolean,
 	toggleValue,
 	type FilterState
-} from '$lib/shared/components/data/controls/filtering';
-import { reviveFilterState } from '$lib/shared/components/data/controls/dataControlsStorage';
+} from '#lib/shared/components/data/controls/filtering.ts';
+import { reviveFilterState } from '#lib/shared/components/data/controls/dataControlsStorage.ts';
 import {
 	getFieldKey,
 	type FieldConfig,
 	type TableDefaults
-} from '$lib/shared/components/data/types';
+} from '#lib/shared/components/data/types.ts';
 
 type Row = Record<string, unknown>;
 

@@ -10,7 +10,7 @@
  * question, answered by `sampleOnNextFrame` in the viewer.
  */
 import { describe, it, expect } from 'vitest';
-import { classifyBlank, type BlankInputs } from '$lib/features/topology/diagnostics';
+import { classifyBlank, type BlankInputs } from '#lib/features/topology/diagnostics.ts';
 
 /** A frame with the graph on it. Each case below changes one thing. */
 const healthy = (over: Partial<BlankInputs> = {}): BlankInputs => ({

@@ -6,10 +6,14 @@ import {
 	matchesHoveredMetadata,
 	tagHiddenNodeIds,
 	updateTagFilter
-} from '$lib/features/topology/interactions';
-import { filterFor, hiddenValuesFor, withFilterValues } from '$lib/features/topology/view-filters';
-import type { RenderableTopology } from '$lib/features/topology/types/base';
-import type { Site } from '$lib/features/sites/types';
+} from '#lib/features/topology/interactions.ts';
+import {
+	filterFor,
+	hiddenValuesFor,
+	withFilterValues
+} from '#lib/features/topology/view-filters.ts';
+import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+import type { Site } from '#lib/features/sites/types.ts';
 
 /**
  * Workloads' virtualization filter covers hosts and services: a macvlan container is drawn as a

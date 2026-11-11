@@ -4,7 +4,7 @@ import {
 	isPartiallySelected,
 	visibleIds,
 	rangeSelect
-} from '$lib/shared/components/data/controls/selection';
+} from '#lib/shared/components/data/controls/selection.ts';
 
 interface Row {
 	id: string;

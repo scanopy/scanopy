@@ -7,20 +7,20 @@
 	 * org's own diagram sits shrouded behind it.
 	 */
 	import TopologyOverlay from './TopologyOverlay.svelte';
-	import SessionPhaseProgress from '$lib/features/discovery/components/cards/SessionPhaseProgress.svelte';
-	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import PaidCrownOnPrimary from '$lib/shared/components/PaidCrownOnPrimary.svelte';
-	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
-	import { canTrialTopology, topologyTrialDays } from '$lib/shared/utils/trial';
-	import type { ModalAction } from '$lib/shared/components/layout/modalActions';
+	import SessionPhaseProgress from '#lib/features/discovery/components/cards/SessionPhaseProgress.svelte';
+	import InfoCard from '#lib/shared/components/data/InfoCard.svelte';
+	import { useActiveSessionsQuery } from '#lib/features/discovery/queries.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import PaidCrownOnPrimary from '#lib/shared/components/PaidCrownOnPrimary.svelte';
+	import { triggerUpgrade } from '#lib/features/billing/trigger-upgrade.ts';
+	import { canTrialTopology, topologyTrialDays } from '#lib/shared/utils/trial.ts';
+	import type { ModalAction } from '#lib/shared/components/layout/modalActions.ts';
 	import {
 		billing_startDayFreeTrial,
 		common_upgrade,
 		topology_planRequiredBody,
 		topology_planRequiredTitle
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	let { scanning = false }: { scanning?: boolean } = $props();
 

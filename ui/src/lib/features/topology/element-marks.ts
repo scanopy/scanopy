@@ -18,9 +18,9 @@
  * until that made it the one view with green and red boxes.
  */
 
-import type { components } from '$lib/api/schema';
-import type { Site } from '$lib/features/sites/types';
-import { createColorHelper } from '$lib/shared/utils/styling';
+import type { components } from '#lib/api/schema';
+import type { Site } from '#lib/features/sites/types.ts';
+import { createColorHelper } from '#lib/shared/utils/styling.ts';
 import { filterValueOf } from './interactions';
 import { cardEntityForFilter } from './resolvers';
 import type { RenderableTopology, TopologyNode } from './types/base';

@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { get, writable } from 'svelte/store';
 import type { Node, Edge } from '@xyflow/svelte';
-import { editingDependencyId } from '$lib/features/topology/queries';
+import { editingDependencyId } from '#lib/features/topology/queries.ts';
 import {
 	handleBoxSelect,
 	handleModifierNodeClick,
 	selectNode,
 	type SelectionStores
-} from '$lib/features/topology/selection';
+} from '#lib/features/topology/selection.ts';
 
 /**
  * Editing a dependency selects its members, and adding a member is a modifier

@@ -1,10 +1,10 @@
-import type { components } from '$lib/api/schema';
-import type { FieldConfig, FilterCodec } from '$lib/shared/components/data/types';
+import type { components } from '#lib/api/schema';
+import type { FieldConfig, FilterCodec } from '#lib/shared/components/data/types.ts';
 import type { Snippet } from 'svelte';
 import { tagItems } from './columns';
 import { groupsFor, tagGroupLabel, tagsInGroup } from './groups';
 import type { Tag, TagGroup } from './types/base';
-import { tags_tagGroups } from '$lib/paraglide/messages';
+import { tags_tagGroups } from '#lib/paraglide/messages.js';
 
 type EntityDiscriminants = components['schemas']['EntityDiscriminants'];
 

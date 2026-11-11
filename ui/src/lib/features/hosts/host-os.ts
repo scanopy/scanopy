@@ -4,18 +4,18 @@
  * translated, the same as service names.
  */
 
-import type { components } from '$lib/api/schema';
-import hostOsFamilies from '$lib/data/host-os-families.json';
-import type { DaemonOS } from '$lib/features/daemons/utils';
+import type { components } from '#lib/api/schema';
+import hostOsFamilies from '#lib/data/host-os-families.json';
+import type { DaemonOS } from '#lib/features/daemons/utils.ts';
 import {
 	attributeSourceExplanation,
 	type AttributeSource
-} from '$lib/shared/utils/attribute-source';
-import { createIconComponent } from '$lib/shared/utils/styling';
-import { logoIcon } from '$lib/shared/utils/logos';
-import type { IconComponent } from '$lib/shared/utils/types';
-import type { TooltipContent, TooltipSection } from '$lib/shared/actions/tooltip';
-import { common_codename, common_edition, common_kernel } from '$lib/paraglide/messages';
+} from '#lib/shared/utils/attribute-source.ts';
+import { createIconComponent } from '#lib/shared/utils/styling.ts';
+import { logoIcon } from '#lib/shared/utils/logos.ts';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
+import type { TooltipContent, TooltipSection } from '#lib/shared/actions/tooltip.ts';
+import { common_codename, common_edition, common_kernel } from '#lib/paraglide/messages.js';
 
 export type HostOs = components['schemas']['HostOs'];
 export type HostOsFamily = components['schemas']['HostOsFamily'];

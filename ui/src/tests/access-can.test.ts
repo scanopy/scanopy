@@ -1,16 +1,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 
-vi.mock('$env/dynamic/public', () => ({
-	env: { PUBLIC_SERVER_HOSTNAME: 'scanopy.test', PUBLIC_SERVER_PROTOCOL: 'http' }
+vi.mock('$app/env/public', () => ({
+	PUBLIC_SERVER_HOSTNAME: 'scanopy.test',
+	PUBLIC_SERVER_PROTOCOL: 'http',
+	PUBLIC_SERVER_PORT: ''
 }));
-vi.mock('$lib/shared/stores/feedback', () => ({ pushError: vi.fn(), pushSuccess: vi.fn() }));
-vi.mock('$lib/api/server-version', () => ({ checkServerVersion: vi.fn() }));
+vi.mock('#lib/shared/stores/feedback.ts', () => ({ pushError: vi.fn(), pushSuccess: vi.fn() }));
+vi.mock('#lib/api/server-version.ts', () => ({ checkServerVersion: vi.fn() }));
 
-const { fetchCurrentUser, mergeCurrentUser } = await import('$lib/features/auth/queries');
-const { isAllowed } = await import('$lib/features/auth/access');
-const { queryKeys } = await import('$lib/api/query-client');
+const { fetchCurrentUser, mergeCurrentUser } = await import('#lib/features/auth/queries.ts');
+const { isAllowed } = await import('#lib/features/auth/access.ts');
+const { queryKeys } = await import('#lib/api/query-client.ts');
 
 type AccessGrants = components['schemas']['AccessGrants'];
 type Resource = components['schemas']['Resource'];

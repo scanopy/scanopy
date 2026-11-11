@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { OidcProviderMetadata } from '$lib/shared/stores/config-query';
+	import type { OidcProviderMetadata } from '#lib/shared/stores/config-query.ts';
 
 	let {
 		provider,

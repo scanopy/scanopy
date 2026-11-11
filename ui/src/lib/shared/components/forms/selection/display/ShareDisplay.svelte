@@ -1,12 +1,12 @@
 <script lang="ts" module>
-	import { entities } from '$lib/shared/stores/metadata';
+	import { entities } from '#lib/shared/stores/metadata.ts';
 	import {
 		common_disabled,
 		common_expiresOn,
 		common_untitled,
 		shares_neverExpires
-	} from '$lib/paraglide/messages';
-	import { formatDate } from '$lib/shared/utils/formatting';
+	} from '#lib/paraglide/messages.js';
+	import { formatDate } from '#lib/shared/utils/formatting.ts';
 
 	// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 	export interface ShareDisplayContext {}
@@ -33,10 +33,10 @@
 </script>
 
 <script lang="ts">
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import ListSelectItem from '#lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import type { EntityDisplayComponent } from '../types';
-	import type { Share } from '$lib/features/shares/types/base';
-	import type { TagProps } from '$lib/shared/components/data/types';
+	import type { Share } from '#lib/features/shares/types/base.ts';
+	import type { TagProps } from '#lib/shared/components/data/types.ts';
 
 	interface Props {
 		item: Share;

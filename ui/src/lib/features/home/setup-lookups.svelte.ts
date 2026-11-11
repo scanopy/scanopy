@@ -1,9 +1,9 @@
-import { useDaemonsQuery } from '$lib/features/daemons/queries';
-import { useHostsByIds } from '$lib/features/hosts/queries';
-import { useSitesQuery } from '$lib/features/sites/queries';
-import { useCredentialsQuery } from '$lib/features/credentials/queries';
-import { hostIdsOf } from '$lib/features/discovery/utils/warnings';
-import { trackEvent } from '$lib/shared/utils/analytics';
+import { useDaemonsQuery } from '#lib/features/daemons/queries.ts';
+import { useHostsByIds } from '#lib/features/hosts/queries.ts';
+import { useSitesQuery } from '#lib/features/sites/queries.ts';
+import { useCredentialsQuery } from '#lib/features/credentials/queries.ts';
+import { hostIdsOf } from '#lib/features/discovery/utils/warnings.ts';
+import { trackEvent } from '#lib/shared/utils/analytics.ts';
 import type { SetupLookups } from './setup-row-view';
 import { entryId, type SetupListEntry } from './setup-list';
 

@@ -5,13 +5,13 @@
 -->
 <script lang="ts">
 	import { CircleDashedCheck } from '@lucide/svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
 	import {
 		unconfirmedReason,
 		unconfirmedVia,
 		type ConfirmationSubject
-	} from '$lib/shared/utils/confirmation';
-	import { common_unconfirmed } from '$lib/paraglide/messages';
+	} from '#lib/shared/utils/confirmation.ts';
+	import { common_unconfirmed } from '#lib/paraglide/messages.js';
 
 	let {
 		entity,

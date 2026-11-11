@@ -8,7 +8,7 @@
  */
 
 import tailwind from 'tailwindcss/colors';
-import { COLOR_MAP, type Color } from '$lib/shared/utils/styling';
+import { COLOR_MAP, type Color } from '#lib/shared/utils/styling.ts';
 import { ICON_BADGE_PX, ICON_TILE_PX } from '../pipeline/build-flow-nodes';
 
 export type DiagramTheme = 'light' | 'dark';

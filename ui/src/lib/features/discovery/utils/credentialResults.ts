@@ -1,4 +1,4 @@
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 import { isCredentialWarning, type DiscoveryWarning } from './warnings';
 
 export type CredentialRunResult = components['schemas']['CredentialRunResult'];

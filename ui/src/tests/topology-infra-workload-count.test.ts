@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import type { RenderableTopology } from '$lib/features/topology/types/base';
-import { tallyContainerElements } from '$lib/features/topology/labels';
-import { getInfrastructureRuleIdForTopology } from '$lib/features/topology/queries';
+import type { RenderableTopology } from '#lib/features/topology/types/base.ts';
+import { tallyContainerElements } from '#lib/features/topology/labels.ts';
+import { getInfrastructureRuleIdForTopology } from '#lib/features/topology/queries.ts';
 
 /**
  * A container's total leaves out the services the infrastructure rule grouped

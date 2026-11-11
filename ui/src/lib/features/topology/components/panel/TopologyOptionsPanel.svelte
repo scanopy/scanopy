@@ -23,7 +23,7 @@
 		common_layout,
 		common_display,
 		topology_tutorialPanelHint
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	type OptionsTab = 'filter' | 'layout' | 'visual';
 	let activeTab = $state<OptionsTab>('filter');

@@ -19,18 +19,18 @@
  */
 
 import { Clock } from '@lucide/svelte';
-import type { components } from '$lib/api/schema';
-import type { Site } from '$lib/features/sites/types';
-import type { TagProps } from '$lib/shared/components/data/types';
-import { toColor } from '$lib/shared/utils/styling';
-import { formatRelativeTime } from '$lib/shared/utils/formatting';
+import type { components } from '#lib/api/schema';
+import type { Site } from '#lib/features/sites/types.ts';
+import type { TagProps } from '#lib/shared/components/data/types.ts';
+import { toColor } from '#lib/shared/utils/styling.ts';
+import { formatRelativeTime } from '#lib/shared/utils/formatting.ts';
 import {
 	common_entityLastSeenAgo,
 	common_lastSeenAgo,
 	common_never,
 	common_stale,
 	topology_neighborLastReportedAgo
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 
 /** Derived from the backend enum — never hand-maintain this union. */
 export type EntityFreshness = components['schemas']['EntityFreshness'];

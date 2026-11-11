@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
-import type { Service } from '$lib/features/services/types/base';
+import type { RenderableTopology, TopologyNode } from '#lib/features/topology/types/base.ts';
+import type { Service } from '#lib/features/services/types/base.ts';
 import {
 	buildInlineGroups,
 	inspectorServiceSections
-} from '$lib/features/topology/element-render-data';
-import { resolveInlineServiceIds } from '$lib/features/topology/resolvers';
-import { inlineHostsMatching } from '$lib/features/topology/interactions';
+} from '#lib/features/topology/element-render-data.ts';
+import { resolveInlineServiceIds } from '#lib/features/topology/resolvers.ts';
+import { inlineHostsMatching } from '#lib/features/topology/interactions.ts';
 
 /**
  * A guest VM's Network Identities service heads an inline group on the guest's Workloads card,

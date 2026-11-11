@@ -1,4 +1,4 @@
-import type { components } from '$lib/api/schema';
+import type { components } from '#lib/api/schema';
 
 // Re-export generated types
 // DaemonResponse includes computed version_status from the API

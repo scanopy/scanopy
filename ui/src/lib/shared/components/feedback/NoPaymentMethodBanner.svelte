@@ -1,21 +1,21 @@
 <script lang="ts">
-	import { usePreloadStripe } from '$lib/features/billing/stripe.svelte';
+	import { usePreloadStripe } from '#lib/features/billing/stripe.svelte.ts';
 	import { CreditCard } from '@lucide/svelte';
 	import AppBanner from './AppBanner.svelte';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { useHasPendingQuote } from '$lib/features/billing/queries';
-	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { useHasPendingQuote } from '#lib/features/billing/queries.ts';
+	import { startSetupPayment } from '#lib/shared/billing/setup-payment.ts';
 	import {
 		getTrialDaysLeft,
 		isTrialingWithoutPayment,
 		isMissingPaymentMethod
-	} from '$lib/shared/utils/trial';
-	import { trackOncePerSession } from '$lib/shared/utils/analytics';
-	import { isCloud, useConfigQuery } from '$lib/shared/stores/config-query';
+	} from '#lib/shared/utils/trial.ts';
+	import { trackOncePerSession } from '#lib/shared/utils/analytics.ts';
+	import { isCloud, useConfigQuery } from '#lib/shared/stores/config-query.ts';
 	import {
 		billing_addPaymentMethod,
 		billing_noPaymentMethodBannerBody
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	const organizationQuery = useOrganizationQuery();
 	const configQuery = useConfigQuery();

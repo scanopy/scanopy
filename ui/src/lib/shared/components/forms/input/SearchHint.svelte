@@ -4,7 +4,7 @@
 	the box shows a tag completion, it also names Tab.
 -->
 <script lang="ts">
-	import { globalSearch_tabHint, search_navigateHint } from '$lib/paraglide/messages';
+	import { globalSearch_tabHint, search_navigateHint } from '#lib/paraglide/messages.js';
 
 	let {
 		tabCompletes = false,

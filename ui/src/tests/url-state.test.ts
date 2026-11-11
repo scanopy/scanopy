@@ -7,7 +7,7 @@ import {
 	scopeKeysIn,
 	setActiveTab,
 	type UrlOwner
-} from '$lib/shared/stores/url-state';
+} from '#lib/shared/stores/url-state.ts';
 
 function owner(
 	scope: UrlOwner['scope'],

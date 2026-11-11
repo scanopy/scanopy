@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { Port } from '$lib/features/hosts/types/base';
-	import { port as portValidator, required } from '$lib/shared/components/forms/validators';
-	import ConfigHeader from '$lib/shared/components/forms/config/ConfigHeader.svelte';
-	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
+	import type { Port } from '#lib/features/hosts/types/base.ts';
+	import { port as portValidator, required } from '#lib/shared/components/forms/validators.ts';
+	import ConfigHeader from '#lib/shared/components/forms/config/ConfigHeader.svelte';
+	import TextInput from '#lib/shared/components/forms/input/TextInput.svelte';
+	import SelectInput from '#lib/shared/components/forms/input/SelectInput.svelte';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import {
 		common_protocol,
@@ -11,7 +11,7 @@
 		hosts_ports_configTitle,
 		hosts_ports_portNumber,
 		hosts_ports_portNumberHelp
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 
 	interface Props {
 		port: Port;

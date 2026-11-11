@@ -15,12 +15,12 @@ import {
 	edgeTypes,
 	entities,
 	serviceDefinitions
-} from '$lib/shared/stores/metadata';
+} from '#lib/shared/stores/metadata.ts';
 import {
 	common_type,
 	topology_elementCount,
 	topology_ungroupedCount
-} from '$lib/paraglide/messages';
+} from '#lib/paraglide/messages.js';
 import {
 	edgeFieldLabel,
 	edgeFields,
@@ -28,11 +28,11 @@ import {
 	entityFields,
 	fieldText,
 	type EntityLookup
-} from '$lib/shared/entity-fields';
-import type { TagProps } from '$lib/shared/components/data/types';
-import { createColorHelper } from '$lib/shared/utils/styling';
-import type { IconComponent } from '$lib/shared/utils/types';
-import { hostOsIcon } from '$lib/features/hosts/host-os';
+} from '#lib/shared/entity-fields/index.ts';
+import type { TagProps } from '#lib/shared/components/data/types.ts';
+import { createColorHelper } from '#lib/shared/utils/styling.ts';
+import type { IconComponent } from '#lib/shared/utils/types.ts';
+import { hostOsIcon } from '#lib/features/hosts/host-os.ts';
 import type { CardGlyph } from '../card-glyph';
 import { buildContainerRender, type SubgroupRow } from '../container-render-data';
 import { buildElementRender, currentElementRenderContext } from '../element-render-data';

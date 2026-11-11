@@ -1,34 +1,34 @@
 <script lang="ts">
-	import { usePreloadStripe } from '$lib/features/billing/stripe.svelte';
-	import billingPlansJson from '$lib/data/billing-plans.json';
-	import featuresJson from '$lib/data/features.json';
-	import productAreasJson from '$lib/data/product-areas.json';
-	import credentialIntegrationsJson from '$lib/data/credential-integrations.json';
-	import planLimitsJson from '$lib/data/plan-limits.json';
-	import BillingPlanForm from '$lib/features/billing/BillingPlanForm.svelte';
-	import type { BillingPlan, PlanPickerHosting } from '$lib/features/billing/types';
+	import { usePreloadStripe } from '#lib/features/billing/stripe.svelte.ts';
+	import billingPlansJson from '#lib/data/billing-plans.json';
+	import featuresJson from '#lib/data/features.json';
+	import productAreasJson from '#lib/data/product-areas.json';
+	import credentialIntegrationsJson from '#lib/data/credential-integrations.json';
+	import planLimitsJson from '#lib/data/plan-limits.json';
+	import BillingPlanForm from '#lib/features/billing/BillingPlanForm.svelte';
+	import type { BillingPlan, PlanPickerHosting } from '#lib/features/billing/types.ts';
 	import {
 		createStaticHelpers,
 		type BillingPlanMetadata,
 		type CredentialIntegrationMetadata,
 		type FeatureMetadata
-	} from '$lib/shared/stores/metadata';
-	import { useCheckoutMutation } from '$lib/features/billing/queries';
-	import { onboardingStore } from '$lib/features/auth/stores/onboarding';
-	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { trackEvent } from '$lib/shared/utils/analytics';
-	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
-	import type { PaymentFormSource } from '$lib/shared/billing/setup-payment';
-	import { isPlanLapsed, isBillingPlanActive } from '$lib/features/organizations/types';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import { isLicenseSigningAvailable, useConfigQuery } from '$lib/shared/stores/config-query';
-	import { modalState } from '$lib/shared/stores/modal-registry';
-	import { billingOverModal, openBillingModal } from '$lib/features/billing/stores';
+	} from '#lib/shared/stores/metadata.ts';
+	import { useCheckoutMutation } from '#lib/features/billing/queries.ts';
+	import { onboardingStore } from '#lib/features/auth/stores/onboarding.ts';
+	import { useOrganizationQuery } from '#lib/features/organizations/queries.ts';
+	import { trackEvent } from '#lib/shared/utils/analytics.ts';
+	import { waitForOrgUpdate } from '#lib/shared/billing/wait-for-org-update.ts';
+	import type { PaymentFormSource } from '#lib/shared/billing/setup-payment.ts';
+	import { isPlanLapsed, isBillingPlanActive } from '#lib/features/organizations/types.ts';
+	import GenericModal from '#lib/shared/components/layout/GenericModal.svelte';
+	import { isLicenseSigningAvailable, useConfigQuery } from '#lib/shared/stores/config-query.ts';
+	import { modalState } from '#lib/shared/stores/modal-registry.ts';
+	import { billingOverModal, openBillingModal } from '#lib/features/billing/stores.ts';
 	import {
 		canPay,
 		isInTrial,
 		isReturningCustomer as isReturningCustomerOrg
-	} from '$lib/shared/utils/trial';
+	} from '#lib/shared/utils/trial.ts';
 
 	let {
 		isOpen = false,

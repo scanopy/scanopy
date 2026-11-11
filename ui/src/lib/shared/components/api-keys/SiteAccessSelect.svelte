@@ -6,23 +6,23 @@
 	 * Filters available sites based on the current user's site access
 	 * (users can only grant access to sites they have access to)
 	 */
-	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import { SiteDisplay } from '$lib/shared/components/forms/selection/display/SiteDisplay.svelte';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import { useSitesQuery } from '$lib/features/sites/queries';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
-	import { holdsOnAllSites } from '$lib/features/auth/access';
-	import { permissions } from '$lib/shared/stores/metadata';
-	import type { Site } from '$lib/features/sites/types';
-	import type { UserOrgPermissions } from '$lib/features/users/types';
+	import ListManager from '#lib/shared/components/forms/selection/ListManager.svelte';
+	import { SiteDisplay } from '#lib/shared/components/forms/selection/display/SiteDisplay.svelte';
+	import InlineInfo from '#lib/shared/components/feedback/InlineInfo.svelte';
+	import { useSitesQuery } from '#lib/features/sites/queries.ts';
+	import { useCurrentUserQuery } from '#lib/features/auth/queries.ts';
+	import { holdsOnAllSites } from '#lib/features/auth/access.ts';
+	import { permissions } from '#lib/shared/stores/metadata.ts';
+	import type { Site } from '#lib/features/sites/types.ts';
+	import type { UserOrgPermissions } from '#lib/features/users/types.ts';
 	import {
 		common_allSites,
 		common_sites,
 		userApiKeys_allSitesHelp,
 		userApiKeys_specificSites,
 		users_hasAllSites
-	} from '$lib/paraglide/messages';
-	import SegmentedControl from '$lib/shared/components/forms/SegmentedControl.svelte';
+	} from '#lib/paraglide/messages.js';
+	import SegmentedControl from '#lib/shared/components/forms/SegmentedControl.svelte';
 
 	interface Props {
 		/** Currently selected site IDs */

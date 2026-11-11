@@ -12,9 +12,9 @@
  */
 
 import { createQuery } from '@tanstack/svelte-query';
-import { apiClient, type components, type paths } from '$lib/api/client';
-import { queryKeys } from '$lib/api/query-client';
-import { unwrapData } from '$lib/api/query-helpers';
+import { apiClient, type components, type paths } from '#lib/api/client.ts';
+import { queryKeys } from '#lib/api/query-client.ts';
+import { unwrapData } from '#lib/api/query-helpers.ts';
 
 /** Every API path that serves field values. */
 export type FieldValuesPath = {

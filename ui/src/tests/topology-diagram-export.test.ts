@@ -8,25 +8,25 @@ import {
 	type DiagramPart,
 	type DiagramSourceEdge,
 	type DiagramSourceNode
-} from '$lib/features/topology/diagram-export/model';
-import { serializeDrawio, toDrawioCells } from '$lib/features/topology/diagram-export/drawio';
-import { fieldKeys, hexColor } from '$lib/features/topology/diagram-export/xml';
-import { buildVsdxParts, zipVsdx } from '$lib/features/topology/diagram-export/vsdx';
+} from '#lib/features/topology/diagram-export/model.ts';
+import { serializeDrawio, toDrawioCells } from '#lib/features/topology/diagram-export/drawio.ts';
+import { fieldKeys, hexColor } from '#lib/features/topology/diagram-export/xml.ts';
+import { buildVsdxParts, zipVsdx } from '#lib/features/topology/diagram-export/vsdx.ts';
 import {
 	createDescriber,
 	type DescriberInput
-} from '$lib/features/topology/diagram-export/describe';
-import { base64DataUri } from '$lib/features/topology/diagram-export/collect';
-import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
-import { activeView } from '$lib/features/topology/queries';
-import { expandedInlineGroups, inlineGroupKey } from '$lib/features/topology/collapse';
-import { elementMarks } from '$lib/features/topology/element-marks';
-import { queryClient, queryKeys } from '$lib/api/query-client';
-import { createColorHelper } from '$lib/shared/utils/styling';
-import type { Site } from '$lib/features/sites/types';
-import { topologyLookup } from '$lib/features/topology/resolvers';
-import { entityTooltip } from '$lib/shared/entity-tooltip';
-import { subnetTypes } from '$lib/shared/stores/metadata';
+} from '#lib/features/topology/diagram-export/describe.ts';
+import { base64DataUri } from '#lib/features/topology/diagram-export/collect.ts';
+import type { RenderableTopology, TopologyNode } from '#lib/features/topology/types/base.ts';
+import { activeView } from '#lib/features/topology/queries.ts';
+import { expandedInlineGroups, inlineGroupKey } from '#lib/features/topology/collapse.ts';
+import { elementMarks } from '#lib/features/topology/element-marks.ts';
+import { queryClient, queryKeys } from '#lib/api/query-client.ts';
+import { createColorHelper } from '#lib/shared/utils/styling.ts';
+import type { Site } from '#lib/features/sites/types.ts';
+import { topologyLookup } from '#lib/features/topology/resolvers.ts';
+import { entityTooltip } from '#lib/shared/entity-tooltip.ts';
+import { subnetTypes } from '#lib/shared/stores/metadata.ts';
 
 const SUBNET = {
 	id: 'lan',

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { AlertCircle, Home } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 
-	$: message = $page.url.searchParams.get('message') || 'An unexpected error occurred.';
+	const message = $derived(page.url.searchParams.get('message') || 'An unexpected error occurred.');
 
 	async function goHome() {
 		await goto(resolve('/'));
@@ -24,7 +24,7 @@
 			</p>
 
 			<button
-				on:click={goHome}
+				onclick={goHome}
 				class="flex w-full items-center justify-center gap-2 rounded-sm bg-blue-600 px-4 py-3 font-medium text-white transition-colors hover:bg-blue-700"
 			>
 				<Home class="h-4 w-4" />

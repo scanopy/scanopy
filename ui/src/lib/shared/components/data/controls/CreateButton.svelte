@@ -7,14 +7,14 @@
 	and pressing it opens the plans instead (`triggerUpgrade`).
 -->
 <script lang="ts">
-	import KbdKey from '$lib/shared/components/feedback/KbdKey.svelte';
-	import PaidCrown from '$lib/shared/components/PaidCrown.svelte';
-	import { triggerUpgrade, type UpgradeGate } from '$lib/features/billing/trigger-upgrade';
+	import KbdKey from '#lib/shared/components/feedback/KbdKey.svelte';
+	import PaidCrown from '#lib/shared/components/PaidCrown.svelte';
+	import { triggerUpgrade, type UpgradeGate } from '#lib/features/billing/trigger-upgrade.ts';
 	import {
 		common_availableOnPaidPlans,
 		common_create,
 		common_shortcutsPausedInSearch
-	} from '$lib/paraglide/messages';
+	} from '#lib/paraglide/messages.js';
 	import { isFreeKeydown, isPlainKey, useListShortcuts } from './listShortcuts';
 
 	let {
