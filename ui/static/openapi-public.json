@@ -15880,19 +15880,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-11-09T19:50:38.784173Z",
+              "created_at": "2026-11-11T20:42:52.404792Z",
               "first_discovery_id": null,
-              "id": "d155ae83-e935-4211-887d-3094147c8fa9",
+              "id": "8e1a69b9-6a02-4e35-8498-1830c7affa21",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-09T19:50:38.784173Z",
+              "last_seen_at": "2026-11-11T20:42:52.404792Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-09T19:50:38.784173Z",
-              "valid_from": "2026-11-09T19:50:38.784173Z",
+              "updated_at": "2026-11-11T20:42:52.404792Z",
+              "valid_from": "2026-11-11T20:42:52.404792Z",
               "valid_to": null
             }
           },
@@ -16553,9 +16553,25 @@
             "required": [
               "sites",
               "plan_usage",
-              "setup_items"
+              "setup_items",
+              "issue_count",
+              "issue_site_ids"
             ],
             "properties": {
+              "issue_count": {
+                "type": "integer",
+                "format": "int64",
+                "description": "The Issues the caller sees, on every site.",
+                "minimum": 0
+              },
+              "issue_site_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "The sites those Issues are on, which the Issues list can be narrowed to."
+              },
               "plan_usage": {
                 "$ref": "#/components/schemas/PlanUsage",
                 "description": "Current usage against the organization's plan allowances."
@@ -16565,14 +16581,14 @@
                 "items": {
                   "$ref": "#/components/schemas/SetupListEntry"
                 },
-                "description": "The organization's Setup list as the caller sees it: Issues, then Next steps, then\nSuggestions."
+                "description": "The organization's Setup steps as the caller sees them. Issues are paged from\n`/dashboard/issues`."
               },
               "sites": {
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/SiteSummary"
                 },
-                "description": "Per-site counts for every site the caller can see."
+                "description": "Per-site counts for every site the caller can see, which a site's tooltip shows."
               }
             }
           },
@@ -17609,11 +17625,9 @@
               "created_at": "2026-01-15T10:30:00Z",
               "credential_assignments": [],
               "description": "Primary web server",
-              "device_type": "IoT",
+              "device_type": "Unidentified",
               "device_type_source": {
-                "service_id": "550e8400-e29b-41d4-a716-446655440007",
-                "service_name": "nginx",
-                "type": "Service"
+                "type": "NoEvidence"
               },
               "dismissed_at": null,
               "display_name": "web-server-01",
@@ -17742,19 +17756,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-11-09T19:50:38.754645Z",
+                      "created_at": "2026-11-11T20:42:52.374044Z",
                       "first_discovery_id": null,
-                      "id": "f9f476e9-de55-4bec-baed-295e574441f9",
+                      "id": "5de47021-22df-4643-bdc8-9363d3fdffb9",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-11-09T19:50:38.754645Z",
+                      "last_seen_at": "2026-11-11T20:42:52.374044Z",
                       "lineage_id": null,
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "site_id": "550e8400-e29b-41d4-a716-446655440002",
                       "type": "Port",
-                      "updated_at": "2026-11-09T19:50:38.754645Z",
-                      "valid_from": "2026-11-09T19:50:38.754645Z",
+                      "updated_at": "2026-11-11T20:42:52.374044Z",
+                      "valid_from": "2026-11-11T20:42:52.374044Z",
                       "valid_to": null
                     }
                   ],
@@ -17767,7 +17781,7 @@
                   "lineage_id": null,
                   "name": "nginx",
                   "position": 0,
-                  "service_definition": "IoT",
+                  "service_definition": "Shell In A Box",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "source": {
                     "type": "Manual"
@@ -19269,19 +19283,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-11-09T19:50:38.779232Z",
+                  "created_at": "2026-11-11T20:42:52.399725Z",
                   "first_discovery_id": null,
-                  "id": "28f62001-585a-4b60-84be-411c1230d1ac",
+                  "id": "84e7f082-bbd0-4ecf-ae7e-78378afc788d",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-09T19:50:38.779232Z",
+                  "last_seen_at": "2026-11-11T20:42:52.399725Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-09T19:50:38.779232Z",
-                  "valid_from": "2026-11-09T19:50:38.779232Z",
+                  "updated_at": "2026-11-11T20:42:52.399725Z",
+                  "valid_from": "2026-11-11T20:42:52.399725Z",
                   "valid_to": null
                 }
               ],
@@ -19294,7 +19308,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "IoT",
+              "service_definition": "Shell In A Box",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -23149,19 +23163,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-11-09T19:50:38.755319Z",
+          "created_at": "2026-11-11T20:42:52.374684Z",
           "first_discovery_id": null,
-          "id": "8401d2cc-8ab3-41b1-999c-05d042254fb2",
+          "id": "28563508-3897-48fe-8264-0cf82b545a2b",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-11-09T19:50:38.755319Z",
+          "last_seen_at": "2026-11-11T20:42:52.374684Z",
           "lineage_id": null,
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "type": "Port",
-          "updated_at": "2026-11-09T19:50:38.755319Z",
-          "valid_from": "2026-11-09T19:50:38.755319Z",
+          "updated_at": "2026-11-11T20:42:52.374684Z",
+          "valid_from": "2026-11-11T20:42:52.374684Z",
           "valid_to": null
         }
       },
@@ -24074,7 +24088,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "IoT",
+              "service_definition": "Shell In A Box",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -25932,9 +25946,25 @@
         "required": [
           "sites",
           "plan_usage",
-          "setup_items"
+          "setup_items",
+          "issue_count",
+          "issue_site_ids"
         ],
         "properties": {
+          "issue_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The Issues the caller sees, on every site.",
+            "minimum": 0
+          },
+          "issue_site_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The sites those Issues are on, which the Issues list can be narrowed to."
+          },
           "plan_usage": {
             "$ref": "#/components/schemas/PlanUsage",
             "description": "Current usage against the organization's plan allowances."
@@ -25944,14 +25974,14 @@
             "items": {
               "$ref": "#/components/schemas/SetupListEntry"
             },
-            "description": "The organization's Setup list as the caller sees it: Issues, then Next steps, then\nSuggestions."
+            "description": "The organization's Setup steps as the caller sees them. Issues are paged from\n`/dashboard/issues`."
           },
           "sites": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SiteSummary"
             },
-            "description": "Per-site counts for every site the caller can see."
+            "description": "Per-site counts for every site the caller can see, which a site's tooltip shows."
           }
         }
       },
@@ -32354,11 +32384,9 @@
           "created_at": "2026-01-15T10:30:00Z",
           "credential_assignments": [],
           "description": "Primary web server",
-          "device_type": "IoT",
+          "device_type": "Unidentified",
           "device_type_source": {
-            "service_id": "550e8400-e29b-41d4-a716-446655440007",
-            "service_name": "nginx",
-            "type": "Service"
+            "type": "NoEvidence"
           },
           "dismissed_at": null,
           "display_name": "web-server-01",
@@ -32487,19 +32515,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-11-09T19:50:38.753851Z",
+                  "created_at": "2026-11-11T20:42:52.373298Z",
                   "first_discovery_id": null,
-                  "id": "006b9f7e-3fdf-4f65-91cf-617187ccd8d7",
+                  "id": "fa6b2639-135e-4358-87bb-77bf2cd03d01",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-11-09T19:50:38.753851Z",
+                  "last_seen_at": "2026-11-11T20:42:52.373298Z",
                   "lineage_id": null,
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "site_id": "550e8400-e29b-41d4-a716-446655440002",
                   "type": "Port",
-                  "updated_at": "2026-11-09T19:50:38.753851Z",
-                  "valid_from": "2026-11-09T19:50:38.753851Z",
+                  "updated_at": "2026-11-11T20:42:52.373298Z",
+                  "valid_from": "2026-11-11T20:42:52.373298Z",
                   "valid_to": null
                 }
               ],
@@ -32512,7 +32540,7 @@
               "lineage_id": null,
               "name": "nginx",
               "position": 0,
-              "service_definition": "IoT",
+              "service_definition": "Shell In A Box",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "source": {
                 "type": "Manual"
@@ -34377,6 +34405,25 @@
             "description": "Invoice number printed on the PDF, which a remittance references. Absent\nuntil Stripe finalizes the invoice."
           }
         }
+      },
+      "IssueCategory": {
+        "type": "string",
+        "description": "What an Issue's fix is about, which groups the Issues list, in display order.",
+        "enum": [
+          "Daemons",
+          "Credentials",
+          "Devices",
+          "Scans",
+          "Review"
+        ]
+      },
+      "IssueOrderField": {
+        "type": "string",
+        "description": "What the Issues list sorts and groups by. Derived in Rust, so its `to_sql` is never read.",
+        "enum": [
+          "category",
+          "type"
+        ]
       },
       "Ixy": {
         "type": "object",
@@ -36854,11 +36901,9 @@
                 "created_at": "2026-01-15T10:30:00Z",
                 "credential_assignments": [],
                 "description": "Primary web server",
-                "device_type": "IoT",
+                "device_type": "Unidentified",
                 "device_type_source": {
-                  "service_id": "550e8400-e29b-41d4-a716-446655440007",
-                  "service_name": "nginx",
-                  "type": "Service"
+                  "type": "NoEvidence"
                 },
                 "dismissed_at": null,
                 "display_name": "web-server-01",
@@ -36987,19 +37032,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-11-09T19:50:38.739217Z",
+                        "created_at": "2026-11-11T20:42:52.358502Z",
                         "first_discovery_id": null,
-                        "id": "3cd08782-d2b1-4352-8d15-390b38146d8a",
+                        "id": "ca3deaae-e933-48b7-9b48-215fdf5b2617",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-11-09T19:50:38.739217Z",
+                        "last_seen_at": "2026-11-11T20:42:52.358502Z",
                         "lineage_id": null,
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "site_id": "550e8400-e29b-41d4-a716-446655440002",
                         "type": "Port",
-                        "updated_at": "2026-11-09T19:50:38.739217Z",
-                        "valid_from": "2026-11-09T19:50:38.739217Z",
+                        "updated_at": "2026-11-11T20:42:52.358502Z",
+                        "valid_from": "2026-11-11T20:42:52.358502Z",
                         "valid_to": null
                       }
                     ],
@@ -37012,7 +37057,7 @@
                     "lineage_id": null,
                     "name": "nginx",
                     "position": 0,
-                    "service_definition": "IoT",
+                    "service_definition": "Shell In A Box",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "source": {
                       "type": "Manual"
@@ -37259,19 +37304,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-11-09T19:50:38.778479Z",
+                    "created_at": "2026-11-11T20:42:52.398948Z",
                     "first_discovery_id": null,
-                    "id": "b3df9c01-0fc8-4bf1-ac4d-c495f995c26c",
+                    "id": "c49c18f3-45ed-4e3b-bb1a-f8f419710c59",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-11-09T19:50:38.778479Z",
+                    "last_seen_at": "2026-11-11T20:42:52.398948Z",
                     "lineage_id": null,
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "site_id": "550e8400-e29b-41d4-a716-446655440002",
                     "type": "Port",
-                    "updated_at": "2026-11-09T19:50:38.778479Z",
-                    "valid_from": "2026-11-09T19:50:38.778479Z",
+                    "updated_at": "2026-11-11T20:42:52.398948Z",
+                    "valid_from": "2026-11-11T20:42:52.398948Z",
                     "valid_to": null
                   }
                 ],
@@ -37284,7 +37329,7 @@
                 "lineage_id": null,
                 "name": "nginx",
                 "position": 0,
-                "service_definition": "IoT",
+                "service_definition": "Shell In A Box",
                 "site_id": "550e8400-e29b-41d4-a716-446655440002",
                 "source": {
                   "type": "Manual"
@@ -37295,6 +37340,76 @@
                 "valid_to": null,
                 "virtualization_metadata": null,
                 "virtualization_service_id": null
+              }
+            },
+            "description": "The page of results. Empty when nothing matched the query."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-readable failure message. Omitted on success."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginatedApiMeta",
+            "description": "API and server version metadata, plus pagination counters."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+          }
+        }
+      },
+      "PaginatedApiResponse_SetupListEntry": {
+        "type": "object",
+        "description": "Response type for paginated list endpoints (pagination is always present in meta)",
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "One Setup list row as the dashboard serves it: the item, with its identity, its tier and its\nstate.",
+              "required": [
+                "key",
+                "tier",
+                "state",
+                "alerts_when_stuck",
+                "site_ids",
+                "item"
+              ],
+              "properties": {
+                "alerts_when_stuck": {
+                  "type": "boolean",
+                  "description": "Whether the trial sweep reports the item once it stays open a day: an Issue, or a first\nstep still Open."
+                },
+                "item": {
+                  "$ref": "#/components/schemas/SetupItem"
+                },
+                "key": {
+                  "$ref": "#/components/schemas/SetupItemKey",
+                  "description": "The item's identity: the same item on the next load has the same key."
+                },
+                "site_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "description": "The sites the item is about, which the list can be narrowed to. Empty for an item about\nthe whole org, which shows whatever sites are picked."
+                },
+                "state": {
+                  "$ref": "#/components/schemas/SetupItemState"
+                },
+                "tier": {
+                  "$ref": "#/components/schemas/SetupItemTier",
+                  "description": "The group of the list the item sits in."
+                }
               }
             },
             "description": "The page of results. Empty when nothing matched the query."
@@ -39984,19 +40099,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-11-09T19:50:38.755095Z",
+              "created_at": "2026-11-11T20:42:52.374466Z",
               "first_discovery_id": null,
-              "id": "5391a8ca-04bd-4423-bc37-d6cf9dd083b3",
+              "id": "afbfef40-5595-429c-80b7-8c3b0372bedf",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-11-09T19:50:38.755095Z",
+              "last_seen_at": "2026-11-11T20:42:52.374466Z",
               "lineage_id": null,
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "site_id": "550e8400-e29b-41d4-a716-446655440002",
               "type": "Port",
-              "updated_at": "2026-11-09T19:50:38.755095Z",
-              "valid_from": "2026-11-09T19:50:38.755095Z",
+              "updated_at": "2026-11-11T20:42:52.374466Z",
+              "valid_from": "2026-11-11T20:42:52.374466Z",
               "valid_to": null
             }
           ],
@@ -40009,7 +40124,7 @@
           "lineage_id": null,
           "name": "nginx",
           "position": 0,
-          "service_definition": "IoT",
+          "service_definition": "Shell In A Box",
           "site_id": "550e8400-e29b-41d4-a716-446655440002",
           "source": {
             "type": "Manual"
@@ -40515,6 +40630,7 @@
             "title": "UnconfirmedHosts",
             "description": "Hosts known only from other devices' reports, which the user may review.",
             "required": [
+              "site_id",
               "count",
               "type"
             ],
@@ -40522,8 +40638,13 @@
               "count": {
                 "type": "integer",
                 "format": "int64",
-                "description": "The unconfirmed hosts on the sites the user reads.",
+                "description": "The unconfirmed hosts on the site.",
                 "minimum": 0
+              },
+              "site_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The site the hosts are on."
               },
               "type": {
                 "type": "string",
@@ -40538,6 +40659,7 @@
             "title": "UnconfirmedSubnets",
             "description": "Subnets known only from other devices' reports, which the user may review.",
             "required": [
+              "site_id",
               "count",
               "type"
             ],
@@ -40545,8 +40667,13 @@
               "count": {
                 "type": "integer",
                 "format": "int64",
-                "description": "The unconfirmed subnets on the sites the user reads.",
+                "description": "The unconfirmed subnets on the site.",
                 "minimum": 0
+              },
+              "site_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The site the subnets are on."
               },
               "type": {
                 "type": "string",
@@ -43097,7 +43224,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "34d2728f-5598-44de-8157-c4188f4ed36a",
+                  "id": "53390ccf-a74b-4730-bac3-b73427842653",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -43107,23 +43234,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "f597a728-3b9a-4ab9-923b-e9733c3b6696",
+                  "id": "57e2c706-7272-4c19-80ec-8731f954f4a7",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "c6c0dc04-da90-44ee-8759-d81b67a27abb",
+                  "id": "dcd72398-2d35-424f-91ce-dcfe02073f9d",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "e26c7419-e569-429a-a305-cd564a347e95",
+                  "id": "0caf529f-d57f-46ba-bbe5-a6729a1894dc",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "f597a728-3b9a-4ab9-923b-e9733c3b6696",
+                  "id": "57e2c706-7272-4c19-80ec-8731f954f4a7",
                   "rule": "ByHost"
                 }
               ]
@@ -43153,19 +43280,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers. A missing field\ntakes the rules for an organization with no stated use case.",
             "default": [
               {
-                "id": "32b9e258-ddbe-42d3-9358-3e1d927401eb",
+                "id": "59d100d7-fa74-4c06-a16c-ec203a45812c",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "136f6575-fba3-471b-89b0-9e9c6ec1c532",
+                "id": "e89f71f1-3f97-4780-9723-30844842a6e4",
                 "rule": "ByVLAN"
               },
               {
-                "id": "39822302-ee32-4601-ac74-ddde8fc6ac1c",
+                "id": "98e54c0a-5b70-4bc6-aef3-b97a795f5271",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "a5e2b859-7b78-4633-bfdb-24fcd8fb973a",
+                "id": "4deff113-8b37-4276-8ba1-773b427d8ff5",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -43186,7 +43313,7 @@
                 }
               },
               {
-                "id": "b0438caa-ad3d-4c69-b7a7-cc25304285d4",
+                "id": "cd2130d0-d4c1-447d-a10a-7fef7b7efd85",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -43195,19 +43322,19 @@
                 }
               },
               {
-                "id": "7d9d5c79-c1b1-4bb3-853b-65f1955befee",
+                "id": "8437569c-d4a0-4fb5-9760-cb9ddcecc4bf",
                 "rule": "ByDeviceType"
               },
               {
-                "id": "8ceb6802-d256-4ee7-a73c-60e14443e054",
+                "id": "df4cac6d-5fbb-49bf-aa86-22950dbe5b57",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "fdeb7d2b-0b2f-427d-83ce-178f71a45841",
+                "id": "9875da15-97e5-4ee8-a5e4-95a088f9313f",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "eec048f7-6d40-4b8b-90ae-a5faee02b5c2",
+                "id": "504846ba-3c73-4893-acad-7d3518f0b78c",
                 "rule": "ByStack"
               }
             ]

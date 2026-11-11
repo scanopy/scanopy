@@ -1543,6 +1543,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the dashboard's Issues
+         * @description One page of the Issues the caller sees, sorted, grouped and filtered as asked. The Setup steps come with the
+         *     summary.
+         */
+        get: operations["get_dashboard_issues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dashboard/summary": {
         parameters: {
             query?: never;
@@ -4244,19 +4265,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-11-09T19:50:38.693717Z",
+             *       "created_at": "2026-11-11T20:42:52.313805Z",
              *       "first_discovery_id": null,
-             *       "id": "2ea304e0-ca3c-4f23-b874-a0002e4b8c15",
+             *       "id": "a85dd092-0861-4951-a575-dd108d3fa1ea",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-11-09T19:50:38.693717Z",
+             *       "last_seen_at": "2026-11-11T20:42:52.313805Z",
              *       "lineage_id": null,
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "type": "Port",
-             *       "updated_at": "2026-11-09T19:50:38.693717Z",
-             *       "valid_from": "2026-11-09T19:50:38.693717Z",
+             *       "updated_at": "2026-11-11T20:42:52.313805Z",
+             *       "valid_from": "2026-11-11T20:42:52.313805Z",
              *       "valid_to": null
              *     }
              */
@@ -4668,14 +4689,21 @@ export interface components {
         ApiResponse_DashboardSummary: {
             /** @description Dashboard summary response */
             data?: {
+                /**
+                 * Format: int64
+                 * @description The Issues the caller sees, on every site.
+                 */
+                issue_count: number;
+                /** @description The sites those Issues are on, which the Issues list can be narrowed to. */
+                issue_site_ids: string[];
                 /** @description Current usage against the organization's plan allowances. */
                 plan_usage: components["schemas"]["PlanUsage"];
                 /**
-                 * @description The organization's Setup list as the caller sees it: Issues, then Next steps, then
-                 *     Suggestions.
+                 * @description The organization's Setup steps as the caller sees them. Issues are paged from
+                 *     `/dashboard/issues`.
                  */
                 setup_items: components["schemas"]["SetupListEntry"][];
-                /** @description Per-site counts for every site the caller can see. */
+                /** @description Per-site counts for every site the caller can see, which a site's tooltip shows. */
                 sites: components["schemas"]["SiteSummary"][];
             };
             /**
@@ -5032,11 +5060,9 @@ export interface components {
              *       "created_at": "2026-01-15T10:30:00Z",
              *       "credential_assignments": [],
              *       "description": "Primary web server",
-             *       "device_type": "IoT",
+             *       "device_type": "Unidentified",
              *       "device_type_source": {
-             *         "service_id": "550e8400-e29b-41d4-a716-446655440007",
-             *         "service_name": "nginx",
-             *         "type": "Service"
+             *         "type": "NoEvidence"
              *       },
              *       "dismissed_at": null,
              *       "display_name": "web-server-01",
@@ -5165,19 +5191,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-11-09T19:50:38.657784Z",
+             *               "created_at": "2026-11-11T20:42:52.279152Z",
              *               "first_discovery_id": null,
-             *               "id": "60b11167-c69a-427f-aee2-6a313eaf84eb",
+             *               "id": "43601163-8152-4c38-9563-931da8f36905",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-11-09T19:50:38.657784Z",
+             *               "last_seen_at": "2026-11-11T20:42:52.279152Z",
              *               "lineage_id": null,
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "type": "Port",
-             *               "updated_at": "2026-11-09T19:50:38.657784Z",
-             *               "valid_from": "2026-11-09T19:50:38.657784Z",
+             *               "updated_at": "2026-11-11T20:42:52.279152Z",
+             *               "valid_from": "2026-11-11T20:42:52.279152Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -5190,7 +5216,7 @@ export interface components {
              *           "lineage_id": null,
              *           "name": "nginx",
              *           "position": 0,
-             *           "service_definition": "IoT",
+             *           "service_definition": "Shell In A Box",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "source": {
              *             "type": "Manual"
@@ -6222,19 +6248,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-11-09T19:50:38.688265Z",
+             *           "created_at": "2026-11-11T20:42:52.308094Z",
              *           "first_discovery_id": null,
-             *           "id": "22e04d1f-a090-43bb-8813-9a7f627cd33a",
+             *           "id": "89e4024b-9c55-498a-b92c-a89b05b14610",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-11-09T19:50:38.688265Z",
+             *           "last_seen_at": "2026-11-11T20:42:52.308094Z",
              *           "lineage_id": null,
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "type": "Port",
-             *           "updated_at": "2026-11-09T19:50:38.688265Z",
-             *           "valid_from": "2026-11-09T19:50:38.688265Z",
+             *           "updated_at": "2026-11-11T20:42:52.308094Z",
+             *           "valid_from": "2026-11-11T20:42:52.308094Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -6247,7 +6273,7 @@ export interface components {
              *       "lineage_id": null,
              *       "name": "nginx",
              *       "position": 0,
-             *       "service_definition": "IoT",
+             *       "service_definition": "Shell In A Box",
              *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "source": {
              *         "type": "Manual"
@@ -7947,19 +7973,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-11-09T19:50:38.658561Z",
+         *       "created_at": "2026-11-11T20:42:52.279798Z",
          *       "first_discovery_id": null,
-         *       "id": "e07e39ae-235f-45ea-bb06-f70d5991867e",
+         *       "id": "fbd14cfb-ee26-458c-b313-55ac30c9960c",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-11-09T19:50:38.658561Z",
+         *       "last_seen_at": "2026-11-11T20:42:52.279798Z",
          *       "lineage_id": null,
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "type": "Port",
-         *       "updated_at": "2026-11-09T19:50:38.658561Z",
-         *       "valid_from": "2026-11-09T19:50:38.658561Z",
+         *       "updated_at": "2026-11-11T20:42:52.279798Z",
+         *       "valid_from": "2026-11-11T20:42:52.279798Z",
          *       "valid_to": null
          *     }
          */
@@ -8349,7 +8375,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "IoT",
+         *           "service_definition": "Shell In A Box",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9213,14 +9239,21 @@ export interface components {
         };
         /** @description Dashboard summary response */
         DashboardSummary: {
+            /**
+             * Format: int64
+             * @description The Issues the caller sees, on every site.
+             */
+            issue_count: number;
+            /** @description The sites those Issues are on, which the Issues list can be narrowed to. */
+            issue_site_ids: string[];
             /** @description Current usage against the organization's plan allowances. */
             plan_usage: components["schemas"]["PlanUsage"];
             /**
-             * @description The organization's Setup list as the caller sees it: Issues, then Next steps, then
-             *     Suggestions.
+             * @description The organization's Setup steps as the caller sees them. Issues are paged from
+             *     `/dashboard/issues`.
              */
             setup_items: components["schemas"]["SetupListEntry"][];
-            /** @description Per-site counts for every site the caller can see. */
+            /** @description Per-site counts for every site the caller can see, which a site's tooltip shows. */
             sites: components["schemas"]["SiteSummary"][];
         };
         /** @enum {string} */
@@ -11421,11 +11454,9 @@ export interface components {
          *       "created_at": "2026-01-15T10:30:00Z",
          *       "credential_assignments": [],
          *       "description": "Primary web server",
-         *       "device_type": "IoT",
+         *       "device_type": "Unidentified",
          *       "device_type_source": {
-         *         "service_id": "550e8400-e29b-41d4-a716-446655440007",
-         *         "service_name": "nginx",
-         *         "type": "Service"
+         *         "type": "NoEvidence"
          *       },
          *       "dismissed_at": null,
          *       "display_name": "web-server-01",
@@ -11554,19 +11585,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-11-09T19:50:38.656868Z",
+         *               "created_at": "2026-11-11T20:42:52.278392Z",
          *               "first_discovery_id": null,
-         *               "id": "d4a198bf-37b6-4bc3-b9aa-0b75908e2988",
+         *               "id": "2b698936-cad3-469e-bf79-3697dfbb8a34",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-11-09T19:50:38.656868Z",
+         *               "last_seen_at": "2026-11-11T20:42:52.278392Z",
          *               "lineage_id": null,
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "type": "Port",
-         *               "updated_at": "2026-11-09T19:50:38.656868Z",
-         *               "valid_from": "2026-11-09T19:50:38.656868Z",
+         *               "updated_at": "2026-11-11T20:42:52.278392Z",
+         *               "valid_from": "2026-11-11T20:42:52.278392Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -11579,7 +11610,7 @@ export interface components {
          *           "lineage_id": null,
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "IoT",
+         *           "service_definition": "Shell In A Box",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "source": {
          *             "type": "Manual"
@@ -12734,6 +12765,16 @@ export interface components {
              */
             number?: string | null;
         };
+        /**
+         * @description What an Issue's fix is about, which groups the Issues list, in display order.
+         * @enum {string}
+         */
+        IssueCategory: "Daemons" | "Credentials" | "Devices" | "Scans" | "Review";
+        /**
+         * @description What the Issues list sorts and groups by. Derived in Rust, so its `to_sql` is never read.
+         * @enum {string}
+         */
+        IssueOrderField: "category" | "type";
         Ixy: {
             /** @description Horizontal position, which may be negative. */
             x: number;
@@ -13961,6 +14002,34 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             })[];
+            /** @description Human-readable failure message. Omitted on success. */
+            error?: string | null;
+            /** @description API and server version metadata, plus pagination counters. */
+            meta: components["schemas"]["PaginatedApiMeta"];
+            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            success: boolean;
+        };
+        /** @description Response type for paginated list endpoints (pagination is always present in meta) */
+        PaginatedApiResponse_SetupListEntry: {
+            /** @description The page of results. Empty when nothing matched the query. */
+            data: {
+                /**
+                 * @description Whether the trial sweep reports the item once it stays open a day: an Issue, or a first
+                 *     step still Open.
+                 */
+                alerts_when_stuck: boolean;
+                item: components["schemas"]["SetupItem"];
+                /** @description The item's identity: the same item on the next load has the same key. */
+                key: components["schemas"]["SetupItemKey"];
+                /**
+                 * @description The sites the item is about, which the list can be narrowed to. Empty for an item about
+                 *     the whole org, which shows whatever sites are picked.
+                 */
+                site_ids: string[];
+                state: components["schemas"]["SetupItemState"];
+                /** @description The group of the list the item sits in. */
+                tier: components["schemas"]["SetupItemTier"];
+            }[];
             /** @description Human-readable failure message. Omitted on success. */
             error?: string | null;
             /** @description API and server version metadata, plus pagination counters. */
@@ -15253,19 +15322,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-11-09T19:50:38.658293Z",
+         *           "created_at": "2026-11-11T20:42:52.279579Z",
          *           "first_discovery_id": null,
-         *           "id": "bf26dfce-123c-46c5-b531-f43278a564d4",
+         *           "id": "bc313aa5-19ac-4f74-a804-65022838caaa",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-11-09T19:50:38.658293Z",
+         *           "last_seen_at": "2026-11-11T20:42:52.279579Z",
          *           "lineage_id": null,
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "type": "Port",
-         *           "updated_at": "2026-11-09T19:50:38.658293Z",
-         *           "valid_from": "2026-11-09T19:50:38.658293Z",
+         *           "updated_at": "2026-11-11T20:42:52.279579Z",
+         *           "valid_from": "2026-11-11T20:42:52.279579Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -15278,7 +15347,7 @@ export interface components {
          *       "lineage_id": null,
          *       "name": "nginx",
          *       "position": 0,
-         *       "service_definition": "IoT",
+         *       "service_definition": "Shell In A Box",
          *       "site_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "source": {
          *         "type": "Manual"
@@ -15534,17 +15603,27 @@ export interface components {
         } | {
             /**
              * Format: int64
-             * @description The unconfirmed hosts on the sites the user reads.
+             * @description The unconfirmed hosts on the site.
              */
             count: number;
+            /**
+             * Format: uuid
+             * @description The site the hosts are on.
+             */
+            site_id: string;
             /** @enum {string} */
             type: "UnconfirmedHosts";
         } | {
             /**
              * Format: int64
-             * @description The unconfirmed subnets on the sites the user reads.
+             * @description The unconfirmed subnets on the site.
              */
             count: number;
+            /**
+             * Format: uuid
+             * @description The site the subnets are on.
+             */
+            site_id: string;
             /** @enum {string} */
             type: "UnconfirmedSubnets";
         } | {
@@ -16706,7 +16785,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "5637ea37-4f33-4d75-95d8-db68f5bbdc91",
+             *           "id": "295a340c-c38d-45d1-b2c4-585139441c43",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -16716,23 +16795,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "c2ccf55f-b0ad-4e8a-8695-820396e1f87b",
+             *           "id": "fab10ace-f0b8-44bd-99a5-bee88832ba0a",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "89a60890-6f28-44c0-983f-885c4b794a17",
+             *           "id": "41ed7f40-8db9-4fa9-9283-21722c142899",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "df8343e4-f87c-4da8-8bad-a0efb4a448c1",
+             *           "id": "b3b4a9d3-9e65-43b5-809d-e868361cf671",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "c2ccf55f-b0ad-4e8a-8695-820396e1f87b",
+             *           "id": "fab10ace-f0b8-44bd-99a5-bee88832ba0a",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -16746,19 +16825,19 @@ export interface components {
              *     takes the rules for an organization with no stated use case.
              * @default [
              *       {
-             *         "id": "b0256ff6-9461-4df3-96b9-d0045421dc48",
+             *         "id": "04287e31-b88a-4a1c-ae73-60440d5ef4f7",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "f0fdec5c-fbfb-451b-87bb-138025e88690",
+             *         "id": "a24a56f5-3ff9-462a-ab94-24c3545a5368",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "06e109ab-a367-4629-8e7b-285e161611e7",
+             *         "id": "af7adcbe-31e5-411f-8342-1829985ae10e",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "5820d96f-7b8c-4cd9-83b4-165603e8bc87",
+             *         "id": "bd9c89ef-caf4-4993-b35d-4e24bbbafb94",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -16779,7 +16858,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "ac1d31aa-e849-482c-8706-303b6e5a12b7",
+             *         "id": "191a9fdb-e62c-4ef1-ba4d-b401cce554b9",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -16788,19 +16867,19 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "b0906390-008b-4294-bb10-3d7701d1464e",
+             *         "id": "3150d9ad-b31a-47b5-95ec-02a0566354de",
              *         "rule": "ByDeviceType"
              *       },
              *       {
-             *         "id": "6f40fe51-d1ca-4dda-bf6b-aa27965f64ab",
+             *         "id": "e74875cf-1ae2-41e9-ba9c-5152c4933a3d",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "e442a8cb-313a-465c-bd7c-7fd507f884ea",
+             *         "id": "926eee10-a751-47c4-bf42-2538b9425a4f",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "96e45ff6-f64f-49db-bb02-be8fc87cdd2e",
+             *         "id": "d5dc63bb-ef20-4c42-b434-68b429d935ca",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -20872,6 +20951,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_dashboard_issues: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Only Issues on one of these sites, plus the Issues about the whole organization. Repeat
+                 *     for several. Unset returns every site's.
+                 */
+                site_ids?: string[] | null;
+                /** @description Only Issues in one of these categories. Repeat for several. */
+                categories?: components["schemas"]["IssueCategory"][] | null;
+                /** @description Only Issues of one of these types. Repeat for several. */
+                types?: components["schemas"]["SetupItemDiscriminants"][] | null;
+                /** @description What the list is grouped by. */
+                group_by?: components["schemas"]["IssueOrderField"] | null;
+                /** @description What the list sorts by, inside its groups. */
+                order_by?: components["schemas"]["IssueOrderField"] | null;
+                /** @description Direction for `order_by` (`group_by` always sorts ascending). */
+                order_direction?: components["schemas"]["OrderDirection"] | null;
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issues */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedApiResponse_SetupListEntry"];
                 };
             };
         };
