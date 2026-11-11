@@ -705,6 +705,13 @@ impl CredentialService {
         withheld.extend(capability::retain_capable::<
             capability::UsesSnmpV3SecurityOptions,
         >(&(), &mut mappings_by_credential, daemon_version));
+        withheld.extend(
+            capability::retain_capable::<capability::UsesSnmpV3DesPrivacy>(
+                &(),
+                &mut mappings_by_credential,
+                daemon_version,
+            ),
+        );
         withheld.extend(capability::retain_capable::<
             capability::TargetsContainerBridgeWithCredentials,
         >(

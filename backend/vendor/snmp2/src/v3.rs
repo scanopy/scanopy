@@ -44,6 +44,36 @@ pub enum AuthErrorKind {
     SecurityNotProvided,
     SecurityNotReady,
     KeyExtensionRequired,
+    /// SCANOPY LOCAL PATCH (GH #846): the agent answered an encrypted request with a
+    /// `usmStatsDecryptionErrors` Report, so the privacy key is not the one it holds.
+    DecryptionError,
+}
+
+/// `usmStatsDecryptionErrors.0` (RFC 3414 §5).
+const USM_STATS_DECRYPTION_ERRORS: &[u64] = &[1, 3, 6, 1, 6, 3, 15, 1, 1, 6, 0];
+
+/// SCANOPY LOCAL PATCH (GH #846): whether the plaintext scoped PDU at `rdr` is a Report whose
+/// first varbind is `usmStatsDecryptionErrors`. Anything that does not parse as one is not.
+fn is_decryption_error_report(mut rdr: AsnReader<'_>) -> bool {
+    let mut first_counter = || -> Result<Option<Oid<'_>>> {
+        let mut scoped_pdu = AsnReader::from_bytes(rdr.read_raw(asn1::TYPE_SEQUENCE)?);
+        scoped_pdu.read_asn_octetstring()?; // contextEngineID
+        scoped_pdu.read_asn_octetstring()?; // contextName
+        let ident = scoped_pdu.peek_byte()?;
+        if MessageType::from_ident(ident)? != MessageType::Report {
+            return Ok(None);
+        }
+        let mut pdu = AsnReader::from_bytes(scoped_pdu.read_raw(ident)?);
+        pdu.read_asn_integer()?; // request-id
+        pdu.read_asn_integer()?; // error-status
+        pdu.read_asn_integer()?; // error-index
+        let mut varbinds = Varbinds::from_bytes(pdu.read_raw(asn1::TYPE_SEQUENCE)?);
+        Ok(varbinds.next().map(|(oid, _)| oid))
+    };
+    let Ok(expected) = Oid::from(USM_STATS_DECRYPTION_ERRORS) else {
+        return false;
+    };
+    matches!(first_counter(), Ok(Some(oid)) if oid == expected)
 }
 
 impl fmt::Display for AuthErrorKind {
@@ -65,6 +95,9 @@ impl fmt::Display for AuthErrorKind {
             AuthErrorKind::SecurityNotReady => write!(f, "Security parameters not ready"),
             AuthErrorKind::KeyExtensionRequired => {
                 write!(f, "Auth/Priv pair needs a key extension method")
+            }
+            AuthErrorKind::DecryptionError => {
+                write!(f, "The agent could not decrypt the request")
             }
         }
     }
@@ -1001,6 +1034,19 @@ impl<'a> Pdu<'a> {
         let auth_params_pos =
             bytes.len() - rdr.bytes_left() - auth_params.len() - security_rdr.bytes_left();
         let priv_params = security_rdr.read_asn_octetstring()?;
+
+        // SCANOPY LOCAL PATCH (GH #846): a plaintext Report naming usmStatsDecryptionErrors,
+        // once this side holds a privacy key, means the agent holds a different one. Read
+        // before the branches below, which report the same message as `NotAuthenticated` (the
+        // Report is unauthenticated), the error a wrong auth password gets. AES-256 under MD5
+        // or SHA-1 has two key derivations, and the caller needs to tell this failure apart
+        // to try the other. See vendor/snmp2/README.md.
+        if flags & V3_MSG_FLAGS_PRIVACY == 0
+            && security.need_encrypt()
+            && is_decryption_error_report(rdr.clone())
+        {
+            return Err(Error::AuthFailure(AuthErrorKind::DecryptionError));
+        }
 
         // Discovery process requires two steps, each involving a separate request and response pair:
         // - Authoritive engine ID acknowledgement

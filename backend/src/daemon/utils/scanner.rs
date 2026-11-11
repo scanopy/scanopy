@@ -759,8 +759,9 @@ pub async fn fetch_favicon_hashes(
 /// engine discovery / authentication" — and an operator with a mistyped password was sent to
 /// check whether the device was online.
 pub enum SnmpProbeOutcome {
-    /// Answered sysDescr on this port.
-    Answered(u16),
+    /// Answered sysDescr on this port, with the AES-256 key extension its session ended on
+    /// (`SnmpSession::key_extension`).
+    Answered(u16, Option<snmp2::v3::KeyExtension>),
     Failed(AttemptOutcome, String),
 }
 
@@ -792,6 +793,8 @@ pub async fn try_snmp_with_credential_on_port(
         credential,
         port,
         crate::daemon::discovery::integration::snmp::session::SnmpContext::Default,
+        // The first session to this host: nothing has said yet how it extends an AES-256 key.
+        None,
     )
     .await
     {
@@ -815,10 +818,11 @@ pub async fn try_snmp_with_credential_on_port(
         }
     };
 
+    let key_extension = session.key_extension();
     match timeout(Duration::from_millis(2000), session.get(&sys_descr_oid)).await {
         Ok(Ok(mut response)) => {
             if response.varbinds.next().is_some() {
-                SnmpProbeOutcome::Answered(port)
+                SnmpProbeOutcome::Answered(port, key_extension)
             } else {
                 SnmpProbeOutcome::Failed(
                     AttemptOutcome::NotThisService,

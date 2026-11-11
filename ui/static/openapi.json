@@ -49187,21 +49187,23 @@
         "description": "SNMPv3 USM privacy (encryption) protocol.",
         "enum": [
           "Aes128",
-          "Aes256"
+          "Aes256",
+          "Des"
         ]
       },
       "SnmpV3SecurityOption": {
         "type": "string",
-        "description": "One SNMPv3 option added after v3 first shipped (AuthPriv with SHA and AES only).",
+        "description": "One SNMPv3 option added after v3 first shipped (AuthPriv with SHA and AES only). The levels\nand MD5 need a daemon newer than 0.18.0, DES one newer than 0.19.6.",
         "enum": [
           "NoAuthNoPriv",
           "AuthNoPriv",
-          "Md5Auth"
+          "Md5Auth",
+          "DesPrivacy"
         ]
       },
       "SnmpV3SecurityOptionsGap": {
         "type": "object",
-        "description": "The SNMPv3 options a credential uses that daemons before 0.18.1 cannot parse.",
+        "description": "The SNMPv3 options a credential uses that the daemon is too old to parse.",
         "required": [
           "options"
         ],
@@ -49211,7 +49213,7 @@
             "items": {
               "$ref": "#/components/schemas/SnmpV3SecurityOption"
             },
-            "description": "The options the credential uses, each one a reason older daemons reject it."
+            "description": "The options the credential uses that this daemon rejects."
           }
         }
       },

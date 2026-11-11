@@ -764,7 +764,7 @@ mod community_version_fallback {
         let agent = UdpAgent::start(&sim::device(device)).await;
         probe_port(agent.ip(), &netdefault(), agent.port())
             .await
-            .map(|answered| answered.version)
+            .map(|answered| answered.credential.version)
     }
 
     /// The same credential reaches a device locked to v1 through the fallback, a device locked to

@@ -59,6 +59,32 @@ vm_host() {
 SSH_KEY="${SNMP_SSH_KEY:-$HOME/.ssh/snmp-test-vm}"
 REMOTE_DIR="/root/snmp-test"
 
+# The value after `-x` in a device's v3 client args, or nothing for a user without privacy.
+privacy_protocol() {
+    while [ $# -gt 1 ]; do
+        if [ "$1" = "-x" ]; then
+            echo "$2"
+            return
+        fi
+        shift
+    done
+}
+
+# Whether this machine's net-snmp client lacks a device's privacy protocol. AES-128 (`AES`) is in
+# every build. The AES-256 names (`AES-256`, and `AES-256-C` for the Reeder key Cisco uses) need
+# a build with --enable-blumenthal-aes, which Homebrew's is not, so a device using one cannot be
+# verified from a Mac. The check asks the client itself, against a port nothing answers: an
+# unknown name is refused before anything is sent.
+client_refuses_privacy() {
+    local protocol
+    protocol="$(privacy_protocol "$@")"
+    case "$protocol" in
+        "" | AES | DES) return 1 ;;
+    esac
+    "$SNMPGET" -v3 -u probe -l authPriv -a SHA -A probepass12345 -x "$protocol" -X probepass12345 \
+        -t 1 -r 0 127.0.0.1:9 sysName.0 2>&1 | grep -q "Invalid privacy protocol"
+}
+
 # Look a device up by sysName and echo its index into the parallel HOSTS/COMMUNITIES/VERSIONS
 # arrays. The fixture checks below used to hard-code those indices, which held right up until
 # GH #709 and #668 inserted three devices in the middle of the lab: every index past `.244`
@@ -181,6 +207,10 @@ verify_no_leaked_addresses() {
                 # Level, protocols and passwords come from the device's own credential (lab.env).
                 local v3args
                 read -ra v3args <<< "${V3_ARGS[$i]}"
+                # Reported as skipped by the sysName check above; nothing to compare here.
+                if client_refuses_privacy "${v3args[@]}"; then
+                    continue
+                fi
                 reported=$("$SNMPWALK" -v3 "${v3args[@]}" -t 2 -r 1 -Ovq "$host" 1.3.6.1.2.1.4.20.1.1 2>/dev/null || true)
                 ;;
             *)
@@ -276,6 +306,11 @@ cmd_verify() {
             v3)
                 local v3args
                 read -ra v3args <<< "${V3_ARGS[$i]}"
+                if client_refuses_privacy "${v3args[@]}"; then
+                    printf "  ${YELLOW}-${NC} %-18s  %-20s  skipped: %s has no %s\n" \
+                        "$host" "$expected" "$SNMPGET" "$(privacy_protocol "${v3args[@]}")"
+                    continue
+                fi
                 result=$("$SNMPGET" -v3 "${v3args[@]}" -t 2 -r 1 "$host" sysName.0 2>/dev/null | sed 's/.*= STRING: //' || echo "FAILED")
                 detail="v3 ${v3args[0]} ${v3args[1]} user=${V3_USERS[$i]}"
                 ;;

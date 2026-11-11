@@ -528,6 +528,46 @@ mod engine_time {
         );
     }
 
+    /// An unauthenticated Report from the engine, carrying one usmStats counter.
+    fn usm_report(counter: &[u64]) -> Vec<u8> {
+        let engine = v3::Security::new(b"", b"")
+            .with_auth(v3::Auth::NoAuthNoPriv)
+            .with_engine_id(ENGINE_ID)
+            .unwrap()
+            .with_engine_boots_and_time(1, 1000);
+        let oid = Oid::from(counter).unwrap();
+        let mut buf = pdu::Buf::default();
+        v3::build(
+            snmp::MSG_REPORT,
+            4242,
+            &[(&oid, Value::Counter32(1))],
+            0,
+            0,
+            &mut buf,
+            Some(&engine),
+        )
+        .unwrap();
+        buf.to_vec()
+    }
+
+    /// GH #846: an agent that cannot decrypt a request says so with usmStatsDecryptionErrors.
+    /// The Report is unauthenticated, as a wrong auth password's usmStatsWrongDigests is, and
+    /// only the counter tells the caller which key to doubt.
+    #[test]
+    fn a_decryption_error_report_is_told_apart_from_a_wrong_digest_report() {
+        let mut client = discovered_client(1, 1000);
+        assert_eq!(
+            parse(&mut client, &usm_report(&[1, 3, 6, 1, 6, 3, 15, 1, 1, 6, 0])),
+            Err(Error::AuthFailure(AuthErrorKind::DecryptionError))
+        );
+
+        let mut client = discovered_client(1, 1000);
+        assert_eq!(
+            parse(&mut client, &usm_report(&[1, 3, 6, 1, 6, 3, 15, 1, 1, 5, 0])),
+            Err(Error::AuthFailure(AuthErrorKind::NotAuthenticated))
+        );
+    }
+
     #[test]
     fn a_time_older_than_the_window_is_rejected() {
         let mut client = synced_client(3, 1000);

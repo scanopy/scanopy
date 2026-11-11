@@ -7,6 +7,11 @@
 //! required fields) or MD5 (unknown variant), and because the payload's tag is the familiar
 //! `Snmp`, `serde(other)` does not catch the error: it fails the whole request. Those credentials
 //! are withheld from it whole.
+//!
+//! DES privacy came later and fails the same way on every daemon up to 0.19.6 (unknown variant).
+//! A capability carries one release, so DES has its own, [`UsesSnmpV3DesPrivacy`]. Both report
+//! through the same gap, so a daemon is told only the options it is itself too old for: 0.18.0
+//! is told MD5 and DES, 0.19.0 is told DES.
 
 use super::DaemonCapability;
 use crate::server::credentials::r#impl::capability::{
@@ -14,13 +19,17 @@ use crate::server::credentials::r#impl::capability::{
 };
 use crate::server::credentials::r#impl::mapping::CredentialQueryPayload;
 use crate::server::credentials::r#impl::types::{
-    CredentialTypeDiscriminants, SnmpV3AuthProtocol, SnmpV3Security,
+    CredentialTypeDiscriminants, SnmpV3AuthProtocol, SnmpV3PrivProtocol, SnmpV3Security,
 };
 use crate::server::credentials::service::TypedCredentialMapping;
 use semver::Version;
 
-/// An SNMPv3 credential using a security level other than AuthPriv, or MD5 authentication.
+/// An SNMPv3 credential using anything a 0.18.0 daemon cannot parse: a security level other
+/// than AuthPriv, MD5 authentication, or DES privacy.
 pub(crate) struct UsesSnmpV3SecurityOptions;
+
+/// An SNMPv3 credential using DES privacy, which daemons up to 0.19.6 cannot parse.
+pub(crate) struct UsesSnmpV3DesPrivacy;
 
 impl From<SnmpV3SecurityOptionsGap> for CapabilityGap {
     fn from(gap: SnmpV3SecurityOptionsGap) -> Self {
@@ -40,8 +49,50 @@ fn options_of<S>(security: &SnmpV3Security<S>) -> Vec<SnmpV3SecurityOption> {
                 .chain(md5(auth_protocol))
                 .collect()
         }
-        SnmpV3Security::AuthPriv { auth_protocol, .. } => md5(auth_protocol).into_iter().collect(),
+        SnmpV3Security::AuthPriv {
+            auth_protocol,
+            priv_protocol,
+            ..
+        } => md5(auth_protocol)
+            .into_iter()
+            .chain(
+                matches!(priv_protocol, SnmpV3PrivProtocol::Des)
+                    .then_some(SnmpV3SecurityOption::DesPrivacy),
+            )
+            .collect(),
     }
+}
+
+/// Every option added after 0.18.0 that any payload of `credential` uses, each once.
+fn options_used(credential: &TypedCredentialMapping) -> Vec<SnmpV3SecurityOption> {
+    if credential.discriminant != CredentialTypeDiscriminants::SnmpV3 {
+        return Vec::new();
+    }
+    let mapping = &credential.mapping;
+    let mut options: Vec<SnmpV3SecurityOption> = Vec::new();
+    let payloads = mapping
+        .default_credential
+        .iter()
+        .chain(mapping.ip_overrides.iter().map(|o| &o.credential));
+    for payload in payloads {
+        if let CredentialQueryPayload::Snmp(query) = payload
+            && let Some(v3) = &query.v3
+        {
+            for option in options_of(&v3.security) {
+                if !options.contains(&option) {
+                    options.push(option);
+                }
+            }
+        }
+    }
+    options
+}
+
+/// The payload's tag is the familiar `Snmp`, so a daemon that cannot parse one option fails the
+/// whole request. The credential is withheld whole.
+fn withhold_whole(credential: &mut TypedCredentialMapping) {
+    credential.mapping.default_credential = None;
+    credential.mapping.ip_overrides.clear();
 }
 
 impl DaemonCapability for UsesSnmpV3SecurityOptions {
@@ -49,26 +100,7 @@ impl DaemonCapability for UsesSnmpV3SecurityOptions {
     type Gap = SnmpV3SecurityOptionsGap;
 
     fn gap(_: &(), credential: &TypedCredentialMapping) -> Option<Self::Gap> {
-        if credential.discriminant != CredentialTypeDiscriminants::SnmpV3 {
-            return None;
-        }
-        let mapping = &credential.mapping;
-        let mut options: Vec<SnmpV3SecurityOption> = Vec::new();
-        let payloads = mapping
-            .default_credential
-            .iter()
-            .chain(mapping.ip_overrides.iter().map(|o| &o.credential));
-        for payload in payloads {
-            if let CredentialQueryPayload::Snmp(query) = payload
-                && let Some(v3) = &query.v3
-            {
-                for option in options_of(&v3.security) {
-                    if !options.contains(&option) {
-                        options.push(option);
-                    }
-                }
-            }
-        }
+        let options = options_used(credential);
         (!options.is_empty()).then_some(SnmpV3SecurityOptionsGap { options })
     }
 
@@ -77,8 +109,31 @@ impl DaemonCapability for UsesSnmpV3SecurityOptions {
     }
 
     fn withhold(_: &Self::Gap, credential: &mut TypedCredentialMapping) {
-        credential.mapping.default_credential = None;
-        credential.mapping.ip_overrides.clear();
+        withhold_whole(credential);
+    }
+}
+
+impl DaemonCapability for UsesSnmpV3DesPrivacy {
+    type Context = ();
+    type Gap = SnmpV3SecurityOptionsGap;
+
+    /// DES alone: a daemon this capability reaches is newer than 0.18.0, or
+    /// [`UsesSnmpV3SecurityOptions`] would already have withheld the credential, so it has
+    /// every other option.
+    fn gap(_: &(), credential: &TypedCredentialMapping) -> Option<Self::Gap> {
+        options_used(credential)
+            .contains(&SnmpV3SecurityOption::DesPrivacy)
+            .then(|| SnmpV3SecurityOptionsGap {
+                options: vec![SnmpV3SecurityOption::DesPrivacy],
+            })
+    }
+
+    fn last_without(_: &Self::Gap) -> Version {
+        Version::new(0, 19, 6)
+    }
+
+    fn withhold(_: &Self::Gap, credential: &mut TypedCredentialMapping) {
+        withhold_whole(credential);
     }
 }
 
@@ -130,7 +185,11 @@ mod tests {
             SnmpV3AuthProtocol::Sha1,
             SnmpV3AuthProtocol::Sha256,
         ];
-        let privs = [SnmpV3PrivProtocol::Aes128, SnmpV3PrivProtocol::Aes256];
+        let privs = [
+            SnmpV3PrivProtocol::Aes128,
+            SnmpV3PrivProtocol::Aes256,
+            SnmpV3PrivProtocol::Des,
+        ];
         let mut all = vec![SnmpV3Security::NoAuthNoPriv];
         for auth_protocol in auths {
             all.push(SnmpV3Security::AuthNoPriv {
@@ -190,6 +249,66 @@ mod tests {
                 }
             );
         }
+    }
+
+    /// DES is the one option a daemon between 0.18.1 and 0.19.6 lacks. It is withheld from that
+    /// daemon with a warning naming DES alone, whatever else the credential uses, and sent to a
+    /// newer one. A credential without DES is not this capability's business at any version.
+    #[test]
+    fn des_is_withheld_from_a_daemon_up_to_0_19_6_and_named_alone() {
+        use crate::daemon::discovery::types::warnings::DiscoveryWarning;
+        use crate::server::credentials::service::capability::retain_capable;
+        use std::collections::BTreeMap;
+        use uuid::Uuid;
+
+        let with_priv = |auth_protocol, priv_protocol| SnmpV3Security::AuthPriv {
+            auth_protocol,
+            auth_password: secret(),
+            priv_protocol,
+            priv_password: secret(),
+        };
+        let des = Uuid::new_v4();
+        let aes = Uuid::new_v4();
+        let mappings = || {
+            BTreeMap::from([
+                (
+                    des,
+                    mapping_for(with_priv(SnmpV3AuthProtocol::Md5, SnmpV3PrivProtocol::Des)).0,
+                ),
+                (
+                    aes,
+                    mapping_for(with_priv(
+                        SnmpV3AuthProtocol::Md5,
+                        SnmpV3PrivProtocol::Aes256,
+                    ))
+                    .0,
+                ),
+            ])
+        };
+
+        let mut sent = mappings();
+        let warnings =
+            retain_capable::<UsesSnmpV3DesPrivacy>(&(), &mut sent, Some(&Version::new(0, 19, 6)));
+        assert_eq!(sent.keys().collect::<Vec<_>>(), vec![&aes]);
+        match warnings.as_slice() {
+            [
+                DiscoveryWarning::CredentialNeedsNewerDaemon {
+                    credential_id,
+                    gap: CapabilityGap::UsesSnmpV3SecurityOptions(gap),
+                    ..
+                },
+            ] => {
+                assert_eq!(*credential_id, Some(des));
+                assert_eq!(gap.options, vec![SnmpV3SecurityOption::DesPrivacy]);
+            }
+            other => panic!("expected one warning for the DES credential, got {other:?}"),
+        }
+
+        let mut sent = mappings();
+        let warnings =
+            retain_capable::<UsesSnmpV3DesPrivacy>(&(), &mut sent, Some(&Version::new(0, 19, 7)));
+        assert_eq!(sent.len(), 2);
+        assert!(warnings.is_empty());
     }
 
     #[test]

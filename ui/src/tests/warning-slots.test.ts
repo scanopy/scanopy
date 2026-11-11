@@ -107,7 +107,7 @@ describe('discovery warning rendering', () => {
 			{ type: 'ParsesCredentialType' },
 			{
 				type: 'UsesSnmpV3SecurityOptions',
-				details: { options: ['NoAuthNoPriv', 'AuthNoPriv', 'Md5Auth'] }
+				details: { options: ['NoAuthNoPriv', 'AuthNoPriv', 'Md5Auth', 'DesPrivacy'] }
 			},
 			{ type: 'TargetsContainerBridgeWithCredentials', details: { addresses: ['172.17.0.3'] } }
 		];

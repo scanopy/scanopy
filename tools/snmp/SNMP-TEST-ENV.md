@@ -72,6 +72,8 @@ exactly this reason: the lab has been renumbered before and will be again.
 | 192.168.7.229 | switch-silent-01 | v2c | community `netdefault` |
 | 192.168.7.230 | switch-generr-01 | v2c | community `netdefault` |
 | 192.168.7.231 | switch-bulkdrop-01 | v2c | community `netdefault` |
+| 192.168.7.232 | secure-switch-05 | v3 | user `scanopyreeder` |
+| 192.168.7.233 | secure-switch-06 | v3 | user `scanopydes` |
 <!-- END GENERATED DEVICE TABLE -->
 
 **LLDP local-port remap (`.238`/`.239`).** ExtremeXOS reports its `lldpRemTable` local-port index as an `lldpLocPortNum` (1..N) that is a **separate namespace from `ifIndex`** (switch-exos-01 uses ifIndex 1001+, ifName `1:N`), so neighbours only resolve if the daemon walks `lldpLocPortTable` (`1.0.8802.1.1.2.1.3.7`) and suffix-matches `lldpLocPortId` against `ifName`. Before the Issue 2 fix, switch-exos-01 yields **zero** LLDP neighbours. Extreme VOSS (switch-voss-01) reports local-port == ifIndex with `lldpLocPortId` matching `ifName` exactly, so it stays correct on both old and new code — the regression guard for the fix.
@@ -632,7 +634,7 @@ The three version-locked hosts use net-snmp VACM/USM so the other protocol versi
 - **switch-access-01 (v2c only):** VACM grants access only via the v2c security model, so the same credential reaches it over v2c and v1 is denied.
 - **secure-switch-01 (v3 only):** USM user `scanopyv3`, AuthPriv, **SHA-256 / AES-128**, auth password `authpass12345`, priv password `privpass12345`. No `rocommunity`, so v1/v2c are denied.
 
-> **AES-256 note:** the v3 host uses AES-128, which stock Debian/Ubuntu net-snmp supports out of the box. AES-256 (`createUser … AES-256`) requires net-snmp built with Blumenthal AES (`--enable-blumenthal-aes`); change `createUser`/the verify command in `lxc/setup.sh` only if your build supports it.
+> **AES-256 note:** `secure-switch-05` (GH #846) is the one AES-256 device: SHA-1 auth, and a privacy key extended the Reeder way, as Cisco IOS `aes 256` does. Its generated `createUser` line uses net-snmp's `AES-256-C`; plain `AES-256` is the Blumenthal extension. Both names need net-snmp built with `--enable-blumenthal-aes`. The VM's Ubuntu package (5.9.4) is; Homebrew's is not, so `make snmp-verify` from a Mac reports that device as skipped. To read it by hand, use a client built with it: `snmpget -v3 -l authPriv -u scanopyreeder -a SHA -A reederauthpass12345 -x AES-256-C -X reederprivpass12345 <address> sysName.0`.
 
 ## Credentials
 

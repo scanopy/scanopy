@@ -15955,15 +15955,16 @@ export interface components {
          * @description SNMPv3 USM privacy (encryption) protocol.
          * @enum {string}
          */
-        SnmpV3PrivProtocol: "Aes128" | "Aes256";
+        SnmpV3PrivProtocol: "Aes128" | "Aes256" | "Des";
         /**
-         * @description One SNMPv3 option added after v3 first shipped (AuthPriv with SHA and AES only).
+         * @description One SNMPv3 option added after v3 first shipped (AuthPriv with SHA and AES only). The levels
+         *     and MD5 need a daemon newer than 0.18.0, DES one newer than 0.19.6.
          * @enum {string}
          */
-        SnmpV3SecurityOption: "NoAuthNoPriv" | "AuthNoPriv" | "Md5Auth";
-        /** @description The SNMPv3 options a credential uses that daemons before 0.18.1 cannot parse. */
+        SnmpV3SecurityOption: "NoAuthNoPriv" | "AuthNoPriv" | "Md5Auth" | "DesPrivacy";
+        /** @description The SNMPv3 options a credential uses that the daemon is too old to parse. */
         SnmpV3SecurityOptionsGap: {
-            /** @description The options the credential uses, each one a reason older daemons reject it. */
+            /** @description The options the credential uses that this daemon rejects. */
             options: components["schemas"]["SnmpV3SecurityOption"][];
         };
         /**
