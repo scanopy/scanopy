@@ -782,7 +782,7 @@ impl EntityMetadataProvider for SetupItemTier {
     fn icon(&self) -> Icon {
         match self {
             Self::Issue => Icon::CircleAlert,
-            Self::Setup => Icon::CircleArrowRight,
+            Self::Setup => Icon::Rocket,
         }
     }
 }
